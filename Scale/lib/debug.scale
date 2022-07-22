@@ -1,0 +1,4 @@
+// debug.scale
+native dumpstack
+native trace
+native crash

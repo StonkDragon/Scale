@@ -276,6 +276,28 @@ public:
                             }
                             fp << "/* " << body[i].getValue() << " */";
                             fp << std::endl;
+                        } else if (body[i].getType() == tok_number_float) {
+                            double num;
+                            try
+                            {
+                                num = std::stold(body[i].getValue());
+                                lstart = fp.tellp();
+                                fp << "scale_push_double(" << num << ");";
+                                pos = fp.tellp();
+                                for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                                    fp << " ";
+                                }
+                                fp << "/* " << body[i].getValue() << " */" << std::endl;
+                            }
+                            catch(const std::exception& e)
+                            {
+                                std::cerr << "Number out of range: " << body[i].getValue() << std::endl;
+                                ParseResult result;
+                                result.success = false;
+                                return result;
+                            }
+                        } else {
+                            std::cerr << "Unknown token: " << body[i].getValue() << std::endl;
                         }
                     }
                 }
@@ -296,6 +318,11 @@ public:
         fp << "    for (int i = argc; i > 1; i--) {" << std::endl;
         fp << "        scale_push_string(argv[i]);" << std::endl;
         fp << "    }" << std::endl;
+        fp << "    signal(SIGABRT, process_signal);" << std::endl;
+        fp << "    signal(SIGILL, process_signal);" << std::endl;
+        fp << "    signal(SIGFPE, process_signal);" << std::endl;
+        fp << "    signal(SIGSEGV, process_signal);" << std::endl;
+        fp << "    signal(SIGTERM, process_signal);" << std::endl;
         fp << "    scale_native_main();" << std::endl;
         fp << "    return scale_pop_int();" << std::endl;
         fp << "}" << std::endl;

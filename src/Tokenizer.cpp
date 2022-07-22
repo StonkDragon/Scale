@@ -34,6 +34,7 @@ enum TokenType {
 
     tok_identifier,     // foo
     tok_number,         // 123
+    tok_number_float,   // 123.456
     tok_string_literal, // "foo"
     tok_illegal
 };
@@ -121,12 +122,23 @@ Token Tokenizer::nextToken() {
             current++;
             c = source[current];
         }
-    } else if (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c)) {
-        while (!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c))) {
+    } else if (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || c == '.') {
+        bool isFloat = false;
+        if (c == '.') {
+            isFloat = true;
+        }
+        while (!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c)) || c == '.') {
             value += c;
+            if (c == '.') {
+                isFloat = true;
+            }
             c = source[++current];
         }
-        return Token(tok_number, value);
+        if (isFloat) {
+            return Token(tok_number_float, value);
+        } else {
+            return Token(tok_number, value);
+        }
     } else if (c == '"') {
         c = source[++current];
         while (c != '"' && c != '\n' && c != '\r' && c != '\0') {

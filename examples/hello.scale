@@ -1,5 +1,6 @@
 using "stdlib.scale"
 
 function main()
-  "Hello, World!" putstr
+  "Hello> " printf
+  read printf
 end

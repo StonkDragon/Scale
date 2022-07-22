@@ -1,11 +1,9 @@
-// BEGIN STANDARD LIBRARY
-// START NATIVES
-native trace
+// stdlib.scale
 native printf
 native read
-native tochars
 native exit
 native sleep
+native eval
 native getproperty
 
 native dup
@@ -14,9 +12,7 @@ native swap
 native drop
 native getstack
 native sizeof_stack
-
-native concat
-native strstarts
+native sizeof
 
 native add
 native sub
@@ -34,12 +30,17 @@ native and
 native not
 native or
 
-native crash
-native eval
+native sprintf
+native strlen
+native tochars
+native strcmp
+native strncmp
+native concat
+native strstarts
 
-// FUNCTIONS
 function scale_version() "2.0" end
 function putstr()        printf "\n" printf drop end
+function putint()        "%d\n" sprintf printf end
 function clearstack()    while sizeof_stack 0 more do drop done end
 function swap2()         over swap over end
 function sdup2()         swap dup swap2 end
