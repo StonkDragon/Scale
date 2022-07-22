@@ -1,0 +1,48 @@
+// BEGIN STANDARD LIBRARY
+// START NATIVES
+native trace
+native printf
+native read
+native tochars
+native exit
+native sleep
+native getproperty
+
+native dup
+native over
+native swap
+native drop
+native getstack
+native sizeof_stack
+
+native concat
+native strstarts
+
+native add
+native sub
+native mul
+native div
+native mod
+native lshift
+native rshift
+native random
+
+native less
+native more
+native equal
+native and
+native not
+native or
+
+native crash
+native eval
+
+// FUNCTIONS
+function scale_version() "2.0" end
+function putstr()        printf "\n" printf drop end
+function clearstack()    while sizeof_stack 0 more do drop done end
+function swap2()         over swap over end
+function sdup2()         swap dup swap2 end
+function throwerr()      "\n" swap concat putstr 1 exit end
+function nop()           0 sleep end
+function ignore_args()   clearstack end

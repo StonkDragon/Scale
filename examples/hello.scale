@@ -1,0 +1,5 @@
+using "stdlib.scale"
+
+function main()
+  "Hello, World!" putstr
+end

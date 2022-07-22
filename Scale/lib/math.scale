@@ -1,0 +1,18 @@
+using "stdlib.scale"
+
+// MATH
+native add
+native sub
+native mul
+native div
+native mod
+native lshift
+native rshift
+native random
+
+// DEFAULT
+function iseven()       2 mod 0 equal return end
+function inc()          1 add end
+function dec()          1 sub end
+function ispowof()      sdup2 0 equal if drop drop "Number is zero" throwerr else mod 0 equal fi end
+function lrandom()      random swap mod end

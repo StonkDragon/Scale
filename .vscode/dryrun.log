@@ -1,0 +1,7 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory `/Users/paul/Desktop/Rasm'
+clear
+cp -r Scale ${HOME}
+clang++ -std=gnu++20 -o ${HOME}/Scale/bin/sclc src/Main.cpp
+make: Leaving directory `/Users/paul/Desktop/Rasm'
+ 
