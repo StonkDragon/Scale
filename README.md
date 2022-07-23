@@ -33,6 +33,7 @@ make install
   The following dependencies are required to use Scale:
 
 - git
+- make
 - clang
 
 ## Argument Notation
