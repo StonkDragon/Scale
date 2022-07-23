@@ -44,6 +44,7 @@
 *.idb
 *.pdb
 test.txt
+.vscode/*
 
 # Kernel Module Compile Results
 *.mod*
