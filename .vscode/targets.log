@@ -8,7 +8,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This program built for i386-apple-darwin11.3.0
  
 
-# Make data base, printed on Sat Jul 23 19:38:52 2022
+# Make data base, printed on Sat Jul 23 20:36:01 2022
 
 # Variables
 
@@ -93,6 +93,9 @@ XPC_FLAGS = 0x0
 # environment
 SDKMAN_VERSION = 5.15.0
 # default
+ 
+make: *** No rule to make target `all'.  Stop.
+
 MAKE = $(MAKE_COMMAND)
 # default
 MAKECMDGOALS := all
@@ -197,7 +200,7 @@ all:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-23 19:38:41
+#  Last modified 2022-07-23 20:16:14
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -235,8 +238,6 @@ install:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Sat Jul 23 19:38:52 2022
+# Finished Make data base on Sat Jul 23 20:36:01 2022
 
  
-make: *** No rule to make target `all'.  Stop.
-

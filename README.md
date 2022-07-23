@@ -28,6 +28,13 @@ make install
 
   [On Linux](https://www.cyberciti.biz/faq/how-to-add-to-bash-path-permanently-on-linux/): `/home/<your username>/Scale/bin`
 
+## Dependencies
+
+  The following dependencies are required to use Scale:
+
+- git
+- clang
+
 ## Argument Notation
 ```
 arg3 arg2 arg1 function
