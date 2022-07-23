@@ -10,7 +10,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 make: *** No rule to make target `all'.  Stop.
 
 
-# Make data base, printed on Fri Jul 22 17:33:59 2022
+# Make data base, printed on Sat Jul 23 13:02:27 2022
 
 # Variables
 
@@ -65,7 +65,7 @@ DISPLAY = /private/tmp/com.apple.launchd.pmydJ0qLEb/org.xquartz:0
 # environment
 TTY = not a tty
 # environment
-FIG_PID = 18412
+FIG_PID = 53961
 # environment
 PWD = /Users/paul/Desktop/Rasm
 # environment
@@ -158,10 +158,11 @@ LC_ALL = C
 SUFFIXES := 
 # environment
 MAKELEVEL := 0
+ 
 # environment
 LANG = C
 # environment
-VSCODE_PID = 18403
+VSCODE_PID = 53953
 # variable set hash-table stats:
 # Load=74/1024=7%, Rehash=0, Collisions=1/97=1%
 
@@ -171,9 +172,9 @@ VSCODE_PID = 18403
 
 # Directories
 
-# . (device 16777234, inode 17328008): 8 files, no impossibilities.
+# . (device 16777234, inode 17328008): 12 files, no impossibilities.
 
-# 8 files, no impossibilities in 1 directories.
+# 12 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -199,7 +200,7 @@ all:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-22 17:33:52
+#  Last modified 2022-07-23 12:38:42
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -215,7 +216,7 @@ hello-example:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
-#  commands to execute (from `Makefile', line 7):
+#  commands to execute (from `Makefile', line 8):
 	sclc examples/hello.scale
 	./examples/hello.scl
 	
@@ -227,6 +228,7 @@ install:
 #  commands to execute (from `Makefile', line 2):
 	clear
 	cp -r Scale $${HOME}
+	mkdir -p $${HOME}/Scale/bin
 	clang++ -std=gnu++20 -o $${HOME}/Scale/bin/sclc src/Main.cpp
 	
 
@@ -243,6 +245,6 @@ install:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Fri Jul 22 17:33:59 2022
+# Finished Make data base on Sat Jul 23 13:02:27 2022
 
  

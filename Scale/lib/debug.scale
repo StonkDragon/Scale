@@ -1,4 +1,6 @@
 // debug.scale
-native dumpstack
-native trace
-native crash
+extern dumpstack
+extern trace
+extern crash
+extern raise
+extern abort

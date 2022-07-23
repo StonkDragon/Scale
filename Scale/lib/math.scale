@@ -1,26 +1,15 @@
 // math.scale
 using "stdlib.scale"
 
-native add
-native sub
-native mul
-native div
+extern dadd
+extern dsub
+extern dmul
+extern ddiv
 
-native dadd
-native dsub
-native dmul
-native ddiv
-
-native dtoi
-native itod
-
-native mod
-native lshift
-native rshift
-native random
+extern dtoi
+extern itod
 
 function iseven()       2 mod 0 equal return end
 function inc()          1 add end
 function dec()          1 sub end
-function ispowof()      sdup2 0 equal if drop drop "Number is zero" throwerr else mod 0 equal fi end
 function lrandom()      random swap mod end

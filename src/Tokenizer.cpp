@@ -5,39 +5,9 @@
 #include <string.h>
 #include <vector>
 
-#define TYPE(x) if (value == #x) return Token(tok_##x, value)
-#define TYPES(x, y) if (value == x) return Token(tok_##y, value)
+#include "Common.h"
 
-enum TokenType {
-    tok_eof,
-
-    // commands
-    tok_return,         // return
-    tok_function,       // function
-    tok_end,            // end
-    tok_true,           // true
-    tok_false,          // false
-    tok_nil,            // nil
-    tok_if,             // if
-    tok_else,           // else
-    tok_fi,             // fi
-    tok_while,          // while
-    tok_do,             // do
-    tok_done,           // done
-    tok_extern,         // extern
-    tok_sizeof,         // sizeof
-    tok_macro,          // macro
-    tok_using,          // using
-
-    // operators
-    tok_hash,           // #
-
-    tok_identifier,     // foo
-    tok_number,         // 123
-    tok_number_float,   // 123.456
-    tok_string_literal, // "foo"
-    tok_illegal
-};
+#include "Lexer.cpp"
 
 static int isCharacter(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
@@ -74,36 +44,6 @@ static int isOctDigit(char c) {
 static int isBinDigit(char c) {
     return c == '0' || c == '1' || c == 'b' || c == 'B';
 }
-
-struct Token
-{
-    TokenType type;
-    std::string value;
-    std::string toString() {
-        return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
-    }
-    Token(TokenType type, std::string value) : type(type), value(value) {}
-    std::string getValue() {
-        return value;
-    }
-    TokenType getType() {
-        return type;
-    }
-};
-
-class Tokenizer
-{
-    std::vector<Token> tokens;
-    char* source;
-    size_t current;
-public:
-    Tokenizer() {current = 0;}
-    ~Tokenizer() {}
-    void tokenize(std::string source);
-    std::vector<Token> getTokens();
-    Token nextToken();
-    void printTokens();
-};
 
 std::vector<Token> Tokenizer::getTokens() {
     return this->tokens;
@@ -150,6 +90,9 @@ Token Tokenizer::nextToken() {
     } else if (c == '#') {
         value += c;
         c = source[++current];
+    } else if (c == '&') {
+        value += c;
+        c = source[++current];
     }
 
     // Not a known token, so probably a space character
@@ -162,7 +105,7 @@ Token Tokenizer::nextToken() {
     TYPES("using", using);
     TYPES("function", function);
     TYPES("end", end);
-    TYPES("native", extern);
+    TYPES("extern", extern);
     TYPES("while", while);
     TYPES("else", else);
     TYPES("do", do);
@@ -172,6 +115,7 @@ Token Tokenizer::nextToken() {
     TYPES("return", return);
     
     TYPES("#", hash);
+    TYPES("&", addr_ref);
 
     if (current >= strlen(source)) {
         return Token(tok_eof, "");
@@ -180,44 +124,76 @@ Token Tokenizer::nextToken() {
 }
 
 void Tokenizer::tokenize(std::string source) {
-    FILE *fp = fopen(source.c_str(), "r");
+    std::vector<std::string> usings;
 
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
+    usings.push_back(source);
 
-    char *buffer = new char[size + 1];
+    FILE *fp;
+
     std::string data = "";
 
-    // read the file line by line
-    while (fgets(buffer, size + 1, fp) != NULL) {
-        // skip if comment
-        if (buffer[0] == '/') {
-            if (buffer[1] == '/') {
-                continue;
-            }
+    for (int i = 0; i < usings.size(); i++) {
+        std::string file = usings[i];
+
+        if (!fileExists(file)) {
+            file = std::string(getenv("HOME")) + "/Scale/lib/" + file;
         }
-        // remove trailing newline
-        if (buffer[strlen(buffer) - 1] == '\n') {
-            buffer[strlen(buffer) - 1] = '\0';
+        fp = fopen(file.c_str(), "r");
+        if (fp == NULL) {
+            printf("Error: Could not open file %s\n", file.c_str());
+            exit(1);
         }
-        // remove mid line comments
-        char *c = buffer;
-        while (*c != '\0') {
-            if (*c == '/') {
-                if (c[1] == '/') {
-                    *c = '\0';
-                    break;
+
+        fseek(fp, 0, SEEK_END);
+        int size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        char *buffer = new char[size + 1];
+
+        while (fgets(buffer, size + 1, fp) != NULL) {
+            // skip if comment
+            if (buffer[0] == '/') {
+                if (buffer[1] == '/') {
+                    continue;
                 }
             }
-            c++;
-        }
-        // add to data
-        data += buffer;
-        data += "\n";
-    }
+            // remove trailing newline
+            if (buffer[strlen(buffer) - 1] == '\n') {
+                buffer[strlen(buffer) - 1] = '\0';
+            }
+            // remove mid line comments
+            char *c = buffer;
+            while (*c != '\0') {
+                if (*c == '/') {
+                    if (c[1] == '/') {
+                        *c = '\0';
+                        break;
+                    }
+                }
+                c++;
+            }
 
-    fclose(fp);
+            if (strncmp(buffer, "using", 5) == 0) {
+                std::string file = "";
+                char c;
+                int i = 5;
+                while ((c = buffer[i]) != '"') i++;
+                i++;
+                while ((c = buffer[i]) != '"') {
+                    file += c;
+                    i++;
+                }
+                usings.push_back(file);
+                continue;
+            }
+
+            // add to data
+            data += buffer;
+            data += "\n";
+        }
+
+        fclose(fp);
+    }
 
     this->source = (char*) data.c_str();
 

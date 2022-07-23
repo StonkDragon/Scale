@@ -1,44 +1,43 @@
 // stdlib.scale
-native printf
-native read
-native exit
-native sleep
-native eval
-native getproperty
+extern printf
+extern read
+extern exit
+extern sleep
+extern eval
+extern getproperty
 
-native dup
-native over
-native swap
-native drop
-native getstack
-native sizeof_stack
-native sizeof
+extern dup
+extern over
+extern swap
+extern drop
+extern getstack
+extern sizeof_stack
+extern sizeof
 
-native add
-native sub
-native mul
-native div
-native mod
-native lshift
-native rshift
-native random
+extern add
+extern sub
+extern mul
+extern div
+extern mod
+extern lshift
+extern rshift
+extern random
 
-native less
-native more
-native equal
-native and
-native not
-native or
+extern less
+extern more
+extern equal
+extern and
+extern not
+extern or
 
-native sprintf
-native strlen
-native tochars
-native strcmp
-native strncmp
-native concat
-native strstarts
+extern sprintf
+extern strlen
+extern tochars
+extern strcmp
+extern strncmp
+extern concat
+extern strstarts
 
-function scale_version() "2.0" end
 function putstr()        printf "\n" printf drop end
 function putint()        "%d\n" sprintf printf end
 function clearstack()    while sizeof_stack 0 more do drop done end
@@ -46,4 +45,3 @@ function swap2()         over swap over end
 function sdup2()         swap dup swap2 end
 function throwerr()      "\n" swap concat putstr 1 exit end
 function nop()           0 sleep end
-function ignore_args()   clearstack end

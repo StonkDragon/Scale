@@ -1,12 +1,33 @@
+#ifndef MAIN_CPP_
+#define MAIN_CPP_
+
 #include <iostream>
 #include <string>
+#include <signal.h>
+#include <errno.h>
+
+#include "Common.h"
 
 #include "Tokenizer.cpp"
 #include "Lexer.cpp"
 #include "Parser.cpp"
 
+void signalHandler(int signum)
+{
+    std::cout << "Signal " << signum << " received." << std::endl;
+    std::cout << "Error: " << strerror(errno) << std::endl;
+    exit(signum);
+}
+
 int main(int argc, char const *argv[])
 {
+    signal(SIGSEGV, signalHandler);
+    signal(SIGABRT, signalHandler);
+    signal(SIGILL, signalHandler);
+    signal(SIGFPE, signalHandler);
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+    signal(SIGQUIT, signalHandler);
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <filename>" << std::endl;
         return 1;
@@ -14,23 +35,31 @@ int main(int argc, char const *argv[])
     std::string filename = argv[1];
 
     Tokenizer tokenizer;
-    tokenizer.tokenize(filename);
-    std::vector<Token> tokens = tokenizer.getTokens();
+    MAIN.tokenizer = &tokenizer;
+    MAIN.tokenizer->tokenize(filename);
+    std::vector<Token> tokens = MAIN.tokenizer->getTokens();
 
-    Lexer lexer(tokens);
-    AnalyzeResult result = lexer.lexAnalyze();
+    Lexer lexer(tokens, filename);
+    MAIN.lexer = &lexer;
+    AnalyzeResult result = MAIN.lexer->lexAnalyze();
 
     Parser parser(result);
-    ParseResult parseResult = parser.parse(filename);
+    MAIN.parser = &parser;
+    ParseResult parseResult = MAIN.parser->parse(filename);
+
+    if (!parseResult.success) {
+        std::cout << "Parse error" << std::endl;
+        return 1;
+    }
 
     std::string outfile = filename.substr(0, filename.size() - 6) + ".scl";
     std::string cmd = "gcc -o " + outfile + " " + filename + ".c ";
     for (int i = 2; i < argc; i++) {
         cmd += std::string(argv[i]) + " ";
     }
-    system(cmd.c_str());
+    int ret = system(cmd.c_str());
 
-    if (parseResult.success) {
+    if (ret == 0) {
         std::cout << "Success!" << std::endl;
     } else {
         std::cout << "Error!" << std::endl;
@@ -39,3 +68,5 @@ int main(int argc, char const *argv[])
 
     return 0;
 }
+
+#endif

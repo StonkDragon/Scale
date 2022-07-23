@@ -1,6 +1,7 @@
 install:
 	clear
 	cp -r Scale $${HOME}
+	mkdir -p $${HOME}/Scale/bin
 	clang++ -std=gnu++20 -o $${HOME}/Scale/bin/sclc src/Main.cpp
 
 hello-example:

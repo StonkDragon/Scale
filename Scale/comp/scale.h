@@ -1,65 +1,79 @@
 #ifndef SCALE_H
 #define SCALE_H
 
-void scale_push_string(char* c);
-void scale_push_int(int n);
-void scale_push_long(long long n);
+#include <stdio.h>
+
+#define scall(func)  scale_func_##func()
+#define sfunc_head(func) void scale_func_##func()
+
 void scale_push(void* n);
+void scale_push_string(const char* c);
+void scale_push_long(long long n);
+
+void* scale_pop();
 char* scale_pop_string();
 long long scale_pop_long();
-long long scale_pop_int();
 
-int scale_extern_trace();
-int scale_extern_printf();
-int scale_extern_read();
-int scale_extern_tochars();
-int scale_extern_exit();
-int scale_extern_sleep();
-int scale_extern_getproperty();
-int scale_extern_less();
-int scale_extern_more();
-int scale_extern_equal();
-int scale_extern_dup();
-int scale_extern_over();
-int scale_extern_swap();
-int scale_extern_drop();
-int scale_extern_sizeof_stack();
-int scale_extern_concat();
-int scale_extern_strstarts();
-int scale_extern_add();
-int scale_extern_sub();
-int scale_extern_mul();
-int scale_extern_div();
-int scale_extern_mod();
-int scale_extern_lshift();
-int scale_extern_rshift();
-int scale_extern_random();
-int scale_extern_crash();
-int scale_extern_and();
-int scale_extern_eval();
-int scale_extern_getstack();
-int scale_extern_not();
-int scale_extern_or();
+void scale_extern_trace();
+void scale_extern_dumpstack();
+void scale_extern_printf();
+void scale_extern_read();
+void scale_extern_tochars();
+void scale_extern_exit();
+void scale_extern_sleep();
+void scale_extern_getproperty();
+void scale_extern_less();
+void scale_extern_more();
+void scale_extern_equal();
+void scale_extern_dup();
+void scale_extern_over();
+void scale_extern_swap();
+void scale_extern_drop();
+void scale_extern_sizeof_stack();
+void scale_extern_concat();
+void scale_extern_strstarts();
+void scale_extern_add();
+void scale_extern_sub();
+void scale_extern_mul();
+void scale_extern_div();
+void scale_extern_dadd();
+void scale_extern_dsub();
+void scale_extern_dmul();
+void scale_extern_ddiv();
+void scale_extern_dtoi();
+void scale_extern_itod();
+void scale_extern_mod();
+void scale_extern_lshift();
+void scale_extern_rshift();
+void scale_extern_random();
+void scale_extern_crash();
+void scale_extern_and();
+void scale_extern_eval();
+void scale_extern_getstack();
+void scale_extern_not();
+void scale_extern_or();
+void scale_extern_sprintf();
+void scale_extern_strlen();
+void scale_extern_strcmp();
+void scale_extern_strncmp();
+void scale_extern_fprintf();
+void scale_extern_fopen();
+void scale_extern_fclose();
+void scale_extern_fread();
+void scale_extern_fseekstart();
+void scale_extern_fseekend();
+void scale_extern_fseekcur();
+void scale_extern_ftell();
+void scale_extern_fwrite();
+void scale_extern_fgetc();
+void scale_extern_fputc();
+void scale_extern_fgets();
+void scale_extern_fputs();
+void scale_extern_fgetpos();
+void scale_extern_fsetpos();
 
-int scale_extern_sprintf();
-int scale_extern_strlen();
-int scale_extern_strcmp();
-int scale_extern_strncmp();
-
-int scale_extern_fprintf();
-int scale_extern_fopen();
-int scale_extern_fclose();
-int scale_extern_fread();
-int scale_extern_fseekstart();
-int scale_extern_fseekend();
-int scale_extern_fseekcur();
-int scale_extern_ftell();
-int scale_extern_fwrite();
-int scale_extern_fgetc();
-int scale_extern_fputc();
-int scale_extern_fgets();
-int scale_extern_fputs();
-int scale_extern_fgetpos();
-int scale_extern_fsetpos();
+void scale_extern_sizeof();
+void scale_extern_raise();
+void scale_extern_abort();
 
 #endif // SCALE_H
