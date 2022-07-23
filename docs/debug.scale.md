@@ -2,10 +2,12 @@
 ## dumpstack
 
 Arguments:
-    none
+
+- none
 
 Description:
-    Prints the stack to stdout.
+
+  Prints the stack to stdout.
 
 Stack Changes:
     
@@ -14,10 +16,12 @@ Stack Changes:
 ## trace
 
 Arguments:
-    none
+
+- none
 
 Description:
-    Prints the callstack to stdout.
+
+  Prints the callstack to stdout.
 
 Stack Changes:
     
@@ -26,10 +30,12 @@ Stack Changes:
 ## crash
 
 Arguments:
-    none
+
+- none
 
 Description:
-    Crashes the program with exit code 1.
+
+  Crashes the program with exit code 1.
 
 Stack Changes:
         
@@ -39,10 +45,12 @@ Stack Changes:
 ## raise
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Raises the signal arg1.
+
+  Raises the signal arg1.
 
 Stack Changes:
     
@@ -55,10 +63,12 @@ Stack Changes:
 ## abort
 
 Arguments:
-    none
+
+- none
 
 Description:
-    Raises the signal SIGABRT.
+
+  Raises the signal SIGABRT.
 
 Stack Changes:
     

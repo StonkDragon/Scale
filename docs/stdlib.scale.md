@@ -2,10 +2,12 @@
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Prints the string to the console.
+
+  Prints the string to the console.
 
 
 Stack Changes:
@@ -22,10 +24,12 @@ After:
 - Native Function
 
 Arguments:
+
     none
 
 Description:
-    Reads a line of text from the console.
+
+  Reads a line of text from the console.
 
 
 Stack Changes:
@@ -38,10 +42,12 @@ Stack Changes:
 - Native Function
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Exits the program with the given exit code.
+
+  Exits the program with the given exit code.
 
 
 Stack Changes:
@@ -58,10 +64,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Sleeps for the given number of milliseconds.
+
+  Sleeps for the given number of milliseconds.
 
 
 Stack Changes:
@@ -78,10 +86,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Executes the given system command.
+
+  Executes the given system command.
 
 
 Stack Changes:
@@ -98,10 +108,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Gets the value of the given system property.
+
+  Gets the value of the given system property.
 
 
 Stack Changes:
@@ -118,10 +130,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: any
+
+- arg1: any
 
 Description:
-    Duplicates the given value on the stack.
+
+  Duplicates the given value on the stack.
 
 
 Stack Changes:
@@ -138,12 +152,16 @@ After:
 - Native Function
 
 Arguments:
-    arg1: any
-    arg2: any
-    arg3: any
+
+- arg1: any
+    
+- arg2: any
+    
+- arg3: any
 
 Description:
-    Swaps the values of arg1 and arg3 on the stack.
+
+  Swaps the values of arg1 and arg3 on the stack.
 
 
 Stack Changes:
@@ -160,11 +178,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: any
-    arg2: any
+
+- arg1: any
+    
+- arg2: any
 
 Description:
-    Swaps the values of arg1 and arg2 on the stack.
+
+  Swaps the values of arg1 and arg2 on the stack.
 
 
 Stack Changes:
@@ -181,10 +202,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: any
+
+- arg1: any
 
 Description:
-    Drops the given value from the stack.
+
+  Drops the given value from the stack.
 
 
 Stack Changes:
@@ -201,10 +224,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Gets the value at the given stack index.
+
+  Gets the value at the given stack index.
 
 
 Stack Changes:
@@ -221,10 +246,12 @@ After:
 - Native Function
 
 Arguments:
+
     none
 
 Description:
-    Pushes the size of the stack onto the stack.
+
+  Pushes the size of the stack onto the stack.
 
 
 Stack Changes:
@@ -237,10 +264,12 @@ Stack Changes:
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Pushes the size of the type specified by the string onto the stack.
+
+  Pushes the size of the type specified by the string onto the stack.
 
 
 Stack Changes:
@@ -257,11 +286,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Adds the two integers and pushes the result onto the stack.
+
+  Adds the two integers and pushes the result onto the stack.
 
 
 Stack Changes:
@@ -278,11 +310,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Subtracts arg2 from arg1 and pushes the result onto the stack.
+
+  Subtracts arg2 from arg1 and pushes the result onto the stack.
 
 
 Stack Changes:
@@ -299,11 +334,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Multiplies the two integers and pushes the result onto the stack.
+
+  Multiplies the two integers and pushes the result onto the stack.
 
 
 Stack Changes:
@@ -320,11 +358,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Divides arg1 by the second and pushes the result onto the stack.
+
+  Divides arg1 by the second and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -340,11 +381,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Divides arg1 by the second and pushes the remainder onto the stack.
+
+  Divides arg1 by the second and pushes the remainder onto the stack.
 
 Stack Changes:
 
@@ -360,11 +404,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Shifts arg1 left by the second and pushes the result onto the stack.
+
+  Shifts arg1 left by the second and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -380,11 +427,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Shifts arg1 right by the second and pushes the result onto the stack.
+
+  Shifts arg1 right by the second and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -400,10 +450,12 @@ After:
 - Native Function
 
 Arguments:
+
     none
 
 Description:
-    Pushes a random integer onto the stack.
+
+  Pushes a random integer onto the stack.
 
 Stack Changes:
 
@@ -419,11 +471,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Pushes a 1 if arg2 is less than arg1 onto the stack.
+
+  Pushes a 1 if arg2 is less than arg1 onto the stack.
 
 Stack Changes:
 
@@ -439,11 +494,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Pushes a 1 if arg2 is more than arg1 onto the stack.
+
+  Pushes a 1 if arg2 is more than arg1 onto the stack.
 
 Stack Changes:
 
@@ -459,11 +517,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Pushes a 1 if arg2 is equal to arg1 onto the stack.
+
+  Pushes a 1 if arg2 is equal to arg1 onto the stack.
 
 Stack Changes:
 
@@ -479,11 +540,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Pushes 1 if both arg1 and arg2 are 1 onto the stack.
+
+  Pushes 1 if both arg1 and arg2 are 1 onto the stack.
 
 Stack Changes:
 
@@ -499,10 +563,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Pushes 1 if arg1 is 0 onto the stack.
+
+  Pushes 1 if arg1 is 0 onto the stack.
 
 Stack Changes:
 
@@ -518,11 +584,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: integer
-    arg2: integer
+
+- arg1: integer
+    
+- arg2: integer
 
 Description:
-    Pushes 1 if either arg1 or arg2 is 1 onto the stack.
+
+  Pushes 1 if either arg1 or arg2 is 1 onto the stack.
 
 Stack Changes:
 
@@ -538,11 +607,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
-    arg2: string
+
+- arg1: string
+    
+- arg2: string
 
 Description:
-    Pushes a formatted string onto the stack, where arg1 contains the format string and arg2 contains the value to format.
+
+  Pushes a formatted string onto the stack, where arg1 contains the format string and arg2 contains the value to format.
 
 Stack Changes:
 
@@ -558,10 +630,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Pushes the length of the string onto the stack.
+
+  Pushes the length of the string onto the stack.
 
 Stack Changes:
 
@@ -577,10 +651,12 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Pushes the string as a list of characters onto the stack.
+
+  Pushes the string as a list of characters onto the stack.
 
 Stack Changes:
 
@@ -596,11 +672,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
-    arg2: string
+
+- arg1: string
+    
+- arg2: string
 
 Description:
-    Pushes a 1 if arg1 is equal to arg2 onto the stack.
+
+  Pushes a 1 if arg1 is equal to arg2 onto the stack.
 
 Stack Changes:
 
@@ -616,12 +695,16 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
-    arg2: string
-    arg3: integer
+
+- arg1: string
+    
+- arg2: string
+    
+- arg3: integer
 
 Description:
-    Pushes a 1 if arg1 is equal to arg2 onto the stack.
+
+  Pushes a 1 if arg1 is equal to arg2 onto the stack.
 
 Stack Changes:
 
@@ -637,11 +720,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
-    arg2: string
+
+- arg1: string
+    
+- arg2: string
 
 Description:
-    Pushes the concatenation of arg1 and arg2 onto the stack.
+
+  Pushes the concatenation of arg1 and arg2 onto the stack.
 
 Stack Changes:
 
@@ -657,11 +743,14 @@ After:
 - Native Function
 
 Arguments:
-    arg1: string
-    arg2: string
+
+- arg1: string
+    
+- arg2: string
 
 Description:
-    Pushes a 1 if arg1 starts with arg2 onto the stack.
+
+  Pushes a 1 if arg1 starts with arg2 onto the stack.
 
 Stack Changes:
 
@@ -676,10 +765,12 @@ After:
 ## putstr
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Prints the string and a newline "\n" to the screen.
+
+  Prints the string and a newline "\n" to the screen.
 
 Stack Changes:
 
@@ -694,10 +785,12 @@ After:
 ## putint
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Prints the integer and a newline "\n" to the screen.
+
+  Prints the integer and a newline "\n" to the screen.
 
 Stack Changes:
 
@@ -712,10 +805,12 @@ After:
 ## clearstack
 
 Arguments:
+
     none
 
 Description:
-    Clears the stack.
+
+  Clears the stack.
 
 Stack Changes:
 
@@ -730,12 +825,16 @@ After:
 ## swap2
 
 Arguments:
-    arg1: any
-    arg2: any
-    arg3: any
+
+- arg1: any
+    
+- arg2: any
+    
+- arg3: any
 
 Description:
-    Swaps the values of arg2 and arg3.
+
+  Swaps the values of arg2 and arg3.
 
 Stack Changes:
     
@@ -750,11 +849,14 @@ After:
 ## sdup2
 
 Arguments:
-    arg1: any
-    arg2: any
+
+- arg1: any
+    
+- arg2: any
 
 Description:
-    Duplicates the value of arg2.
+
+  Duplicates the value of arg2.
 
 Stack Changes:
     
@@ -769,10 +871,12 @@ After:
 ## throwerr
 
 Arguments:
-    arg1: string
+
+- arg1: string
 
 Description:
-    Throws an error with the string and exits the program with exit code 1.
+
+  Throws an error with the string and exits the program with exit code 1.
 
 Stack Changes:
 
@@ -787,10 +891,12 @@ After:
 ## nop
 
 Arguments:
+
     none
 
 Description:
-    Does nothing.
+
+  Does nothing.
 
 Stack Changes:
     

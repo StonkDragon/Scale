@@ -1,11 +1,14 @@
 ## fprintf
 
 Arguments:
-    arg1: file
-    arg2: string
+
+- arg1: file
+    
+- arg2: string
 
 Description:
-    Prints the string to the file.
+
+  Prints the string to the file.
 
 Stack Changes:
 
@@ -18,11 +21,14 @@ Stack Changes:
 ## fopen
 
 Arguments:
-    arg1: string
-    arg2: string
+
+- arg1: string
+    
+- arg2: string
 
 Description:
-    Opens the file with the name arg2 and mode arg1.
+
+  Opens the file with the name arg2 and mode arg1.
 
 Stack Changes:
     
@@ -35,10 +41,12 @@ Stack Changes:
 ## fclose
 
 Arguments:
-    arg1: file
+
+- arg1: file
 
 Description:
-    Closes the file.
+
+  Closes the file.
 
 Stack Changes:
     
@@ -51,11 +59,14 @@ Stack Changes:
 ## fread
 
 Arguments:
-    arg1: integer
-    arg2: file
+
+- arg1: integer
+    
+- arg2: file
 
 Description:
-    Reads arg1 bytes from the file and pushes the result onto the stack.
+
+  Reads arg1 bytes from the file and pushes the result onto the stack.
 
 Stack Changes:
     
@@ -68,11 +79,14 @@ Stack Changes:
 ## fseekstart
 
 Arguments:
-    arg1: integer
-    arg2: file
+
+- arg1: integer
+    
+- arg2: file
 
 Description:
-    Moves the file pointer to offset arg1 from the start of the file.
+
+  Moves the file pointer to offset arg1 from the start of the file.
 
 Stack Changes:
     
@@ -85,11 +99,14 @@ Stack Changes:
 ## fseekend
 
 Arguments:
-    arg1: integer
-    arg2: file
+
+- arg1: integer
+    
+- arg2: file
 
 Description:
-    Moves the file pointer to offset arg1 from the end of the file.
+
+  Moves the file pointer to offset arg1 from the end of the file.
 
 Stack Changes:
 
@@ -102,11 +119,14 @@ Stack Changes:
 ## fseekcur
 
 Arguments:
-    arg1: integer
-    arg2: file
+
+- arg1: integer
+    
+- arg2: file
 
 Description:
-    Moves the file pointer to offset arg1 from the current position.
+
+  Moves the file pointer to offset arg1 from the current position.
 
 Stack Changes:
     
@@ -119,10 +139,12 @@ Stack Changes:
 ## ftell
 
 Arguments:
-    arg1: file
+
+- arg1: file
 
 Description:
-    Pushes the current position of the file onto the stack.
+
+  Pushes the current position of the file onto the stack.
 
 Stack Changes:
 
@@ -135,12 +157,16 @@ Stack Changes:
 ## fwrite
 
 Arguments:
-    arg1: string
-    arg2: integer
-    arg3: file
+
+- arg1: string
+    
+- arg2: integer
+    
+- arg3: file
 
 Description:
-    Writes arg2 bytes from arg1 to the file.
+
+  Writes arg2 bytes from arg1 to the file.
 
 Stack Changes:
 

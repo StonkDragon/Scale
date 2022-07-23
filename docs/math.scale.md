@@ -1,11 +1,14 @@
 ## dadd
 
 Arguments:
-    arg1: float
-    arg2: float
+
+- arg1: float
+    
+- arg2: float
 
 Description:
-    Pushes the sum of arg1 and arg2 onto the stack.
+
+  Pushes the sum of arg1 and arg2 onto the stack.
 
 Stack Changes:
     
@@ -18,11 +21,14 @@ Stack Changes:
 ## dsub
 
 Arguments:
-    arg1: float
-    arg2: float
+
+- arg1: float
+    
+- arg2: float
 
 Description:
-    Subtracts arg2 from arg1 and pushes the result onto the stack.
+
+  Subtracts arg2 from arg1 and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -35,11 +41,14 @@ Stack Changes:
 ## dmul
 
 Arguments:
-    arg1: float
-    arg2: float
+
+- arg1: float
+    
+- arg2: float
 
 Description:
-    Multiplies arg1 and arg2 and pushes the result onto the stack.
+
+  Multiplies arg1 and arg2 and pushes the result onto the stack.
 
 Stack Changes:
         
@@ -52,11 +61,14 @@ Stack Changes:
 ## ddiv
 
 Arguments:
-    arg1: float
-    arg2: float
+
+- arg1: float
+    
+- arg2: float
 
 Description:
-    Divides arg1 by arg2 and pushes the result onto the stack.
+
+  Divides arg1 by arg2 and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -69,10 +81,12 @@ Stack Changes:
 ## dtoi
 
 Arguments:
-    arg1: float
+
+- arg1: float
 
 Description:
-    Casts arg1 to an integer and pushes the result onto the stack.
+
+  Casts arg1 to an integer and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -85,10 +99,12 @@ Stack Changes:
 ## itod
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Casts arg1 to a float and pushes the result onto the stack.
+
+  Casts arg1 to a float and pushes the result onto the stack.
 
 Stack Changes:
  
@@ -101,10 +117,12 @@ Stack Changes:
 ## iseven
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Pushes a 1 if arg1 is even onto the stack.
+
+  Pushes a 1 if arg1 is even onto the stack.
 
 Stack Changes:
     
@@ -117,10 +135,12 @@ Stack Changes:
 ## inc
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Increments arg1 and pushes the result onto the stack.
+
+  Increments arg1 and pushes the result onto the stack.
 
 Stack Changes:
     
@@ -133,10 +153,12 @@ Stack Changes:
 ## dec
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Decrements arg1 and pushes the result onto the stack.
+
+  Decrements arg1 and pushes the result onto the stack.
 
 Stack Changes:
 
@@ -149,10 +171,12 @@ Stack Changes:
 ## lrandom
 
 Arguments:
-    arg1: integer
+
+- arg1: integer
 
 Description:
-    Pushes a random integer between 0 and arg1-1 onto the stack.
+
+  Pushes a random integer between 0 and arg1-1 onto the stack.
 
 Stack Changes:
 
