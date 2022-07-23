@@ -6,6 +6,8 @@
 /* Macro for function headers of custom Scale Functions */
 #define sfunc_head(func) void scale_func_##func()
 
+void scale_load_at(const char* key);
+void scale_store_at(const char* key);
 void stacktrace_push(char* ptr);
 void stacktrace_pop();
 void stacktrace_print();

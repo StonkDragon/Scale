@@ -37,6 +37,29 @@ void stacktrace_push(char* ptr) {
 	trace.data[trace.ptr++] = ptr;
 }
 
+void scale_load_at(const char* key) {
+	char* env_key = (char*) malloc(strlen(key) + 6);
+	strcpy(env_key, "SCLENV");
+	strcat(env_key, key);
+	char* value = getenv(env_key);
+	free(env_key);
+	long long n = 0;
+	if (value) {
+		n = atoll(value);
+	}
+	scale_push_long(n);
+}
+
+void scale_store_at(const char* key) {
+	char* env_key = (char*) malloc(strlen(key) + 6);
+	strcpy(env_key, "SCLENV");
+	strcat(env_key, key);
+	long long value = scale_pop_long();
+	char* fmt = (char*) malloc(20);
+	sprintf(fmt, "%lld", value);
+	setenv(env_key, fmt, 1);
+}
+
 void stacktrace_pop() {
 	trace.ptr--;
 }

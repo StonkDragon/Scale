@@ -263,11 +263,34 @@ ParseResult Parser::parse(std::string filename) {
                         }
                         fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
                         i++;
-                    } else {
-                        std::cerr << "Unknown token: " << body[i].getValue() << std::endl;
-                        ParseResult parseResult;
-                        parseResult.success = false;
-                        return parseResult;
+                    } else if (body[i].getType() == tok_dollar) {
+                        std::cout << "Debug Store\n";
+                        if (body[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                        }
+                        std::string storeIn = body[i + 1].getValue();
+                        lstart = fp.tellp();
+                        fp << "scale_store_at(\"" << storeIn << "\");";
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
+                        i++;
+                    } else if (body[i].getType() == tok_star) {
+                        std::cout << "Debug Load\n";
+                        if (body[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                        }
+                        std::string loadFrom = body[i + 1].getValue();
+                        lstart = fp.tellp();
+                        fp << "scale_load_at(\"" << loadFrom << "\");";
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
+                        i++;
                     }
                 }
             }

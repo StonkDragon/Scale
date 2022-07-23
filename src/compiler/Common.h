@@ -32,6 +32,8 @@ enum TokenType {
     // operators
     tok_hash,           // #
     tok_addr_ref,       // &
+    tok_star,           // *
+    tok_dollar,         // $
 
     tok_identifier,     // foo
     tok_number,         // 123

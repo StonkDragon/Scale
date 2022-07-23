@@ -38,12 +38,57 @@ make install
 - make
 - clang
 
+# Documentation
+
+## Operators
+
+  The following operators are supported:
+
+  - `>`: Store Variable
+  - `*`: Load Variable
+  - `&`: Load Pointer
+
+### >
+
+  The `>` operator stores the value on top of the stack into the variable with the identifier on the right.
+
+Usage:
+
+```
+"Hello, World!" >var
+```
+Result: The Variable `var` now holds a pointer to the string `"Hello, World!"`.
+
+### *
+
+  The `*` operator loads the value from the variable with the identifier on the right into the stack.
+
+  Usage:
+
+  ```
+  *var
+  ```
+
+  Result: The value of the Variable `var` is pushed onto the stack. (In this case, a pointer to the string `"Hello, World!"`.)
+
+### &
+
+  The `&` operator pushes the address of the identifier on the right onto the stack. This is useful for getting function pointers.
+
+  Usage:
+
+  ```
+  &func
+  ```
+
+  Result: The address of the function `func` is pushed onto the stack.
+
 ## Argument Notation
 ```
 arg3 arg2 arg1 function
 ```
 
-# Documentation
+## Standard Library
 
 - [stdlib.scale](./docs/stdlib.scale.md)
 

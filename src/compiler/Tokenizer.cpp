@@ -93,6 +93,12 @@ Token Tokenizer::nextToken() {
     } else if (c == '&') {
         value += c;
         c = source[++current];
+    } else if (c == '*') {
+        value += c;
+        c = source[++current];
+    } else if (c == '=') {
+        value += c;
+        c = source[++current];
     }
 
     // Not a known token, so probably a space character
@@ -116,6 +122,8 @@ Token Tokenizer::nextToken() {
     
     TYPES("#", hash);
     TYPES("&", addr_ref);
+    TYPES("*", star);
+    TYPES("=", dollar);
 
     if (current >= strlen(source)) {
         return Token(tok_eof, "");
