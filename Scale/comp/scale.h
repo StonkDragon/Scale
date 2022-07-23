@@ -1,9 +1,9 @@
 #ifndef SCALE_H
 #define SCALE_H
 
-#include <stdio.h>
-
+/* Macro for calling Scale functions */
 #define scall(func)  scale_func_##func()
+/* Macro for function headers of custom Scale Functions */
 #define sfunc_head(func) void scale_func_##func()
 
 void stacktrace_push(char* ptr);
