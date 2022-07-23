@@ -20,6 +20,8 @@ make install
 
   The `make install` command will build the compiler and the Scale library.
 
+  The Scale compiler executable is located in `$HOME/Scale/bin/sclc`.
+
   After building you have to add the following path to your PATH environment variable in order to use the compiler:
 
   [On Windows](https://docs.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)#to-add-a-path-to-the-path-environment-variable): `C:/Users/<your username>/Scale/bin`
