@@ -1,0 +1,10 @@
+using "stdlib.scale"
+using "math.scale"
+using "debug.scale"
+
+function main()
+  0
+  while dup 10 less do
+    inc dup putint drop
+  done
+end

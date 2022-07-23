@@ -192,6 +192,7 @@ public:
 class Tokenizer
 {
     std::vector<Token> tokens;
+    std::vector<std::string> usings;
     char* source;
     size_t current;
 public:
@@ -201,6 +202,7 @@ public:
     std::vector<Token> getTokens();
     Token nextToken();
     void printTokens();
+    void addUsing(std::string name);
 };
 
 typedef struct Main

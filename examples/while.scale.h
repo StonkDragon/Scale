@@ -12,6 +12,10 @@ void scale_func_swap2();
 void scale_func_sdup2();
 void scale_func_throwerr();
 void scale_func_nop();
+void scale_func_iseven();
+void scale_func_inc();
+void scale_func_dec();
+void scale_func_lrandom();
 #endif
 
 #ifdef __cplusplus

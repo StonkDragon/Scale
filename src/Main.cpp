@@ -53,10 +53,12 @@ int main(int argc, char const *argv[])
     }
 
     std::string outfile = filename.substr(0, filename.size() - 6) + ".scl";
-    std::string cmd = "gcc -o " + outfile + " " + filename + ".c ";
+    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
+    std::string cmd = "gcc " + lib + " -o " + outfile + " " + filename + ".c ";
     for (int i = 2; i < argc; i++) {
         cmd += std::string(argv[i]) + " ";
     }
+    std::cout << cmd << std::endl;
     int ret = system(cmd.c_str());
 
     if (ret == 0) {

@@ -6,15 +6,18 @@
 #define scall(func)  scale_func_##func()
 #define sfunc_head(func) void scale_func_##func()
 
-void scale_push(void* n);
+void stacktrace_push(char* ptr);
+void stacktrace_pop();
+void stacktrace_print();
+void scale_extern_trace();
 void scale_push_string(const char* c);
 void scale_push_long(long long n);
-
-void* scale_pop();
-char* scale_pop_string();
+void scale_push_double(double n);
 long long scale_pop_long();
-
-void scale_extern_trace();
+double scale_pop_double();
+void scale_push(void* n);
+char* scale_pop_string();
+void* scale_pop();
 void scale_extern_dumpstack();
 void scale_extern_printf();
 void scale_extern_read();
@@ -65,13 +68,6 @@ void scale_extern_fseekend();
 void scale_extern_fseekcur();
 void scale_extern_ftell();
 void scale_extern_fwrite();
-void scale_extern_fgetc();
-void scale_extern_fputc();
-void scale_extern_fgets();
-void scale_extern_fputs();
-void scale_extern_fgetpos();
-void scale_extern_fsetpos();
-
 void scale_extern_sizeof();
 void scale_extern_raise();
 void scale_extern_abort();

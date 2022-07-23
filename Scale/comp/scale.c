@@ -1,5 +1,5 @@
-#ifndef _SCALE_VERSION
-#define _SCALE_VERSION "2.0"
+#ifndef SCALE
+#define SCALE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,9 +9,6 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
-
-#ifndef SCALE
-#define SCALE
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -48,7 +45,7 @@ void stacktrace_print() {
 	printf("Stacktrace:\n");
 	for (int i = trace.ptr - 1; i >= 0; i--) {
 		char* frame = (char*) trace.data[i];
-		printf("    %s\n", frame);
+		printf("    %s()\n", frame);
 	}
 	printf("\n");
 }
@@ -56,49 +53,35 @@ void stacktrace_print() {
 void process_signal(int sig_num)
 {
 	char* signalString;
-	if (sig_num == SIGHUP) signalString = "Hangup";
-	else if (sig_num == SIGINT) signalString = "Interrupt";
-	else if (sig_num == SIGQUIT) signalString = "Quit";
+	if (sig_num == SIGHUP) signalString = "Terminal Disconnected";
+	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
+	else if (sig_num == SIGQUIT) signalString = "Software termination. Core dumped";
 	else if (sig_num == SIGILL) signalString = "Illegal instruction";
-	else if (sig_num == SIGTRAP) signalString = "Trace trap";
-	else if (sig_num == SIGABRT) signalString = "abort()";
-	#if (defined(_POSIX_C_SOURCE) && !defined(_DARWIN_C_SOURCE))
-	else if (sig_num == SIGPOLL) signalString = "Pollable event ([XSR] generated, not supported)";
-	#else
-	else if (sig_num == SIGIOT) signalString = "Compatibility";
-	else if (sig_num == SIGEMT) signalString = "EMT instruction";
-	#endif
+	else if (sig_num == SIGTRAP) signalString = "Execution trap";
+	else if (sig_num == SIGABRT) signalString = "abort() called";
 	else if (sig_num == SIGFPE) signalString = "Floating point exception";
-	else if (sig_num == SIGKILL) signalString = "Kill";
-	else if (sig_num == SIGBUS) signalString = "Bus error";
-	else if (sig_num == SIGSEGV) signalString = "Segmentation violation";
+	else if (sig_num == SIGKILL) signalString = "Process Terminated";
+	else if (sig_num == SIGBUS) signalString = "Invalid Hardware/Bus Address";
+	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
 	else if (sig_num == SIGSYS) signalString = "Bad argument to system call";
-	else if (sig_num == SIGPIPE) signalString = "Write on unused pipe";
-	else if (sig_num == SIGALRM) signalString = "Alarm clock";
+	else if (sig_num == SIGPIPE) signalString = "Write on closed pipe";
+	else if (sig_num == SIGALRM) signalString = "Alarm timeout";
 	else if (sig_num == SIGTERM) signalString = "Software termination";
 	else if (sig_num == SIGURG) signalString = "Urgent condition on IO channel";
-	else if (sig_num == SIGSTOP) signalString = "Stop signal";
-	else if (sig_num == SIGTSTP) signalString = "Stop signal from tty";
-	else if (sig_num == SIGCONT) signalString = "Continue";
+	else if (sig_num == SIGSTOP) signalString = "Pause execution";
+	else if (sig_num == SIGTSTP) signalString = "Stop signal from tty (^Z)";
+	else if (sig_num == SIGCONT) signalString = "Continue execution";
 	else if (sig_num == SIGCHLD) signalString = "Child stop or exit";
 	else if (sig_num == SIGTTIN) signalString = "Background tty read";
 	else if (sig_num == SIGTTOU) signalString = "Background tty write";
-	#if (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))
-	else if (sig_num == SIGIO) signalString = "Input/output signal";
-	#endif
 	else if (sig_num == SIGXCPU) signalString = "Exceeded CPU time limit";
 	else if (sig_num == SIGXFSZ) signalString = "Exceeded file size limit";
-	else if (sig_num == SIGVTALRM) signalString = "Virtual time alarm";
-	else if (sig_num == SIGPROF) signalString = "Profiling time alarm";
-	#if  (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))
-	else if (sig_num == SIGWINCH) signalString = "Window size changes";
-	else if (sig_num == SIGINFO) signalString = "Information request";
-	#endif
 	else if (sig_num == SIGUSR1) signalString = "User defined signal 1";
 	else if (sig_num == SIGUSR2) signalString = "User defined signal 2";
 	else signalString = "Unknown signal";
 
-	printf("Received signal '%s' (%d)\n", signalString, sig_num);
+	printf("\n%s\n\n", signalString);
+
 	stacktrace_print();
 	exit(sig_num);
 }
@@ -521,51 +504,36 @@ int main(int argc, char const *argv[])
 	for (int i = 1; i < argc; i++) {
 		scale_push_string(argv[i]);
 	}
-	signal(SIGHUP, process_signal);       	/* hangup */
-	signal(SIGINT, process_signal);       	/* interrupt */
-	signal(SIGQUIT, process_signal);       	/* quit */
-	signal(SIGILL, process_signal);       	/* illegal instruction (not reset when caught) */
-	signal(SIGTRAP, process_signal);       	/* trace trap (not reset when caught) */
-	signal(SIGABRT, process_signal);      	/* abort() */
-	#if  (defined(_POSIX_C_SOURCE) && !defined(_DARWIN_C_SOURCE))
-	signal(SIGPOLL, process_signal);       	/* pollable event ([XSR] generated, not supported) */
-	#else   /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
-	signal(SIGIOT, process_signal); 		/* compatibility */
-	signal(SIGEMT, process_signal);       	/* EMT instruction */
-	#endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
-	signal(SIGFPE, process_signal);       	/* floating point exception */
-	signal(SIGKILL, process_signal);       	/* kill (cannot be caught or ignored) */
-	signal(SIGBUS, process_signal);      	/* bus error */
-	signal(SIGSEGV, process_signal);      	/* segmentation violation */
-	signal(SIGSYS, process_signal);      	/* bad argument to system call */
-	signal(SIGPIPE, process_signal);      	/* write on a pipe with no one to read it */
-	signal(SIGALRM, process_signal);      	/* alarm clock */
-	signal(SIGTERM, process_signal);      	/* software termination signal from kill */
-	signal(SIGURG, process_signal);      	/* urgent condition on IO channel */
-	signal(SIGSTOP, process_signal);      	/* sendable stop signal not from tty */
-	signal(SIGTSTP, process_signal);      	/* stop signal from tty */
-	signal(SIGCONT, process_signal);      	/* continue a stopped process */
-	signal(SIGCHLD, process_signal);      	/* to parent on child stop or exit */
-	signal(SIGTTIN, process_signal);      	/* to readers pgrp upon background tty read */
-	signal(SIGTTOU, process_signal);      	/* like TTIN for output if (tp->t_local&LTOSTOP) */
-	#if  (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))
-	signal(SIGIO, process_signal);      	/* input/output possible signal */
-	#endif
-	signal(SIGXCPU, process_signal);      	/* exceeded CPU time limit */
-	signal(SIGXFSZ, process_signal);      	/* exceeded file size limit */
-	signal(SIGVTALRM, process_signal);    	/* virtual time alarm */
-	signal(SIGPROF, process_signal);      	/* profiling time alarm */
-#if  (!defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE))
-	signal(SIGWINCH, process_signal);     	/* window size changes */
-	signal(SIGINFO, process_signal);      	/* information request */
-#endif
-	signal(SIGUSR1, process_signal);      /* user defined signal 1 */
-	signal(SIGUSR2, process_signal);      /* user defined signal 2 */
+
+	signal(SIGHUP, process_signal);
+	signal(SIGINT, process_signal);
+	signal(SIGQUIT, process_signal);
+	signal(SIGILL, process_signal);
+	signal(SIGTRAP, process_signal);
+	signal(SIGABRT, process_signal);
+	signal(SIGFPE, process_signal);
+	signal(SIGKILL, process_signal);
+	signal(SIGBUS, process_signal);
+	signal(SIGSEGV, process_signal);
+	signal(SIGSYS, process_signal);
+	signal(SIGPIPE, process_signal);
+	signal(SIGALRM, process_signal);
+	signal(SIGTERM, process_signal);
+	signal(SIGURG, process_signal);
+	signal(SIGSTOP, process_signal);
+	signal(SIGTSTP, process_signal);
+	signal(SIGCONT, process_signal);
+	signal(SIGCHLD, process_signal);
+	signal(SIGTTIN, process_signal);
+	signal(SIGTTOU, process_signal);
+	signal(SIGXCPU, process_signal);
+	signal(SIGXFSZ, process_signal);
+	signal(SIGUSR1, process_signal);
+	signal(SIGUSR2, process_signal);
 
 	scale_func_main();
+
 	return scale_pop_long();
 }
 
-
-#endif
 #endif

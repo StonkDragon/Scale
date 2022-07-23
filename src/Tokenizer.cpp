@@ -123,10 +123,17 @@ Token Tokenizer::nextToken() {
     return Token(tok_identifier, value);
 }
 
-void Tokenizer::tokenize(std::string source) {
-    std::vector<std::string> usings;
+void Tokenizer::addUsing(std::string name) {
+    for (int i = 0; i < this->usings.size(); i++) {
+        if (this->usings[i] == name) {
+            return;
+        }
+    }
+    this->usings.push_back(name);
+}
 
-    usings.push_back(source);
+void Tokenizer::tokenize(std::string source) {
+    addUsing(source);
 
     FILE *fp;
 
@@ -183,7 +190,7 @@ void Tokenizer::tokenize(std::string source) {
                     file += c;
                     i++;
                 }
-                usings.push_back(file);
+                addUsing(file);
                 continue;
             }
 

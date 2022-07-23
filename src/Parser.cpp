@@ -38,7 +38,7 @@ ParseResult Parser::parse(std::string filename) {
     header << "extern \"C\" {" << std::endl;
     header << "#endif" << std::endl;
 
-    fp << "#include \"" << getenv("HOME") << "/Scale/comp/scale.c" << "\"" << std::endl;
+    fp << "#include \"" << getenv("HOME") << "/Scale/comp/scale.h" << "\"" << std::endl;
     header << "#include \"" << getenv("HOME") << "/Scale/comp/scale.h" << "\"" << std::endl;
 
     for (Function function : result.functions) {

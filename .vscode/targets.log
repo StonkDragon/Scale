@@ -7,10 +7,8 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 
 # This program built for i386-apple-darwin11.3.0
  
-make: *** No rule to make target `all'.  Stop.
 
-
-# Make data base, printed on Sat Jul 23 13:02:27 2022
+# Make data base, printed on Sat Jul 23 19:38:52 2022
 
 # Variables
 
@@ -158,7 +156,6 @@ LC_ALL = C
 SUFFIXES := 
 # environment
 MAKELEVEL := 0
- 
 # environment
 LANG = C
 # environment
@@ -200,7 +197,7 @@ all:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-23 12:38:42
+#  Last modified 2022-07-23 19:38:41
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -212,28 +209,21 @@ Makefile:
 #  Modification time never checked.
 #  File has not been updated.
 
-hello-example:
-#  Implicit rule search has not been done.
-#  Modification time never checked.
-#  File has not been updated.
-#  commands to execute (from `Makefile', line 8):
-	sclc examples/hello.scale
-	./examples/hello.scl
-	
-
 install:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
 #  commands to execute (from `Makefile', line 2):
-	clear
+	rm -rf $${HOME}/Scale
 	cp -r Scale $${HOME}
 	mkdir -p $${HOME}/Scale/bin
 	clang++ -std=gnu++20 -o $${HOME}/Scale/bin/sclc src/Main.cpp
+	gcc -std=gnu18 -o $${HOME}/Scale/comp/scale.o -c Scale/comp/scale.c
+	rm -rf $${HOME}/Scale/comp/scale.c
 	
 
 # files hash-table stats:
-# Load=6/1024=1%, Rehash=0, Collisions=0/18=0%
+# Load=5/1024=0%, Rehash=0, Collisions=0/17=0%
 # VPATH Search Paths
 
 # No `vpath' search paths.
@@ -245,6 +235,8 @@ install:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Sat Jul 23 13:02:27 2022
+# Finished Make data base on Sat Jul 23 19:38:52 2022
 
  
+make: *** No rule to make target `all'.  Stop.
+

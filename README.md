@@ -7,10 +7,15 @@ arg3 arg2 arg1 function
 
 # Documentation
 
-[stdlib.scale](./README.md#stdlibscale)
-[math.scale](./README.md#mathscale)
-[file.scale](./README.md#filescale)
-[debug.scale](./README.md#debugscale)
+
+
+- [stdlib.scale](./README.md#stdlibscale)
+
+- [math.scale](./README.md#mathscale)
+
+- [file.scale](./README.md#filescale)
+
+- [debug.scale](./README.md#debugscale)
 
 ## stdlib.scale
 ### printf
