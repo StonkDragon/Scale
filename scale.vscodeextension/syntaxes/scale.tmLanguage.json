@@ -1,0 +1,105 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "scale",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#modifiers"
+		},
+		{
+			"include": "#symbols"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#funcs"
+		},
+		{
+			"include": "#scalefile"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#generic"
+		}
+	],
+	"repository": {
+		"comments": {
+			"name": "string.comment",
+			"begin": "//",
+			"end": "\n",
+			"patterns": [
+				{
+					"name": "comment",
+					"match": "\\\\."
+				}
+			]
+		},
+		"modifiers": {
+			"name": "entity.name.function",
+			"begin": "#",
+			"end": "\\s",
+			"patterns": [
+				{
+					"name": "meta.type.annotation",
+					"match": "\\\\."
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword",
+					"match": "\\b(macro|using|function|end|extern|while|else|do|done|if|fi|return|#inline|#static|#extern)\\b"
+				}
+			]
+		},
+		"scalefile": {
+			"patterns": [
+				{
+					"name": "string",
+					"match": "[A-Za-z0-9_\\-\\?\\.]+\\.scale"
+				}
+			]
+		},
+		"funcs": {
+			"patterns": [
+				{
+					"name": "support.function",
+					"match": "[A-Za-z0-9_]+\\(\\)"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "string",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"name": "constant.numeric",
+			"match": "\\b(0x[0-9a-fA-F]+|0b[0-1]+|0o[0-7]+|[0-9]+(\\.[0-9]+)?)\\b"
+		},
+		"generic": {
+			"name": "entity.name.tag",
+			"match": "."
+		},
+		"symbols": {
+			"name": "keyword",
+			"match": "(\\*|&|>)"
+		}
+	},
+	"scopeName": "source.scale"
+}

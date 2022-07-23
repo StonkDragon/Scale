@@ -1,0 +1,127 @@
+{
+	// Place your scale workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+    "Main Function": {
+		"scope": "source.scale",
+		"prefix": "main",
+		"body": [
+			"function main()",
+			"  $0",
+			"end"
+		]
+	},
+	"Function": {
+		"scope": "source.scale",
+		"prefix": "function",
+		"body": [
+			"function ${1:name}()",
+			"  $0",
+			"end"
+		]
+	},
+	"While Loop": {
+		"scope": "source.scale",
+		"prefix": "while",
+		"body": [
+			"while ${1:condition} do",
+			"  $0",
+			"done"
+		]
+	},
+	"If Statement": {
+		"scope": "source.scale",
+		"prefix": "if",
+		"body": [
+			"${1:condition} if",
+			"  $0",
+			"fi"
+		]
+	},
+	"Else If Statement": {
+		"scope": "source.scale",
+		"prefix": "else if",
+		"body": [
+			"else ${1:condition} if",
+			"  $0",
+			"fi"
+		]
+	},
+	"Else Statement": {
+		"scope": "source.scale",
+		"prefix": "else",
+		"body": [
+			"else",
+			"  $0",
+			"fi"
+		]
+	},
+	"Extern Function": {
+		"scope": "source.scale",
+		"prefix": "extern",
+		"body": [
+			"extern ${1:name}"
+		]
+	},
+	"Support Inline": {
+		"scope": "source.scale",
+		"prefix": "#inline",
+		"body": [
+			"#inline"
+		]
+	},
+	"Support External": {
+		"scope": "source.scale",
+		"prefix": "#extern",
+		"body": [
+			"#extern"
+		]
+	},
+	"Support Static": {
+		"scope": "source.scale",
+		"prefix": "#static",
+		"body": [
+			"#static"
+		]
+	},
+	"Using": {
+		"scope": "source.scale",
+		"prefix": "using",
+		"body": [
+			"using \"${1:file}\""
+		]
+	},
+	"Macro": {
+		"scope": "source.scale",
+		"prefix": "macro",
+		"body": [
+			"#inline #static function ${1:name}()",
+			"  $0",
+			"end"
+		]
+	},
+	"Load Var": {
+		"scope": "source.scale",
+		"prefix": "load",
+		"body": [
+			"*${1:name}"
+		]
+	},
+	"Store Var": {
+		"scope": "source.scale",
+		"prefix": "store",
+		"body": [
+			">${1:name}"
+		]
+	},
+	"Address of": {
+		"scope": "source.scale",
+		"prefix": "addr",
+		"body": [
+			"&${1:name}"
+		]
+	},
+}

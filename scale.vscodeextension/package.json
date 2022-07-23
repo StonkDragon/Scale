@@ -1,0 +1,36 @@
+{
+    "name": "scale",
+    "displayName": "Scale",
+    "description": "Language Support for the Scale Programming Language",
+    "version": "2.1",
+    "engines": {
+        "vscode": "^1.61.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "scale",
+            "aliases": ["scale", "Scale"],
+            "extensions": [".scale"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "scale",
+            "scopeName": "source.scale",
+            "path": "./syntaxes/scale.tmLanguage.json"
+        }],
+        "themes": [{
+            "label": "scale",
+            "uiTheme": "vs-dark",
+            "path": "./themes/Scale-color-theme.json"
+        }],
+        "snippets": [
+            {
+                "language": "scale",
+                "path": "./snippets/snippets.code-snippets"
+            }
+        ]
+    }
+}
