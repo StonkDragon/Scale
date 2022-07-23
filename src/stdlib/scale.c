@@ -22,6 +22,7 @@
 
 #define STACK_SIZE 65536
 #define MAX_STRING_SIZE STACK_SIZE
+#define LONG_AS_STR_LEN 22
 
 typedef struct {
 	unsigned int ptr;
@@ -55,7 +56,7 @@ void scale_store_at(const char* key) {
 	strcpy(env_key, "SCLENV");
 	strcat(env_key, key);
 	long long value = scale_pop_long();
-	char* fmt = (char*) malloc(20);
+	char* fmt = (char*) malloc(LONG_AS_STR_LEN);
 	sprintf(fmt, "%lld", value);
 	setenv(env_key, fmt, 1);
 }
@@ -391,7 +392,7 @@ void scale_extern_or() {
 void scale_extern_sprintf() {
 	char *fmt = scale_pop_string();
 	void* s = scale_pop();
-	char *out = (char*) malloc(20 + strlen(fmt) + 1);
+	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
 	sprintf(out, fmt, s);
 	scale_push_string(out);
 	free(out);
