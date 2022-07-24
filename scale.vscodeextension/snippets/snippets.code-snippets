@@ -124,4 +124,13 @@
 			"&${1:name}"
 		]
 	},
+	"For Loop": {
+		"scope": "source.scale",
+		"prefix": "for",
+		"body": [
+			"for :${1:i} in ${2:1} to ${3:10} do",
+			"  $0",
+			"done"
+		]
+	},
 }

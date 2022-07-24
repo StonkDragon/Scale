@@ -6,8 +6,8 @@
 *.ko
 *.obj
 *.elf
-*.scale.*
-*.scale.
+*.scale.c
+*.scale.h
 
 # Linker output
 *.ilk

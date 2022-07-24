@@ -57,7 +57,7 @@
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(macro|using|function|end|extern|while|else|do|done|if|fi|return|#inline|#static|#extern)\\b"
+					"match": "\\b(using|function|end|extern|while|else|do|done|if|fi|return|for|in|to)\\b"
 				}
 			]
 		},
@@ -98,7 +98,7 @@
 		},
 		"symbols": {
 			"name": "keyword",
-			"match": "(\\*|&|>)"
+			"match": "(\\*|&|>|:)"
 		}
 	},
 	"scopeName": "source.scale"

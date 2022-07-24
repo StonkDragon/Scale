@@ -2,7 +2,7 @@
     "name": "scale",
     "displayName": "Scale",
     "description": "Language Support for the Scale Programming Language",
-    "version": "2.1",
+    "version": "1.0.0",
     "engines": {
         "vscode": "^1.61.0"
     },
