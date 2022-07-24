@@ -459,7 +459,7 @@ ParseResult Parser::parse(std::string filename) {
                         }
                         fp << "/* " << body[i].getValue() << " */" << std::endl;
                     } else {
-                        std::cerr << "Error: Unknown token type: " << body[i].getType() << std::endl;
+                        std::cerr << "Error: Unknown token: '" << body[i].getValue() << "'" << std::endl;
                         ParseResult result;
                         result.success = false;
                         return result;
