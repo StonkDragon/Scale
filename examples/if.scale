@@ -1,9 +1,11 @@
 using "stdlib.scale"
 
 function main()
+  // outputs "1 == 1" if 1 equals 1
   1 1 equal if
     "1 == 1" putstr
   fi
+  // outputs "1 != 2" if 1 does not equal 2
   1 2 equal not if
     "1 != 2" putstr
   fi

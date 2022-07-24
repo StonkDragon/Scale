@@ -24,6 +24,17 @@
 
 #define LINE_LENGTH 48
 
+static std::vector<std::string> vars;
+
+bool hasVar(std::string name) {
+    for (std::string var : vars) {
+        if (var == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 ParseResult Parser::parse(std::string filename) {
     std::fstream fp((filename + std::string(".c")).c_str(), std::ios::out);
     std::fstream header((filename + std::string(".h")).c_str(), std::ios::out);
@@ -68,9 +79,11 @@ ParseResult Parser::parse(std::string filename) {
 
     for (Function function : result.functions)
     {
+        vars.clear();
         bool isStatic = false;
         bool isExtern = false;
         bool isInline = false;
+
         std::streampos lstart = fp.tellp();
         for (Modifier modifier : function.modifiers) {
             switch (modifier) {
@@ -208,6 +221,120 @@ ParseResult Parser::parse(std::string filename) {
                         }
                         fp << "/* " << body[i].getValue() << " */";
                         fp << std::endl;
+                    } else if (body[i].getType() == tok_for) {
+                        if (body[i + 1].getType() != tok_column) {
+                            std::cerr << "Expected variable declaration after 'for' keyword, but got: '" << body[i + 1].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        scopeDepth++;
+                        if (body[i + 2].getType() != tok_identifier) {
+                            std::cerr << "Expected identifier after ':', but got: '" << body[i + 2].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 3].getType() != tok_in) {
+                            std::cerr << "Expected 'in' keyword in for loop header, but got: '" << body[i + 3].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 4].getType() != tok_number && body[i + 4].getType() != tok_identifier) {
+                            std::cerr << "Expected number or variable after 'in', but got: '" << body[i + 4].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 5].getType() != tok_to) {
+                            std::cerr << "Expected 'to' keyword in for loop header, but got: '" << body[i + 5].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 6].getType() != tok_number && body[i + 6].getType() != tok_identifier) {
+                            std::cerr << "Expected number or variable after 'to', but got: '" << body[i + 6].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 7].getType() != tok_do) {
+                            std::cerr << "Expected 'do' keyword to finish for loop header, but got: '" << body[i + 7].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        if (body[i + 4].getType() == tok_identifier) {
+                            goto checkHigher;
+                        }
+                        long long lower;
+                        try
+                        {
+                            if (body[i + 4].getValue().substr(0, 2) == "0x") {
+                                lower = std::stoll(body[i + 4].getValue().substr(2), nullptr, 16);
+                            } else if (body[i + 4].getValue().substr(0, 2) == "0b") {
+                                lower = std::stoll(body[i + 4].getValue().substr(2), nullptr, 2);
+                            } else if (body[i + 4].getValue().substr(0, 2) == "0o") {
+                                lower = std::stoll(body[i + 4].getValue().substr(2), nullptr, 8);
+                            } else {
+                                lower = std::stoll(body[i + 4].getValue());
+                            }
+                        }
+                        catch(const std::exception& e)
+                        {
+                            std::cerr << "Number out of range: " << body[i + 4].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                    checkHigher:
+                        if (body[i + 6].getType() == tok_identifier) {
+                            goto checksDone;
+                        }
+                        long long higher;
+                        try
+                        {
+                            if (body[i + 6].getValue().substr(0, 2) == "0x") {
+                                higher = std::stoll(body[i + 6].getValue().substr(2), nullptr, 16);
+                            } else if (body[i + 6].getValue().substr(0, 2) == "0b") {
+                                higher = std::stoll(body[i + 6].getValue().substr(2), nullptr, 2);
+                            } else if (body[i + 6].getValue().substr(0, 2) == "0o") {
+                                higher = std::stoll(body[i + 6].getValue().substr(2), nullptr, 8);
+                            } else {
+                                higher = std::stoll(body[i + 6].getValue());
+                            }
+                        }
+                        catch(const std::exception& e)
+                        {
+                            std::cerr << "Number out of range: " << body[i + 6].getValue() << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                    checksDone:
+                        fp << "void* " << body[i + 2].getValue() << ";" << std::endl;
+                        lstart = fp.tellp();
+                        if (body[i + 4].getType() == tok_identifier || body[i + 6].getType() == tok_identifier) {
+                            goto finalCondition;
+                        }
+                        if (lower < higher) {
+                    finalCondition:
+                            fp << "for (" << body[i + 2].getValue() << " = (void*) " << body[i + 4].getValue() << "; " << body[i + 2].getValue() << " <= (void*) " << body[i + 6].getValue() << "; " << body[i + 2].getValue() << "++) {";
+                        } else {
+                            std::cerr << "Lower bound of for loop is greater than upper bound" << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
+                        vars.push_back(body[i + 2].getValue());
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* for :" << body[i + 2].getValue() << " in " << body[i + 4].getValue() << ".." << body[i + 6].getValue() << " do */";
+                        fp << std::endl;
+                        i += 7;
                     } else if (body[i].getType() == tok_done || body[i].getType() == tok_fi || body[i].getType() == tok_end) {
                         scopeDepth--;
                         lstart = fp.tellp();
@@ -264,13 +391,18 @@ ParseResult Parser::parse(std::string filename) {
                         fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
                         i++;
                     } else if (body[i].getType() == tok_dollar) {
-                        std::cout << "Debug Store\n";
                         if (body[i + 1].getType() != tok_identifier) {
                             std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
                         }
+                        if (!hasVar(body[i + 1].getValue())) {
+                            std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
                         std::string storeIn = body[i + 1].getValue();
                         lstart = fp.tellp();
-                        fp << "scale_store_at(\"" << storeIn << "\");";
+                        fp << storeIn << " = scale_pop();";
                         pos = fp.tellp();
                         for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
                             fp << " ";
@@ -278,19 +410,59 @@ ParseResult Parser::parse(std::string filename) {
                         fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
                         i++;
                     } else if (body[i].getType() == tok_star) {
-                        std::cout << "Debug Load\n";
                         if (body[i + 1].getType() != tok_identifier) {
                             std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
                         }
+                        if (!hasVar(body[i + 1].getValue())) {
+                            std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
+                            ParseResult result;
+                            result.success = false;
+                            return result;
+                        }
                         std::string loadFrom = body[i + 1].getValue();
                         lstart = fp.tellp();
-                        fp << "scale_load_at(\"" << loadFrom << "\");";
+                        fp << "scale_push(" << loadFrom << ");";
                         pos = fp.tellp();
                         for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
                             fp << " ";
                         }
                         fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
                         i++;
+                    } else if (body[i].getType() == tok_column) {
+                        if (body[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                        }
+                        vars.push_back(body[i + 1].getValue());
+                        std::string loadFrom = body[i + 1].getValue();
+                        lstart = fp.tellp();
+                        fp << "void* " << loadFrom << ";";
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* " << body[i].getValue() << body[i + 1].getValue() << " */" << std::endl;
+                        i++;
+                    } else if (body[i].getType() == tok_continue) {
+                        lstart = fp.tellp();
+                        fp << "continue;";
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* " << body[i].getValue() << " */" << std::endl;
+                    } else if (body[i].getType() == tok_break) {
+                        lstart = fp.tellp();
+                        fp << "break;";
+                        pos = fp.tellp();
+                        for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                            fp << " ";
+                        }
+                        fp << "/* " << body[i].getValue() << " */" << std::endl;
+                    } else {
+                        std::cerr << "Error: Unknown token type: " << body[i].getType() << std::endl;
+                        ParseResult result;
+                        result.success = false;
+                        return result;
                     }
                 }
             }

@@ -5,7 +5,6 @@ extern "C" {
 #endif
 #include "/Users/paul/Scale/comp/scale.h"
 void scale_func_main();
-void scale_func_foo();
 void scale_func_putstr();
 void scale_func_putint();
 void scale_func_clearstack();

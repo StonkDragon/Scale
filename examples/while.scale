@@ -3,7 +3,10 @@ using "math.scale"
 using "debug.scale"
 
 function main()
+  // push 0 to the stack
   0
+  // increment the stack by 1
+  // print the current value of the stack
   while dup 10 less do
     inc dup putint drop
   done

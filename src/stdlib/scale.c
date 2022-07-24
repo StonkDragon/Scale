@@ -38,29 +38,6 @@ void stacktrace_push(char* ptr) {
 	trace.data[trace.ptr++] = ptr;
 }
 
-void scale_load_at(const char* key) {
-	char* env_key = (char*) malloc(strlen(key) + 6);
-	strcpy(env_key, "SCLENV");
-	strcat(env_key, key);
-	char* value = getenv(env_key);
-	free(env_key);
-	long long n = 0;
-	if (value) {
-		n = atoll(value);
-	}
-	scale_push_long(n);
-}
-
-void scale_store_at(const char* key) {
-	char* env_key = (char*) malloc(strlen(key) + 6);
-	strcpy(env_key, "SCLENV");
-	strcat(env_key, key);
-	long long value = scale_pop_long();
-	char* fmt = (char*) malloc(LONG_AS_STR_LEN);
-	sprintf(fmt, "%lld", value);
-	setenv(env_key, fmt, 1);
-}
-
 void stacktrace_pop() {
 	trace.ptr--;
 }
@@ -76,6 +53,11 @@ void stacktrace_print() {
 
 void process_signal(int sig_num)
 {
+	// define scale-specific signals
+	#define EX_BAD_PTR 128
+	#define EX_STACK_OVERFLOW 129
+	#define EX_STACK_UNDERFLOW 130
+
 	char* signalString;
 	if (sig_num == SIGHUP) signalString = "Terminal Disconnected";
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
@@ -102,6 +84,9 @@ void process_signal(int sig_num)
 	else if (sig_num == SIGXFSZ) signalString = "Exceeded file size limit";
 	else if (sig_num == SIGUSR1) signalString = "User defined signal 1";
 	else if (sig_num == SIGUSR2) signalString = "User defined signal 2";
+	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
+	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
+	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
 	else signalString = "Unknown signal";
 
 	printf("\n%s\n\n", signalString);
@@ -115,11 +100,19 @@ void scale_extern_trace() {
 }
 
 void scale_push_string(const char* c) {
+	if (stack.ptr + 1 > STACK_SIZE) {
+		scale_push_long(EX_STACK_OVERFLOW);
+		scale_extern_raise();
+	}
 	stack.data[stack.ptr++] = (char*) c;
 }
 
 #if __SIZEOF_POINTER__ >= 8
 void scale_push_long(long long n) {
+	if (stack.ptr + 1 > STACK_SIZE) {
+		scale_push_long(EX_STACK_OVERFLOW);
+		scale_extern_raise();
+	}
 	stack.data[stack.ptr++] = (void*) n;
 }
 #else
@@ -133,7 +126,8 @@ void scale_push_double(double n) {
 #if __SIZEOF_POINTER__ >= 8
 long long scale_pop_long() {
 	if (stack.ptr <= 0) {
-		return 0;
+		scale_push_long(EX_STACK_UNDERFLOW);
+		scale_extern_raise();
 	}
 	void* n = stack.data[--stack.ptr];
 	return (long long) n;
@@ -149,18 +143,27 @@ double scale_pop_double() {
 }
 
 void scale_push(void* n) {
+	if (stack.ptr + 1 > STACK_SIZE) {
+		scale_push_long(EX_STACK_OVERFLOW);
+		scale_extern_raise();
+	}
 	stack.data[stack.ptr++] = n;
 }
 
 char* scale_pop_string() {
 	if (stack.ptr <= 0) {
-		return "(null)";
+		scale_push_long(EX_STACK_UNDERFLOW);
+		scale_extern_raise();
 	}
 	char *c = (char*) stack.data[--stack.ptr];
 	return c;
 }
 
 void* scale_pop() {
+	if (stack.ptr <= 0) {
+		scale_push_long(EX_STACK_UNDERFLOW);
+		scale_extern_raise();
+	}
 	void* v = stack.data[--stack.ptr];
 	return v;
 }
@@ -260,7 +263,6 @@ void scale_extern_drop() {
 void scale_extern_sizeof_stack() {
 	scale_push_long(stack.ptr);
 }
-// TODO: Args
 
 void scale_extern_concat() {
 	char *s2 = scale_pop_string();

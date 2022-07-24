@@ -28,12 +28,18 @@ enum TokenType {
     tok_sizeof,         // sizeof
     tok_macro,          // macro
     tok_using,          // using
+    tok_break,          // break
+    tok_continue,       // continue
+    tok_for,            // for
+    tok_in,             // in
+    tok_to,             // to
 
     // operators
     tok_hash,           // #
     tok_addr_ref,       // &
     tok_star,           // *
     tok_dollar,         // $
+    tok_column,         // :
 
     tok_identifier,     // foo
     tok_number,         // 123

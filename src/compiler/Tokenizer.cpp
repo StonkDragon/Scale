@@ -62,7 +62,7 @@ Token Tokenizer::nextToken() {
             current++;
             c = source[current];
         }
-    } else if (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || c == '.') {
+    } else if (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || (c == '.' && isDigit(source[current + 1]))) {
         bool isFloat = false;
         if (c == '.') {
             isFloat = true;
@@ -96,7 +96,10 @@ Token Tokenizer::nextToken() {
     } else if (c == '*') {
         value += c;
         c = source[++current];
-    } else if (c == '=') {
+    } else if (c == '>') {
+        value += c;
+        c = source[++current];
+    } else if (c == ':') {
         value += c;
         c = source[++current];
     }
@@ -107,7 +110,6 @@ Token Tokenizer::nextToken() {
         return nextToken();
     }
 
-    TYPES("macro", macro);
     TYPES("using", using);
     TYPES("function", function);
     TYPES("end", end);
@@ -119,11 +121,17 @@ Token Tokenizer::nextToken() {
     TYPES("if", if);
     TYPES("fi", fi);
     TYPES("return", return);
+    TYPES("break", break);
+    TYPES("continue", continue);
+    TYPES("for", for);
+    TYPES("in", in);
+    TYPES("to", to);
     
     TYPES("#", hash);
     TYPES("&", addr_ref);
     TYPES("*", star);
-    TYPES("=", dollar);
+    TYPES(">", dollar);
+    TYPES(":", column);
 
     if (current >= strlen(source)) {
         return Token(tok_eof, "");
