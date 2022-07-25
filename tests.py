@@ -1,7 +1,6 @@
 from genericpath import exists
 import os
 import sys
-from venv import create
 
 # loop over every file in the directory examples
 # and run the tests on each file
@@ -13,7 +12,7 @@ def run_tests(directory):
         if file.endswith(".scale"):
             test_file = directory + "/" + file
             print("[COMP] " + file)
-            os.popen("sclc " + test_file).read()
+            os.system("sclc " + test_file)
             print("[RUN] " + file)
             output = os.popen("./out.scl").read()
             if not exists(test_file + ".txt"):
@@ -37,12 +36,16 @@ def run_tests(directory):
     print("Failed: " + str(failedTests))
     print("Skipped: " + str(skippedTests))
 
+# Reset the tests
 def reset_tests(directory):
     for file in os.listdir(directory):
         if file.endswith(".scale"):
             print("Generating Tests for: " + file)
             test_file = directory + "/" + file
-            os.popen("sclc " + test_file).read()
+            ret = os.system("sclc " + test_file)
+            if ret != 0:
+                print("Error generating tests for: " + file)
+                sys.exit(1)
             output = os.popen("./out.scl").read()
             if exists(test_file + ".txt"):
                 os.remove(test_file + ".txt")
@@ -51,7 +54,8 @@ def reset_tests(directory):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        run_tests("examples")
+        print("Usage: python3 tests.py [run|reset]")
+        sys.exit(1)
     else:
         if sys.argv[1] == "reset":
             reset_tests("examples")

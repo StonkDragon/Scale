@@ -144,9 +144,6 @@ int main(int argc, char const *argv[])
     auto endCodegen = std::chrono::high_resolution_clock::now();
     double durationCodegen = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endCodegen - startCodegen).count() / 1000000000.0;
 
-    remove((std::string(source) + ".c").c_str());
-    remove((std::string(source) + ".h").c_str());
-
     if (ret != 0) {
         fail:
         std::cout << "----------------------------------------" << std::endl;
@@ -154,6 +151,9 @@ int main(int argc, char const *argv[])
         std::cout << "----------------------------------------" << std::endl;
         return ret;
     }
+    remove((std::string(source) + ".c").c_str());
+    remove((std::string(source) + ".h").c_str());
+    
     std::cout << "Compilation finished." << std::endl;
     double total = 0;
     for (int i = 0; i < times.size(); i++) {

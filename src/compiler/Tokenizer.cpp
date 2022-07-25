@@ -62,11 +62,13 @@ Token Tokenizer::nextToken() {
             current++;
             c = source[current];
         }
-    } else if (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || (c == '.' && isDigit(source[current + 1]))) {
+    } else if (c == '-' || isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || (c == '.' && isDigit(source[current + 1]))) {
         bool isFloat = false;
         if (c == '.') {
             isFloat = true;
         }
+        value += c;
+        c = source[++current];
         while (!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c)) || c == '.') {
             value += c;
             if (c == '.') {
@@ -102,7 +104,16 @@ Token Tokenizer::nextToken() {
     } else if (c == ':') {
         value += c;
         c = source[++current];
-    }
+    } else if (c == '(') {
+        value += c;
+        c = source[++current];
+    } else if (c == ')') {
+        value += c;
+        c = source[++current];
+    } else if (c == ',') {
+        value += c;
+        c = source[++current];
+    } 
 
     // Not a known token, so probably a space character
     if (value == "") {
@@ -133,6 +144,9 @@ Token Tokenizer::nextToken() {
     TYPES("*", star);
     TYPES(">", dollar);
     TYPES(":", column);
+    TYPES("(", open_paren);
+    TYPES(")", close_paren);
+    TYPES(",", comma);
 
     if (current >= strlen(source)) {
         return Token(tok_eof, "");

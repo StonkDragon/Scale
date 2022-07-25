@@ -41,6 +41,9 @@ enum TokenType {
     tok_star,           // *
     tok_dollar,         // $
     tok_column,         // :
+    tok_open_paren,     // (
+    tok_close_paren,    // )
+    tok_comma,          // ,
 
     tok_identifier,     // foo
     tok_number,         // 123
@@ -115,6 +118,7 @@ struct Function
     std::string name;
     std::vector<Token> body;
     std::vector<Modifier> modifiers;
+    std::vector<std::string> args;
     Function(std::string name) {
         this->name = name;
     }
@@ -136,6 +140,12 @@ struct Function
     }
     bool equals(Function other) {
         return name == other.name;
+    }
+    void addArgument(std::string arg) {
+        args.push_back(arg);
+    }
+    std::vector<std::string> getArgs() {
+        return args;
     }
 };
 

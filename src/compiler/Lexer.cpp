@@ -48,7 +48,24 @@ AnalyzeResult Lexer::lexAnalyze()
             Function function(name);
             addIfAbsent<Function>(functions, function);
             currentFunction = &functions[functions.size() - 1];
-            i++;
+            i += 2;
+            if (tokens[i].getType() == tok_open_paren) {
+                i++;
+                while (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_comma) {
+                    if (tokens[i].getType() == tok_identifier) {
+                        currentFunction->addArgument(tokens[i].getValue());
+                    }
+                    i++;
+                    if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                        if (tokens[i].getType() == tok_comma) {
+                            i++;
+                        }
+                    } else {
+                        std::cerr << "Expected: ',' or ')', but got '" << tokens[i].getValue() << "'" << std::endl;
+                        exit(1);
+                    }
+                }
+            }
         } else if (token.getType() == tok_end) {
             if (isInline) {
                 currentFunction->addModifier(mod_inline);

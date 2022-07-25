@@ -1,0 +1,11 @@
+using "stdlib.scale"
+
+function doStuff(foo, bar, baz)
+  *foo putstr
+  *bar putstr
+  *baz putstr
+end
+
+function main()
+  "foo" "bar" "baz" doStuff
+end

@@ -115,8 +115,17 @@ ParseResult Parser::parse(std::string filename) {
             fp << " ";
         }
         fp << "/* function " << function.getName() << "() */" << std::endl;
+        if (!isInline) fp << "stacktrace_push(\"" << function.getName() << "@args\");" << std::endl;
+
+        for (int i = function.getArgs().size() - 1; i >= 0; i--) {
+            vars.push_back(function.getArgs()[i]);
+            fp << "void* " << function.getArgs()[i] << " = scale_pop();" << std::endl;
+        }
+
+        if (!isInline) fp << "stacktrace_pop();" << std::endl;
         if (!isInline) fp << "stacktrace_push(\"" << function.getName() << "\");" << std::endl;
         std::vector<Token> body = function.getBody();
+
         int scopeDepth = 1;
         for (int i = 0; i < body.size(); i++)
         {
