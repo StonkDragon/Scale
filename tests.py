@@ -32,9 +32,10 @@ def run_tests(directory):
                 print("Actual output:")
                 print(output)
                 break
-    print("Passed: " + str(passedTests))
-    print("Failed: " + str(failedTests))
-    print("Skipped: " + str(skippedTests))
+    total = passedTests + failedTests + skippedTests
+    print("Passed: " + str(passedTests) + "/" + str(total))
+    print("Failed: " + str(failedTests) + "/" + str(total))
+    print("Skipped: " + str(skippedTests) + "/" + str(total))
 
 # Reset the tests
 def reset_tests(directory):
