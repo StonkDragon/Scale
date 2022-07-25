@@ -17,7 +17,17 @@ inline bool fileExists (const std::string& name) {
         return true;
     } else {
         return false;
-    }   
+    }
+}
+
+template <typename T>
+void addIfAbsent(std::vector<T>& vec, T str) {
+    for (int i = 0; i < vec.size(); i++) {
+        if (vec[i].equals(str)) {
+            return;
+        }
+    }
+    vec.push_back(str);
 }
 
 AnalyzeResult Lexer::lexAnalyze()
@@ -36,7 +46,7 @@ AnalyzeResult Lexer::lexAnalyze()
         if (token.getType() == tok_function) {
             std::string name = tokens[i + 1].getValue();
             Function function(name);
-            functions.push_back(function);
+            addIfAbsent<Function>(functions, function);
             currentFunction = &functions[functions.size() - 1];
             i++;
         } else if (token.getType() == tok_end) {
@@ -53,6 +63,9 @@ AnalyzeResult Lexer::lexAnalyze()
                 isExtern = false;
             }
             currentFunction = nullptr;
+        } else if (token.getType() == tok_proto) {
+            std::string name = tokens[i + 1].getValue();
+            prototypes.push_back(Prototype(name));
         } else if (token.getType() == tok_hash) {
             if (currentFunction == nullptr) {
                 if (tokens[i + 1].getType() == tok_identifier) {
@@ -85,6 +98,7 @@ AnalyzeResult Lexer::lexAnalyze()
     AnalyzeResult result;
     result.functions = functions;
     result.externs = externs;
+    result.prototypes = prototypes;
     return result;
 }
 

@@ -126,6 +126,7 @@ Token Tokenizer::nextToken() {
     TYPES("for", for);
     TYPES("in", in);
     TYPES("to", to);
+    TYPES("proto", proto);
     
     TYPES("#", hash);
     TYPES("&", addr_ref);
@@ -139,13 +140,19 @@ Token Tokenizer::nextToken() {
     return Token(tok_identifier, value);
 }
 
-void Tokenizer::addUsing(std::string name) {
-    for (int i = 0; i < this->usings.size(); i++) {
-        if (this->usings[i] == name) {
-            return;
+bool hasUsing(std::string name) {
+    for (int i = 0; i < MAIN.usings.size(); i++) {
+        if (MAIN.usings[i] == name) {
+            return true;
         }
     }
-    this->usings.push_back(name);
+    return false;
+}
+
+void Tokenizer::addUsing(std::string name) {
+    if (!hasUsing(name)) {
+        MAIN.usings.push_back(name);
+    }
 }
 
 void Tokenizer::tokenize(std::string source) {
@@ -155,8 +162,8 @@ void Tokenizer::tokenize(std::string source) {
 
     std::string data = "";
 
-    for (int i = 0; i < usings.size(); i++) {
-        std::string file = usings[i];
+    for (int i = 0; i < MAIN.usings.size(); i++) {
+        std::string file = MAIN.usings[i];
 
         if (!fileExists(file)) {
             file = std::string(getenv("HOME")) + "/Scale/lib/" + file;

@@ -33,6 +33,7 @@ enum TokenType {
     tok_for,            // for
     tok_in,             // in
     tok_to,             // to
+    tok_proto,          // proto
 
     // operators
     tok_hash,           // #
@@ -133,6 +134,9 @@ struct Function
     std::vector<Modifier> getModifiers() {
         return modifiers;
     }
+    bool equals(Function other) {
+        return name == other.name;
+    }
 };
 
 struct Extern
@@ -144,9 +148,20 @@ struct Extern
     ~Extern() {}
 };
 
+struct Prototype
+{
+    std::string name;
+    Prototype(std::string name) {
+        this->name = name;
+    }
+    ~Prototype() {}
+};
+
+
 struct AnalyzeResult {
     std::vector<Function> functions;
     std::vector<Extern> externs;
+    std::vector<Prototype> prototypes;
 };
 
 class Lexer
@@ -155,11 +170,10 @@ private:
     std::vector<Token> tokens;
     std::vector<Function> functions;
     std::vector<Extern> externs;
-    std::string fileName;
+    std::vector<Prototype> prototypes;
 public:
-    Lexer(std::vector<Token> tokens, std::string fileName) {
+    Lexer(std::vector<Token> tokens) {
         this->tokens = tokens;
-        this->fileName = fileName;
     }
     ~Lexer() {}
     AnalyzeResult lexAnalyze();
@@ -184,6 +198,11 @@ public:
                 return true;
             }
         }
+        for (Prototype proto : result.prototypes) {
+            if (proto.name == name) {
+                return true;
+            }
+        }
         return false;
     }
     bool hasExtern(std::string name) {
@@ -200,7 +219,6 @@ public:
 class Tokenizer
 {
     std::vector<Token> tokens;
-    std::vector<std::string> usings;
     char* source;
     size_t current;
 public:
@@ -218,6 +236,7 @@ typedef struct Main
     Tokenizer* tokenizer;
     Lexer* lexer;
     Parser* parser;
+    std::vector<std::string> usings;
 } Main;
 
 Main MAIN = {0, 0, 0};

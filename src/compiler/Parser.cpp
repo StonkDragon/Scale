@@ -52,6 +52,11 @@ ParseResult Parser::parse(std::string filename) {
     fp << "#include \"" << getenv("HOME") << "/Scale/comp/scale.h" << "\"" << std::endl;
     header << "#include \"" << getenv("HOME") << "/Scale/comp/scale.h" << "\"" << std::endl;
 
+    for (Prototype proto : result.prototypes) {
+        fp << "void scale_func_" << proto.name << "();" << std::endl;
+        header << "void scale_func_" << proto.name << "();" << std::endl;
+    }
+
     for (Function function : result.functions) {
         for (Modifier modifier : function.modifiers) {
             switch (modifier) {
