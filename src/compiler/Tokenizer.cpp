@@ -49,6 +49,7 @@ std::vector<Token> Tokenizer::getTokens() {
     return this->tokens;
 }
 
+static bool nextIsVar = false;
 Token Tokenizer::nextToken() {
     if (current >= strlen(source)) {
         return Token(tok_eof, "");
@@ -56,6 +57,11 @@ Token Tokenizer::nextToken() {
     char c = source[current];
     std::string value = "";
     
+    if (nextIsVar) {
+        nextIsVar = false;
+        value = "$";
+    }
+
     if (isCharacter(c)) {
         while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
             value += c;
@@ -98,12 +104,15 @@ Token Tokenizer::nextToken() {
     } else if (c == '*') {
         value += c;
         c = source[++current];
+        nextIsVar = true;
     } else if (c == '>') {
         value += c;
         c = source[++current];
+        nextIsVar = true;
     } else if (c == ':') {
         value += c;
         c = source[++current];
+        nextIsVar = true;
     } else if (c == '(') {
         value += c;
         c = source[++current];

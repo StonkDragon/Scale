@@ -53,7 +53,7 @@ AnalyzeResult Lexer::lexAnalyze()
                 i++;
                 while (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_comma) {
                     if (tokens[i].getType() == tok_identifier) {
-                        currentFunction->addArgument(tokens[i].getValue());
+                        currentFunction->addArgument("$" + tokens[i].getValue());
                     }
                     i++;
                     if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {

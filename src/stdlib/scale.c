@@ -531,7 +531,7 @@ void scale_func_main();
 
 int main(int argc, char const *argv[])
 {
-	for (int i = 1; i < argc; i++) {
+	for (int i = argc; i > 0; i--) {
 		scale_push_string(argv[i]);
 	}
 

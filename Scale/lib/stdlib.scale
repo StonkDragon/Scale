@@ -5,11 +5,6 @@ extern exit
 extern sleep
 extern eval
 extern getproperty
-
-extern dup
-extern over
-extern swap
-extern drop
 extern getstack
 extern sizeof_stack
 extern sizeof
@@ -38,10 +33,14 @@ extern strncmp
 extern concat
 extern strstarts
 
-function putstr()        printf "\n" printf drop end
-function putint()        "%d\n" sprintf printf end
+function putstr(str)     *str printf "\n" printf drop end
+function putint(int)     *int "%d\n" sprintf printf end
 function clearstack()    while sizeof_stack 0 more do drop done end
-function swap2()         over swap over end
-function sdup2()         swap dup swap2 end
-function throwerr()      "\n" swap concat putstr 1 exit end
+function swap2(a, b, c)  *b *a *c end
+function sdup2(a, b)     *a *b *a end
+function dup(a)          *a *a end
+function swap(a, b)      *b *a end
+function drop(a)         end
+function over(a, b, c)   *c *b *a end
+function throwerr(err)   *err "\n" swap concat putstr 1 exit end
 function nop()           0 sleep end
