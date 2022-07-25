@@ -44,9 +44,22 @@ make install
 
   The following operators are supported:
 
+  - `:`: Define Variable
   - `>`: Store Variable
   - `*`: Load Variable
   - `&`: Load Pointer
+
+### :
+
+  The `:` operator is used to define a variable.
+
+Usage:
+
+```
+:var
+```
+
+Result: The variable `var` is defined and can be used in subsequent expressions.
 
 ### >
 

@@ -1,0 +1,13 @@
+using "stdlib.scale"
+
+function main()
+  // Create a new variable called 'foo'
+  :foo
+  // push "Hello, World!" to the stack
+  // and assign it to the variable 'foo'
+  // this pops the string off the stack
+  "Hello, world!" >foo
+  // so we push it back onto the stack
+  // and print it out
+  *foo putstr
+end
