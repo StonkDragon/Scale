@@ -37,6 +37,7 @@ make install
 - git
 - make
 - clang
+- python3 (for tests)
 
 # Documentation
 
