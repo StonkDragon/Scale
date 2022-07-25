@@ -142,6 +142,7 @@ double scale_pop_double() {
 	return d;
 }
 
+#if __SIZEOF_POINTER__ >= 8
 void scale_push(void* n) {
 	if (stack.ptr + 1 > STACK_SIZE) {
 		scale_push_long(EX_STACK_OVERFLOW);
@@ -149,6 +150,9 @@ void scale_push(void* n) {
 	}
 	stack.data[stack.ptr++] = n;
 }
+#else
+#error "Pointer size is not supported"
+#endif
 
 char* scale_pop_string() {
 	if (stack.ptr <= 0) {
