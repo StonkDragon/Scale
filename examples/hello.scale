@@ -2,5 +2,5 @@ using "stdlib.scale"
 
 function main()
   // prints "Hello, world!" to standard output
-  "Hello, World!" putstr foo
+  "Hello, World!" putstr
 end
