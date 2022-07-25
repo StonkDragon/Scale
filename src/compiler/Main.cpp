@@ -11,7 +11,7 @@
 
 std::string outfile = "out.scl";
 std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-std::string cmd = "clang " + lib + " -o " + outfile + " ";
+std::string cmd = "clang -o " + outfile + " ";
 std::vector<std::string> files;
 
 #include "Tokenizer.cpp"
@@ -40,16 +40,39 @@ int main(int argc, char const *argv[])
     signal(SIGTERM, signalHandler);
     signal(SIGQUIT, signalHandler);
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <filename>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <filename> [args]" << std::endl;
         return 1;
     }
+
+    bool transpileOnly = false;
+    bool linkToLib = true;
 
     for (int i = 1; i < argc; i++) {
         if (strends(std::string(argv[i]), ".scale")) {
             files.push_back(std::string(argv[i]));
         } else {
-            cmd += std::string(argv[i]) + " ";
+            if (strcmp(argv[i], "--transpile") == 0 || strcmp(argv[i], "-t") == 0) {
+                transpileOnly = true;
+            } else if (strcmp(argv[i], "--no-scale-lib") == 0) {
+                linkToLib = false;
+            } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+                std::cout << "Usage: " << argv[0] << " <filename> [args]" << std::endl;
+                std::cout << "  --transpile, -t  Transpile only" << std::endl;
+                std::cout << "  --no-scale-lib   Don't link to scale library" << std::endl;
+                std::cout << "  --help, -h       Show this help" << std::endl;
+                std::cout << "  -o <filename>    Output file" << std::endl;
+                std::cout << std::endl << "  If no output file is specified, the output file will be" << std::endl;
+                std::cout << "  out.scl" << std::endl;
+                std::cout << std::endl << "  Any other unrecognized arguments will be passed to the compiler" << std::endl;
+                return 0;
+            } else {
+                cmd += std::string(argv[i]) + " ";
+            }
         }
+    }
+
+    if (linkToLib) {
+        cmd += lib + " ";
     }
 
     std::cout << "----------------------------------------" << std::endl;
@@ -88,7 +111,8 @@ int main(int argc, char const *argv[])
     MAIN.parser = &parser;
     char* source = (char*) malloc(sizeof(char) * 50);
     
-    sprintf(source, ".scale-%08x.tmp", (unsigned int) rand());
+    if (!transpileOnly) sprintf(source, ".scale-%08x.tmp", (unsigned int) rand());
+    else sprintf(source, "out.c");
     cmd += source;
     cmd += ".c ";
 
@@ -105,6 +129,15 @@ int main(int argc, char const *argv[])
     times.push_back(durationLexer + durationParser);
 
     std::cout << "----------------------------------------" << std::endl;
+
+    if (transpileOnly) {
+        double total = 0;
+        for (int i = 0; i < times.size(); i++) {
+            total += times[i];
+        }
+        std::cout << "Transpiled successfully in " << total << " seconds." << std::endl;
+        return 0;
+    }
 
     auto startCodegen = std::chrono::high_resolution_clock::now();
     int ret = system(cmd.c_str());
