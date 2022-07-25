@@ -33,7 +33,7 @@ extern strncmp
 extern concat
 extern strstarts
 
-function putstr(str)     *str printf "\n" printf drop end
+function putstr(str)     *str printf "\n" printf end
 function putint(int)     *int "%d\n" sprintf printf end
 function clearstack()    while sizeof_stack 0 more do drop done end
 function swap2(a, b, c)  *b *a *c end

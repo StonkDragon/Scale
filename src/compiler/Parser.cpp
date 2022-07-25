@@ -115,7 +115,7 @@ ParseResult Parser::parse(std::string filename) {
             fp << " ";
         }
         fp << "/* function " << function.getName() << "() */" << std::endl;
-        if (!isInline) fp << "stacktrace_push(\"" << function.getName() << "@args\");" << std::endl;
+        if (!isInline) fp << "stacktrace_push(\"" << function.getName() << " -> head\");" << std::endl;
 
         for (int i = function.getArgs().size() - 1; i >= 0; i--) {
             vars.push_back(function.getArgs()[i]);
@@ -123,7 +123,7 @@ ParseResult Parser::parse(std::string filename) {
         }
 
         if (!isInline) fp << "stacktrace_pop();" << std::endl;
-        if (!isInline) fp << "stacktrace_push(\"" << function.getName() << "\");" << std::endl;
+        if (!isInline) fp << "stacktrace_push(\"" << function.getName() << " -> body\");" << std::endl;
         std::vector<Token> body = function.getBody();
 
         int scopeDepth = 1;
@@ -139,7 +139,7 @@ ParseResult Parser::parse(std::string filename) {
                 }
                 fp << "/* " << body[i].getValue() << " */" << std::endl;
             } else if (body[i].getType() == tok_identifier && hasExtern(body[i].getValue())) {
-                fp << "stacktrace_push(\"native:" << body[i].getValue() << "\");" << std::endl;
+                fp << "stacktrace_push(\"" << body[i].getValue() << " -> native\");" << std::endl;
                 lstart = fp.tellp();
                 fp << "scale_extern_" << body[i].getValue() << "();";
                 pos = fp.tellp();

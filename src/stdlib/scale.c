@@ -46,7 +46,7 @@ void stacktrace_print() {
 	printf("Stacktrace:\n");
 	for (int i = trace.ptr - 1; i >= 0; i--) {
 		char* frame = (char*) trace.data[i];
-		printf("    %s()\n", frame);
+		printf("    %s\n", frame);
 	}
 	printf("\n");
 }
@@ -57,6 +57,7 @@ void process_signal(int sig_num)
 	#define EX_BAD_PTR 128
 	#define EX_STACK_OVERFLOW 129
 	#define EX_STACK_UNDERFLOW 130
+	#define EX_UNHANDLED_DATA 131
 
 	char* signalString;
 	if (sig_num == SIGHUP) signalString = "Terminal Disconnected";
@@ -87,10 +88,23 @@ void process_signal(int sig_num)
 	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
 	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
 	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
+	else if (sig_num == EX_UNHANDLED_DATA) {
+		if (stack.ptr == 1) {
+			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d element too much!") + LONG_AS_STR_LEN);
+			sprintf(signalString, "Unhandled data on the stack. %d element too much!", stack.ptr);
+		} else {
+			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d elements too much!") + LONG_AS_STR_LEN);
+			sprintf(signalString, "Unhandled data on the stack. %d elements too much!", stack.ptr);
+		}
+	}
 	else signalString = "Unknown signal";
 
 	printf("\n%s\n\n", signalString);
 
+	if (trace.ptr < 1) {
+		printf("The crash happened in native code, and a stack trace is not available!\n\n");
+		exit(sig_num);
+	}
 	stacktrace_print();
 	exit(sig_num);
 }
@@ -184,7 +198,6 @@ void scale_extern_dumpstack() {
 void scale_extern_printf() {
 	char *c = scale_pop_string();
 	printf("%s", c);
-	scale_push_string(c);
 }
 
 void scale_extern_read() {
@@ -531,7 +544,7 @@ void scale_func_main();
 
 int main(int argc, char const *argv[])
 {
-	for (int i = argc; i > 0; i--) {
+	for (int i = argc - 1; i > 0; i--) {
 		scale_push_string(argv[i]);
 	}
 
@@ -563,7 +576,11 @@ int main(int argc, char const *argv[])
 
 	scale_func_main();
 
-	return scale_pop_long();
+	if (stack.ptr > 0) {
+		scale_push_long(EX_UNHANDLED_DATA);
+		scale_extern_raise();
+	}
+	return 0;
 }
 
 #endif

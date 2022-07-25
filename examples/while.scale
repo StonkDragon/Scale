@@ -8,6 +8,7 @@ function main()
   // increment the stack by 1
   // print the current value of the stack
   while dup 10 less do
-    inc dup putint drop
+    inc dup putint
   done
+  drop
 end
