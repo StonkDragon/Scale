@@ -45,57 +45,40 @@ make install
 
   The following operators are supported:
 
-  - `:`: Define Variable
-  - `>`: Store Variable
-  - `*`: Load Variable
-  - `&`: Load Pointer
+  - `+`: Addition
+  - `-`: Subtraction
+  - `*`: Multiplication
+  - `/`: Division
+  - `%`: Modulo
+  - `&`: Logical AND
+  - `|`: Logical OR
+  - `^`: Logical XOR
+  - `~`: Logical NOT
+  - `<<`: Left shift
+  - `>>`: Right shift
 
-### :
+## Keywords
 
-  The `:` operator is used to define a variable.
-
-Usage:
-
-```
-:var
-```
-
-Result: The variable `var` is defined and can be used in subsequent expressions.
-
-### >
-
-  The `>` operator stores the value on top of the stack into the variable with the identifier on the right.
-
-Usage:
-
-```
-"Hello, World!" >var
-```
-Result: The Variable `var` now holds a pointer to the string `"Hello, World!"`.
-
-### *
-
-  The `*` operator loads the value from the variable with the identifier on the right into the stack.
-
-  Usage:
-
-  ```
-  *var
-  ```
-
-  Result: The value of the Variable `var` is pushed onto the stack. (In this case, a pointer to the string `"Hello, World!"`.)
-
-### &
-
-  The `&` operator pushes the address of the identifier on the right onto the stack. This is useful for getting function pointers.
-
-  Usage:
-
-  ```
-  &func
-  ```
-
-  Result: The address of the function `func` is pushed onto the stack.
+  - `using`: Import another file
+  - `function`: Define a function
+  - `end`: End a function
+  - `extern`: Declare a C function prototype
+  - `while`: Begin a while loop header
+  - `else`: Define an else block
+  - `do`: End a while loop header and begin the loop body
+  - `done`: End a loop body
+  - `if`: Begin an if statement
+  - `fi`: End an if statement
+  - `return`: Return from a function
+  - `break`: Break out of a loop
+  - `continue`: Continue to the next iteration of a loop
+  - `for`: Begin a for loop header
+  - `in`: Define for loop iterator
+  - `to`: Define for loop end value
+  - `proto`: Define a function prototype (Scale Funcion)
+  - `store`: Store the top of the stack in the following variable
+  - `decl`: Declare a variable
+  - `addr`: Get the address of the following identifier
 
 ## Argument Notation
 ```

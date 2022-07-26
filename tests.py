@@ -2,6 +2,19 @@ from genericpath import exists
 import os
 import sys
 
+def genTest(file):
+    print("Generating Tests for: " + file)
+    test_file = file
+    ret = os.system("sclc " + test_file)
+    if ret != 0:
+        print("Error generating tests for: " + file)
+        sys.exit(1)
+    output = os.popen("./out.scl").read()
+    if exists(test_file + ".txt"):
+        os.remove(test_file + ".txt")
+    with open(test_file + ".txt", "w") as f:
+        f.write(output)
+
 # loop over every file in the directory examples
 # and run the tests on each file
 def run_tests(directory):
@@ -12,11 +25,15 @@ def run_tests(directory):
         if file.endswith(".scale"):
             test_file = directory + "/" + file
             print("[COMP] " + file)
-            os.system("sclc " + test_file)
+            ret = os.system("sclc " + test_file)
+            if ret != 0:
+                print("Error compiling: " + file)
+                sys.exit(1)
             print("[RUN] " + file)
             output = os.popen("./out.scl").read()
             if not exists(test_file + ".txt"):
                 print("[SKIP] " + file)
+                genTest(test_file)
                 skippedTests += 1
                 continue
             with open(test_file + ".txt", "r") as f:
@@ -41,17 +58,7 @@ def run_tests(directory):
 def reset_tests(directory):
     for file in os.listdir(directory):
         if file.endswith(".scale"):
-            print("Generating Tests for: " + file)
-            test_file = directory + "/" + file
-            ret = os.system("sclc " + test_file)
-            if ret != 0:
-                print("Error generating tests for: " + file)
-                sys.exit(1)
-            output = os.popen("./out.scl").read()
-            if exists(test_file + ".txt"):
-                os.remove(test_file + ".txt")
-            with open(test_file + ".txt", "w") as f:
-                f.write(output)
+            genTest(directory + "/" + file)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

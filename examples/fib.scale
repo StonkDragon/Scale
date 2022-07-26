@@ -1,0 +1,20 @@
+using "stdlib.scale"
+using "debug.scale"
+
+function main()
+    decl N 4000000 store N
+    decl x
+    decl y
+    decl z
+
+    0 store x
+    1 store y
+    
+    while x N less do
+        x putint
+
+        x y + store z
+        y store x
+        z store y
+    done
+end

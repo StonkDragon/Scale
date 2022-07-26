@@ -1,0 +1,16 @@
+using "stdlib.scale"
+using "debug.scale"
+
+function main()
+  1 2   +  putint
+  2 3   -  putint
+  2 4   *  putint
+  10 5  /  putint
+  5 6   %  putint
+  15 7  ^  putint
+  8     ~  putint
+  12 9  << putint
+  12 10 >> putint
+  6 11  &  putint
+  7 12  |  putint
+end

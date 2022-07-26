@@ -38,12 +38,24 @@ enum TokenType {
     // operators
     tok_hash,           // #
     tok_addr_ref,       // &
-    tok_star,           // *
-    tok_dollar,         // $
-    tok_column,         // :
+    tok_load,           // load
+    tok_store,          // store
+    tok_declare,        // decl
     tok_open_paren,     // (
     tok_close_paren,    // )
     tok_comma,          // ,
+
+    tok_add,            // +
+    tok_sub,            // -
+    tok_mul,            // *
+    tok_div,            // /
+    tok_mod,            // %
+    tok_land,           // &
+    tok_lor,            // |
+    tok_lxor,           // ^
+    tok_lnot,           // ~
+    tok_lsh,            // <<
+    tok_rsh,            // >>
 
     tok_identifier,     // foo
     tok_number,         // 123

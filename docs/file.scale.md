@@ -158,15 +158,15 @@ Stack Changes:
 
 Arguments:
 
-- arg1: string
+- arg1: file
     
 - arg2: integer
     
-- arg3: file
+- arg3: string
 
 Description:
 
-  Writes arg2 bytes from arg1 to the file.
+  Writes arg2 bytes from arg3 to the file.
 
 Stack Changes:
 
@@ -174,4 +174,22 @@ Stack Changes:
       arg3 arg2 arg1
 
     After:
-      arg3
+      <empty>
+
+## fileno
+
+Arguments:
+
+- arg1: file
+
+Description:
+
+  Pushes the file descriptor onto the stack.
+
+  Stack Changes:
+    
+    Before: 
+      arg1
+    
+    After:
+      [fileno(arg1)]

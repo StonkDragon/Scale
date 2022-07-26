@@ -1,0 +1,18 @@
+using "stdlib.scale"
+
+function main()
+  1 while dup 100 less do
+    dup 15 % 0 equal if
+      "FizzBuzz" puts
+    else dup 3 % 0 equal if
+      "Fizz" puts
+      else dup 5 % 0 equal if
+        "Buzz" puts
+        else
+          dup putint
+        fi
+      fi
+    fi
+    1 +
+  done drop
+end

@@ -1,5 +1,4 @@
 ## printf
-- Native Function
 
 Arguments:
 
@@ -21,7 +20,6 @@ After:
 ```
 
 ## read
-- Native Function
 
 Arguments:
 
@@ -39,7 +37,6 @@ Stack Changes:
 ```
 
 ## exit
-- Native Function
 
 Arguments:
 
@@ -61,7 +58,6 @@ After:
 ```
 
 ## sleep
-- Native Function
 
 Arguments:
 
@@ -83,7 +79,6 @@ After:
 ```
 
 ## eval
-- Native Function
 
 Arguments:
 
@@ -105,7 +100,6 @@ After:
 ```
 
 ## getproperty
-- Native Function
 
 Arguments:
 
@@ -127,7 +121,6 @@ After:
 ```
 
 ## dup
-- Native Function
 
 Arguments:
 
@@ -149,7 +142,6 @@ After:
 ```
 
 ## over
-- Native Function
 
 Arguments:
 
@@ -175,7 +167,6 @@ After:
 ```
 
 ## swap
-- Native Function
 
 Arguments:
 
@@ -199,7 +190,6 @@ After:
 ```
 
 ## drop
-- Native Function
 
 Arguments:
 
@@ -221,7 +211,6 @@ After:
 ```
 
 ## getstack
-- Native Function
 
 Arguments:
 
@@ -243,7 +232,6 @@ After:
 ```
 
 ## sizeof_stack
-- Native Function
 
 Arguments:
 
@@ -261,7 +249,6 @@ Stack Changes:
 ```
 
 ## sizeof
-- Native Function
 
 Arguments:
 
@@ -282,172 +269,8 @@ After:
   [size of type specified by arg1]
 ```
 
-## add
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Adds the two integers and pushes the result onto the stack.
-
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg2 + arg1]
-```
-
-## sub
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Subtracts arg2 from arg1 and pushes the result onto the stack.
-
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 - arg2]
-```
-
-## mul
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Multiplies the two integers and pushes the result onto the stack.
-
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 * arg2]
-```
-
-## div
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Divides arg1 by the second and pushes the result onto the stack.
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 / arg2]
-```
-
-## mod
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Divides arg1 by the second and pushes the remainder onto the stack.
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 % arg2]
-```
-
-## lshift
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Shifts arg1 left by the second and pushes the result onto the stack.
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 << arg2]
-```
-
-## rshift
-- Native Function
-
-Arguments:
-
-- arg1: integer
-    
-- arg2: integer
-
-Description:
-
-  Shifts arg1 right by the second and pushes the result onto the stack.
-
-Stack Changes:
-
-```
-Before: 
-  arg2 arg1
-
-After:
-  [arg1 >> arg2]
-```
 
 ## random
-- Native Function
 
 Arguments:
 
@@ -468,7 +291,6 @@ After:
 ```
 
 ## less
-- Native Function
 
 Arguments:
 
@@ -491,7 +313,6 @@ After:
 ```
 
 ## more
-- Native Function
 
 Arguments:
 
@@ -514,7 +335,6 @@ After:
 ```
 
 ## equal
-- Native Function
 
 Arguments:
 
@@ -537,7 +357,6 @@ After:
 ```
 
 ## and
-- Native Function
 
 Arguments:
 
@@ -560,7 +379,6 @@ After:
 ```
 
 ## not
-- Native Function
 
 Arguments:
 
@@ -581,7 +399,6 @@ After:
 ```
 
 ## or
-- Native Function
 
 Arguments:
 
@@ -604,7 +421,6 @@ After:
 ```
 
 ## sprintf
-- Native Function
 
 Arguments:
 
@@ -627,7 +443,6 @@ After:
 ```
 
 ## strlen
-- Native Function
 
 Arguments:
 
@@ -648,7 +463,6 @@ After:
 ```
 
 ## tochars
-- Native Function
 
 Arguments:
 
@@ -669,7 +483,6 @@ After:
 ```
 
 ## strcmp
-- Native Function
 
 Arguments:
 
@@ -692,7 +505,6 @@ After:
 ```
 
 ## strncmp
-- Native Function
 
 Arguments:
 
@@ -717,7 +529,6 @@ After:
 ```
 
 ## concat
-- Native Function
 
 Arguments:
 
@@ -740,7 +551,6 @@ After:
 ```
 
 ## strstarts
-- Native Function
 
 Arguments:
 
@@ -762,7 +572,7 @@ After:
   [strncmp(arg1, arg2, strlen(arg2))]
 ```
 
-## putstr
+## puts
 
 Arguments:
 
@@ -906,4 +716,26 @@ Before:
 
 After:
   any
+```
+
+## write
+
+Arguments:
+
+- arg1: string
+- arg2: integer
+- arg3: integer
+
+Description:
+
+  Writes arg2 bytes of string arg1 to file descriptor arg3.
+
+Stack Changes:
+
+```
+Before: 
+  arg3 arg2 arg1
+
+After:
+  <empty>
 ```

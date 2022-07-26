@@ -1,10 +1,16 @@
 // file.scale
-extern fprintf
+using "stdlib.scale"
+
 extern fopen
 extern fclose
 extern fread
-extern fseekstart
-extern fseekend
-extern fseekcur
 extern ftell
-extern fwrite
+extern fileno
+extern fseek
+
+function fwrite(buf, size, file)  file fileno size buf write end
+function fprintf(file, str)       file fileno str strlen str write end
+function fread(f, size)           f fileno size read decl buf store buf f buf end
+function fseekstart(f, offset)    f 0 offset fseek end
+function fseekend(f, offset)      f 2 offset fseek end
+function fseekcur(f, offset)      f 1 offset fseek end

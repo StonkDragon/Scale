@@ -1,0 +1,13 @@
+using "stdlib.scale"
+
+function main()
+  "int" sizeof putint
+  "long" sizeof putint
+  "long long" sizeof putint
+  "float" sizeof putint
+  "double" sizeof putint
+  "char" sizeof putint
+  "*void" sizeof putint
+  "size_t" sizeof putint
+  "ssize_t" sizeof putint
+end

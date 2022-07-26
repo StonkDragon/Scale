@@ -11,7 +11,7 @@
 
 std::string outfile = "out.scl";
 std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-std::string cmd = "clang -o " + outfile + " ";
+std::string cmd = "clang -O2 -o " + outfile + " ";
 std::vector<std::string> files;
 
 #include "Tokenizer.cpp"
@@ -111,8 +111,9 @@ int main(int argc, char const *argv[])
     MAIN.parser = &parser;
     char* source = (char*) malloc(sizeof(char) * 50);
     
+    srand(time(NULL));
     if (!transpileOnly) sprintf(source, ".scale-%08x.tmp", (unsigned int) rand());
-    else sprintf(source, "out.c");
+    else sprintf(source, "out");
     cmd += source;
     cmd += ".c ";
 
@@ -124,6 +125,8 @@ int main(int argc, char const *argv[])
         std::cout << "----------------------------------------" << std::endl;
         std::cout << "Compilation failed with code 1" << std::endl;
         std::cout << "----------------------------------------" << std::endl;
+        remove((std::string(source) + ".c").c_str());
+        remove((std::string(source) + ".h").c_str());
         return 1;
     }
     times.push_back(durationLexer + durationParser);
@@ -149,6 +152,8 @@ int main(int argc, char const *argv[])
         std::cout << "----------------------------------------" << std::endl;
         std::cout << "Compilation failed with code " << ret << std::endl;
         std::cout << "----------------------------------------" << std::endl;
+        remove((std::string(source) + ".c").c_str());
+        remove((std::string(source) + ".h").c_str());
         return ret;
     }
     remove((std::string(source) + ".c").c_str());

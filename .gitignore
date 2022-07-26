@@ -8,8 +8,8 @@
 *.elf
 *.scale.c
 *.scale.h
-out.c.c
-out.c.h
+out.c
+out.h
 
 # Linker output
 *.ilk

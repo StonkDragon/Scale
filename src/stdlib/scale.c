@@ -24,6 +24,13 @@
 #define MAX_STRING_SIZE STACK_SIZE
 #define LONG_AS_STR_LEN 22
 
+// define scale-specific signals
+#define EX_BAD_PTR 128
+#define EX_STACK_OVERFLOW 129
+#define EX_STACK_UNDERFLOW 130
+#define EX_UNHANDLED_DATA 131
+#define EX_IO_ERROR 132
+
 typedef struct {
 	unsigned int ptr;
 	void* data[STACK_SIZE];
@@ -53,12 +60,6 @@ void stacktrace_print() {
 
 void process_signal(int sig_num)
 {
-	// define scale-specific signals
-	#define EX_BAD_PTR 128
-	#define EX_STACK_OVERFLOW 129
-	#define EX_STACK_UNDERFLOW 130
-	#define EX_UNHANDLED_DATA 131
-
 	char* signalString;
 	if (sig_num == SIGHUP) signalString = "Terminal Disconnected";
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
@@ -88,6 +89,7 @@ void process_signal(int sig_num)
 	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
 	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
 	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
+	else if (sig_num == EX_IO_ERROR) signalString = "IO error";
 	else if (sig_num == EX_UNHANDLED_DATA) {
 		if (stack.ptr == 1) {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d element too much!") + LONG_AS_STR_LEN);
@@ -186,6 +188,71 @@ void* scale_pop() {
 	return v;
 }
 
+void scale_op_add() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a + b);
+}
+
+void scale_op_sub() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a - b);
+}
+
+void scale_op_mul() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a * b);
+}
+
+void scale_op_div() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a / b);
+}
+
+void scale_op_mod() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a % b);
+}
+
+void scale_op_land() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a & b);
+}
+
+void scale_op_lor() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a | b);
+}
+
+void scale_op_lxor() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a ^ b);
+}
+
+void scale_op_lnot() {
+	long long a = scale_pop_long();
+	scale_push_long(~a);
+}
+
+void scale_op_lsh() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a << b);
+}
+
+void scale_op_rsh() {
+	long long b = scale_pop_long();
+	long long a = scale_pop_long();
+	scale_push_long(a >> b);
+}
+
 void scale_extern_dumpstack() {
 	printf("Dump:\n");
 	for (int i = stack.ptr - 1; i >= 0; i--) {
@@ -195,24 +262,12 @@ void scale_extern_dumpstack() {
 	printf("\n");
 }
 
-void scale_extern_printf() {
-	char *c = scale_pop_string();
-	printf("%s", c);
-}
-
-void scale_extern_read() {
-	char* c = (char*) malloc(MAX_STRING_SIZE);
-	fgets(c, MAX_STRING_SIZE, stdin);
-	int len = strlen(c);
-	if (c[len - 1] == '\n') {
-		c[len - 1] = '\0';
-	}
-	scale_push_string(c);
-}
-
 void scale_extern_tochars() {
 	char *c = scale_pop_string();
-	for (int i = strlen(c); i >= 0; i--) {
+	scale_push_string(c);
+	scale_extern_strlen();
+	int len = scale_pop_long();
+	for (int i = len; i >= 0; i--) {
 		scale_push_long(c[i]);
 	}
 }
@@ -284,41 +339,25 @@ void scale_extern_sizeof_stack() {
 void scale_extern_concat() {
 	char *s2 = scale_pop_string();
 	char *s1 = scale_pop_string();
-	char *out = (char*) malloc(strlen(s1) + strlen(s2) + 1);
-	strcpy(out, s1);
-	strcat(out, s2);
+	scale_push_string(s1);
+	scale_extern_strlen();
+	long long len = scale_pop_long();
+	scale_push_string(s2);
+	scale_extern_strlen();
+	long long len2 = scale_pop_long();
+	char *out = (char*) malloc(len + len2 + 1);
+	int i = 0;
+	while (s1[i] != '\0') {
+		out[i] = s1[i];
+		i++;
+	}
+	int j = 0;
+	while (s2[j] != '\0') {
+		out[i + j] = s2[j];
+		j++;
+	}
 	scale_push_string(out);
 	free(out);
-}
-
-void scale_extern_strstarts() {
-	char *s1 = scale_pop_string();
-	char *s2 = scale_pop_string();
-	scale_push_long(strncmp(s1, s2, strlen(s2)) == 0);
-}
-
-void scale_extern_add() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a + b);
-}
-
-void scale_extern_sub() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a - b);
-}
-
-void scale_extern_mul() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a * b);
-}
-
-void scale_extern_div() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a / b);
 }
 
 void scale_extern_dadd() {
@@ -353,24 +392,6 @@ void scale_extern_dtoi() {
 void scale_extern_itod() {
 	long long i = scale_pop_long();
 	scale_push_double((double) i);
-}
-
-void scale_extern_mod() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a % b);
-}
-
-void scale_extern_lshift() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a << b);
-}
-
-void scale_extern_rshift() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a >> b);
 }
 
 void scale_extern_random() {
@@ -408,6 +429,29 @@ void scale_extern_or() {
 	scale_push_long(a || b);
 }
 
+void scale_extern_lor() {
+	int a = scale_pop_long();
+	int b = scale_pop_long();
+	scale_push_long(a | b);
+}
+
+void scale_extern_land() {
+	int a = scale_pop_long();
+	int b = scale_pop_long();
+	scale_push_long(a & b);
+}
+
+void scale_extern_xor() {
+	int a = scale_pop_long();
+	int b = scale_pop_long();
+	scale_push_long(a ^ b);
+}
+
+void scale_extern_lnot() {
+	int a = scale_pop_long();
+	scale_push_long(~a);
+}
+
 void scale_extern_sprintf() {
 	char *fmt = scale_pop_string();
 	void* s = scale_pop();
@@ -419,27 +463,40 @@ void scale_extern_sprintf() {
 
 void scale_extern_strlen() {
 	char *s = scale_pop_string();
-	scale_push_long(strlen(s));
+	size_t len = 0;
+	while (s[len] != '\0') {
+		len++;
+	}
+	scale_push_long(len);
 }
 
 void scale_extern_strcmp() {
 	char *s1 = scale_pop_string();
 	char *s2 = scale_pop_string();
-	scale_push_long(strcmp(s1, s2) == 0);
+	int i = 0;
+	while (s1[i] != '\0' && s2[i] != '\0') {
+		if (s1[i] != s2[i]) {
+			scale_push_long(0);
+			return;
+		}
+		i++;
+	}
+	scale_push_long(1);
 }
 
 void scale_extern_strncmp() {
 	char *s1 = scale_pop_string();
 	char *s2 = scale_pop_string();
 	long long n = scale_pop_long();
-	scale_push_long(strncmp(s1, s2, n) == 0);
-}
-
-void scale_extern_fprintf() {
-	FILE *f = (FILE*) scale_pop();
-	char *s = scale_pop_string();
-	fprintf(f, "%s", s);
-	scale_push((void*) f);
+	int i = 0;
+	while (s1[i] != '\0' && s2[i] != '\0' && i < n) {
+		if (s1[i] != s2[i]) {
+			scale_push_long(0);
+			return;
+		}
+		i++;
+	}
+	scale_push_long(1);
 }
 
 void scale_extern_fopen() {
@@ -458,37 +515,11 @@ void scale_extern_fclose() {
 	fclose(f);
 }
 
-void scale_extern_fread() {
-	long long size = scale_pop_long();
+void scale_extern_fseek() {
+	long long offset = scale_pop_long();
+	int whence = scale_pop_long();
 	FILE *f = (FILE*) scale_pop();
-
-	char *s = (char*) malloc(size + 1);
-	fread(s, size, 1, f);
-	s[size] = '\0';
-	
-	scale_push((void*) f);
-	scale_push_string(s);
-}
-
-void scale_extern_fseekstart() {
-	long long pos = scale_pop_long();
-	FILE *f = (FILE*) scale_pop();
-	fseek(f, pos, SEEK_SET);
-	scale_push((void*) f);
-}
-
-void scale_extern_fseekend() {
-	long long pos = scale_pop_long();
-	FILE *f = (FILE*) scale_pop();
-	fseek(f, pos, SEEK_END);
-	scale_push((void*) f);
-}
-
-void scale_extern_fseekcur() {
-	long long pos = scale_pop_long();
-	FILE *f = (FILE*) scale_pop();
-	fseek(f, pos, SEEK_CUR);
-	scale_push((void*) f);
+	fseek(f, offset, whence);
 }
 
 void scale_extern_ftell() {
@@ -497,35 +528,9 @@ void scale_extern_ftell() {
 	scale_push_long(ftell(f));
 }
 
-void scale_extern_fwrite() {
-	char *s = scale_pop_string();
-	long long size = scale_pop_long();
+void scale_extern_fileno() {
 	FILE *f = (FILE*) scale_pop();
-	fwrite(s, size, 1, f);
-	scale_push((void*) f);
-}
-
-void scale_extern_sizeof() {
-	char* type = scale_pop_string();
-	if (strcmp(type, "int") == 0) {
-		scale_push_long(sizeof(int));
-	} else if (strcmp(type, "long") == 0) {
-		scale_push_long(sizeof(long));
-	} else if (strcmp(type, "long long") == 0) {
-		scale_push_long(sizeof(long long));
-	} else if (strcmp(type, "float") == 0) {
-		scale_push_long(sizeof(float));
-	} else if (strcmp(type, "double") == 0) {
-		scale_push_long(sizeof(double));
-	} else if (strcmp(type, "char") == 0) {
-		scale_push_long(sizeof(char));
-	} else if (type[strlen(type) - 1] == '*') {
-		scale_push_long(sizeof(void*));
-	} else if (strcmp(type, "size_t") == 0) {
-		scale_push_long(sizeof(size_t));
-	} else if (strcmp(type, "ssize_t") == 0) {
-		scale_push_long(sizeof(ssize_t));
-	}
+	scale_push_long(fileno(f));
 }
 
 void scale_extern_raise() {
@@ -538,6 +543,39 @@ void scale_extern_raise() {
 
 void scale_extern_abort() {
 	abort();
+}
+
+void scale_extern_write() {
+	void *s = scale_pop();
+	long long n = scale_pop_long();
+	long long fd = scale_pop_long();
+	write(fd, s, n);
+}
+
+void scale_extern_read() {
+	long long n = scale_pop_long();
+	long long fd = scale_pop_long();
+	void *s = malloc(n);
+	int ret = read(fd, s, n);
+	if (ret == -1) {
+		scale_push_long(EX_IO_ERROR);
+		scale_extern_raise();
+	}
+	scale_push(s);
+}
+
+void scale_extern_strrev() {
+	char* s = scale_pop_string();
+	int i = 0;
+	scale_push_string(s);
+	scale_extern_strlen();
+	long long len = scale_pop_long();
+	char* out = (char*) malloc(len + 1);
+	for (i = len - 1; i >= 0; i--) {
+		out[i] = s[i];
+	}
+	out[len] = '\0';
+	scale_push_string(out);
 }
 
 void scale_func_main();

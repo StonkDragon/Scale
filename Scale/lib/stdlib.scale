@@ -1,5 +1,5 @@
 // stdlib.scale
-extern printf
+extern write
 extern read
 extern exit
 extern sleep
@@ -7,7 +7,6 @@ extern eval
 extern getproperty
 extern getstack
 extern sizeof_stack
-extern sizeof
 
 extern add
 extern sub
@@ -31,16 +30,18 @@ extern tochars
 extern strcmp
 extern strncmp
 extern concat
-extern strstarts
+extern strrev
 
-function putstr(str)     *str printf "\n" printf end
-function putint(int)     *int "%d\n" sprintf printf end
-function clearstack()    while sizeof_stack 0 more do drop done end
-function swap2(a, b, c)  *b *a *c end
-function sdup2(a, b)     *a *b *a end
-function dup(a)          *a *a end
-function swap(a, b)      *b *a end
-function drop(a)         end
-function over(a, b, c)   *c *b *a end
-function throwerr(err)   *err "\n" swap concat putstr 1 exit end
-function nop()           0 sleep end
+function puts(str)         1 str strlen str write 1 1 "\n" write end
+function putint(int)       int "%d" sprintf puts end
+function clearstack()      while sizeof_stack 0 more do drop done end
+function swap2(a, b, c)    b a c end
+function sdup2(a, b)       a b a end
+function dup(a)            a a end
+function swap(a, b)        b a end
+function drop(a)           end
+function over(a, b, c)     c b a end
+function throwerr(err)     err puts 1 exit end
+function nop()             0 sleep end
+function strstarts(s1, s2) s2 strlen decl len store len s2 s1 strncmp end
+function sizeof(type)      type "int" strcmp if 4 return fi type "long" strcmp if 8 return fi type "long long" strcmp if 8 return fi type "float" strcmp if 4 return fi type "double" strcmp if 8 return fi type "char" strcmp if 1 return fi 1 type "" strstarts if 8 return fi type "size_t" strcmp if 8 return fi type "ssize_t" strcmp if 8 return fi -1 return end
