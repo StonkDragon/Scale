@@ -7,6 +7,7 @@ extern eval
 extern getproperty
 extern getstack
 extern sizeof_stack
+extern deref
 
 extern add
 extern sub
@@ -45,3 +46,6 @@ function throwerr(err)     err puts 1 exit end
 function nop()             0 sleep end
 function strstarts(s1, s2) s2 strlen decl len store len s2 s1 strncmp end
 function sizeof(type)      type "int" strcmp if 4 return fi type "long" strcmp if 8 return fi type "long long" strcmp if 8 return fi type "float" strcmp if 4 return fi type "double" strcmp if 8 return fi type "char" strcmp if 1 return fi 1 type "" strstarts if 8 return fi type "size_t" strcmp if 8 return fi type "ssize_t" strcmp if 8 return fi -1 return end
+function toChar(val)       val 255 & end
+function toInt(val)        val 2147483647 & end
+function toShort(val)      val 32767 & end

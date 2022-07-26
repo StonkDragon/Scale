@@ -739,3 +739,23 @@ Before:
 After:
   <empty>
 ```
+
+## deref
+
+Arguments:
+
+- arg1: pointer
+
+Description:
+
+  Pushes the value pointed to by arg1 onto the stack.
+
+Stack Changes:
+
+```
+Before: 
+  arg1
+
+After:
+  [*arg1]
+```

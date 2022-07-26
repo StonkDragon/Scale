@@ -97,6 +97,60 @@ Token Tokenizer::nextToken() {
         }
         current++;
         return Token(tok_string_literal, value);
+    } else if (c == '\'') {
+        c = source[++current];
+        if (c == '\\') {
+            c = source[++current];
+            if (c == 'n') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\n');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == 't') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\t');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == 'r') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\r');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == '\\') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\\');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == '\'') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\'');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == '\"') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\"');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else if (c == '0') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", '\0');
+                current += 2;
+                return Token(tok_number, iStr);
+            } else {
+                std::cerr << "Unknown escape sequence: '\\" << c << "'" << std::endl;
+                exit(1);
+            }
+        } else {
+            if (source[current + 1] == '\'') {
+                char* iStr = (char*) malloc(4);
+                sprintf(iStr, "%d", c);
+                current += 2;
+                return Token(tok_number, iStr);
+            } else {
+                std::cerr << "Error: Invalid character literal: '" << c << "'" << std::endl;
+                exit(1);
+            }
+        }
     } else if (isOperator(c)) {
         value += c;
         if (c == '>') {
@@ -151,6 +205,10 @@ Token Tokenizer::nextToken() {
     TYPES("store", store);
     TYPES("decl", declare);
     TYPES("addr", addr_ref);
+    TYPES("nil", nil);
+    TYPES("true", true);
+    TYPES("false", false);
+    //TYPES("deref", deref);
     
     TYPES("#", hash);
     TYPES("(", open_paren);

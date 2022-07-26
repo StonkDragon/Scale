@@ -78,5 +78,6 @@ void scale_extern_sizeof();
 void scale_extern_raise();
 void scale_extern_abort();
 void scale_extern_write();
+void scale_extern_deref();
 
 #endif // SCALE_H

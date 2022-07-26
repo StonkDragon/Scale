@@ -596,6 +596,11 @@ void scale_extern_strrev() {
 	scale_push_string(out);
 }
 
+void scale_extern_deref() {
+	void *s = scale_pop();
+	scale_push(*(void**) s);
+}
+
 void scale_func_main();
 
 int main(int argc, char const *argv[])

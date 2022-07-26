@@ -37,7 +37,7 @@ enum TokenType {
 
     // operators
     tok_hash,           // #
-    tok_addr_ref,       // &
+    tok_addr_ref,       // addr
     tok_load,           // load
     tok_store,          // store
     tok_declare,        // decl
@@ -62,6 +62,7 @@ enum TokenType {
     tok_number,         // 123
     tok_number_float,   // 123.456
     tok_string_literal, // "foo"
+    tok_char_literal,   // 'a'
     tok_illegal,
     tok_ignore
 };
