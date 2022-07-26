@@ -18,7 +18,7 @@
 		"scope": "source.scale",
 		"prefix": "function",
 		"body": [
-			"function ${1:name}()",
+			"function ${1:name}($2)",
 			"  $0",
 			"end"
 		]
@@ -98,7 +98,7 @@
 		"scope": "source.scale",
 		"prefix": "macro",
 		"body": [
-			"#inline #static function ${1:name}()",
+			"#inline #static function ${1:name}($2)",
 			"  $0",
 			"end"
 		]
@@ -107,21 +107,28 @@
 		"scope": "source.scale",
 		"prefix": "load",
 		"body": [
-			"*${1:name}"
+			"load ${1:name}"
 		]
 	},
 	"Store Var": {
 		"scope": "source.scale",
 		"prefix": "store",
 		"body": [
-			">${1:name}"
+			"store ${1:name}"
+		]
+	},
+	"Declare Var": {
+		"scope": "source.scale",
+		"prefix": "declare",
+		"body": [
+			"decl ${1:name}"
 		]
 	},
 	"Address of": {
 		"scope": "source.scale",
 		"prefix": "addr",
 		"body": [
-			"&${1:name}"
+			"addr ${1:name}"
 		]
 	},
 	"For Loop": {
@@ -131,6 +138,13 @@
 			"for :${1:i} in ${2:1} to ${3:10} do",
 			"  $0",
 			"done"
+		]
+	},
+	"Prototype": {
+		"scope": "source.scale",
+		"prefix": "prototype",
+		"body": [
+			"proto ${1:name}"
 		]
 	},
 }

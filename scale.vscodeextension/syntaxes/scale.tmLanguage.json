@@ -18,7 +18,7 @@
 			"include": "#funcs"
 		},
 		{
-			"include": "#scalefile"
+			"include": "#func_end"
 		},
 		{
 			"include": "#strings"
@@ -57,15 +57,7 @@
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(using|function|end|extern|while|else|do|done|if|fi|return|for|in|to)\\b"
-				}
-			]
-		},
-		"scalefile": {
-			"patterns": [
-				{
-					"name": "string",
-					"match": "[A-Za-z0-9_\\-\\?\\.]+\\.scale"
+					"match": "\\b(addr|decl|load|store|proto|using|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil)\\b"
 				}
 			]
 		},
@@ -73,7 +65,15 @@
 			"patterns": [
 				{
 					"name": "support.function",
-					"match": "[A-Za-z0-9_]+\\(\\)"
+					"match": "[A-Za-z_]+([A-Za-z_0-9]+)?\\("
+				}
+			]
+		},
+		"func_end": {
+			"patterns": [
+				{
+					"name": "support.function",
+					"match": "\\)"
 				}
 			]
 		},
@@ -98,7 +98,7 @@
 		},
 		"symbols": {
 			"name": "keyword",
-			"match": "(\\*|&|>|:)"
+			"match": "(\\+|-|\\*|/|%|&|\\||\\^|<<|>>|~)"
 		}
 	},
 	"scopeName": "source.scale"
