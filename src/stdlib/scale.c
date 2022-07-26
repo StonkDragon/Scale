@@ -30,6 +30,7 @@
 #define EX_STACK_UNDERFLOW 130
 #define EX_UNHANDLED_DATA 131
 #define EX_IO_ERROR 132
+#define EX_INVALID_ARGUMENT 133
 
 typedef struct {
 	unsigned int ptr;
@@ -90,6 +91,7 @@ void process_signal(int sig_num)
 	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
 	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
 	else if (sig_num == EX_IO_ERROR) signalString = "IO error";
+	else if (sig_num == EX_INVALID_ARGUMENT) signalString = "Invalid argument";
 	else if (sig_num == EX_UNHANDLED_DATA) {
 		if (stack.ptr == 1) {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d element too much!") + LONG_AS_STR_LEN);
@@ -251,6 +253,22 @@ void scale_op_rsh() {
 	long long b = scale_pop_long();
 	long long a = scale_pop_long();
 	scale_push_long(a >> b);
+}
+
+void scale_op_pow() {
+	long long exp = scale_pop_long();
+	if (exp < 0) {
+		scale_push_long(EX_INVALID_ARGUMENT);
+		scale_extern_raise();
+	}
+	long long base = scale_pop_long();
+	long long result = base;
+	long long i = 0;
+	while (i < exp) {
+		result *= base;
+		i++;
+	}
+	scale_push_long(result);
 }
 
 void scale_extern_dumpstack() {

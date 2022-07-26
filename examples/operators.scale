@@ -13,4 +13,5 @@ function main()
   12 10 >> putint
   6 11  &  putint
   7 12  |  putint
+  2 12  ** putint
 end

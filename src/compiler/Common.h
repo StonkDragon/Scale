@@ -56,6 +56,7 @@ enum TokenType {
     tok_lnot,           // ~
     tok_lsh,            // <<
     tok_rsh,            // >>
+    tok_pow,            // **
 
     tok_identifier,     // foo
     tok_number,         // 123

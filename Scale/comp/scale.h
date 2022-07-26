@@ -31,6 +31,7 @@ void scale_op_lxor();
 void scale_op_lnot();
 void scale_op_lsh();
 void scale_op_rsh();
+void scale_op_pow();
 
 void scale_extern_trace();
 void scale_extern_dumpstack();

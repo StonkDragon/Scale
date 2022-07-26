@@ -56,6 +56,7 @@ make install
   - `~`: Logical NOT
   - `<<`: Left shift
   - `>>`: Right shift
+  - `**`: Exponentiation
 
 ## Keywords
 

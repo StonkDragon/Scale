@@ -115,6 +115,11 @@ Token Tokenizer::nextToken() {
                 std::cerr << "Error: Expected '<' after '<'\n";
                 exit(1);
             }
+        } else if (c == '*') {
+            if (source[current + 1] == '*') {
+                c = source[++current];
+                value += c;
+            }
         }
         c = source[++current];
     }
@@ -162,6 +167,7 @@ Token Tokenizer::nextToken() {
     TYPES("~", lnot);
     TYPES("<<", lsh);
     TYPES(">>", rsh);
+    TYPES("**", pow);
 
     if (current >= strlen(source)) {
         return Token(tok_eof, "");

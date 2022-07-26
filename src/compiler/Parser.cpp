@@ -36,7 +36,7 @@ bool hasVar(std::string name) {
 }
 
 bool isOperator(Token token) {
-    return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh;
+    return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow;
 }
 
 ParseResult Parser::parse(std::string filename) {
@@ -149,6 +149,7 @@ ParseResult Parser::parse(std::string filename) {
                     case tok_lnot: fp << "scale_op_lnot();" << std::endl; break;
                     case tok_lsh: fp << "scale_op_lsh();" << std::endl; break;
                     case tok_rsh: fp << "scale_op_rsh();" << std::endl; break;
+                    case tok_pow: fp << "scale_op_pow();" << std::endl; break;
                     default: 
                         std::cerr << "Unknown operator: " << body[i].type << std::endl;
                         {
