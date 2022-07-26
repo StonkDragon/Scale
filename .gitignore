@@ -47,7 +47,8 @@ out.h
 *.idb
 *.pdb
 test.txt
-.vscode/*
+.vscode
+private
 
 # Kernel Module Compile Results
 *.mod*

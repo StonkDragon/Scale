@@ -1,0 +1,5 @@
+using "stdlib.scale"
+
+function main()
+  "Hi" 1 + deref toChar putint
+end
