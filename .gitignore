@@ -49,6 +49,8 @@ out.h
 test.txt
 .vscode
 private
+build
+makebin
 
 # Kernel Module Compile Results
 *.mod*

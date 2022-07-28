@@ -370,7 +370,7 @@ ParseResult Parser::parse(std::string filename) {
                 }
                 if (lower < higher) {
             finalCondition:
-                    fp << "for ($" << body[i + 2].getValue() << " = (void*) " << body[i + 4].getValue() << "; $" << body[i + 2].getValue() << " <= (void*) " << body[i + 6].getValue() << "; $" << body[i + 2].getValue() << "++) {";
+                    fp << "for ($" << body[i + 2].getValue() << " = (void*) " << (body[i + 4].getType() == tok_identifier ? "$" : "") << body[i + 4].getValue() << "; $" << body[i + 2].getValue() << " <= (void*) " << (body[i + 6].getType() == tok_identifier ? "$" : "") << body[i + 6].getValue() << "; $" << body[i + 2].getValue() << "++) {";
                 } else {
                     std::cerr << "Lower bound of for loop is greater than upper bound" << std::endl;
                     ParseResult result;
@@ -443,6 +443,9 @@ ParseResult Parser::parse(std::string filename) {
             } else if (body[i].getType() == tok_store) {
                 if (body[i + 1].getType() != tok_identifier) {
                     std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                    ParseResult result;
+                    result.success = false;
+                    return result;
                 }
                 if (!hasVar(body[i + 1].getValue())) {
                     std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
@@ -462,6 +465,9 @@ ParseResult Parser::parse(std::string filename) {
             } else if (body[i].getType() == tok_declare) {
                 if (body[i + 1].getType() != tok_identifier) {
                     std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                    ParseResult result;
+                    result.success = false;
+                    return result;
                 }
                 vars.push_back(body[i + 1].getValue());
                 std::string loadFrom = body[i + 1].getValue();
@@ -484,6 +490,35 @@ ParseResult Parser::parse(std::string filename) {
             } else if (body[i].getType() == tok_break) {
                 lstart = fp.tellp();
                 fp << "break;";
+                pos = fp.tellp();
+                for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                    fp << " ";
+                }
+                fp << "/* " << body[i].getValue() << " */" << std::endl;
+            } else if (body[i].getType() == tok_ref) {
+                if (body[i + 1].getType() != tok_identifier) {
+                    std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
+                    ParseResult result;
+                    result.success = false;
+                    return result;
+                }
+                if (!hasVar(body[i + 1].getValue())) {
+                    std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
+                    ParseResult result;
+                    result.success = false;
+                    return result;
+                }
+                lstart = fp.tellp();
+                fp << "*((void**) $" << body[i + 1].getValue() << ") = scale_pop();";
+                pos = fp.tellp();
+                for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
+                    fp << " ";
+                }
+                fp << "/* " << body[i].getValue() << " */" << std::endl;
+                i++;
+            } else if (body[i].getType() == tok_deref) {
+                lstart = fp.tellp();
+                fp << "scale_push(*(void**) scale_pop());";
                 pos = fp.tellp();
                 for (int i = (pos - lstart); i < LINE_LENGTH; i++) {
                     fp << " ";

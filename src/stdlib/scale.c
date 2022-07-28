@@ -12,7 +12,10 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <io.h>
 #define sleep(s) Sleep(s)
+#define read(fd, buf, n) _read(fd, buf, n)
+#define write(fd, buf, n) _write(fd, buf, n)
 #else
 #include <unistd.h>
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
@@ -62,31 +65,12 @@ void stacktrace_print() {
 void process_signal(int sig_num)
 {
 	char* signalString;
-	if (sig_num == SIGHUP) signalString = "Terminal Disconnected";
-	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
-	else if (sig_num == SIGQUIT) signalString = "Software termination. Core dumped";
-	else if (sig_num == SIGILL) signalString = "Illegal instruction";
-	else if (sig_num == SIGTRAP) signalString = "Execution trap";
-	else if (sig_num == SIGABRT) signalString = "abort() called";
+	if (sig_num == SIGABRT) signalString = "abort() called";
 	else if (sig_num == SIGFPE) signalString = "Floating point exception";
-	else if (sig_num == SIGKILL) signalString = "Process Terminated";
-	else if (sig_num == SIGBUS) signalString = "Invalid Hardware/Bus Address";
+	else if (sig_num == SIGILL) signalString = "Illegal instruction";
+	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
 	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
-	else if (sig_num == SIGSYS) signalString = "Bad argument to system call";
-	else if (sig_num == SIGPIPE) signalString = "Write on closed pipe";
-	else if (sig_num == SIGALRM) signalString = "Alarm timeout";
-	else if (sig_num == SIGTERM) signalString = "Software termination";
-	else if (sig_num == SIGURG) signalString = "Urgent condition on IO channel";
-	else if (sig_num == SIGSTOP) signalString = "Pause execution";
-	else if (sig_num == SIGTSTP) signalString = "Stop signal from tty (^Z)";
-	else if (sig_num == SIGCONT) signalString = "Continue execution";
-	else if (sig_num == SIGCHLD) signalString = "Child stop or exit";
-	else if (sig_num == SIGTTIN) signalString = "Background tty read";
-	else if (sig_num == SIGTTOU) signalString = "Background tty write";
-	else if (sig_num == SIGXCPU) signalString = "Exceeded CPU time limit";
-	else if (sig_num == SIGXFSZ) signalString = "Exceeded file size limit";
-	else if (sig_num == SIGUSR1) signalString = "User defined signal 1";
-	else if (sig_num == SIGUSR2) signalString = "User defined signal 2";
+
 	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
 	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
 	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
@@ -278,16 +262,6 @@ void scale_extern_dumpstack() {
 		printf("    %p\n", v);
 	}
 	printf("\n");
-}
-
-void scale_extern_tochars() {
-	char *c = scale_pop_string();
-	scale_push_string(c);
-	scale_extern_strlen();
-	int len = scale_pop_long();
-	for (int i = len; i >= 0; i--) {
-		scale_push_long(c[i]);
-	}
 }
 
 void scale_extern_exit() {
@@ -553,8 +527,12 @@ void scale_extern_fileno() {
 
 void scale_extern_raise() {
 	long long n = scale_pop_long();
-	int raised = raise(n);
-	if (raised != 0) {
+	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
+		int raised = raise(n);
+		if (raised != 0) {
+			process_signal(n);
+		}
+	} else {
 		process_signal(n);
 	}
 }
@@ -596,9 +574,15 @@ void scale_extern_strrev() {
 	scale_push_string(out);
 }
 
-void scale_extern_deref() {
-	void *s = scale_pop();
-	scale_push(*(void**) s);
+void scale_extern_malloc() {
+	long long n = scale_pop_long();
+	void* s = malloc(n);
+	scale_push(s);
+}
+
+void scale_extern_free() {
+	void* s = scale_pop();
+	free(s);
 }
 
 void scale_func_main();
@@ -609,31 +593,11 @@ int main(int argc, char const *argv[])
 		scale_push_string(argv[i]);
 	}
 
-	signal(SIGHUP, process_signal);
 	signal(SIGINT, process_signal);
-	signal(SIGQUIT, process_signal);
 	signal(SIGILL, process_signal);
-	signal(SIGTRAP, process_signal);
 	signal(SIGABRT, process_signal);
 	signal(SIGFPE, process_signal);
-	signal(SIGKILL, process_signal);
-	signal(SIGBUS, process_signal);
 	signal(SIGSEGV, process_signal);
-	signal(SIGSYS, process_signal);
-	signal(SIGPIPE, process_signal);
-	signal(SIGALRM, process_signal);
-	signal(SIGTERM, process_signal);
-	signal(SIGURG, process_signal);
-	signal(SIGSTOP, process_signal);
-	signal(SIGTSTP, process_signal);
-	signal(SIGCONT, process_signal);
-	signal(SIGCHLD, process_signal);
-	signal(SIGTTIN, process_signal);
-	signal(SIGTTOU, process_signal);
-	signal(SIGXCPU, process_signal);
-	signal(SIGXFSZ, process_signal);
-	signal(SIGUSR1, process_signal);
-	signal(SIGUSR2, process_signal);
 
 	scale_func_main();
 

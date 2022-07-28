@@ -8,7 +8,7 @@
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
-## Installation
+## Installation (UNIX-like systems)
 
   To install Scale, run the following commands:
 
@@ -80,6 +80,8 @@ make install
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
+  - `deref`: Push the value at the address on the stack
+  - `ref`: Write the value at the address on the stack to the following variable
 
 ## Argument Notation
 ```

@@ -208,7 +208,8 @@ Token Tokenizer::nextToken() {
     TYPES("nil", nil);
     TYPES("true", true);
     TYPES("false", false);
-    //TYPES("deref", deref);
+    TYPES("deref", deref);
+    TYPES("ref", ref);
     
     TYPES("#", hash);
     TYPES("(", open_paren);
@@ -322,6 +323,7 @@ void Tokenizer::tokenize(std::string source) {
             lineCopy = replaceAll(lineCopy, "HERE", "\"" + file + ":" + lineStrStr + "\"");
             lineCopy = replaceAll(lineCopy, "__LINE__", lineStrStr);
             lineCopy = replaceAll(lineCopy, "__FILE__", "\"" + file + "\"");
+            lineCopy = replaceAll(lineCopy, "_VERSION", "\"" + std::string(VERSION) + "\"");
             lineCopy = replaceAll(lineCopy, "HPUTS", "\"" + file + ":" + lineStrStr + "\" printf \": \" printf");
             strcpy(buffer, lineCopy.c_str());
 

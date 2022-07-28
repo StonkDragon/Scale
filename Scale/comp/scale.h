@@ -36,7 +36,6 @@ void scale_op_pow();
 void scale_extern_trace();
 void scale_extern_dumpstack();
 void scale_extern_read();
-void scale_extern_tochars();
 void scale_extern_exit();
 void scale_extern_sleep();
 void scale_extern_getproperty();
@@ -78,6 +77,7 @@ void scale_extern_sizeof();
 void scale_extern_raise();
 void scale_extern_abort();
 void scale_extern_write();
-void scale_extern_deref();
+void scale_extern_malloc();
+void scale_extern_free();
 
 #endif // SCALE_H

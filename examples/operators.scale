@@ -1,5 +1,4 @@
 using "stdlib.scale"
-using "debug.scale"
 
 function main()
   1 2   +  putint

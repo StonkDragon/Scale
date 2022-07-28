@@ -34,6 +34,8 @@ enum TokenType {
     tok_in,             // in
     tok_to,             // to
     tok_proto,          // proto
+    tok_ref,            // ref
+    tok_deref,          // deref
 
     // operators
     tok_hash,           // #

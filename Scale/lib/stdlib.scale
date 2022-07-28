@@ -7,7 +7,8 @@ extern eval
 extern getproperty
 extern getstack
 extern sizeof_stack
-extern deref
+extern malloc
+extern free
 
 extern add
 extern sub
@@ -27,14 +28,13 @@ extern or
 
 extern sprintf
 extern strlen
-extern tochars
 extern strcmp
 extern strncmp
 extern concat
 extern strrev
 
 function puts(str)         1 str strlen str write 1 1 "\n" write end
-function putint(int)       int "%d" sprintf puts end
+function putint(int)       int "%lld" sprintf puts end
 function clearstack()      while sizeof_stack 0 more do drop done end
 function swap2(a, b, c)    b a c end
 function sdup2(a, b)       a b a end
@@ -49,3 +49,8 @@ function sizeof(type)      type "int" strcmp if 4 return fi type "long" strcmp i
 function toChar(val)       val 255 & end
 function toInt(val)        val 2147483647 & end
 function toShort(val)      val 32767 & end
+function to48Bit(val)      val 281474976710655 & end
+function toIntMost(val)    val 32 >> 2147483647 & end
+function toShortMost(val)  val 48 >> 32767 & end
+function toCharMost(val)   val 56 >> 255 & end
+function toChars(str)      decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done end

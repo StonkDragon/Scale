@@ -9,11 +9,6 @@
 
 #include "Common.h"
 
-std::string outfile = "out.scl";
-std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-std::string cmd = "clang -O2 -o " + outfile + " ";
-std::vector<std::string> files;
-
 #include "Tokenizer.cpp"
 #include "Lexer.cpp"
 #include "Parser.cpp"
@@ -38,7 +33,9 @@ int main(int argc, char const *argv[])
     signal(SIGFPE, signalHandler);
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
+#ifdef SIGQUIT
     signal(SIGQUIT, signalHandler);
+#endif
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <filename> [args]" << std::endl;
         return 1;
@@ -46,6 +43,11 @@ int main(int argc, char const *argv[])
 
     bool transpileOnly = false;
     bool linkToLib = true;
+
+    std::string outfile = "out.scl";
+    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
+    std::string cmd = "clang -std=gnu17 -O2 -o " + outfile + " ";
+    std::vector<std::string> files;
 
     for (int i = 1; i < argc; i++) {
         if (strends(std::string(argv[i]), ".scale")) {
