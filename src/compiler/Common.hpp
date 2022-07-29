@@ -8,6 +8,41 @@
 #define TYPE(x) if (value == #x) return Token(tok_##x, value)
 #define TYPES(x, y) if (value == x) return Token(tok_##y, value)
 
+long long parseNumber(std::string str) {
+    long long value;
+    try
+    {
+        if (str.substr(0, 2) == "0x") {
+            value = std::stoll(str.substr(2), nullptr, 16);
+        } else if (str.substr(0, 2) == "0b") {
+            value = std::stoll(str.substr(2), nullptr, 2);
+        } else if (str.substr(0, 2) == "0o") {
+            value = std::stoll(str.substr(2), nullptr, 8);
+        } else {
+            value = std::stoll(str);
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Number out of range: " << str << std::endl;
+    }
+    return value;
+}
+
+double parseDouble(std::string str) {
+    double num;
+    try
+    {
+        num = std::stold(body[i].getValue());
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Number out of range: " << body[i].getValue() << std::endl;
+        return 0.0;
+    }
+    return num;
+}
+
 enum TokenType {
     tok_eof,
 

@@ -1,56 +1,264 @@
 // stdlib.scale
+
+// Stack: [fd n s] -> []
+// Writes n bytes from the pointer s
+// to the file descriptor fd.
 extern write
+
+// Stack: [fd n] -> [s]
+// Reads n bytes from the file descriptor fd
+// and pushes a pointer to the buffer to the stack.
 extern read
+
+// Stack: [i] -> []
+// Exits with exit code i.
 extern exit
+
+// Stack: [c] -> []
+// Sleeps for c milliseconds.
 extern sleep
-extern eval
-extern getproperty
+
+// Stack: [cmd] -> [ret]
+// Executes the command cmd and pushes
+// the return value to the stack.
+extern system
+
+// Stack: [key] -> [value]
+// Pushes the value of the environment variable key
+// to the stack.
+extern getenv
+
+// Stack: [i] -> [value]
+// Pushes the value of the stack at index i
+// to the stack.
 extern getstack
+
+// Stack: [] -> [size]
+// Pushes the size of the stack to the stack.
 extern sizeof_stack
+
+// Stack: [size] -> [ptr]
+// Allocates size bytes of memory and pushes
+// a pointer to the allocated memory to the stack.
+// Malloced memory is garbage collected when no
+// pointers to it are accessible.
 extern malloc
+
+// Stack: [ptr] -> []
+// Frees the memory pointed to by ptr.
 extern free
 
-extern add
-extern sub
-extern mul
-extern div
-extern mod
-extern lshift
-extern rshift
+
+// Stack: [] -> [random]
+// Pushes a random number to the stack.
 extern random
 
+// Stack: [a b] -> [(a < b)]
+// Pushes 1 if a is less than b, 0 otherwise.
 extern less
+
+// Stack: [a b] -> [(a > b)]
+// Pushes 1 if a is greater than b, 0 otherwise.
 extern more
+
+// Stack: [a b] -> [(a == b)]
+// Pushes 1 if a is equal to b, 0 otherwise.
 extern equal
+
+// Stack: [a b] -> [(a && b)]
+// Pushes 1 if a and b are both 1, 0 otherwise.
 extern and
+
+// Stack: [a] -> [(!a)]
+// Pushes 1 if a is 0, 0 otherwise.
 extern not
+
+// Stack: [a b] -> [(a || b)]
+// Pushes 1 if a or b is 1, 0 otherwise.
 extern or
 
+// Stack: [data fmt] -> [str]
+// Formats the data according to the
+// format string fmt
 extern sprintf
+
+// Stack: [str] -> [strlen]
+// Pushes the length of the string to the stack.
 extern strlen
+
+// Stack: [s2 s1] -> [strcmp]
+// Pushes 1 if the strings s1 and s2
+// are equal, 0 otherwise.
 extern strcmp
+
+// Stack: [n s1 s2] -> [strncmp]
+// Pushes 1 if the first n characters of
+// the strings s1 and s2 are equal, 0 otherwise.
 extern strncmp
+
+// Stack: [s1 s2] -> [concat]
+// Pushes the concatenation of s1 and s2
+// to the stack.
 extern concat
+
+// Stack: [s] -> [strrev]
+// Pushes the reverse of the string s
+// to the stack.
 extern strrev
 
-function puts(str)         1 str strlen str write 1 1 "\n" write end
-function putint(int)       int "%lld" sprintf puts end
-function clearstack()      while sizeof_stack 0 more do drop done end
-function swap2(a, b, c)    b a c end
-function sdup2(a, b)       a b a end
-function dup(a)            a a end
-function swap(a, b)        b a end
-function drop(a)           end
-function over(a, b, c)     c b a end
-function throwerr(err)     err puts 1 exit end
-function nop()             0 sleep end
-function strstarts(s1, s2) s2 strlen decl len store len s2 s1 strncmp end
-function sizeof(type)      type "int" strcmp if 4 return fi type "long" strcmp if 8 return fi type "long long" strcmp if 8 return fi type "float" strcmp if 4 return fi type "double" strcmp if 8 return fi type "char" strcmp if 1 return fi 1 type "" strstarts if 8 return fi type "size_t" strcmp if 8 return fi type "ssize_t" strcmp if 8 return fi -1 return end
-function toChar(val)       val 255 & end
-function toInt(val)        val 2147483647 & end
-function toShort(val)      val 32767 & end
-function to48Bit(val)      val 281474976710655 & end
-function toIntMost(val)    val 32 >> 2147483647 & end
-function toShortMost(val)  val 48 >> 32767 & end
-function toCharMost(val)   val 56 >> 255 & end
-function toChars(str)      decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done end
+
+// Stack: [str] -> []
+// Prints the string str to the standard output.
+function puts(str)
+    str toString store str
+    1 str strlen str write
+    1 1 "\n" write
+end
+
+// Stack: [int] -> []
+// Prints the integer int to the standard output.
+function putint(int)
+    int "%lld" sprintf puts
+end
+
+// Stack: [<any>] -> []
+// Clears the stack.
+function clearstack()
+    while sizeof_stack 0 more do
+        drop
+    done
+end
+
+// Stack: [a b c] -> [b a c]
+// Swaps the values of a and b, while keeping
+// c at the same position.
+function swap2(a, b, c)
+    b a c
+end
+
+// Stack: [a b] -> [a b a]
+// Duplicates the value of a, while keeping
+// b at the same position.
+function sdup2(a, b)
+    a b a
+end
+
+// Stack: [a] -> [a a]
+// Duplicates the value of a.
+function dup(a)
+    a a
+end
+
+// Stack: [a b] -> [b a]
+// Swaps the values of a and b.
+function swap(a, b)
+    b a
+end
+
+// Stack: [a] -> []
+// Drops the value of a from the stack.
+function drop(a) end
+
+// Stack: [a b c] -> [c b a]
+// Swaps the values of a and c, while keeping
+// b at the same position.
+function over(a, b, c)
+    c b a
+end
+
+// Stack: [err] -> []
+// Prints the error message err to the standard error,
+// and exits with exit code 1.
+function throwerr(err)
+    err puts 1 exit
+end
+
+// Stack: [] -> []
+// No operation.
+function nop()
+    0 sleep
+end
+
+// Stack: [s1 s2] -> [strstarts]
+// Pushes 1 if s1 starts with s2, 0 otherwise.
+function strstarts(s1, s2)
+    decl len s2 strlen store len s2 s1 strncmp
+end
+
+// Stack: [type] -> [sizeof(type)]
+// Pushes the size of the type to the stack.
+function sizeof(type)
+    type "int" strcmp if
+        4 return
+    fi
+    type "long" strcmp if
+        8 return
+    fi
+    type "long long" strcmp if
+        8 return
+    fi
+    type "float" strcmp if
+        4 return
+    fi
+    type "double" strcmp if
+        8 return
+    fi
+    type "char" strcmp if
+        1 return
+    fi
+    type "size_t" strcmp if
+        8 return
+    fi
+    type "ssize_t" strcmp if
+        8 return
+    fi
+    -1 return
+end
+
+// Stack: [val] -> [(val & 255)]
+// Pushes the lowest 8 bits of val to the stack.
+function toChar(val)
+    val 255 &
+end
+
+// Stack: [val] -> [(val & 2147483647)]
+// Pushes the lowest 32 bits of val to the stack.
+function toInt(val)
+    val 2147483647 &
+end
+
+// Stack: [val] -> [(val & 32767)]
+// Pushes the lowest 16 bits of val to the stack.
+function toShort(val)
+    val 32767 &
+end
+
+// Stack: [val] -> [(val & 281474976710655)]
+// Pushes the lowest 48 bits of val to the stack.
+function to48Bit(val)
+    val 281474976710655 &
+end
+
+// Stack: [val] -> [((val >> 32) & 2147483647)]
+// Pushes the highest 32 bits of val to the stack.
+function toIntMost(val)
+    val 32 >> 2147483647 &
+end
+
+// Stack: [val] -> [((val >> 48) & 32767)]
+// Pushes the highest 16 bits of val to the stack.
+function toShortMost(val)
+    val 48 >> 32767 &
+end
+
+// Stack: [val] -> [((val >> 56) & 255)]
+// Pushes the highest 8 bits of val to the stack.
+function toCharMost(val)
+    val 56 >> 255 &
+end
+
+// Stack: [str] -> [chars]
+// Pushes the characters of str to the stack.
+function toChars(str)
+    decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done
+end

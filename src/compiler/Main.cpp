@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <chrono>
 
-#include "Common.h"
+#include "Common.hpp"
 
 #include "Tokenizer.cpp"
 #include "Lexer.cpp"
@@ -45,8 +45,8 @@ int main(int argc, char const *argv[])
     bool linkToLib = true;
 
     std::string outfile = "out.scl";
-    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-    std::string cmd = "clang -std=gnu17 -O2 -o " + outfile + " ";
+    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/libscale.o";
+    std::string cmd = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " ";
     std::vector<std::string> files;
 
     for (int i = 1; i < argc; i++) {
@@ -77,6 +77,7 @@ int main(int argc, char const *argv[])
         cmd += lib + " ";
     }
 
+    std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     
     std::vector<double> times;

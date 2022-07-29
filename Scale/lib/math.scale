@@ -1,15 +1,50 @@
 // math.scale
 using "stdlib.scale"
 
+// Stack: [a b] -> [a+b]
+// Double precision floating point addition.
 extern dadd
+
+// Stack: [a b] -> [a-b]
+// Double precision floating point subtraction.
 extern dsub
+
+// Stack: [a b] -> [a*b]
+// Double precision floating point multiplication.
 extern dmul
+
+// Stack: [a b] -> [a/b]
+// Double precision floating point division.
 extern ddiv
 
+// Stack: [a] -> [(int)a]
+// Convert a double precision floating point number to an integer.
 extern dtoi
+
+// Stack: [a] -> [(double)a]
+// Convert an integer to a double precision floating point number.
 extern itod
 
+// Stack: [a] -> [a%2==0]
+// Test if an integer is even.
 function iseven(i)      i 2 % 0 equal return end
+
+// Stack: [a] -> [a++]
+// Increment an integer.
 function inc(i)         i 1 + end
+
+// Stack: [a] -> [a--]
+// Decrement an integer.
 function dec(i)         i 1 - end
+
+// Stack: [a] -> [random%a]
+// Return a random integer between 0 and a-1.
 function lrandom(limit) random limit % end
+
+// Stack [a] -> [a++]
+// Increment a double precision floating point number.
+function dinc(d)        d 1 dadd end
+
+// Stack [a] -> [a--]
+// Decrement a double precision floating point number.
+function ddec(d)        d 1 dsub end

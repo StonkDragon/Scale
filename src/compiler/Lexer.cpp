@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "Common.h"
+#include "Common.hpp"
 
 #include "Tokenizer.cpp"
 #include "Main.cpp"

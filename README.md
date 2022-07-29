@@ -8,27 +8,13 @@
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
-## Installation (UNIX-like systems)
+## Installation
 
-  To install Scale, run the following commands:
+  To install Scale, download the zip file for your operating system from the Release page.
 
-```bash
-git clone https://github.com/StonkDragon/Scale.git
-cd Scale
-make install
-```
+  Then, unzip the file and execute the install.sh/install.bat file with admin/root priviliges from the terminal.
 
-  The `make install` command will build the compiler and the Scale library.
-
-  The Scale compiler executable is located in `$HOME/Scale/bin/sclc`.
-
-  After building you have to add the following path to your PATH environment variable in order to use the compiler:
-
-  [On Windows](https://docs.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)#to-add-a-path-to-the-path-environment-variable): `C:/Users/<your username>/Scale/bin`
-
-  [On Mac](https://www.architectryan.com/2012/10/02/add-to-the-path-on-mac-os-x-mountain-lion/): `/Users/<your username>/Scale/bin`
-
-  [On Linux](https://www.cyberciti.biz/faq/how-to-add-to-bash-path-permanently-on-linux/): `/home/<your username>/Scale/bin`
+  The Script will copy all files to the correct locations.
 
 ## Dependencies
 
@@ -84,16 +70,71 @@ make install
   - `ref`: Write the value at the address on the stack to the following variable
 
 ## Argument Notation
+
+Say we have following function:
+
 ```
-arg3 arg2 arg1 function
+function foo(a, b, c)
+  a b +
+  c +
+end
 ```
 
-## Standard Library
+To Call the function, the arguments must be passed in the following order:
 
-- [stdlib.scale](./docs/stdlib.scale.md)
+```
+  a b c foo
+```
 
-- [math.scale](./docs/math.scale.md)
+The last argument of the function must be on the top of the stack.
 
-- [file.scale](./docs/file.scale.md)
+Example:
 
-- [debug.scale](./docs/debug.scale.md)
+```
+  1 2 3 foo
+    => 6
+```
+
+## Stack Notation
+
+  The following notation is used to represent the stack:
+
+  - `[]`: An empty stack
+
+  - `[a]`: A stack with the value `a` on top
+
+  - `[a b]`: A stack with two elements, where `b` is on top and `a` is below
+
+  - `[<any>]`: A stack with any number of elements
+
+## Examples
+
+  Examples can be found in the [examples](./examples) directory.
+
+  Quick links:
+
+  - [Hello World](./examples/hello.scale)
+
+  - [Argument Notation](./examples/arguments.scale)
+
+  - [If Statements](./examples/if.scale)
+
+  - [While Loops](./examples/while.scale)
+
+  - [Math Operators](./examples/operators.scale)
+
+  - [Variables](./examples/variables.scale)
+
+  - [For Loops](./examples/for.scale)
+
+  - [FizzBuzz](./examples/fizzbuzz.scale)
+
+  - [Fibonacci](./examples/fib.scale)
+
+  - [Sizeof](./examples/sizeof.scale)
+
+  - [Pointer Dereferencing](./examples/deref.scale)
+
+# License
+
+  Scale is licensed under the [MIT license](./LICENSE).

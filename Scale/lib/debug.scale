@@ -1,6 +1,33 @@
 // debug.scale
+
+// !!!!
+// ALL OF THESE FUNCIONS SHOULD NOT BE USED IN PRODUCTION CODE
+// !!!!
+
+// Stack: [] -> []
+// Dumps the current stack to the console.
 extern dumpstack
+
+// Stack: [] -> []
+// Prints the call stack to the console.
 extern trace
+
+// Stack: [] -> []
+// Exits the program with exit code 1.
 extern crash
+
+// Stack: [ex] -> []
+// Raises signal ex.
 extern raise
+
+// Stack: [] -> []
+// Raises signal SIGABRT.
 extern abort
+
+// Stack: [] -> []
+// Breakpoint.
+extern breakpoint
+
+// Stack: [] -> []
+// Runs garbage collection.
+extern heap_collect

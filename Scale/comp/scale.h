@@ -6,19 +6,28 @@
 /* Macro for function headers of custom Scale Functions */
 #define sfunc_head(func) void scale_func_##func()
 
-void      stacktrace_push(char* ptr);
-void      stacktrace_pop();
-void      stacktrace_print();
+// Stacktrace functions
+void stacktrace_push(char* ptr, int inc);
+void stacktrace_pop(int dec);
+void stacktrace_print();
 
-void      scale_push(void* n);
-void      scale_push_double(double n);
-void      scale_push_long(long long n);
-void      scale_push_string(const char* c);
+// Stack push functions
+void scale_push(void* n);
+void scale_push_double(double n);
+void scale_push_long(long long n);
+void scale_push_string(const char* c);
 
-void*     scale_pop();
-long long scale_pop_long();
-double    scale_pop_double();
-char*     scale_pop_string();
+// Stack pop functions
+void*        scale_pop();
+long long    scale_pop_long();
+double       scale_pop_double();
+char*        scale_pop_string();
+
+// Heap management functions
+void scale_heap_collect();
+void scale_heap_collect_all(int print);
+void scale_heap_add(void* ptr, int isFile);
+void scale_heap_remove(void* ptr, int isFile);
 
 void scale_op_add();
 void scale_op_sub();
@@ -38,7 +47,7 @@ void scale_extern_dumpstack();
 void scale_extern_read();
 void scale_extern_exit();
 void scale_extern_sleep();
-void scale_extern_getproperty();
+void scale_extern_getenv();
 void scale_extern_less();
 void scale_extern_more();
 void scale_extern_equal();
@@ -57,7 +66,7 @@ void scale_extern_itod();
 void scale_extern_random();
 void scale_extern_crash();
 void scale_extern_and();
-void scale_extern_eval();
+void scale_extern_system();
 void scale_extern_getstack();
 void scale_extern_not();
 void scale_extern_or();
@@ -79,5 +88,9 @@ void scale_extern_abort();
 void scale_extern_write();
 void scale_extern_malloc();
 void scale_extern_free();
+void scale_extern_breakpoint();
+void scale_extern_memset();
+void scale_extern_memcpy();
+void scale_extern_gc_collect();
 
 #endif // SCALE_H

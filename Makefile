@@ -1,16 +1,16 @@
-VERSION=2.5
+VERSION=2.6-dev
 
-install:
+dev:
 	rm -rf $${HOME}/Scale
 	cp -r Scale $${HOME}
-	mkdir -p $${HOME}/Scale/bin
-	clang++ -std=gnu++17 -o $${HOME}/Scale/bin/sclc src/compiler/Main.cpp -DVERSION="\"$(VERSION)\""
-	clang -std=gnu17 -o $${HOME}/Scale/comp/scale.o -c src/stdlib/scale.c -DVERSION="\"$(VERSION)\""
-	rm -rf $${HOME}/Scale/comp/scale.c
+	sudo clang++ -std=gnu++17 -o /usr/local/bin/sclc src/compiler/Main.cpp -DVERSION="\"$(VERSION)\""
+	clang -std=gnu17 -o $${HOME}/Scale/comp/libscale.o -c src/stdlib/scale.c -DVERSION="\"$(VERSION)\""
+	./makebin $(VERSION) macos-x86-64
 	python3 tests.py run
 
-build:
-	./makebin $(VERSION)
+comp:
+	mkdir compile
+	clang++ -std=gnu++17 -o compile/sclc src/compiler/Main.cpp -DVERSION="\"$(VERSION)\""
 
 tests:
 	python3 tests.py run

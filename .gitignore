@@ -51,6 +51,7 @@ test.txt
 private
 build
 makebin
+compile
 
 # Kernel Module Compile Results
 *.mod*
@@ -60,3 +61,4 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+.DS_Store

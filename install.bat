@@ -5,8 +5,7 @@ echo "Installing..."
 del /S "%USERPROFILE%\\Scale"
 
 echo "Copying files"
-xcopy .\\Scale %USERPROFILE%
-echo "Adding to PATH"
-setx path "%PATH%;%USERPROFILE%\\Scale\\bin"
+xcopy .\\Scale %USERPROFILE%\\Scale /E/H/C/I
+copy .\\sclc.exe %SystemRoot%\\sclc.exe
 
 echo "Installed!"

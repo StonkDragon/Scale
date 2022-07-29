@@ -7,7 +7,7 @@
 #include <vector>
 #include <regex>
 
-#include "Common.h"
+#include "Common.hpp"
 
 #include "Lexer.cpp"
 

@@ -7,7 +7,6 @@ function main()
   "float" sizeof putint
   "double" sizeof putint
   "char" sizeof putint
-  "*void" sizeof putint
   "size_t" sizeof putint
   "ssize_t" sizeof putint
 end
