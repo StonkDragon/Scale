@@ -2,24 +2,30 @@
 #define TOKENHANDLERS_CPP_
 
 #include <iostream>
+#include <string.h>
 #include <string>
+#include <vector>
+#include <regex>
 
 #include "Common.hpp"
 
-bool handleOperator(std::fstream &fp, Token token) {
+bool handleOperator(std::fstream &fp, Token token, int scopeDepth) {
+    for (int j = 0; j < scopeDepth; j++) {
+        fp << "    ";
+    }
     switch (token.type) {
-        case tok_add: fp << "scale_op_add();" << std::endl; break;
-        case tok_sub: fp << "scale_op_sub();" << std::endl; break;
-        case tok_mul: fp << "scale_op_mul();" << std::endl; break;
-        case tok_div: fp << "scale_op_div();" << std::endl; break;
-        case tok_mod: fp << "scale_op_mod();" << std::endl; break;
-        case tok_land: fp << "scale_op_land();" << std::endl; break;
-        case tok_lor: fp << "scale_op_lor();" << std::endl; break;
-        case tok_lxor: fp << "scale_op_lxor();" << std::endl; break;
-        case tok_lnot: fp << "scale_op_lnot();" << std::endl; break;
-        case tok_lsh: fp << "scale_op_lsh();" << std::endl; break;
-        case tok_rsh: fp << "scale_op_rsh();" << std::endl; break;
-        case tok_pow: fp << "scale_op_pow();" << std::endl; break;
+        case tok_add: fp << "op_add();" << std::endl; break;
+        case tok_sub: fp << "op_sub();" << std::endl; break;
+        case tok_mul: fp << "op_mul();" << std::endl; break;
+        case tok_div: fp << "op_div();" << std::endl; break;
+        case tok_mod: fp << "op_mod();" << std::endl; break;
+        case tok_land: fp << "op_land();" << std::endl; break;
+        case tok_lor: fp << "op_lor();" << std::endl; break;
+        case tok_lxor: fp << "op_lxor();" << std::endl; break;
+        case tok_lnot: fp << "op_lnot();" << std::endl; break;
+        case tok_lsh: fp << "op_lsh();" << std::endl; break;
+        case tok_rsh: fp << "op_rsh();" << std::endl; break;
+        case tok_pow: fp << "op_pow();" << std::endl; break;
         default: 
             std::cerr << "Unknown operator: " << token.type << std::endl;
             return false;
@@ -27,11 +33,12 @@ bool handleOperator(std::fstream &fp, Token token) {
     return true;
 }
 
-bool handleNumber(std::fstream &fp, Token token) {
+bool handleNumber(std::fstream &fp, Token token, int scopeDepth) {
     long long num = parseNumber(token.getValue());
-    std::streampos lstart = fp.tellp();
-    fp << "scale_push_long(" << num << ");";
-    addSourceComment(fp, lstart, token.getValue());
+    for (int j = 0; j < scopeDepth; j++) {
+        fp << "    ";
+    }
+    fp << "push_long(" << num << ");" << std::endl;
     return true;
 }
 
@@ -40,7 +47,6 @@ bool handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token
         std::cerr << "Expected variable declaration after 'for' keyword, but got: '" << keywDeclare.getValue() << std::endl;
         return false;
     }
-    *scopeDepth++;
     if (loopVar.getType() != tok_identifier) {
         std::cerr << "Expected identifier after 'decl', but got: '" << loopVar.getValue() << std::endl;
         return false;
@@ -74,25 +80,29 @@ bool handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token
         higher = parseNumber(to.getValue());
     }
 
-    fp << "stackframe_t $" << loopVar.getValue() << ";" << std::endl;
-    std::streampos lstart = fp.tellp();
+    for (int j = 0; j < *scopeDepth; j++) {
+        fp << "    ";
+    }
+    fp << "void* $" << loopVar.getValue() << ";" << std::endl;
 
     if (lower < higher) {
-        fp << "for ($" << loopVar.getValue() << ".ptr = (void*) ";
+        for (int j = 0; j < *scopeDepth; j++) {
+            fp << "    ";
+        }
+        fp << "for ($" << loopVar.getValue() << " = (void*) ";
         fp << (from.getType() == tok_identifier ? "$" : "") << from.getValue();
-        fp << (from.getType() == tok_identifier ? ".ptr" : "") << "; $";
-        fp << loopVar.getValue() << ".ptr <= (void*) ";
+        fp << "; $" << loopVar.getValue() << " <= (void*) ";
         fp << (to.getType() == tok_identifier ? "$" : "") << to.getValue();
-        fp << (to.getType() == tok_identifier ? ".ptr" : "") << "; $";
-        fp << loopVar.getValue() << ".ptr++) {";
+        fp << "; $" << loopVar.getValue() << "++) {" << std::endl;
     } else {
         std::cerr << "Lower bound of for loop is greater than upper bound" << std::endl;
         return false;
     }
+    *scopeDepth = *scopeDepth + 1;
 
     vars->push_back(loopVar.getValue());
-    addSourceComment(fp, lstart, "for :" + loopVar.getValue() + " in " + from.getValue() + ".." + to.getValue() + " do");
     fp << std::endl;
+    return true;
 }
 
 #endif // TOKENHANDLERS_CPP_

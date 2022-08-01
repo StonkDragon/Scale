@@ -33,11 +33,11 @@ double parseDouble(std::string str) {
     double num;
     try
     {
-        num = std::stold(body[i].getValue());
+        num = std::stold(str);
     }
     catch(const std::exception& e)
     {
-        std::cerr << "Number out of range: " << body[i].getValue() << std::endl;
+        std::cerr << "Number out of range: " << str << std::endl;
         return 0.0;
     }
     return num;
@@ -159,9 +159,8 @@ struct ParsedFunction
 
 enum Modifier
 {
-    mod_static,
-    mod_inline,
-    mod_extern
+    mod_nps,
+    mod_nowarn
 };
 
 struct Function
@@ -275,6 +274,7 @@ public:
         return false;
     }
     ParseResult parse(std::string filename);
+    Function getFunctionByName(std::string name);
 };
 
 class Tokenizer

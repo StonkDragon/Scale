@@ -28,11 +28,6 @@ extern system
 // to the stack.
 extern getenv
 
-// Stack: [i] -> [value]
-// Pushes the value of the stack at index i
-// to the stack.
-extern getstack
-
 // Stack: [] -> [size]
 // Pushes the size of the stack to the stack.
 extern sizeof_stack
@@ -106,11 +101,14 @@ extern concat
 // to the stack.
 extern strrev
 
+// Stack: [] -> [time]
+// Pushes the current timestamp in milliseconds to the stack.
+extern time
+
 
 // Stack: [str] -> []
 // Prints the string str to the standard output.
 function puts(str)
-    str toString store str
     1 str strlen str write
     1 1 "\n" write
 end
@@ -123,7 +121,7 @@ end
 
 // Stack: [<any>] -> []
 // Clears the stack.
-function clearstack()
+#nps #nowarn function clearstack()
     while sizeof_stack 0 more do
         drop
     done
@@ -132,37 +130,37 @@ end
 // Stack: [a b c] -> [b a c]
 // Swaps the values of a and b, while keeping
 // c at the same position.
-function swap2(a, b, c)
+#nps #nowarn function swap2(a, b, c)
     b a c
 end
 
 // Stack: [a b] -> [a b a]
 // Duplicates the value of a, while keeping
 // b at the same position.
-function sdup2(a, b)
+#nps #nowarn function sdup2(a, b)
     a b a
 end
 
 // Stack: [a] -> [a a]
 // Duplicates the value of a.
-function dup(a)
+#nps #nowarn function dup(a)
     a a
 end
 
 // Stack: [a b] -> [b a]
 // Swaps the values of a and b.
-function swap(a, b)
+#nps #nowarn function swap(a, b)
     b a
 end
 
 // Stack: [a] -> []
 // Drops the value of a from the stack.
-function drop(a) end
+#nps #nowarn function drop(a) end
 
 // Stack: [a b c] -> [c b a]
 // Swaps the values of a and c, while keeping
 // b at the same position.
-function over(a, b, c)
+#nps #nowarn function over(a, b, c)
     c b a
 end
 
@@ -182,7 +180,7 @@ end
 // Stack: [s1 s2] -> [strstarts]
 // Pushes 1 if s1 starts with s2, 0 otherwise.
 function strstarts(s1, s2)
-    decl len s2 strlen store len s2 s1 strncmp
+    s2 strlen s2 s1 strncmp return
 end
 
 // Stack: [type] -> [sizeof(type)]
@@ -218,47 +216,23 @@ end
 // Stack: [val] -> [(val & 255)]
 // Pushes the lowest 8 bits of val to the stack.
 function toChar(val)
-    val 255 &
+    val 255 & return
 end
 
 // Stack: [val] -> [(val & 2147483647)]
 // Pushes the lowest 32 bits of val to the stack.
 function toInt(val)
-    val 2147483647 &
+    val 2147483647 & return
 end
 
 // Stack: [val] -> [(val & 32767)]
 // Pushes the lowest 16 bits of val to the stack.
 function toShort(val)
-    val 32767 &
-end
-
-// Stack: [val] -> [(val & 281474976710655)]
-// Pushes the lowest 48 bits of val to the stack.
-function to48Bit(val)
-    val 281474976710655 &
-end
-
-// Stack: [val] -> [((val >> 32) & 2147483647)]
-// Pushes the highest 32 bits of val to the stack.
-function toIntMost(val)
-    val 32 >> 2147483647 &
-end
-
-// Stack: [val] -> [((val >> 48) & 32767)]
-// Pushes the highest 16 bits of val to the stack.
-function toShortMost(val)
-    val 48 >> 32767 &
-end
-
-// Stack: [val] -> [((val >> 56) & 255)]
-// Pushes the highest 8 bits of val to the stack.
-function toCharMost(val)
-    val 56 >> 255 &
+    val 32767 & return
 end
 
 // Stack: [str] -> [chars]
 // Pushes the characters of str to the stack.
-function toChars(str)
+#nps #nowarn function toChars(str)
     decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done
 end
