@@ -62,7 +62,6 @@ enum TokenType {
     tok_extern,         // extern
     tok_sizeof,         // sizeof
     tok_macro,          // macro
-    tok_using,          // using
     tok_break,          // break
     tok_continue,       // continue
     tok_for,            // for
@@ -289,7 +288,6 @@ public:
     std::vector<Token> getTokens();
     Token nextToken();
     void printTokens();
-    void addUsing(std::string name);
 };
 
 typedef struct Main
@@ -297,7 +295,7 @@ typedef struct Main
     Tokenizer* tokenizer;
     Lexer* lexer;
     Parser* parser;
-    std::vector<std::string> usings;
+    bool debug;
 } Main;
 
 Main MAIN = {0, 0, 0};

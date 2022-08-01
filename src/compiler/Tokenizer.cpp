@@ -44,7 +44,7 @@ static int isBinDigit(char c) {
 }
 
 static int isOperator(char c) {
-    return c == '#' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
+    return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
 }
 
 std::vector<Token> Tokenizer::getTokens() {
@@ -184,7 +184,6 @@ Token Tokenizer::nextToken() {
         return nextToken();
     }
 
-    TYPES("using", using);
     TYPES("function", function);
     TYPES("end", end);
     TYPES("extern", extern);
@@ -211,7 +210,7 @@ Token Tokenizer::nextToken() {
     TYPES("deref", deref);
     TYPES("ref", ref);
     
-    TYPES("#", hash);
+    TYPES("@", hash);
     TYPES("(", open_paren);
     TYPES(")", close_paren);
     TYPES(",", comma);
@@ -234,21 +233,6 @@ Token Tokenizer::nextToken() {
     return Token(tok_identifier, value);
 }
 
-bool hasUsing(std::string name) {
-    for (int i = 0; i < MAIN.usings.size(); i++) {
-        if (MAIN.usings[i] == name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void Tokenizer::addUsing(std::string name) {
-    if (!hasUsing(name)) {
-        MAIN.usings.push_back(name);
-    }
-}
-
 bool replace(std::string& str, const std::string& from, const std::string& to) {
     size_t start_pos = str.find(from);
     if(start_pos == std::string::npos)
@@ -262,97 +246,58 @@ std::string replaceAll(std::string src, std::string from, std::string to) {
 }
 
 void Tokenizer::tokenize(std::string source) {
-    addUsing(source);
-
     FILE *fp;
 
     std::string data = "";
 
-    for (int i = 0; i < MAIN.usings.size(); i++) {
-        std::string file = MAIN.usings[i];
-
-        if (!fileExists(file)) {
-            file = std::string(getenv("HOME")) + "/Scale/lib/" + file;
-        }
-        fp = fopen(file.c_str(), "r");
-        if (fp == NULL) {
-            printf("Error: Could not open file %s\n", file.c_str());
-            exit(1);
-        }
-
-        fseek(fp, 0, SEEK_END);
-        int size = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
-
-        char *buffer = new char[size + 1];
-
-        size_t line = 0;
-
-        std::vector<std::tuple<std::string, std::string>> macros;
-
-        while (fgets(buffer, size + 1, fp) != NULL) {
-            line++;
-            // skip if comment
-            if (buffer[0] == '/') {
-                if (buffer[1] == '/') {
-                    continue;
-                }
-            }
-            // skip if blank
-            if (buffer[0] == '\n' || buffer[0] == '\r' || buffer[0] == '\0') {
-                continue;
-            }
-
-            // remove mid line comments
-            char *c = buffer;
-            while (*c != '\0') {
-                if (*c == '/') {
-                    if (c[1] == '/') {
-                        *c = '\0';
-                        break;
-                    }
-                }
-                c++;
-            }
-
-            char* lineStr = new char[1024];
-            sprintf(lineStr, "%zu", line);
-            std::string lineStrStr = std::string(lineStr);
-            std::string lineCopy = std::string(buffer);
-
-            lineCopy = replaceAll(lineCopy, "HERE", "\"" + file + ":" + lineStrStr + "\"");
-            lineCopy = replaceAll(lineCopy, "__LINE__", lineStrStr);
-            lineCopy = replaceAll(lineCopy, "__FILE__", "\"" + file + "\"");
-            lineCopy = replaceAll(lineCopy, "_VERSION", "\"" + std::string(VERSION) + "\"");
-            lineCopy = replaceAll(lineCopy, "HPUTS", "\"" + file + ":" + lineStrStr + "\" printf \": \" printf");
-            strcpy(buffer, lineCopy.c_str());
-
-            if (strncmp(buffer, "using", 5) == 0) {
-                std::string file = "";
-                char c;
-                int i = 5;
-                while ((c = buffer[i]) != '"') i++;
-                i++;
-                while ((c = buffer[i]) != '"') {
-                    file += c;
-                    i++;
-                }
-                addUsing(file);
-                continue;
-            }
-
-
-            if (buffer[strlen(buffer) - 1] == '\n') {
-                buffer[strlen(buffer) - 1] = '\0';
-            }
-
-            // add to data
-            data += buffer;
-            data += "\n";
-        }
-
-        fclose(fp);
+    std::string file = source;
+    
+    fp = fopen(file.c_str(), "r");
+    if (fp == NULL) {
+        printf("Error: Could not open file %s\n", file.c_str());
+        exit(1);
     }
+
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    char *buffer = new char[size + 1];
+
+    size_t line = 0;
+
+    std::vector<std::tuple<std::string, std::string>> macros;
+
+    while (fgets(buffer, size + 1, fp) != NULL) {
+        line++;
+        // skip if comment
+        if (buffer[0] == '/') {
+            if (buffer[1] == '/') {
+                continue;
+            }
+        }
+        // skip if blank
+        if (buffer[0] == '\n' || buffer[0] == '\r' || buffer[0] == '\0') {
+            continue;
+        }
+
+        // remove mid line comments
+        char *c = buffer;
+        while (*c != '\0') {
+            if (*c == '/') {
+                if (c[1] == '/') {
+                    *c = '\0';
+                    break;
+                }
+            }
+            c++;
+        }
+
+        // add to data
+        data += buffer;
+    }
+
+    fclose(fp);
 
     this->source = (char*) data.c_str();
 

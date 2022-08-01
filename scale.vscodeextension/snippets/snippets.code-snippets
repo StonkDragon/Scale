@@ -1,10 +1,4 @@
 {
-	// Place your scale workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
-	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
-	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
-	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
-	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
-	// Placeholders with the same ids are connected.
     "Main Function": {
 		"scope": "source.scale",
 		"prefix": "main",
@@ -12,7 +6,8 @@
 			"function main()",
 			"  $0",
 			"end"
-		]
+		],
+		"description": "Main Function"
 	},
 	"Function": {
 		"scope": "source.scale",
@@ -21,7 +16,8 @@
 			"function ${1:name}($2)",
 			"  $0",
 			"end"
-		]
+		],
+		"description": "Create a function"
 	},
 	"While Loop": {
 		"scope": "source.scale",
@@ -30,7 +26,8 @@
 			"while ${1:condition} do",
 			"  $0",
 			"done"
-		]
+		],
+		"description": "While loop"
 	},
 	"If Statement": {
 		"scope": "source.scale",
@@ -39,7 +36,8 @@
 			"${1:condition} if",
 			"  $0",
 			"fi"
-		]
+		],
+		"description": "If statement"
 	},
 	"Else If Statement": {
 		"scope": "source.scale",
@@ -48,7 +46,8 @@
 			"else ${1:condition} if",
 			"  $0",
 			"fi"
-		]
+		],
+		"description": "Else If Statement"
 	},
 	"Else Statement": {
 		"scope": "source.scale",
@@ -57,94 +56,123 @@
 			"else",
 			"  $0",
 			"fi"
-		]
+		],
+		"description": "Else statement"
 	},
 	"Extern Function": {
 		"scope": "source.scale",
 		"prefix": "extern",
 		"body": [
 			"extern ${1:name}"
-		]
+		],
+		"description": "Declare an external function"
 	},
 	"Support Inline": {
 		"scope": "source.scale",
-		"prefix": "#inline",
+		"prefix": "@inline",
 		"body": [
-			"#inline"
-		]
+			"@inline"
+		],
+		"description": "Inline function"
 	},
 	"Support External": {
 		"scope": "source.scale",
-		"prefix": "#extern",
+		"prefix": "@extern",
 		"body": [
-			"#extern"
-		]
+			"@extern"
+		],
+		"description": "External function"
 	},
 	"Support Static": {
 		"scope": "source.scale",
-		"prefix": "#static",
+		"prefix": "@static",
 		"body": [
-			"#static"
-		]
+			"@static"
+		],
+		"description": "Static functions are not automatically exported to the host."
 	},
 	"Using": {
 		"scope": "source.scale",
 		"prefix": "using",
 		"body": [
 			"using \"${1:file}\""
-		]
+		],
+		"description": "Using a file"
 	},
 	"Macro": {
 		"scope": "source.scale",
 		"prefix": "macro",
 		"body": [
-			"#inline #static function ${1:name}($2)",
+			"@inline @static function ${1:name}($2)",
 			"  $0",
 			"end"
-		]
+		],
+		"description": "Macro"
 	},
 	"Load Var": {
 		"scope": "source.scale",
 		"prefix": "load",
 		"body": [
-			"load ${1:name}"
-		]
+			"${1:name}"
+		],
+		"description": "Push a variable onto the stack"
 	},
 	"Store Var": {
 		"scope": "source.scale",
 		"prefix": "store",
 		"body": [
 			"store ${1:name}"
-		]
+		],
+		"description": "Store top of stack in variable"
 	},
 	"Declare Var": {
 		"scope": "source.scale",
 		"prefix": "declare",
 		"body": [
 			"decl ${1:name}"
-		]
+		],
+		"description": "Declare a variable"
 	},
 	"Address of": {
 		"scope": "source.scale",
-		"prefix": "addr",
+		"prefix": "address of",
 		"body": [
 			"addr ${1:name}"
-		]
+		],
+		"description": "Address of"
 	},
 	"For Loop": {
 		"scope": "source.scale",
-		"prefix": "for",
+		"prefix": "for loop",
 		"body": [
 			"for :${1:i} in ${2:1} to ${3:10} do",
 			"  $0",
 			"done"
-		]
+		],
+		"description": "For Loop"
 	},
 	"Prototype": {
 		"scope": "source.scale",
 		"prefix": "prototype",
 		"body": [
 			"proto ${1:name}"
-		]
+		],
+		"description": "Declare a prototype"
+	},
+	"Reference": {
+		"scope": "source.scale",
+		"prefix": "reference",
+		"body": [
+			"ref ${1:name}"
+		],
+		"description": "Referenced write"
+	},
+	"Dereference": {
+		"scope": "source.scale",
+		"prefix": "dereference",
+		"body": [
+			"deref"
+		],
+		"description": "Address Dereference"
 	},
 }

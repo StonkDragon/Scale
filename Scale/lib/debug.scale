@@ -1,4 +1,5 @@
-// debug.scale
+#ifndef _DEBUG_SCALE_
+#define _DEBUG_SCALE_
 
 // !!!!
 // ALL OF THESE FUNCIONS SHOULD NOT BE USED IN PRODUCTION CODE
@@ -31,3 +32,5 @@ extern breakpoint
 // Stack: [] -> []
 // Runs garbage collection.
 extern heap_collect
+
+#endif

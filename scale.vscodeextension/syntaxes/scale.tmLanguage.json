@@ -6,6 +6,9 @@
 			"include": "#comments"
 		},
 		{
+			"include": "#preproc"
+		},
+		{
 			"include": "#modifiers"
 		},
 		{
@@ -22,6 +25,9 @@
 		},
 		{
 			"include": "#strings"
+		},
+		{
+			"include": "#chars"
 		},
 		{
 			"include": "#numbers"
@@ -44,7 +50,7 @@
 		},
 		"modifiers": {
 			"name": "entity.name.function",
-			"begin": "#",
+			"begin": "@",
 			"end": "\\s",
 			"patterns": [
 				{
@@ -53,11 +59,22 @@
 				}
 			]
 		},
+		"preproc": {
+			"name": "entity.name.function",
+			"begin": "#",
+			"end": "\\s",
+			"patterns": [
+				{
+					"name": "meta.type.annotation",
+					"match": "\\b(include|ifdef|if|ifndef|define|undef|endif|error|warning)\\b"
+				}
+			]
+		},
 		"keywords": {
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(addr|decl|load|store|proto|using|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil)\\b"
+					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil)\\b"
 				}
 			]
 		},
@@ -85,6 +102,17 @@
 				{
 					"name": "string",
 					"match": "\\\\."
+				}
+			]
+		},
+		"chars": {
+			"name": "constant.character",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "char",
+					"match": "\\\\?."
 				}
 			]
 		},

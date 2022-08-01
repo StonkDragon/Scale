@@ -147,7 +147,6 @@ ParseResult Parser::parse(std::string filename) {
         for (int i = 0; i < body.size(); i++)
         {
             if (body[i].getType() == tok_ignore) continue;
-
             if (isOperator(body[i])) {
                 bool operatorsHandled = handleOperator(fp, body[i], scopeDepth);
                 if (!operatorsHandled) {

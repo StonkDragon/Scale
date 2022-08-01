@@ -1,5 +1,7 @@
 // file.scale
-using "stdlib.scale"
+#ifndef _FILE_SCALE_
+#define _FILE_SCALE_
+#include "stdlib.scale"
 
 // Stack: [name, mode] -> [fileptr]
 // Open a file by name in the given mode and
@@ -60,3 +62,5 @@ end
 function fseekcur(f, offset)
     f 1 offset fseek
 end
+
+#endif

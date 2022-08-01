@@ -1,4 +1,4 @@
-using "stdlib.scale"
+#include "stdlib.scale"
 
 function main()
   // Create a new variable called 'foo'

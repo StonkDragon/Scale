@@ -1,5 +1,5 @@
-using "stdlib.scale"
-using "math.scale"
+#include "stdlib.scale"
+#include "math.scale"
 
 function main()
   // push 0 to the stack

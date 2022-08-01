@@ -1,6 +1,10 @@
 #ifndef MAIN_CPP_
 #define MAIN_CPP_
 
+#if __SIZEOF_POINTER__ < 8
+#error "Scale is not supported on this platform"
+#endif
+
 #include <iostream>
 #include <string>
 #include <signal.h>
@@ -31,6 +35,7 @@ void usage(std::string programName) {
     std::cout << "  --nostdlib       Don't link to default libraries" << std::endl;
     std::cout << "  --help, -h       Show this help" << std::endl;
     std::cout << "  -o <filename>    Specify Output file" << std::endl;
+    std::cout << "  -E               Preprocess only" << std::endl;
 }
 
 int main(int argc, char const *argv[])
@@ -51,6 +56,7 @@ int main(int argc, char const *argv[])
 
     bool transpileOnly = false;
     bool linkToLib = true;
+    bool preprocessOnly = false;
 
     std::string outfile = "out.scl";
     std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
@@ -69,6 +75,8 @@ int main(int argc, char const *argv[])
             } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
                 usage(std::string(argv[0]));
                 return 0;
+            } else if (strcmp(argv[i], "-E") == 0) {
+                preprocessOnly = true;
             } else {
                 cmd += std::string(argv[i]) + " ";
             }
@@ -90,10 +98,28 @@ int main(int argc, char const *argv[])
         std::string filename = files[i];
         std::cout << "Compiling " << filename << "..." << std::endl;
 
+        auto startpreproc = std::chrono::high_resolution_clock::now();
+        std::string preproc_cmd =
+              "cpp -I" + std::string(getenv("HOME"))
+            + "/Scale/lib -P " + filename + " " + filename + ".scale-preproc";
+
+        auto preprocResult = system(preproc_cmd.c_str());
+        if (preprocResult != 0) {
+            std::cout << "Error: Preprocessor failed." << std::endl;
+            return 1;
+        }
+        auto endpreproc = std::chrono::high_resolution_clock::now();
+        double durationPreproc = std::chrono::duration_cast<std::chrono::nanoseconds>(endpreproc - startpreproc).count() / 1000000000.0;
+
+        if (preprocessOnly) {
+            std::cout << "Preprocessed " << filename << " in " << durationPreproc << " seconds." << std::endl;
+            continue;
+        }
+
         auto startTokenizer = std::chrono::high_resolution_clock::now();
         Tokenizer tokenizer;
         MAIN.tokenizer = &tokenizer;
-        MAIN.tokenizer->tokenize(filename);
+        MAIN.tokenizer->tokenize(filename + ".scale-preproc");
         std::vector<Token> theseTokens = MAIN.tokenizer->getTokens();
 
         tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
@@ -101,7 +127,13 @@ int main(int argc, char const *argv[])
         auto endTokenizer = std::chrono::high_resolution_clock::now();
         double durationTokenizer = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endTokenizer - startTokenizer).count() / 1000000000.0;
 
-        times.push_back(durationTokenizer);
+        remove(std::string(filename + ".scale-preproc").c_str());
+        times.push_back(durationTokenizer + durationPreproc);
+    }
+
+    if (preprocessOnly) {
+        std::cout << "Preprocessed " << files.size() << " files." << std::endl;
+        return 0;
     }
 
     auto startLexer = std::chrono::high_resolution_clock::now();

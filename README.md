@@ -20,10 +20,11 @@
 
   The following dependencies are required to use Scale:
 
-- git
-- make
-- clang
-- python3 (for tests)
+- `clang`
+- `cpp`
+- `git` (for build)
+- `make` (for build)
+- `python3` (for tests)
 
 # Documentation
 
@@ -46,7 +47,6 @@
 
 ## Keywords
 
-  - `using`: Import another file
   - `function`: Define a function
   - `end`: End a function
   - `extern`: Declare a C function prototype

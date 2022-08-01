@@ -1,4 +1,6 @@
 // stdlib.scale
+#ifndef _STDLIB_SCALE_
+#define _STDLIB_SCALE_
 
 // Stack: [fd n s] -> []
 // Writes n bytes from the pointer s
@@ -121,7 +123,7 @@ end
 
 // Stack: [<any>] -> []
 // Clears the stack.
-#nps #nowarn function clearstack()
+@nps @nowarn function clearstack()
     while sizeof_stack 0 more do
         drop
     done
@@ -130,37 +132,37 @@ end
 // Stack: [a b c] -> [b a c]
 // Swaps the values of a and b, while keeping
 // c at the same position.
-#nps #nowarn function swap2(a, b, c)
+@nps @nowarn function swap2(a, b, c)
     b a c
 end
 
 // Stack: [a b] -> [a b a]
 // Duplicates the value of a, while keeping
 // b at the same position.
-#nps #nowarn function sdup2(a, b)
+@nps @nowarn function sdup2(a, b)
     a b a
 end
 
 // Stack: [a] -> [a a]
 // Duplicates the value of a.
-#nps #nowarn function dup(a)
+@nps @nowarn function dup(a)
     a a
 end
 
 // Stack: [a b] -> [b a]
 // Swaps the values of a and b.
-#nps #nowarn function swap(a, b)
+@nps @nowarn function swap(a, b)
     b a
 end
 
 // Stack: [a] -> []
 // Drops the value of a from the stack.
-#nps #nowarn function drop(a) end
+@nps @nowarn function drop(a) end
 
 // Stack: [a b c] -> [c b a]
 // Swaps the values of a and c, while keeping
 // b at the same position.
-#nps #nowarn function over(a, b, c)
+@nps @nowarn function over(a, b, c)
     c b a
 end
 
@@ -233,6 +235,8 @@ end
 
 // Stack: [str] -> [chars]
 // Pushes the characters of str to the stack.
-#nps #nowarn function toChars(str)
+@nps @nowarn function toChars(str)
     decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done
 end
+
+#endif

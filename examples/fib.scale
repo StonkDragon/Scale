@@ -1,4 +1,4 @@
-using "stdlib.scale"
+#include "stdlib.scale"
 
 function main()
     decl N 4000000 store N
