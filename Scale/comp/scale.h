@@ -7,13 +7,13 @@ typedef void* scl_word;
 
 /* Call a function with the given name and arguments. */
 #define call(name, ...)            \
-    fun_ ## name ##(__VA_ARGS__);
+    fun_ ## name ##(__VA_ARGS__)
 
 /* Call a native function with the given name. */
 #define nativecall(name)            \
     function_native_start(#name);   \
     fun_ ## name ##();              \
-    function_native_end();
+    function_native_end()
 
 // Stacktrace functions
 void stacktrace_print();

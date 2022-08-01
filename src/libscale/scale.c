@@ -13,7 +13,6 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-// #include <ctype.h>
 #include <string.h>
 #include <time.h>
 #include <signal.h>
