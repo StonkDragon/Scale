@@ -5,14 +5,18 @@
 
 typedef void* scl_word;
 
+/* Function header */
+#define s_header(name, ...)             \
+    void fun ## name ##(__VA_ARGS__)
+
 /* Call a function with the given name and arguments. */
-#define call(name, ...)            \
+#define s_call(name, ...)               \
     fun_ ## name ##(__VA_ARGS__)
 
 /* Call a native function with the given name. */
-#define nativecall(name)            \
-    function_native_start(#name);   \
-    fun_ ## name ##();              \
+#define s_nativecall(name)              \
+    function_native_start(#name);       \
+    fun_ ## name ##();                  \
     function_native_end()
 
 // Stacktrace functions
