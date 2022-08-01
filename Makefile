@@ -1,10 +1,10 @@
-VERSION=2.6-dev
+VERSION=2.6
 
 dev:
 	rm -rf $${HOME}/Scale
 	cp -r Scale $${HOME}
 	sudo clang++ -std=gnu++17 -o /usr/local/bin/sclc src/compiler/Main.cpp -DVERSION="\"$(VERSION)\""
-	clang -std=gnu17 -o $${HOME}/Scale/comp/libscale.o -c src/stdlib/scale.c -DVERSION="\"$(VERSION)\""
+	clang -std=gnu17 -Wall -Wextra -Wswitch-enum -pedantic -o $${HOME}/Scale/comp/scale.o -c src/stdlib/scale.c -DVERSION="\"$(VERSION)\""
 	./makebin $(VERSION) macos-x86-64
 	python3 tests.py run
 

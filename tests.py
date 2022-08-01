@@ -25,10 +25,7 @@ def run_tests(directory):
         if file.endswith(".scale"):
             test_file = directory + "/" + file
             print("[COMP] " + file)
-            ret = os.system("sclc " + test_file)
-            if ret != 0:
-                print("Error compiling: " + file)
-                sys.exit(1)
+            os.popen("sclc " + test_file).read()
             print("[RUN] " + file)
             output = os.popen("./out.scl").read()
             if not exists(test_file + ".txt"):
@@ -48,7 +45,7 @@ def run_tests(directory):
                 print(expected)
                 print("Actual output:")
                 print(output)
-                break
+                print("")
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))
     print("Failed: " + str(failedTests) + "/" + str(total))

@@ -1,0 +1,14 @@
+using "stdlib.scale"
+
+function main()
+  decl str
+  "ERRORS ARE WANTED!!!\n" store str
+  2 str strlen str write
+  "foo" "bar" foo
+end
+
+function foo(foo, bar, baz)
+  foo puts
+  bar puts
+  baz puts
+end

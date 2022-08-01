@@ -34,9 +34,8 @@ AnalyzeResult Lexer::lexAnalyze()
 {
     Function* currentFunction = nullptr;
 
-    bool isInline = false;
-    bool isStatic = false;
-    bool isExtern = false;
+    bool functionPrivateStack = true;
+    bool funcNoWarn = false;
 
     std::vector<std::string> uses;
 
@@ -67,17 +66,13 @@ AnalyzeResult Lexer::lexAnalyze()
                 }
             }
         } else if (token.getType() == tok_end) {
-            if (isInline) {
-                currentFunction->addModifier(mod_inline);
-                isInline = false;
+            if (!functionPrivateStack) {
+                currentFunction->addModifier(mod_nps);
+                functionPrivateStack = true;
             }
-            if (isStatic) {
-                currentFunction->addModifier(mod_static);
-                isStatic = false;
-            }
-            if (isExtern) {
-                currentFunction->addModifier(mod_extern);
-                isExtern = false;
+            if (funcNoWarn) {
+                currentFunction->addModifier(mod_nowarn);
+                funcNoWarn = false;
             }
             currentFunction = nullptr;
         } else if (token.getType() == tok_proto) {
@@ -86,12 +81,10 @@ AnalyzeResult Lexer::lexAnalyze()
         } else if (token.getType() == tok_hash) {
             if (currentFunction == nullptr) {
                 if (tokens[i + 1].getType() == tok_identifier) {
-                    if (tokens[i + 1].getValue() == "static") {
-                        isStatic = true;
-                    } else if (tokens[i + 1].getValue() == "inline") {
-                        isInline = true;
-                    } else if (tokens[i + 1].getValue() == "extern") {
-                        isExtern = true;
+                    if (tokens[i + 1].getValue() == "nps") {
+                        functionPrivateStack = false;
+                    } else if (tokens[i + 1].getValue() == "nowarn") {
+                        funcNoWarn = true;
                     } else {
                         std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
                     }

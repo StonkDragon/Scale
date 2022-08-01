@@ -25,6 +25,14 @@ bool strends(const std::string& str, const std::string& suffix)
     return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
 }
 
+void usage(std::string programName) {
+    std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
+    std::cout << "  --transpile, -t  Transpile only" << std::endl;
+    std::cout << "  --nostdlib       Don't link to default libraries" << std::endl;
+    std::cout << "  --help, -h       Show this help" << std::endl;
+    std::cout << "  -o <filename>    Specify Output file" << std::endl;
+}
+
 int main(int argc, char const *argv[])
 {
     signal(SIGSEGV, signalHandler);
@@ -45,7 +53,7 @@ int main(int argc, char const *argv[])
     bool linkToLib = true;
 
     std::string outfile = "out.scl";
-    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/libscale.o";
+    std::string lib = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
     std::string cmd = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " ";
     std::vector<std::string> files;
 
@@ -55,17 +63,11 @@ int main(int argc, char const *argv[])
         } else {
             if (strcmp(argv[i], "--transpile") == 0 || strcmp(argv[i], "-t") == 0) {
                 transpileOnly = true;
-            } else if (strcmp(argv[i], "--no-scale-lib") == 0) {
+            } else if (strcmp(argv[i], "--nostdlib") == 0) {
                 linkToLib = false;
+                cmd += "-nostdlib ";
             } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-                std::cout << "Usage: " << argv[0] << " <filename> [args]" << std::endl;
-                std::cout << "  --transpile, -t  Transpile only" << std::endl;
-                std::cout << "  --no-scale-lib   Don't link to scale library" << std::endl;
-                std::cout << "  --help, -h       Show this help" << std::endl;
-                std::cout << "  -o <filename>    Output file" << std::endl;
-                std::cout << std::endl << "  If no output file is specified, the output file will be" << std::endl;
-                std::cout << "  out.scl" << std::endl;
-                std::cout << std::endl << "  Any other unrecognized arguments will be passed to the compiler" << std::endl;
+                usage(std::string(argv[0]));
                 return 0;
             } else {
                 cmd += std::string(argv[i]) + " ";
@@ -151,8 +153,6 @@ int main(int argc, char const *argv[])
     double durationCodegen = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endCodegen - startCodegen).count() / 1000000000.0;
 
     if (ret != 0) {
-        fail:
-        std::cout << "----------------------------------------" << std::endl;
         std::cout << "Compilation failed with code " << ret << std::endl;
         std::cout << "----------------------------------------" << std::endl;
         remove((std::string(source) + ".c").c_str());

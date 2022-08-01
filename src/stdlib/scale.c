@@ -1,6 +1,10 @@
 #ifndef SCALE
 #define SCALE
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -16,6 +20,9 @@
 #define sleep(s) Sleep(s)
 #define read(fd, buf, n) _read(fd, buf, n)
 #define write(fd, buf, n) _write(fd, buf, n)
+#ifndef WINDOWS
+#define WINDOWS
+#endif
 #else
 #include <unistd.h>
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
@@ -23,57 +30,68 @@
 
 #include "../../Scale/comp/scale.h"
 
-#define STACK_SIZE 65536
-#define MAX_STRING_SIZE STACK_SIZE
-#define LONG_AS_STR_LEN 22
+#define INITIAL_SIZE (1024)
+#define MALLOC_LIMIT (1024)
+#define MAX_STRING_SIZE (2048)
+#define LONG_AS_STR_LEN (22)
 
-#define STACK_PTR 0
-#define STACK_STR 1
-#define STACK_LONG 2
-#define STACK_DOUBLE 3
+// Define scale-specific signals
+#define EX_BAD_PTR (128)
+#define EX_STACK_OVERFLOW (129)
+#define EX_STACK_UNDERFLOW (130)
+#define EX_UNHANDLED_DATA (131)
+#define EX_IO_ERROR (132)
+#define EX_INVALID_ARGUMENT (133)
+#define EX_CAST_ERROR (134)
 
-// define scale-specific signals
-#define EX_BAD_PTR 128
-#define EX_STACK_OVERFLOW 129
-#define EX_STACK_UNDERFLOW 130
-#define EX_UNHANDLED_DATA 131
-#define EX_IO_ERROR 132
-#define EX_INVALID_ARGUMENT 133
-#define EX_CAST_ERROR 134
+/* FUNCTION PROTOTYPES */
+void native_raise();
+void native_strlen();
+void native_free();
+void fun_main();
 
+/* STRUCTURES */
 typedef struct {
-	unsigned int ptr;
-	void* data[STACK_SIZE];
-} scale_stack;
-
-scale_stack stack = {0, {}};
-scale_stack trace = {0, {}};
-
-int __SCALE_ARG_SIZE;
-
-typedef struct {
-	void* ptr;
+	scl_word 	 ptr;
 	unsigned int level;
-	int isFile;
+	int 		 isFile;
 } memory_t;
+memory_t 		 memalloced[MALLOC_LIMIT];
+int		 		 memalloced_ptr = 0;
+struct {
+	size_t 		 ptr;
+	char*  		 name[INITIAL_SIZE];
+} Callstack;
+struct {
+	size_t 	 	 ptr;
+	size_t 	 	 depth;
+	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
+} stack;
 
-memory_t memalloced[STACK_SIZE];
-int memalloced_ptr = 0;
-int current_function_level = 0;
-
-void scale_extern_heap_collect() {
-	scale_heap_collect();
+void throw(int code, char* msg) {
+	fprintf(stderr, "Exception: %s\n", msg);
+	push_long(code);
+	native_raise();
 }
 
-void scale_heap_collect() {
+void require_elements(size_t n, char* func) {
+	if (stack.ptr < n) {
+		char* err = (char*) malloc(MAX_STRING_SIZE);
+		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
+		throw(EX_STACK_UNDERFLOW, err);
+		free(err);
+	}
+}
+
+void heap_collect() {
 	int i;
 	int count = 0;
 	int collect = 1;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
-			if (memalloced[i].level > current_function_level) {
+			if (memalloced[i].level > Callstack.ptr) {
 				for (int j = (stack.ptr - 1); j >= 0; j--) {
-					if (stack.data[j] == memalloced[i].ptr) {
+					if (stack.data[stack.depth][j] == memalloced[i].ptr) {
 						collect = 0;
 						break;
 					}
@@ -93,7 +111,7 @@ void scale_heap_collect() {
 	}
 }
 
-void scale_heap_collect_all(int print) {
+void heap_collect_all(int print) {
 	int i;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
@@ -108,22 +126,22 @@ void scale_heap_collect_all(int print) {
 	}
 }
 
-void scale_heap_add(void* ptr, int isFile) {
+void heap_add(scl_word ptr, int isFile) {
 	for (int i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == NULL) {
 			memalloced[i].ptr = ptr;
 			memalloced[i].isFile = isFile;
-			memalloced[i].level = current_function_level;
+			memalloced[i].level = Callstack.ptr;
 			return;
 		}
 	}
 	memalloced[memalloced_ptr].ptr = ptr;
 	memalloced[memalloced_ptr].isFile = isFile;
-	memalloced[memalloced_ptr].level = current_function_level;
+	memalloced[memalloced_ptr].level = Callstack.ptr;
 	memalloced_ptr++;
 }
 
-int scale_heap_is_alloced(void* ptr) {
+int heap_is_alloced(scl_word ptr) {
 	for (int i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == ptr) {
 			return 1;
@@ -132,7 +150,7 @@ int scale_heap_is_alloced(void* ptr) {
 	return 0;
 }
 
-void scale_heap_remove(void* ptr, int isFile) {
+void heap_remove(scl_word ptr) {
 	int i;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == ptr) {
@@ -146,27 +164,43 @@ void scale_heap_remove(void* ptr, int isFile) {
 	memalloced_ptr--;
 }
 
-void scale_safe_exit(int code) {
-	scale_heap_collect_all(1);
+void safe_exit(int code) {
+	heap_collect_all(1);
 	exit(code);
 }
 
-void stacktrace_push(char* ptr, int inc) {
-	trace.data[trace.ptr++] = ptr;
-	current_function_level += inc;
+void function_start(char* name) {
+	Callstack.name[Callstack.ptr++] = name;
+	stack.depth++;
 }
 
-void stacktrace_pop(int dec) {
-	trace.ptr--;
-	current_function_level -= dec;
-	if (dec) scale_heap_collect();
+void function_end() {
+	Callstack.ptr--;
+	stack.depth--;
+	heap_collect();
 }
 
-void stacktrace_print() {
+void function_native_start(char* name) {
+	Callstack.name[Callstack.ptr++] = name;
+}
+
+void function_native_end() {
+	Callstack.ptr--;
+}
+
+void function_nps_start(char* name) {
+	Callstack.name[Callstack.ptr++] = name;
+}
+
+void function_nps_end() {
+	Callstack.ptr--;
+	heap_collect();
+}
+
+void print_stacktrace() {
 	printf("Stacktrace:\n");
-	for (int i = trace.ptr - 1; i >= 0; i--) {
-		char* frame = (char*) trace.data[i];
-		printf("    %s\n", frame);
+	for (int i = Callstack.ptr - 1; i >= 0; i--) {
+		printf("  %s\n", Callstack.name[i]);
 	}
 	printf("\n");
 }
@@ -187,275 +221,249 @@ void process_signal(int sig_num)
 	else if (sig_num == EX_INVALID_ARGUMENT) signalString = "Invalid argument";
 	else if (sig_num == EX_UNHANDLED_DATA) {
 		if (stack.ptr == 1) {
-			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d element too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %d element too much!", stack.ptr);
+			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu element too much!") + LONG_AS_STR_LEN);
+			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack.ptr);
 		} else {
-			signalString = (char*) malloc(strlen("Unhandled data on the stack. %d elements too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %d elements too much!", stack.ptr);
+			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu elements too much!") + LONG_AS_STR_LEN);
+			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack.ptr);
 		}
 	}
 	else if (sig_num == EX_CAST_ERROR) signalString = "Cast Error";
 	else signalString = "Unknown signal";
 
 	printf("\n%s\n\n", signalString);
+	print_stacktrace();
 
-	if (trace.ptr < 1) {
-		printf("The crash happened in native code, and a stack trace is not available!\n\n");
-		scale_safe_exit(sig_num);
-	}
-	stacktrace_print();
-	scale_safe_exit(sig_num);
+	safe_exit(sig_num);
 }
 
-void scale_extern_trace() {
-	stacktrace_print();
+void push_string(const char* c) {
+	if (stack.ptr + 1 >= INITIAL_SIZE) {
+		throw(EX_STACK_OVERFLOW, "Stack overflow!");
+	}
+	stack.data[stack.depth][stack.ptr++] = (scl_word) c;
 }
 
-void scale_push_string(const char* c) {
-	if (stack.ptr + 1 > STACK_SIZE) {
-		scale_push_long(EX_STACK_OVERFLOW);
-		scale_extern_raise();
+void push_long(long long n) {
+	if (stack.ptr + 1 >= INITIAL_SIZE) {
+		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = (char*) c;
+	stack.data[stack.depth][stack.ptr] = (scl_word) n;
 	stack.ptr++;
 }
 
-#if __SIZEOF_POINTER__ >= 8
-void scale_push_long(long long n) {
-	if (stack.ptr + 1 > STACK_SIZE) {
-		scale_push_long(EX_STACK_OVERFLOW);
-		scale_extern_raise();
-	}
-	stack.data[stack.ptr] = (void*) n;
-	stack.ptr++;
-}
-#else
-#error "Pointer size is not supported"
-#endif
-
-void scale_push_double(double n) {
-	if (stack.ptr + 1 > STACK_SIZE) {
-		scale_push_long(EX_STACK_OVERFLOW);
-		scale_extern_raise();
-	}
-	stack.data[stack.ptr] = (void*) (*(long long*) &n);
-	stack.ptr++;
-}
-
-#if __SIZEOF_POINTER__ >= 8
-long long scale_pop_long() {
+long long pop_long() {
 	if (stack.ptr <= 0) {
-		scale_push_long(EX_STACK_UNDERFLOW);
-		scale_extern_raise();
+		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return *(long long*) &stack.data[--stack.ptr];
+	return (long long) stack.data[stack.depth][--stack.ptr];
 }
-#else
-#error "Pointer size is not supported"
-#endif
 
-double scale_pop_double() {
+void push(scl_word n) {
+	if (stack.ptr + 1 >= INITIAL_SIZE) {
+		throw(EX_STACK_OVERFLOW, "Stack overflow!");
+	}
+	stack.data[stack.depth][stack.ptr++] = n;
+}
+
+char* pop_string() {
 	if (stack.ptr <= 0) {
-		scale_push_long(EX_STACK_UNDERFLOW);
-		scale_extern_raise();
+		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return *(double*) &stack.data[--stack.ptr];
+	return (char*) stack.data[stack.depth][--stack.ptr];
 }
 
-#if __SIZEOF_POINTER__ >= 8
-void scale_push(void* n) {
-	if (stack.ptr + 1 > STACK_SIZE) {
-		scale_push_long(EX_STACK_OVERFLOW);
-		scale_extern_raise();
-	}
-	stack.data[stack.ptr] = n;
-	stack.ptr++;
-}
-#else
-#error "Pointer size is not supported"
-#endif
-
-char* scale_pop_string() {
+scl_word pop() {
 	if (stack.ptr <= 0) {
-		scale_push_long(EX_STACK_UNDERFLOW);
-		scale_extern_raise();
+		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return (char*) stack.data[--stack.ptr];
+	return stack.data[stack.depth][--stack.ptr];
 }
 
-void* scale_pop() {
+scl_word pop_word() {
 	if (stack.ptr <= 0) {
-		scale_push_long(EX_STACK_UNDERFLOW);
-		scale_extern_raise();
+		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return stack.data[--stack.ptr];
+	return stack.data[stack.depth][--stack.ptr];
 }
 
-void scale_op_add() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a + b);
+void push_word(scl_word n) {
+	if (stack.ptr + 1 >= INITIAL_SIZE) {
+		throw(EX_STACK_OVERFLOW, "Stack overflow!");
+	}
+	stack.data[stack.depth][stack.ptr++] = n;
 }
 
-void scale_op_sub() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a - b);
+void op_add() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a + b);
 }
 
-void scale_op_mul() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a * b);
+void op_sub() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a - b);
 }
 
-void scale_op_div() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a / b);
+void op_mul() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a * b);
 }
 
-void scale_op_mod() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a % b);
+void op_div() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	if (b == 0) {
+		throw(EX_INVALID_ARGUMENT, "Division by zero!");
+	}
+	push_long(a / b);
 }
 
-void scale_op_land() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a & b);
+void op_mod() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	if (b == 0) {
+		throw(EX_INVALID_ARGUMENT, "Division by zero!");
+	}
+	push_long(a % b);
 }
 
-void scale_op_lor() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a | b);
+void op_land() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a & b);
 }
 
-void scale_op_lxor() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a ^ b);
+void op_lor() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a | b);
 }
 
-void scale_op_lnot() {
-	long long a = scale_pop_long();
-	scale_push_long(~a);
+void op_lxor() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a ^ b);
 }
 
-void scale_op_lsh() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a << b);
+void op_lnot() {
+	int64_t a = pop_long();
+	push_long(~a);
 }
 
-void scale_op_rsh() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a >> b);
+void op_lsh() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a << b);
 }
 
-void scale_op_pow() {
-	long long exp = scale_pop_long();
+void op_rsh() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a >> b);
+}
+
+void op_pow() {
+	long long exp = pop_long();
 	if (exp < 0) {
-		scale_push_long(EX_INVALID_ARGUMENT);
-		scale_extern_raise();
+		throw(EX_BAD_PTR, "Negative exponent!");
 	}
-	long long base = scale_pop_long();
-	long long result = base;
+	int64_t base = pop_long();
+	long long intResult = (int64_t) base;
 	long long i = 0;
 	while (i < exp) {
-		result *= base;
+		intResult *= (int64_t) base;
 		i++;
 	}
-	scale_push_long(result);
+	push_long(intResult);
 }
 
-void scale_extern_dumpstack() {
+void native_dumpstack() {
 	printf("Dump:\n");
 	for (int i = stack.ptr - 1; i >= 0; i--) {
-		void* v = stack.data[i];
-		printf("    %p\n", v);
+		long long v = (long long) stack.data[stack.depth][i];
+		printf("    0x%016llx, %lld\n", v, v);
 	}
 	printf("\n");
 }
 
-void scale_extern_exit() {
-	long long n = scale_pop_long();
-	scale_safe_exit(n);
+void native_exit() {
+	long long n = pop_long();
+	safe_exit(n);
 }
 
-void scale_extern_sleep() {
-	long long c = scale_pop_long();
+void native_sleep() {
+	long long c = pop_long();
 	sleep(c);
 }
 
-void scale_extern_getenv() {
-	char *c = scale_pop_string();
+void native_getenv() {
+	char *c = pop_string();
 	char *prop = getenv(c);
-	scale_push_string(prop);
+	push_string(prop);
 }
 
-void scale_extern_less() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a < b);
+void native_less() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a < b);
 }
 
-void scale_extern_more() {
-	long long b = scale_pop_long();
-	long long a = scale_pop_long();
-	scale_push_long(a > b);
+void native_more() {
+	int64_t b = pop_long();
+	int64_t a = pop_long();
+	push_long(a > b);
 }
 
-void scale_extern_equal() {
-	long long a = scale_pop_long();
-	long long b = scale_pop_long();
-	scale_push_long(a == b);
+void native_equal() {
+	int64_t a = pop_long();
+	int64_t b = pop_long();
+	push_long(a == b);
 }
 
-void scale_extern_dup() {
-	void* c = scale_pop();
-	scale_push(c);
-	scale_push(c);
+void native_dup() {
+	scl_word c = pop();
+	push(c);
+	push(c);
 }
 
-void scale_extern_over() {
-	void *a = scale_pop();
-	void *b = scale_pop();
-	void *c = scale_pop();
-	scale_push(a);
-	scale_push(b);
-	scale_push(c);
+void native_over() {
+	void *a = pop();
+	void *b = pop();
+	void *c = pop();
+	push(a);
+	push(b);
+	push(c);
 }
 
-void scale_extern_swap() {
-	void *a = scale_pop();
-	void *b = scale_pop();
-	scale_push(a);
-	scale_push(b);
+void native_swap() {
+	void *a = pop();
+	void *b = pop();
+	push(a);
+	push(b);
 }
 
-void scale_extern_drop() {
-	scale_pop();
+void native_drop() {
+	pop();
 }
 
-void scale_extern_sizeof_stack() {
-	scale_push_long(stack.ptr);
+void native_sizeof_stack() {
+	push_long(stack.ptr);
 }
 
-void scale_extern_concat() {
-	char *s2 = scale_pop_string();
-	char *s1 = scale_pop_string();
-	scale_push_string(s1);
-	scale_extern_strlen();
-	long long len = scale_pop_long();
-	scale_push_string(s2);
-	scale_extern_strlen();
-	long long len2 = scale_pop_long();
+void native_concat() {
+	char *s2 = pop_string();
+	char *s1 = pop_string();
+	push_string(s1);
+	native_strlen();
+	long long len = pop_long();
+	push_string(s2);
+	native_strlen();
+	long long len2 = pop_long();
 	char *out = (char*) malloc(len + len2 + 1);
-	scale_heap_add(out, 0);
+	heap_add(out, 0);
 	int i = 0;
 	while (s1[i] != '\0') {
 		out[i] = s1[i];
@@ -466,147 +474,109 @@ void scale_extern_concat() {
 		out[i + j] = s2[j];
 		j++;
 	}
-	scale_push_string(out);
+	push_string(out);
 }
 
-void scale_extern_dadd() {
-	double b = scale_pop_double();
-	double a = scale_pop_double();
-	scale_push_double(a + b);
+void native_random() {
+	push_long(rand());
 }
 
-void scale_extern_dsub() {
-	double b = scale_pop_double();
-	double a = scale_pop_double();
-	scale_push_double(a - b);
+void native_crash() {
+	safe_exit(1);
 }
 
-void scale_extern_dmul() {
-	double b = scale_pop_double();
-	double a = scale_pop_double();
-	scale_push_double(a * b);
+void native_and() {
+	int a = pop_long();
+	int b = pop_long();
+	push_long(a && b);
 }
 
-void scale_extern_ddiv() {
-	double b = scale_pop_double();
-	double a = scale_pop_double();
-	scale_push_double(a / b);
-}
-
-void scale_extern_dtoi() {
-	double d = scale_pop_double();
-	scale_push_long((int) d);
-}
-
-void scale_extern_itod() {
-	long long i = scale_pop_long();
-	scale_push_double((double) i);
-}
-
-void scale_extern_random() {
-	scale_push_long(rand());
-}
-
-void scale_extern_crash() {
-	scale_safe_exit(1);
-}
-
-void scale_extern_and() {
-	int a = scale_pop_long();
-	int b = scale_pop_long();
-	scale_push_long(a && b);
-}
-
-void scale_extern_system() {
-	char *cmd = scale_pop_string();
+void native_system() {
+	char *cmd = pop_string();
 	int ret = system(cmd);
-	scale_push_long(ret);
+	push_long(ret);
 }
 
-void scale_extern_getstack() {
-	int i = scale_pop_long();
-	scale_push(stack.data[i]);
+void native_not() {
+	push_long(!pop_long());
 }
 
-void scale_extern_not() {
-	scale_push_long(!scale_pop_long());
+void native_or() {
+	int a = pop_long();
+	int b = pop_long();
+	push_long(a || b);
 }
 
-void scale_extern_or() {
-	int a = scale_pop_long();
-	int b = scale_pop_long();
-	scale_push_long(a || b);
-}
-
-void scale_extern_sprintf() {
-	char *fmt = scale_pop_string();
-	void* s = scale_pop();
+void native_sprintf() {
+	char *fmt = pop_string();
+	scl_word s = pop();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
-	scale_heap_add(out, 0);
+	heap_add(out, 0);
 	sprintf(out, fmt, s);
-	scale_push_string(out);
+	push_string(out);
 }
 
-void scale_extern_strlen() {
-	char *s = scale_pop_string();
+void native_strlen() {
+	char *s = pop_string();
 	size_t len = 0;
 	while (s[len] != '\0') {
 		len++;
 	}
-	scale_push_long(len);
+	push_long(len);
 }
 
-void scale_extern_strcmp() {
-	char *s1 = scale_pop_string();
-	char *s2 = scale_pop_string();
-	scale_push_long(strcmp(s1, s2) == 0);
+void native_strcmp() {
+	char *s1 = pop_string();
+	char *s2 = pop_string();
+	push_long(strcmp(s1, s2) == 0);
 }
 
-void scale_extern_strncmp() {
-	char *s1 = scale_pop_string();
-	char *s2 = scale_pop_string();
-	long long n = scale_pop_long();
-	scale_push_long(strncmp(s1, s2, n) == 0);
+void native_strncmp() {
+	char *s1 = pop_string();
+	char *s2 = pop_string();
+	long long n = pop_long();
+	push_long(strncmp(s1, s2, n) == 0);
 }
 
-void scale_extern_fopen() {
-	char *mode = scale_pop_string();
-	char *name = scale_pop_string();
+void native_fopen() {
+	char *mode = pop_string();
+	char *name = pop_string();
 	FILE *f = fopen(name, mode);
 	if (f == NULL) {
-		fprintf(stderr, "Error opening file '%s'\n", name);
-		fprintf(stderr, "Error: %s\n", strerror(errno));
+		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
+		sprintf(err, "Unable to open file '%s'", name);
+		throw(EX_IO_ERROR, err);
 	}
-	scale_heap_add(f, 1);
-	scale_push((void*) f);
+	heap_add(f, 1);
+	push((scl_word) f);
 }
 
-void scale_extern_fclose() {
-	FILE *f = (FILE*) scale_pop();
-	scale_heap_remove(f, 1);
+void native_fclose() {
+	FILE *f = (FILE*) pop();
+	heap_remove(f);
 	fclose(f);
 }
 
-void scale_extern_fseek() {
-	long long offset = scale_pop_long();
-	int whence = scale_pop_long();
-	FILE *f = (FILE*) scale_pop();
+void native_fseek() {
+	long long offset = pop_long();
+	int whence = pop_long();
+	FILE *f = (FILE*) pop();
 	fseek(f, offset, whence);
 }
 
-void scale_extern_ftell() {
-	FILE *f = (FILE*) scale_pop();
-	scale_push((void*) f);
-	scale_push_long(ftell(f));
+void native_ftell() {
+	FILE *f = (FILE*) pop();
+	push((scl_word) f);
+	push_long(ftell(f));
 }
 
-void scale_extern_fileno() {
-	FILE *f = (FILE*) scale_pop();
-	scale_push_long(fileno(f));
+void native_fileno() {
+	FILE *f = (FILE*) pop();
+	push_long(fileno(f));
 }
 
-void scale_extern_raise() {
-	long long n = scale_pop_long();
+void native_raise() {
+	long long n = pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
 		if (raised != 0) {
@@ -617,116 +587,112 @@ void scale_extern_raise() {
 	}
 }
 
-void scale_extern_abort() {
+void native_abort() {
 	abort();
 }
 
-void scale_extern_write() {
-	void *s = scale_pop();
-	long long n = scale_pop_long();
-	long long fd = scale_pop_long();
+void native_write() {
+	void *s = pop();
+	long long n = pop_long();
+	long long fd = pop_long();
 	write(fd, s, n);
-	scale_push(s);
-	scale_extern_free();
+	push(s);
+	native_free();
 }
 
-void scale_extern_read() {
-	long long n = scale_pop_long();
-	long long fd = scale_pop_long();
+void native_read() {
+	long long n = pop_long();
+	long long fd = pop_long();
 	void *s = malloc(n);
-	scale_heap_add(s, 0);
+	heap_add(s, 0);
 	int ret = read(fd, s, n);
 	if (ret == -1) {
-		scale_push_long(EX_IO_ERROR);
-		scale_extern_raise();
+		push_long(EX_IO_ERROR);
+		native_raise();
 	}
-	scale_push(s);
+	push(s);
 }
 
-void scale_extern_strrev() {
-	char* s = scale_pop_string();
+void native_strrev() {
+	char* s = pop_string();
 	int i = 0;
-	scale_push_string(s);
-	scale_extern_strlen();
-	long long len = scale_pop_long();
+	push_string(s);
+	native_strlen();
+	long long len = pop_long();
 	char* out = (char*) malloc(len + 1);
-	scale_heap_add(out, 0);
+	heap_add(out, 0);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
 	}
 	out[len] = '\0';
-	scale_push_string(out);
+	push_string(out);
 }
 
-void scale_extern_malloc() {
-	long long n = scale_pop_long();
-	void* s = malloc(n);
-	scale_heap_add(s, 0);
-	scale_push(s);
+void native_malloc() {
+	long long n = pop_long();
+	scl_word s = malloc(n);
+	heap_add(s, 0);
+	push(s);
 }
 
-void scale_extern_free() {
-	void* s = scale_pop();
-	int is_alloc = scale_heap_is_alloced(s);
-	scale_heap_remove(s, 0);
+void native_free() {
+	scl_word s = pop();
+	int is_alloc = heap_is_alloced(s);
+	heap_remove(s);
 	if (is_alloc) {
 		free(s);
 	}
 }
 
-void scale_extern_breakpoint() {
+void native_breakpoint() {
 	printf("Hit breakpoint. Press enter to continue.\n");
 	getchar();
 }
 
-void scale_extern_memset() {
-	void* s = scale_pop();
-	long long n = scale_pop_long();
-	long long c = scale_pop_long();
+void native_memset() {
+	scl_word s = pop();
+	long long n = pop_long();
+	long long c = pop_long();
 	memset(s, c, n);
 }
 
-void scale_extern_memcpy() {
-	void* s2 = scale_pop();
-	void* s1 = scale_pop();
-	long long n = scale_pop_long();
+void native_memcpy() {
+	scl_word s2 = pop();
+	scl_word s1 = pop();
+	long long n = pop_long();
 	memcpy(s2, s1, n);
 }
 
-void scale_extern_cast() {
-	char* s = scale_pop_string();
-	void* n = scale_pop();
-	if (strcmp(s, "float") == 0) {
-		scale_push_double(*(double*) &n);
-		return;
-	} else if (strcmp(s, "int") == 0) {
-		scale_push_long(*(long long*) &n);
-		return;
-	} else if (strcmp(s, "string") == 0) {
-		scale_push_string(*(char**) &n);
-		return;
-	}
-	scale_push_long(EX_CAST_ERROR);
-	scale_extern_raise();
+void native_time() {
+	struct timespec t;
+	clock_gettime(CLOCK_REALTIME, &t);
+	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
+	push_long(millis);
 }
 
-void scale_func_main();
+void native_heap_collect() {
+	heap_collect();
+}
 
 int main(int argc, char const *argv[])
 {
-	for (int i = argc - 1; i > 0; i--) {
-		scale_push_string(argv[i]);
-	}
-
 	signal(SIGINT, process_signal);
 	signal(SIGILL, process_signal);
 	signal(SIGABRT, process_signal);
 	signal(SIGFPE, process_signal);
 	signal(SIGSEGV, process_signal);
 
-	scale_func_main();
-	scale_heap_collect_all(1);
+	for (int i = argc - 1; i > 0; i--) {
+		push_string(argv[i]);
+	}
+
+	fun_main();
+	heap_collect_all(1);
 	return 0;
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

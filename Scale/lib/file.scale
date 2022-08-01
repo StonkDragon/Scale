@@ -34,13 +34,13 @@ function fprintf(file, str)
     file fileno str strlen str write
 end
 
-// Stack: [file, size] -> [f, buf]
+// Stack: [file, size] -> [buf]
 // Read size bytes from f into buf.
 function fread(f, size)
     decl buf
     f fileno size read
     store buf
-    f buf
+    buf return
 end
 
 // Stack: [file, offset] -> []
