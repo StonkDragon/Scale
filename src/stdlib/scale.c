@@ -35,10 +35,7 @@ extern "C" {
 #define MAX_STRING_SIZE (2048)
 #define LONG_AS_STR_LEN (22)
 
-// Types
-#define NULLPTR  	(NULL)
-
-// define scale-specific signals
+// Define scale-specific signals
 #define EX_BAD_PTR (128)
 #define EX_STACK_OVERFLOW (129)
 #define EX_STACK_UNDERFLOW (130)
@@ -47,27 +44,29 @@ extern "C" {
 #define EX_INVALID_ARGUMENT (133)
 #define EX_CAST_ERROR (134)
 
-typedef struct {
-	scl_word ptr;
-	unsigned int level;
-	int isFile;
-} memory_t;
-
-int __SCALE_ARG_SIZE;
-memory_t memalloced[MALLOC_LIMIT];
-int memalloced_ptr = 0;
-struct {
-	size_t ptr;
-	char* name[INITIAL_SIZE];
-} Callstack = {0, {0}};
-
-struct {
-	size_t ptr;
-	size_t depth;
-	scl_word data[INITIAL_SIZE][INITIAL_SIZE];
-} stack = {0, 0, {{0}}};
-
+/* FUNCTION PROTOTYPES */
 void native_raise();
+void native_strlen();
+void native_free();
+void fun_main();
+
+/* STRUCTURES */
+typedef struct {
+	scl_word 	 ptr;
+	unsigned int level;
+	int 		 isFile;
+} memory_t;
+memory_t 		 memalloced[MALLOC_LIMIT];
+int		 		 memalloced_ptr = 0;
+struct {
+	size_t 		 ptr;
+	char*  		 name[INITIAL_SIZE];
+} Callstack;
+struct {
+	size_t 	 	 ptr;
+	size_t 	 	 depth;
+	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
+} stack;
 
 void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -454,8 +453,6 @@ void native_sizeof_stack() {
 	push_long(stack.ptr);
 }
 
-void native_strlen();
-
 void native_concat() {
 	char *s2 = pop_string();
 	char *s1 = pop_string();
@@ -594,8 +591,6 @@ void native_abort() {
 	abort();
 }
 
-void native_free();
-
 void native_write() {
 	void *s = pop();
 	long long n = pop_long();
@@ -678,8 +673,6 @@ void native_time() {
 void native_heap_collect() {
 	heap_collect();
 }
-
-void fun_main();
 
 int main(int argc, char const *argv[])
 {
