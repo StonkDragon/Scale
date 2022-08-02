@@ -19,4 +19,8 @@ function iseven(i)      i 2 % 0 equal return end
 // Return a random integer between 0 and a-1.
 function lrandom(limit) random limit % return end
 
+// Stack: [a, b, t] -> [lerp(a, b, t)]
+// Linear interpolation.
+function lerp(a, b, t)  b a - t * a + return end
+
 #endif

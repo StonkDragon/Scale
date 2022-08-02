@@ -2,6 +2,8 @@
 #ifndef _STDLIB_SCALE_
 #define _STDLIB_SCALE_
 
+#define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
+
 // Stack: [fd n s] -> []
 // Writes n bytes from the pointer s
 // to the file descriptor fd.
@@ -113,6 +115,13 @@ extern time
 function puts(str)
     1 str strlen str write
     1 1 "\n" write
+end
+
+// Stack: [str] -> []
+// Prints the string str to the standard error.
+function eputs(str)
+    2 str strlen str write
+    2 1 "\n" write
 end
 
 // Stack: [int] -> []
