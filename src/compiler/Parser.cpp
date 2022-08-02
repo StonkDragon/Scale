@@ -143,8 +143,8 @@ ParseResult Parser::parse(std::string filename) {
         }
 
         std::vector<Token> body = function.getBody();
-
-        for (int i = 0; i < body.size(); i++)
+        int i;
+        for (i = 0; i < body.size(); i++)
         {
             if (body[i].getType() == tok_ignore) continue;
             if (isOperator(body[i])) {
@@ -276,10 +276,12 @@ ParseResult Parser::parse(std::string filename) {
                 } else {
                     fp << "function_nps_end();" << std::endl;
                 }
-                for (int j = 0; j < scopeDepth; j++) {
-                    fp << "    ";
+                if (i != (body.size() - 1)) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "return;" << std::endl;
                 }
-                fp << "return;" << std::endl;
             } else if (body[i].getType() == tok_addr_ref) {
                 std::string toGet = body[i + 1].getValue();
                 for (int j = 0; j < scopeDepth; j++) {
@@ -389,8 +391,19 @@ ParseResult Parser::parse(std::string filename) {
                 return result;
             }
         }
-        if (funcPrivateStack) fp << "    function_end();" << std::endl;
-        else                  fp << "    function_nps_end();" << std::endl;
+        if (funcPrivateStack) {
+            if (body.size() <= 0) {
+                fp << "    function_end();" << std::endl;
+            } else if (body[body.size() - 1].getType() != tok_return) {
+                fp << "    function_end();" << std::endl;
+            }
+        } else {
+            if (body.size() <= 0) {
+                fp << "    function_nps_end();" << std::endl;
+            } else if (body[body.size() - 1].getType() != tok_return) {
+                fp << "    function_nps_end();" << std::endl;
+            }
+        }
         fp << "}" << std::endl << std::endl;
     }
 
