@@ -43,7 +43,7 @@ void      require_elements(size_t n, char* msg);
 
 // Heap management functions
 void heap_collect();
-void heap_collect_all(int print);
+void heap_collect_all();
 void heap_add(void* ptr, int isFile);
 void heap_remove(void* ptr);
 

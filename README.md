@@ -20,10 +20,10 @@
 
   The following dependencies are required to use Scale:
 
-- `clang`
+- [`clang`](https://clang.llvm.org/)
 - `cpp`
-- `git` (for build)
-- `make` (for build)
+- `git` (to compile)
+- `make` (to compile)
 - `python3` (for tests)
 
 # Documentation
