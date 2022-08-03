@@ -70,7 +70,7 @@ struct {
 	size_t 	 	 ptr;
 	size_t 	 	 depth;
 	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
-} stack;
+} stack = {0, -1, {0}};
 
 void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -101,7 +101,6 @@ void heap_collect() {
 					}
 				}
 				if (collect) {
-					fprintf(stderr, "Warning: Collecting dangling poiner: %p\n", memalloced[i].ptr);
 					if (memalloced[i].isFile) {
 						fclose(memalloced[i].ptr);
 					} else {
@@ -115,11 +114,10 @@ void heap_collect() {
 	}
 }
 
-void heap_collect_all(int print) {
+void heap_collect_all() {
 	int i;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
-			if (print) fprintf(stderr, "Warning: Collecting dangling poiner: %p\n", memalloced[i].ptr);
 			if (memalloced[i].isFile) {
 				fclose(memalloced[i].ptr);
 			} else {
@@ -169,7 +167,7 @@ void heap_remove(scl_word ptr) {
 }
 
 void safe_exit(int code) {
-	heap_collect_all(1);
+	heap_collect_all();
 	exit(code);
 }
 
@@ -691,7 +689,7 @@ int main(int argc, char const *argv[])
 	}
 
 	fun_main();
-	heap_collect_all(1);
+	heap_collect_all();
 	return 0;
 }
 

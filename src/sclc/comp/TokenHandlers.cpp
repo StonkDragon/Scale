@@ -7,7 +7,7 @@
 #include <vector>
 #include <regex>
 
-#include "Common.hpp"
+#include "../Common.hpp"
 
 ParseResult handleOperator(std::fstream &fp, Token token, int scopeDepth) {
     for (int j = 0; j < scopeDepth; j++) {
@@ -55,6 +55,7 @@ ParseResult handleNumber(std::fstream &fp, Token token, int scopeDepth) {
         result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
         result.where = token.getLine();
         result.in = token.getFile();
+        result.token = token.getValue();
         return result;
     }
     ParseResult result;
@@ -70,6 +71,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = keywDeclare.getLine();
         result.in = keywDeclare.getFile();
+        result.token = keywDeclare.getValue();
         return result;
     }
     if (loopVar.getType() != tok_identifier) {
@@ -78,6 +80,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = loopVar.getLine();
         result.in = loopVar.getFile();
+        result.token = loopVar.getValue();
         return result;
     }
     if (keywIn.getType() != tok_in) {
@@ -86,6 +89,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = keywIn.getLine();
         result.in = keywIn.getFile();
+        result.token = keywIn.getValue();
         return result;
     }
     if (from.getType() != tok_number && from.getType() != tok_identifier) {
@@ -94,6 +98,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = from.getLine();
         result.in = from.getFile();
+        result.token = from.getValue();
         return result;
     }
     if (keywTo.getType() != tok_to) {
@@ -102,6 +107,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = keywTo.getLine();
         result.in = keywTo.getFile();
+        result.token = keywTo.getValue();
         return result;
     }
     if (to.getType() != tok_number && to.getType() != tok_identifier) {
@@ -110,6 +116,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = to.getLine();
         result.in = to.getFile();
+        result.token = to.getValue();
         return result;
     }
     if (keywDo.getType() != tok_do) {
@@ -118,38 +125,50 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = keywDo.getLine();
         result.in = keywDo.getFile();
+        result.token = keywDo.getValue();
         return result;
     }
-    bool doNumberCheck = true;
+    bool doNumberCheck = false;
     long long lower = 0;
     if (from.getType() == tok_number) {
         lower = parseNumber(from.getValue());
-        doNumberCheck = false;
+        doNumberCheck = true;
     } else if (from.getType() != tok_identifier) {
         ParseResult result;
         result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
         result.success = false;
         result.where = from.getLine();
         result.in = from.getFile();
+        result.token = from.getValue();
         return result;
     }
     long long higher = 0;
     if (to.getType() == tok_number) {
         higher = parseNumber(to.getValue());
-        doNumberCheck = false;
+        doNumberCheck = true;
     } else if (to.getType() != tok_identifier) {
         ParseResult result;
         result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
         result.success = false;
         result.where = to.getLine();
         result.in = to.getFile();
+        result.token = to.getValue();
         return result;
     }
 
-    for (int j = 0; j < *scopeDepth; j++) {
-        fp << "    ";
+    bool varExists = false;
+    for (int i = 0; i < vars->size(); i++) {
+        if (vars->at(i) == loopVar.getValue()) {
+            varExists = true;
+            break;
+        }
     }
-    fp << "void* $" << loopVar.getValue() << ";" << std::endl;
+    if (!varExists) {
+        for (int j = 0; j < *scopeDepth; j++) {
+            fp << "    ";
+        }
+        fp << "scl_word $" << loopVar.getValue() << ";" << std::endl;
+    }
 
     if (!doNumberCheck || lower <= higher) {
         for (int j = 0; j < *scopeDepth; j++) {
@@ -161,6 +180,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
             result.success = false;
             result.where = from.getLine();
             result.in = from.getFile();
+            result.token = from.getValue();
             return result;
         }
         if (to.getType() == tok_identifier && !hasVar(to.getValue())) {
@@ -169,8 +189,10 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
             result.success = false;
             result.where = to.getLine();
             result.in = to.getFile();
+            result.token = to.getValue();
             return result;
         }
+
         fp << "for ($" << loopVar.getValue() << " = (void*) ";
         fp << (from.getType() == tok_identifier ? "$" : "") << from.getValue();
         fp << "; $" << loopVar.getValue() << " <= (void*) ";
@@ -182,12 +204,12 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.success = false;
         result.where = from.getLine();
         result.in = from.getFile();
+        result.token = from.getValue();
         return result;
     }
     *scopeDepth = *scopeDepth + 1;
 
     vars->push_back(loopVar.getValue());
-    fp << std::endl;
     ParseResult result;
     result.success = true;
     result.message = "";
