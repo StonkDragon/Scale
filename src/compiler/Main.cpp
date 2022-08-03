@@ -158,23 +158,28 @@ int main(int argc, char const *argv[])
     auto endParser = std::chrono::high_resolution_clock::now();
     double durationParser = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endParser - startParser).count() / 1000000000.0;
 
-    if (!parseResult.success) {
+    if (parseResult.errors.size() > 0) {
         std::cerr << "----------------------------------------" << std::endl;
-        std::cerr << parseResult.in << ":" << parseResult.where << ": " << parseResult.message << std::endl;
-        char* line = (char*) malloc(sizeof(char) * 500);
-        FILE* f = fopen(std::string(parseResult.in).c_str(), "r");
-        int i = 1;
-        while (fgets(line, 500, f) != NULL) {
-            if (i == parseResult.where) {
-                std::cerr << "> " << line;
-            } else if (i == parseResult.where + 1 || i == parseResult.where + 2) {
-                if (strlen(line) > 0)
-                    std::cerr << "  " << line;
-            } else if (i == parseResult.where - 1 || i == parseResult.where - 2) {
-                if (strlen(line) > 0)
-                    std::cerr << "  " << line;
+        for (ParseResult error : parseResult.errors) {
+            std::cerr << "Error: " << error.in << ":" << error.where << ": " << error.message << std::endl;
+            char* line = (char*) malloc(sizeof(char) * 500);
+            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            int i = 1;
+            while (fgets(line, 500, f) != NULL) {
+                if (i == error.where) {
+                    std::cerr << "> " << line;
+                } else if (i == error.where + 1 || i == error.where + 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                } else if (i == error.where - 1 || i == error.where - 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                }
+                i++;
             }
-            i++;
+            fclose(f);
+            free(line);
+            std::cerr << std::endl;
         }
         std::cerr << "----------------------------------------" << std::endl;
         remove((std::string(source) + ".c").c_str());

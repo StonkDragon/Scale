@@ -127,6 +127,7 @@ struct ParseResult {
     bool success;
     std::string message;
     std::string in;
+    std::vector<ParseResult> errors;
     int where;
 };
 

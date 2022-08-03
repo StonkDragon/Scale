@@ -101,6 +101,8 @@ ParseResult Parser::parse(std::string filename) {
     fp << std::endl;
     fp << "/* FUNCTIONS */" << std::endl;
 
+    std::vector<ParseResult> errors;
+
     for (Function function : result.functions)
     {
         vars.clear();
@@ -158,7 +160,7 @@ ParseResult Parser::parse(std::string filename) {
             if (isOperator(body[i])) {
                 ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
                 if (!operatorsHandled.success) {
-                    return operatorsHandled;
+                    errors.push_back(operatorsHandled);
                 }
             } else if (body[i].getType() == tok_identifier && hasVar(body[i].getValue())) {
                 std::string loadFrom = body[i].getValue();
@@ -205,7 +207,7 @@ ParseResult Parser::parse(std::string filename) {
             } else if (body[i].getType() == tok_number) {
                 ParseResult numberHandled = handleNumber(fp, body[i], scopeDepth);
                 if (!numberHandled.success) {
-                    return numberHandled;
+                    errors.push_back(numberHandled);
                 }
             } else if (body[i].getType() == tok_nil) {
                 for (int j = 0; j < scopeDepth; j++) {
@@ -250,7 +252,7 @@ ParseResult Parser::parse(std::string filename) {
                     &scopeDepth
                 );
                 if (!forHandled.success) {
-                    return forHandled;
+                    errors.push_back(forHandled);
                 }
                 i += 7;
             } else if (body[i].getType() == tok_done
@@ -304,7 +306,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.success = false;
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
-                    return result;
+                    errors.push_back(result);
                 }
                 if (!hasVar(body[i + 1].getValue())) {
                     ParseResult result;
@@ -312,7 +314,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.success = false;
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
-                    return result;
+                    errors.push_back(result);
                 }
                 std::string storeIn = body[i + 1].getValue();
                 for (int j = 0; j < scopeDepth; j++) {
@@ -327,7 +329,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.success = false;
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
-                    return result;
+                    errors.push_back(result);
                 }
                 vars.push_back(body[i + 1].getValue());
                 std::string loadFrom = body[i + 1].getValue();
@@ -353,7 +355,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.success = false;
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
-                    return result;
+                    errors.push_back(result);
                 }
                 if (!hasVar(body[i + 1].getValue())) {
                     ParseResult result;
@@ -361,7 +363,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.success = false;
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
-                    return result;
+                    errors.push_back(result);
                 }
                 for (int j = 0; j < scopeDepth; j++) {
                     fp << "    ";
@@ -379,7 +381,7 @@ ParseResult Parser::parse(std::string filename) {
                 result.success = false;
                 result.where = body[i].getLine();
                 result.in = body[i].getFile();
-                return result;
+                errors.push_back(result);
             }
         }
         if (funcPrivateStack) {
@@ -408,6 +410,7 @@ ParseResult Parser::parse(std::string filename) {
     ParseResult parseResult;
     parseResult.success = true;
     parseResult.message = "";
+    parseResult.errors = errors;
     return parseResult;
 }
 
