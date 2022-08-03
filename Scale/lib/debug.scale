@@ -1,9 +1,10 @@
 #ifndef _DEBUG_SCALE_
 #define _DEBUG_SCALE_
 
-// !!!!
-// ALL OF THESE FUNCIONS SHOULD NOT BE USED IN PRODUCTION CODE
-// !!!!
+#warning "Debugging build"
+#ifndef DEBUG
+#define DEBUG
+#endif
 
 // Stack: [] -> []
 // Dumps the current stack to the console.

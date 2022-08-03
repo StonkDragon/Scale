@@ -51,17 +51,37 @@ std::vector<Token> Tokenizer::getTokens() {
     return this->tokens;
 }
 
-static bool nextIsVar = false;
+static int line = 1;
+static std::string filename;
 Token Tokenizer::nextToken() {
     if (current >= strlen(source)) {
-        return Token(tok_eof, "");
+        return Token(tok_eof, "", line, filename);
     }
     char c = source[current];
     std::string value = "";
-    
-    if (nextIsVar) {
-        nextIsVar = false;
-        value = "$";
+
+    if (c == '\n') {
+        line++;
+    }
+
+    if (c == '#') {
+        char* comment = (char*) malloc(strlen(source + current));
+        int i = 0;
+        while (c != '\n' && c != '\r') {
+            c = source[++current];
+            comment[i++] = c;
+        }
+        comment[i-1] = '\0';
+        comment += 5;
+        char* _line = strtok(comment, ";");
+        if (_line != NULL) {
+            line = atoi(_line);
+        }
+        char* _filename = comment + strlen(_line) + 6;
+        _filename[strlen(_filename) - 1] = '\0';
+        filename = _filename;
+        free(comment - 5);
+        return nextToken();
     }
 
     if (isCharacter(c)) {
@@ -85,9 +105,9 @@ Token Tokenizer::nextToken() {
             c = source[++current];
         }
         if (isFloat) {
-            return Token(tok_number_float, value);
+            return Token(tok_number_float, value, line, filename);
         } else {
-            return Token(tok_number, value);
+            return Token(tok_number, value, line, filename);
         }
     } else if (c == '"') {
         c = source[++current];
@@ -96,7 +116,7 @@ Token Tokenizer::nextToken() {
             c = source[++current];
         }
         current++;
-        return Token(tok_string_literal, value);
+        return Token(tok_string_literal, value, line, filename);
     } else if (c == '\'') {
         c = source[++current];
         if (c == '\\') {
@@ -105,37 +125,37 @@ Token Tokenizer::nextToken() {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\n');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == 't') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\t');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == 'r') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\r');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == '\\') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\\');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == '\'') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\'');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == '\"') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\"');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else if (c == '0') {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", '\0');
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else {
                 std::cerr << "Unknown escape sequence: '\\" << c << "'" << std::endl;
                 exit(1);
@@ -145,7 +165,7 @@ Token Tokenizer::nextToken() {
                 char* iStr = (char*) malloc(4);
                 sprintf(iStr, "%d", c);
                 current += 2;
-                return Token(tok_number, iStr);
+                return Token(tok_number, iStr, line, filename);
             } else {
                 std::cerr << "Error: Invalid character literal: '" << c << "'" << std::endl;
                 exit(1);
@@ -184,53 +204,53 @@ Token Tokenizer::nextToken() {
         return nextToken();
     }
 
-    TYPES("function", function);
-    TYPES("end", end);
-    TYPES("extern", extern);
-    TYPES("while", while);
-    TYPES("else", else);
-    TYPES("do", do);
-    TYPES("done", done);
-    TYPES("if", if);
-    TYPES("fi", fi);
-    TYPES("return", return);
-    TYPES("break", break);
-    TYPES("continue", continue);
-    TYPES("for", for);
-    TYPES("in", in);
-    TYPES("to", to);
-    TYPES("proto", proto);
-    TYPES("load", load);
-    TYPES("store", store);
-    TYPES("decl", declare);
-    TYPES("addr", addr_ref);
-    TYPES("nil", nil);
-    TYPES("true", true);
-    TYPES("false", false);
-    TYPES("deref", deref);
-    TYPES("ref", ref);
+    TYPES("function", function, line, filename);
+    TYPES("end", end, line, filename);
+    TYPES("extern", extern, line, filename);
+    TYPES("while", while, line, filename);
+    TYPES("else", else, line, filename);
+    TYPES("do", do, line, filename);
+    TYPES("done", done, line, filename);
+    TYPES("if", if, line, filename);
+    TYPES("fi", fi, line, filename);
+    TYPES("return", return, line, filename);
+    TYPES("break", break, line, filename);
+    TYPES("continue", continue, line, filename);
+    TYPES("for", for, line, filename);
+    TYPES("in", in, line, filename);
+    TYPES("to", to, line, filename);
+    TYPES("proto", proto, line, filename);
+    TYPES("load", load, line, filename);
+    TYPES("store", store, line, filename);
+    TYPES("decl", declare, line, filename);
+    TYPES("addr", addr_ref, line, filename);
+    TYPES("nil", nil, line, filename);
+    TYPES("true", true, line, filename);
+    TYPES("false", false, line, filename);
+    TYPES("deref", deref, line, filename);
+    TYPES("ref", ref, line, filename);
     
-    TYPES("@", hash);
-    TYPES("(", open_paren);
-    TYPES(")", close_paren);
-    TYPES(",", comma);
-    TYPES("+", add);
-    TYPES("-", sub);
-    TYPES("*", mul);
-    TYPES("/", div);
-    TYPES("%", mod);
-    TYPES("&", land);
-    TYPES("|", lor);
-    TYPES("^", lxor);
-    TYPES("~", lnot);
-    TYPES("<<", lsh);
-    TYPES(">>", rsh);
-    TYPES("**", pow);
+    TYPES("@", hash, line, filename);
+    TYPES("(", open_paren, line, filename);
+    TYPES(")", close_paren, line, filename);
+    TYPES(",", comma, line, filename);
+    TYPES("+", add, line, filename);
+    TYPES("-", sub, line, filename);
+    TYPES("*", mul, line, filename);
+    TYPES("/", div, line, filename);
+    TYPES("%", mod, line, filename);
+    TYPES("&", land, line, filename);
+    TYPES("|", lor, line, filename);
+    TYPES("^", lxor, line, filename);
+    TYPES("~", lnot, line, filename);
+    TYPES("<<", lsh, line, filename);
+    TYPES(">>", rsh, line, filename);
+    TYPES("**", pow, line, filename);
 
     if (current >= strlen(source)) {
-        return Token(tok_eof, "");
+        return Token(tok_eof, "", line, filename);
     }
-    return Token(tok_identifier, value);
+    return Token(tok_identifier, value, line, filename);
 }
 
 bool replace(std::string& str, const std::string& from, const std::string& to) {
@@ -243,6 +263,14 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 
 std::string replaceAll(std::string src, std::string from, std::string to) {
     return std::regex_replace(src, std::regex("[\\n\\r\\s]+" + from + "[\\n\\r\\s\\x00]+"), " " + to + " ");
+}
+
+int lastIndexOf(char* src, char c) {
+    int i = strlen(src) - 1;
+    while (i >= 0 && src[i] != c) {
+        i--;
+    }
+    return i;
 }
 
 void Tokenizer::tokenize(std::string source) {
@@ -266,9 +294,18 @@ void Tokenizer::tokenize(std::string source) {
 
     size_t line = 0;
 
-    std::vector<std::tuple<std::string, std::string>> macros;
-
     while (fgets(buffer, size + 1, fp) != NULL) {
+        if (buffer[0] == '#') {
+            strtok(buffer, " ");
+            char* lineStr = strtok(NULL, " ");
+            char* name = lineStr + strlen(lineStr) + 1;
+            name[lastIndexOf(name, '"')] = '\0';
+            name++;
+
+            line = atoi(lineStr);
+            data += "#LINE:" + std::to_string(line) + ";FILE:" + name + ";\n";
+            continue;
+        }
         line++;
         // skip if comment
         if (buffer[0] == '/') {

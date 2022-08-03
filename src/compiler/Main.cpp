@@ -101,7 +101,7 @@ int main(int argc, char const *argv[])
         auto startpreproc = std::chrono::high_resolution_clock::now();
         std::string preproc_cmd =
               "cpp -I" + std::string(getenv("HOME"))
-            + "/Scale/lib -P " + filename + " " + filename + ".scale-preproc";
+            + "/Scale/lib " + filename + " " + filename + ".scale-preproc";
 
         auto preprocResult = system(preproc_cmd.c_str());
         if (preprocResult != 0) {
@@ -159,9 +159,24 @@ int main(int argc, char const *argv[])
     double durationParser = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endParser - startParser).count() / 1000000000.0;
 
     if (!parseResult.success) {
-        std::cout << "----------------------------------------" << std::endl;
-        std::cout << "Compilation failed with code 1" << std::endl;
-        std::cout << "----------------------------------------" << std::endl;
+        std::cerr << "----------------------------------------" << std::endl;
+        std::cerr << parseResult.in << ":" << parseResult.where << ": " << parseResult.message << std::endl;
+        char* line = (char*) malloc(sizeof(char) * 500);
+        FILE* f = fopen(std::string(parseResult.in).c_str(), "r");
+        int i = 1;
+        while (fgets(line, 500, f) != NULL) {
+            if (i == parseResult.where) {
+                std::cerr << "> " << line;
+            } else if (i == parseResult.where + 1 || i == parseResult.where + 2) {
+                if (strlen(line) > 0)
+                    std::cerr << "  " << line;
+            } else if (i == parseResult.where - 1 || i == parseResult.where - 2) {
+                if (strlen(line) > 0)
+                    std::cerr << "  " << line;
+            }
+            i++;
+        }
+        std::cerr << "----------------------------------------" << std::endl;
         remove((std::string(source) + ".c").c_str());
         remove((std::string(source) + ".h").c_str());
         return 1;
@@ -185,8 +200,8 @@ int main(int argc, char const *argv[])
     double durationCodegen = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endCodegen - startCodegen).count() / 1000000000.0;
 
     if (ret != 0) {
-        std::cout << "Compilation failed with code " << ret << std::endl;
-        std::cout << "----------------------------------------" << std::endl;
+        std::cerr << "Compilation failed with code " << ret << std::endl;
+        std::cerr << "----------------------------------------" << std::endl;
         remove((std::string(source) + ".c").c_str());
         remove((std::string(source) + ".h").c_str());
         return ret;

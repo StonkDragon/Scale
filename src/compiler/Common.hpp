@@ -5,26 +5,18 @@
 #include <string>
 #include <vector>
 
-#define TYPE(x) if (value == #x) return Token(tok_##x, value)
-#define TYPES(x, y) if (value == x) return Token(tok_##y, value)
+#define TYPES(x, y, line, file) if (value == x) return Token(tok_##y, value, line, file)
 
 long long parseNumber(std::string str) {
     long long value;
-    try
-    {
-        if (str.substr(0, 2) == "0x") {
-            value = std::stoll(str.substr(2), nullptr, 16);
-        } else if (str.substr(0, 2) == "0b") {
-            value = std::stoll(str.substr(2), nullptr, 2);
-        } else if (str.substr(0, 2) == "0o") {
-            value = std::stoll(str.substr(2), nullptr, 8);
-        } else {
-            value = std::stoll(str);
-        }
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << "Number out of range: " << str << std::endl;
+    if (str.substr(0, 2) == "0x") {
+        value = std::stoll(str.substr(2), nullptr, 16);
+    } else if (str.substr(0, 2) == "0b") {
+        value = std::stoll(str.substr(2), nullptr, 2);
+    } else if (str.substr(0, 2) == "0o") {
+        value = std::stoll(str.substr(2), nullptr, 8);
+    } else {
+        value = std::stoll(str);
     }
     return value;
 }
@@ -100,27 +92,42 @@ enum TokenType {
     tok_string_literal, // "foo"
     tok_char_literal,   // 'a'
     tok_illegal,
-    tok_ignore
+    tok_ignore,
+    tok_newline,
 };
 
 struct Token
 {
     TokenType type;
+    int line;
+    std::string file;
     std::string value;
     std::string toString() {
         return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
     }
-    Token(TokenType type, std::string value) : type(type), value(value) {}
+    Token(TokenType type, std::string value, int line, std::string file) : type(type), value(value) {
+        this->line = line;
+        this->file = file;
+    }
     std::string getValue() {
         return value;
     }
     TokenType getType() {
         return type;
     }
+    int getLine() {
+        return line;
+    }
+    std::string getFile() {
+        return file;
+    }
 };
 
 struct ParseResult {
     bool success;
+    std::string message;
+    std::string in;
+    int where;
 };
 
 struct Operation {
@@ -241,11 +248,10 @@ public:
     static bool canAssign(Token token);
 };
 
-class Parser
+struct Parser
 {
-private:
     AnalyzeResult result;
-public:
+
     Parser(AnalyzeResult result)
     {
         this->result = result;

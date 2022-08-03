@@ -24,8 +24,6 @@
 
 #define LINE_LENGTH 48
 
-#include "TokenHandlers.cpp"
-
 static std::vector<std::string> vars;
 
 bool hasVar(std::string name) {
@@ -37,6 +35,8 @@ bool hasVar(std::string name) {
     return false;
 }
 
+#include "TokenHandlers.cpp"
+
 bool isOperator(Token token) {
     return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow;
 }
@@ -47,11 +47,20 @@ Function Parser::getFunctionByName(std::string name) {
             return func;
         }
     }
-    return Function("______NULL______");
+    return Function("%NULFUNC%");
 }
 
 ParseResult Parser::parse(std::string filename) {
     std::fstream fp((filename + std::string(".c")).c_str(), std::ios::out);
+
+    if (getFunctionByName("main").getName() == "%NULFUNC%") {
+        ParseResult result;
+        result.success = false;
+        result.message = "No entry point found";
+        result.where = 0;
+        result.in = "<unknown>";
+        return result;
+    }
 
     fp << "#ifdef __cplusplus" << std::endl;
     fp << "extern \"C\" {"     << std::endl;
@@ -107,7 +116,6 @@ ParseResult Parser::parse(std::string filename) {
                 noWarns = true;
             }
         }
-
         
         fp << "void fun_" << function.getName() << "(";
 
@@ -148,11 +156,9 @@ ParseResult Parser::parse(std::string filename) {
         {
             if (body[i].getType() == tok_ignore) continue;
             if (isOperator(body[i])) {
-                bool operatorsHandled = handleOperator(fp, body[i], scopeDepth);
-                if (!operatorsHandled) {
-                    ParseResult result;
-                    result.success = false;
-                    return result;
+                ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
+                if (!operatorsHandled.success) {
+                    return operatorsHandled;
                 }
             } else if (body[i].getType() == tok_identifier && hasVar(body[i].getValue())) {
                 std::string loadFrom = body[i].getValue();
@@ -197,11 +203,9 @@ ParseResult Parser::parse(std::string filename) {
                 }
                 fp << "push_string(\"" << body[i].getValue() << "\");" << std::endl;
             } else if (body[i].getType() == tok_number) {
-                bool numberHandled = handleNumber(fp, body[i], scopeDepth);
-                if (!numberHandled) {
-                    ParseResult result;
-                    result.success = false;
-                    return result;
+                ParseResult numberHandled = handleNumber(fp, body[i], scopeDepth);
+                if (!numberHandled.success) {
+                    return numberHandled;
                 }
             } else if (body[i].getType() == tok_nil) {
                 for (int j = 0; j < scopeDepth; j++) {
@@ -233,7 +237,7 @@ ParseResult Parser::parse(std::string filename) {
                 }
                 fp << "if (!pop_long()) break;" << std::endl;
             } else if (body[i].getType() == tok_for) {
-                bool forHandled = handleFor(
+                ParseResult forHandled = handleFor(
                     body[i+1],
                     body[i+2],
                     body[i+3],
@@ -245,10 +249,8 @@ ParseResult Parser::parse(std::string filename) {
                     fp,
                     &scopeDepth
                 );
-                if (!forHandled) {
-                    ParseResult result;
-                    result.success = false;
-                    return result;
+                if (!forHandled.success) {
+                    return forHandled;
                 }
                 i += 7;
             } else if (body[i].getType() == tok_done
@@ -297,15 +299,19 @@ ParseResult Parser::parse(std::string filename) {
                 i++;
             } else if (body[i].getType() == tok_store) {
                 if (body[i + 1].getType() != tok_identifier) {
-                    std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
                     ParseResult result;
+                    result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                     result.success = false;
+                    result.where = body[i + 1].getLine();
+                    result.in = body[i + 1].getFile();
                     return result;
                 }
                 if (!hasVar(body[i + 1].getValue())) {
-                    std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
                     ParseResult result;
+                    result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                     result.success = false;
+                    result.where = body[i + 1].getLine();
+                    result.in = body[i + 1].getFile();
                     return result;
                 }
                 std::string storeIn = body[i + 1].getValue();
@@ -316,9 +322,11 @@ ParseResult Parser::parse(std::string filename) {
                 i++;
             } else if (body[i].getType() == tok_declare) {
                 if (body[i + 1].getType() != tok_identifier) {
-                    std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
                     ParseResult result;
+                    result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                     result.success = false;
+                    result.where = body[i + 1].getLine();
+                    result.in = body[i + 1].getFile();
                     return result;
                 }
                 vars.push_back(body[i + 1].getValue());
@@ -340,15 +348,19 @@ ParseResult Parser::parse(std::string filename) {
                 fp << "break;" << std::endl;
             } else if (body[i].getType() == tok_ref) {
                 if (body[i + 1].getType() != tok_identifier) {
-                    std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
                     ParseResult result;
+                    result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                     result.success = false;
+                    result.where = body[i + 1].getLine();
+                    result.in = body[i + 1].getFile();
                     return result;
                 }
                 if (!hasVar(body[i + 1].getValue())) {
-                    std::cerr << "Error: Use of undefined variable '" << body[i + 1].getValue() << "'" << std::endl;
                     ParseResult result;
+                    result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                     result.success = false;
+                    result.where = body[i + 1].getLine();
+                    result.in = body[i + 1].getFile();
                     return result;
                 }
                 for (int j = 0; j < scopeDepth; j++) {
@@ -361,33 +373,12 @@ ParseResult Parser::parse(std::string filename) {
                     fp << "    ";
                 }
                 fp << "push(*(scl_word*) pop());" << std::endl;
-            } else if (body[i].getType() == tok_open_paren) {
-                if (body[i + 1].getType() != tok_identifier) {
-                    std::cerr << "Error: '" << body[i + 1].getValue() << "' is not an identifier!" << std::endl;
-                    ParseResult result;
-                    result.success = false;
-                    return result;
-                }
-                if (body[i + 2].getType() != tok_close_paren) {
-                    std::cerr << "Error: Typecast is not properly finished!" << std::endl;
-                    ParseResult result;
-                    result.success = false;
-                    return result;
-                }
-                std::string type = body[i + 1].getValue();
-                for (int j = 0; j < scopeDepth; j++) {
-                    fp << "    ";
-                }
-                fp << "push_string(\"" << type << "\");" << std::endl;
-                for (int j = 0; j < scopeDepth; j++) {
-                    fp << "    ";
-                }
-                fp << "reinterpret_cast();" << std::endl;
-                i += 2;
             } else {
-                std::cerr << "Error: Unknown token: '" << body[i].getValue() << "'" << std::endl;
                 ParseResult result;
+                result.message = "Unknown token: '" + body[i].getValue() + "'";
                 result.success = false;
+                result.where = body[i].getLine();
+                result.in = body[i].getFile();
                 return result;
             }
         }
@@ -416,6 +407,7 @@ ParseResult Parser::parse(std::string filename) {
 
     ParseResult parseResult;
     parseResult.success = true;
+    parseResult.message = "";
     return parseResult;
 }
 

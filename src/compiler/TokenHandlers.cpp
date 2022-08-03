@@ -9,7 +9,7 @@
 
 #include "Common.hpp"
 
-bool handleOperator(std::fstream &fp, Token token, int scopeDepth) {
+ParseResult handleOperator(std::fstream &fp, Token token, int scopeDepth) {
     for (int j = 0; j < scopeDepth; j++) {
         fp << "    ";
     }
@@ -26,58 +26,124 @@ bool handleOperator(std::fstream &fp, Token token, int scopeDepth) {
         case tok_lsh: fp << "op_lsh();" << std::endl; break;
         case tok_rsh: fp << "op_rsh();" << std::endl; break;
         case tok_pow: fp << "op_pow();" << std::endl; break;
-        default: 
-            std::cerr << "Unknown operator: " << token.type << std::endl;
-            return false;
+        default:
+        {
+            ParseResult result;
+            result.success = false;
+            result.message = "Unknown operator type: " + std::to_string(token.type);
+            result.where = token.getLine();
+            result.in = token.getFile();
+            return result;
+        }
     }
-    return true;
+    ParseResult result;
+    result.success = true;
+    result.message = "";
+    return result;
 }
 
-bool handleNumber(std::fstream &fp, Token token, int scopeDepth) {
-    long long num = parseNumber(token.getValue());
-    for (int j = 0; j < scopeDepth; j++) {
-        fp << "    ";
+ParseResult handleNumber(std::fstream &fp, Token token, int scopeDepth) {
+    try {
+        long long num = parseNumber(token.getValue());
+        for (int j = 0; j < scopeDepth; j++) {
+            fp << "    ";
+        }
+        fp << "push_long(" << num << ");" << std::endl;
+    } catch (std::exception &e) {
+        ParseResult result;
+        result.success = false;
+        result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
+        result.where = token.getLine();
+        result.in = token.getFile();
+        return result;
     }
-    fp << "push_long(" << num << ");" << std::endl;
-    return true;
+    ParseResult result;
+    result.success = true;
+    result.message = "";
+    return result;
 }
 
-bool handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, std::fstream &fp, int* scopeDepth) {
+ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, std::fstream &fp, int* scopeDepth) {
     if (keywDeclare.getType() != tok_declare) {
-        std::cerr << "Expected variable declaration after 'for' keyword, but got: '" << keywDeclare.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
+        result.success = false;
+        result.where = keywDeclare.getLine();
+        result.in = keywDeclare.getFile();
+        return result;
     }
     if (loopVar.getType() != tok_identifier) {
-        std::cerr << "Expected identifier after 'decl', but got: '" << loopVar.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected identifier after 'decl', but got: '" + loopVar.getValue() + "'";
+        result.success = false;
+        result.where = loopVar.getLine();
+        result.in = loopVar.getFile();
+        return result;
     }
     if (keywIn.getType() != tok_in) {
-        std::cerr << "Expected 'in' keyword in for loop header, but got: '" << keywIn.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected 'in' keyword in for loop header, but got: '" + keywIn.getValue() + "'";
+        result.success = false;
+        result.where = keywIn.getLine();
+        result.in = keywIn.getFile();
+        return result;
     }
     if (from.getType() != tok_number && from.getType() != tok_identifier) {
-        std::cerr << "Expected number or variable after 'in', but got: '" << from.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
+        result.success = false;
+        result.where = from.getLine();
+        result.in = from.getFile();
+        return result;
     }
     if (keywTo.getType() != tok_to) {
-        std::cerr << "Expected 'to' keyword in for loop header, but got: '" << keywTo.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected 'to' keyword in for loop header, but got: '" + keywTo.getValue() + "'";
+        result.success = false;
+        result.where = keywTo.getLine();
+        result.in = keywTo.getFile();
+        return result;
     }
     if (to.getType() != tok_number && to.getType() != tok_identifier) {
-        std::cerr << "Expected number or variable after 'to', but got: '" << to.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
+        result.success = false;
+        result.where = to.getLine();
+        result.in = to.getFile();
+        return result;
     }
     if (keywDo.getType() != tok_do) {
-        std::cerr << "Expected 'do' keyword to finish for loop header, but got: '" << keywDo.getValue() << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Expected 'do' keyword to finish for loop header, but got: '" + keywDo.getValue() + "'";
+        result.success = false;
+        result.where = keywDo.getLine();
+        result.in = keywDo.getFile();
+        return result;
     }
+    bool doNumberCheck = true;
     long long lower = 0;
     if (from.getType() == tok_number) {
         lower = parseNumber(from.getValue());
+        doNumberCheck = false;
+    } else if (from.getType() != tok_identifier) {
+        ParseResult result;
+        result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
+        result.success = false;
+        result.where = from.getLine();
+        result.in = from.getFile();
+        return result;
     }
     long long higher = 0;
     if (to.getType() == tok_number) {
         higher = parseNumber(to.getValue());
+        doNumberCheck = false;
+    } else if (to.getType() != tok_identifier) {
+        ParseResult result;
+        result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
+        result.success = false;
+        result.where = to.getLine();
+        result.in = to.getFile();
+        return result;
     }
 
     for (int j = 0; j < *scopeDepth; j++) {
@@ -85,9 +151,25 @@ bool handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token
     }
     fp << "void* $" << loopVar.getValue() << ";" << std::endl;
 
-    if (lower < higher) {
+    if (!doNumberCheck || lower <= higher) {
         for (int j = 0; j < *scopeDepth; j++) {
             fp << "    ";
+        }
+        if (from.getType() == tok_identifier && !hasVar(from.getValue())) {
+            ParseResult result;
+            result.message = "Use of undeclared variable: '" + from.getValue() + "'";
+            result.success = false;
+            result.where = from.getLine();
+            result.in = from.getFile();
+            return result;
+        }
+        if (to.getType() == tok_identifier && !hasVar(to.getValue())) {
+            ParseResult result;
+            result.message = "Use of undeclared variable: '" + to.getValue() + "'";
+            result.success = false;
+            result.where = to.getLine();
+            result.in = to.getFile();
+            return result;
         }
         fp << "for ($" << loopVar.getValue() << " = (void*) ";
         fp << (from.getType() == tok_identifier ? "$" : "") << from.getValue();
@@ -95,14 +177,21 @@ bool handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token
         fp << (to.getType() == tok_identifier ? "$" : "") << to.getValue();
         fp << "; $" << loopVar.getValue() << "++) {" << std::endl;
     } else {
-        std::cerr << "Lower bound of for loop is greater than upper bound" << std::endl;
-        return false;
+        ParseResult result;
+        result.message = "Lower bound of for loop is greater than upper bound";
+        result.success = false;
+        result.where = from.getLine();
+        result.in = from.getFile();
+        return result;
     }
     *scopeDepth = *scopeDepth + 1;
 
     vars->push_back(loopVar.getValue());
     fp << std::endl;
-    return true;
+    ParseResult result;
+    result.success = true;
+    result.message = "";
+    return result;
 }
 
 #endif // TOKENHANDLERS_CPP_

@@ -1,18 +1,10 @@
+#include "io.scale"
+
 // stdlib.scale
 #ifndef _STDLIB_SCALE_
 #define _STDLIB_SCALE_
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
-
-// Stack: [fd n s] -> []
-// Writes n bytes from the pointer s
-// to the file descriptor fd.
-extern write
-
-// Stack: [fd n] -> [s]
-// Reads n bytes from the file descriptor fd
-// and pushes a pointer to the buffer to the stack.
-extern read
 
 // Stack: [i] -> []
 // Exits with exit code i.
@@ -47,11 +39,6 @@ extern malloc
 // Frees the memory pointed to by ptr.
 extern free
 
-
-// Stack: [] -> [random]
-// Pushes a random number to the stack.
-extern random
-
 // Stack: [a b] -> [(a < b)]
 // Pushes 1 if a is less than b, 0 otherwise.
 extern less
@@ -75,11 +62,6 @@ extern not
 // Stack: [a b] -> [(a || b)]
 // Pushes 1 if a or b is 1, 0 otherwise.
 extern or
-
-// Stack: [data fmt] -> [str]
-// Formats the data according to the
-// format string fmt
-extern sprintf
 
 // Stack: [str] -> [strlen]
 // Pushes the length of the string to the stack.
@@ -108,27 +90,6 @@ extern strrev
 // Stack: [] -> [time]
 // Pushes the current timestamp in milliseconds to the stack.
 extern time
-
-
-// Stack: [str] -> []
-// Prints the string str to the standard output.
-function puts(str)
-    1 str strlen str write
-    1 1 "\n" write
-end
-
-// Stack: [str] -> []
-// Prints the string str to the standard error.
-function eputs(str)
-    2 str strlen str write
-    2 1 "\n" write
-end
-
-// Stack: [int] -> []
-// Prints the integer int to the standard output.
-function putint(int)
-    int "%lld" sprintf puts
-end
 
 // Stack: [<any>] -> []
 // Clears the stack.
@@ -173,13 +134,6 @@ end
 // b at the same position.
 @nps @nowarn function over(a, b, c)
     c b a
-end
-
-// Stack: [err] -> []
-// Prints the error message err to the standard error,
-// and exits with exit code 1.
-function throwerr(err)
-    err puts 1 exit
 end
 
 // Stack: [] -> []
