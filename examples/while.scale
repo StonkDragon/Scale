@@ -1,4 +1,4 @@
-#include "stdlib.scale"
+#include "core.scale"
 #include "math.scale"
 
 function main()

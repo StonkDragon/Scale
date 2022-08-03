@@ -1,4 +1,4 @@
-#include "stdlib.scale"
+#include "core.scale"
 
 function main()
   1 while dup 100 less do

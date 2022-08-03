@@ -1,4 +1,4 @@
-#include "stdlib.scale"
+#include "core.scale"
 
 function doStuff(foo, bar, baz)
   foo puts
