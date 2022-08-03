@@ -1,7 +1,7 @@
 // math.scale
 #ifndef _MATH_SCALE_
 #define _MATH_SCALE_
-#include "stdlib.scale"
+#include "core.scale"
 
 // Stack: [] -> [random]
 // Pushes a random number to the stack.

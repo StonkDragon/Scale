@@ -1,8 +1,8 @@
 #include "io.scale"
 
-// stdlib.scale
-#ifndef _STDLIB_SCALE_
-#define _STDLIB_SCALE_
+// core.scale
+#ifndef _CORE_SCALE_
+#define _CORE_SCALE_
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
 
