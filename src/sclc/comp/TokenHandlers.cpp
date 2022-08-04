@@ -50,7 +50,7 @@ namespace sclc
             for (int j = 0; j < scopeDepth; j++) {
                 fp << "    ";
             }
-            fp << "push_long(" << num << ");" << std::endl;
+            fp << "ctrl_push_long(" << num << ");" << std::endl;
         } catch (std::exception &e) {
             ParseResult result;
             result.success = false;

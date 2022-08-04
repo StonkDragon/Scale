@@ -6,46 +6,46 @@
 typedef void* scl_word;
 
 /* Function header */
-#define s_header(name, ...)             \
+#define s_header(name, ...)            \
     void fun ## name ##(__VA_ARGS__)
 
 /* Call a function with the given name and arguments. */
-#define s_call(name, ...)               \
+#define s_call(name, ...)              \
     fn_ ## name ##(__VA_ARGS__)
 
 /* Call a native function with the given name. */
-#define s_nativecall(name)              \
-    function_native_start(#name);       \
+#define s_nativecall(name)             \
+    ctrl_fn_native_start(#name);       \
     fn_ ## name ##();                  \
-    function_native_end()
+    ctrl_fn_native_end()
 
 // Stacktrace functions
-void stacktrace_print();
-void function_native_start(char* ptr);
-void function_nps_start(char* ptr);
-void function_start(char* ptr);
-void function_native_end();
-void function_nps_end();
-void function_end();
+void ctrl_trace();
+void ctrl_fn_native_start(char* ptr);
+void ctrl_fn_nps_start(char* ptr);
+void ctrl_fn_start(char* ptr);
+void ctrl_fn_native_end();
+void ctrl_fn_nps_end();
+void ctrl_fn_end();
 
-// Stack push functions
-void push(scl_word n);
-void push_double(double n);
-void push_long(long long n);
-void push_string(const char* c);
+// Stack ctrl_push functions
+void ctrl_push(scl_word n);
+void ctrl_push_double(double n);
+void ctrl_push_long(long long n);
+void ctrl_push_string(const char* c);
 
-// Stack pop functions
-scl_word  pop();
-long long pop_long();
-double    pop_double();
-char*     pop_string();
-void      require_elements(size_t n, char* msg);
+// Stack ctrl_pop functions
+scl_word  ctrl_pop();
+long long ctrl_pop_long();
+double    ctrl_pop_double();
+char*     ctrl_pop_string();
+void      ctrl_required(size_t n, char* msg);
 
 // Heap management functions
 void heap_collect();
 void heap_collect_all();
-void heap_add(void* ptr, int isFile);
-void heap_remove(void* ptr);
+void heap_add(scl_word ptr, int isFile);
+void heap_remove(scl_word ptr);
 
 void op_add();
 void op_sub();

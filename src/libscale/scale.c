@@ -70,15 +70,15 @@ struct {
 	size_t 	 	 ptr;
 	size_t 	 	 depth;
 	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
-} stack = {0, -1, {0}};
+} stack = {0, 0, {0}};
 
 void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
-	push_long(code);
+	ctrl_push_long(code);
 	native_raise();
 }
 
-void require_elements(size_t n, char* func) {
+void ctrl_required(size_t n, char* func) {
 	if (stack.ptr < n) {
 		char* err = (char*) malloc(MAX_STRING_SIZE);
 		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
@@ -87,7 +87,7 @@ void require_elements(size_t n, char* func) {
 	}
 }
 
-void stacktrace_print() {
+void ctrl_trace() {
 	size_t i;
 	printf("Stacktrace:\n");
 	for (i = (Callstack.ptr - 1); i >= 0; i--) {
@@ -179,30 +179,30 @@ void safe_exit(int code) {
 	exit(code);
 }
 
-void function_start(char* name) {
+void ctrl_fn_start(char* name) {
 	Callstack.name[Callstack.ptr++] = name;
 	stack.depth++;
 }
 
-void function_end() {
+void ctrl_fn_end() {
 	Callstack.ptr--;
 	stack.depth--;
 	heap_collect();
 }
 
-void function_native_start(char* name) {
+void ctrl_fn_native_start(char* name) {
 	Callstack.name[Callstack.ptr++] = name;
 }
 
-void function_native_end() {
+void ctrl_fn_native_end() {
 	Callstack.ptr--;
 }
 
-void function_nps_start(char* name) {
+void ctrl_fn_nps_start(char* name) {
 	Callstack.name[Callstack.ptr++] = name;
 }
 
-void function_nps_end() {
+void ctrl_fn_nps_end() {
 	Callstack.ptr--;
 	heap_collect();
 }
@@ -247,14 +247,14 @@ void process_signal(int sig_num)
 	safe_exit(sig_num);
 }
 
-void push_string(const char* c) {
+void ctrl_push_string(const char* c) {
 	if (stack.ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack.data[stack.depth][stack.ptr++] = (scl_word) c;
 }
 
-void push_long(long long n) {
+void ctrl_push_long(long long n) {
 	if (stack.ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -262,42 +262,42 @@ void push_long(long long n) {
 	stack.ptr++;
 }
 
-long long pop_long() {
+long long ctrl_pop_long() {
 	if (stack.ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	return (long long) stack.data[stack.depth][--stack.ptr];
 }
 
-void push(scl_word n) {
+void ctrl_push(scl_word n) {
 	if (stack.ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack.data[stack.depth][stack.ptr++] = n;
 }
 
-char* pop_string() {
+char* ctrl_pop_string() {
 	if (stack.ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	return (char*) stack.data[stack.depth][--stack.ptr];
 }
 
-scl_word pop() {
+scl_word ctrl_pop() {
 	if (stack.ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	return stack.data[stack.depth][--stack.ptr];
 }
 
-scl_word pop_word() {
+scl_word ctrl_pop_word() {
 	if (stack.ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	return stack.data[stack.depth][--stack.ptr];
 }
 
-void push_word(scl_word n) {
+void ctrl_push_word(scl_word n) {
 	if (stack.ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -305,89 +305,89 @@ void push_word(scl_word n) {
 }
 
 void op_add() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a + b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a + b);
 }
 
 void op_sub() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a - b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a - b);
 }
 
 void op_mul() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a * b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a * b);
 }
 
 void op_div() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
 	if (b == 0) {
 		throw(EX_INVALID_ARGUMENT, "Division by zero!");
 	}
-	push_long(a / b);
+	ctrl_push_long(a / b);
 }
 
 void op_mod() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
 	if (b == 0) {
 		throw(EX_INVALID_ARGUMENT, "Division by zero!");
 	}
-	push_long(a % b);
+	ctrl_push_long(a % b);
 }
 
 void op_land() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a & b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a & b);
 }
 
 void op_lor() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a | b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a | b);
 }
 
 void op_lxor() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a ^ b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a ^ b);
 }
 
 void op_lnot() {
-	int64_t a = pop_long();
-	push_long(~a);
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(~a);
 }
 
 void op_lsh() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a << b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a << b);
 }
 
 void op_rsh() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a >> b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a >> b);
 }
 
 void op_pow() {
-	long long exp = pop_long();
+	long long exp = ctrl_pop_long();
 	if (exp < 0) {
 		throw(EX_BAD_PTR, "Negative exponent!");
 	}
-	int64_t base = pop_long();
+	int64_t base = ctrl_pop_long();
 	long long intResult = (int64_t) base;
 	long long i = 0;
 	while (i < exp) {
 		intResult *= (int64_t) base;
 		i++;
 	}
-	push_long(intResult);
+	ctrl_push_long(intResult);
 }
 
 void native_dumpstack() {
@@ -400,78 +400,78 @@ void native_dumpstack() {
 }
 
 void native_exit() {
-	long long n = pop_long();
+	long long n = ctrl_pop_long();
 	safe_exit(n);
 }
 
 void native_sleep() {
-	long long c = pop_long();
+	long long c = ctrl_pop_long();
 	sleep(c);
 }
 
 void native_getenv() {
-	char *c = pop_string();
+	char *c = ctrl_pop_string();
 	char *prop = getenv(c);
-	push_string(prop);
+	ctrl_push_string(prop);
 }
 
 void native_less() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a < b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a < b);
 }
 
 void native_more() {
-	int64_t b = pop_long();
-	int64_t a = pop_long();
-	push_long(a > b);
+	int64_t b = ctrl_pop_long();
+	int64_t a = ctrl_pop_long();
+	ctrl_push_long(a > b);
 }
 
 void native_equal() {
-	int64_t a = pop_long();
-	int64_t b = pop_long();
-	push_long(a == b);
+	int64_t a = ctrl_pop_long();
+	int64_t b = ctrl_pop_long();
+	ctrl_push_long(a == b);
 }
 
 void native_dup() {
-	scl_word c = pop();
-	push(c);
-	push(c);
+	scl_word c = ctrl_pop();
+	ctrl_push(c);
+	ctrl_push(c);
 }
 
 void native_over() {
-	void *a = pop();
-	void *b = pop();
-	void *c = pop();
-	push(a);
-	push(b);
-	push(c);
+	void *a = ctrl_pop();
+	void *b = ctrl_pop();
+	void *c = ctrl_pop();
+	ctrl_push(a);
+	ctrl_push(b);
+	ctrl_push(c);
 }
 
 void native_swap() {
-	void *a = pop();
-	void *b = pop();
-	push(a);
-	push(b);
+	void *a = ctrl_pop();
+	void *b = ctrl_pop();
+	ctrl_push(a);
+	ctrl_push(b);
 }
 
 void native_drop() {
-	pop();
+	ctrl_pop();
 }
 
 void native_sizeof_stack() {
-	push_long(stack.ptr);
+	ctrl_push_long(stack.ptr);
 }
 
 void native_concat() {
-	char *s2 = pop_string();
-	char *s1 = pop_string();
-	push_string(s1);
+	char *s2 = ctrl_pop_string();
+	char *s1 = ctrl_pop_string();
+	ctrl_push_string(s1);
 	native_strlen();
-	long long len = pop_long();
-	push_string(s2);
+	long long len = ctrl_pop_long();
+	ctrl_push_string(s2);
 	native_strlen();
-	long long len2 = pop_long();
+	long long len2 = ctrl_pop_long();
 	char *out = (char*) malloc(len + len2 + 1);
 	heap_add(out, 0);
 	int i = 0;
@@ -484,11 +484,11 @@ void native_concat() {
 		out[i + j] = s2[j];
 		j++;
 	}
-	push_string(out);
+	ctrl_push_string(out);
 }
 
 void native_random() {
-	push_long(rand());
+	ctrl_push_long(rand());
 }
 
 void native_crash() {
@@ -496,61 +496,61 @@ void native_crash() {
 }
 
 void native_and() {
-	int a = pop_long();
-	int b = pop_long();
-	push_long(a && b);
+	int a = ctrl_pop_long();
+	int b = ctrl_pop_long();
+	ctrl_push_long(a && b);
 }
 
 void native_system() {
-	char *cmd = pop_string();
+	char *cmd = ctrl_pop_string();
 	int ret = system(cmd);
-	push_long(ret);
+	ctrl_push_long(ret);
 }
 
 void native_not() {
-	push_long(!pop_long());
+	ctrl_push_long(!ctrl_pop_long());
 }
 
 void native_or() {
-	int a = pop_long();
-	int b = pop_long();
-	push_long(a || b);
+	int a = ctrl_pop_long();
+	int b = ctrl_pop_long();
+	ctrl_push_long(a || b);
 }
 
 void native_sprintf() {
-	char *fmt = pop_string();
-	scl_word s = pop();
+	char *fmt = ctrl_pop_string();
+	scl_word s = ctrl_pop();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
 	heap_add(out, 0);
 	sprintf(out, fmt, s);
-	push_string(out);
+	ctrl_push_string(out);
 }
 
 void native_strlen() {
-	char *s = pop_string();
+	char *s = ctrl_pop_string();
 	size_t len = 0;
 	while (s[len] != '\0') {
 		len++;
 	}
-	push_long(len);
+	ctrl_push_long(len);
 }
 
 void native_strcmp() {
-	char *s1 = pop_string();
-	char *s2 = pop_string();
-	push_long(strcmp(s1, s2) == 0);
+	char *s1 = ctrl_pop_string();
+	char *s2 = ctrl_pop_string();
+	ctrl_push_long(strcmp(s1, s2) == 0);
 }
 
 void native_strncmp() {
-	char *s1 = pop_string();
-	char *s2 = pop_string();
-	long long n = pop_long();
-	push_long(strncmp(s1, s2, n) == 0);
+	char *s1 = ctrl_pop_string();
+	char *s2 = ctrl_pop_string();
+	long long n = ctrl_pop_long();
+	ctrl_push_long(strncmp(s1, s2, n) == 0);
 }
 
 void native_fopen() {
-	char *mode = pop_string();
-	char *name = pop_string();
+	char *mode = ctrl_pop_string();
+	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
 	if (f == NULL) {
 		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
@@ -558,35 +558,35 @@ void native_fopen() {
 		throw(EX_IO_ERROR, err);
 	}
 	heap_add(f, 1);
-	push((scl_word) f);
+	ctrl_push((scl_word) f);
 }
 
 void native_fclose() {
-	FILE *f = (FILE*) pop();
+	FILE *f = (FILE*) ctrl_pop();
 	heap_remove(f);
 	fclose(f);
 }
 
 void native_fseek() {
-	long long offset = pop_long();
-	int whence = pop_long();
-	FILE *f = (FILE*) pop();
+	long long offset = ctrl_pop_long();
+	int whence = ctrl_pop_long();
+	FILE *f = (FILE*) ctrl_pop();
 	fseek(f, offset, whence);
 }
 
 void native_ftell() {
-	FILE *f = (FILE*) pop();
-	push((scl_word) f);
-	push_long(ftell(f));
+	FILE *f = (FILE*) ctrl_pop();
+	ctrl_push((scl_word) f);
+	ctrl_push_long(ftell(f));
 }
 
 void native_fileno() {
-	FILE *f = (FILE*) pop();
-	push_long(fileno(f));
+	FILE *f = (FILE*) ctrl_pop();
+	ctrl_push_long(fileno(f));
 }
 
 void native_raise() {
-	long long n = pop_long();
+	long long n = ctrl_pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
 		if (raised != 0) {
@@ -602,51 +602,51 @@ void native_abort() {
 }
 
 void native_write() {
-	void *s = pop();
-	long long n = pop_long();
-	long long fd = pop_long();
+	void *s = ctrl_pop();
+	long long n = ctrl_pop_long();
+	long long fd = ctrl_pop_long();
 	write(fd, s, n);
-	push(s);
+	ctrl_push(s);
 	native_free();
 }
 
 void native_read() {
-	long long n = pop_long();
-	long long fd = pop_long();
+	long long n = ctrl_pop_long();
+	long long fd = ctrl_pop_long();
 	void *s = malloc(n);
 	heap_add(s, 0);
 	int ret = read(fd, s, n);
 	if (ret == -1) {
-		push_long(EX_IO_ERROR);
+		ctrl_push_long(EX_IO_ERROR);
 		native_raise();
 	}
-	push(s);
+	ctrl_push(s);
 }
 
 void native_strrev() {
-	char* s = pop_string();
+	char* s = ctrl_pop_string();
 	int i = 0;
-	push_string(s);
+	ctrl_push_string(s);
 	native_strlen();
-	long long len = pop_long();
+	long long len = ctrl_pop_long();
 	char* out = (char*) malloc(len + 1);
 	heap_add(out, 0);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
 	}
 	out[len] = '\0';
-	push_string(out);
+	ctrl_push_string(out);
 }
 
 void native_malloc() {
-	long long n = pop_long();
+	long long n = ctrl_pop_long();
 	scl_word s = malloc(n);
 	heap_add(s, 0);
-	push(s);
+	ctrl_push(s);
 }
 
 void native_free() {
-	scl_word s = pop();
+	scl_word s = ctrl_pop();
 	int is_alloc = heap_is_alloced(s);
 	heap_remove(s);
 	if (is_alloc) {
@@ -660,16 +660,16 @@ void native_breakpoint() {
 }
 
 void native_memset() {
-	scl_word s = pop();
-	long long n = pop_long();
-	long long c = pop_long();
+	scl_word s = ctrl_pop();
+	long long n = ctrl_pop_long();
+	long long c = ctrl_pop_long();
 	memset(s, c, n);
 }
 
 void native_memcpy() {
-	scl_word s2 = pop();
-	scl_word s1 = pop();
-	long long n = pop_long();
+	scl_word s2 = ctrl_pop();
+	scl_word s1 = ctrl_pop();
+	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 }
 
@@ -677,7 +677,7 @@ void native_time() {
 	struct timespec t;
 	clock_gettime(CLOCK_REALTIME, &t);
 	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
-	push_long(millis);
+	ctrl_push_long(millis);
 }
 
 void native_heap_collect() {
@@ -685,7 +685,7 @@ void native_heap_collect() {
 }
 
 void native_trace() {
-	stacktrace_print();
+	ctrl_trace();
 }
 
 int main(int argc, char const *argv[])
@@ -697,7 +697,7 @@ int main(int argc, char const *argv[])
 	signal(SIGSEGV, process_signal);
 
 	for (int i = argc - 1; i > 0; i--) {
-		push_string(argv[i]);
+		ctrl_push_string(argv[i]);
 	}
 
 	fn_main();
