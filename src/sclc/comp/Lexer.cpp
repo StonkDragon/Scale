@@ -45,6 +45,12 @@ namespace sclc
         {
             Token token = tokens[i];
             if (token.getType() == tok_function) {
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << tokens[i+1].getFile() << ":";
+                    std::cerr << tokens[i+1].getLine() << ":" << tokens[i+1].getColumn();
+                    std::cerr << ": " << "Expected identifier after function keyword" << std::endl;
+                    exit(1);
+                }
                 std::string name = tokens[i + 1].getValue();
                 Function function(name);
                 addIfAbsent<Function>(functions, function);
@@ -54,7 +60,7 @@ namespace sclc
                     i++;
                     while (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_comma) {
                         if (tokens[i].getType() == tok_identifier) {
-                            currentFunction->addArgument("$" + tokens[i].getValue());
+                            currentFunction->addArgument(tokens[i].getValue());
                         }
                         i++;
                         if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
