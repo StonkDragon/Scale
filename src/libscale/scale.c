@@ -87,6 +87,14 @@ void require_elements(size_t n, char* func) {
 	}
 }
 
+void stacktrace_print() {
+	size_t i;
+	printf("Stacktrace:\n");
+	for (i = (Callstack.ptr - 1); i >= 0; i--) {
+		printf("  %s\n", Callstack.name[i]);
+	}
+}
+
 void heap_collect() {
 	int i;
 	int count = 0;
@@ -674,6 +682,10 @@ void native_time() {
 
 void native_heap_collect() {
 	heap_collect();
+}
+
+void native_trace() {
+	stacktrace_print();
 }
 
 int main(int argc, char const *argv[])
