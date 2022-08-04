@@ -61,12 +61,10 @@
 		},
 		"preproc": {
 			"name": "entity.name.function",
-			"begin": "#",
-			"end": "\\s",
 			"patterns": [
 				{
-					"name": "meta.type.annotation",
-					"match": "\\b(include|ifdef|if|ifndef|define|undef|endif|error|warning)\\b"
+					"name": "entity.name.function",
+					"match": "#(include|ifdef|ifndef|if|define|undef|endif|error|warning|else)"
 				}
 			]
 		},
