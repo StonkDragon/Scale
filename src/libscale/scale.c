@@ -52,7 +52,7 @@ extern "C" {
 void native_raise();
 void native_strlen();
 void native_free();
-void fun_main();
+void fn_main();
 
 /* STRUCTURES */
 typedef struct {
@@ -700,7 +700,7 @@ int main(int argc, char const *argv[])
 		push_string(argv[i]);
 	}
 
-	fun_main();
+	fn_main();
 	heap_collect_all();
 	return 0;
 }

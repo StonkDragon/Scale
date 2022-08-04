@@ -11,12 +11,12 @@ typedef void* scl_word;
 
 /* Call a function with the given name and arguments. */
 #define s_call(name, ...)               \
-    fun_ ## name ##(__VA_ARGS__)
+    fn_ ## name ##(__VA_ARGS__)
 
 /* Call a native function with the given name. */
 #define s_nativecall(name)              \
     function_native_start(#name);       \
-    fun_ ## name ##();                  \
+    fn_ ## name ##();                  \
     function_native_end()
 
 // Stacktrace functions

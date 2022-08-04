@@ -81,14 +81,14 @@ namespace sclc
         fp << "/* FUNCTION PROTOTYPES */" << std::endl;
 
         for (Prototype proto : result.prototypes) {
-            fp << "void fun_" << proto.name << "();" << std::endl;
+            fp << "void fn_" << proto.name << "();" << std::endl;
         }
 
         fp << std::endl;
         fp << "/* FUNCTION HEADERS */" << std::endl;
 
         for (Function function : result.functions) {
-            fp << "void fun_" << function.getName() << "(";
+            fp << "void fn_" << function.getName() << "(";
             for (int i = function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 var = var.substr(1);
@@ -129,7 +129,7 @@ namespace sclc
                 }
             }
             
-            fp << "void fun_" << function.getName() << "(";
+            fp << "void fn_" << function.getName() << "(";
 
             std::string functionDeclaration = "";
 
@@ -188,7 +188,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "fun_" << body[i].getValue() << "(";
+                    fp << "fn_" << body[i].getValue() << "(";
                     Function func = getFunctionByName(body[i].getValue());
                     for (int j = func.getArgs().size() - 1; j >= 0; j--) {
                         if (j != func.getArgs().size() - 1) {
@@ -310,7 +310,7 @@ namespace sclc
                     if (hasExtern(toGet)) {
                         fp << "push((scl_word) &native_" << toGet << ");";
                     } else if (hasFunction(toGet)) {
-                        fp << "push((scl_word) &fun_" << toGet << ");";
+                        fp << "push((scl_word) &fn_" << toGet << ");";
                     } else {
                         fp << "push($" << toGet << ");" << std::endl;
                     }
