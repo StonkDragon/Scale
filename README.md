@@ -2,7 +2,7 @@
 
 ## Introduction
 
-  Scale is a [functional](https://en.wikipedia.org/wiki/Functional_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
+  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
 
   Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [scale.h](./Scale/comp/scale.h) header file, which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
 
@@ -20,10 +20,11 @@
 
   The following dependencies are required to use Scale:
 
-- git
-- make
-- clang
-- python3 (for tests)
+- [`clang`](https://clang.llvm.org/)
+- `cpp`
+- `git` (to compile)
+- `make` (to compile)
+- `python3` (for tests)
 
 # Documentation
 
@@ -46,7 +47,6 @@
 
 ## Keywords
 
-  - `using`: Import another file
   - `function`: Define a function
   - `end`: End a function
   - `extern`: Declare a C function prototype

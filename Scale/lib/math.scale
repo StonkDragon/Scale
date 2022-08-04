@@ -1,5 +1,11 @@
 // math.scale
-using "stdlib.scale"
+#ifndef _MATH_SCALE_
+#define _MATH_SCALE_
+#include "core.scale"
+
+// Stack: [] -> [random]
+// Pushes a random number to the stack.
+extern random
 
 // Stack: [a] -> [a%2==0]
 // Test if an integer is even.
@@ -7,12 +13,18 @@ function iseven(i)      i 2 % 0 equal return end
 
 // Stack: [a] -> [a++]
 // Increment an integer.
-#nps #nowarn function inc(i)         i 1 + end
+@nps @nowarn function inc(i)         i 1 + end
 
 // Stack: [a] -> [a--]
 // Decrement an integer.
-#nps #nowarn function dec(i)         i 1 - end
+@nps @nowarn function dec(i)         i 1 - end
 
 // Stack: [a] -> [random%a]
 // Return a random integer between 0 and a-1.
 function lrandom(limit) random limit % return end
+
+// Stack: [a, b, t] -> [lerp(a, b, t)]
+// Linear interpolation.
+function lerp(a, b, t)  b a - t * a + return end
+
+#endif

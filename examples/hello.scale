@@ -1,4 +1,4 @@
-using "stdlib.scale"
+#include "core.scale"
 
 function main()
   // prints "Hello, world!" to standard output

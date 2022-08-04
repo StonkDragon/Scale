@@ -1,8 +1,12 @@
-// debug.scale
+#include "fmt.scale"
 
-// !!!!
-// ALL OF THESE FUNCIONS SHOULD NOT BE USED IN PRODUCTION CODE
-// !!!!
+#ifndef _DEBUG_SCALE_
+#define _DEBUG_SCALE_
+
+#warning "Debugging build"
+#ifndef DEBUG
+#define DEBUG
+#endif
 
 // Stack: [] -> []
 // Dumps the current stack to the console.
@@ -31,3 +35,9 @@ extern breakpoint
 // Stack: [] -> []
 // Runs garbage collection.
 extern heap_collect
+
+// Stack: [msg] -> []
+// Prints msg to stderr and exits with exit code 1.
+function throw(msg) Color_Reset msg concat eputs trace 1 exit end
+
+#endif

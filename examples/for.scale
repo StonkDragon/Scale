@@ -1,4 +1,4 @@
-using "stdlib.scale"
+#include "core.scale"
 
 function main()
   // prints numbers 1 to 10 (both including)

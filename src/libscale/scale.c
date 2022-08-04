@@ -1,6 +1,10 @@
 #ifndef SCALE
 #define SCALE
 
+#if __SIZEOF_POINTER__ < 8
+#error "Scale is not supported on this platform"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,7 +13,6 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-#include <ctype.h>
 #include <string.h>
 #include <time.h>
 #include <signal.h>
@@ -49,7 +52,7 @@ extern "C" {
 void native_raise();
 void native_strlen();
 void native_free();
-void fun_main();
+void fn_main();
 
 /* STRUCTURES */
 typedef struct {
@@ -67,7 +70,7 @@ struct {
 	size_t 	 	 ptr;
 	size_t 	 	 depth;
 	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
-} stack;
+} stack = {0, -1, {0}};
 
 void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -81,6 +84,14 @@ void require_elements(size_t n, char* func) {
 		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
 		throw(EX_STACK_UNDERFLOW, err);
 		free(err);
+	}
+}
+
+void stacktrace_print() {
+	size_t i;
+	printf("Stacktrace:\n");
+	for (i = (Callstack.ptr - 1); i >= 0; i--) {
+		printf("  %s\n", Callstack.name[i]);
 	}
 }
 
@@ -98,7 +109,6 @@ void heap_collect() {
 					}
 				}
 				if (collect) {
-					fprintf(stderr, "Warning: Collecting dangling poiner: %p\n", memalloced[i].ptr);
 					if (memalloced[i].isFile) {
 						fclose(memalloced[i].ptr);
 					} else {
@@ -112,11 +122,10 @@ void heap_collect() {
 	}
 }
 
-void heap_collect_all(int print) {
+void heap_collect_all() {
 	int i;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
-			if (print) fprintf(stderr, "Warning: Collecting dangling poiner: %p\n", memalloced[i].ptr);
 			if (memalloced[i].isFile) {
 				fclose(memalloced[i].ptr);
 			} else {
@@ -166,7 +175,7 @@ void heap_remove(scl_word ptr) {
 }
 
 void safe_exit(int code) {
-	heap_collect_all(1);
+	heap_collect_all();
 	exit(code);
 }
 
@@ -675,6 +684,10 @@ void native_heap_collect() {
 	heap_collect();
 }
 
+void native_trace() {
+	stacktrace_print();
+}
+
 int main(int argc, char const *argv[])
 {
 	signal(SIGINT, process_signal);
@@ -687,8 +700,8 @@ int main(int argc, char const *argv[])
 		push_string(argv[i]);
 	}
 
-	fun_main();
-	heap_collect_all(1);
+	fn_main();
+	heap_collect_all();
 	return 0;
 }
 
