@@ -33,6 +33,7 @@ ParseResult handleOperator(std::fstream &fp, Token token, int scopeDepth) {
             result.message = "Unknown operator type: " + std::to_string(token.type);
             result.where = token.getLine();
             result.in = token.getFile();
+            result.column = token.getColumn();
             return result;
         }
     }
@@ -56,6 +57,7 @@ ParseResult handleNumber(std::fstream &fp, Token token, int scopeDepth) {
         result.where = token.getLine();
         result.in = token.getFile();
         result.token = token.getValue();
+        result.column = token.getColumn();
         return result;
     }
     ParseResult result;
@@ -72,6 +74,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = keywDeclare.getLine();
         result.in = keywDeclare.getFile();
         result.token = keywDeclare.getValue();
+        result.column = keywDeclare.getColumn();
         return result;
     }
     if (loopVar.getType() != tok_identifier) {
@@ -81,6 +84,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = loopVar.getLine();
         result.in = loopVar.getFile();
         result.token = loopVar.getValue();
+        result.column = loopVar.getColumn();
         return result;
     }
     if (keywIn.getType() != tok_in) {
@@ -90,6 +94,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = keywIn.getLine();
         result.in = keywIn.getFile();
         result.token = keywIn.getValue();
+        result.column = keywIn.getColumn();
         return result;
     }
     if (from.getType() != tok_number && from.getType() != tok_identifier) {
@@ -99,6 +104,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = from.getLine();
         result.in = from.getFile();
         result.token = from.getValue();
+        result.column = from.getColumn();
         return result;
     }
     if (keywTo.getType() != tok_to) {
@@ -108,6 +114,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = keywTo.getLine();
         result.in = keywTo.getFile();
         result.token = keywTo.getValue();
+        result.column = keywTo.getColumn();
         return result;
     }
     if (to.getType() != tok_number && to.getType() != tok_identifier) {
@@ -117,6 +124,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = to.getLine();
         result.in = to.getFile();
         result.token = to.getValue();
+        result.column = to.getColumn();
         return result;
     }
     if (keywDo.getType() != tok_do) {
@@ -126,6 +134,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = keywDo.getLine();
         result.in = keywDo.getFile();
         result.token = keywDo.getValue();
+        result.column = keywDo.getColumn();
         return result;
     }
     bool doNumberCheck = false;
@@ -140,6 +149,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = from.getLine();
         result.in = from.getFile();
         result.token = from.getValue();
+        result.column = from.getColumn();
         return result;
     }
     long long higher = 0;
@@ -153,6 +163,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = to.getLine();
         result.in = to.getFile();
         result.token = to.getValue();
+        result.column = to.getColumn();
         return result;
     }
 
@@ -181,6 +192,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
             result.where = from.getLine();
             result.in = from.getFile();
             result.token = from.getValue();
+            result.column = from.getColumn();
             return result;
         }
         if (to.getType() == tok_identifier && !hasVar(to.getValue())) {
@@ -190,6 +202,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
             result.where = to.getLine();
             result.in = to.getFile();
             result.token = to.getValue();
+            result.column = to.getColumn();
             return result;
         }
 
@@ -205,6 +218,7 @@ ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from
         result.where = from.getLine();
         result.in = from.getFile();
         result.token = from.getValue();
+        result.column = from.getColumn();
         return result;
     }
     *scopeDepth = *scopeDepth + 1;

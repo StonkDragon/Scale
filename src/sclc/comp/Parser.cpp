@@ -62,6 +62,7 @@ ParseResult Parser::parse(std::string filename) {
         result.message = "No entry point found";
         result.where = 0;
         result.in = filename;
+        result.column = 0;
         errors.push_back(result);
     }
 
@@ -160,6 +161,7 @@ ParseResult Parser::parse(std::string filename) {
         for (i = 0; i < body.size(); i++)
         {
             if (body[i].getType() == tok_ignore) continue;
+
             if (isOperator(body[i])) {
                 ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
                 if (!operatorsHandled.success) {
@@ -315,6 +317,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
                     result.token = body[i + 1].getValue();
+                    result.column = body[i + 1].getColumn();
                     errors.push_back(result);
                 }
                 if (!hasVar(body[i + 1].getValue())) {
@@ -324,6 +327,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
                     result.token = body[i + 1].getValue();
+                    result.column = body[i + 1].getColumn();
                     errors.push_back(result);
                 }
                 std::string storeIn = body[i + 1].getValue();
@@ -340,6 +344,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
                     result.token = body[i + 1].getValue();
+                    result.column = body[i + 1].getColumn();
                     errors.push_back(result);
                 }
                 vars.push_back(body[i + 1].getValue());
@@ -367,6 +372,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
                     result.token = body[i + 1].getValue();
+                    result.column = body[i + 1].getColumn();
                     errors.push_back(result);
                 }
                 if (!hasVar(body[i + 1].getValue())) {
@@ -376,6 +382,7 @@ ParseResult Parser::parse(std::string filename) {
                     result.where = body[i + 1].getLine();
                     result.in = body[i + 1].getFile();
                     result.token = body[i + 1].getValue();
+                    result.column = body[i + 1].getColumn();
                     errors.push_back(result);
                 }
                 for (int j = 0; j < scopeDepth; j++) {
@@ -395,6 +402,7 @@ ParseResult Parser::parse(std::string filename) {
                 result.where = body[i].getLine();
                 result.in = body[i].getFile();
                 result.token = body[i].getValue();
+                result.column = body[i].getColumn();
                 errors.push_back(result);
             }
         }

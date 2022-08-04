@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define TYPES(x, y, line, file) if (value == x) return Token(tok_##y, value, line, file)
+#define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
 
 struct Color {
     static const std::string RESET;
@@ -157,14 +157,16 @@ struct Token
 {
     TokenType type;
     int line;
+    int column;
     std::string file;
     std::string value;
     std::string toString() {
         return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
     }
-    Token(TokenType type, std::string value, int line, std::string file) : type(type), value(value) {
+    Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
         this->line = line;
         this->file = file;
+        this->column = column;
     }
     std::string getValue() {
         return value;
@@ -178,6 +180,9 @@ struct Token
     std::string getFile() {
         return file;
     }
+    int getColumn() {
+        return column;
+    }
 };
 
 struct ParseResult {
@@ -187,6 +192,7 @@ struct ParseResult {
     std::vector<ParseResult> errors;
     std::vector<ParseResult> warns;
     std::string token;
+    int column;
     int where;
 };
 

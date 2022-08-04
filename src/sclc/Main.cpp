@@ -166,21 +166,14 @@ int main(int argc, char const *argv[])
             }
             FILE* f = fopen(std::string(error.in).c_str(), "r");
             char* line = (char*) malloc(sizeof(char) * 500);
-            int column = 0;
             int i = 1;
-            while (fgets(line, 500, f) != NULL) {
-                if (i == error.where) {
-                    column = std::string(line).find(error.token);
-                }
-                i++;
-            }
             fseek(f, 0, SEEK_SET);
-            std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.where << ":" << (column + 1) << ": " << error.message << std::endl;
+            std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.where << ":" << error.column << ": " << error.message << std::endl;
             i = 1;
             while (fgets(line, 500, f) != NULL) {
                 if (i == error.where) {
                     std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                    std::string l = replaceAll(line, error.token, Color::BOLDRED + error.token + Color::RESET);                    
+                    std::string l = replaceFirstAfter(line, error.token, Color::BOLDRED + error.token + Color::RESET, error.column);
                     if (l.at(l.size() - 1) != '\n') {
                         l += '\n';
                     }
@@ -200,7 +193,7 @@ int main(int argc, char const *argv[])
         }
         remove((std::string(source) + ".c").c_str());
         remove((std::string(source) + ".h").c_str());
-        return 1;
+        return parseResult.errors.size();
     }
     times.push_back(durationLexer + durationParser);
 
