@@ -58,6 +58,8 @@ namespace sclc
             return 1;
         }
 
+        auto start = std::chrono::high_resolution_clock::now();
+
         bool transpileOnly  = false;
         bool linkToLib      = true;
         bool preprocessOnly = false;
@@ -93,32 +95,27 @@ namespace sclc
 
         std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
-        std::vector<double> times;
         std::vector<Token>  tokens;
 
         for (int i = 0; i < files.size(); i++) {
             std::string filename = files[i];
             std::cout << "Compiling " << filename << "..." << std::endl;
 
-            auto startpreproc = std::chrono::high_resolution_clock::now();
             std::string preproc_cmd =
                 PREPROCESSOR + " -I" + std::string(getenv("HOME"))
                 + "/Scale/lib " + filename + " " + filename + ".scale-preproc";
+            int preprocResult = system(preproc_cmd.c_str());
 
-            auto preprocResult = system(preproc_cmd.c_str());
             if (preprocResult != 0) {
                 std::cout << "Error: Preprocessor failed." << std::endl;
                 return 1;
             }
-            auto endpreproc = std::chrono::high_resolution_clock::now();
-            double durationPreproc = std::chrono::duration_cast<std::chrono::nanoseconds>(endpreproc - startpreproc).count() / 1000000000.0;
 
             if (preprocessOnly) {
-                std::cout << "Preprocessed " << filename << " in " << durationPreproc << " seconds." << std::endl;
+                std::cout << "Preprocessed " << filename << std::endl;
                 continue;
             }
 
-            auto startTokenizer = std::chrono::high_resolution_clock::now();
             Tokenizer tokenizer;
             MAIN.tokenizer = &tokenizer;
             MAIN.tokenizer->tokenize(filename + ".scale-preproc");
@@ -126,11 +123,7 @@ namespace sclc
 
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
-            auto endTokenizer = std::chrono::high_resolution_clock::now();
-            double durationTokenizer = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endTokenizer - startTokenizer).count() / 1000000000.0;
-
             remove(std::string(filename + ".scale-preproc").c_str());
-            times.push_back(durationTokenizer + durationPreproc);
         }
 
         if (preprocessOnly) {
@@ -138,14 +131,10 @@ namespace sclc
             return 0;
         }
 
-        auto startLexer = std::chrono::high_resolution_clock::now();
         Lexer lexer(tokens);
         MAIN.lexer = &lexer;
         AnalyzeResult result = MAIN.lexer->lexAnalyze();
-        auto endLexer = std::chrono::high_resolution_clock::now();
-        double durationLexer = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endLexer - startLexer).count() / 1000000000.0;
 
-        auto startParser = std::chrono::high_resolution_clock::now();
         Parser parser(result);
         MAIN.parser = &parser;
         char* source = (char*) malloc(sizeof(char) * 50);
@@ -157,8 +146,6 @@ namespace sclc
         cmd += ".c ";
 
         ParseResult parseResult = MAIN.parser->parse(std::string(source));
-        auto endParser = std::chrono::high_resolution_clock::now();
-        double durationParser = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endParser - startParser).count() / 1000000000.0;
 
         if (parseResult.errors.size() > 0) {
             for (ParseResult error : parseResult.errors) {
@@ -197,21 +184,15 @@ namespace sclc
             remove((std::string(source) + ".h").c_str());
             return parseResult.errors.size();
         }
-        times.push_back(durationLexer + durationParser);
 
         if (transpileOnly) {
-            double total = 0;
-            for (int i = 0; i < times.size(); i++) {
-                total += times[i];
-            }
-            std::cout << "Transpiled successfully in " << total << " seconds." << std::endl;
+            auto end = std::chrono::high_resolution_clock::now();
+            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+            std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
 
-        auto startCodegen = std::chrono::high_resolution_clock::now();
         int ret = system(cmd.c_str());
-        auto endCodegen = std::chrono::high_resolution_clock::now();
-        double durationCodegen = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endCodegen - startCodegen).count() / 1000000000.0;
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
@@ -223,11 +204,10 @@ namespace sclc
         remove((std::string(source) + ".h").c_str());
         
         std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
-        double total = 0;
-        for (int i = 0; i < times.size(); i++) {
-            total += times[i];
-        }
-        std::cout << "Took " << total + durationCodegen << " seconds." << std::endl;
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+        std::cout << "Took " << duration << " seconds." << std::endl;
 
         return 0;
     }
