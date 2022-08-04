@@ -1,5 +1,3 @@
-#include "core.scale"
-
 #ifndef _FMT_SCALE_
 #define _FMT_SCALE_
 
