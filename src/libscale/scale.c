@@ -34,43 +34,18 @@ extern "C" {
 
 #include "../../Scale/comp/scale.h"
 
-#define INITIAL_SIZE (1024)
-#define MALLOC_LIMIT (1024)
-#define MAX_STRING_SIZE (2048)
-#define LONG_AS_STR_LEN (22)
-
-// Define scale-specific signals
-#define EX_BAD_PTR (128)
-#define EX_STACK_OVERFLOW (129)
-#define EX_STACK_UNDERFLOW (130)
-#define EX_UNHANDLED_DATA (131)
-#define EX_IO_ERROR (132)
-#define EX_INVALID_ARGUMENT (133)
-#define EX_CAST_ERROR (134)
-
 /* FUNCTION PROTOTYPES */
 void native_raise();
 void native_strlen();
 void native_free();
 void fn_main();
 
-/* STRUCTURES */
-typedef struct {
-	scl_word 	 ptr;
-	unsigned int level;
-	int 		 isFile;
-} memory_t;
-memory_t 		 memalloced[MALLOC_LIMIT];
-int		 		 memalloced_ptr = 0;
-struct {
-	size_t 		 ptr;
-	char*  		 name[INITIAL_SIZE];
-} Callstack;
-struct {
-	size_t 	 	 ptr;
-	size_t 	 	 depth;
-	scl_word 	 data[INITIAL_SIZE][INITIAL_SIZE];
-} stack = {0, 0, {0}};
+/* Variables */
+static size_t		memalloced_ptr = 0;
+static size_t 		stack_depth;
+static scl_memory_t memalloced[MALLOC_LIMIT];
+static scl_stack_t	callstack = {0, {0}};
+static scl_stack_t 	stack[INITIAL_SIZE] = {{0, {0}}};
 
 void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -79,9 +54,9 @@ void throw(int code, char* msg) {
 }
 
 void ctrl_required(size_t n, char* func) {
-	if (stack.ptr < n) {
+	if (stack[stack_depth].ptr < n) {
 		char* err = (char*) malloc(MAX_STRING_SIZE);
-		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
+		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack[stack_depth].ptr);
 		throw(EX_STACK_UNDERFLOW, err);
 		free(err);
 	}
@@ -90,20 +65,20 @@ void ctrl_required(size_t n, char* func) {
 void ctrl_trace() {
 	size_t i;
 	printf("Stacktrace:\n");
-	for (i = (Callstack.ptr - 1); i >= 0; i--) {
-		printf("  %s\n", Callstack.name[i]);
+	for (i = (callstack.ptr - 1); i >= 0; i--) {
+		printf("  %s\n", (char*) callstack.data[i]);
 	}
 }
 
 void heap_collect() {
-	int i;
+	size_t i;
 	int count = 0;
 	int collect = 1;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
-			if (memalloced[i].level > Callstack.ptr) {
-				for (int j = (stack.ptr - 1); j >= 0; j--) {
-					if (stack.data[stack.depth][j] == memalloced[i].ptr) {
+			if (memalloced[i].level > callstack.ptr) {
+				for (int j = (stack[stack_depth].ptr - 1); j >= 0; j--) {
+					if (stack[stack_depth].data[j] == memalloced[i].ptr) {
 						collect = 0;
 						break;
 					}
@@ -123,7 +98,7 @@ void heap_collect() {
 }
 
 void heap_collect_all() {
-	int i;
+	size_t i;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr) {
 			if (memalloced[i].isFile) {
@@ -137,22 +112,22 @@ void heap_collect_all() {
 }
 
 void heap_add(scl_word ptr, int isFile) {
-	for (int i = 0; i < memalloced_ptr; i++) {
+	for (size_t i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == NULL) {
 			memalloced[i].ptr = ptr;
 			memalloced[i].isFile = isFile;
-			memalloced[i].level = Callstack.ptr;
+			memalloced[i].level = callstack.ptr;
 			return;
 		}
 	}
 	memalloced[memalloced_ptr].ptr = ptr;
 	memalloced[memalloced_ptr].isFile = isFile;
-	memalloced[memalloced_ptr].level = Callstack.ptr;
+	memalloced[memalloced_ptr].level = callstack.ptr;
 	memalloced_ptr++;
 }
 
 int heap_is_alloced(scl_word ptr) {
-	for (int i = 0; i < memalloced_ptr; i++) {
+	for (size_t i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == ptr) {
 			return 1;
 		}
@@ -161,14 +136,19 @@ int heap_is_alloced(scl_word ptr) {
 }
 
 void heap_remove(scl_word ptr) {
-	int i;
+	size_t i;
+	int found = 0;
 	for (i = 0; i < memalloced_ptr; i++) {
 		if (memalloced[i].ptr == ptr) {
 			memalloced[i].ptr = NULL;
+			found = 1;
 			break;
 		}
 	}
-	for (int j = i; j < memalloced_ptr - 1; j++) {
+	if (!found) {
+		return;
+	}
+	for (size_t j = i; j < memalloced_ptr - 1; j++) {
 		memalloced[j] = memalloced[j + 1];
 	}
 	memalloced_ptr--;
@@ -180,37 +160,37 @@ void safe_exit(int code) {
 }
 
 void ctrl_fn_start(char* name) {
-	Callstack.name[Callstack.ptr++] = name;
-	stack.depth++;
+	callstack.data[callstack.ptr++] = name;
+	stack_depth++;
 }
 
 void ctrl_fn_end() {
-	Callstack.ptr--;
-	stack.depth--;
+	callstack.ptr--;
+	stack_depth--;
 	heap_collect();
 }
 
 void ctrl_fn_native_start(char* name) {
-	Callstack.name[Callstack.ptr++] = name;
+	callstack.data[callstack.ptr++] = name;
 }
 
 void ctrl_fn_native_end() {
-	Callstack.ptr--;
+	callstack.ptr--;
 }
 
 void ctrl_fn_nps_start(char* name) {
-	Callstack.name[Callstack.ptr++] = name;
+	callstack.data[callstack.ptr++] = name;
 }
 
 void ctrl_fn_nps_end() {
-	Callstack.ptr--;
+	callstack.ptr--;
 	heap_collect();
 }
 
 void print_stacktrace() {
 	printf("Stacktrace:\n");
-	for (int i = Callstack.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", Callstack.name[i]);
+	for (int i = callstack.ptr - 1; i >= 0; i--) {
+		printf("  %s\n", (char*) callstack.data[i]);
 	}
 	printf("\n");
 }
@@ -218,90 +198,96 @@ void print_stacktrace() {
 void process_signal(int sig_num)
 {
 	char* signalString;
+	// Signals
 	if (sig_num == SIGABRT) signalString = "abort() called";
 	else if (sig_num == SIGFPE) signalString = "Floating point exception";
 	else if (sig_num == SIGILL) signalString = "Illegal instruction";
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
 	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
+	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
 
+	// Scale Exceptions
 	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
 	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
 	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
 	else if (sig_num == EX_IO_ERROR) signalString = "IO error";
 	else if (sig_num == EX_INVALID_ARGUMENT) signalString = "Invalid argument";
 	else if (sig_num == EX_UNHANDLED_DATA) {
-		if (stack.ptr == 1) {
+		if (stack[stack_depth].ptr == 1) {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu element too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack.ptr);
+			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack[stack_depth].ptr);
 		} else {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu elements too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack.ptr);
+			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack[stack_depth].ptr);
 		}
 	}
 	else if (sig_num == EX_CAST_ERROR) signalString = "Cast Error";
 	else signalString = "Unknown signal";
 
-	printf("\n%s\n\n", signalString);
+	printf("\n%s\n", signalString);
+	if (errno) {
+		printf("Error: %s\n", strerror(errno));
+	}
 	print_stacktrace();
 
 	safe_exit(sig_num);
 }
 
 void ctrl_push_string(const char* c) {
-	if (stack.ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.depth][stack.ptr++] = (scl_word) c;
+	stack[stack_depth].data[stack[stack_depth].ptr++] = (scl_word) c;
 }
 
 void ctrl_push_long(long long n) {
-	if (stack.ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.depth][stack.ptr] = (scl_word) n;
-	stack.ptr++;
+	stack[stack_depth].data[stack[stack_depth].ptr] = (scl_word) n;
+	stack[stack_depth].ptr++;
 }
 
 long long ctrl_pop_long() {
-	if (stack.ptr <= 0) {
+	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return (long long) stack.data[stack.depth][--stack.ptr];
+	return (long long) stack[stack_depth].data[--stack[stack_depth].ptr];
 }
 
 void ctrl_push(scl_word n) {
-	if (stack.ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.depth][stack.ptr++] = n;
+	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
 }
 
 char* ctrl_pop_string() {
-	if (stack.ptr <= 0) {
+	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return (char*) stack.data[stack.depth][--stack.ptr];
+	return (char*) stack[stack_depth].data[--stack[stack_depth].ptr];
 }
 
 scl_word ctrl_pop() {
-	if (stack.ptr <= 0) {
+	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return stack.data[stack.depth][--stack.ptr];
+	return stack[stack_depth].data[--stack[stack_depth].ptr];
 }
 
 scl_word ctrl_pop_word() {
-	if (stack.ptr <= 0) {
+	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return stack.data[stack.depth][--stack.ptr];
+	return stack[stack_depth].data[--stack[stack_depth].ptr];
 }
 
 void ctrl_push_word(scl_word n) {
-	if (stack.ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.depth][stack.ptr++] = n;
+	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
 }
 
 void op_add() {
@@ -392,8 +378,8 @@ void op_pow() {
 
 void native_dumpstack() {
 	printf("Dump:\n");
-	for (int i = stack.ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack.data[stack.depth][i];
+	for (int i = stack[stack_depth].ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack[stack_depth].data[i];
 		printf("    0x%016llx, %lld\n", v, v);
 	}
 	printf("\n");
@@ -460,7 +446,7 @@ void native_drop() {
 }
 
 void native_sizeof_stack() {
-	ctrl_push_long(stack.ptr);
+	ctrl_push_long(stack[stack_depth].ptr);
 }
 
 void native_concat() {
@@ -695,6 +681,7 @@ int main(int argc, char const *argv[])
 	signal(SIGABRT, process_signal);
 	signal(SIGFPE, process_signal);
 	signal(SIGSEGV, process_signal);
+	signal(SIGBUS, process_signal);
 
 	for (int i = argc - 1; i > 0; i--) {
 		ctrl_push_string(argv[i]);

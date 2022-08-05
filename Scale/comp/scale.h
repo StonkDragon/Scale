@@ -3,7 +3,30 @@
 
 #include <stdlib.h>
 
+#define INITIAL_SIZE (1024)
+#define MALLOC_LIMIT (1024)
+#define MAX_STRING_SIZE (2048)
+#define LONG_AS_STR_LEN (22)
+
+// Define scale-specific signals
+#define EX_BAD_PTR (128)
+#define EX_STACK_OVERFLOW (129)
+#define EX_STACK_UNDERFLOW (130)
+#define EX_UNHANDLED_DATA (131)
+#define EX_IO_ERROR (132)
+#define EX_INVALID_ARGUMENT (133)
+#define EX_CAST_ERROR (134)
+
 typedef void* scl_word;
+typedef struct {
+	scl_word ptr;
+	size_t	 level;
+	int 	 isFile;
+} scl_memory_t;
+typedef struct {
+	size_t 	 ptr;
+	scl_word data[INITIAL_SIZE];
+} scl_stack_t;
 
 /* Function header */
 #define s_header(name, ...)            \
