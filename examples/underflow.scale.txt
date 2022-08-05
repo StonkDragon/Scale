@@ -1,6 +1,6 @@
 
 Stack underflow
-
+Error: Invalid argument
 Stacktrace:
   main()
 
