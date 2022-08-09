@@ -1,6 +1,5 @@
 
-Stack underflow
-Error: Invalid argument
+examples/underflow.scale:7:15: Stack underflow
 Stacktrace:
   main()
 
