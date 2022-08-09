@@ -91,6 +91,22 @@ extern strrev
 // Pushes the current timestamp in milliseconds to the stack.
 extern time
 
+// Stack: [n] -> [string]
+// Converts the integer n to a string and pushes it to the stack.
+extern longToString
+
+// Stack: [string] -> [n]
+// Converts the string to an integer and pushes it to the stack.
+extern stringToLong
+
+// Stack: [n] -> [string]
+// Converts the double n to a string and pushes it to the stack.
+extern stringToDouble
+
+// Stack: [string] -> [n]
+// Converts the string to a double and pushes it to the stack.
+extern doubleToString
+
 // Stack: [<any>] -> []
 // Clears the stack.
 @nps @nowarn function clearstack()
