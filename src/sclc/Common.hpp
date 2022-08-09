@@ -120,17 +120,16 @@ namespace sclc
         tok_proto,          // proto
         tok_ref,            // ref
         tok_deref,          // deref
-
-        // operators
-        tok_hash,           // #
         tok_addr_ref,       // addr
         tok_load,           // load
         tok_store,          // store
         tok_declare,        // decl
+
+        // operators
+        tok_hash,           // #
         tok_open_paren,     // (
         tok_close_paren,    // )
         tok_comma,          // ,
-
         tok_add,            // +
         tok_sub,            // -
         tok_mul,            // *
@@ -143,6 +142,10 @@ namespace sclc
         tok_lsh,            // <<
         tok_rsh,            // >>
         tok_pow,            // **
+        tok_dadd,           // .+
+        tok_dsub,           // .-
+        tok_dmul,           // .*
+        tok_ddiv,           // ./
 
         tok_identifier,     // foo
         tok_number,         // 123

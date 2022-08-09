@@ -226,6 +226,25 @@ namespace sclc
                 }
             }
             c = source[++current];
+        } else if (c == '.') {
+            value += c;
+            c = source[++current];
+            startColumn = column;
+            column++;
+            switch (c)
+            {
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+                value += c;
+                break;
+            
+            default:
+                std::cerr << "Error: Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" << c << "'" << std::endl;
+                exit(1);
+            }
+            c = source[++current];
             column++;
         }
 
@@ -278,6 +297,10 @@ namespace sclc
         TYPES("<<", lsh, line, filename, startColumn);
         TYPES(">>", rsh, line, filename, startColumn);
         TYPES("**", pow, line, filename, startColumn);
+        TYPES(".+", dadd, line, filename, startColumn);
+        TYPES(".-", dsub, line, filename, startColumn);
+        TYPES(".*", dmul, line, filename, startColumn);
+        TYPES("./", ddiv, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

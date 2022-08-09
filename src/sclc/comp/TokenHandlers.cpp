@@ -27,6 +27,10 @@ namespace sclc
             case tok_lsh: fp << "op_lsh();" << std::endl; break;
             case tok_rsh: fp << "op_rsh();" << std::endl; break;
             case tok_pow: fp << "op_pow();" << std::endl; break;
+            case tok_dadd: fp << "op_dadd();" << std::endl; break;
+            case tok_dsub: fp << "op_dsub();" << std::endl; break;
+            case tok_dmul: fp << "op_dmul();" << std::endl; break;
+            case tok_ddiv: fp << "op_ddiv();" << std::endl; break;
             default:
             {
                 ParseResult result;
@@ -225,6 +229,29 @@ namespace sclc
         *scopeDepth = *scopeDepth + 1;
 
         vars->push_back(loopVar.getValue());
+        ParseResult result;
+        result.success = true;
+        result.message = "";
+        return result;
+    }
+
+    ParseResult handleDouble(std::fstream &fp, Token token, int scopeDepth) {
+        try {
+            double num = parseDouble(token.getValue());
+            for (int j = 0; j < scopeDepth; j++) {
+                fp << "    ";
+            }
+            fp << "ctrl_push_double(" << num << ");" << std::endl;
+        } catch (std::exception &e) {
+            ParseResult result;
+            result.success = false;
+            result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
+            result.where = token.getLine();
+            result.in = token.getFile();
+            result.token = token.getValue();
+            result.column = token.getColumn();
+            return result;
+        }
         ParseResult result;
         result.success = true;
         result.message = "";

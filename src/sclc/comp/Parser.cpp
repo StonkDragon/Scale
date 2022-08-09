@@ -44,7 +44,7 @@ namespace sclc
 {
 
     bool isOperator(Token token) {
-        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow;
+        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow || token.type == tok_dadd || token.type == tok_dsub || token.type == tok_dmul || token.type == tok_ddiv;
     }
 
     Function Parser::getFunctionByName(std::string name) {
@@ -78,13 +78,6 @@ namespace sclc
         fp << "#include <scale.h>" << std::endl;
 
         fp << std::endl;
-        fp << "/* FUNCTION PROTOTYPES */" << std::endl;
-
-        for (Prototype proto : result.prototypes) {
-            fp << "void fn_" << proto.name << "();" << std::endl;
-        }
-
-        fp << std::endl;
         fp << "/* FUNCTION HEADERS */" << std::endl;
 
         for (Function function : result.functions) {
@@ -97,6 +90,9 @@ namespace sclc
                 }
                 fp << "scl_word $" << var;
             }
+            if (function.getArgs().size() == 0) {
+                fp << "void";
+            }
             fp << ");" << std::endl;
         }
         
@@ -104,7 +100,7 @@ namespace sclc
         fp << "/* EXTERNS */" << std::endl;
 
         for (Extern extern_ : result.externs) {
-            fp << "void native_" << extern_.name << "();" << std::endl;
+            fp << "void native_" << extern_.name << "(void);" << std::endl;
         }
 
         fp << std::endl;
@@ -149,6 +145,9 @@ namespace sclc
                 }
                 fp << "scl_word $" << var;
             }
+            if (function.getArgs().size() == 0) {
+                fp << "void";
+            }
             fp << ") {" << std::endl;
 
             for (int j = 0; j < scopeDepth; j++) {
@@ -165,6 +164,11 @@ namespace sclc
             for (i = 0; i < body.size(); i++)
             {
                 if (body[i].getType() == tok_ignore) continue;
+
+                for (int j = 0; j < scopeDepth; j++) {
+                    fp << "    ";
+                }
+                fp << "ctrl_where(\"" + body[i].getFile() + "\", " + std::to_string(body[i].getLine()) + ", " + std::to_string(body[i].getColumn()) + ");" << std::endl;
 
                 if (isOperator(body[i])) {
                     ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
@@ -215,6 +219,11 @@ namespace sclc
                     fp << "ctrl_push_string(\"" << body[i].getValue() << "\");" << std::endl;
                 } else if (body[i].getType() == tok_number) {
                     ParseResult numberHandled = handleNumber(fp, body[i], scopeDepth);
+                    if (!numberHandled.success) {
+                        errors.push_back(numberHandled);
+                    }
+                } else if (body[i].getType() == tok_number_float) {
+                    ParseResult numberHandled = handleDouble(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
                         errors.push_back(numberHandled);
                     }
@@ -306,11 +315,20 @@ namespace sclc
                         fp << "    ";
                     }
                     if (hasExtern(toGet)) {
-                        fp << "ctrl_push((scl_word) &native_" << toGet << ");";
+                        fp << "ctrl_push((scl_word) &native_" << toGet << ");" << std::endl;
                     } else if (hasFunction(toGet)) {
-                        fp << "ctrl_push((scl_word) &fn_" << toGet << ");";
-                    } else {
+                        fp << "ctrl_push((scl_word) &fn_" << toGet << ");" << std::endl;
+                    } else if (hasVar(toGet)) {
                         fp << "ctrl_push($" << toGet << ");" << std::endl;
+                    } else {
+                        ParseResult err;
+                        err.success = false;
+                        err.message = "Unknown variable: '" + toGet + "'";
+                        err.column = body[i + 1].getColumn();
+                        err.where = body[i + 1].getLine();
+                        err.in = body[i + 1].getFile();
+                        err.token = body[i + 1].getValue();
+                        errors.push_back(err);
                     }
                     i++;
                 } else if (body[i].getType() == tok_store) {
