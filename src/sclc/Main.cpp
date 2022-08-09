@@ -17,6 +17,14 @@
 #include "comp/Lexer.cpp"
 #include "comp/Parser.cpp"
 
+#ifndef VERSION
+#define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
+#endif
+
+#ifndef PREPROCESSOR
+#define PREPROCESSOR "cpp"
+#endif
+
 namespace sclc
 {
     void signalHandler(int signum)
@@ -38,8 +46,6 @@ namespace sclc
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
     }
-
-    #define PREPROCESSOR std::string("cpp")
 
     int main(int argc, char const *argv[])
     {
@@ -99,7 +105,7 @@ namespace sclc
             std::cout << "Compiling " << filename << "..." << std::endl;
 
             std::string preproc_cmd =
-                PREPROCESSOR + " -I" + std::string(getenv("HOME"))
+                std::string(PREPROCESSOR) + " -I" + std::string(getenv("HOME"))
                 + "/Scale/lib " + filename + " " + filename + ".scale-preproc";
             int preprocResult = system(preproc_cmd.c_str());
 
