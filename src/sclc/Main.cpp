@@ -34,7 +34,6 @@ namespace sclc
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << "  --transpile, -t  Transpile only" << std::endl;
-        std::cout << "  --nostdlib       Don't link to default libraries" << std::endl;
         std::cout << "  --help, -h       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
@@ -61,12 +60,10 @@ namespace sclc
         auto start = std::chrono::high_resolution_clock::now();
 
         bool transpileOnly  = false;
-        bool linkToLib      = true;
         bool preprocessOnly = false;
 
         std::string outfile = "out.scl";
-        std::string lib     = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " ";
+        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp " + std::string(getenv("HOME")) + "/Scale/comp/scale.c -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
 
         for (int i = 1; i < argc; i++) {
@@ -75,9 +72,6 @@ namespace sclc
             } else {
                 if (strcmp(argv[i], "--transpile") == 0 || strcmp(argv[i], "-t") == 0) {
                     transpileOnly = true;
-                } else if (strcmp(argv[i], "--nostdlib") == 0) {
-                    linkToLib = false;
-                    cmd += "-nostdlib ";
                 } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
                     usage(std::string(argv[0]));
                     return 0;
@@ -87,10 +81,6 @@ namespace sclc
                     cmd += std::string(argv[i]) + " ";
                 }
             }
-        }
-
-        if (linkToLib) {
-            cmd += lib + " ";
         }
 
         std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
