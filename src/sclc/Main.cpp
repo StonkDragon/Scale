@@ -61,9 +61,10 @@ namespace sclc
 
         bool transpileOnly  = false;
         bool preprocessOnly = false;
+        bool onlyAssemble   = false;
 
         std::string outfile = "out.scl";
-        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp " + std::string(getenv("HOME")) + "/Scale/comp/scale.c -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";
+        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
 
         for (int i = 1; i < argc; i++) {
@@ -77,10 +78,16 @@ namespace sclc
                     return 0;
                 } else if (strcmp(argv[i], "-E") == 0) {
                     preprocessOnly = true;
+                } else if (strcmp(argv[i], "-S") == 0) {
+                    onlyAssemble = true;
+                    cmd += "-S ";
                 } else {
                     cmd += std::string(argv[i]) + " ";
                 }
             }
+        }
+        if (!onlyAssemble) {
+            cmd += std::string(getenv("HOME")) + "/Scale/comp/scale.c ";
         }
 
         std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
