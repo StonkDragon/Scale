@@ -49,14 +49,14 @@ extern "C" {
 #endif
 
 /* Variables */
-static size_t		memalloced_ptr = 0;
-static size_t 		stack_depth;
-static scl_memory_t memalloced[MALLOC_LIMIT];
+static size_t		memalloced_ptr[INITIAL_SIZE] = {0};
+static size_t 		stack_depth = 0;
+static scl_memory_t memalloced[INITIAL_SIZE][MALLOC_LIMIT] = {{0}};
 static scl_stack_t	callstack = {0, {0}};
 static scl_stack_t 	stack[INITIAL_SIZE] = {{0, {0}}};
-static char* 		current_file;
-static size_t 		current_line;
-static size_t 		current_column;
+static char* 		current_file = "<init>";
+static size_t 		current_line = 0;
+static size_t 		current_column = 0;
 
 scl_force_inline void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -84,22 +84,22 @@ void heap_collect() {
 	size_t i;
 	int count = 0;
 	int collect = 1;
-	for (i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr) {
-			if (memalloced[i].level > callstack.ptr) {
+	for (i = 0; i < memalloced_ptr[stack_depth + 1]; i++) {
+		if (memalloced[stack_depth + 1][i].ptr) {
+			if (memalloced[stack_depth + 1][i].level > callstack.ptr) {
 				for (int j = (stack[stack_depth].ptr - 1); j >= 0; j--) {
-					if (stack[stack_depth].data[j] == memalloced[i].ptr) {
+					if (stack[stack_depth].data[j] == memalloced[stack_depth + 1][i].ptr) {
 						collect = 0;
 						break;
 					}
 				}
 				if (collect) {
-					if (memalloced[i].isFile) {
-						fclose(memalloced[i].ptr);
+					if (memalloced[stack_depth + 1][i].isFile) {
+						fclose(memalloced[stack_depth + 1][i].ptr);
 					} else {
-						free(memalloced[i].ptr);
+						free(memalloced[stack_depth + 1][i].ptr);
 					}
-					memalloced[i].ptr = NULL;
+					memalloced[stack_depth + 1][i].ptr = NULL;
 					count++;
 				}
 			}
@@ -107,38 +107,24 @@ void heap_collect() {
 	}
 }
 
-void heap_collect_all() {
-	size_t i;
-	for (i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr) {
-			if (memalloced[i].isFile) {
-				fclose(memalloced[i].ptr);
-			} else {
-				free(memalloced[i].ptr);
-			}
-			memalloced[i].ptr = NULL;
-		}
-	}
-}
-
 void heap_add(scl_word ptr, int isFile) {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == NULL) {
-			memalloced[i].ptr = ptr;
-			memalloced[i].isFile = isFile;
-			memalloced[i].level = callstack.ptr;
+	for (size_t i = 0; i < memalloced_ptr[stack_depth]; i++) {
+		if (memalloced[stack_depth][i].ptr == NULL) {
+			memalloced[stack_depth][i].ptr = ptr;
+			memalloced[stack_depth][i].isFile = isFile;
+			memalloced[stack_depth][i].level = callstack.ptr;
 			return;
 		}
 	}
-	memalloced[memalloced_ptr].ptr = ptr;
-	memalloced[memalloced_ptr].isFile = isFile;
-	memalloced[memalloced_ptr].level = callstack.ptr;
-	memalloced_ptr++;
+	memalloced[stack_depth][memalloced_ptr[stack_depth]].ptr = ptr;
+	memalloced[stack_depth][memalloced_ptr[stack_depth]].isFile = isFile;
+	memalloced[stack_depth][memalloced_ptr[stack_depth]].level = callstack.ptr;
+	memalloced_ptr[stack_depth]++;
 }
 
 int heap_is_alloced(scl_word ptr) {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == ptr) {
+	for (size_t i = 0; i < memalloced_ptr[stack_depth]; i++) {
+		if (memalloced[stack_depth][i].ptr == ptr) {
 			return 1;
 		}
 	}
@@ -148,20 +134,21 @@ int heap_is_alloced(scl_word ptr) {
 void heap_remove(scl_word ptr) {
 	size_t i;
 	int found = 0;
-	for (i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == ptr) {
-			memalloced[i].ptr = NULL;
+	for (i = 0; i < memalloced_ptr[stack_depth]; i++) {
+		if (memalloced[stack_depth][i].ptr == ptr) {
+			memalloced[stack_depth][i].ptr = NULL;
 			found = 1;
 			break;
 		}
 	}
+	
 	if (!found) {
 		return;
 	}
-	for (size_t j = i; j < memalloced_ptr - 1; j++) {
-		memalloced[j] = memalloced[j + 1];
+	for (size_t j = i; j < memalloced_ptr[stack_depth] - 1; j++) {
+		memalloced[stack_depth][j] = memalloced[stack_depth][j + 1];
 	}
-	memalloced_ptr--;
+	memalloced_ptr[stack_depth]--;
 }
 
 void safe_exit(int code) {
@@ -182,6 +169,14 @@ scl_force_inline void ctrl_fn_start(char* name) {
 scl_force_inline void ctrl_fn_end() {
 	callstack.ptr--;
 	stack_depth--;
+	heap_collect();
+}
+
+scl_force_inline void ctrl_fn_end_with_return() {
+	scl_word ret = ctrl_pop();
+	callstack.ptr--;
+	stack_depth--;
+	ctrl_push(ret);
 	heap_collect();
 }
 
@@ -856,7 +851,6 @@ int main(int argc, char const *argv[])
 	}
 
 	fn_main();
-	heap_collect_all();
 	return 0;
 }
 

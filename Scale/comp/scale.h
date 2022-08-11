@@ -39,6 +39,7 @@ scl_force_inline void ctrl_required(size_t n, char* func);
 scl_force_inline void ctrl_where(char* file, size_t line, size_t col);
 scl_force_inline void ctrl_fn_start(char* name);
 scl_force_inline void ctrl_fn_end(void);
+scl_force_inline void ctrl_fn_end_with_return(void);
 scl_force_inline void ctrl_fn_native_start(char* name);
 scl_force_inline void ctrl_fn_native_end(void);
 scl_force_inline void ctrl_fn_nps_start(char* name);
@@ -72,7 +73,6 @@ scl_force_inline void op_ddiv(void);
 
 void ctrl_trace(void);
 void heap_collect(void);
-void heap_collect_all(void);
 void heap_add(scl_word ptr, int isFile);
 int heap_is_alloced(scl_word ptr);
 void heap_remove(scl_word ptr);
