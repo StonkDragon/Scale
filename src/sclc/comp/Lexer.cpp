@@ -12,26 +12,6 @@
 
 namespace sclc
 {
-    inline bool fileExists (const std::string& name) {
-        FILE *file;
-        if ((file = fopen(name.c_str(), "r")) != NULL) {
-            fclose(file);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    template <typename T>
-    void addIfAbsent(std::vector<T>& vec, T str) {
-        for (int i = 0; i < vec.size(); i++) {
-            if (vec[i] == str) {
-                return;
-            }
-        }
-        vec.push_back(str);
-    }
-
     AnalyzeResult Lexer::lexAnalyze()
     {
         Function* currentFunction = nullptr;

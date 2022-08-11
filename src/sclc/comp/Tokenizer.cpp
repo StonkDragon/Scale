@@ -13,42 +13,6 @@
 
 namespace sclc
 {
-    static int isCharacter(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-    }
-
-    static int isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    static int isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-    }
-
-    static int isPrint(char c) {
-        return (c >= ' ');
-    }
-
-    static int isBracket(char c) {
-        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
-    }
-
-    static int isHexDigit(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X';
-    }
-
-    static int isOctDigit(char c) {
-        return c >= '0' && c <= '7' || c == 'o' || c == 'O';
-    }
-
-    static int isBinDigit(char c) {
-        return c == '0' || c == '1' || c == 'b' || c == 'B';
-    }
-
-    static int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
-    }
-
     std::vector<Token> Tokenizer::getTokens() {
         return this->tokens;
     }

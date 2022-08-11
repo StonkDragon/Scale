@@ -376,5 +376,77 @@ namespace sclc
     } Main;
 
     Main MAIN = {0, 0, 0};
+
+    void signalHandler(int signum)
+    {
+        std::cout << "Signal " << signum << " received." << std::endl;
+        if (errno != 0) std::cout << "Error: " << strerror(errno) << std::endl;
+        exit(signum);
+    }
+
+    bool strends(const std::string& str, const std::string& suffix)
+    {
+        return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
+    }
+
+    int isCharacter(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    }
+
+    int isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    int isSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    }
+
+    int isPrint(char c) {
+        return (c >= ' ');
+    }
+
+    int isBracket(char c) {
+        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
+    }
+
+    int isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X';
+    }
+
+    int isOctDigit(char c) {
+        return c >= '0' && c <= '7' || c == 'o' || c == 'O';
+    }
+
+    int isBinDigit(char c) {
+        return c == '0' || c == '1' || c == 'b' || c == 'B';
+    }
+
+    int isOperator(char c) {
+        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
+    }
+
+    bool isOperator(Token token) {
+        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow || token.type == tok_dadd || token.type == tok_dsub || token.type == tok_dmul || token.type == tok_ddiv;
+    }
+
+    inline bool fileExists (const std::string& name) {
+        FILE *file;
+        if ((file = fopen(name.c_str(), "r")) != NULL) {
+            fclose(file);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    template <typename T>
+    void addIfAbsent(std::vector<T>& vec, T str) {
+        for (int i = 0; i < vec.size(); i++) {
+            if (vec[i] == str) {
+                return;
+            }
+        }
+        vec.push_back(str);
+    }
 }
 #endif // COMMON_H

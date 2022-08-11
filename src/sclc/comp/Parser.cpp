@@ -42,11 +42,6 @@ namespace sclc
 
 namespace sclc
 {
-
-    bool isOperator(Token token) {
-        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow || token.type == tok_dadd || token.type == tok_dsub || token.type == tok_dmul || token.type == tok_ddiv;
-    }
-
     Function Parser::getFunctionByName(std::string name) {
         for (Function func : result.functions) {
             if (func.name == name) {
@@ -291,15 +286,7 @@ namespace sclc
                         fp << "    ";
                     }
                     if (funcPrivateStack) {
-                        fp << "scl_word return_value = ctrl_pop();" << std::endl;
-                        for (int j = 0; j < scopeDepth; j++) {
-                            fp << "    ";
-                        }
-                        fp << "ctrl_fn_end();" << std::endl;
-                        for (int j = 0; j < scopeDepth; j++) {
-                            fp << "    ";
-                        }
-                        fp << "ctrl_push(return_value);" << std::endl;
+                        fp << "ctrl_fn_end_with_return();" << std::endl;
                     } else {
                         fp << "ctrl_fn_nps_end();" << std::endl;
                     }

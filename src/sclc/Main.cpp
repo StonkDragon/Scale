@@ -27,18 +27,6 @@
 
 namespace sclc
 {
-    void signalHandler(int signum)
-    {
-        std::cout << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cout << "Error: " << strerror(errno) << std::endl;
-        exit(signum);
-    }
-
-    bool strends(const std::string& str, const std::string& suffix)
-    {
-        return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
-    }
-
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << "  --transpile, -t  Transpile only" << std::endl;
