@@ -21,7 +21,7 @@
   The following dependencies are required to use Scale:
 
 - [`clang`](https://clang.llvm.org/)
-- `cpp`
+- `cpp` (C Preprocessor)
 - `git` (to compile)
 - `make` (to compile)
 - `python3` (for tests)
@@ -134,6 +134,18 @@ Example:
   - [Sizeof](./examples/sizeof.scale)
 
   - [Pointer Dereferencing](./examples/deref.scale)
+
+# Build
+
+  The Scale compiler uses [Dragon](https://github.com/StonkDragon/Dragon) as the build system. It is required to build the compiler.
+
+  To build the compiler, execute the following command from the root directory of the repository:
+
+```bash
+$ dragon build
+```
+
+  This will build the compiler and put it in the `compile` directory.
 
 # License
 
