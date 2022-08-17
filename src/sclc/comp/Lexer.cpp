@@ -18,6 +18,7 @@ namespace sclc
 
         bool functionPrivateStack = true;
         bool funcNoWarn = false;
+        bool funcSAP = false;
 
         std::vector<std::string> uses;
 
@@ -62,6 +63,10 @@ namespace sclc
                     currentFunction->addModifier(mod_nowarn);
                     funcNoWarn = false;
                 }
+                if (funcSAP) {
+                    currentFunction->addModifier(mod_sap);
+                    funcSAP = false;
+                }
                 currentFunction = nullptr;
             } else if (token.getType() == tok_proto) {
                 std::string name = tokens[i + 1].getValue();
@@ -73,6 +78,8 @@ namespace sclc
                             functionPrivateStack = false;
                         } else if (tokens[i + 1].getValue() == "nowarn") {
                             funcNoWarn = true;
+                        } else if (tokens[i + 1].getValue() == "sap") {
+                            funcSAP = true;
                         } else {
                             std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
                         }

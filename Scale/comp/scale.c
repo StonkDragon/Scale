@@ -311,7 +311,9 @@ scl_force_inline long long ctrl_pop_long() {
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return (long long) stack[stack_depth].data[--stack[stack_depth].ptr];
+	long long value = (long long) stack[stack_depth].data[--stack[stack_depth].ptr];
+	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	return value;
 }
 
 scl_force_inline double ctrl_pop_double() {
@@ -321,7 +323,9 @@ scl_force_inline double ctrl_pop_double() {
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return *(double*) &stack[stack_depth].data[--stack[stack_depth].ptr];
+	double value = *(double*) &stack[stack_depth].data[--stack[stack_depth].ptr];
+	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	return value;
 }
 
 scl_force_inline void ctrl_push(scl_word n) {
@@ -341,7 +345,9 @@ scl_force_inline char* ctrl_pop_string() {
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return (char*) stack[stack_depth].data[--stack[stack_depth].ptr];
+	char* value = (char*) stack[stack_depth].data[--stack[stack_depth].ptr];
+	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	return value;
 }
 
 scl_force_inline scl_word ctrl_pop() {
@@ -351,7 +357,9 @@ scl_force_inline scl_word ctrl_pop() {
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return stack[stack_depth].data[--stack[stack_depth].ptr];
+	void* value = stack[stack_depth].data[--stack[stack_depth].ptr];
+	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	return value;
 }
 
 scl_force_inline scl_word ctrl_pop_word() {
@@ -361,7 +369,9 @@ scl_force_inline scl_word ctrl_pop_word() {
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	return stack[stack_depth].data[--stack[stack_depth].ptr];
+	void* value = stack[stack_depth].data[--stack[stack_depth].ptr];
+	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	return value;
 }
 
 scl_force_inline void ctrl_push_word(scl_word n) {

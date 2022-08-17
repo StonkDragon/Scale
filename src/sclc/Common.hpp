@@ -238,7 +238,8 @@ namespace sclc
     enum Modifier
     {
         mod_nps,
-        mod_nowarn
+        mod_nowarn,
+        mod_sap
     };
 
     struct Function

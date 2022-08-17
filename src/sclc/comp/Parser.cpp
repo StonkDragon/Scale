@@ -110,12 +110,15 @@ namespace sclc
             int scopeDepth = 1;
             bool funcPrivateStack = true;
             bool noWarns = false;
+            bool sap = false;
 
             for (Modifier modifier : function.getModifiers()) {
                 if (modifier == mod_nps) {
                     funcPrivateStack = false;
                 } else if (modifier == mod_nowarn) {
                     noWarns = true;
+                } else if (modifier == mod_sap) {
+                    sap = true;
                 }
             }
             
@@ -152,6 +155,13 @@ namespace sclc
                 fp << "ctrl_fn_start(\"" << functionDeclaration << "\");" << std::endl;
             } else {
                 fp << "ctrl_fn_nps_start(\"" << functionDeclaration << "\");" << std::endl;
+            }
+
+            if (sap) {
+                for (int j = 0; j < scopeDepth; j++) {
+                    fp << "    ";
+                }
+                fp << "sap_open();" << std::endl;
             }
 
             std::vector<Token> body = function.getBody();
@@ -289,6 +299,12 @@ namespace sclc
                         fp << "ctrl_fn_end_with_return();" << std::endl;
                     } else {
                         fp << "ctrl_fn_nps_end();" << std::endl;
+                    }
+                    if (sap) {
+                        for (int j = 0; j < scopeDepth; j++) {
+                            fp << "    ";
+                        }
+                        fp << "sap_close();" << std::endl;
                     }
                     if (i != (body.size() - 1)) {
                         for (int j = 0; j < scopeDepth; j++) {
@@ -463,6 +479,12 @@ namespace sclc
                 } else if (body[body.size() - 1].getType() != tok_return) {
                     fp << "    ctrl_fn_nps_end();" << std::endl;
                 }
+            }
+            if (sap) {
+                for (int j = 0; j < scopeDepth; j++) {
+                    fp << "    ";
+                }
+                fp << "sap_close();" << std::endl;
             }
             fp << "}" << std::endl << std::endl;
         }
