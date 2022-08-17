@@ -403,7 +403,43 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "ctrl_push(*(scl_word*) ctrl_pop());" << std::endl;
+                    fp << "{" << std::endl;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "scl_word addr = ctrl_pop();" << std::endl;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "scl_security_check_null(addr);" << std::endl;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "ctrl_push(*(scl_word*) addr);" << std::endl;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "}" << std::endl;
+                } else if (body[i].getType() == tok_sapopen) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "{" << std::endl;
+                    scopeDepth++;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "sap_open();" << std::endl;
+                } else if (body[i].getType() == tok_sapclose) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "sap_close();" << std::endl;
+                    scopeDepth--;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "    ";
+                    }
+                    fp << "}" << std::endl;
                 } else {
                     ParseResult result;
                     result.message = "Unknown identifier: '" + body[i].getValue() + "'";

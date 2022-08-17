@@ -210,6 +210,11 @@ namespace sclc
             }
             c = source[++current];
             column++;
+        } else if (c == '[' || c == ']') {
+            value += c;
+            c = source[++current];
+            startColumn = column;
+            column++;
         }
 
         // Not a known token, so probably a space character
@@ -265,6 +270,8 @@ namespace sclc
         TYPES(".-", dsub, line, filename, startColumn);
         TYPES(".*", dmul, line, filename, startColumn);
         TYPES("./", ddiv, line, filename, startColumn);
+        TYPES("[", sapopen, line, filename, startColumn);
+        TYPES("]", sapclose, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

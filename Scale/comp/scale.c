@@ -57,6 +57,9 @@ static scl_stack_t 	stack[INITIAL_SIZE] = {{0, {0}}};
 static char* 		current_file = "<init>";
 static size_t 		current_line = 0;
 static size_t 		current_column = 0;
+static int 			sap_enabled[INITIAL_SIZE] = {0};
+static int 			sap_count[INITIAL_SIZE] = {0};
+static int 			sap_index = 0;
 
 scl_force_inline void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
@@ -172,12 +175,32 @@ scl_force_inline void ctrl_fn_end() {
 	heap_collect();
 }
 
+scl_force_inline void scl_security_check_null(scl_word ptr) {
+	if (ptr == NULL) {
+		throw(EX_BAD_PTR, "Null pointer");
+	}
+}
+
 scl_force_inline void ctrl_fn_end_with_return() {
 	scl_word ret = ctrl_pop();
 	callstack.ptr--;
 	stack_depth--;
 	ctrl_push(ret);
 	heap_collect();
+}
+
+scl_force_inline void sap_open(void) {
+	sap_index++;
+	sap_enabled[sap_index] = 1;
+	sap_count[sap_index] = 0;
+}
+
+scl_force_inline void sap_close(void) {
+	sap_enabled[sap_index] = 0;
+	for (size_t i = 0; i < sap_count[sap_index]; i++) {
+		ctrl_pop();
+	}
+	sap_index--;
 }
 
 scl_force_inline void ctrl_fn_native_start(char* name) {
@@ -245,6 +268,9 @@ void process_signal(int sig_num)
 }
 
 scl_force_inline void ctrl_push_string(const char* c) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
 	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -252,6 +278,9 @@ scl_force_inline void ctrl_push_string(const char* c) {
 }
 
 scl_force_inline void ctrl_push_double(double d) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
 	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -259,6 +288,9 @@ scl_force_inline void ctrl_push_double(double d) {
 }
 
 scl_force_inline void ctrl_push_long(long long n) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
 	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -267,6 +299,9 @@ scl_force_inline void ctrl_push_long(long long n) {
 }
 
 scl_force_inline long long ctrl_pop_long() {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]--;
+	}
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
@@ -274,6 +309,9 @@ scl_force_inline long long ctrl_pop_long() {
 }
 
 scl_force_inline double ctrl_pop_double() {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]--;
+	}
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
@@ -281,6 +319,9 @@ scl_force_inline double ctrl_pop_double() {
 }
 
 scl_force_inline void ctrl_push(scl_word n) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
 	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
@@ -288,6 +329,9 @@ scl_force_inline void ctrl_push(scl_word n) {
 }
 
 scl_force_inline char* ctrl_pop_string() {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]--;
+	}
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
@@ -295,6 +339,9 @@ scl_force_inline char* ctrl_pop_string() {
 }
 
 scl_force_inline scl_word ctrl_pop() {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]--;
+	}
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
@@ -302,6 +349,9 @@ scl_force_inline scl_word ctrl_pop() {
 }
 
 scl_force_inline scl_word ctrl_pop_word() {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]--;
+	}
 	if (stack[stack_depth].ptr <= 0) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
@@ -309,6 +359,9 @@ scl_force_inline scl_word ctrl_pop_word() {
 }
 
 scl_force_inline void ctrl_push_word(scl_word n) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
 	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}

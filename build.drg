@@ -27,6 +27,11 @@ build: {
 };
 
 dev: {
+  osTarget: [
+    "linux";
+    "macos";
+  ];
+  wrongOsMsg: "The Dev build is only available for Linux and MacOS.";
   compiler: "clang++";
   sourceDir: "src/sclc";
   outputDir: "target";
@@ -55,7 +60,7 @@ dev: {
     "cp -r Scale $HOME";
   ];
   postBuild: [
-    "sudo cp target/sclc /usr/local/bin/sclc";
+    "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "./makebin 2.8 macos-x86-64";
     "python3 tests.py run";

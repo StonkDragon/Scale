@@ -167,6 +167,14 @@
 		],
 		"description": "Address Dereference"
 	},
+	"Autodroppool": {
+		"scope": "source.scale",
+		"prefix": "autodrop",
+		"body": [
+			"[$0]"
+		],
+		"description": "Stack Autodrop Pool"
+	},
 	
 	"#include": {
 		"scope": "source.scale",
