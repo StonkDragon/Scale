@@ -9,7 +9,10 @@
 
 #include <stdlib.h>
 
-#define INITIAL_SIZE (1024)
+#ifndef STACK_SIZE
+#define STACK_SIZE (1024)
+#endif
+
 #define MALLOC_LIMIT (1024)
 #define MAX_STRING_SIZE (2048)
 #define LONG_AS_STR_LEN (22)
@@ -22,6 +25,7 @@
 #define EX_IO_ERROR (132)
 #define EX_INVALID_ARGUMENT (133)
 #define EX_CAST_ERROR (134)
+#define EX_SAP_ERROR (135)
 
 typedef void* scl_word;
 typedef struct {
@@ -31,7 +35,7 @@ typedef struct {
 } scl_memory_t;
 typedef struct {
 	size_t 	 ptr;
-	scl_word data[INITIAL_SIZE];
+	scl_word data[STACK_SIZE];
 } scl_stack_t;
 
 scl_force_inline void throw(int code, char* msg);

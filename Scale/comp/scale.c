@@ -49,16 +49,16 @@ extern "C" {
 #endif
 
 /* Variables */
-static size_t		memalloced_ptr[INITIAL_SIZE] = {0};
+static size_t		memalloced_ptr[STACK_SIZE] = {0};
 static size_t 		stack_depth = 0;
-static scl_memory_t memalloced[INITIAL_SIZE][MALLOC_LIMIT] = {{0}};
+static scl_memory_t memalloced[STACK_SIZE][MALLOC_LIMIT] = {{0}};
 static scl_stack_t	callstack = {0, {0}};
-static scl_stack_t 	stack[INITIAL_SIZE] = {{0, {0}}};
+static scl_stack_t 	stack[STACK_SIZE] = {{0, {0}}};
 static char* 		current_file = "<init>";
 static size_t 		current_line = 0;
 static size_t 		current_column = 0;
-static int 			sap_enabled[INITIAL_SIZE] = {0};
-static int 			sap_count[INITIAL_SIZE] = {0};
+static int 			sap_enabled[STACK_SIZE] = {0};
+static int 			sap_count[STACK_SIZE] = {0};
 static int 			sap_index = 0;
 
 scl_force_inline void throw(int code, char* msg) {
@@ -191,11 +191,17 @@ scl_force_inline void ctrl_fn_end_with_return() {
 
 scl_force_inline void sap_open(void) {
 	sap_index++;
+	if (sap_index >= STACK_SIZE) {
+		throw(EX_SAP_ERROR, "Exhaustive use of SAP");
+	}
 	sap_enabled[sap_index] = 1;
 	sap_count[sap_index] = 0;
 }
 
 scl_force_inline void sap_close(void) {
+	if (sap_index == 0) {
+		throw(EX_SAP_ERROR, "No SAP open");
+	}
 	sap_enabled[sap_index] = 0;
 	for (size_t i = 0; i < sap_count[sap_index]; i++) {
 		ctrl_pop();
@@ -271,7 +277,7 @@ scl_force_inline void ctrl_push_string(const char* c) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack[stack_depth].data[stack[stack_depth].ptr++] = (scl_word) c;
@@ -281,7 +287,7 @@ scl_force_inline void ctrl_push_double(double d) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack[stack_depth].data[stack[stack_depth].ptr++] = *(scl_word*) &d;
@@ -291,7 +297,7 @@ scl_force_inline void ctrl_push_long(long long n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack[stack_depth].data[stack[stack_depth].ptr] = (scl_word) n;
@@ -322,7 +328,7 @@ scl_force_inline void ctrl_push(scl_word n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
@@ -362,7 +368,7 @@ scl_force_inline void ctrl_push_word(scl_word n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= INITIAL_SIZE) {
+	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
 	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
