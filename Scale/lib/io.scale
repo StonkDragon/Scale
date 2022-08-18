@@ -18,35 +18,35 @@ extern sprintf
 
 // Stack: [str] -> []
 // Prints the string str to the standard output.
-function puts(str)
-    1 str strlen str write
+function puts(_str_)
+    1 _str_ strlen _str_ write
     1 1 "\n" write
 end
 
 // Stack: [str] -> []
 // Prints the string str to the standard error.
-function eputs(str)
-    2 str strlen str write
+function eputs(_str_)
+    2 _str_ strlen _str_ write
     2 1 "\n" write
 end
 
 // Stack: [int] -> []
 // Prints the integer int to the standard output.
-function putint(int)
-    int "%d" sprintf puts
+function putint(_int_)
+    _int_ "%d" sprintf puts
 end
 
 // Stack: [f] -> []
 // Prints the float f to the standard output.
-function putfloat(f)
-    f "%f" sprintf puts
+function putfloat(_f_)
+    _f_ "%f" sprintf puts
 end
 
 // Stack: [err] -> []
 // Prints the error message err to the standard error,
 // and exits with exit code 1.
-function throwerr(err)
-    err puts 1 exit
+function throwerr(_err_)
+    _err_ puts 1 exit
 end
 
 #endif

@@ -118,38 +118,38 @@ end
 // Stack: [a b c] -> [b a c]
 // Swaps the values of a and b, while keeping
 // c at the same position.
-@nps @nowarn function swap2(a, b, c)
-    b a c
+@nps @nowarn function swap2(_a_, _b_, _c_)
+    _b_ _a_ _c_
 end
 
 // Stack: [a b] -> [a b a]
 // Duplicates the value of a, while keeping
 // b at the same position.
-@nps @nowarn function sdup2(a, b)
-    a b a
+@nps @nowarn function sdup2(_a_, _b_)
+    _a_ _b_ _a_
 end
 
 // Stack: [a] -> [a a]
 // Duplicates the value of a.
-@nps @nowarn function dup(a)
-    a a
+@nps @nowarn function dup(_a_)
+    _a_ _a_
 end
 
 // Stack: [a b] -> [b a]
 // Swaps the values of a and b.
-@nps @nowarn function swap(a, b)
-    b a
+@nps @nowarn function swap(_a_, _b_)
+    _b_ _a_
 end
 
 // Stack: [a] -> []
 // Drops the value of a from the stack.
-@nps @nowarn function drop(a) end
+@nps @nowarn function drop(_a_) [_a_] end
 
 // Stack: [a b c] -> [c b a]
 // Swaps the values of a and c, while keeping
 // b at the same position.
-@nps @nowarn function over(a, b, c)
-    c b a
+@nps @nowarn function over(_a_, _b_, _c_)
+    _c_ _b_ _a_
 end
 
 // Stack: [] -> []
@@ -160,35 +160,35 @@ end
 
 // Stack: [s1 s2] -> [strstarts]
 // Pushes 1 if s1 starts with s2, 0 otherwise.
-function strstarts(s1, s2)
-    s2 strlen s2 s1 strncmp return
+function strstarts(_s1_, _s2_)
+    _s2_ strlen _s2_ _s1_ strncmp return
 end
 
 // Stack: [type] -> [sizeof(type)]
 // Pushes the size of the type to the stack.
-function sizeof(type)
-    type "int" strcmp if
+function sizeof(_type_)
+    _type_ "int" strcmp if
         4 return
     fi
-    type "long" strcmp if
+    _type_ "long" strcmp if
         8 return
     fi
-    type "long long" strcmp if
+    _type_ "long long" strcmp if
         8 return
     fi
-    type "float" strcmp if
+    _type_ "float" strcmp if
         4 return
     fi
-    type "double" strcmp if
+    _type_ "double" strcmp if
         8 return
     fi
-    type "char" strcmp if
+    _type_ "char" strcmp if
         1 return
     fi
-    type "size_t" strcmp if
+    _type_ "size_t" strcmp if
         8 return
     fi
-    type "ssize_t" strcmp if
+    _type_ "ssize_t" strcmp if
         8 return
     fi
     -1 return
@@ -196,26 +196,26 @@ end
 
 // Stack: [val] -> [(val & 255)]
 // Pushes the lowest 8 bits of val to the stack.
-function toChar(val)
-    val 255 & return
+function toChar(_val_)
+    _val_ 255 & return
 end
 
 // Stack: [val] -> [(val & 2147483647)]
 // Pushes the lowest 32 bits of val to the stack.
-function toInt(val)
-    val 2147483647 & return
+function toInt(_val_)
+    _val_ 2147483647 & return
 end
 
 // Stack: [val] -> [(val & 32767)]
 // Pushes the lowest 16 bits of val to the stack.
-function toShort(val)
-    val 32767 & return
+function toShort(_val_)
+    _val_ 32767 & return
 end
 
 // Stack: [str] -> [chars]
 // Pushes the characters of str to the stack.
-@nps @nowarn function toChars(str)
-    decl len str strlen store len decl i len store i while i 0 more i 0 equal or do str i + deref toChar i 1 - store i done
+@nps @nowarn function toChars(_str_)
+    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + deref toChar _i_ 1 - store _i_ done
 end
 
 #endif

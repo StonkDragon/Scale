@@ -38,6 +38,6 @@ extern heap_collect
 
 // Stack: [msg] -> []
 // Prints msg to stderr and exits with exit code 1.
-function throw(msg) Color_Reset msg concat eputs trace 1 exit end
+function throw(_msg_) Color_Reset _msg_ concat eputs trace 1 exit end
 
 #endif

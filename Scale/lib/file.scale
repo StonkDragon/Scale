@@ -26,41 +26,41 @@ extern fseek
 
 // Stack: [buf, size, file] -> []
 // Write size bytes from buf to file ptr.
-function fwrite(buf, size, file)
-    file fileno size buf write
+function fwrite(_buf_, _size_, _file_)
+    _file_ fileno _size_ _buf_ write
 end
 
 // Stack: [file, str] -> []
 // Write str to file.
-function fprintf(file, str)
-    file fileno str strlen str write
+function fprintf(_file_, _str_)
+    _file_ fileno _str_ strlen _str_ write
 end
 
 // Stack: [file, size] -> [buf]
 // Read size bytes from f into buf.
-function fread(f, size)
-    decl buf
-    f fileno size read
-    store buf
-    buf return
+function fread(_f_, _size_)
+    decl _buf_
+    _f_ fileno _size_ read
+    store _buf_
+    _buf_ return
 end
 
 // Stack: [file, offset] -> []
 // Seek to offset from the beginning of the file.
-function fseekstart(f, offset)
-    f 0 offset fseek
+function fseekstart(_f_, _offset_)
+    _f_ 0 _offset_ fseek
 end
 
 // Stack: [file, offset] -> []
 // Seek to offset from the end of the file.
-function fseekend(f, offset)
-    f 2 offset fseek
+function fseekend(_f_, _offset_)
+    _f_ 2 _offset_ fseek
 end
 
 // Stack: [file, offset] -> []
 // Seek to offset from the current position in the file.
-function fseekcur(f, offset)
-    f 1 offset fseek
+function fseekcur(_f_, _offset_)
+    _f_ 1 _offset_ fseek
 end
 
 #endif

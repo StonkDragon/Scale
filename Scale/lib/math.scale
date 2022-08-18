@@ -30,50 +30,50 @@ extern random
 
 // Stack: [a] -> [a%2==0]
 // Test if an integer is even.
-function iseven(i)      i 2 % 0 equal return end
+function iseven(_i_)      _i_ 2 % 0 equal return end
 
 // Stack: [a] -> [a++]
 // Increment an integer.
-@nps @nowarn function inc(i)         i 1 + end
+@nps @nowarn function inc(_i_)         _i_ 1 + end
 
 // Stack: [a] -> [a--]
 // Decrement an integer.
-@nps @nowarn function dec(i)         i 1 - end
+@nps @nowarn function dec(_i_)         _i_ 1 - end
 
 // Stack: [a] -> [random%a]
 // Return a random integer between 0 and a-1.
-function lrandom(limit) random limit % return end
+function lrandom(_limit_) random _limit_ % return end
 
 // Stack: [a, b, t] -> [lerp(a, b, t)]
 // Linear interpolation.
-function lerp(a, b, t)  b a - t * a + return end
+function lerp(_a_, _b_, _t_)  _b_ _a_ - _t_ * _a_ + return end
 
 // Stack: [a] -> [-a]
 // Negate an integer.
-function neg(i)      i 0 swap - return end
+function neg(_i_)      _i_ 0 swap - return end
 
-function itod(i)
-  i longToString stringToDouble return
+function itod(_i_)
+  _i_ longToString stringToDouble return
 end
 
-function dtoi(d)
-  d doubleToString stringToLong return
+function dtoi(_d_)
+  _d_ doubleToString stringToLong return
 end
 
-function dtos(d)
-  d doubleToString return
+function dtos(_d_)
+  _d_ doubleToString return
 end
 
-function itos(l)
-  l longToString return
+function itos(_l_)
+  _l_ longToString return
 end
 
-function stod(s)
-  s stringToDouble return
+function stod(_s_)
+  _s_ stringToDouble return
 end
 
-function stoi(s)
-  s stringToLong return
+function stoi(_s_)
+  _s_ stringToLong return
 end
 
 #endif
