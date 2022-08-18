@@ -173,7 +173,7 @@ namespace sclc
         }
 
         bool varExists = false;
-        for (int i = 0; i < vars->size(); i++) {
+        for (size_t i = 0; i < vars->size(); i++) {
             if (vars->at(i) == loopVar.getValue()) {
                 varExists = true;
                 break;
@@ -183,7 +183,7 @@ namespace sclc
             for (int j = 0; j < *scopeDepth; j++) {
                 fp << "    ";
             }
-            fp << "scl_word $" << loopVar.getValue() << ";" << std::endl;
+            fp << "scl_word _" << loopVar.getValue() << ";" << std::endl;
         }
 
         if (!doNumberCheck || lower <= higher) {
@@ -211,11 +211,11 @@ namespace sclc
                 return result;
             }
 
-            fp << "for ($" << loopVar.getValue() << " = (void*) ";
-            fp << (from.getType() == tok_identifier ? "$" : "") << from.getValue();
-            fp << "; $" << loopVar.getValue() << " <= (void*) ";
-            fp << (to.getType() == tok_identifier ? "$" : "") << to.getValue();
-            fp << "; $" << loopVar.getValue() << "++) {" << std::endl;
+            fp << "for (_" << loopVar.getValue() << " = (void*) ";
+            fp << (from.getType() == tok_identifier ? "_" : "") << from.getValue();
+            fp << "; _" << loopVar.getValue() << " <= (void*) ";
+            fp << (to.getType() == tok_identifier ? "_" : "") << to.getValue();
+            fp << "; _" << loopVar.getValue() << "++) {" << std::endl;
         } else {
             ParseResult result;
             result.message = "Lower bound of for loop is greater than upper bound";

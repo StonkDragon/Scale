@@ -88,7 +88,7 @@ namespace sclc
         
         std::vector<Token>  tokens;
 
-        for (int i = 0; i < files.size(); i++) {
+        for (size_t i = 0; i < files.size(); i++) {
             std::string filename = files[i];
             std::cout << "Compiling " << filename << "..." << std::endl;
 

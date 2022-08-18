@@ -36,7 +36,7 @@ namespace sclc
 
         if (c == '#') {
             char* comment = (char*) malloc(strlen(source + current));
-            int i = 0;
+            size_t i = 0;
             startColumn = column;
             while (c != '\n' && c != '\r') {
                 c = source[++current];
@@ -74,7 +74,7 @@ namespace sclc
             startColumn = column;
             column++;
             c = source[++current];
-            while (!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c)) || c == '.') {
+            while ((!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c))) || c == '.') {
                 value += c;
                 if (c == '.') {
                     isFloat = true;
@@ -279,14 +279,6 @@ namespace sclc
         return Token(tok_identifier, value, line, filename, startColumn);
     }
 
-    bool replace(std::string& str, const std::string& from, const std::string& to) {
-        size_t start_pos = str.find(from);
-        if(start_pos == std::string::npos)
-            return false;
-        
-        return true;
-    }
-
     std::string replaceAll(std::string src, std::string from, std::string to) {
         try {
             return std::regex_replace(src, std::regex(from), to);
@@ -382,7 +374,7 @@ namespace sclc
     }
 
     void Tokenizer::printTokens() {
-        for (int i = 0; i < tokens.size(); i++) {
+        for (size_t i = 0; i < tokens.size(); i++) {
             std::cout << "Token: " << tokens.at(i).toString() << std::endl;
         }
     }

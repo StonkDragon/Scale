@@ -54,6 +54,7 @@ namespace sclc
     ParseResult Parser::parse(std::string filename) {
         std::vector<ParseResult> errors;
         std::vector<ParseResult> warns;
+        std::vector<std::string> globals;
 
         std::fstream fp((filename + std::string(".c")).c_str(), std::ios::out);
 
@@ -77,13 +78,12 @@ namespace sclc
 
         for (Function function : result.functions) {
             fp << "void fn_" << function.getName() << "(";
-            for (int i = function.getArgs().size() - 1; i >= 0; i--) {
+            for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
-                vars.push_back(var);
-                if (i != function.getArgs().size() - 1) {
+                if (i != (ssize_t) function.getArgs().size() - 1) {
                     fp << ", ";
                 }
-                fp << "scl_word $" << var;
+                fp << "scl_word _" << var;
             }
             if (function.getArgs().size() == 0) {
                 fp << "void";
@@ -99,6 +99,15 @@ namespace sclc
         }
 
         fp << std::endl;
+        fp << "/* GLOBALS */" << std::endl;
+
+        for (std::string s : result.globals) {
+            fp << "scl_word _" << s << ";" << std::endl;
+            vars.push_back(s);
+            globals.push_back(s);
+        }
+
+        fp << std::endl;
         fp << "/* FUNCTIONS */" << std::endl;
 
         int funcsSize = result.functions.size();
@@ -106,6 +115,9 @@ namespace sclc
         {
             Function function = result.functions[f];
             vars.clear();
+            for (std::string g : globals) {
+                vars.push_back(g);
+            }
 
             int scopeDepth = 1;
             bool funcPrivateStack = true;
@@ -121,13 +133,15 @@ namespace sclc
                     sap = true;
                 }
             }
-            
+
+            (void) noWarns;
+
             fp << "void fn_" << function.getName() << "(";
 
             std::string functionDeclaration = "";
 
             functionDeclaration += function.getName() + "(";
-            for (int i = 0; i < function.getArgs().size(); i++) {
+            for (size_t i = 0; i < function.getArgs().size(); i++) {
                 if (i != 0) {
                     functionDeclaration += ", ";
                 }
@@ -135,13 +149,13 @@ namespace sclc
             }
             functionDeclaration += ")";
             
-            for (int i = function.getArgs().size() - 1; i >= 0; i--) {
+            for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
-                if (i != function.getArgs().size() - 1) {
+                if (i != (ssize_t) function.getArgs().size() - 1) {
                     fp << ", ";
                 }
-                fp << "scl_word $" << var;
+                fp << "scl_word _" << var;
             }
             if (function.getArgs().size() == 0) {
                 fp << "void";
@@ -165,7 +179,7 @@ namespace sclc
             }
 
             std::vector<Token> body = function.getBody();
-            int i;
+            size_t i;
             for (i = 0; i < body.size(); i++)
             {
                 if (body[i].getType() == tok_ignore) continue;
@@ -185,7 +199,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "ctrl_push($" << loadFrom << ");" << std::endl;
+                    fp << "ctrl_push(_" << loadFrom << ");" << std::endl;
                 } else if (body[i].getType() == tok_identifier && hasFunction(body[i].getValue())) {
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
@@ -197,8 +211,8 @@ namespace sclc
                     }
                     fp << "fn_" << body[i].getValue() << "(";
                     Function func = getFunctionByName(body[i].getValue());
-                    for (int j = func.getArgs().size() - 1; j >= 0; j--) {
-                        if (j != func.getArgs().size() - 1) {
+                    for (ssize_t j = (ssize_t) func.getArgs().size() - 1; j >= 0; j--) {
+                        if (j != (ssize_t) func.getArgs().size() - 1) {
                             fp << ", ";
                         }
                         fp << "ctrl_pop()";
@@ -322,7 +336,7 @@ namespace sclc
                     } else if (hasFunction(toGet)) {
                         fp << "ctrl_push((scl_word) &fn_" << toGet << ");" << std::endl;
                     } else if (hasVar(toGet)) {
-                        fp << "ctrl_push($" << toGet << ");" << std::endl;
+                        fp << "ctrl_push(_" << toGet << ");" << std::endl;
                     } else {
                         ParseResult err;
                         err.success = false;
@@ -359,7 +373,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "$" << storeIn << " = ctrl_pop();" << std::endl;
+                    fp << "_" << storeIn << " = ctrl_pop();" << std::endl;
                     i++;
                 } else if (body[i].getType() == tok_declare) {
                     if (body[i + 1].getType() != tok_identifier) {
@@ -377,7 +391,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "scl_word $" << loadFrom << ";" << std::endl;
+                    fp << "scl_word _" << loadFrom << ";" << std::endl;
                     i++;
                 } else if (body[i].getType() == tok_continue) {
                     for (int j = 0; j < scopeDepth; j++) {
@@ -413,7 +427,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "    ";
                     }
-                    fp << "*((scl_word*) $" << body[i + 1].getValue() << ") = ctrl_pop();" << std::endl;
+                    fp << "*((scl_word*) _" << body[i + 1].getValue() << ") = ctrl_pop();" << std::endl;
                     i++;
                 } else if (body[i].getType() == tok_deref) {
                     for (int j = 0; j < scopeDepth; j++) {

@@ -21,8 +21,9 @@ namespace sclc
         bool funcSAP = false;
 
         std::vector<std::string> uses;
+        std::vector<std::string> globals;
 
-        for (int i = 0; i < tokens.size(); i++)
+        for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
             if (token.getType() == tok_function) {
@@ -86,6 +87,7 @@ namespace sclc
                     } else {
                         std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
                     }
+                    i++;
                 } else {
                     std::cerr << "Error: Cannot use modifiers inside a function." << std::endl;
                 }
@@ -93,9 +95,18 @@ namespace sclc
                 std::string name = tokens[i + 1].getValue();
                 Extern externFunction(name);
                 externs.push_back(externFunction);
+                i++;
             } else {
                 if (currentFunction != nullptr) {
                     currentFunction->addToken(token);
+                } else {
+                    if (token.getType() == tok_declare) {
+                        if (tokens[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                        }
+                        globals.push_back(tokens[i + 1].getValue());
+                        i++;
+                    }
                 }
             }
         }
@@ -104,6 +115,7 @@ namespace sclc
         result.functions = functions;
         result.externs = externs;
         result.prototypes = prototypes;
+        result.globals = globals;
         return result;
     }
 }

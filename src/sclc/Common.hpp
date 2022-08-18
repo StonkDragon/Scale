@@ -302,6 +302,7 @@ namespace sclc
         std::vector<Function> functions;
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
+        std::vector<std::string> globals;
     };
 
     class Lexer
@@ -378,7 +379,7 @@ namespace sclc
         bool debug;
     } Main;
 
-    Main MAIN = {0, 0, 0};
+    Main MAIN = {0, 0, 0, 0};
 
     void signalHandler(int signum)
     {
@@ -417,7 +418,7 @@ namespace sclc
     }
 
     int isOctDigit(char c) {
-        return c >= '0' && c <= '7' || c == 'o' || c == 'O';
+        return (c >= '0' && c <= '7') || c == 'o' || c == 'O';
     }
 
     int isBinDigit(char c) {
@@ -444,7 +445,7 @@ namespace sclc
 
     template <typename T>
     void addIfAbsent(std::vector<T>& vec, T str) {
-        for (int i = 0; i < vec.size(); i++) {
+        for (size_t i = 0; i < vec.size(); i++) {
             if (vec[i] == str) {
                 return;
             }
