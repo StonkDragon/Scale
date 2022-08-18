@@ -54,6 +54,10 @@ dev: {
   ];
   flags: [
     "-std=gnu++17";
+    "-Wall";
+    "-Wextra";
+    "-Werror";
+    "-pedantic";
   ];
   preBuild: [
     "rm -rf $HOME/Scale";
