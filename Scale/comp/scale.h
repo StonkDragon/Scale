@@ -10,36 +10,38 @@
 #include <stdlib.h>
 
 #ifndef STACK_SIZE
-#define STACK_SIZE (1024)
+#define STACK_SIZE 			4096
 #endif
 
-#define MALLOC_LIMIT (1024)
-#define MAX_STRING_SIZE (2048)
-#define LONG_AS_STR_LEN (22)
+#define MALLOC_LIMIT 		1024
+#define MAX_STRING_SIZE 	512
+#define LONG_AS_STR_LEN 	22
 
 // Define scale-specific signals
-#define EX_BAD_PTR (128)
-#define EX_STACK_OVERFLOW (129)
-#define EX_STACK_UNDERFLOW (130)
-#define EX_UNHANDLED_DATA (131)
-#define EX_IO_ERROR (132)
-#define EX_INVALID_ARGUMENT (133)
-#define EX_CAST_ERROR (134)
-#define EX_SAP_ERROR (135)
+#define EX_BAD_PTR 			128
+#define EX_STACK_OVERFLOW 	129
+#define EX_STACK_UNDERFLOW 	130
+#define EX_UNHANDLED_DATA 	131
+#define EX_IO_ERROR 		132
+#define EX_INVALID_ARGUMENT 133
+#define EX_CAST_ERROR 		134
+#define EX_SAP_ERROR 		135
 
+typedef signed long ssize_t;
 typedef void* scl_word;
 typedef struct {
 	scl_word ptr;
-	size_t	 level;
+	ssize_t	 level;
 	int 	 isFile;
 } scl_memory_t;
 typedef struct {
-	size_t 	 ptr;
+	ssize_t  ptr;
 	scl_word data[STACK_SIZE];
+	ssize_t  offset[STACK_SIZE];
 } scl_stack_t;
 
 scl_force_inline void throw(int code, char* msg);
-scl_force_inline void ctrl_required(size_t n, char* func);
+scl_force_inline void ctrl_required(ssize_t n, char* func);
 scl_force_inline void ctrl_where(char* file, size_t line, size_t col);
 scl_force_inline void ctrl_fn_start(char* name);
 scl_force_inline void ctrl_fn_end(void);

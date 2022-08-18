@@ -49,27 +49,27 @@ extern "C" {
 #endif
 
 /* Variables */
-static size_t		memalloced_ptr[STACK_SIZE] = {0};
-static size_t 		stack_depth = 0;
-static scl_memory_t memalloced[STACK_SIZE][MALLOC_LIMIT] = {{0}};
-static scl_stack_t	callstack = {0, {0}};
-static scl_stack_t 	stack[STACK_SIZE] = {{0, {0}}};
-static char* 		current_file = "<init>";
-static size_t 		current_line = 0;
-static size_t 		current_column = 0;
-static int 			sap_enabled[STACK_SIZE] = {0};
-static int 			sap_count[STACK_SIZE] = {0};
-static int 			sap_index = 0;
+size_t		 memalloced_ptr[STACK_SIZE] = {0};
+size_t 		 stack_depth = 0;
+scl_memory_t memalloced[STACK_SIZE][MALLOC_LIMIT] = {{0}};
+scl_stack_t	 callstk = {0, {0}, {0}};
+scl_stack_t  stack = {0, {0}, {0}};
+char* 		 current_file = "<init>";
+size_t 		 current_line = 0;
+size_t 		 current_column = 0;
+size_t 		 sap_enabled[STACK_SIZE] = {0};
+size_t 		 sap_count[STACK_SIZE] = {0};
+size_t 		 sap_index = 0;
 
 scl_force_inline void throw(int code, char* msg) {
 	fprintf(stderr, "Exception: %s\n", msg);
 	process_signal(code);
 }
 
-scl_force_inline void ctrl_required(size_t n, char* func) {
-	if (stack[stack_depth].ptr < n) {
+scl_force_inline void ctrl_required(ssize_t n, char* func) {
+	if (stack.ptr < n) {
 		char* err = (char*) malloc(MAX_STRING_SIZE);
-		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack[stack_depth].ptr);
+		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
 		throw(EX_STACK_UNDERFLOW, err);
 		free(err);
 	}
@@ -78,20 +78,19 @@ scl_force_inline void ctrl_required(size_t n, char* func) {
 void ctrl_trace() {
 	size_t i;
 	printf("Stacktrace:\n");
-	for (i = (callstack.ptr - 1); i >= 0; i--) {
-		printf("  %s\n", (char*) callstack.data[i]);
+	for (i = (callstk.ptr - 1); i >= 0; i--) {
+		printf("  %s\n", (char*) callstk.data[i]);
 	}
 }
 
 void heap_collect() {
-	size_t i;
 	int count = 0;
 	int collect = 1;
-	for (i = 0; i < memalloced_ptr[stack_depth + 1]; i++) {
+	for (size_t i = 0; i < memalloced_ptr[stack_depth + 1]; i++) {
 		if (memalloced[stack_depth + 1][i].ptr) {
-			if (memalloced[stack_depth + 1][i].level > callstack.ptr) {
-				for (int j = (stack[stack_depth].ptr - 1); j >= 0; j--) {
-					if (stack[stack_depth].data[j] == memalloced[stack_depth + 1][i].ptr) {
+			if (memalloced[stack_depth + 1][i].level > callstk.ptr) {
+				for (ssize_t j = (ssize_t) (stack.ptr - 1); j >= 0; j--) {
+					if (stack.data[j] == memalloced[stack_depth + 1][i].ptr) {
 						collect = 0;
 						break;
 					}
@@ -115,13 +114,13 @@ void heap_add(scl_word ptr, int isFile) {
 		if (memalloced[stack_depth][i].ptr == NULL) {
 			memalloced[stack_depth][i].ptr = ptr;
 			memalloced[stack_depth][i].isFile = isFile;
-			memalloced[stack_depth][i].level = callstack.ptr;
+			memalloced[stack_depth][i].level = callstk.ptr;
 			return;
 		}
 	}
 	memalloced[stack_depth][memalloced_ptr[stack_depth]].ptr = ptr;
 	memalloced[stack_depth][memalloced_ptr[stack_depth]].isFile = isFile;
-	memalloced[stack_depth][memalloced_ptr[stack_depth]].level = callstack.ptr;
+	memalloced[stack_depth][memalloced_ptr[stack_depth]].level = callstk.ptr;
 	memalloced_ptr[stack_depth]++;
 }
 
@@ -165,12 +164,14 @@ scl_force_inline void ctrl_where(char* file, size_t line, size_t col) {
 }
 
 scl_force_inline void ctrl_fn_start(char* name) {
-	callstack.data[callstack.ptr++] = name;
+	callstk.data[callstk.ptr++] = name;
 	stack_depth++;
+	stack.offset[stack_depth] = stack.ptr;
 }
 
 scl_force_inline void ctrl_fn_end() {
-	callstack.ptr--;
+	callstk.ptr--;
+	stack.offset[stack_depth] = 0;
 	stack_depth--;
 	heap_collect();
 }
@@ -183,7 +184,8 @@ scl_force_inline void scl_security_check_null(scl_word ptr) {
 
 scl_force_inline void ctrl_fn_end_with_return() {
 	scl_word ret = ctrl_pop();
-	callstack.ptr--;
+	stack.offset[stack_depth] = 0;
+	callstk.ptr--;
 	stack_depth--;
 	ctrl_push(ret);
 	heap_collect();
@@ -210,26 +212,26 @@ scl_force_inline void sap_close(void) {
 }
 
 scl_force_inline void ctrl_fn_native_start(char* name) {
-	callstack.data[callstack.ptr++] = name;
+	callstk.data[callstk.ptr++] = name;
 }
 
 scl_force_inline void ctrl_fn_native_end() {
-	callstack.ptr--;
+	callstk.ptr--;
 }
 
 scl_force_inline void ctrl_fn_nps_start(char* name) {
-	callstack.data[callstack.ptr++] = name;
+	callstk.data[callstk.ptr++] = name;
 }
 
 scl_force_inline void ctrl_fn_nps_end() {
-	callstack.ptr--;
+	callstk.ptr--;
 	heap_collect();
 }
 
 void print_stacktrace() {
 	printf("Stacktrace:\n");
-	for (int i = callstack.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", (char*) callstack.data[i]);
+	for (int i = callstk.ptr - 1; i >= 0; i--) {
+		printf("  %s\n", (char*) callstk.data[i]);
 	}
 	printf("\n");
 }
@@ -244,6 +246,7 @@ void process_signal(int sig_num)
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
 	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
 	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
+	else if (sig_num == SIGTERM) signalString = "Software Termiation";
 
 	// Scale Exceptions
 	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
@@ -252,12 +255,12 @@ void process_signal(int sig_num)
 	else if (sig_num == EX_IO_ERROR) signalString = "IO error";
 	else if (sig_num == EX_INVALID_ARGUMENT) signalString = "Invalid argument";
 	else if (sig_num == EX_UNHANDLED_DATA) {
-		if (stack[stack_depth].ptr == 1) {
+		if (stack.ptr == 1) {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu element too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack[stack_depth].ptr);
+			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack.ptr);
 		} else {
 			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu elements too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack[stack_depth].ptr);
+			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack.ptr);
 		}
 	}
 	else if (sig_num == EX_CAST_ERROR) signalString = "Cast Error";
@@ -277,42 +280,42 @@ scl_force_inline void ctrl_push_string(const char* c) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
+	if (stack.ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack[stack_depth].data[stack[stack_depth].ptr++] = (scl_word) c;
+	stack.data[stack.ptr++] = (scl_word) c;
 }
 
 scl_force_inline void ctrl_push_double(double d) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
+	if (stack.ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack[stack_depth].data[stack[stack_depth].ptr++] = *(scl_word*) &d;
+	stack.data[stack.ptr++] = *(scl_word*) &d;
 }
 
 scl_force_inline void ctrl_push_long(long long n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
+	if (stack.ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack[stack_depth].data[stack[stack_depth].ptr] = (scl_word) n;
-	stack[stack_depth].ptr++;
+	stack.data[stack.ptr] = (scl_word) n;
+	stack.ptr++;
 }
 
 scl_force_inline long long ctrl_pop_long() {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]--;
 	}
-	if (stack[stack_depth].ptr <= 0) {
+	if (stack.ptr <= stack.offset[stack_depth]) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	long long value = (long long) stack[stack_depth].data[--stack[stack_depth].ptr];
-	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	long long value = (long long) stack.data[--stack.ptr];
+	stack.data[stack.ptr + 1] = NULL;
 	return value;
 }
 
@@ -320,11 +323,11 @@ scl_force_inline double ctrl_pop_double() {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]--;
 	}
-	if (stack[stack_depth].ptr <= 0) {
+	if (stack.ptr <= stack.offset[stack_depth]) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	double value = *(double*) &stack[stack_depth].data[--stack[stack_depth].ptr];
-	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	double value = *(double*) &stack.data[--stack.ptr];
+	stack.data[stack.ptr + 1] = NULL;
 	return value;
 }
 
@@ -332,21 +335,21 @@ scl_force_inline void ctrl_push(scl_word n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
+	if (stack.ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
+	stack.data[stack.ptr++] = n;
 }
 
 scl_force_inline char* ctrl_pop_string() {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]--;
 	}
-	if (stack[stack_depth].ptr <= 0) {
+	if (stack.ptr <= stack.offset[stack_depth]) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	char* value = (char*) stack[stack_depth].data[--stack[stack_depth].ptr];
-	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	char* value = (char*) stack.data[--stack.ptr];
+	stack.data[stack.ptr + 1] = NULL;
 	return value;
 }
 
@@ -354,11 +357,11 @@ scl_force_inline scl_word ctrl_pop() {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]--;
 	}
-	if (stack[stack_depth].ptr <= 0) {
+	if (stack.ptr <= stack.offset[stack_depth]) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	void* value = stack[stack_depth].data[--stack[stack_depth].ptr];
-	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	void* value = stack.data[--stack.ptr];
+	stack.data[stack.ptr + 1] = NULL;
 	return value;
 }
 
@@ -366,11 +369,11 @@ scl_force_inline scl_word ctrl_pop_word() {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]--;
 	}
-	if (stack[stack_depth].ptr <= 0) {
+	if (stack.ptr <= stack.offset[stack_depth]) {
 		throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	void* value = stack[stack_depth].data[--stack[stack_depth].ptr];
-	stack[stack_depth].data[stack[stack_depth].ptr + 1] = NULL;
+	void* value = stack.data[--stack.ptr];
+	stack.data[stack.ptr + 1] = NULL;
 	return value;
 }
 
@@ -378,10 +381,10 @@ scl_force_inline void ctrl_push_word(scl_word n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
-	if (stack[stack_depth].ptr + 1 >= STACK_SIZE) {
+	if (stack.ptr + 1 >= STACK_SIZE) {
 		throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack[stack_depth].data[stack[stack_depth].ptr++] = n;
+	stack.data[stack.ptr++] = n;
 }
 
 scl_force_inline void op_add() {
@@ -496,9 +499,10 @@ scl_force_inline void op_ddiv() {
 
 void native_dumpstack() {
 	printf("Dump:\n");
-	for (int i = stack[stack_depth].ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack[stack_depth].data[i];
-		printf("    0x%016llx, %lld\n", v, v);
+	ssize_t stack_offset = stack.offset[stack_depth];
+	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
+		long long v = (long long) stack.data[i];
+		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
 }
@@ -564,7 +568,7 @@ void native_drop() {
 }
 
 void native_sizeof_stack() {
-	ctrl_push_long(stack[stack_depth].ptr);
+	ctrl_push_long(stack.ptr - stack.offset[stack_depth]);
 }
 
 void native_concat() {
@@ -578,7 +582,7 @@ void native_concat() {
 	long long len2 = ctrl_pop_long();
 	char *out = (char*) malloc(len + len2 + 1);
 	heap_add(out, 0);
-	int i = 0;
+	size_t i = 0;
 	while (s1[i] != '\0') {
 		out[i] = s1[i];
 		i++;
@@ -729,7 +733,7 @@ void native_read() {
 
 void native_strrev() {
 	char* s = ctrl_pop_string();
-	int i = 0;
+	size_t i = 0;
 	ctrl_push_string(s);
 	native_strlen();
 	long long len = ctrl_pop_long();
@@ -914,6 +918,9 @@ int main(int argc, char const *argv[])
 	signal(SIGFPE, process_signal);
 	signal(SIGSEGV, process_signal);
 	signal(SIGBUS, process_signal);
+#ifdef SIGTERM
+	signal(SIGTERM, process_signal);
+#endif
 
 	for (int i = argc - 1; i > 0; i--) {
 		ctrl_push_string(argv[i]);
