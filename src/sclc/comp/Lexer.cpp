@@ -55,7 +55,7 @@ namespace sclc
                         }
                     }
                 }
-            } else if (token.getType() == tok_end) {
+            } else if (token.getType() == tok_end && currentFunction != nullptr) {
                 if (!functionPrivateStack) {
                     currentFunction->addModifier(mod_nps);
                     functionPrivateStack = true;
