@@ -264,6 +264,7 @@ void process_signal(int sig_num)
 		}
 	}
 	else if (sig_num == EX_CAST_ERROR) signalString = "Cast Error";
+	else if (sig_num == EX_SAP_ERROR) signalString = "SAP Error";
 	else signalString = "Unknown signal";
 
 	printf("\n");
