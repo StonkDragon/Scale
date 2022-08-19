@@ -20,10 +20,12 @@
 
   The following dependencies are required to use Scale:
 
+Required:
 - [`clang`](https://clang.llvm.org/)
-- `cpp` (C Preprocessor)
-- `git` (to compile)
-- `make` (to compile)
+- `cpp`
+
+Optional:
+- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling)
 - `python3` (for tests)
 
 # Documentation
@@ -44,6 +46,9 @@
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
+
+  - `[`: Stack Autodrop Pool Open
+  - `]`: Stack Autodrop Pool Close
 
 ## Keywords
 
@@ -133,6 +138,8 @@ Example:
 
   - [Sizeof](./examples/sizeof.scale)
 
+  - [Stack Autodrop Pool](./examples/sap.scale)
+
   - [Pointer Dereferencing](./examples/deref.scale)
 
 # Build
@@ -145,7 +152,7 @@ Example:
 $ dragon build
 ```
 
-  This will build the compiler and put it in the `compile` directory.
+  This will build the compiler and put the binary in the `compile` directory.
 
 # License
 
