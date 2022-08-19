@@ -46,12 +46,13 @@ namespace sclc
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        bool transpileOnly  = false;
-        bool preprocessOnly = false;
+        bool transpileOnly      = false;
+        bool preprocessOnly     = false;
+        bool assembleOnly       = false;
 
-        std::string outfile = "out.scl";
+        std::string outfile     = "out.scl";
         std::string scaleFolder = std::string(getenv("HOME")) + "/Scale";
-        std::string cmd     = "clang -I" + scaleFolder + "/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";     
+        std::string cmd         = "clang -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
 
@@ -66,8 +67,6 @@ namespace sclc
                     return 0;
                 } else if (args[i] == "-E") {
                     preprocessOnly = true;
-                } else if (args[i] == "-S") {
-                    cmd += "-S ";
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
@@ -81,11 +80,24 @@ namespace sclc
                         std::cerr << "Error: -f requires an argument" << std::endl;
                         return 1;
                     }
+                } else if (args[i] == "-o") {
+                    if (i + 1 < args.size()) {
+                        outfile = args[i + 1];
+                        i++;
+                    } else {
+                        std::cerr << "Error: -o requires an argument" << std::endl;
+                        return 1;
+                    }
+                } else if (args[i] == "-S") {
+                    assembleOnly = true;
+                    cmd += "-S ";
                 } else {
-                    cmd += args[i] == + " ";
+                    cmd += args[i] + " ";
                 }
             }
         }
+
+        cmd += "-o " + outfile + " ";
 
         std::string globalPreproc = std::string(PREPROCESSOR);
         const double FrameworkMinimumVersion = 2.8;
@@ -111,15 +123,17 @@ namespace sclc
                 return 1;
             }
 
+            MAIN.frameworks.push_back(framework);
+
             globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
             unsigned long implementersSize = implementers.size();
             for (unsigned long i = 0; i < implementersSize; i++) {
                 std::string implementer = implementers.get(i);
-                cmd += "-I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + implHeaderDir + " ";
-                cmd += scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer + " ";
+                if (!assembleOnly)
+                    cmd += scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer + " ";
             }
             for (unsigned long i = 0; i < implHeaders.size(); i++) {
-                std::string header = implHeaders.get(i);
+                std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
                 MAIN.frameworkNativeHeaders.push_back(header);
             }
         }
@@ -220,6 +234,8 @@ namespace sclc
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
+
+        std::cout << "Compiling with " << cmd << std::endl;
 
         int ret = system(cmd.c_str());
 

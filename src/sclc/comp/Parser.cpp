@@ -71,7 +71,16 @@ namespace sclc
         fp << "#ifdef __cplusplus" << std::endl;
         fp << "extern \"C\" {"	 << std::endl;
         fp << "#endif"	         << std::endl;
-        
+
+        fp << std::endl;
+        fp << "const char* __frameworks[] = {" << std::endl;
+        for (std::string framework : MAIN.frameworks) {
+            fp << "\"" << framework << "\"," << std::endl;
+        }
+        fp << "};" << std::endl;
+        fp << "const unsigned long __frameworks_count = sizeof(__frameworks) / sizeof(__frameworks[0]);" << std::endl;
+
+        fp << std::endl;
         fp << "/* HEADERS */" << std::endl;
         for (std::string header : MAIN.frameworkNativeHeaders) {
             fp << "#include <" << header << ">" << std::endl;
