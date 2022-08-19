@@ -1,0 +1,52 @@
+#ifndef _IO_IO_SCALE_
+#define _IO_IO_SCALE_
+
+// Stack: [fd n s] -> []
+// Writes n bytes from the pointer s
+// to the file descriptor fd.
+extern write
+
+// Stack: [fd n] -> [s]
+// Reads n bytes from the file descriptor fd
+// and pushes a pointer to the buffer to the stack.
+extern read
+
+// Stack: [data fmt] -> [str]
+// Formats the data according to the
+// format string fmt
+extern sprintf
+
+// Stack: [str] -> []
+// Prints the string str to the standard output.
+function puts(_str_)
+    1 _str_ strlen _str_ write
+    1 1 "\n" write
+end
+
+// Stack: [str] -> []
+// Prints the string str to the standard error.
+function eputs(_str_)
+    2 _str_ strlen _str_ write
+    2 1 "\n" write
+end
+
+// Stack: [int] -> []
+// Prints the integer int to the standard output.
+function putint(_int_)
+    _int_ "%d" sprintf puts
+end
+
+// Stack: [f] -> []
+// Prints the float f to the standard output.
+function putfloat(_f_)
+    _f_ "%f" sprintf puts
+end
+
+// Stack: [err] -> []
+// Prints the error message err to the standard error,
+// and exits with exit code 1.
+function throwerr(_err_)
+    _err_ puts 1 exit
+end
+
+#endif

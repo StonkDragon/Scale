@@ -1,0 +1,12 @@
+framework: {
+    version: "1.0";
+    headerDir: "include";
+    implDir: "impl";
+    implementers: [
+        "scale.c";
+    ];
+    implHeaderDir: "impl";
+    implHeaders: [
+        "scale.h";
+    ];
+};
