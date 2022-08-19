@@ -58,7 +58,7 @@ namespace sclc
         bool onlyAssemble   = false;
 
         std::string outfile = "out.scl";
-        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";
+        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";     
         std::vector<std::string> files;
 
         for (int i = 1; i < argc; i++) {
