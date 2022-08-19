@@ -88,6 +88,7 @@ namespace sclc
         }
 
         std::string globalPreproc = std::string(PREPROCESSOR);
+        const double FrameworkMinimumVersion = 2.8;
 
         for (std::string framework : frameworks) {
             DragonConfig::ConfigParser parser;
@@ -98,6 +99,17 @@ namespace sclc
             std::string headerDir = root.getString("headerDir").getValue();
             std::string implDir = root.getString("implDir").getValue();
             std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+
+            double versionNum = std::stod(version);
+            double compilerVersionNum = std::stod(VERSION);
+            if (versionNum > compilerVersionNum) {
+                std::cerr << "Error: Framework '" << framework << "' requires Scale " << version << " but you are using " << VERSION << std::endl;
+                return 1;
+            }
+            if (versionNum < FrameworkMinimumVersion) {
+                fprintf(stderr, "Error: Framework '%s' is too outdated (%.1f). Please update it to at least version %.1f\n", framework.c_str(), versionNum, FrameworkMinimumVersion);
+                return 1;
+            }
 
             globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
             unsigned long implementersSize = implementers.size();
