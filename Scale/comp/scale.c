@@ -7,6 +7,10 @@ extern "C" {
 
 #include "scale.h"
 
+#ifndef SCALE_IGNORE_DEPRECATED
+#warning The legacy Standard Library has been marked as deprecated. It will be removed in the near future. Please update sclc to a version that supports Scale Frameworks
+#endif
+
 /* Variables */
 size_t		 memalloced_ptr[STACK_SIZE] = {0};
 size_t 		 stack_depth = 0;
