@@ -1,6 +1,29 @@
 #ifndef _SCALE_H_
 #define _SCALE_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
+#include <string.h>
+#include <time.h>
+#include <signal.h>
+#include <errno.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <io.h>
+#define sleep(s) Sleep(s)
+#define read(fd, buf, n) _read(fd, buf, n)
+#define write(fd, buf, n) _write(fd, buf, n)
+#ifndef WINDOWS
+#define WINDOWS
+#endif
+#else
+#include <unistd.h>
+#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
+#endif
+
 #if __has_attribute(always_inline)
 #define scl_force_inline __attribute__((always_inline))
 #else
