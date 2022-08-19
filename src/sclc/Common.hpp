@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
 
 #define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
 namespace sclc
@@ -384,7 +385,7 @@ namespace sclc
     void signalHandler(int signum)
     {
         std::cout << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cout << "Error: " << strerror(errno) << std::endl;
+        if (errno != 0) std::cout << "Error: " << std::strerror(errno) << std::endl;
         exit(signum);
     }
 
