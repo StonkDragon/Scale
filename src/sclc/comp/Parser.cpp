@@ -71,7 +71,11 @@ namespace sclc
         fp << "#ifdef __cplusplus" << std::endl;
         fp << "extern \"C\" {"	 << std::endl;
         fp << "#endif"	         << std::endl;
-        fp << "#include <scale.h>" << std::endl;
+        
+        fp << "/* HEADERS */" << std::endl;
+        for (std::string header : MAIN.frameworkNativeHeaders) {
+            fp << "#include <" << header << ">" << std::endl;
+        }
 
         fp << std::endl;
         fp << "/* FUNCTION HEADERS */" << std::endl;

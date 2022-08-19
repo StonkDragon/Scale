@@ -12,6 +12,7 @@
 #include <chrono>
 
 #include "Common.hpp"
+#include "DragonConfig.hpp"
 
 #include "comp/Tokenizer.cpp"
 #include "comp/Lexer.cpp"
@@ -33,21 +34,13 @@ namespace sclc
         std::cout << "  --help, -h       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
+        std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
     }
 
-    int main(int argc, char const *argv[])
+    int main(std::vector<std::string> args)
     {
-        signal(SIGSEGV, signalHandler);
-        signal(SIGABRT, signalHandler);
-        signal(SIGILL, signalHandler);
-        signal(SIGFPE, signalHandler);
-        signal(SIGINT, signalHandler);
-        signal(SIGTERM, signalHandler);
-    #ifdef SIGQUIT
-        signal(SIGQUIT, signalHandler);
-    #endif
-        if (argc < 2) {
-            usage(argv[0]);
+        if (args.size() < 2) {
+            usage(args[0]);
             return 1;
         }
 
@@ -55,33 +48,68 @@ namespace sclc
 
         bool transpileOnly  = false;
         bool preprocessOnly = false;
-        bool onlyAssemble   = false;
 
         std::string outfile = "out.scl";
-        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";     
+        std::string scaleFolder = std::string(getenv("HOME")) + "/Scale";
+        std::string cmd     = "clang -I" + scaleFolder + "/comp -std=gnu17 -O2 -o " + outfile + " -DVERSION=\"" + std::string(VERSION) + "\" ";     
         std::vector<std::string> files;
+        std::vector<std::string> frameworks;
 
-        for (int i = 1; i < argc; i++) {
-            if (strends(std::string(argv[i]), ".scale")) {
-                files.push_back(std::string(argv[i]));
+        for (size_t i = 1; i < args.size(); i++) {
+            if (strends(std::string(args[i]), ".scale")) {
+                files.push_back(args[i]);
             } else {
-                if (strcmp(argv[i], "--transpile") == 0 || strcmp(argv[i], "-t") == 0) {
+                if (args[i] == "--transpile" || args[i] == "-t") {
                     transpileOnly = true;
-                } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-                    usage(std::string(argv[0]));
+                } else if (args[i] == "--help" || args[i] == "-h") {
+                    usage(args[0]);
                     return 0;
-                } else if (strcmp(argv[i], "-E") == 0) {
+                } else if (args[i] == "-E") {
                     preprocessOnly = true;
-                } else if (strcmp(argv[i], "-S") == 0) {
-                    onlyAssemble = true;
+                } else if (args[i] == "-S") {
                     cmd += "-S ";
+                } else if (args[i] == "-f") {
+                    if (i + 1 < args.size()) {
+                        std::string framework = args[i + 1];
+                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework")) {
+                            std::cerr << "Framework '" << framework << "' not found" << std::endl;
+                            return 1;
+                        }
+                        frameworks.push_back(framework);
+                        i++;
+                    } else {
+                        std::cerr << "Error: -f requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else {
-                    cmd += std::string(argv[i]) + " ";
+                    cmd += args[i] == + " ";
                 }
             }
         }
-        if (!onlyAssemble) {
-            cmd += std::string(getenv("HOME")) + "/Scale/comp/scale.c ";
+
+        std::string globalPreproc = std::string(PREPROCESSOR);
+
+        for (std::string framework : frameworks) {
+            DragonConfig::ConfigParser parser;
+            DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
+            DragonConfig::ListEntry implementers = root.getList("implementers");
+            DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
+            std::string version = root.getString("version").getValue();
+            std::string headerDir = root.getString("headerDir").getValue();
+            std::string implDir = root.getString("implDir").getValue();
+            std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+
+            globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+            unsigned long implementersSize = implementers.size();
+            for (unsigned long i = 0; i < implementersSize; i++) {
+                std::string implementer = implementers.get(i);
+                cmd += "-I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + implHeaderDir + " ";
+                cmd += scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer + " ";
+            }
+            for (unsigned long i = 0; i < implHeaders.size(); i++) {
+                std::string header = implHeaders.get(i);
+                MAIN.frameworkNativeHeaders.push_back(header);
+            }
         }
 
         std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
@@ -92,9 +120,7 @@ namespace sclc
             std::string filename = files[i];
             std::cout << "Compiling " << filename << "..." << std::endl;
 
-            std::string preproc_cmd =
-                std::string(PREPROCESSOR) + " -I" + std::string(getenv("HOME"))
-                + "/Scale/lib " + filename + " " + filename + ".scale-preproc";
+            std::string preproc_cmd = globalPreproc + " " + filename + " " + filename + ".scale-preproc";
             int preprocResult = system(preproc_cmd.c_str());
 
             if (preprocResult != 0) {
@@ -206,7 +232,26 @@ namespace sclc
 
 int main(int argc, char const *argv[])
 {
-    return sclc::main(argc, argv);
+    signal(SIGSEGV, sclc::signalHandler);
+    signal(SIGABRT, sclc::signalHandler);
+    signal(SIGILL, sclc::signalHandler);
+    signal(SIGFPE, sclc::signalHandler);
+    signal(SIGINT, sclc::signalHandler);
+    signal(SIGTERM, sclc::signalHandler);
+#ifdef SIGQUIT
+    signal(SIGQUIT, sclc::signalHandler);
+#endif
+
+    std::vector<std::string> args;
+    args.push_back(argv[0]);
+    args.push_back("-f");
+    args.push_back("Core");
+    if (argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            args.push_back(argv[i]);
+        }
+    }
+    return sclc::main(args);
 }
 
 #endif

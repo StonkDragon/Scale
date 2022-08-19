@@ -378,9 +378,10 @@ namespace sclc
         Lexer* lexer;
         Parser* parser;
         bool debug;
+        std::vector<std::string> frameworkNativeHeaders;
     } Main;
 
-    Main MAIN = {0, 0, 0, 0};
+    Main MAIN = {0, 0, 0, 0, std::vector<std::string>()};
 
     void signalHandler(int signum)
     {

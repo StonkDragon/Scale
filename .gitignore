@@ -52,6 +52,7 @@ private
 build
 makebin
 compile
+experimental
 
 # Kernel Module Compile Results
 *.mod*
