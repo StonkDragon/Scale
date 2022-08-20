@@ -37,6 +37,15 @@ namespace sclc
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
     }
 
+    bool contains(std::vector<std::string>& vec, std::string& item) {
+        for (auto& i : vec) {
+            if (i == item) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     int main(std::vector<std::string> args)
     {
         if (args.size() < 2) {
@@ -107,6 +116,7 @@ namespace sclc
             DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
             DragonConfig::ListEntry implementers = root.getList("implementers");
             DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
+            DragonConfig::ListEntry depends = root.getList("depends");
             std::string version = root.getString("version").getValue();
             std::string headerDir = root.getString("headerDir").getValue();
             std::string implDir = root.getString("implDir").getValue();
@@ -121,6 +131,14 @@ namespace sclc
             if (versionNum < FrameworkMinimumVersion) {
                 fprintf(stderr, "Error: Framework '%s' is too outdated (%.1f). Please update it to at least version %.1f\n", framework.c_str(), versionNum, FrameworkMinimumVersion);
                 return 1;
+            }
+
+            for (size_t i = 0; i < depends.size(); i++) {
+                std::string depend = depends.get(i);
+                if (!contains(frameworks, depend)) {
+                    std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                    return 1;
+                }
             }
 
             MAIN.frameworks.push_back(framework);
