@@ -46,7 +46,7 @@ end
 // Prints the error message err to the standard error,
 // and exits with exit code 1.
 function throwerr(_err_)
-    _err_ puts 1 exit
+    _err_ eputs 1 exit
 end
 
 #endif
