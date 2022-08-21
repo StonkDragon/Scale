@@ -27,6 +27,10 @@ namespace sclc
         {
             Token token = tokens[i];
             if (token.getType() == tok_function) {
+                if (currentFunction != nullptr) {
+                    std::cerr << "Error: Cannot define function inside another function" << std::endl;
+                    exit(1);
+                }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     std::cerr << Color::BOLDRED << "Error: " << Color::RESET << tokens[i+1].getFile() << ":";
                     std::cerr << tokens[i+1].getLine() << ":" << tokens[i+1].getColumn();
@@ -34,9 +38,7 @@ namespace sclc
                     exit(1);
                 }
                 std::string name = tokens[i + 1].getValue();
-                Function function(name);
-                addIfAbsent<Function>(functions, function);
-                currentFunction = &functions[functions.size() - 1];
+                currentFunction = new Function(name);
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
@@ -68,10 +70,13 @@ namespace sclc
                     currentFunction->addModifier(mod_sap);
                     funcSAP = false;
                 }
+                addIfAbsent<Function>(functions, *currentFunction);
                 currentFunction = nullptr;
             } else if (token.getType() == tok_proto) {
-                std::string name = tokens[i + 1].getValue();
-                prototypes.push_back(Prototype(name));
+                std::string name = tokens[++i].getValue();
+                std::string argString = tokens[++i].getValue();
+                int argCount = std::stoi(argString);
+                prototypes.push_back(Prototype(name, argCount));
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {

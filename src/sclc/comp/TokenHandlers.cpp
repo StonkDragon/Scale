@@ -190,7 +190,7 @@ namespace sclc
             for (int j = 0; j < *scopeDepth; j++) {
                 fp << "\t";
             }
-            if (from.getType() == tok_identifier && !hasVar(from.getValue())) {
+            if (from.getType() == tok_identifier && !hasVar(from)) {
                 ParseResult result;
                 result.message = "Use of undeclared variable: '" + from.getValue() + "'";
                 result.success = false;
@@ -200,7 +200,7 @@ namespace sclc
                 result.column = from.getColumn();
                 return result;
             }
-            if (to.getType() == tok_identifier && !hasVar(to.getValue())) {
+            if (to.getType() == tok_identifier && !hasVar(to)) {
                 ParseResult result;
                 result.message = "Use of undeclared variable: '" + to.getValue() + "'";
                 result.success = false;

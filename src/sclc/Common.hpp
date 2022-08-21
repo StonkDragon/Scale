@@ -292,8 +292,10 @@ namespace sclc
     struct Prototype
     {
         std::string name;
-        Prototype(std::string name) {
+        int argCount;
+        Prototype(std::string name, int argCount) {
             this->name = name;
+            this->argCount = argCount;
         }
         ~Prototype() {}
     };
@@ -333,22 +335,33 @@ namespace sclc
             this->result = result;
         }
         ~Parser() {}
-        bool hasFunction(std::string name) {
+        bool hasFunction(Token name) {
             for (Function func : result.functions) {
-                if (func.name == name) {
+                if (func.name == name.getValue()) {
                     return true;
                 }
             }
             for (Prototype proto : result.prototypes) {
-                if (proto.name == name) {
+                if (proto.name == name.getValue()) {
+                    bool hasFunction = false;
+                    for (Function func : result.functions) {
+                        if (func.name == proto.name) {
+                            hasFunction = true;
+                            break;
+                        }
+                    }
+                    if (!hasFunction) {
+                        std::cerr << name.getFile() << ":" << name.getLine() << ":" << name.getColumn() << ": Error: Missing Implementation for function " << name.getValue() << std::endl;
+                        exit(1);
+                    }
                     return true;
                 }
             }
             return false;
         }
-        bool hasExtern(std::string name) {
+        bool hasExtern(Token name) {
             for (Extern extern_ : result.externs) {
-                if (extern_.name == name) {
+                if (extern_.name == name.getValue()) {
                     return true;
                 }
             }

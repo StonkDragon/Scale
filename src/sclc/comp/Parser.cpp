@@ -28,9 +28,9 @@ namespace sclc
 {
     static std::vector<std::string> vars;
 
-    bool hasVar(std::string name) {
+    bool hasVar(Token name) {
         for (std::string var : vars) {
-            if (var == name) {
+            if (var == name.getValue()) {
                 return true;
             }
         }
@@ -45,6 +45,16 @@ namespace sclc
     Function Parser::getFunctionByName(std::string name) {
         for (Function func : result.functions) {
             if (func.name == name) {
+                return func;
+            }
+        }
+        for (Prototype proto : result.prototypes) {
+            if (proto.name == name) {
+                Function func(name);
+                func.args = std::vector<std::string>();
+                for (int i = 0; i < proto.argCount; i++) {
+                    func.args.push_back("$arg" + std::to_string(i));
+                }
                 return func;
             }
         }
@@ -208,13 +218,13 @@ namespace sclc
                     if (!operatorsHandled.success) {
                         errors.push_back(operatorsHandled);
                     }
-                } else if (body[i].getType() == tok_identifier && hasVar(body[i].getValue())) {
+                } else if (body[i].getType() == tok_identifier && hasVar(body[i])) {
                     std::string loadFrom = body[i].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
                     fp << "ctrl_push(_" << loadFrom << ");" << std::endl;
-                } else if (body[i].getType() == tok_identifier && hasFunction(body[i].getValue())) {
+                } else if (body[i].getType() == tok_identifier && hasFunction(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
@@ -232,7 +242,7 @@ namespace sclc
                         fp << "ctrl_pop()";
                     }
                     fp << ");" << std::endl;
-                } else if (body[i].getType() == tok_identifier && hasExtern(body[i].getValue())) {
+                } else if (body[i].getType() == tok_identifier && hasExtern(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
@@ -371,20 +381,20 @@ namespace sclc
                     }
                     fp << "}" << std::endl;
                 } else if (body[i].getType() == tok_addr_ref) {
-                    std::string toGet = body[i + 1].getValue();
+                    Token toGet = body[i + 1];
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
                     if (hasExtern(toGet)) {
-                        fp << "ctrl_push((scl_word) &native_" << toGet << ");" << std::endl;
+                        fp << "ctrl_push((scl_word) &native_" << toGet.getValue() << ");" << std::endl;
                     } else if (hasFunction(toGet)) {
-                        fp << "ctrl_push((scl_word) &fn_" << toGet << ");" << std::endl;
+                        fp << "ctrl_push((scl_word) &fn_" << toGet.getValue() << ");" << std::endl;
                     } else if (hasVar(toGet)) {
-                        fp << "ctrl_push(_" << toGet << ");" << std::endl;
+                        fp << "ctrl_push(_" << toGet.getValue() << ");" << std::endl;
                     } else {
                         ParseResult err;
                         err.success = false;
-                        err.message = "Unknown variable: '" + toGet + "'";
+                        err.message = "Unknown variable: '" + toGet.getValue() + "'";
                         err.column = body[i + 1].getColumn();
                         err.where = body[i + 1].getLine();
                         err.in = body[i + 1].getFile();
@@ -403,7 +413,7 @@ namespace sclc
                         result.column = body[i + 1].getColumn();
                         errors.push_back(result);
                     }
-                    if (!hasVar(body[i + 1].getValue())) {
+                    if (!hasVar(body[i + 1])) {
                         ParseResult result;
                         result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                         result.success = false;
@@ -458,7 +468,7 @@ namespace sclc
                         result.column = body[i + 1].getColumn();
                         errors.push_back(result);
                     }
-                    if (!hasVar(body[i + 1].getValue())) {
+                    if (!hasVar(body[i + 1])) {
                         ParseResult result;
                         result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                         result.success = false;
