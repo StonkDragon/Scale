@@ -7,9 +7,16 @@
 
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+
 #include <signal.h>
 #include <errno.h>
-#include <chrono>
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include "Common.hpp"
 #include "DragonConfig.hpp"
@@ -58,7 +65,9 @@ namespace sclc
         bool transpileOnly      = false;
         bool preprocessOnly     = false;
         bool assembleOnly       = false;
+        bool listlibraries      = false;
 
+        std::string infoFile;
         std::string outfile     = "out.scl";
         std::string scaleFolder = std::string(getenv("HOME")) + "/Scale";
         std::string cmd         = "clang -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
@@ -100,11 +109,54 @@ namespace sclc
                 } else if (args[i] == "-S") {
                     assembleOnly = true;
                     cmd += "-S ";
+                } else if (args[i] == "-info") {
+#ifdef _WIN32
+                    std::cerr << "Error: this subcommand is not supported on Windows" << std::endl;
+                    return 1;
+#endif
+
+                    listlibraries = true;
+                    if (i + 1 < args.size()) {
+                        infoFile = args[i + 1];
+                        i++;
+                    } else {
+                        std::cerr << "Error: -info requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else {
                     cmd += args[i] + " ";
                 }
             }
         }
+
+#ifndef _WIN32
+        if (listlibraries) {
+            char* const env[] = {
+                (char* const) "__SCALE_CONTENT_REQUEST=list-libraries",
+                NULL
+            };
+            char* const args[] = {
+                (char* const) infoFile.c_str(),
+                NULL
+            };
+            pid_t pid = fork();
+            if (pid < 0) {
+                std::cerr << "Error: failed to fork" << std::endl;
+                return 1;
+            } else if (pid > 0) {
+                waitpid(pid, NULL, 0);
+            } else if (pid == 0) {
+                errno = 0;
+                int i = execve(infoFile.c_str(), args, env);
+                if (i < 0) {
+                    std::cerr << "Error: failed to exec" << std::endl;
+                    std::cerr << "errno: " << std::strerror(errno) << std::endl;
+                    return 1;
+                }
+            }
+            return 0;
+        }
+#endif
 
         cmd += "-o " + outfile + " ";
 
