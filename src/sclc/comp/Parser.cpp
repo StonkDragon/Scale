@@ -505,6 +505,10 @@ namespace sclc
                     }
                     fp << "}" << std::endl;
                 } else if (body[i].getType() == tok_sapopen) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "\t";
+                    }
+                    fp << "{" << std::endl;
                     scopeDepth++;
                     sap_depth++;
                     for (int j = 0; j < scopeDepth; j++) {
@@ -518,6 +522,10 @@ namespace sclc
                     fp << "sap_close();" << std::endl;
                     sap_depth--;
                     scopeDepth--;
+                    for (int j = 0; j < scopeDepth; j++) {
+                        fp << "\t";
+                    }
+                    fp << "{" << std::endl;
                 } else {
                     ParseResult result;
                     result.message = "Unknown identifier: '" + body[i].getValue() + "'";
