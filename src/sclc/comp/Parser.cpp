@@ -202,8 +202,9 @@ namespace sclc
             }
 
             std::vector<Token> body = function.getBody();
+            std::vector<Token> sap_tokens;
             size_t i;
-            size_t sap_depth = 0;
+            ssize_t sap_depth = 0;
             for (i = 0; i < body.size(); i++)
             {
                 if (body[i].getType() == tok_ignore) continue;
@@ -347,7 +348,7 @@ namespace sclc
                         fp << "\t";
                     }
                     fp << "if (stk_sz > 0)  ret = ctrl_pop();" << std::endl;
-                    for (size_t j = 0; j < sap_depth; j++) {
+                    for (ssize_t j = 0; j < sap_depth; j++) {
                         for (int k = 0; k < scopeDepth; k++) {
                             fp << "\t";
                         }
@@ -515,7 +516,18 @@ namespace sclc
                         fp << "\t";
                     }
                     fp << "sap_open();" << std::endl;
+                    sap_tokens.push_back(body[i]);
                 } else if (body[i].getType() == tok_sapclose) {
+                    if (sap_depth == 0) {
+                        ParseResult result;
+                        result.message = "Trying to close unexistent SAP";
+                        result.success = false;
+                        result.where = body[i].getLine();
+                        result.in = body[i].getFile();
+                        result.token = body[i].getValue();
+                        result.column = body[i].getColumn();
+                        errors.push_back(result);
+                    }
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
@@ -525,7 +537,8 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         fp << "\t";
                     }
-                    fp << "{" << std::endl;
+                    fp << "}" << std::endl;
+                    if (sap_tokens.size() > 0) sap_tokens.pop_back();
                 } else {
                     ParseResult result;
                     result.message = "Unknown identifier: '" + body[i].getValue() + "'";
@@ -557,6 +570,17 @@ namespace sclc
                 fp << "sap_close();" << std::endl;
             }
             fp << "}" << std::endl << std::endl;
+
+            if (sap_depth > 0) {
+                ParseResult result;
+                result.message = "SAP never closed, Opened here:";
+                result.success = false;
+                result.where = sap_tokens[sap_tokens.size() - 1].getLine();
+                result.in = sap_tokens[sap_tokens.size() - 1].getFile();
+                result.token = sap_tokens[sap_tokens.size() - 1].getValue();
+                result.column = sap_tokens[sap_tokens.size() - 1].getColumn();
+                errors.push_back(result);
+            }
         }
 
         std::string mainEntry = 
