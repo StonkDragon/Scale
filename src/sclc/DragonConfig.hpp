@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+typedef unsigned long u_long;
+#endif
+
 namespace DragonConfig {
     enum class EntryType {
         String,
@@ -23,7 +27,7 @@ namespace DragonConfig {
         void setType(EntryType type) { this->type = type; }
     };
 
-    struct StringEntry : ConfigEntry {
+    struct StringEntry : public ConfigEntry {
         static const StringEntry Empty;
 
     private:
@@ -53,7 +57,7 @@ namespace DragonConfig {
         }
     };
 
-    struct ListEntry : ConfigEntry {
+    struct ListEntry : public ConfigEntry {
         static const ListEntry Empty;
 
     private:
@@ -114,7 +118,7 @@ namespace DragonConfig {
         }
     };
 
-    struct CompoundEntry : ConfigEntry {
+    struct CompoundEntry : public ConfigEntry {
         static const CompoundEntry Empty;
 
         std::vector<CompoundEntry> compounds;
