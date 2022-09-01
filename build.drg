@@ -52,8 +52,8 @@ dev: {
   defines: [
     "VERSION=\"2.8\"";
   ];
+  std: "gnu++17";
   flags: [
-    "-std=gnu++17";
     "-Wall";
     "-Wextra";
     "-Werror";

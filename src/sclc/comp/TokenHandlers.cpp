@@ -12,7 +12,7 @@ namespace sclc
 {
     ParseResult handleOperator(std::fstream &fp, Token token, int scopeDepth) {
         for (int j = 0; j < scopeDepth; j++) {
-            fp << "\t";
+            fp << "  ";
         }
         switch (token.type) {
             case tok_add: fp << "op_add();" << std::endl; break;
@@ -52,7 +52,7 @@ namespace sclc
         try {
             long long num = parseNumber(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
-                fp << "\t";
+                fp << "  ";
             }
             fp << "ctrl_push_long(" << num << ");" << std::endl;
         } catch (std::exception &e) {
@@ -181,14 +181,14 @@ namespace sclc
         }
         if (!varExists) {
             for (int j = 0; j < *scopeDepth; j++) {
-                fp << "\t";
+                fp << "  ";
             }
             fp << "scl_word _" << loopVar.getValue() << ";" << std::endl;
         }
 
         if (!doNumberCheck || lower <= higher) {
             for (int j = 0; j < *scopeDepth; j++) {
-                fp << "\t";
+                fp << "  ";
             }
             if (from.getType() == tok_identifier && !hasVar(from)) {
                 ParseResult result;
@@ -239,7 +239,7 @@ namespace sclc
         try {
             double num = parseDouble(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
-                fp << "\t";
+                fp << "  ";
             }
             fp << "ctrl_push_double(" << num << ");" << std::endl;
         } catch (std::exception &e) {
