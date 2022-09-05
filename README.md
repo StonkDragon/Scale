@@ -25,7 +25,7 @@ Required:
 - `cpp`
 
 Optional:
-- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling)
+- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
 - `python3` (for tests)
 
 # Documentation
