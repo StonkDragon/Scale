@@ -124,6 +124,7 @@ namespace sclc
             DragonConfig::ListEntry implementers = root.getList("implementers");
             DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
             DragonConfig::ListEntry depends = root.getList("depends");
+            DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
             std::string version = root.getString("version").getValue();
             std::string headerDir = root.getString("headerDir").getValue();
             std::string implDir = root.getString("implDir").getValue();
@@ -146,6 +147,11 @@ namespace sclc
                     std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                     return 1;
                 }
+            }
+
+            for (size_t i = 0; i < compilerFlags.size(); i++) {
+                std::string flag = compilerFlags.get(i);
+                cmd += flag + " ";
             }
 
             MAIN.frameworks.push_back(framework);
