@@ -16,12 +16,11 @@ build: {
   includePrefix: "-I";
   libraryPaths: [];
   libs: [];
+  std: "gnu++17";
   defines: [
     "VERSION=\"2.8\"";
   ];
-  flags: [
-    "-std=gnu++17";
-  ];
+  flags: [];
   preBuild: [];
   postBuild: [];
 };
