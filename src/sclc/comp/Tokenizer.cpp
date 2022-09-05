@@ -210,7 +210,7 @@ namespace sclc
             }
             c = source[++current];
             column++;
-        } else if (c == '[' || c == ']') {
+        } else if (isBracket(c)) {
             value += c;
             c = source[++current];
             startColumn = column;
@@ -253,6 +253,8 @@ namespace sclc
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);
         TYPES(")", close_paren, line, filename, startColumn);
+        TYPES("{", curly_open, line, filename, startColumn);
+        TYPES("}", curly_close, line, filename, startColumn);
         TYPES(",", comma, line, filename, startColumn);
         TYPES("+", add, line, filename, startColumn);
         TYPES("-", sub, line, filename, startColumn);
