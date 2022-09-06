@@ -10,27 +10,27 @@
 #include "../Common.hpp"
 namespace sclc
 {
-    ParseResult handleOperator(std::fstream &fp, Token token, int scopeDepth) {
+    ParseResult handleOperator(FILE* fp, Token token, int scopeDepth) {
         for (int j = 0; j < scopeDepth; j++) {
-            fp << "  ";
+            fprintf(fp, "  ");
         }
         switch (token.type) {
-            case tok_add: fp << "op_add();" << std::endl; break;
-            case tok_sub: fp << "op_sub();" << std::endl; break;
-            case tok_mul: fp << "op_mul();" << std::endl; break;
-            case tok_div: fp << "op_div();" << std::endl; break;
-            case tok_mod: fp << "op_mod();" << std::endl; break;
-            case tok_land: fp << "op_land();" << std::endl; break;
-            case tok_lor: fp << "op_lor();" << std::endl; break;
-            case tok_lxor: fp << "op_lxor();" << std::endl; break;
-            case tok_lnot: fp << "op_lnot();" << std::endl; break;
-            case tok_lsh: fp << "op_lsh();" << std::endl; break;
-            case tok_rsh: fp << "op_rsh();" << std::endl; break;
-            case tok_pow: fp << "op_pow();" << std::endl; break;
-            case tok_dadd: fp << "op_dadd();" << std::endl; break;
-            case tok_dsub: fp << "op_dsub();" << std::endl; break;
-            case tok_dmul: fp << "op_dmul();" << std::endl; break;
-            case tok_ddiv: fp << "op_ddiv();" << std::endl; break;
+            case tok_add: fprintf(fp, "op_add();\n"); break;
+            case tok_sub: fprintf(fp, "op_sub();\n"); break;
+            case tok_mul: fprintf(fp, "op_mul();\n"); break;
+            case tok_div: fprintf(fp, "op_div();\n"); break;
+            case tok_mod: fprintf(fp, "op_mod();\n"); break;
+            case tok_land: fprintf(fp, "op_land();\n"); break;
+            case tok_lor: fprintf(fp, "op_lor();\n"); break;
+            case tok_lxor: fprintf(fp, "op_lxor();\n"); break;
+            case tok_lnot: fprintf(fp, "op_lnot();\n"); break;
+            case tok_lsh: fprintf(fp, "op_lsh();\n"); break;
+            case tok_rsh: fprintf(fp, "op_rsh();\n"); break;
+            case tok_pow: fprintf(fp, "op_pow();\n"); break;
+            case tok_dadd: fprintf(fp, "op_dadd();\n"); break;
+            case tok_dsub: fprintf(fp, "op_dsub();\n"); break;
+            case tok_dmul: fprintf(fp, "op_dmul();\n"); break;
+            case tok_ddiv: fprintf(fp, "op_ddiv();\n"); break;
             default:
             {
                 ParseResult result;
@@ -48,13 +48,13 @@ namespace sclc
         return result;
     }
 
-    ParseResult handleNumber(std::fstream &fp, Token token, int scopeDepth) {
+    ParseResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         try {
             long long num = parseNumber(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
-                fp << "  ";
+                fprintf(fp, "  ");
             }
-            fp << "ctrl_push_long(" << num << ");" << std::endl;
+            fprintf(fp, "ctrl_push_long(%lld);\n", num);
         } catch (std::exception &e) {
             ParseResult result;
             result.success = false;
@@ -71,7 +71,7 @@ namespace sclc
         return result;
     }
 
-    ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, std::fstream &fp, int* scopeDepth) {
+    ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth) {
         if (keywDeclare.getType() != tok_declare) {
             ParseResult result;
             result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
@@ -181,14 +181,14 @@ namespace sclc
         }
         if (!varExists) {
             for (int j = 0; j < *scopeDepth; j++) {
-                fp << "  ";
+                fprintf(fp, "  ");
             }
-            fp << "scl_word _" << loopVar.getValue() << ";" << std::endl;
+            fprintf(fp, "scl_word _%s;\n", loopVar.getValue().c_str());
         }
 
         if (!doNumberCheck || lower <= higher) {
             for (int j = 0; j < *scopeDepth; j++) {
-                fp << "  ";
+                fprintf(fp, "  ");
             }
             if (from.getType() == tok_identifier && !hasVar(from)) {
                 ParseResult result;
@@ -211,11 +211,13 @@ namespace sclc
                 return result;
             }
 
-            fp << "for (_" << loopVar.getValue() << " = (void*) ";
-            fp << (from.getType() == tok_identifier ? "_" : "") << from.getValue();
-            fp << "; _" << loopVar.getValue() << " <= (void*) ";
-            fp << (to.getType() == tok_identifier ? "_" : "") << to.getValue();
-            fp << "; _" << loopVar.getValue() << "++) {" << std::endl;
+            fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());
+            fprintf(fp, "%s", (from.getType() == tok_identifier ? "_" : ""));
+            fprintf(fp, "%s", from.getValue().c_str());
+            fprintf(fp, "; _%s <= (void*) ", loopVar.getValue().c_str());
+            fprintf(fp, "%s", (to.getType() == tok_identifier ? "_" : ""));
+            fprintf(fp, "%s", to.getValue().c_str());
+            fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
         } else {
             ParseResult result;
             result.message = "Lower bound of for loop is greater than upper bound";
@@ -235,13 +237,13 @@ namespace sclc
         return result;
     }
 
-    ParseResult handleDouble(std::fstream &fp, Token token, int scopeDepth) {
+    ParseResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         try {
             double num = parseDouble(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
-                fp << "  ";
+                fprintf(fp, "  ");
             }
-            fp << "ctrl_push_double(" << num << ");" << std::endl;
+            fprintf(fp, "ctrl_push_double(%f);\n", num);
         } catch (std::exception &e) {
             ParseResult result;
             result.success = false;

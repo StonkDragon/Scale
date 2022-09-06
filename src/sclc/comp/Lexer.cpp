@@ -7,9 +7,6 @@
 
 #include "../Common.hpp"
 
-#include "Tokenizer.cpp"
-#include "../Main.cpp"
-
 namespace sclc
 {
     AnalyzeResult Lexer::lexAnalyze()
@@ -70,12 +67,12 @@ namespace sclc
                     currentFunction->addModifier(mod_sap);
                     funcSAP = false;
                 }
-                addIfAbsent<Function>(functions, *currentFunction);
+                addIfAbsent(functions, *currentFunction);
                 currentFunction = nullptr;
             } else if (token.getType() == tok_proto) {
                 std::string name = tokens[++i].getValue();
-                std::string argString = tokens[++i].getValue();
-                int argCount = std::stoi(argString);
+                std::string argstring = tokens[++i].getValue();
+                int argCount = stoi(argstring);
                 prototypes.push_back(Prototype(name, argCount));
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr) {

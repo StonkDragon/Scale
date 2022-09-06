@@ -21,10 +21,6 @@
 #include "Common.hpp"
 #include "DragonConfig.hpp"
 
-#include "comp/Tokenizer.cpp"
-#include "comp/Lexer.cpp"
-#include "comp/Parser.cpp"
-
 #ifndef VERSION
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
 #endif
@@ -42,6 +38,7 @@ namespace sclc
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
+        std::cout << "  --no-dce         Disable dead code elimination" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -60,7 +57,7 @@ namespace sclc
             return 1;
         }
 
-        auto start = std::chrono::high_resolution_clock::now();
+        auto start = chrono::high_resolution_clock::now();
 
         bool transpileOnly      = false;
         bool preprocessOnly     = false;
@@ -130,8 +127,8 @@ namespace sclc
             std::string implDir = root.getString("implDir").getValue();
             std::string implHeaderDir = root.getString("implHeaderDir").getValue();
 
-            double versionNum = std::stod(version);
-            double compilerVersionNum = std::stod(VERSION);
+            double versionNum = stod(version);
+            double compilerVersionNum = stod(VERSION);
             if (versionNum > compilerVersionNum) {
                 std::cerr << "Error: Framework '" << framework << "' requires Scale " << version << " but you are using " << VERSION << std::endl;
                 return 1;
@@ -260,8 +257,8 @@ namespace sclc
         }
 
         if (transpileOnly) {
-            auto end = std::chrono::high_resolution_clock::now();
-            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+            auto end = chrono::high_resolution_clock::now();
+            double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
@@ -281,8 +278,8 @@ namespace sclc
         
         std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
-        auto end = std::chrono::high_resolution_clock::now();
-        double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+        auto end = chrono::high_resolution_clock::now();
+        double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
         std::cout << "Took " << duration << " seconds." << std::endl;
 
         return 0;

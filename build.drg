@@ -8,6 +8,11 @@ build: {
   ];
   units: [
     "Main.cpp";
+    "comp/Lexer.cpp";
+    "comp/Parser.cpp";
+    "comp/TokenHandlers.cpp";
+    "comp/Tokenizer.cpp";
+    "Common.cpp";
   ];
   outFilePrefix: "-o";
   libraryPathPrefix: "-L";
@@ -40,6 +45,11 @@ dev: {
   ];
   units: [
     "Main.cpp";
+    "comp/Lexer.cpp";
+    "comp/Parser.cpp";
+    "comp/TokenHandlers.cpp";
+    "comp/Tokenizer.cpp";
+    "Common.cpp";
   ];
   outFilePrefix: "-o";
   libraryPathPrefix: "-L";

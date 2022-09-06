@@ -7,41 +7,17 @@
 #include <vector>
 #include <fstream>
 
+#include <stdio.h>
+
 #include "../Common.hpp"
 
-#include "Lexer.cpp"
-#include "Tokenizer.cpp"
-
-#undef INT_MAX
-#undef INT_MIN
-#undef LONG_MAX
-#undef LONG_MIN
-
-#define INT_MAX 0x7FFFFFFF
-#define INT_MIN 0x80000000
-#define LONG_MAX 0x7FFFFFFFFFFFFFFFll
-#define LONG_MIN 0x8000000000000000ll
-
-#define LINE_LENGTH 48
-
 namespace sclc
 {
-    static std::vector<std::string> vars;
+    ParseResult handleOperator(FILE* fp, Token token, int scopeDepth);
+    ParseResult handleNumber(FILE* fp, Token token, int scopeDepth);
+    ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
+    ParseResult handleDouble(FILE* fp, Token token, int scopeDepth);
 
-    bool hasVar(Token name) {
-        for (std::string var : vars) {
-            if (var == name.getValue()) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-#include "TokenHandlers.cpp"
-
-namespace sclc
-{
     Function Parser::getFunctionByName(std::string name) {
         for (Function func : result.functions) {
             if (func.name == name) {
@@ -66,7 +42,7 @@ namespace sclc
         std::vector<ParseResult> warns;
         std::vector<std::string> globals;
 
-        std::fstream fp((filename + std::string(".c")).c_str(), std::ios::out);
+        FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
 
         if (getFunctionByName("main") == Function("%NULFUNC%")) {
             ParseResult result;
@@ -78,52 +54,52 @@ namespace sclc
             errors.push_back(result);
         }
 
-        fp << "#ifdef __cplusplus\n";
-        fp << "extern \"C\" {"     << "\n";
-        fp << "#endif"             << "\n";
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "extern \"C\" {\n");
+        fprintf(fp, "#endif\n");
 
-        fp << "\n";
-        fp << "/* HEADERS */\n";
+        fprintf(fp, "\n");
+        fprintf(fp, "/* HEADERS */\n");
         for (std::string header : MAIN.frameworkNativeHeaders) {
-            fp << "#include <" << header << ">\n";
+            fprintf(fp, "#include <%s>\n", header.c_str());
         }
 
-        fp << "\n";
-        fp << "/* FUNCTION HEADERS */\n";
+        fprintf(fp, "\n");
+        fprintf(fp, "/* FUNCTION HEADERS */\n");
 
         for (Function function : result.functions) {
-            fp << "void fn_" << function.getName() << "(";
+            fprintf(fp, "void fn_%s(", function.getName().c_str());
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 if (i != (ssize_t) function.getArgs().size() - 1) {
-                    fp << ", ";
+                    fprintf(fp, ", ");
                 }
-                fp << "scl_word _" << var;
+                fprintf(fp, "scl_word _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
-                fp << "void";
+                fprintf(fp, "void");
             }
-            fp << ");\n";
+            fprintf(fp, ");\n");
         }
         
-        fp << "\n";
-        fp << "/* EXTERNS */\n";
+        fprintf(fp, "\n");
+        fprintf(fp, "/* EXTERNS */\n");
 
         for (Extern extern_ : result.externs) {
-            fp << "void native_" << extern_.name << "(void);\n";
+            fprintf(fp, "void native_%s(void);\n", extern_.name.c_str());
         }
 
-        fp << "\n";
-        fp << "/* GLOBALS */\n";
+        fprintf(fp, "\n");
+        fprintf(fp, "/* GLOBALS */\n");
 
         for (std::string s : result.globals) {
-            fp << "scl_word _" << s << ";\n";
+            fprintf(fp, "scl_word _%s;\n", s.c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
 
-        fp << "\n";
-        fp << "/* FUNCTIONS */\n";
+        fprintf(fp, "\n");
+        fprintf(fp, "/* FUNCTIONS */\n");
 
         int funcsSize = result.functions.size();
         for (int f = 0; f < funcsSize; f++)
@@ -151,7 +127,7 @@ namespace sclc
 
             (void) noWarns;
 
-            fp << "void fn_" << function.getName() << "(";
+            fprintf(fp, "void fn_%s(", function.getName().c_str());
 
             std::string functionDeclaration = "";
 
@@ -168,29 +144,29 @@ namespace sclc
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
                 if (i != (ssize_t) function.getArgs().size() - 1) {
-                    fp << ", ";
+                    fprintf(fp, ", ");
                 }
-                fp << "scl_word _" << var;
+                fprintf(fp, "scl_word _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
-                fp << "void";
+                fprintf(fp, "void");
             }
-            fp << ") {\n";
+            fprintf(fp, ") {\n");
 
             for (int j = 0; j < scopeDepth; j++) {
-                fp << "  ";
+                fprintf(fp, "  ");
             }
             if (funcPrivateStack) {
-                fp << "ctrl_fn_start(\"" << functionDeclaration << "\");\n";
+                fprintf(fp, "ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
             } else {
-                fp << "ctrl_fn_nps_start(\"" << functionDeclaration << "\");\n";
+                fprintf(fp, "ctrl_fn_nps_start(\"%s\");\n", functionDeclaration.c_str());
             }
 
             if (sap) {
                 for (int j = 0; j < scopeDepth; j++) {
-                    fp << "  ";
+                    fprintf(fp, "  ");
                 }
-                fp << "sap_open();\n";
+                fprintf(fp, "sap_open();\n");
             }
 
             std::vector<Token> body = function.getBody();
@@ -202,9 +178,9 @@ namespace sclc
                 if (body[i].getType() == tok_ignore) continue;
 
                 for (int j = 0; j < scopeDepth; j++) {
-                    fp << "  ";
+                    fprintf(fp, "  ");
                 }
-                fp << "ctrl_where(\"" + body[i].getFile() + "\", " + std::to_string(body[i].getLine()) + ", " + std::to_string(body[i].getColumn()) + ");\n";
+                fprintf(fp, "ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
 
                 if (isOperator(body[i])) {
                     ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
@@ -214,45 +190,45 @@ namespace sclc
                 } else if (body[i].getType() == tok_identifier && hasVar(body[i])) {
                     std::string loadFrom = body[i].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_push(_" << loadFrom << ");\n";
+                    fprintf(fp, "ctrl_push(_%s);\n", loadFrom.c_str());
                 } else if (body[i].getType() == tok_identifier && hasFunction(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_required(" << getFunctionByName(body[i].getValue()).getArgs().size() << ", ";
-                    fp << "\"" << body[i].getValue() << "\");\n";
+                    fprintf(fp, "ctrl_required(%zu, ", getFunctionByName(body[i].getValue()).getArgs().size());
+                    fprintf(fp, "\"%s\");\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "fn_" << body[i].getValue() << "(";
+                    fprintf(fp, "fn_%s(", body[i].getValue().c_str());
                     Function func = getFunctionByName(body[i].getValue());
                     for (ssize_t j = (ssize_t) func.getArgs().size() - 1; j >= 0; j--) {
                         if (j != (ssize_t) func.getArgs().size() - 1) {
-                            fp << ", ";
+                            fprintf(fp, ", ");
                         }
-                        fp << "ctrl_pop()";
+                        fprintf(fp, "ctrl_pop()");
                     }
-                    fp << ");\n";
+                    fprintf(fp, ");\n");
                 } else if (body[i].getType() == tok_identifier && hasExtern(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_fn_native_start(\"" << body[i].getValue() << "\");\n";
+                    fprintf(fp, "ctrl_fn_native_start(\"%s\");\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "native_" << body[i].getValue() << "();\n";
+                    fprintf(fp, "native_%s();\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_fn_native_end();\n";
+                    fprintf(fp, "ctrl_fn_native_end();\n");
                 } else if (body[i].getType() == tok_string_literal) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_push_string(\"" << body[i].getValue() << "\");\n";
+                    fprintf(fp, "ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_number) {
                     ParseResult numberHandled = handleNumber(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
@@ -265,38 +241,38 @@ namespace sclc
                     }
                 } else if (body[i].getType() == tok_nil || body[i].getType() == tok_false) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_push((scl_word) 0);\n";
+                    fprintf(fp, "ctrl_push((scl_word) 0);\n");
                 } else if (body[i].getType() == tok_true) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_push((scl_word) 1);\n";
+                    fprintf(fp, "ctrl_push((scl_word) 1);\n");
                 } else if (body[i].getType() == tok_if) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
                     scopeDepth++;
-                    fp << "if (ctrl_pop_long()) {\n";
+                    fprintf(fp, "if (ctrl_pop_long()) {\n");
                 } else if (body[i].getType() == tok_else) {
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
                     scopeDepth++;
-                    fp << "} else {\n";
+                    fprintf(fp, "} else {\n");
                 } else if (body[i].getType() == tok_while) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
                     scopeDepth++;
-                    fp << "while (1) {\n";
+                    fprintf(fp, "while (1) {\n");
                 } else if (body[i].getType() == tok_do) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "if (!ctrl_pop_long()) break;\n";
+                    fprintf(fp, "if (!ctrl_pop_long()) break;\n");
                 } else if (body[i].getType() == tok_for) {
                     ParseResult forHandled = handleFor(
                         body[i+1],
@@ -319,71 +295,71 @@ namespace sclc
                         || body[i].getType() == tok_end) {
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "}\n";
+                    fprintf(fp, "}\n");
                 } else if (body[i].getType() == tok_return) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "{\n";
+                    fprintf(fp, "{\n");
                     scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "scl_word ret;\n";
+                    fprintf(fp, "scl_word ret;\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ssize_t stk_sz = ctrl_stack_size();\n";
+                    fprintf(fp, "ssize_t stk_sz = ctrl_stack_size();\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "if (stk_sz > 0)  ret = ctrl_pop();\n";
+                    fprintf(fp, "if (stk_sz > 0)  ret = ctrl_pop();\n");
                     for (ssize_t j = 0; j < sap_depth; j++) {
                         for (int k = 0; k < scopeDepth; k++) {
-                            fp << "  ";
+                            fprintf(fp, "  ");
                         }
-                        fp << "sap_close();\n";
+                        fprintf(fp, "sap_close();\n");
                     }
                     if (sap) {
                         for (int j = 0; j < scopeDepth; j++) {
-                            fp << "  ";
+                            fprintf(fp, "  ");
                         }
-                        fp << "sap_close();\n";
+                        fprintf(fp, "sap_close();\n");
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
                     if (funcPrivateStack) {
-                        fp << "ctrl_fn_end();\n";
+                        fprintf(fp, "ctrl_fn_end();\n");
                     } else {
-                        fp << "ctrl_fn_nps_end();\n";
+                        fprintf(fp, "ctrl_fn_nps_end();\n");
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "if (stk_sz > 0) ctrl_push(ret);\n";
+                    fprintf(fp, "if (stk_sz > 0) ctrl_push(ret);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "return;\n";
+                    fprintf(fp, "return;\n");
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "}\n";
+                    fprintf(fp, "}\n");
                 } else if (body[i].getType() == tok_addr_ref) {
                     Token toGet = body[i + 1];
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
                     if (hasExtern(toGet)) {
-                        fp << "ctrl_push((scl_word) &native_" << toGet.getValue() << ");\n";
+                        fprintf(fp, "ctrl_push((scl_word) &native_%s);\n", toGet.getValue().c_str());
                     } else if (hasFunction(toGet)) {
-                        fp << "ctrl_push((scl_word) &fn_" << toGet.getValue() << ");\n";
+                        fprintf(fp, "ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
                     } else if (hasVar(toGet)) {
-                        fp << "ctrl_push(_" << toGet.getValue() << ");\n";
+                        fprintf(fp, "ctrl_push(_%s);\n", toGet.getValue().c_str());
                     } else {
                         ParseResult err;
                         err.success = false;
@@ -418,9 +394,9 @@ namespace sclc
                     }
                     std::string storeIn = body[i + 1].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "_" << storeIn << " = ctrl_pop();\n";
+                    fprintf(fp, "_%s = ctrl_pop();\n", storeIn.c_str());
                     i++;
                 } else if (body[i].getType() == tok_declare) {
                     if (body[i + 1].getType() != tok_identifier) {
@@ -436,20 +412,20 @@ namespace sclc
                     vars.push_back(body[i + 1].getValue());
                     std::string loadFrom = body[i + 1].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "scl_word _" << loadFrom << ";\n";
+                    fprintf(fp, "scl_word _%s;\n", loadFrom.c_str());
                     i++;
                 } else if (body[i].getType() == tok_continue) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "continue;\n";
+                    fprintf(fp, "continue;\n");
                 } else if (body[i].getType() == tok_break) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "break;\n";
+                    fprintf(fp, "break;\n");
                 } else if (body[i].getType() == tok_ref) {
                     if (body[i + 1].getType() != tok_identifier) {
                         ParseResult result;
@@ -472,42 +448,42 @@ namespace sclc
                         errors.push_back(result);
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "*((scl_word*) _" << body[i + 1].getValue() << ") = ctrl_pop();\n";
+                    fprintf(fp, "*((scl_word*) _%s) = ctrl_pop();\n", body[i + 1].getValue().c_str());
                     i++;
                 } else if (body[i].getType() == tok_deref) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "{\n";
+                    fprintf(fp, "{\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "scl_word addr = ctrl_pop();\n";
+                    fprintf(fp, "scl_word addr = ctrl_pop();\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "scl_security_check_null(addr);\n";
+                    fprintf(fp, "scl_security_check_null(addr);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "ctrl_push(*(scl_word*) addr);\n";
+                    fprintf(fp, "ctrl_push(*(scl_word*) addr);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "}\n";
+                    fprintf(fp, "}\n");
                 } else if (body[i].getType() == tok_sapopen) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "{\n";
+                    fprintf(fp, "{\n");
                     scopeDepth++;
                     sap_depth++;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "sap_open();\n";
+                    fprintf(fp, "sap_open();\n");
                     sap_tokens.push_back(body[i]);
                 } else if (body[i].getType() == tok_sapclose) {
                     if (sap_depth == 0) {
@@ -521,19 +497,19 @@ namespace sclc
                         errors.push_back(result);
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "sap_close();\n";
+                    fprintf(fp, "sap_close();\n");
                     sap_depth--;
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fp << "  ";
+                        fprintf(fp, "  ");
                     }
-                    fp << "}\n";
+                    fprintf(fp, "}\n");
                     if (sap_tokens.size() > 0) sap_tokens.pop_back();
                 } else {
                     ParseResult result;
-                    result.message = "Unknown identifier: '" + body[i].getValue() + "'";
+                    result.message = "Unknown identifier: '%s', body[i].getValue().c_str()";
                     result.success = false;
                     result.where = body[i].getLine();
                     result.in = body[i].getFile();
@@ -544,24 +520,24 @@ namespace sclc
             }
             if (funcPrivateStack) {
                 if (body.size() <= 0) {
-                    fp << "  ctrl_fn_end();\n";
+                    fprintf(fp, "  ctrl_fn_end();\n");
                 } else if (body[body.size() - 1].getType() != tok_return) {
-                    fp << "  ctrl_fn_end();\n";
+                    fprintf(fp, "  ctrl_fn_end();\n");
                 }
             } else {
                 if (body.size() <= 0) {
-                    fp << "  ctrl_fn_nps_end();\n";
+                    fprintf(fp, "  ctrl_fn_nps_end();\n");
                 } else if (body[body.size() - 1].getType() != tok_return) {
-                    fp << "  ctrl_fn_nps_end();\n";
+                    fprintf(fp, "  ctrl_fn_nps_end();\n");
                 }
             }
             if (sap) {
                 for (int j = 0; j < scopeDepth; j++) {
-                    fp << "  ";
+                    fprintf(fp, "  ");
                 }
-                fp << "sap_close();\n";
+                fprintf(fp, "sap_close();\n");
             }
-            fp << "}\n" << "\n";
+            fprintf(fp, "}\n\n");
 
             if (sap_depth > 0) {
                 ParseResult result;
@@ -595,14 +571,14 @@ namespace sclc
         "  return 0;\n"
         "}\n";
 
-        fp << mainEntry << "\n";
+        fprintf(fp, "%s\n", mainEntry.c_str());
 
-        fp << "#ifdef __cplusplus\n";
-        fp << "}\n";
-        fp << "#endif\n";
-        fp << "/* END OF GENERATED CODE */" << std::endl;
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "}\n");
+        fprintf(fp, "#endif\n");
+        fprintf(fp, "/* END OF GENERATED CODE */\n");
 
-        fp.close();
+        fclose(fp);
 
         ParseResult parseResult;
         parseResult.success = true;

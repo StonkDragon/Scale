@@ -5,8 +5,23 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <regex>
 
 #define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
+
+#undef INT_MAX
+#undef INT_MIN
+#undef LONG_MAX
+#undef LONG_MIN
+
+#define INT_MAX 0x7FFFFFFF
+#define INT_MIN 0x80000000
+#define LONG_MAX 0x7FFFFFFFFFFFFFFFll
+#define LONG_MIN 0x8000000000000000ll
+
+#define LINE_LENGTH 48
+
+
 namespace sclc
 {
     struct Color {
@@ -28,71 +43,11 @@ namespace sclc
         static const std::string BOLDCYAN;
         static const std::string BOLDWHITE;
     };
-    #ifdef _WIN32
-    const std::string Color::RESET = "";
-    const std::string Color::BLACK = "";
-    const std::string Color::RED = "";
-    const std::string Color::GREEN = "";
-    const std::string Color::YELLOW = "";
-    const std::string Color::BLUE = "";
-    const std::string Color::MAGENTA = "";
-    const std::string Color::CYAN = "";
-    const std::string Color::WHITE = "";
-    const std::string Color::BOLDBLACK = "";
-    const std::string Color::BOLDRED = "";
-    const std::string Color::BOLDGREEN = "";
-    const std::string Color::BOLDYELLOW = "";
-    const std::string Color::BOLDBLUE = "";
-    const std::string Color::BOLDMAGENTA = "";
-    const std::string Color::BOLDCYAN = "";
-    const std::string Color::BOLDWHITE = "";
-    #else
-    const std::string Color::RESET = "\033[0m";
-    const std::string Color::BLACK = "\033[30m";
-    const std::string Color::RED = "\033[31m";
-    const std::string Color::GREEN = "\033[32m";
-    const std::string Color::YELLOW = "\033[33m";
-    const std::string Color::BLUE = "\033[34m";
-    const std::string Color::MAGENTA = "\033[35m";
-    const std::string Color::CYAN = "\033[36m";
-    const std::string Color::WHITE = "\033[37m";
-    const std::string Color::BOLDBLACK = "\033[1m\033[30m";
-    const std::string Color::BOLDRED = "\033[1m\033[31m";
-    const std::string Color::BOLDGREEN = "\033[1m\033[32m";
-    const std::string Color::BOLDYELLOW = "\033[1m\033[33m";
-    const std::string Color::BOLDBLUE = "\033[1m\033[34m";
-    const std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
-    const std::string Color::BOLDCYAN = "\033[1m\033[36m";
-    const std::string Color::BOLDWHITE = "\033[1m\033[37m";
-    #endif
+    
+    extern std::vector<std::string> vars;
 
-    long long parseNumber(std::string str) {
-        long long value;
-        if (str.substr(0, 2) == "0x") {
-            value = std::stoll(str.substr(2), nullptr, 16);
-        } else if (str.substr(0, 2) == "0b") {
-            value = std::stoll(str.substr(2), nullptr, 2);
-        } else if (str.substr(0, 2) == "0o") {
-            value = std::stoll(str.substr(2), nullptr, 8);
-        } else {
-            value = std::stoll(str);
-        }
-        return value;
-    }
-
-    double parseDouble(std::string str) {
-        double num;
-        try
-        {
-            num = std::stold(str);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Number out of range: " << str << std::endl;
-            return 0.0;
-        }
-        return num;
-    }
+    long long parseNumber(std::string str);
+    double parseDouble(std::string str);
 
     enum TokenType {
         tok_eof,
@@ -169,7 +124,7 @@ namespace sclc
         int column;
         std::string file;
         std::string value;
-        std::string toString() {
+        std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
         }
         Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
@@ -302,7 +257,6 @@ namespace sclc
         ~Prototype() {}
     };
 
-
     struct AnalyzeResult {
         std::vector<Function> functions;
         std::vector<Extern> externs;
@@ -397,78 +351,25 @@ namespace sclc
         std::vector<std::string> frameworks;
     } Main;
 
-    Main MAIN = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>()};
+    extern Main MAIN;
 
-    void signalHandler(int signum)
-    {
-        std::cout << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cout << "Error: " << std::strerror(errno) << std::endl;
-        exit(signum);
-    }
-
-    bool strends(const std::string& str, const std::string& suffix)
-    {
-        return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
-    }
-
-    int isCharacter(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-    }
-
-    int isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    int isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-    }
-
-    int isPrint(char c) {
-        return (c >= ' ');
-    }
-
-    int isBracket(char c) {
-        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
-    }
-
-    int isHexDigit(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X';
-    }
-
-    int isOctDigit(char c) {
-        return (c >= '0' && c <= '7') || c == 'o' || c == 'O';
-    }
-
-    int isBinDigit(char c) {
-        return c == '0' || c == '1' || c == 'b' || c == 'B';
-    }
-
-    int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
-    }
-
-    bool isOperator(Token token) {
-        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow || token.type == tok_dadd || token.type == tok_dsub || token.type == tok_dmul || token.type == tok_ddiv;
-    }
-
-    inline bool fileExists (const std::string& name) {
-        FILE *file;
-        if ((file = fopen(name.c_str(), "r")) != NULL) {
-            fclose(file);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    template <typename T>
-    void addIfAbsent(std::vector<T>& vec, T str) {
-        for (size_t i = 0; i < vec.size(); i++) {
-            if (vec[i] == str) {
-                return;
-            }
-        }
-        vec.push_back(str);
-    }
+    void signalHandler(int signum);
+    bool strends(const std::string& str, const std::string& suffix);
+    int isCharacter(char c);
+    int isDigit(char c);
+    int isSpace(char c);
+    int isPrint(char c);
+    int isBracket(char c);
+    int isHexDigit(char c);
+    int isOctDigit(char c);
+    int isBinDigit(char c);
+    int isOperator(char c);
+    bool isOperator(Token token);
+    bool fileExists(const std::string& name);
+    void addIfAbsent(std::vector<Function>& vec, Function str);
+    std::string replaceAll(std::string src, std::string from, std::string to);
+    std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
+    int lastIndexOf(char* src, char c);
+    bool hasVar(Token name);
 }
 #endif // COMMON_H

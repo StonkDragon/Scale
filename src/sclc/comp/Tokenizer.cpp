@@ -9,8 +9,6 @@
 
 #include "../Common.hpp"
 
-#include "Lexer.cpp"
-
 namespace sclc
 {
     std::vector<Token> Tokenizer::getTokens() {
@@ -93,7 +91,7 @@ namespace sclc
             c = source[++current];
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
-                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated string" << std::endl;
+                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated std::string" << std::endl;
                     exit(1);
                 }
                 value += c;
@@ -281,28 +279,6 @@ namespace sclc
         return Token(tok_identifier, value, line, filename, startColumn);
     }
 
-    std::string replaceAll(std::string src, std::string from, std::string to) {
-        try {
-            return std::regex_replace(src, std::regex(from), to);
-        } catch (std::regex_error& e) {
-            return src;
-        }
-    }
-
-    std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index) {
-        std::string pre = src.substr(0, index - 1);
-        std::string post = src.substr(index + from.length() - 1);
-        return pre + to + post;
-    }
-
-    int lastIndexOf(char* src, char c) {
-        int i = strlen(src) - 1;
-        while (i >= 0 && src[i] != c) {
-            i--;
-        }
-        return i;
-    }
-
     void Tokenizer::tokenize(std::string source) {
         FILE *fp;
 
@@ -377,7 +353,7 @@ namespace sclc
 
     void Tokenizer::printTokens() {
         for (size_t i = 0; i < tokens.size(); i++) {
-            std::cout << "Token: " << tokens.at(i).toString() << std::endl;
+            std::cout << "Token: " << tokens.at(i).tostring() << std::endl;
         }
     }
 }

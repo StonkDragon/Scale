@@ -8,6 +8,8 @@
 typedef unsigned long u_long;
 #endif
 
+using namespace std;
+
 namespace DragonConfig {
     enum class EntryType {
         String,
@@ -52,7 +54,7 @@ namespace DragonConfig {
         bool operator!=(const StringEntry& other) {
             return !operator==(other);
         }
-        void print(std::ostream& stream, int indent = 0) {
+        void print(ostream& stream, int indent = 0) {
             stream << std::string(indent, ' ') << this->getKey() << ": \"" << this->value << "\";" << std::endl;
         }
     };
@@ -107,7 +109,7 @@ namespace DragonConfig {
         bool operator!=(const ListEntry& other) {
             return !operator==(other);
         }
-        void print(std::ostream& stream, int indent = 0) {
+        void print(ostream& stream, int indent = 0) {
             stream << std::string(indent, ' ') << this->getKey() << ": [" << std::endl;
             indent += 2;
             for (unsigned long i = 0; i < this->value.size(); i++) {
@@ -196,7 +198,7 @@ namespace DragonConfig {
         }
         void addString(const std::string& key, const std::string& value) {
             if (this->hasMember(key)) {
-                std::cerr << "String with key '" << key << "' already exists" << std::endl;
+                std::cerr << "std::string with key '" << key << "' already exists" << std::endl;
                 exit(1);
             }
             StringEntry newEntry;
@@ -270,28 +272,7 @@ namespace DragonConfig {
         bool isEmpty() {
             return this->compounds.empty() && this->lists.empty() && this->strings.empty();
         }
-        bool operator==(const CompoundEntry& other) {
-            for (u_long i = 0; i < this->strings.size(); i++) {
-                if (this->strings[i] != other.strings[i]) {
-                    return false;
-                }
-            }
-            for (u_long i = 0; i < this->lists.size(); i++) {
-                if (this->lists[i] != other.lists[i]) {
-                    return false;
-                }
-            }
-            for (u_long i = 0; i < this->compounds.size(); i++) {
-                if (this->compounds[i] != other.compounds[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        bool operator!=(const CompoundEntry& other) {
-            return !operator==(other);
-        }
-        void print(std::ostream& stream, int indent = 0) {
+        void print(ostream& stream, int indent = 0) {
             if (this->getKey() == ".root") {
                 for (u_long i = 0; i < this->strings.size(); i++) {
                     this->strings[i].print(stream, indent);
@@ -396,7 +377,7 @@ namespace DragonConfig {
                     while (c != ']') {
                         std::string next;
                         if (c != '"') {
-                            std::cerr << "[Dragon] " << "Invalid string: " << key << std::endl;
+                            std::cerr << "[Dragon] " << "Invalid std::string: " << key << std::endl;
                             exit(1);
                         }
                         char prev = c;
@@ -431,7 +412,7 @@ namespace DragonConfig {
                 } else {
                     std::string value = "";
                     if (c != '"') {
-                        std::cerr << "[Dragon] " << "Invalid string: " << key << std::endl;
+                        std::cerr << "[Dragon] " << "Invalid std::string: " << key << std::endl;
                         exit(1);
                     }
                     c = data.at(++(*i));
