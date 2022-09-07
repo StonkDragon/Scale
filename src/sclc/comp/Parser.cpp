@@ -42,6 +42,7 @@ namespace sclc
         std::vector<ParseResult> warns;
         std::vector<std::string> globals;
 
+        remove((filename + std::string(".c")).c_str());
         FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
 
         if (getFunctionByName("main") == Function("%NULFUNC%")) {
