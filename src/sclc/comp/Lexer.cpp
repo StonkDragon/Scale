@@ -54,6 +54,11 @@ namespace sclc
                         }
                     }
                 }
+                if (currentFunction->args.size() > 32) {
+                    std::cerr << "Functions can't have more than 32 Arguments!" << std::endl;
+                    std::cerr << "Problematic function: '" << currentFunction->name << "'" << std::endl;
+                    exit(1);
+                }
             } else if (token.getType() == tok_end && currentFunction != nullptr) {
                 if (!functionPrivateStack) {
                     currentFunction->addModifier(mod_nps);

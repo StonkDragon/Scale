@@ -31,6 +31,8 @@
 
 namespace sclc
 {
+    std::string scaleFolder;
+
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << "  --transpile, -t  Transpile only" << std::endl;
@@ -64,7 +66,7 @@ namespace sclc
         bool assembleOnly       = false;
 
         std::string outfile     = "out.scl";
-        std::string scaleFolder = std::string(getenv("HOME")) + "/Scale";
+        scaleFolder             = std::string(getenv("HOME")) + "/Scale";
         std::string cmd         = "clang -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;

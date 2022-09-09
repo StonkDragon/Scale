@@ -18,6 +18,8 @@ namespace sclc
     ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
     ParseResult handleDouble(FILE* fp, Token token, int scopeDepth);
 
+    extern std::string scaleFolder;
+
     Function Parser::getFunctionByName(std::string name) {
         for (Function func : result.functions) {
             if (func.name == name) {
@@ -35,6 +37,16 @@ namespace sclc
             }
         }
         return Function("%NULFUNC%");
+    }
+
+    typedef unsigned long long hash;
+
+    hash hash1(char* data) {
+        hash h = 7;
+        for (size_t i = 0; i < strlen(data); i++) {
+            h = h * 31 + data[i];
+        }
+        return h;
     }
 
     ParseResult Parser::parse(std::string filename) {
@@ -66,6 +78,14 @@ namespace sclc
         }
 
         fprintf(fp, "\n");
+        fprintf(fp, "const char* const __scl_internal__frameworks[] = {\n");
+        for (std::string framework : MAIN.frameworks) {
+            fprintf(fp, "  \"%s\",\n", framework.c_str());
+        }
+        fprintf(fp, "};\n");
+        fprintf(fp, "const size_t __scl_internal__frameworks_size = %zu;\n", MAIN.frameworks.size());
+
+        fprintf(fp, "\n");
         fprintf(fp, "/* FUNCTION HEADERS */\n");
 
         for (Function function : result.functions) {
@@ -89,6 +109,37 @@ namespace sclc
         for (Extern extern_ : result.externs) {
             fprintf(fp, "void native_%s(void);\n", extern_.name.c_str());
         }
+
+        fprintf(fp, "\n");
+        fprintf(fp, "const unsigned long long __scl_internal__function_names[] = {\n");
+        for (Extern extern_ : result.externs) {
+            fprintf(fp, "  0x%016llxLLU /* %s */,\n", hash1((char*) extern_.name.c_str()), (char*) extern_.name.c_str());
+        }
+        for (Function function : result.functions) {
+            fprintf(fp, "  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
+        }
+        fprintf(fp, "};\n");
+
+        fprintf(fp, "const void* __scl_internal__function_ptrs[] = {\n");
+        for (Extern extern_ : result.externs) {
+            fprintf(fp, "  native_%s,\n", extern_.name.c_str());
+        }
+        for (Function function : result.functions) {
+            fprintf(fp, "  fn_%s,\n", function.getName().c_str());
+        }
+        fprintf(fp, "};\n");
+        
+        fprintf(fp, "const char __scl_internal__function_args[] = {\n");
+        for (Extern extern_ : result.externs) {
+            fprintf(fp, "  0,\n");
+        }
+        for (Function function : result.functions) {
+            fprintf(fp, "  %zu,\n", function.getArgs().size());
+        }
+        fprintf(fp, "};\n");
+        fprintf(fp, "const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.externs.size());
+        fprintf(fp, "const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.externs.size());
+        fprintf(fp, "const size_t __scl_internal__function_args_size = %zu;\n", result.functions.size() + result.externs.size());
 
         fprintf(fp, "\n");
         fprintf(fp, "/* GLOBALS */\n");
@@ -181,7 +232,12 @@ namespace sclc
                 for (int j = 0; j < scopeDepth; j++) {
                     fprintf(fp, "  ");
                 }
-                fprintf(fp, "ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+                std::string file = body[i].getFile();
+                if (strncmp(file.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
+                    fprintf(fp, "ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
+                } else {
+                    fprintf(fp, "ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+                }
 
                 if (isOperator(body[i])) {
                     ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
