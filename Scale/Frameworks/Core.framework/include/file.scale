@@ -1,6 +1,6 @@
 // file.scale
-#ifndef _FILE_SCALE_
-#define _FILE_SCALE_
+#ifndef _CORE_FRAMEWORK__FILE_SCALE_
+#define _CORE_FRAMEWORK__FILE_SCALE_
 #include "core.scale"
 
 // Stack: [name, mode] -> [fileptr]

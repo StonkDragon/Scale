@@ -1,5 +1,5 @@
-#ifndef _FMT_SCALE_
-#define _FMT_SCALE_
+#ifndef _CORE_FRAMEWORK__FMT_SCALE_
+#define _CORE_FRAMEWORK__FMT_SCALE_
 
 // Formatted IO
 #ifdef _WIN32

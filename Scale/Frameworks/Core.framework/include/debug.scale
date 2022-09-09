@@ -1,7 +1,7 @@
 #include "fmt.scale"
 
-#ifndef _DEBUG_SCALE_
-#define _DEBUG_SCALE_
+#ifndef _CORE_FRAMEWORK__DEBUG_SCALE_
+#define _CORE_FRAMEWORK__DEBUG_SCALE_
 
 #warning "Debugging build"
 #ifndef DEBUG
