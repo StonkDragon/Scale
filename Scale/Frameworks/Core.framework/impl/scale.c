@@ -23,7 +23,7 @@ size_t 		 sap_index = 0;
 #pragma region Security
 
 scl_force_inline void throw(int code, char* msg) {
-	fprintf(stderr, "Exception: %s\n", msg);
+	if (msg) fprintf(stderr, "Exception: %s\n", msg);
 	process_signal(code);
 }
 
@@ -186,14 +186,6 @@ scl_force_inline void ctrl_fn_nps_end() {
 #pragma endregion
 
 #pragma region Exceptions
-
-void ctrl_trace() {
-	size_t i;
-	printf("Stacktrace:\n");
-	for (i = (callstk.ptr - 1); i >= 0; i--) {
-		printf("  %s\n", (char*) callstk.data[i]);
-	}
-}
 
 scl_force_inline void ctrl_where(char* file, size_t line, size_t col) {
 	current_file = file;
@@ -783,7 +775,7 @@ scl_native void native_heap_collect() {
 }
 
 scl_native void native_trace() {
-	ctrl_trace();
+	print_stacktrace();
 }
 
 scl_native void native_sqrt() {
