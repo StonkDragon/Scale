@@ -29,6 +29,10 @@
 #define PREPROCESSOR "cpp"
 #endif
 
+#ifndef COMPILER_FEATURES
+#define COMPILER_FEATURES "-fapprox-func -fgnu-keywords -fjump-tables -fmath-errno"
+#endif
+
 namespace sclc
 {
     std::string scaleFolder;
@@ -59,7 +63,7 @@ namespace sclc
             return 1;
         }
 
-        auto start = chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
 
         bool transpileOnly      = false;
         bool preprocessOnly     = false;
@@ -67,9 +71,11 @@ namespace sclc
 
         std::string outfile     = "out.scl";
         scaleFolder             = std::string(getenv("HOME")) + "/Scale";
-        std::string cmd         = "clang -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
+        std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
+
+        frameworks.push_back("Core");
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -302,8 +308,6 @@ int main(int argc, char const *argv[])
 
     std::vector<std::string> args;
     args.push_back(argv[0]);
-    args.push_back("-f");
-    args.push_back("Core");
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
             args.push_back(argv[i]);
