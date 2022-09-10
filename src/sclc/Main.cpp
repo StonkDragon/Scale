@@ -44,7 +44,6 @@ namespace sclc
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
-        std::cout << "  --no-dce         Disable dead code elimination" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -307,11 +306,8 @@ int main(int argc, char const *argv[])
 #endif
 
     std::vector<std::string> args;
-    args.push_back(argv[0]);
-    if (argc > 1) {
-        for (int i = 1; i < argc; i++) {
-            args.push_back(argv[i]);
-        }
+    for (int i = 0; i < argc; i++) {
+        args.push_back(argv[i]);
     }
     return sclc::main(args);
 }
