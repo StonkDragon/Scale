@@ -1,5 +1,5 @@
-#ifndef _IO_IO_SCALE_
-#define _IO_IO_SCALE_
+#ifndef _CORE_FRAMEWORK__IO_SCALE_
+#define _CORE_FRAMEWORK__IO_SCALE_
 
 // Stack: [fd n s] -> []
 // Writes n bytes from the pointer s
@@ -33,7 +33,7 @@ end
 // Stack: [int] -> []
 // Prints the integer int to the standard output.
 function putint(_int_)
-    _int_ "%d" sprintf puts
+    _int_ "%lld" sprintf puts
 end
 
 // Stack: [f] -> []
@@ -46,7 +46,7 @@ end
 // Prints the error message err to the standard error,
 // and exits with exit code 1.
 function throwerr(_err_)
-    _err_ puts 1 exit
+    _err_ eputs 1 exit
 end
 
 #endif

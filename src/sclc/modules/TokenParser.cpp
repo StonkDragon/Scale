@@ -7,54 +7,41 @@
 
 #include "../Common.hpp"
 
-#include "Tokenizer.cpp"
-#include "../Main.cpp"
-
 namespace sclc
 {
-    inline bool fileExists (const std::string& name) {
-        FILE *file;
-        if ((file = fopen(name.c_str(), "r")) != NULL) {
-            fclose(file);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    template <typename T>
-    void addIfAbsent(std::vector<T>& vec, T str) {
-        for (int i = 0; i < vec.size(); i++) {
-            if (vec[i] == str) {
-                return;
-            }
-        }
-        vec.push_back(str);
-    }
-
-    AnalyzeResult Lexer::lexAnalyze()
+    TPResult TokenParser::parse()
     {
         Function* currentFunction = nullptr;
 
         bool functionPrivateStack = true;
         bool funcNoWarn = false;
+        bool funcSAP = false;
 
         std::vector<std::string> uses;
+        std::vector<std::string> globals;
 
-        for (int i = 0; i < tokens.size(); i++)
+        for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
             if (token.getType() == tok_function) {
+                if (currentFunction != nullptr) {
+                    std::cerr << "Error: Cannot define function inside another function" << std::endl;
+                    exit(1);
+                }
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << tokens[i+1].getFile() << ":";
+                    std::cerr << tokens[i+1].getLine() << ":" << tokens[i+1].getColumn();
+                    std::cerr << ": " << "Expected identifier after function keyword" << std::endl;
+                    exit(1);
+                }
                 std::string name = tokens[i + 1].getValue();
-                Function function(name);
-                addIfAbsent<Function>(functions, function);
-                currentFunction = &functions[functions.size() - 1];
+                currentFunction = new Function(name);
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
                     while (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_comma) {
                         if (tokens[i].getType() == tok_identifier) {
-                            currentFunction->addArgument("$" + tokens[i].getValue());
+                            currentFunction->addArgument(tokens[i].getValue());
                         }
                         i++;
                         if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
@@ -67,7 +54,12 @@ namespace sclc
                         }
                     }
                 }
-            } else if (token.getType() == tok_end) {
+                if (currentFunction->args.size() > 32) {
+                    std::cerr << "Functions can't have more than 32 Arguments!" << std::endl;
+                    std::cerr << "Problematic function: '" << currentFunction->name << "'" << std::endl;
+                    exit(1);
+                }
+            } else if (token.getType() == tok_end && currentFunction != nullptr) {
                 if (!functionPrivateStack) {
                     currentFunction->addModifier(mod_nps);
                     functionPrivateStack = true;
@@ -76,10 +68,17 @@ namespace sclc
                     currentFunction->addModifier(mod_nowarn);
                     funcNoWarn = false;
                 }
+                if (funcSAP) {
+                    currentFunction->addModifier(mod_sap);
+                    funcSAP = false;
+                }
+                addIfAbsent(functions, *currentFunction);
                 currentFunction = nullptr;
             } else if (token.getType() == tok_proto) {
-                std::string name = tokens[i + 1].getValue();
-                prototypes.push_back(Prototype(name));
+                std::string name = tokens[++i].getValue();
+                std::string argstring = tokens[++i].getValue();
+                int argCount = stoi(argstring);
+                prototypes.push_back(Prototype(name, argCount));
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
@@ -87,12 +86,15 @@ namespace sclc
                             functionPrivateStack = false;
                         } else if (tokens[i + 1].getValue() == "nowarn") {
                             funcNoWarn = true;
+                        } else if (tokens[i + 1].getValue() == "sap") {
+                            funcSAP = true;
                         } else {
                             std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
                         }
                     } else {
                         std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
                     }
+                    i++;
                 } else {
                     std::cerr << "Error: Cannot use modifiers inside a function." << std::endl;
                 }
@@ -100,17 +102,27 @@ namespace sclc
                 std::string name = tokens[i + 1].getValue();
                 Extern externFunction(name);
                 externs.push_back(externFunction);
+                i++;
             } else {
                 if (currentFunction != nullptr) {
                     currentFunction->addToken(token);
+                } else {
+                    if (token.getType() == tok_declare) {
+                        if (tokens[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                        }
+                        globals.push_back(tokens[i + 1].getValue());
+                        i++;
+                    }
                 }
             }
         }
 
-        AnalyzeResult result;
+        TPResult result;
         result.functions = functions;
         result.externs = externs;
         result.prototypes = prototypes;
+        result.globals = globals;
         return result;
     }
 }

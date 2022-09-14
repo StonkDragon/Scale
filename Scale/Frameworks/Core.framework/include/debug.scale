@@ -1,22 +1,22 @@
 #include "fmt.scale"
 
-#ifndef _DEBUG_SCALE_
-#define _DEBUG_SCALE_
+#ifndef _CORE_FRAMEWORK__DEBUG_SCALE_
+#define _CORE_FRAMEWORK__DEBUG_SCALE_
 
 #warning "Debugging build"
 #ifndef DEBUG
 #define DEBUG
 #endif
 
-// Stack: [] -> []
+// Stack: no change
 // Dumps the current stack to the console.
 extern dumpstack
 
-// Stack: [] -> []
+// Stack: no change
 // Prints the call stack to the console.
 extern trace
 
-// Stack: [] -> []
+// Stack: no change
 // Exits the program with exit code 1.
 extern crash
 
@@ -24,15 +24,15 @@ extern crash
 // Raises signal ex.
 extern raise
 
-// Stack: [] -> []
+// Stack: no change
 // Raises signal SIGABRT.
 extern abort
 
-// Stack: [] -> []
+// Stack: no change
 // Breakpoint.
 extern breakpoint
 
-// Stack: [] -> []
+// Stack: no change
 // Runs garbage collection.
 extern heap_collect
 

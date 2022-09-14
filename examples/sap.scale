@@ -1,0 +1,8 @@
+#include "core.scale"
+
+function main()
+    [ "Hello, World!"
+        [ "a" 'a' sizeof_stack putint ]
+    sizeof_stack putint ]
+    sizeof_stack putint
+end

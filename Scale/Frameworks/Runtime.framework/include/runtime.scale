@@ -1,0 +1,9 @@
+#ifndef _RUNTIME_FRAMEWORK__RUNTIME_SCALE_
+#define _RUNTIME_FRAMEWORK__RUNTIME_SCALE_
+
+extern Runtime_hasFramework
+extern Runtime_listFrameworks
+extern Runtime_getFunctionID
+extern Runtime_callByID
+
+#endif

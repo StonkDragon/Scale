@@ -9,46 +9,8 @@
 
 #include "../Common.hpp"
 
-#include "Lexer.cpp"
-
 namespace sclc
 {
-    static int isCharacter(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-    }
-
-    static int isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    static int isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-    }
-
-    static int isPrint(char c) {
-        return (c >= ' ');
-    }
-
-    static int isBracket(char c) {
-        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
-    }
-
-    static int isHexDigit(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X';
-    }
-
-    static int isOctDigit(char c) {
-        return c >= '0' && c <= '7' || c == 'o' || c == 'O';
-    }
-
-    static int isBinDigit(char c) {
-        return c == '0' || c == '1' || c == 'b' || c == 'B';
-    }
-
-    static int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
-    }
-
     std::vector<Token> Tokenizer::getTokens() {
         return this->tokens;
     }
@@ -72,7 +34,7 @@ namespace sclc
 
         if (c == '#') {
             char* comment = (char*) malloc(strlen(source + current));
-            int i = 0;
+            size_t i = 0;
             startColumn = column;
             while (c != '\n' && c != '\r') {
                 c = source[++current];
@@ -110,7 +72,7 @@ namespace sclc
             startColumn = column;
             column++;
             c = source[++current];
-            while (!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c)) || c == '.') {
+            while ((!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c))) || c == '.') {
                 value += c;
                 if (c == '.') {
                     isFloat = true;
@@ -129,7 +91,7 @@ namespace sclc
             c = source[++current];
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
-                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated string" << std::endl;
+                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated std::string" << std::endl;
                     exit(1);
                 }
                 value += c;
@@ -226,6 +188,30 @@ namespace sclc
                 }
             }
             c = source[++current];
+        } else if (c == '.') {
+            value += c;
+            c = source[++current];
+            startColumn = column;
+            column++;
+            switch (c)
+            {
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+                value += c;
+                break;
+            
+            default:
+                std::cerr << "Error: Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" << c << "'" << std::endl;
+                exit(1);
+            }
+            c = source[++current];
+            column++;
+        } else if (isBracket(c)) {
+            value += c;
+            c = source[++current];
+            startColumn = column;
             column++;
         }
 
@@ -265,6 +251,8 @@ namespace sclc
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);
         TYPES(")", close_paren, line, filename, startColumn);
+        TYPES("{", curly_open, line, filename, startColumn);
+        TYPES("}", curly_close, line, filename, startColumn);
         TYPES(",", comma, line, filename, startColumn);
         TYPES("+", add, line, filename, startColumn);
         TYPES("-", sub, line, filename, startColumn);
@@ -278,41 +266,17 @@ namespace sclc
         TYPES("<<", lsh, line, filename, startColumn);
         TYPES(">>", rsh, line, filename, startColumn);
         TYPES("**", pow, line, filename, startColumn);
+        TYPES(".+", dadd, line, filename, startColumn);
+        TYPES(".-", dsub, line, filename, startColumn);
+        TYPES(".*", dmul, line, filename, startColumn);
+        TYPES("./", ddiv, line, filename, startColumn);
+        TYPES("[", sapopen, line, filename, startColumn);
+        TYPES("]", sapclose, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);
         }
         return Token(tok_identifier, value, line, filename, startColumn);
-    }
-
-    bool replace(std::string& str, const std::string& from, const std::string& to) {
-        size_t start_pos = str.find(from);
-        if(start_pos == std::string::npos)
-            return false;
-        
-        return true;
-    }
-
-    std::string replaceAll(std::string src, std::string from, std::string to) {
-        try {
-            return std::regex_replace(src, std::regex(from), to);
-        } catch (std::regex_error& e) {
-            return src;
-        }
-    }
-
-    std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index) {
-        std::string pre = src.substr(0, index - 1);
-        std::string post = src.substr(index + from.length() - 1);
-        return pre + to + post;
-    }
-
-    int lastIndexOf(char* src, char c) {
-        int i = strlen(src) - 1;
-        while (i >= 0 && src[i] != c) {
-            i--;
-        }
-        return i;
     }
 
     void Tokenizer::tokenize(std::string source) {
@@ -388,8 +352,8 @@ namespace sclc
     }
 
     void Tokenizer::printTokens() {
-        for (int i = 0; i < tokens.size(); i++) {
-            std::cout << "Token: " << tokens.at(i).toString() << std::endl;
+        for (size_t i = 0; i < tokens.size(); i++) {
+            std::cout << "Token: " << tokens.at(i).tostring() << std::endl;
         }
     }
 }

@@ -9,6 +9,7 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -49,6 +50,9 @@
     ctrl_fn_native_start(#name);  	\
     native_ ## name ##();         	\
     ctrl_fn_native_end()
+
+#define sclNativeImpl(name) \
+	scl_native void native_ ## name (void)
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"

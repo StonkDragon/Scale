@@ -4,8 +4,25 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
+#include <regex>
 
 #define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
+
+#undef INT_MAX
+#undef INT_MIN
+#undef LONG_MAX
+#undef LONG_MIN
+
+#define INT_MAX 0x7FFFFFFF
+#define INT_MIN 0x80000000
+#define LONG_MAX 0x7FFFFFFFFFFFFFFFll
+#define LONG_MIN 0x8000000000000000ll
+
+#define LINE_LENGTH 48
+
+typedef unsigned long long hash;
+
 namespace sclc
 {
     struct Color {
@@ -27,71 +44,11 @@ namespace sclc
         static const std::string BOLDCYAN;
         static const std::string BOLDWHITE;
     };
-    #ifdef _WIN32
-    const std::string Color::RESET = "";
-    const std::string Color::BLACK = "";
-    const std::string Color::RED = "";
-    const std::string Color::GREEN = "";
-    const std::string Color::YELLOW = "";
-    const std::string Color::BLUE = "";
-    const std::string Color::MAGENTA = "";
-    const std::string Color::CYAN = "";
-    const std::string Color::WHITE = "";
-    const std::string Color::BOLDBLACK = "";
-    const std::string Color::BOLDRED = "";
-    const std::string Color::BOLDGREEN = "";
-    const std::string Color::BOLDYELLOW = "";
-    const std::string Color::BOLDBLUE = "";
-    const std::string Color::BOLDMAGENTA = "";
-    const std::string Color::BOLDCYAN = "";
-    const std::string Color::BOLDWHITE = "";
-    #else
-    const std::string Color::RESET = "\033[0m";
-    const std::string Color::BLACK = "\033[30m";
-    const std::string Color::RED = "\033[31m";
-    const std::string Color::GREEN = "\033[32m";
-    const std::string Color::YELLOW = "\033[33m";
-    const std::string Color::BLUE = "\033[34m";
-    const std::string Color::MAGENTA = "\033[35m";
-    const std::string Color::CYAN = "\033[36m";
-    const std::string Color::WHITE = "\033[37m";
-    const std::string Color::BOLDBLACK = "\033[1m\033[30m";
-    const std::string Color::BOLDRED = "\033[1m\033[31m";
-    const std::string Color::BOLDGREEN = "\033[1m\033[32m";
-    const std::string Color::BOLDYELLOW = "\033[1m\033[33m";
-    const std::string Color::BOLDBLUE = "\033[1m\033[34m";
-    const std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
-    const std::string Color::BOLDCYAN = "\033[1m\033[36m";
-    const std::string Color::BOLDWHITE = "\033[1m\033[37m";
-    #endif
+    
+    extern std::vector<std::string> vars;
 
-    long long parseNumber(std::string str) {
-        long long value;
-        if (str.substr(0, 2) == "0x") {
-            value = std::stoll(str.substr(2), nullptr, 16);
-        } else if (str.substr(0, 2) == "0b") {
-            value = std::stoll(str.substr(2), nullptr, 2);
-        } else if (str.substr(0, 2) == "0o") {
-            value = std::stoll(str.substr(2), nullptr, 8);
-        } else {
-            value = std::stoll(str);
-        }
-        return value;
-    }
-
-    double parseDouble(std::string str) {
-        double num;
-        try
-        {
-            num = std::stold(str);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Number out of range: " << str << std::endl;
-            return 0.0;
-        }
-        return num;
-    }
+    long long parseNumber(std::string str);
+    double parseDouble(std::string str);
 
     enum TokenType {
         tok_eof,
@@ -120,17 +77,18 @@ namespace sclc
         tok_proto,          // proto
         tok_ref,            // ref
         tok_deref,          // deref
-
-        // operators
-        tok_hash,           // #
         tok_addr_ref,       // addr
         tok_load,           // load
         tok_store,          // store
         tok_declare,        // decl
+
+        // operators
+        tok_hash,           // #
         tok_open_paren,     // (
         tok_close_paren,    // )
+        tok_curly_open,     // {
+        tok_curly_close,    // }
         tok_comma,          // ,
-
         tok_add,            // +
         tok_sub,            // -
         tok_mul,            // *
@@ -143,6 +101,12 @@ namespace sclc
         tok_lsh,            // <<
         tok_rsh,            // >>
         tok_pow,            // **
+        tok_dadd,           // .+
+        tok_dsub,           // .-
+        tok_dmul,           // .*
+        tok_ddiv,           // ./
+        tok_sapopen,        // [
+        tok_sapclose,       // ]
 
         tok_identifier,     // foo
         tok_number,         // 123
@@ -161,7 +125,7 @@ namespace sclc
         int column;
         std::string file;
         std::string value;
-        std::string toString() {
+        std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
         }
         Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
@@ -186,12 +150,12 @@ namespace sclc
         }
     };
 
-    struct ParseResult {
+    struct FPResult {
         bool success;
         std::string message;
         std::string in;
-        std::vector<ParseResult> errors;
-        std::vector<ParseResult> warns;
+        std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
         std::string token;
         int column;
         int where;
@@ -233,7 +197,8 @@ namespace sclc
     enum Modifier
     {
         mod_nps,
-        mod_nowarn
+        mod_nowarn,
+        mod_sap
     };
 
     struct Function
@@ -285,20 +250,22 @@ namespace sclc
     struct Prototype
     {
         std::string name;
-        Prototype(std::string name) {
+        int argCount;
+        Prototype(std::string name, int argCount) {
             this->name = name;
+            this->argCount = argCount;
         }
         ~Prototype() {}
     };
 
-
-    struct AnalyzeResult {
+    struct TPResult {
         std::vector<Function> functions;
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
+        std::vector<std::string> globals;
     };
 
-    class Lexer
+    class TokenParser
     {
     private:
         std::vector<Token> tokens;
@@ -306,47 +273,58 @@ namespace sclc
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
     public:
-        Lexer(std::vector<Token> tokens) {
+        TokenParser(std::vector<Token> tokens) {
             this->tokens = tokens;
         }
-        ~Lexer() {}
-        AnalyzeResult lexAnalyze();
+        ~TokenParser() {}
+        TPResult parse();
         static bool isOperator(Token token);
         static bool isType(Token token);
         static bool canAssign(Token token);
     };
 
-    struct Parser
+    struct FunctionParser
     {
-        AnalyzeResult result;
+        TPResult result;
 
-        Parser(AnalyzeResult result)
+        FunctionParser(TPResult result)
         {
             this->result = result;
         }
-        ~Parser() {}
-        bool hasFunction(std::string name) {
+        ~FunctionParser() {}
+        bool hasFunction(Token name) {
             for (Function func : result.functions) {
-                if (func.name == name) {
+                if (func.name == name.getValue()) {
                     return true;
                 }
             }
             for (Prototype proto : result.prototypes) {
-                if (proto.name == name) {
+                if (proto.name == name.getValue()) {
+                    bool hasFunction = false;
+                    for (Function func : result.functions) {
+                        if (func.name == proto.name) {
+                            hasFunction = true;
+                            break;
+                        }
+                    }
+                    if (!hasFunction) {
+                        std::cerr << name.getFile() << ":" << name.getLine() << ":" << name.getColumn() << ": Error: Missing Implementation for function " << name.getValue() << std::endl;
+                        exit(1);
+                    }
                     return true;
                 }
             }
             return false;
         }
-        bool hasExtern(std::string name) {
+        bool hasExtern(Token name) {
             for (Extern extern_ : result.externs) {
-                if (extern_.name == name) {
+                if (extern_.name == name.getValue()) {
                     return true;
                 }
             }
             return false;
         }
-        ParseResult parse(std::string filename);
+        FPResult parse(std::string filename);
         Function getFunctionByName(std::string name);
     };
 
@@ -364,14 +342,36 @@ namespace sclc
         void printTokens();
     };
 
-    typedef struct Main
+    typedef struct _Main
     {
         Tokenizer* tokenizer;
-        Lexer* lexer;
-        Parser* parser;
+        TokenParser* lexer;
+        FunctionParser* parser;
         bool debug;
-    } Main;
+        std::vector<std::string> frameworkNativeHeaders;
+        std::vector<std::string> frameworks;
+    } _Main;
 
-    Main MAIN = {0, 0, 0};
+    extern _Main Main;
+
+    void signalHandler(int signum);
+    bool strends(const std::string& str, const std::string& suffix);
+    int isCharacter(char c);
+    int isDigit(char c);
+    int isSpace(char c);
+    int isPrint(char c);
+    int isBracket(char c);
+    int isHexDigit(char c);
+    int isOctDigit(char c);
+    int isBinDigit(char c);
+    int isOperator(char c);
+    bool isOperator(Token token);
+    bool fileExists(const std::string& name);
+    void addIfAbsent(std::vector<Function>& vec, Function str);
+    std::string replaceAll(std::string src, std::string from, std::string to);
+    std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
+    int lastIndexOf(char* src, char c);
+    bool hasVar(Token name);
+    hash hash1(char* data);
 }
 #endif // COMMON_H

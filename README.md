@@ -4,7 +4,7 @@
 
   Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [scale.h](./Scale/comp/scale.h) header file, which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [scale.h](./Scale/Frameworks/Core.framework/impl/scale.h) header file, which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
@@ -18,12 +18,14 @@
 
 ## Dependencies
 
-  The following dependencies are required to use Scale:
+  Scale has the following dependencies:
 
+Required:
 - [`clang`](https://clang.llvm.org/)
 - `cpp`
-- `git` (to compile)
-- `make` (to compile)
+
+Optional:
+- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
 - `python3` (for tests)
 
 # Documentation
@@ -44,6 +46,9 @@
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
+
+  - `[`: Stack Autodrop Pool Open
+  - `]`: Stack Autodrop Pool Close
 
 ## Keywords
 
@@ -133,7 +138,21 @@ Example:
 
   - [Sizeof](./examples/sizeof.scale)
 
+  - [Stack Autodrop Pool](./examples/sap.scale)
+
   - [Pointer Dereferencing](./examples/deref.scale)
+
+# Build
+
+  The Scale compiler uses [Dragon](https://github.com/StonkDragon/Dragon) as the build system. It is required to build the compiler.
+
+  To build the compiler, execute the following command from the root directory of the repository:
+
+```bash
+$ dragon build
+```
+
+  This will build the compiler and put the binary in the `compile` directory.
 
 # License
 

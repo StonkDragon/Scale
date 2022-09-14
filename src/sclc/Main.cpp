@@ -7,130 +7,201 @@
 
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+
 #include <signal.h>
 #include <errno.h>
-#include <chrono>
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include "Common.hpp"
+#include "DragonConfig.hpp"
 
-#include "comp/Tokenizer.cpp"
-#include "comp/Lexer.cpp"
-#include "comp/Parser.cpp"
+#ifndef VERSION
+#define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
+#endif
+
+#ifndef PREPROCESSOR
+#define PREPROCESSOR "cpp"
+#endif
+
+#ifndef COMPILER_FEATURES
+#define COMPILER_FEATURES "-fapprox-func -fgnu-keywords -fjump-tables -fmath-errno"
+#endif
 
 namespace sclc
 {
-    void signalHandler(int signum)
-    {
-        std::cout << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cout << "Error: " << strerror(errno) << std::endl;
-        exit(signum);
-    }
-
-    bool strends(const std::string& str, const std::string& suffix)
-    {
-        return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
-    }
+    std::string scaleFolder;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << "  --transpile, -t  Transpile only" << std::endl;
-        std::cout << "  --nostdlib       Don't link to default libraries" << std::endl;
         std::cout << "  --help, -h       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
+        std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
     }
 
-    #define PREPROCESSOR std::string("cpp")
+    bool contains(std::vector<std::string>& vec, std::string& item) {
+        for (auto& i : vec) {
+            if (i == item) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-    int main(int argc, char const *argv[])
+    int main(std::vector<std::string> args)
     {
-        signal(SIGSEGV, signalHandler);
-        signal(SIGABRT, signalHandler);
-        signal(SIGILL, signalHandler);
-        signal(SIGFPE, signalHandler);
-        signal(SIGINT, signalHandler);
-        signal(SIGTERM, signalHandler);
-    #ifdef SIGQUIT
-        signal(SIGQUIT, signalHandler);
-    #endif
-        if (argc < 2) {
-            usage(argv[0]);
+        if (args.size() < 2) {
+            usage(args[0]);
             return 1;
         }
 
-        bool transpileOnly  = false;
-        bool linkToLib      = true;
-        bool preprocessOnly = false;
+        auto start = std::chrono::high_resolution_clock::now();
 
-        std::string outfile = "out.scl";
-        std::string lib     = std::string(getenv("HOME")) + "/Scale/comp/scale.o";
-        std::string cmd     = "clang -I" + std::string(getenv("HOME")) + "/Scale/comp -std=gnu17 -O2 -o " + outfile + " ";
+        bool transpileOnly      = false;
+        bool preprocessOnly     = false;
+        bool assembleOnly       = false;
+
+        std::string outfile     = "out.scl";
+        scaleFolder             = std::string(getenv("HOME")) + "/Scale";
+        std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
+        std::vector<std::string> frameworks;
 
-        for (int i = 1; i < argc; i++) {
-            if (strends(std::string(argv[i]), ".scale")) {
-                files.push_back(std::string(argv[i]));
+        frameworks.push_back("Core");
+
+        for (size_t i = 1; i < args.size(); i++) {
+            if (strends(std::string(args[i]), ".scale")) {
+                files.push_back(args[i]);
             } else {
-                if (strcmp(argv[i], "--transpile") == 0 || strcmp(argv[i], "-t") == 0) {
+                if (args[i] == "--transpile" || args[i] == "-t") {
                     transpileOnly = true;
-                } else if (strcmp(argv[i], "--nostdlib") == 0) {
-                    linkToLib = false;
-                    cmd += "-nostdlib ";
-                } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-                    usage(std::string(argv[0]));
+                } else if (args[i] == "--help" || args[i] == "-h") {
+                    usage(args[0]);
                     return 0;
-                } else if (strcmp(argv[i], "-E") == 0) {
+                } else if (args[i] == "-E") {
                     preprocessOnly = true;
+                } else if (args[i] == "-f") {
+                    if (i + 1 < args.size()) {
+                        std::string framework = args[i + 1];
+                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework")) {
+                            std::cerr << "Framework '" << framework << "' not found" << std::endl;
+                            return 1;
+                        }
+                        frameworks.push_back(framework);
+                        i++;
+                    } else {
+                        std::cerr << "Error: -f requires an argument" << std::endl;
+                        return 1;
+                    }
+                } else if (args[i] == "-o") {
+                    if (i + 1 < args.size()) {
+                        outfile = args[i + 1];
+                        i++;
+                    } else {
+                        std::cerr << "Error: -o requires an argument" << std::endl;
+                        return 1;
+                    }
+                } else if (args[i] == "-S") {
+                    assembleOnly = true;
+                    cmd += "-S ";
                 } else {
-                    cmd += std::string(argv[i]) + " ";
+                    cmd += args[i] + " ";
                 }
             }
         }
 
-        if (linkToLib) {
-            cmd += lib + " ";
+        cmd += "-o \"" + outfile + "\" ";
+
+        std::string globalPreproc = std::string(PREPROCESSOR);
+        const double FrameworkMinimumVersion = 2.8;
+
+        for (std::string framework : frameworks) {
+            DragonConfig::ConfigParser parser;
+            DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
+            DragonConfig::ListEntry implementers = root.getList("implementers");
+            DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
+            DragonConfig::ListEntry depends = root.getList("depends");
+            DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
+            std::string version = root.getString("version").getValue();
+            std::string headerDir = root.getString("headerDir").getValue();
+            std::string implDir = root.getString("implDir").getValue();
+            std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+
+            double versionNum = stod(version);
+            double compilerVersionNum = stod(VERSION);
+            if (versionNum > compilerVersionNum) {
+                std::cerr << "Error: Framework '" << framework << "' requires Scale " << version << " but you are using " << VERSION << std::endl;
+                return 1;
+            }
+            if (versionNum < FrameworkMinimumVersion) {
+                fprintf(stderr, "Error: Framework '%s' is too outdated (%.1f). Please update it to at least version %.1f\n", framework.c_str(), versionNum, FrameworkMinimumVersion);
+                return 1;
+            }
+
+            for (size_t i = 0; i < depends.size(); i++) {
+                std::string depend = depends.get(i);
+                if (!contains(frameworks, depend)) {
+                    std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                    return 1;
+                }
+            }
+
+            for (size_t i = 0; i < compilerFlags.size(); i++) {
+                std::string flag = compilerFlags.get(i);
+                cmd += flag + " ";
+            }
+
+            Main.frameworks.push_back(framework);
+
+            globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+            unsigned long implementersSize = implementers.size();
+            for (unsigned long i = 0; i < implementersSize; i++) {
+                std::string implementer = implementers.get(i);
+                if (!assembleOnly)
+                    cmd += scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer + " ";
+            }
+            for (unsigned long i = 0; i < implHeaders.size(); i++) {
+                std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
+                Main.frameworkNativeHeaders.push_back(header);
+            }
         }
 
         std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
-        std::vector<double> times;
         std::vector<Token>  tokens;
 
-        for (int i = 0; i < files.size(); i++) {
+        for (size_t i = 0; i < files.size(); i++) {
             std::string filename = files[i];
             std::cout << "Compiling " << filename << "..." << std::endl;
 
-            auto startpreproc = std::chrono::high_resolution_clock::now();
-            std::string preproc_cmd =
-                PREPROCESSOR + " -I" + std::string(getenv("HOME"))
-                + "/Scale/lib " + filename + " " + filename + ".scale-preproc";
+            std::string preproc_cmd = globalPreproc + " " + filename + " " + filename + ".scale-preproc";
+            int preprocResult = system(preproc_cmd.c_str());
 
-            auto preprocResult = system(preproc_cmd.c_str());
             if (preprocResult != 0) {
                 std::cout << "Error: Preprocessor failed." << std::endl;
                 return 1;
             }
-            auto endpreproc = std::chrono::high_resolution_clock::now();
-            double durationPreproc = std::chrono::duration_cast<std::chrono::nanoseconds>(endpreproc - startpreproc).count() / 1000000000.0;
 
             if (preprocessOnly) {
-                std::cout << "Preprocessed " << filename << " in " << durationPreproc << " seconds." << std::endl;
+                std::cout << "Preprocessed " << filename << std::endl;
                 continue;
             }
 
-            auto startTokenizer = std::chrono::high_resolution_clock::now();
             Tokenizer tokenizer;
-            MAIN.tokenizer = &tokenizer;
-            MAIN.tokenizer->tokenize(filename + ".scale-preproc");
-            std::vector<Token> theseTokens = MAIN.tokenizer->getTokens();
+            Main.tokenizer = &tokenizer;
+            Main.tokenizer->tokenize(filename + ".scale-preproc");
+            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
 
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
-            auto endTokenizer = std::chrono::high_resolution_clock::now();
-            double durationTokenizer = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endTokenizer - startTokenizer).count() / 1000000000.0;
-
             remove(std::string(filename + ".scale-preproc").c_str());
-            times.push_back(durationTokenizer + durationPreproc);
         }
 
         if (preprocessOnly) {
@@ -138,16 +209,12 @@ namespace sclc
             return 0;
         }
 
-        auto startLexer = std::chrono::high_resolution_clock::now();
-        Lexer lexer(tokens);
-        MAIN.lexer = &lexer;
-        AnalyzeResult result = MAIN.lexer->lexAnalyze();
-        auto endLexer = std::chrono::high_resolution_clock::now();
-        double durationLexer = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endLexer - startLexer).count() / 1000000000.0;
+        TokenParser lexer(tokens);
+        Main.lexer = &lexer;
+        TPResult result = Main.lexer->parse();
 
-        auto startParser = std::chrono::high_resolution_clock::now();
-        Parser parser(result);
-        MAIN.parser = &parser;
+        FunctionParser parser(result);
+        Main.parser = &parser;
         char* source = (char*) malloc(sizeof(char) * 50);
         
         srand(time(NULL));
@@ -156,12 +223,10 @@ namespace sclc
         cmd += source;
         cmd += ".c ";
 
-        ParseResult parseResult = MAIN.parser->parse(std::string(source));
-        auto endParser = std::chrono::high_resolution_clock::now();
-        double durationParser = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endParser - startParser).count() / 1000000000.0;
+        FPResult parseResult = Main.parser->parse(std::string(source));
 
         if (parseResult.errors.size() > 0) {
-            for (ParseResult error : parseResult.errors) {
+            for (FPResult error : parseResult.errors) {
                 if (error.where == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                     continue;
@@ -197,21 +262,17 @@ namespace sclc
             remove((std::string(source) + ".h").c_str());
             return parseResult.errors.size();
         }
-        times.push_back(durationLexer + durationParser);
 
         if (transpileOnly) {
-            double total = 0;
-            for (int i = 0; i < times.size(); i++) {
-                total += times[i];
-            }
-            std::cout << "Transpiled successfully in " << total << " seconds." << std::endl;
+            auto end = chrono::high_resolution_clock::now();
+            double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
+            std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
 
-        auto startCodegen = std::chrono::high_resolution_clock::now();
+        std::cout << "Compiling with " << cmd << std::endl;
+
         int ret = system(cmd.c_str());
-        auto endCodegen = std::chrono::high_resolution_clock::now();
-        double durationCodegen = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(endCodegen - startCodegen).count() / 1000000000.0;
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
@@ -223,11 +284,10 @@ namespace sclc
         remove((std::string(source) + ".h").c_str());
         
         std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
-        double total = 0;
-        for (int i = 0; i < times.size(); i++) {
-            total += times[i];
-        }
-        std::cout << "Took " << total + durationCodegen << " seconds." << std::endl;
+
+        auto end = chrono::high_resolution_clock::now();
+        double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
+        std::cout << "Took " << duration << " seconds." << std::endl;
 
         return 0;
     }
@@ -235,7 +295,21 @@ namespace sclc
 
 int main(int argc, char const *argv[])
 {
-    return sclc::main(argc, argv);
+    signal(SIGSEGV, sclc::signalHandler);
+    signal(SIGABRT, sclc::signalHandler);
+    signal(SIGILL, sclc::signalHandler);
+    signal(SIGFPE, sclc::signalHandler);
+    signal(SIGINT, sclc::signalHandler);
+    signal(SIGTERM, sclc::signalHandler);
+#ifdef SIGQUIT
+    signal(SIGQUIT, sclc::signalHandler);
+#endif
+
+    std::vector<std::string> args;
+    for (int i = 0; i < argc; i++) {
+        args.push_back(argv[i]);
+    }
+    return sclc::main(args);
 }
 
 #endif

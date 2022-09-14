@@ -1,0 +1,81 @@
+build: {
+  compiler: "clang++";
+  sourceDir: "src/sclc";
+  outputDir: "compile";
+  target: "sclc";
+  includes: [
+    "src/sclc";
+  ];
+  units: [
+    "Main.cpp";
+    "modules/TokenParser.cpp";
+    "modules/FunctionParser.cpp";
+    "modules/TokenHandlers.cpp";
+    "modules/Tokenizer.cpp";
+    "Common.cpp";
+  ];
+  outFilePrefix: "-o";
+  libraryPathPrefix: "-L";
+  libraryPrefix: "-l";
+  macroPrefix: "-D";
+  includePrefix: "-I";
+  libraryPaths: [];
+  libs: [];
+  std: "gnu++17";
+  defines: [
+    "VERSION=\"2.8\"";
+  ];
+  flags: [];
+  preBuild: [];
+  postBuild: [];
+};
+
+dev: {
+  osTarget: [
+    "linux";
+    "macos";
+  ];
+  wrongOsMsg: "The Dev build is only available for Linux and MacOS.";
+  compiler: "clang++";
+  sourceDir: "src/sclc";
+  outputDir: "target";
+  target: "sclc";
+  includes: [
+    "src/sclc";
+  ];
+  units: [
+    "Main.cpp";
+    "modules/TokenParser.cpp";
+    "modules/FunctionParser.cpp";
+    "modules/TokenHandlers.cpp";
+    "modules/Tokenizer.cpp";
+    "Common.cpp";
+  ];
+  outFilePrefix: "-o";
+  libraryPathPrefix: "-L";
+  libraryPrefix: "-l";
+  macroPrefix: "-D";
+  includePrefix: "-I";
+  libraryPaths: [];
+  libs: [];
+  defines: [
+    "VERSION=\"2.8\"";
+  ];
+  std: "gnu++17";
+  flags: [
+    "-Wall";
+    "-Wextra";
+    "-Werror";
+    "-pedantic";
+  ];
+  preBuild: [
+    "rm -rf $HOME/Scale";
+    "cp -r Scale $HOME";
+  ];
+  postBuild: [
+    "sudo mv target/sclc /usr/local/bin/sclc";
+    "rm -rf target";
+    "./makebin 2.8 macos-x86-64";
+    "python3 tests.py run";
+  ];
+};
