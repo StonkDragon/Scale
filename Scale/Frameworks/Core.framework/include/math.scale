@@ -24,7 +24,7 @@ extern exp
 extern log
 extern log10
 
-// Stack: [] -> [random]
+// Stack: [<any>] -> [random]
 // Pushes a random number to the stack.
 extern random
 

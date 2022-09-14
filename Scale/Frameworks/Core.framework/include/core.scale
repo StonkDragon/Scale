@@ -24,7 +24,7 @@ extern system
 // to the stack.
 extern getenv
 
-// Stack: [] -> [size]
+// Stack: [<any>] -> [size]
 // Pushes the size of the stack to the stack.
 extern sizeof_stack
 
@@ -87,7 +87,7 @@ extern concat
 // to the stack.
 extern strrev
 
-// Stack: [] -> [time]
+// Stack: [<any>] -> [time]
 // Pushes the current timestamp in milliseconds to the stack.
 extern time
 
@@ -152,7 +152,7 @@ end
     _c_ _b_ _a_
 end
 
-// Stack: [] -> []
+// Stack: no change
 // No operation.
 function nop()
     0 sleep
