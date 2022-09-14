@@ -11,16 +11,18 @@
 
 #include "../Common.hpp"
 
+#define append(...) fprintf(fp, __VA_ARGS__)
+
 namespace sclc
 {
-    ParseResult handleOperator(FILE* fp, Token token, int scopeDepth);
-    ParseResult handleNumber(FILE* fp, Token token, int scopeDepth);
-    ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
-    ParseResult handleDouble(FILE* fp, Token token, int scopeDepth);
+    FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
+    FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
+    FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
 
     extern std::string scaleFolder;
 
-    Function Parser::getFunctionByName(std::string name) {
+    Function FunctionParser::getFunctionByName(std::string name) {
         for (Function func : result.functions) {
             if (func.name == name) {
                 return func;
@@ -39,26 +41,16 @@ namespace sclc
         return Function("%NULFUNC%");
     }
 
-    typedef unsigned long long hash;
-
-    hash hash1(char* data) {
-        hash h = 7;
-        for (size_t i = 0; i < strlen(data); i++) {
-            h = h * 31 + data[i];
-        }
-        return h;
-    }
-
-    ParseResult Parser::parse(std::string filename) {
-        std::vector<ParseResult> errors;
-        std::vector<ParseResult> warns;
+    FPResult FunctionParser::parse(std::string filename) {
+        std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
         std::vector<std::string> globals;
 
         remove((filename + std::string(".c")).c_str());
         FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
 
         if (getFunctionByName("main") == Function("%NULFUNC%")) {
-            ParseResult result;
+            FPResult result;
             result.success = false;
             result.message = "No entry point found";
             result.where = 0;
@@ -67,91 +59,91 @@ namespace sclc
             errors.push_back(result);
         }
 
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "extern \"C\" {\n");
-        fprintf(fp, "#endif\n");
+        append("#ifdef __cplusplus\n");
+        append("extern \"C\" {\n");
+        append("#endif\n");
 
-        fprintf(fp, "\n");
-        fprintf(fp, "/* HEADERS */\n");
-        for (std::string header : MAIN.frameworkNativeHeaders) {
-            fprintf(fp, "#include <%s>\n", header.c_str());
+        append("\n");
+        append("/* HEADERS */\n");
+        for (std::string header : Main.frameworkNativeHeaders) {
+            append("#include <%s>\n", header.c_str());
         }
 
-        fprintf(fp, "\n");
-        fprintf(fp, "const char* const __scl_internal__frameworks[] = {\n");
-        for (std::string framework : MAIN.frameworks) {
-            fprintf(fp, "  \"%s\",\n", framework.c_str());
+        append("\n");
+        append("const char* const __scl_internal__frameworks[] = {\n");
+        for (std::string framework : Main.frameworks) {
+            append("  \"%s\",\n", framework.c_str());
         }
-        fprintf(fp, "};\n");
-        fprintf(fp, "const size_t __scl_internal__frameworks_size = %zu;\n", MAIN.frameworks.size());
+        append("};\n");
+        append("const size_t __scl_internal__frameworks_size = %zu;\n", Main.frameworks.size());
 
-        fprintf(fp, "\n");
-        fprintf(fp, "/* FUNCTION HEADERS */\n");
+        append("\n");
+        append("/* FUNCTION HEADERS */\n");
 
         for (Function function : result.functions) {
-            fprintf(fp, "void fn_%s(", function.getName().c_str());
+            append("void fn_%s(", function.getName().c_str());
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 if (i != (ssize_t) function.getArgs().size() - 1) {
-                    fprintf(fp, ", ");
+                    append(", ");
                 }
-                fprintf(fp, "scl_word _%s", var.c_str());
+                append("scl_word _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
-                fprintf(fp, "void");
+                append("void");
             }
-            fprintf(fp, ");\n");
+            append(");\n");
         }
         
-        fprintf(fp, "\n");
-        fprintf(fp, "/* EXTERNS */\n");
+        append("\n");
+        append("/* EXTERNS */\n");
 
         for (Extern extern_ : result.externs) {
-            fprintf(fp, "void native_%s(void);\n", extern_.name.c_str());
+            append("void native_%s(void);\n", extern_.name.c_str());
         }
 
-        fprintf(fp, "\n");
-        fprintf(fp, "const unsigned long long __scl_internal__function_names[] = {\n");
+        append("\n");
+        append("const unsigned long long __scl_internal__function_names[] = {\n");
         for (Extern extern_ : result.externs) {
-            fprintf(fp, "  0x%016llxLLU /* %s */,\n", hash1((char*) extern_.name.c_str()), (char*) extern_.name.c_str());
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) extern_.name.c_str()), (char*) extern_.name.c_str());
         }
         for (Function function : result.functions) {
-            fprintf(fp, "  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
         }
-        fprintf(fp, "};\n");
+        append("};\n");
 
-        fprintf(fp, "const void* __scl_internal__function_ptrs[] = {\n");
+        append("const void* __scl_internal__function_ptrs[] = {\n");
         for (Extern extern_ : result.externs) {
-            fprintf(fp, "  native_%s,\n", extern_.name.c_str());
+            append("  native_%s,\n", extern_.name.c_str());
         }
         for (Function function : result.functions) {
-            fprintf(fp, "  fn_%s,\n", function.getName().c_str());
+            append("  fn_%s,\n", function.getName().c_str());
         }
-        fprintf(fp, "};\n");
+        append("};\n");
         
-        fprintf(fp, "const char __scl_internal__function_args[] = {\n");
+        append("const char __scl_internal__function_args[] = {\n");
         for (Extern extern_ : result.externs) {
-            fprintf(fp, "  0,\n");
+            append("  0,\n");
         }
         for (Function function : result.functions) {
-            fprintf(fp, "  %zu,\n", function.getArgs().size());
+            append("  %zu,\n", function.getArgs().size());
         }
-        fprintf(fp, "};\n");
-        fprintf(fp, "const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.externs.size());
-        fprintf(fp, "const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.externs.size());
-        fprintf(fp, "const size_t __scl_internal__function_args_size = %zu;\n", result.functions.size() + result.externs.size());
+        append("};\n");
+        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.externs.size());
+        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.externs.size());
+        append("const size_t __scl_internal__function_args_size = %zu;\n", result.functions.size() + result.externs.size());
 
-        fprintf(fp, "\n");
-        fprintf(fp, "/* GLOBALS */\n");
+        append("\n");
+        append("/* GLOBALS */\n");
 
         for (std::string s : result.globals) {
-            fprintf(fp, "scl_word _%s;\n", s.c_str());
+            append("scl_word _%s;\n", s.c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
 
-        fprintf(fp, "\n");
-        fprintf(fp, "/* FUNCTIONS */\n");
+        append("\n");
+        append("/* FUNCTIONS */\n");
 
         int funcsSize = result.functions.size();
         for (int f = 0; f < funcsSize; f++)
@@ -179,7 +171,7 @@ namespace sclc
 
             (void) noWarns;
 
-            fprintf(fp, "void fn_%s(", function.getName().c_str());
+            append("void fn_%s(", function.getName().c_str());
 
             std::string functionDeclaration = "";
 
@@ -196,29 +188,29 @@ namespace sclc
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
                 if (i != (ssize_t) function.getArgs().size() - 1) {
-                    fprintf(fp, ", ");
+                    append(", ");
                 }
-                fprintf(fp, "scl_word _%s", var.c_str());
+                append("scl_word _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
-                fprintf(fp, "void");
+                append("void");
             }
-            fprintf(fp, ") {\n");
+            append(") {\n");
 
             for (int j = 0; j < scopeDepth; j++) {
-                fprintf(fp, "  ");
+                append("  ");
             }
             if (funcPrivateStack) {
-                fprintf(fp, "ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
+                append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
             } else {
-                fprintf(fp, "ctrl_fn_nps_start(\"%s\");\n", functionDeclaration.c_str());
+                append("ctrl_fn_nps_start(\"%s\");\n", functionDeclaration.c_str());
             }
 
             if (sap) {
                 for (int j = 0; j < scopeDepth; j++) {
-                    fprintf(fp, "  ");
+                    append("  ");
                 }
-                fprintf(fp, "sap_open();\n");
+                append("sap_open();\n");
             }
 
             std::vector<Token> body = function.getBody();
@@ -230,108 +222,108 @@ namespace sclc
                 if (body[i].getType() == tok_ignore) continue;
 
                 for (int j = 0; j < scopeDepth; j++) {
-                    fprintf(fp, "  ");
+                    append("  ");
                 }
                 std::string file = body[i].getFile();
                 if (strncmp(file.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                    fprintf(fp, "ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
+                    append("ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
                 } else {
-                    fprintf(fp, "ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+                    append("ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
                 }
 
                 if (isOperator(body[i])) {
-                    ParseResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
+                    FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
                     if (!operatorsHandled.success) {
                         errors.push_back(operatorsHandled);
                     }
                 } else if (body[i].getType() == tok_identifier && hasVar(body[i])) {
                     std::string loadFrom = body[i].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_push(_%s);\n", loadFrom.c_str());
+                    append("ctrl_push(_%s);\n", loadFrom.c_str());
                 } else if (body[i].getType() == tok_identifier && hasFunction(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_required(%zu, ", getFunctionByName(body[i].getValue()).getArgs().size());
-                    fprintf(fp, "\"%s\");\n", body[i].getValue().c_str());
+                    append("ctrl_required(%zu, ", getFunctionByName(body[i].getValue()).getArgs().size());
+                    append("\"%s\");\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "fn_%s(", body[i].getValue().c_str());
+                    append("fn_%s(", body[i].getValue().c_str());
                     Function func = getFunctionByName(body[i].getValue());
                     for (ssize_t j = (ssize_t) func.getArgs().size() - 1; j >= 0; j--) {
                         if (j != (ssize_t) func.getArgs().size() - 1) {
-                            fprintf(fp, ", ");
+                            append(", ");
                         }
-                        fprintf(fp, "ctrl_pop()");
+                        append("ctrl_pop()");
                     }
-                    fprintf(fp, ");\n");
+                    append(");\n");
                 } else if (body[i].getType() == tok_identifier && hasExtern(body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_fn_native_start(\"%s\");\n", body[i].getValue().c_str());
+                    append("ctrl_fn_native_start(\"%s\");\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "native_%s();\n", body[i].getValue().c_str());
+                    append("native_%s();\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_fn_native_end();\n");
+                    append("ctrl_fn_native_end();\n");
                 } else if (body[i].getType() == tok_string_literal) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
+                    append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_number) {
-                    ParseResult numberHandled = handleNumber(fp, body[i], scopeDepth);
+                    FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
                         errors.push_back(numberHandled);
                     }
                 } else if (body[i].getType() == tok_number_float) {
-                    ParseResult numberHandled = handleDouble(fp, body[i], scopeDepth);
+                    FPResult numberHandled = handleDouble(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
                         errors.push_back(numberHandled);
                     }
                 } else if (body[i].getType() == tok_nil || body[i].getType() == tok_false) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_push((scl_word) 0);\n");
+                    append("ctrl_push((scl_word) 0);\n");
                 } else if (body[i].getType() == tok_true) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_push((scl_word) 1);\n");
+                    append("ctrl_push((scl_word) 1);\n");
                 } else if (body[i].getType() == tok_if) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
                     scopeDepth++;
-                    fprintf(fp, "if (ctrl_pop_long()) {\n");
+                    append("if (ctrl_pop_long()) {\n");
                 } else if (body[i].getType() == tok_else) {
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
                     scopeDepth++;
-                    fprintf(fp, "} else {\n");
+                    append("} else {\n");
                 } else if (body[i].getType() == tok_while) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
                     scopeDepth++;
-                    fprintf(fp, "while (1) {\n");
+                    append("while (1) {\n");
                 } else if (body[i].getType() == tok_do) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "if (!ctrl_pop_long()) break;\n");
+                    append("if (!ctrl_pop_long()) break;\n");
                 } else if (body[i].getType() == tok_for) {
-                    ParseResult forHandled = handleFor(
+                    FPResult forHandled = handleFor(
                         body[i+1],
                         body[i+2],
                         body[i+3],
@@ -352,73 +344,73 @@ namespace sclc
                         || body[i].getType() == tok_end) {
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "}\n");
+                    append("}\n");
                 } else if (body[i].getType() == tok_return) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "{\n");
+                    append("{\n");
                     scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "scl_word ret;\n");
+                    append("scl_word ret;\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ssize_t stk_sz = ctrl_stack_size();\n");
+                    append("ssize_t stk_sz = ctrl_stack_size();\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "if (stk_sz > 0)  ret = ctrl_pop();\n");
+                    append("if (stk_sz > 0)  ret = ctrl_pop();\n");
                     for (ssize_t j = 0; j < sap_depth; j++) {
                         for (int k = 0; k < scopeDepth; k++) {
-                            fprintf(fp, "  ");
+                            append("  ");
                         }
-                        fprintf(fp, "sap_close();\n");
+                        append("sap_close();\n");
                     }
                     if (sap) {
                         for (int j = 0; j < scopeDepth; j++) {
-                            fprintf(fp, "  ");
+                            append("  ");
                         }
-                        fprintf(fp, "sap_close();\n");
+                        append("sap_close();\n");
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
                     if (funcPrivateStack) {
-                        fprintf(fp, "ctrl_fn_end();\n");
+                        append("ctrl_fn_end();\n");
                     } else {
-                        fprintf(fp, "ctrl_fn_nps_end();\n");
+                        append("ctrl_fn_nps_end();\n");
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "if (stk_sz > 0) ctrl_push(ret);\n");
+                    append("if (stk_sz > 0) ctrl_push(ret);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "return;\n");
+                    append("return;\n");
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "}\n");
+                    append("}\n");
                 } else if (body[i].getType() == tok_addr_ref) {
                     Token toGet = body[i + 1];
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
                     if (hasExtern(toGet)) {
-                        fprintf(fp, "ctrl_push((scl_word) &native_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push((scl_word) &native_%s);\n", toGet.getValue().c_str());
                     } else if (hasFunction(toGet)) {
-                        fprintf(fp, "ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
                     } else if (hasVar(toGet)) {
-                        fprintf(fp, "ctrl_push(_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push(_%s);\n", toGet.getValue().c_str());
                     } else {
-                        ParseResult err;
+                        FPResult err;
                         err.success = false;
                         err.message = "Unknown variable: '" + toGet.getValue() + "'";
                         err.column = body[i + 1].getColumn();
@@ -430,7 +422,7 @@ namespace sclc
                     i++;
                 } else if (body[i].getType() == tok_store) {
                     if (body[i + 1].getType() != tok_identifier) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                         result.success = false;
                         result.where = body[i + 1].getLine();
@@ -440,7 +432,7 @@ namespace sclc
                         errors.push_back(result);
                     }
                     if (!hasVar(body[i + 1])) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                         result.success = false;
                         result.where = body[i + 1].getLine();
@@ -451,13 +443,13 @@ namespace sclc
                     }
                     std::string storeIn = body[i + 1].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "_%s = ctrl_pop();\n", storeIn.c_str());
+                    append("_%s = ctrl_pop();\n", storeIn.c_str());
                     i++;
                 } else if (body[i].getType() == tok_declare) {
                     if (body[i + 1].getType() != tok_identifier) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                         result.success = false;
                         result.where = body[i + 1].getLine();
@@ -469,23 +461,23 @@ namespace sclc
                     vars.push_back(body[i + 1].getValue());
                     std::string loadFrom = body[i + 1].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "scl_word _%s;\n", loadFrom.c_str());
+                    append("scl_word _%s;\n", loadFrom.c_str());
                     i++;
                 } else if (body[i].getType() == tok_continue) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "continue;\n");
+                    append("continue;\n");
                 } else if (body[i].getType() == tok_break) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "break;\n");
+                    append("break;\n");
                 } else if (body[i].getType() == tok_ref) {
                     if (body[i + 1].getType() != tok_identifier) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                         result.success = false;
                         result.where = body[i + 1].getLine();
@@ -495,7 +487,7 @@ namespace sclc
                         errors.push_back(result);
                     }
                     if (!hasVar(body[i + 1])) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
                         result.success = false;
                         result.where = body[i + 1].getLine();
@@ -505,46 +497,46 @@ namespace sclc
                         errors.push_back(result);
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "*((scl_word*) _%s) = ctrl_pop();\n", body[i + 1].getValue().c_str());
+                    append("*((scl_word*) _%s) = ctrl_pop();\n", body[i + 1].getValue().c_str());
                     i++;
                 } else if (body[i].getType() == tok_deref) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "{\n");
+                    append("{\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "scl_word addr = ctrl_pop();\n");
+                    append("scl_word addr = ctrl_pop();\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "scl_security_check_null(addr);\n");
+                    append("scl_security_check_null(addr);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "ctrl_push(*(scl_word*) addr);\n");
+                    append("ctrl_push(*(scl_word*) addr);\n");
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "}\n");
+                    append("}\n");
                 } else if (body[i].getType() == tok_sapopen) {
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "{\n");
+                    append("{\n");
                     scopeDepth++;
                     sap_depth++;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "sap_open();\n");
+                    append("sap_open();\n");
                     sap_tokens.push_back(body[i]);
                 } else if (body[i].getType() == tok_sapclose) {
                     if (sap_depth == 0) {
-                        ParseResult result;
+                        FPResult result;
                         result.message = "Trying to close unexistent SAP";
                         result.success = false;
                         result.where = body[i].getLine();
@@ -554,18 +546,18 @@ namespace sclc
                         errors.push_back(result);
                     }
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "sap_close();\n");
+                    append("sap_close();\n");
                     sap_depth--;
                     scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
-                        fprintf(fp, "  ");
+                        append("  ");
                     }
-                    fprintf(fp, "}\n");
+                    append("}\n");
                     if (sap_tokens.size() > 0) sap_tokens.pop_back();
                 } else {
-                    ParseResult result;
+                    FPResult result;
                     result.message = "Unknown identifier: '%s', body[i].getValue().c_str()";
                     result.success = false;
                     result.where = body[i].getLine();
@@ -577,27 +569,27 @@ namespace sclc
             }
             if (funcPrivateStack) {
                 if (body.size() <= 0) {
-                    fprintf(fp, "  ctrl_fn_end();\n");
+                    append("  ctrl_fn_end();\n");
                 } else if (body[body.size() - 1].getType() != tok_return) {
-                    fprintf(fp, "  ctrl_fn_end();\n");
+                    append("  ctrl_fn_end();\n");
                 }
             } else {
                 if (body.size() <= 0) {
-                    fprintf(fp, "  ctrl_fn_nps_end();\n");
+                    append("  ctrl_fn_nps_end();\n");
                 } else if (body[body.size() - 1].getType() != tok_return) {
-                    fprintf(fp, "  ctrl_fn_nps_end();\n");
+                    append("  ctrl_fn_nps_end();\n");
                 }
             }
             if (sap) {
                 for (int j = 0; j < scopeDepth; j++) {
-                    fprintf(fp, "  ");
+                    append("  ");
                 }
-                fprintf(fp, "sap_close();\n");
+                append("sap_close();\n");
             }
-            fprintf(fp, "}\n\n");
+            append("}\n\n");
 
             if (sap_depth > 0) {
-                ParseResult result;
+                FPResult result;
                 result.message = "SAP never closed, Opened here:";
                 result.success = false;
                 result.where = sap_tokens[sap_tokens.size() - 1].getLine();
@@ -628,16 +620,16 @@ namespace sclc
         "  return 0;\n"
         "}\n";
 
-        fprintf(fp, "%s\n", mainEntry.c_str());
+        append("%s\n", mainEntry.c_str());
 
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "}\n");
-        fprintf(fp, "#endif\n");
-        fprintf(fp, "/* END OF GENERATED CODE */\n");
+        append("#ifdef __cplusplus\n");
+        append("}\n");
+        append("#endif\n");
+        append("/* END OF GENERATED CODE */\n");
 
         fclose(fp);
 
-        ParseResult parseResult;
+        FPResult parseResult;
         parseResult.success = true;
         parseResult.message = "";
         parseResult.errors = errors;

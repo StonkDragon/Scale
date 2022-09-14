@@ -10,7 +10,7 @@
 #include "../Common.hpp"
 namespace sclc
 {
-    ParseResult handleOperator(FILE* fp, Token token, int scopeDepth) {
+    FPResult handleOperator(FILE* fp, Token token, int scopeDepth) {
         for (int j = 0; j < scopeDepth; j++) {
             fprintf(fp, "  ");
         }
@@ -33,7 +33,7 @@ namespace sclc
             case tok_ddiv: fprintf(fp, "op_ddiv();\n"); break;
             default:
             {
-                ParseResult result;
+                FPResult result;
                 result.success = false;
                 result.message = "Unknown operator type: " + std::to_string(token.type);
                 result.where = token.getLine();
@@ -42,13 +42,13 @@ namespace sclc
                 return result;
             }
         }
-        ParseResult result;
+        FPResult result;
         result.success = true;
         result.message = "";
         return result;
     }
 
-    ParseResult handleNumber(FILE* fp, Token token, int scopeDepth) {
+    FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         try {
             long long num = parseNumber(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
@@ -56,7 +56,7 @@ namespace sclc
             }
             fprintf(fp, "ctrl_push_long(%lld);\n", num);
         } catch (std::exception &e) {
-            ParseResult result;
+            FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
             result.where = token.getLine();
@@ -65,15 +65,15 @@ namespace sclc
             result.column = token.getColumn();
             return result;
         }
-        ParseResult result;
+        FPResult result;
         result.success = true;
         result.message = "";
         return result;
     }
 
-    ParseResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth) {
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth) {
         if (keywDeclare.getType() != tok_declare) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
             result.success = false;
             result.where = keywDeclare.getLine();
@@ -83,7 +83,7 @@ namespace sclc
             return result;
         }
         if (loopVar.getType() != tok_identifier) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected identifier after 'decl', but got: '" + loopVar.getValue() + "'";
             result.success = false;
             result.where = loopVar.getLine();
@@ -93,7 +93,7 @@ namespace sclc
             return result;
         }
         if (keywIn.getType() != tok_in) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected 'in' keyword in for loop header, but got: '" + keywIn.getValue() + "'";
             result.success = false;
             result.where = keywIn.getLine();
@@ -103,7 +103,7 @@ namespace sclc
             return result;
         }
         if (from.getType() != tok_number && from.getType() != tok_identifier) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
             result.where = from.getLine();
@@ -113,7 +113,7 @@ namespace sclc
             return result;
         }
         if (keywTo.getType() != tok_to) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected 'to' keyword in for loop header, but got: '" + keywTo.getValue() + "'";
             result.success = false;
             result.where = keywTo.getLine();
@@ -123,7 +123,7 @@ namespace sclc
             return result;
         }
         if (to.getType() != tok_number && to.getType() != tok_identifier) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
             result.where = to.getLine();
@@ -133,7 +133,7 @@ namespace sclc
             return result;
         }
         if (keywDo.getType() != tok_do) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected 'do' keyword to finish for loop header, but got: '" + keywDo.getValue() + "'";
             result.success = false;
             result.where = keywDo.getLine();
@@ -148,7 +148,7 @@ namespace sclc
             lower = parseNumber(from.getValue());
             doNumberCheck = true;
         } else if (from.getType() != tok_identifier) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
             result.where = from.getLine();
@@ -162,7 +162,7 @@ namespace sclc
             higher = parseNumber(to.getValue());
             doNumberCheck = true;
         } else if (to.getType() != tok_identifier) {
-            ParseResult result;
+            FPResult result;
             result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
             result.where = to.getLine();
@@ -191,7 +191,7 @@ namespace sclc
                 fprintf(fp, "  ");
             }
             if (from.getType() == tok_identifier && !hasVar(from)) {
-                ParseResult result;
+                FPResult result;
                 result.message = "Use of undeclared variable: '" + from.getValue() + "'";
                 result.success = false;
                 result.where = from.getLine();
@@ -201,7 +201,7 @@ namespace sclc
                 return result;
             }
             if (to.getType() == tok_identifier && !hasVar(to)) {
-                ParseResult result;
+                FPResult result;
                 result.message = "Use of undeclared variable: '" + to.getValue() + "'";
                 result.success = false;
                 result.where = to.getLine();
@@ -219,7 +219,7 @@ namespace sclc
             fprintf(fp, "%s", to.getValue().c_str());
             fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
         } else {
-            ParseResult result;
+            FPResult result;
             result.message = "Lower bound of for loop is greater than upper bound";
             result.success = false;
             result.where = from.getLine();
@@ -231,13 +231,13 @@ namespace sclc
         *scopeDepth = *scopeDepth + 1;
 
         vars->push_back(loopVar.getValue());
-        ParseResult result;
+        FPResult result;
         result.success = true;
         result.message = "";
         return result;
     }
 
-    ParseResult handleDouble(FILE* fp, Token token, int scopeDepth) {
+    FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         try {
             double num = parseDouble(token.getValue());
             for (int j = 0; j < scopeDepth; j++) {
@@ -245,7 +245,7 @@ namespace sclc
             }
             fprintf(fp, "ctrl_push_double(%f);\n", num);
         } catch (std::exception &e) {
-            ParseResult result;
+            FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
             result.where = token.getLine();
@@ -254,7 +254,7 @@ namespace sclc
             result.column = token.getColumn();
             return result;
         }
-        ParseResult result;
+        FPResult result;
         result.success = true;
         result.message = "";
         return result;

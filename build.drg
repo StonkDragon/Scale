@@ -8,10 +8,10 @@ build: {
   ];
   units: [
     "Main.cpp";
-    "comp/Lexer.cpp";
-    "comp/Parser.cpp";
-    "comp/TokenHandlers.cpp";
-    "comp/Tokenizer.cpp";
+    "modules/TokenParser.cpp";
+    "modules/FunctionParser.cpp";
+    "modules/TokenHandlers.cpp";
+    "modules/Tokenizer.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";
@@ -45,10 +45,10 @@ dev: {
   ];
   units: [
     "Main.cpp";
-    "comp/Lexer.cpp";
-    "comp/Parser.cpp";
-    "comp/TokenHandlers.cpp";
-    "comp/Tokenizer.cpp";
+    "modules/TokenParser.cpp";
+    "modules/FunctionParser.cpp";
+    "modules/TokenHandlers.cpp";
+    "modules/Tokenizer.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";

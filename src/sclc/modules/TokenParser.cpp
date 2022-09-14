@@ -9,7 +9,7 @@
 
 namespace sclc
 {
-    AnalyzeResult Lexer::lexAnalyze()
+    TPResult TokenParser::parse()
     {
         Function* currentFunction = nullptr;
 
@@ -118,7 +118,7 @@ namespace sclc
             }
         }
 
-        AnalyzeResult result;
+        TPResult result;
         result.functions = functions;
         result.externs = externs;
         result.prototypes = prototypes;
