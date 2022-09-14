@@ -41,7 +41,7 @@ namespace sclc
     #endif
 
     std::vector<std::string> vars;
-    Main MAIN = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>()};
+    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>()};
 
     void signalHandler(int signum) {
         std::cout << "Signal " << signum << " received." << std::endl;
@@ -170,4 +170,13 @@ namespace sclc
         }
         return num;
     }
+
+    hash hash1(char* data) {
+        hash h = 7;
+        for (size_t i = 0; i < strlen(data); i++) {
+            h = h * 31 + data[i];
+        }
+        return h;
+    }
+
 } // namespace sclc

@@ -21,6 +21,7 @@
 
 #define LINE_LENGTH 48
 
+typedef unsigned long long hash;
 
 namespace sclc
 {
@@ -149,12 +150,12 @@ namespace sclc
         }
     };
 
-    struct ParseResult {
+    struct FPResult {
         bool success;
         std::string message;
         std::string in;
-        std::vector<ParseResult> errors;
-        std::vector<ParseResult> warns;
+        std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
         std::string token;
         int column;
         int where;
@@ -257,14 +258,14 @@ namespace sclc
         ~Prototype() {}
     };
 
-    struct AnalyzeResult {
+    struct TPResult {
         std::vector<Function> functions;
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
         std::vector<std::string> globals;
     };
 
-    class Lexer
+    class TokenParser
     {
     private:
         std::vector<Token> tokens;
@@ -272,25 +273,25 @@ namespace sclc
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
     public:
-        Lexer(std::vector<Token> tokens) {
+        TokenParser(std::vector<Token> tokens) {
             this->tokens = tokens;
         }
-        ~Lexer() {}
-        AnalyzeResult lexAnalyze();
+        ~TokenParser() {}
+        TPResult parse();
         static bool isOperator(Token token);
         static bool isType(Token token);
         static bool canAssign(Token token);
     };
 
-    struct Parser
+    struct FunctionParser
     {
-        AnalyzeResult result;
+        TPResult result;
 
-        Parser(AnalyzeResult result)
+        FunctionParser(TPResult result)
         {
             this->result = result;
         }
-        ~Parser() {}
+        ~FunctionParser() {}
         bool hasFunction(Token name) {
             for (Function func : result.functions) {
                 if (func.name == name.getValue()) {
@@ -323,7 +324,7 @@ namespace sclc
             }
             return false;
         }
-        ParseResult parse(std::string filename);
+        FPResult parse(std::string filename);
         Function getFunctionByName(std::string name);
     };
 
@@ -341,17 +342,17 @@ namespace sclc
         void printTokens();
     };
 
-    typedef struct Main
+    typedef struct _Main
     {
         Tokenizer* tokenizer;
-        Lexer* lexer;
-        Parser* parser;
+        TokenParser* lexer;
+        FunctionParser* parser;
         bool debug;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
-    } Main;
+    } _Main;
 
-    extern Main MAIN;
+    extern _Main Main;
 
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
@@ -371,5 +372,6 @@ namespace sclc
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
     int lastIndexOf(char* src, char c);
     bool hasVar(Token name);
+    hash hash1(char* data);
 }
 #endif // COMMON_H

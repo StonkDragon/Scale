@@ -158,7 +158,7 @@ namespace sclc
                 cmd += flag + " ";
             }
 
-            MAIN.frameworks.push_back(framework);
+            Main.frameworks.push_back(framework);
 
             globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
             unsigned long implementersSize = implementers.size();
@@ -169,7 +169,7 @@ namespace sclc
             }
             for (unsigned long i = 0; i < implHeaders.size(); i++) {
                 std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
-                MAIN.frameworkNativeHeaders.push_back(header);
+                Main.frameworkNativeHeaders.push_back(header);
             }
         }
 
@@ -195,9 +195,9 @@ namespace sclc
             }
 
             Tokenizer tokenizer;
-            MAIN.tokenizer = &tokenizer;
-            MAIN.tokenizer->tokenize(filename + ".scale-preproc");
-            std::vector<Token> theseTokens = MAIN.tokenizer->getTokens();
+            Main.tokenizer = &tokenizer;
+            Main.tokenizer->tokenize(filename + ".scale-preproc");
+            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
 
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
@@ -209,12 +209,12 @@ namespace sclc
             return 0;
         }
 
-        Lexer lexer(tokens);
-        MAIN.lexer = &lexer;
-        AnalyzeResult result = MAIN.lexer->lexAnalyze();
+        TokenParser lexer(tokens);
+        Main.lexer = &lexer;
+        TPResult result = Main.lexer->parse();
 
-        Parser parser(result);
-        MAIN.parser = &parser;
+        FunctionParser parser(result);
+        Main.parser = &parser;
         char* source = (char*) malloc(sizeof(char) * 50);
         
         srand(time(NULL));
@@ -223,10 +223,10 @@ namespace sclc
         cmd += source;
         cmd += ".c ";
 
-        ParseResult parseResult = MAIN.parser->parse(std::string(source));
+        FPResult parseResult = Main.parser->parse(std::string(source));
 
         if (parseResult.errors.size() > 0) {
-            for (ParseResult error : parseResult.errors) {
+            for (FPResult error : parseResult.errors) {
                 if (error.where == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                     continue;
