@@ -53,6 +53,7 @@ build
 makebin
 compile
 experimental
+gen.js
 
 # Kernel Module Compile Results
 *.mod*
