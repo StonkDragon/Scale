@@ -117,7 +117,7 @@ namespace sclc
             }
         }
 
-        cmd += "-o " + outfile + " ";
+        cmd += "-o \"" + outfile + "\" ";
 
         std::string globalPreproc = std::string(PREPROCESSOR);
         const double FrameworkMinimumVersion = 2.8;
