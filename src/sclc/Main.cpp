@@ -19,7 +19,7 @@
 #endif
 
 #include "Common.hpp"
-#include "DragonConfig.hpp"
+#include "modules/DragonConfig.hpp"
 
 #ifndef VERSION
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
@@ -119,7 +119,7 @@ namespace sclc
 
         cmd += "-o \"" + outfile + "\" ";
 
-        std::string globalPreproc = std::string(PREPROCESSOR);
+        std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         const double FrameworkMinimumVersion = 2.8;
 
         for (std::string framework : frameworks) {
