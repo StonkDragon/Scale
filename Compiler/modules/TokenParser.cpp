@@ -12,6 +12,7 @@ namespace sclc
     TPResult TokenParser::parse()
     {
         Function* currentFunction = nullptr;
+        Container* currentContainer = nullptr;
 
         bool functionPrivateStack = true;
         bool funcNoWarn = false;
@@ -19,6 +20,7 @@ namespace sclc
 
         std::vector<std::string> uses;
         std::vector<std::string> globals;
+        std::vector<Container> containers;
 
         for (size_t i = 0; i < tokens.size(); i++)
         {
@@ -26,6 +28,10 @@ namespace sclc
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     std::cerr << "Error: Cannot define function inside another function" << std::endl;
+                    exit(1);
+                }
+                if (currentContainer != nullptr) {
+                    std::cerr << "Error: Cannot define function inside of a container" << std::endl;
                     exit(1);
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -59,28 +65,46 @@ namespace sclc
                     std::cerr << "Problematic function: '" << currentFunction->name << "'" << std::endl;
                     exit(1);
                 }
-            } else if (token.getType() == tok_end && currentFunction != nullptr) {
-                if (!functionPrivateStack) {
-                    currentFunction->addModifier(mod_nps);
-                    functionPrivateStack = true;
+            } else if (token.getType() == tok_end && (currentFunction != nullptr || currentContainer != nullptr)) {
+                if (currentFunction != nullptr) {
+                    if (!functionPrivateStack) {
+                        currentFunction->addModifier(mod_nps);
+                        functionPrivateStack = true;
+                    }
+                    if (funcNoWarn) {
+                        currentFunction->addModifier(mod_nowarn);
+                        funcNoWarn = false;
+                    }
+                    if (funcSAP) {
+                        currentFunction->addModifier(mod_sap);
+                        funcSAP = false;
+                    }
+                    addIfAbsent(functions, *currentFunction);
+                    currentFunction = nullptr;
+                } else if (currentContainer != nullptr) {
+                    containers.push_back(*currentContainer);
+                    currentContainer = nullptr;
+                } else {
+                    std::cerr << "Error: unexpected 'end' keyword outside of function or container body" << std::endl;
+                    exit(1);
                 }
-                if (funcNoWarn) {
-                    currentFunction->addModifier(mod_nowarn);
-                    funcNoWarn = false;
-                }
-                if (funcSAP) {
-                    currentFunction->addModifier(mod_sap);
-                    funcSAP = false;
-                }
-                addIfAbsent(functions, *currentFunction);
-                currentFunction = nullptr;
             } else if (token.getType() == tok_proto) {
                 std::string name = tokens[++i].getValue();
                 std::string argstring = tokens[++i].getValue();
                 int argCount = stoi(argstring);
                 prototypes.push_back(Prototype(name, argCount));
+            } else if (token.getType() == tok_container_def) {
+                if (currentContainer != nullptr) {
+                    std::cerr << "Error: Cannot define a container inside another container" << std::endl;
+                    exit(1);
+                }
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                }
+                i++;
+                currentContainer = new Container(tokens[i].getValue());
             } else if (token.getType() == tok_hash) {
-                if (currentFunction == nullptr) {
+                if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
                         if (tokens[i + 1].getValue() == "nps") {
                             functionPrivateStack = false;
@@ -96,22 +120,28 @@ namespace sclc
                     }
                     i++;
                 } else {
-                    std::cerr << "Error: Cannot use modifiers inside a function." << std::endl;
+                    std::cerr << "Error: Cannot use modifiers inside a function or container." << std::endl;
                 }
-            } else if (token.getType() == tok_extern) {
+            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr) {
                 std::string name = tokens[i + 1].getValue();
                 Extern externFunction(name);
                 externs.push_back(externFunction);
                 i++;
             } else {
-                if (currentFunction != nullptr) {
+                if (currentFunction != nullptr && currentContainer == nullptr) {
                     currentFunction->addToken(token);
                 } else {
-                    if (token.getType() == tok_declare) {
+                    if (token.getType() == tok_declare && currentContainer == nullptr) {
                         if (tokens[i + 1].getType() != tok_identifier) {
                             std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
                         }
                         globals.push_back(tokens[i + 1].getValue());
+                        i++;
+                    } else if (token.getType() == tok_declare && currentContainer != nullptr) {
+                        if (tokens[i + 1].getType() != tok_identifier) {
+                            std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                        }
+                        currentContainer->addMember(tokens[i + 1].getValue());
                         i++;
                     }
                 }
@@ -123,6 +153,7 @@ namespace sclc
         result.externs = externs;
         result.prototypes = prototypes;
         result.globals = globals;
+        result.containers = containers;
         return result;
     }
 }

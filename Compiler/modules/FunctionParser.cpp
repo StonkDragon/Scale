@@ -41,6 +41,15 @@ namespace sclc
         return Function("%NULFUNC%");
     }
 
+    Container FunctionParser::getContainerByName(std::string name) {
+        for (Container container : result.containers) {
+            if (container.name == name) {
+                return container;
+            }
+        }
+        return Container("");
+    }
+
     FPResult FunctionParser::parse(std::string filename) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
@@ -142,6 +151,16 @@ namespace sclc
             globals.push_back(s);
         }
 
+        append("\n");
+        append("/* CONTAINERS */\n");
+        for (Container c : result.containers) {
+            append("struct {\n");
+            for (std::string s : c.members) {
+                append("  scl_word %s;\n", s.c_str());
+            }
+            append("} $_%s = {0};\n", c.name.c_str());
+        }
+        
         append("\n");
         append("/* FUNCTIONS */\n");
 
@@ -273,6 +292,36 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_fn_native_end();\n");
+                } else if (body[i].getType() == tok_identifier && hasContainer(body[i])) {
+                    std::string containerName = body[i].getValue();
+                    i++;
+                    if (body[i].getType() != tok_container_acc) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.where = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.token = body[i].getValue();
+                        errors.push_back(err);
+                    }
+                    i++;
+                    std::string memberName = body[i].getValue();
+                    Container container = getContainerByName(containerName);
+                    if (!container.hasMember(memberName)) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Unknown container member: '" + memberName + "'";
+                        err.column = body[i].getColumn();
+                        err.where = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.token = body[i].getValue();
+                        errors.push_back(err);
+                    }
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push($_%s.%s);\n", containerName.c_str(), memberName.c_str());
                 } else if (body[i].getType() == tok_string_literal) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -408,7 +457,37 @@ namespace sclc
                     } else if (hasFunction(toGet)) {
                         append("ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
                     } else if (hasVar(toGet)) {
-                        append("ctrl_push(_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push(&_%s);\n", toGet.getValue().c_str());
+                    } else if (hasContainer(toGet)) {
+                        std::string containerName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_container_acc) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        i++;
+                        std::string memberName = body[i].getValue();
+                        Container container = getContainerByName(containerName);
+                        if (!container.hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown container member: '" + memberName + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("ctrl_push(&($_%s.%s));\n", containerName.c_str(), memberName.c_str());
                     } else {
                         FPResult err;
                         err.success = false;
@@ -421,32 +500,64 @@ namespace sclc
                     }
                     i++;
                 } else if (body[i].getType() == tok_store) {
-                    if (body[i + 1].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
-                        result.success = false;
-                        result.where = body[i + 1].getLine();
-                        result.in = body[i + 1].getFile();
-                        result.token = body[i + 1].getValue();
-                        result.column = body[i + 1].getColumn();
-                        errors.push_back(result);
-                    }
-                    if (!hasVar(body[i + 1])) {
-                        FPResult result;
-                        result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
-                        result.success = false;
-                        result.where = body[i + 1].getLine();
-                        result.in = body[i + 1].getFile();
-                        result.token = body[i + 1].getValue();
-                        result.column = body[i + 1].getColumn();
-                        errors.push_back(result);
-                    }
-                    std::string storeIn = body[i + 1].getValue();
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
-                    append("_%s = ctrl_pop();\n", storeIn.c_str());
                     i++;
+                    if (body[i + 1].getType() == tok_container_acc) {
+                        std::string containerName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_container_acc) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        i++;
+                        std::string memberName = body[i].getValue();
+                        Container container = getContainerByName(containerName);
+                        if (!container.hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown container member: '" + memberName + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("$_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                    } else {
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "'" + body[i].getValue() + "' is not an identifier!";
+                            result.success = false;
+                            result.where = body[i].getLine();
+                            result.in = body[i].getFile();
+                            result.token = body[i].getValue();
+                            result.column = body[i].getColumn();
+                            errors.push_back(result);
+                        }
+                        if (!hasVar(body[i])) {
+                            FPResult result;
+                            result.message = "Use of undefined variable '" + body[i].getValue() + "'";
+                            result.success = false;
+                            result.where = body[i].getLine();
+                            result.in = body[i].getFile();
+                            result.token = body[i].getValue();
+                            result.column = body[i].getColumn();
+                            errors.push_back(result);
+                        }
+                        std::string storeIn = body[i].getValue();
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("_%s = ctrl_pop();\n", storeIn.c_str());
+                    }
                 } else if (body[i].getType() == tok_declare) {
                     if (body[i + 1].getType() != tok_identifier) {
                         FPResult result;
@@ -476,31 +587,63 @@ namespace sclc
                     }
                     append("break;\n");
                 } else if (body[i].getType() == tok_ref) {
-                    if (body[i + 1].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
-                        result.success = false;
-                        result.where = body[i + 1].getLine();
-                        result.in = body[i + 1].getFile();
-                        result.token = body[i + 1].getValue();
-                        result.column = body[i + 1].getColumn();
-                        errors.push_back(result);
-                    }
-                    if (!hasVar(body[i + 1])) {
-                        FPResult result;
-                        result.message = "Use of undefined variable '" + body[i + 1].getValue() + "'";
-                        result.success = false;
-                        result.where = body[i + 1].getLine();
-                        result.in = body[i + 1].getFile();
-                        result.token = body[i + 1].getValue();
-                        result.column = body[i + 1].getColumn();
-                        errors.push_back(result);
-                    }
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
-                    append("*((scl_word*) _%s) = ctrl_pop();\n", body[i + 1].getValue().c_str());
                     i++;
+                    if (body[i + 1].getType() == tok_container_acc) {
+                        std::string containerName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_container_acc) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        i++;
+                        std::string memberName = body[i].getValue();
+                        Container container = getContainerByName(containerName);
+                        if (!container.hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown container member: '" + memberName + "'";
+                            err.column = body[i].getColumn();
+                            err.where = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.token = body[i].getValue();
+                            errors.push_back(err);
+                        }
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("*((scl_word*) $_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                    } else {
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "'" + body[i].getValue() + "' is not an identifier!";
+                            result.success = false;
+                            result.where = body[i].getLine();
+                            result.in = body[i].getFile();
+                            result.token = body[i].getValue();
+                            result.column = body[i].getColumn();
+                            errors.push_back(result);
+                        }
+                        if (!hasVar(body[i])) {
+                            FPResult result;
+                            result.message = "Use of undefined variable '" + body[i].getValue() + "'";
+                            result.success = false;
+                            result.where = body[i].getLine();
+                            result.in = body[i].getFile();
+                            result.token = body[i].getValue();
+                            result.column = body[i].getColumn();
+                            errors.push_back(result);
+                        }
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("*((scl_word*) _%s) = ctrl_pop();\n", body[i].getValue().c_str());
+                    }
                 } else if (body[i].getType() == tok_deref) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");

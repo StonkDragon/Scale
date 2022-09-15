@@ -81,6 +81,7 @@ namespace sclc
         tok_load,           // load
         tok_store,          // store
         tok_declare,        // decl
+        tok_container_def,  // container
 
         // operators
         tok_hash,           // #
@@ -107,6 +108,7 @@ namespace sclc
         tok_ddiv,           // ./
         tok_sapopen,        // [
         tok_sapclose,       // ]
+        tok_container_acc,  // ->
 
         tok_identifier,     // foo
         tok_number,         // 123
@@ -247,6 +249,25 @@ namespace sclc
         ~Extern() {}
     };
 
+    struct Container {
+        std::string name;
+        std::vector<std::string> members;
+        Container(std::string name) {
+            this->name = name;
+        }
+        void addMember(std::string member) {
+            members.push_back(member);
+        }
+        bool hasMember(std::string member) {
+            for (std::string m : members) {
+                if (m == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
     struct Prototype
     {
         std::string name;
@@ -263,6 +284,7 @@ namespace sclc
         std::vector<Extern> externs;
         std::vector<Prototype> prototypes;
         std::vector<std::string> globals;
+        std::vector<Container> containers;
     };
 
     class TokenParser
@@ -324,8 +346,17 @@ namespace sclc
             }
             return false;
         }
+        bool hasContainer(Token name) {
+            for (Container container_ : result.containers) {
+                if (container_.name == name.getValue()) {
+                    return true;
+                }
+            }
+            return false;
+        }
         FPResult parse(std::string filename);
         Function getFunctionByName(std::string name);
+        Container getContainerByName(std::string name);
     };
 
     class Tokenizer

@@ -158,7 +158,7 @@ namespace sclc
                     exit(1);
                 }
             }
-        } else if (isOperator(c)) {
+        } else if (isOperator(c) && value != "-") {
             value += c;
             startColumn = column;
             column++;
@@ -185,6 +185,12 @@ namespace sclc
                     c = source[++current];
                     column++;
                     value += c;
+                }
+            } else if (c == '-') {
+                if (source[current + 1] == '>') {
+                    c = source[++current];
+                    value += c;
+                    column++;
                 }
             }
             c = source[++current];
@@ -247,6 +253,7 @@ namespace sclc
         TYPES("false", false, line, filename, startColumn);
         TYPES("deref", deref, line, filename, startColumn);
         TYPES("ref", ref, line, filename, startColumn);
+        TYPES("container", container_def, line, filename, startColumn);
         
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);
@@ -272,6 +279,7 @@ namespace sclc
         TYPES("./", ddiv, line, filename, startColumn);
         TYPES("[", sapopen, line, filename, startColumn);
         TYPES("]", sapclose, line, filename, startColumn);
+        TYPES("->", container_acc, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

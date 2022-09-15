@@ -73,6 +73,7 @@ Optional:
   - `addr`: Get the address of the following identifier
   - `deref`: Push the value at the address on the stack
   - `ref`: Write the value at the address on the stack to the following variable
+  - `container`: Declare a new Container to hold multiple values
 
 ## Argument Notation
 
@@ -139,6 +140,8 @@ Example:
   - [Sizeof](./examples/sizeof.scale)
 
   - [Stack Autodrop Pool](./examples/sap.scale)
+
+  - [Containers](./examples/container.scale)
 
   - [Pointer Dereferencing](./examples/deref.scale)
 
