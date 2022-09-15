@@ -1,10 +1,10 @@
 build: {
   compiler: "clang++";
-  sourceDir: "src/sclc";
+  sourceDir: "Compiler";
   outputDir: "compile";
   target: "sclc";
   includes: [
-    "src/sclc";
+    "Compiler";
   ];
   units: [
     "Main.cpp";
@@ -37,11 +37,11 @@ dev: {
   ];
   wrongOsMsg: "The Dev build is only available for Linux and MacOS.";
   compiler: "clang++";
-  sourceDir: "src/sclc";
+  sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
   includes: [
-    "src/sclc";
+    "Compiler";
   ];
   units: [
     "Main.cpp";
