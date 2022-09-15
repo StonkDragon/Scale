@@ -44,6 +44,7 @@ namespace sclc
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
+        std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -67,14 +68,13 @@ namespace sclc
         bool transpileOnly      = false;
         bool preprocessOnly     = false;
         bool assembleOnly       = false;
+        bool noCoreFramework    = false;
 
         std::string outfile     = "out.scl";
         scaleFolder             = std::string(getenv("HOME")) + "/Scale";
         std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
-
-        frameworks.push_back("Core");
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -111,6 +111,8 @@ namespace sclc
                 } else if (args[i] == "-S") {
                     assembleOnly = true;
                     cmd += "-S ";
+                } else if (args[i] == "--no-core") {
+                    noCoreFramework = true;
                 } else {
                     cmd += args[i] + " ";
                 }
@@ -118,6 +120,9 @@ namespace sclc
         }
 
         cmd += "-o \"" + outfile + "\" ";
+
+        if (!noCoreFramework)
+            frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         const double FrameworkMinimumVersion = 2.8;
