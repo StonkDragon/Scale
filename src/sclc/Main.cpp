@@ -30,7 +30,7 @@
 #endif
 
 #ifndef COMPILER_FEATURES
-#define COMPILER_FEATURES "-fapprox-func -fgnu-keywords -fjump-tables -fmath-errno"
+#define COMPILER_FEATURES ""
 #endif
 
 namespace sclc
