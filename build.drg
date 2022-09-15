@@ -1,10 +1,10 @@
 build: {
   compiler: "clang++";
-  sourceDir: "src/sclc";
+  sourceDir: "Compiler";
   outputDir: "compile";
   target: "sclc";
   includes: [
-    "src/sclc";
+    "Compiler";
   ];
   units: [
     "Main.cpp";
@@ -23,7 +23,7 @@ build: {
   libs: [];
   std: "gnu++17";
   defines: [
-    "VERSION=\"2.8\"";
+    "VERSION=\"2.9\"";
   ];
   flags: [];
   preBuild: [];
@@ -37,11 +37,11 @@ dev: {
   ];
   wrongOsMsg: "The Dev build is only available for Linux and MacOS.";
   compiler: "clang++";
-  sourceDir: "src/sclc";
+  sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
   includes: [
-    "src/sclc";
+    "Compiler";
   ];
   units: [
     "Main.cpp";
@@ -59,7 +59,7 @@ dev: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"2.8\"";
+    "VERSION=\"2.9\"";
   ];
   std: "gnu++17";
   flags: [
@@ -75,7 +75,7 @@ dev: {
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
-    "./makebin 2.8 macos-x86-64";
+    "./makebin 2.9 macos-x86-64";
     "python3 tests.py run";
   ];
 };

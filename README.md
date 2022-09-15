@@ -12,9 +12,9 @@
 
   To install Scale, download the zip file for your operating system from the Release page.
 
-  Then, unzip the file and execute the install.sh/install.bat file with admin/root priviliges from the terminal.
+  Then, unzip the file and execute the install.py script. On Windows, you have to run it with Administrator permissions. On macOS and Linux, the script will ask for permissions once it needs them.
 
-  The Script will copy all files to the correct locations.
+  Reason: `runas` requires name of an Administrator account and the Hostname on Windows
 
 ## Dependencies
 
@@ -23,10 +23,10 @@
 Required:
 - [`clang`](https://clang.llvm.org/)
 - `cpp`
+- `python3` ([install.py](./install.py))
 
 Optional:
 - [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
-- `python3` (for tests)
 
 # Documentation
 
