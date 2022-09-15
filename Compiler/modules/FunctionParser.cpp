@@ -304,6 +304,7 @@ namespace sclc
                         err.in = body[i].getFile();
                         err.token = body[i].getValue();
                         errors.push_back(err);
+                        continue;
                     }
                     i++;
                     std::string memberName = body[i].getValue();
@@ -317,6 +318,7 @@ namespace sclc
                         err.in = body[i].getFile();
                         err.token = body[i].getValue();
                         errors.push_back(err);
+                        continue;
                     }
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -454,11 +456,15 @@ namespace sclc
                     }
                     if (hasExtern(toGet)) {
                         append("ctrl_push((scl_word) &native_%s);\n", toGet.getValue().c_str());
+                        i++;
                     } else if (hasFunction(toGet)) {
                         append("ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
+                        i++;
                     } else if (hasVar(toGet)) {
                         append("ctrl_push(&_%s);\n", toGet.getValue().c_str());
+                        i++;
                     } else if (hasContainer(toGet)) {
+                        i++;
                         std::string containerName = body[i].getValue();
                         i++;
                         if (body[i].getType() != tok_container_acc) {
@@ -470,6 +476,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
+                            continue;
                         }
                         i++;
                         std::string memberName = body[i].getValue();
@@ -483,9 +490,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
-                        }
-                        for (int j = 0; j < scopeDepth; j++) {
-                            append("  ");
+                            continue;
                         }
                         append("ctrl_push(&($_%s.%s));\n", containerName.c_str(), memberName.c_str());
                     } else {
@@ -498,7 +503,6 @@ namespace sclc
                         err.token = body[i + 1].getValue();
                         errors.push_back(err);
                     }
-                    i++;
                 } else if (body[i].getType() == tok_store) {
                     i++;
                     if (body[i + 1].getType() == tok_container_acc) {
@@ -513,6 +517,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
+                            continue;
                         }
                         i++;
                         std::string memberName = body[i].getValue();
@@ -526,6 +531,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
+                            continue;
                         }
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
@@ -600,6 +606,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
+                            continue;
                         }
                         i++;
                         std::string memberName = body[i].getValue();
@@ -613,6 +620,7 @@ namespace sclc
                             err.in = body[i].getFile();
                             err.token = body[i].getValue();
                             errors.push_back(err);
+                            continue;
                         }
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
@@ -701,7 +709,7 @@ namespace sclc
                     if (sap_tokens.size() > 0) sap_tokens.pop_back();
                 } else {
                     FPResult result;
-                    result.message = "Unknown identifier: '%s', body[i].getValue().c_str()";
+                    result.message = "Unknown identifier: '" + body[i].getValue() + "'";
                     result.success = false;
                     result.where = body[i].getLine();
                     result.in = body[i].getFile();
