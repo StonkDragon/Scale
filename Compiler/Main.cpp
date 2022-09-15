@@ -37,6 +37,71 @@ namespace sclc
 {
     std::string scaleFolder;
 
+    struct Version {
+        int major;
+        int minor;
+        int patch;
+
+        Version(std::string str) {
+            std::string::difference_type n = std::count(str.begin(), str.end(), '.');
+            if (n == 1) {
+                sscanf(str.c_str(), "%d.%d", &major, &minor);
+                patch = 0;
+            } else if (n == 2) {
+                sscanf(str.c_str(), "%d.%d.%d", &major, &minor, &patch);
+            } else if (n == 0) {
+                sscanf(str.c_str(), "%d", &major);
+                minor = 0;
+                patch = 0;
+            } else {
+                std::cerr << "Unknown version number: " << str << std::endl;
+                exit(1);
+            }
+        }
+        ~Version() {}
+
+        inline bool operator==(Version& v) {
+            return (major == v.major) && (minor == v.minor) && (patch == v.patch);
+        }
+
+        inline bool operator>(Version& v) {
+            if (major > v.major) {
+                return true;
+            } else if (major == v.major) {
+                if (minor > v.minor) {
+                    return true;
+                } else if (minor == v.minor) {
+                    if (patch > v.patch) {
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        inline bool operator>=(Version& v) {
+            return ((*this) > v) || ((*this) == v);
+        }
+
+        inline bool operator<=(Version& v) {
+            return !((*this) > v);
+        }
+
+        inline bool operator<(Version& v) {
+            return !((*this) >= v);
+        }
+
+        inline bool operator!=(Version& v) {
+            return !((*this) == v);
+        }
+
+        std::string asString() {
+            return std::to_string(this->major) + "." + std::to_string(this->minor) + "." + std::to_string(this->patch);
+        }
+    };
+
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << "  --transpile, -t  Transpile only" << std::endl;
@@ -125,7 +190,7 @@ namespace sclc
             frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
-        const double FrameworkMinimumVersion = 2.8;
+        Version FrameworkMinimumVersion = Version("2.8");
 
         for (std::string framework : frameworks) {
             DragonConfig::ConfigParser parser;
@@ -139,14 +204,14 @@ namespace sclc
             std::string implDir = root.getString("implDir").getValue();
             std::string implHeaderDir = root.getString("implHeaderDir").getValue();
 
-            double versionNum = stod(version);
-            double compilerVersionNum = stod(VERSION);
-            if (versionNum > compilerVersionNum) {
-                std::cerr << "Error: Framework '" << framework << "' requires Scale " << version << " but you are using " << VERSION << std::endl;
+            Version ver = Version(version);
+            Version compilerVersion = Version(VERSION);
+            if (ver > compilerVersion) {
+                std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
                 return 1;
             }
-            if (versionNum < FrameworkMinimumVersion) {
-                fprintf(stderr, "Error: Framework '%s' is too outdated (%.1f). Please update it to at least version %.1f\n", framework.c_str(), versionNum, FrameworkMinimumVersion);
+            if (ver < FrameworkMinimumVersion) {
+                fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
                 return 1;
             }
 
