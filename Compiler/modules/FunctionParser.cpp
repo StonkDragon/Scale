@@ -74,6 +74,7 @@ namespace sclc
 
         append("\n");
         append("/* HEADERS */\n");
+        append("#include <scale_internal.h>\n");
         for (std::string header : Main.frameworkNativeHeaders) {
             append("#include <%s>\n", header.c_str());
         }
