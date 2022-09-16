@@ -137,7 +137,7 @@ namespace sclc
 
         std::string outfile     = "out.scl";
         scaleFolder             = std::string(getenv("HOME")) + "/Scale";
-        std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
+        std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -I" + scaleFolder + "/Internal " + scaleFolder + "/Internal/scale_internal.c -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
 
