@@ -9,6 +9,17 @@
 
 #include "../Common.hpp"
 
+#define syntaxError(msg) \
+    do { \
+    FPResult result; \
+    result.message = msg; \
+    result.in = filename; \
+    result.line = line; \
+    result.column = startColumn; \
+    result.value = value; \
+    errors.push_back(result); \
+    } while (0)
+    
 namespace sclc
 {
     std::vector<Token> Tokenizer::getTokens() {
@@ -19,6 +30,7 @@ namespace sclc
     static int column = 0;
     static int startColumn = 0;
     static std::string filename;
+
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);
@@ -91,8 +103,7 @@ namespace sclc
             c = source[++current];
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
-                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated std::string" << std::endl;
-                    exit(1);
+                    syntaxError("Unterminated string");
                 }
                 value += c;
                 column++;
@@ -144,8 +155,7 @@ namespace sclc
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else {
-                    std::cerr << "Unknown escape sequence: '\\" << c << "'" << std::endl;
-                    exit(1);
+                    syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
                 }
             } else {
                 if (source[current + 1] == '\'') {
@@ -154,8 +164,7 @@ namespace sclc
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else {
-                    std::cerr << "Error: Invalid character literal: '" << c << "'" << std::endl;
-                    exit(1);
+                    syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
                 }
             }
         } else if (isOperator(c) && value != "-") {
@@ -168,8 +177,7 @@ namespace sclc
                 if (c == '>') {
                     value += c;
                 } else {
-                    std::cerr << "Error: Expected '>' after '>'\n";
-                    exit(1);
+                    syntaxError("Expected '>' after '>'");
                 }
             } else if (c == '<') {
                 c = source[++current];
@@ -177,8 +185,7 @@ namespace sclc
                 if (c == '<') {
                     value += c;
                 } else {
-                    std::cerr << "Error: Expected '<' after '<'\n";
-                    exit(1);
+                    syntaxError("Expected '<' after '<'");
                 }
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
@@ -209,8 +216,7 @@ namespace sclc
                 break;
             
             default:
-                std::cerr << "Error: Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" << c << "'" << std::endl;
-                exit(1);
+                syntaxError("Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" + std::to_string(c) + "'");
             }
             c = source[++current];
             column++;
@@ -287,7 +293,7 @@ namespace sclc
         return Token(tok_identifier, value, line, filename, startColumn);
     }
 
-    void Tokenizer::tokenize(std::string source) {
+    FPResult Tokenizer::tokenize(std::string source) {
         FILE *fp;
 
         std::string data = "";
@@ -296,7 +302,7 @@ namespace sclc
         
         fp = fopen(file.c_str(), "r");
         if (fp == NULL) {
-            printf("Error: Could not open file %s\n", file.c_str());
+            printf("IO Error: Could not open file %s\n", file.c_str());
             exit(1);
         }
 
@@ -357,6 +363,10 @@ namespace sclc
             this->tokens.push_back(token);
             token = nextToken();
         }
+
+        FPResult result;
+        result.errors = errors;
+        return result;
     }
 
     void Tokenizer::printTokens() {

@@ -158,9 +158,9 @@ namespace sclc
         std::string in;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
-        std::string token;
+        std::string value;
         int column;
-        int where;
+        int line;
     };
 
     struct Operation {
@@ -285,6 +285,7 @@ namespace sclc
         std::vector<Prototype> prototypes;
         std::vector<std::string> globals;
         std::vector<Container> containers;
+        std::vector<FPResult> errors;
     };
 
     class TokenParser
@@ -362,12 +363,13 @@ namespace sclc
     class Tokenizer
     {
         std::vector<Token> tokens;
+        std::vector<FPResult> errors;
         char* source;
         size_t current;
     public:
         Tokenizer() {current = 0;}
         ~Tokenizer() {}
-        void tokenize(std::string source);
+        FPResult tokenize(std::string source);
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();

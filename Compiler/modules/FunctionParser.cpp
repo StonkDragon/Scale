@@ -62,7 +62,7 @@ namespace sclc
             FPResult result;
             result.success = false;
             result.message = "No entry point found";
-            result.where = 0;
+            result.line = 0;
             result.in = filename;
             result.column = 0;
             errors.push_back(result);
@@ -300,9 +300,9 @@ namespace sclc
                         err.success = false;
                         err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
                         err.column = body[i].getColumn();
-                        err.where = body[i].getLine();
+                        err.line = body[i].getLine();
                         err.in = body[i].getFile();
-                        err.token = body[i].getValue();
+                        err.value = body[i].getValue();
                         errors.push_back(err);
                         continue;
                     }
@@ -314,9 +314,9 @@ namespace sclc
                         err.success = false;
                         err.message = "Unknown container member: '" + memberName + "'";
                         err.column = body[i].getColumn();
-                        err.where = body[i].getLine();
+                        err.line = body[i].getLine();
                         err.in = body[i].getFile();
-                        err.token = body[i].getValue();
+                        err.value = body[i].getValue();
                         errors.push_back(err);
                         continue;
                     }
@@ -472,9 +472,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -486,9 +486,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Unknown container member: '" + memberName + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -498,9 +498,9 @@ namespace sclc
                         err.success = false;
                         err.message = "Unknown variable: '" + toGet.getValue() + "'";
                         err.column = body[i + 1].getColumn();
-                        err.where = body[i + 1].getLine();
+                        err.line = body[i + 1].getLine();
                         err.in = body[i + 1].getFile();
-                        err.token = body[i + 1].getValue();
+                        err.value = body[i + 1].getValue();
                         errors.push_back(err);
                     }
                 } else if (body[i].getType() == tok_store) {
@@ -513,9 +513,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -527,9 +527,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Unknown container member: '" + memberName + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -542,9 +542,9 @@ namespace sclc
                             FPResult result;
                             result.message = "'" + body[i].getValue() + "' is not an identifier!";
                             result.success = false;
-                            result.where = body[i].getLine();
+                            result.line = body[i].getLine();
                             result.in = body[i].getFile();
-                            result.token = body[i].getValue();
+                            result.value = body[i].getValue();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -552,9 +552,9 @@ namespace sclc
                             FPResult result;
                             result.message = "Use of undefined variable '" + body[i].getValue() + "'";
                             result.success = false;
-                            result.where = body[i].getLine();
+                            result.line = body[i].getLine();
                             result.in = body[i].getFile();
-                            result.token = body[i].getValue();
+                            result.value = body[i].getValue();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -569,9 +569,9 @@ namespace sclc
                         FPResult result;
                         result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
                         result.success = false;
-                        result.where = body[i + 1].getLine();
+                        result.line = body[i + 1].getLine();
                         result.in = body[i + 1].getFile();
-                        result.token = body[i + 1].getValue();
+                        result.value = body[i + 1].getValue();
                         result.column = body[i + 1].getColumn();
                         errors.push_back(result);
                     }
@@ -602,9 +602,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -616,9 +616,9 @@ namespace sclc
                             err.success = false;
                             err.message = "Unknown container member: '" + memberName + "'";
                             err.column = body[i].getColumn();
-                            err.where = body[i].getLine();
+                            err.line = body[i].getLine();
                             err.in = body[i].getFile();
-                            err.token = body[i].getValue();
+                            err.value = body[i].getValue();
                             errors.push_back(err);
                             continue;
                         }
@@ -631,9 +631,9 @@ namespace sclc
                             FPResult result;
                             result.message = "'" + body[i].getValue() + "' is not an identifier!";
                             result.success = false;
-                            result.where = body[i].getLine();
+                            result.line = body[i].getLine();
                             result.in = body[i].getFile();
-                            result.token = body[i].getValue();
+                            result.value = body[i].getValue();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -641,9 +641,9 @@ namespace sclc
                             FPResult result;
                             result.message = "Use of undefined variable '" + body[i].getValue() + "'";
                             result.success = false;
-                            result.where = body[i].getLine();
+                            result.line = body[i].getLine();
                             result.in = body[i].getFile();
-                            result.token = body[i].getValue();
+                            result.value = body[i].getValue();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -690,9 +690,9 @@ namespace sclc
                         FPResult result;
                         result.message = "Trying to close unexistent SAP";
                         result.success = false;
-                        result.where = body[i].getLine();
+                        result.line = body[i].getLine();
                         result.in = body[i].getFile();
-                        result.token = body[i].getValue();
+                        result.value = body[i].getValue();
                         result.column = body[i].getColumn();
                         errors.push_back(result);
                     }
@@ -711,9 +711,9 @@ namespace sclc
                     FPResult result;
                     result.message = "Unknown identifier: '" + body[i].getValue() + "'";
                     result.success = false;
-                    result.where = body[i].getLine();
+                    result.line = body[i].getLine();
                     result.in = body[i].getFile();
-                    result.token = body[i].getValue();
+                    result.value = body[i].getValue();
                     result.column = body[i].getColumn();
                     errors.push_back(result);
                 }
@@ -743,9 +743,9 @@ namespace sclc
                 FPResult result;
                 result.message = "SAP never closed, Opened here:";
                 result.success = false;
-                result.where = sap_tokens[sap_tokens.size() - 1].getLine();
+                result.line = sap_tokens[sap_tokens.size() - 1].getLine();
                 result.in = sap_tokens[sap_tokens.size() - 1].getFile();
-                result.token = sap_tokens[sap_tokens.size() - 1].getValue();
+                result.value = sap_tokens[sap_tokens.size() - 1].getValue();
                 result.column = sap_tokens[sap_tokens.size() - 1].getColumn();
                 errors.push_back(result);
             }

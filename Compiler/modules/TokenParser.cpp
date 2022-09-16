@@ -22,25 +22,47 @@ namespace sclc
         std::vector<std::string> globals;
         std::vector<Container> containers;
 
+        std::vector<FPResult> errors;
+
         for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
-                    std::cerr << "Error: Cannot define function inside another function" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Error: Cannot define function inside another function.";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 if (currentContainer != nullptr) {
-                    std::cerr << "Error: Cannot define function inside of a container" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Error: Cannot define function inside of a container.";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << tokens[i+1].getFile() << ":";
-                    std::cerr << tokens[i+1].getLine() << ":" << tokens[i+1].getColumn();
-                    std::cerr << ": " << "Expected identifier after function keyword" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Expected itentifier after function keyword";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 std::string name = tokens[i + 1].getValue();
+                Token func = tokens[i + 1];
                 currentFunction = new Function(name);
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
@@ -55,17 +77,30 @@ namespace sclc
                                 i++;
                             }
                         } else {
-                            std::cerr << "Expected: ',' or ')', but got '" << tokens[i].getValue() << "'" << std::endl;
-                            exit(1);
+                            FPResult result;
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
                         }
                     }
                 }
                 if (currentFunction->args.size() > 32) {
-                    std::cerr << "Functions can't have more than 32 Arguments!" << std::endl;
-                    std::cerr << "Problematic function: '" << currentFunction->name << "'" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Functions can't have more than 32 Arguments!";
+                    result.column = func.getColumn();
+                    result.value = func.getValue();
+                    result.line = func.getLine();
+                    result.in = func.getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
-            } else if (token.getType() == tok_end && (currentFunction != nullptr || currentContainer != nullptr)) {
+            } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     if (!functionPrivateStack) {
                         currentFunction->addModifier(mod_nps);
@@ -85,8 +120,15 @@ namespace sclc
                     containers.push_back(*currentContainer);
                     currentContainer = nullptr;
                 } else {
-                    std::cerr << "Error: unexpected 'end' keyword outside of function or container body" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Unexpected 'end' keyword outside of function or container body.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
             } else if (token.getType() == tok_proto) {
                 std::string name = tokens[++i].getValue();
@@ -95,11 +137,37 @@ namespace sclc
                 prototypes.push_back(Prototype(name, argCount));
             } else if (token.getType() == tok_container_def) {
                 if (currentContainer != nullptr) {
-                    std::cerr << "Error: Cannot define a container inside another container" << std::endl;
-                    exit(1);
+                    FPResult result;
+                    result.message = "Cannot define a container inside another container.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a container inside of a function.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
-                    std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                    FPResult result;
+                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 i++;
                 currentContainer = new Container(tokens[i].getValue());
@@ -113,14 +181,38 @@ namespace sclc
                         } else if (tokens[i + 1].getValue() == "sap") {
                             funcSAP = true;
                         } else {
-                            std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
+                            FPResult result;
+                            result.message = "Error: " + tokens[i + 1].getValue() + " is not a valid modifier.";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
                         }
                     } else {
-                        std::cerr << "Error: " << tokens[i + 1].getValue() << " is not a valid modifier." << std::endl;
+                        FPResult result;
+                        result.message = "Error: " + tokens[i + 1].getValue() + " is not a valid modifier.";
+                        result.column = tokens[i + 1].getColumn();
+                        result.value = tokens[i + 1].getValue();
+                        result.line = tokens[i + 1].getLine();
+                        result.in = tokens[i + 1].getFile();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
                     }
                     i++;
                 } else {
-                    std::cerr << "Error: Cannot use modifiers inside a function or container." << std::endl;
+                    FPResult result;
+                    result.message = "Error: Cannot use modifiers inside a function or container.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr) {
                 std::string name = tokens[i + 1].getValue();
@@ -133,13 +225,29 @@ namespace sclc
                 } else {
                     if (token.getType() == tok_declare && currentContainer == nullptr) {
                         if (tokens[i + 1].getType() != tok_identifier) {
-                            std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                            FPResult result;
+                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
                         }
                         globals.push_back(tokens[i + 1].getValue());
                         i++;
                     } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                         if (tokens[i + 1].getType() != tok_identifier) {
-                            std::cerr << "Error: Expected itentifier for variable declaration, but got '" << tokens[i + 1].getValue() + "'" << std::endl;
+                            FPResult result;
+                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
                         }
                         currentContainer->addMember(tokens[i + 1].getValue());
                         i++;
@@ -154,6 +262,7 @@ namespace sclc
         result.prototypes = prototypes;
         result.globals = globals;
         result.containers = containers;
+        result.errors = errors;
         return result;
     }
 }

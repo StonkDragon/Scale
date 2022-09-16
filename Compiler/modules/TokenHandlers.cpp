@@ -36,7 +36,7 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "Unknown operator type: " + std::to_string(token.type);
-                result.where = token.getLine();
+                result.line = token.getLine();
                 result.in = token.getFile();
                 result.column = token.getColumn();
                 return result;
@@ -59,9 +59,9 @@ namespace sclc
             FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.where = token.getLine();
+            result.line = token.getLine();
             result.in = token.getFile();
-            result.token = token.getValue();
+            result.value = token.getValue();
             result.column = token.getColumn();
             return result;
         }
@@ -76,9 +76,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
             result.success = false;
-            result.where = keywDeclare.getLine();
+            result.line = keywDeclare.getLine();
             result.in = keywDeclare.getFile();
-            result.token = keywDeclare.getValue();
+            result.value = keywDeclare.getValue();
             result.column = keywDeclare.getColumn();
             return result;
         }
@@ -86,9 +86,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected identifier after 'decl', but got: '" + loopVar.getValue() + "'";
             result.success = false;
-            result.where = loopVar.getLine();
+            result.line = loopVar.getLine();
             result.in = loopVar.getFile();
-            result.token = loopVar.getValue();
+            result.value = loopVar.getValue();
             result.column = loopVar.getColumn();
             return result;
         }
@@ -96,9 +96,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected 'in' keyword in for loop header, but got: '" + keywIn.getValue() + "'";
             result.success = false;
-            result.where = keywIn.getLine();
+            result.line = keywIn.getLine();
             result.in = keywIn.getFile();
-            result.token = keywIn.getValue();
+            result.value = keywIn.getValue();
             result.column = keywIn.getColumn();
             return result;
         }
@@ -106,9 +106,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
-            result.where = from.getLine();
+            result.line = from.getLine();
             result.in = from.getFile();
-            result.token = from.getValue();
+            result.value = from.getValue();
             result.column = from.getColumn();
             return result;
         }
@@ -116,9 +116,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected 'to' keyword in for loop header, but got: '" + keywTo.getValue() + "'";
             result.success = false;
-            result.where = keywTo.getLine();
+            result.line = keywTo.getLine();
             result.in = keywTo.getFile();
-            result.token = keywTo.getValue();
+            result.value = keywTo.getValue();
             result.column = keywTo.getColumn();
             return result;
         }
@@ -126,9 +126,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
-            result.where = to.getLine();
+            result.line = to.getLine();
             result.in = to.getFile();
-            result.token = to.getValue();
+            result.value = to.getValue();
             result.column = to.getColumn();
             return result;
         }
@@ -136,9 +136,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected 'do' keyword to finish for loop header, but got: '" + keywDo.getValue() + "'";
             result.success = false;
-            result.where = keywDo.getLine();
+            result.line = keywDo.getLine();
             result.in = keywDo.getFile();
-            result.token = keywDo.getValue();
+            result.value = keywDo.getValue();
             result.column = keywDo.getColumn();
             return result;
         }
@@ -151,9 +151,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
-            result.where = from.getLine();
+            result.line = from.getLine();
             result.in = from.getFile();
-            result.token = from.getValue();
+            result.value = from.getValue();
             result.column = from.getColumn();
             return result;
         }
@@ -165,9 +165,9 @@ namespace sclc
             FPResult result;
             result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
-            result.where = to.getLine();
+            result.line = to.getLine();
             result.in = to.getFile();
-            result.token = to.getValue();
+            result.value = to.getValue();
             result.column = to.getColumn();
             return result;
         }
@@ -194,9 +194,9 @@ namespace sclc
                 FPResult result;
                 result.message = "Use of undeclared variable: '" + from.getValue() + "'";
                 result.success = false;
-                result.where = from.getLine();
+                result.line = from.getLine();
                 result.in = from.getFile();
-                result.token = from.getValue();
+                result.value = from.getValue();
                 result.column = from.getColumn();
                 return result;
             }
@@ -204,9 +204,29 @@ namespace sclc
                 FPResult result;
                 result.message = "Use of undeclared variable: '" + to.getValue() + "'";
                 result.success = false;
-                result.where = to.getLine();
+                result.line = to.getLine();
                 result.in = to.getFile();
-                result.token = to.getValue();
+                result.value = to.getValue();
+                result.column = to.getColumn();
+                return result;
+            }
+            if (from.getType() == tok_identifier && Main.parser->hasContainer(from)) {
+                FPResult result;
+                result.message = "Usage of containers in for loops is not supported";
+                result.success = false;
+                result.line = from.getLine();
+                result.in = from.getFile();
+                result.value = from.getValue();
+                result.column = from.getColumn();
+                return result;
+            }
+            if (to.getType() == tok_identifier && Main.parser->hasContainer(to)) {
+                FPResult result;
+                result.message = "Usage of containers in for loops is not supported";
+                result.success = false;
+                result.line = to.getLine();
+                result.in = to.getFile();
+                result.value = to.getValue();
                 result.column = to.getColumn();
                 return result;
             }
@@ -222,9 +242,9 @@ namespace sclc
             FPResult result;
             result.message = "Lower bound of for loop is greater than upper bound";
             result.success = false;
-            result.where = from.getLine();
+            result.line = from.getLine();
             result.in = from.getFile();
-            result.token = from.getValue();
+            result.value = from.getValue();
             result.column = from.getColumn();
             return result;
         }
@@ -248,9 +268,9 @@ namespace sclc
             FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.where = token.getLine();
+            result.line = token.getLine();
             result.in = token.getFile();
-            result.token = token.getValue();
+            result.value = token.getValue();
             result.column = token.getColumn();
             return result;
         }

@@ -266,7 +266,45 @@ namespace sclc
 
             Tokenizer tokenizer;
             Main.tokenizer = &tokenizer;
-            Main.tokenizer->tokenize(filename + ".scale-preproc");
+            FPResult result = Main.tokenizer->tokenize(filename + ".scale-preproc");
+
+            if (result.errors.size() > 0) {
+                for (FPResult error : result.errors) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
+                            std::string l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
+                remove(std::string(filename + ".scale-preproc").c_str());
+                return result.errors.size();
+            }
+
             std::vector<Token> theseTokens = Main.tokenizer->getTokens();
 
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
@@ -283,6 +321,42 @@ namespace sclc
         Main.lexer = &lexer;
         TPResult result = Main.lexer->parse();
 
+        if (result.errors.size() > 0) {
+            for (FPResult error : result.errors) {
+                if (error.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(error.in).c_str(), "r");
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                fseek(f, 0, SEEK_SET);
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                i = 1;
+                while (fgets(line, 500, f) != NULL) {
+                    if (i == error.line) {
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
+                        std::string l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
+                        if (l.at(l.size() - 1) != '\n') {
+                            l += '\n';
+                        }
+                        std::cerr << l;
+                    } else if (i == error.line - 1 || i == error.line - 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    } else if (i == error.line + 1 || i == error.line + 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    }
+                    i++;
+                }
+                fclose(f);
+                std::cerr << std::endl;
+                free(line);
+            }
+            return result.errors.size();
+        }
+        
         FunctionParser parser(result);
         Main.parser = &parser;
         char* source = (char*) malloc(sizeof(char) * 50);
@@ -297,7 +371,7 @@ namespace sclc
 
         if (parseResult.errors.size() > 0) {
             for (FPResult error : parseResult.errors) {
-                if (error.where == 0) {
+                if (error.line == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                     continue;
                 }
@@ -305,20 +379,20 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.where << ":" << error.column << ": " << error.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
-                    if (i == error.where) {
+                    if (i == error.line) {
                         std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l = replaceFirstAfter(line, error.token, Color::BOLDRED + error.token + Color::RESET, error.column);
+                        std::string l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
                         if (l.at(l.size() - 1) != '\n') {
                             l += '\n';
                         }
                         std::cerr << l;
-                    } else if (i == error.where - 1 || i == error.where - 2) {
+                    } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
-                    } else if (i == error.where + 1 || i == error.where + 2) {
+                    } else if (i == error.line + 1 || i == error.line + 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
                     }
