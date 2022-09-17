@@ -137,7 +137,7 @@
 		"scope": "source.scale",
 		"prefix": "for loop",
 		"body": [
-			"for :${1:i} in ${2:1} to ${3:10} do",
+			"for decl ${1:i} in ${2:1} to ${3:10} do",
 			"  $0",
 			"done"
 		],
