@@ -260,6 +260,7 @@ namespace sclc
         TYPES("deref", deref, line, filename, startColumn);
         TYPES("ref", ref, line, filename, startColumn);
         TYPES("container", container_def, line, filename, startColumn);
+        TYPES("repeat", repeat, line, filename, startColumn);
         
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);

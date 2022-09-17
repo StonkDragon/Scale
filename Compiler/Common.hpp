@@ -82,6 +82,7 @@ namespace sclc
         tok_store,          // store
         tok_declare,        // decl
         tok_container_def,  // container
+        tok_repeat,         // repeat
 
         // operators
         tok_hash,           // #

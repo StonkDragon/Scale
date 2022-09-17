@@ -235,8 +235,10 @@ namespace sclc
 
             std::vector<Token> body = function.getBody();
             std::vector<Token> sap_tokens;
+            std::vector<bool> was_rep;
             size_t i;
             ssize_t sap_depth = 0;
+            char repeat_depth = 0;
             for (i = 0; i < body.size(); i++)
             {
                 if (body[i].getType() == tok_ignore) continue;
@@ -369,11 +371,20 @@ namespace sclc
                     }
                     scopeDepth++;
                     append("while (1) {\n");
+                    was_rep.push_back(false);
                 } else if (body[i].getType() == tok_do) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
                     append("if (!ctrl_pop_long()) break;\n");
+                } else if (body[i].getType() == tok_repeat) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("for (scl_word %c = 0; %c < (scl_word) %s; %c++) {", 'a' + repeat_depth, 'a' + repeat_depth, body[i + 1].getValue().c_str(), 'a' + repeat_depth);
+                    repeat_depth++;
+                    was_rep.push_back(true);
+                    i += 2;
                 } else if (body[i].getType() == tok_for) {
                     FPResult forHandled = handleFor(
                         body[i+1],
@@ -390,6 +401,7 @@ namespace sclc
                     if (!forHandled.success) {
                         errors.push_back(forHandled);
                     }
+                    was_rep.push_back(false);
                     i += 7;
                 } else if (body[i].getType() == tok_done
                         || body[i].getType() == tok_fi
@@ -399,6 +411,10 @@ namespace sclc
                         append("  ");
                     }
                     append("}\n");
+                    if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
+                        repeat_depth--;
+                    }
+                    if (was_rep.size() > 0) was_rep.pop_back();
                 } else if (body[i].getType() == tok_return) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -670,6 +686,50 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push(*(scl_word*) addr);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("}\n");
+                } else if (body[i].getType() == tok_curly_open) {
+                    i++;
+                    if (body[i].getType() != tok_number) {
+                        FPResult result;
+                        result.message = "Expected integer, but got '" + body[i].getValue() + "'";
+                        result.success = false;
+                        result.line = body[i].getLine();
+                        result.in = body[i].getFile();
+                        result.value = body[i].getValue();
+                        result.column = body[i].getColumn();
+                        errors.push_back(result);
+                    }
+                    Token index = body[i];
+                    i++;
+                    if (body[i].getType() != tok_curly_close) {
+                        FPResult result;
+                        result.message = "Expected '}', but got '" + body[i].getValue() + "'";
+                        result.success = false;
+                        result.line = body[i].getLine();
+                        result.in = body[i].getFile();
+                        result.value = body[i].getValue();
+                        result.column = body[i].getColumn();
+                        errors.push_back(result);
+                    }
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("{\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("scl_word addr = ctrl_pop();\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("scl_security_check_null(addr + (%s * 8));\n", index.getValue().c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push(*(scl_word*) addr + (%s * 8));\n", index.getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
