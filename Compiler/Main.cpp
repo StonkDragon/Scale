@@ -29,6 +29,12 @@
 #define PREPROCESSOR "cpp"
 #endif
 
+#ifdef _WIN32
+#define HOME getenv("USERPROFILE")
+#else
+#define HOME getenv("HOME")
+#endif
+
 #ifndef COMPILER_FEATURES
 #define COMPILER_FEATURES ""
 #endif
@@ -136,13 +142,16 @@ namespace sclc
         bool noCoreFramework    = false;
 
         std::string outfile     = "out.scl";
-        scaleFolder             = std::string(getenv("HOME")) + "/Scale";
+        scaleFolder             = std::string(HOME) + "/Scale";
         std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -I" + scaleFolder + "/Internal " + scaleFolder + "/Internal/scale_internal.c -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
+                if (!fileExists(args[i])) {
+                    continue;
+                }
                 files.push_back(args[i]);
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
@@ -182,6 +191,11 @@ namespace sclc
                     cmd += args[i] + " ";
                 }
             }
+        }
+
+        if (files.size() == 0) {
+            std::cerr << Color::RED << "No translation units specified." << std::endl;
+            return 1;
         }
 
         cmd += "-o \"" + outfile + "\" ";
