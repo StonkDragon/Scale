@@ -381,8 +381,41 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("for (scl_word %c = 0; %c < (scl_word) %s; %c++) {", 'a' + repeat_depth, 'a' + repeat_depth, body[i + 1].getValue().c_str(), 'a' + repeat_depth);
+                    if (body[i + 1].getType() != tok_number) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected integer, but got '" + body[i + 1].getValue() + "'";
+                        err.column = body[i + 1].getColumn();
+                        err.line = body[i + 1].getLine();
+                        err.in = body[i + 1].getFile();
+                        err.value = body[i + 1].getValue();
+                        errors.push_back(err);
+                        if (body[i + 2].getType() != tok_do)
+                            goto lbl_repeat_do_tok_chk;
+                        i += 2;
+                        continue;
+                    }
+                    if (body[i + 2].getType() != tok_do) {
+                    lbl_repeat_do_tok_chk:
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected 'do', but got '" + body[i + 2].getValue() + "'";
+                        err.column = body[i + 2].getColumn();
+                        err.line = body[i + 2].getLine();
+                        err.in = body[i + 2].getFile();
+                        err.value = body[i + 2].getValue();
+                        errors.push_back(err);
+                        i += 2;
+                        continue;
+                    }
+                    append("for (scl_word %c = 0; %c < (scl_word) %s; %c++) {\n",
+                        'a' + repeat_depth,
+                        'a' + repeat_depth,
+                        body[i + 1].getValue().c_str(),
+                        'a' + repeat_depth
+                    );
                     repeat_depth++;
+                    scopeDepth++;
                     was_rep.push_back(true);
                     i += 2;
                 } else if (body[i].getType() == tok_for) {
