@@ -72,7 +72,7 @@
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil|container)\\b"
+					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil|container|repeat)\\b"
 				}
 			]
 		},
