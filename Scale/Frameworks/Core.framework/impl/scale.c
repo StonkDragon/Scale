@@ -33,7 +33,7 @@ sclNativeImpl(dumpstack) {
 
 sclNativeImpl(exit) {
 	long long n = ctrl_pop_long();
-	safe_exit(n);
+	scl_security_safe_exit(n);
 }
 
 sclNativeImpl(sleep) {
@@ -124,7 +124,7 @@ sclNativeImpl(random) {
 }
 
 sclNativeImpl(crash) {
-	safe_exit(1);
+	scl_security_safe_exit(1);
 }
 
 sclNativeImpl(and) {
@@ -187,7 +187,7 @@ sclNativeImpl(fopen) {
 	if (f == NULL) {
 		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
 		sprintf(err, "Unable to open file '%s'", name);
-		throw(EX_IO_ERROR, err);
+		scl_security_throw(EX_IO_ERROR, err);
 	}
 	heap_add(f, 1);
 	ctrl_push((scl_word) f);

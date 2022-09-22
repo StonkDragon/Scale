@@ -161,6 +161,19 @@ namespace sclc
             }
             append("} $_%s = {0};\n", c.name.c_str());
         }
+
+        append("\n");
+        append("const scl_word* __scl_internal__globals_ptrs[] = {\n");
+        for (std::string s : result.globals) {
+            append("  &_%s,\n", s.c_str());
+        }
+        for (Container c : result.containers) {
+            for (std::string s : c.members) {
+                append("  &$_%s.%s,\n", c.name.c_str(), s.c_str());
+            }
+        }
+        append("};\n");
+        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size());
         
         append("\n");
         append("/* FUNCTIONS */\n");
@@ -268,7 +281,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_required(%zu, ", getFunctionByName(body[i].getValue()).getArgs().size());
+                    append("scl_security_required_arg_count(%zu, ", getFunctionByName(body[i].getValue()).getArgs().size());
                     append("\"%s\");\n", body[i].getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -465,7 +478,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("if (stk_sz > 0)  ret = ctrl_pop();\n");
+                    append("if (stk_sz > 0) {ret = ctrl_pop();}\n");
                     for (ssize_t j = 0; j < sap_depth; j++) {
                         for (int k = 0; k < scopeDepth; k++) {
                             append("  ");
@@ -489,7 +502,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("if (stk_sz > 0) ctrl_push(ret);\n");
+                    append("if (stk_sz > 0) {ctrl_push(ret);}\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -862,6 +875,7 @@ namespace sclc
         "  }\n"
         "\n"
         "  fn_main();\n"
+        "  heap_collect();\n"
         "  return 0;\n"
         "}\n";
 

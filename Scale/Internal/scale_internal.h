@@ -70,6 +70,8 @@ typedef struct {
 	scl_word ptr;
 	ssize_t	 level;
 	int 	 isFile;
+	size_t   size;
+	int      returned;
 } scl_memory_t;
 typedef struct {
 	ssize_t  ptr;
@@ -77,8 +79,8 @@ typedef struct {
 	ssize_t  offset[STACK_SIZE];
 } scl_stack_t;
 
-void 		throw(int code, char* msg);
-void 		ctrl_required(ssize_t n, char* func);
+void 		scl_security_throw(int code, char* msg);
+void 		scl_security_required_arg_count(ssize_t n, char* func);
 void 		ctrl_where(char* file, size_t line, size_t col);
 void 		ctrl_fn_start(char* name);
 void 		ctrl_fn_end(void);
@@ -99,6 +101,7 @@ scl_word 	ctrl_pop_word(void);
 void 		ctrl_push_word(scl_word n);
 ssize_t 	ctrl_stack_size(void);
 void 		scl_security_check_null(scl_word n);
+void        scl_security_check_uaf(scl_word ptr);
 void 		sap_open(void);
 void 		sap_close(void);
 void 		op_add(void);
@@ -123,7 +126,7 @@ void heap_collect(void);
 void heap_add(scl_word ptr, int isFile);
 int  heap_is_alloced(scl_word ptr);
 void heap_remove(scl_word ptr);
-void safe_exit(int code);
+void scl_security_safe_exit(int code);
 void print_stacktrace(void);
 void process_signal(int sig_num);
 
