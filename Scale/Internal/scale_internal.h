@@ -25,18 +25,6 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-#if __has_attribute(always_inline)
-#define scl_force_inline __attribute__((always_inline))
-#else
-#define scl_force_inline
-#endif
-
-#if __has_attribute(noinline)
-#define scl_native __attribute__((noinline))
-#else
-#define scl_native
-#endif
-
 /* Function header */
 #define sclDefFunc(name, ...)     	\
     void fn_ ## name ##(__VA_ARGS__)
@@ -52,7 +40,7 @@
     ctrl_fn_native_end()
 
 #define sclNativeImpl(name) \
-	scl_native void native_ ## name (void)
+	void native_ ## name (void)
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
@@ -89,46 +77,46 @@ typedef struct {
 	ssize_t  offset[STACK_SIZE];
 } scl_stack_t;
 
-scl_force_inline void 		throw(int code, char* msg);
-scl_force_inline void 		ctrl_required(ssize_t n, char* func);
-scl_force_inline void 		ctrl_where(char* file, size_t line, size_t col);
-scl_force_inline void 		ctrl_fn_start(char* name);
-scl_force_inline void 		ctrl_fn_end(void);
-scl_force_inline void 		ctrl_fn_end_with_return(void);
-scl_force_inline void 		ctrl_fn_native_start(char* name);
-scl_force_inline void 		ctrl_fn_native_end(void);
-scl_force_inline void 		ctrl_fn_nps_start(char* name);
-scl_force_inline void 		ctrl_fn_nps_end(void);
-scl_force_inline void 		ctrl_push_string(const char* c);
-scl_force_inline void 		ctrl_push_double(double d);
-scl_force_inline void 		ctrl_push_long(long long n);
-scl_force_inline long long 	ctrl_pop_long(void);
-scl_force_inline double 	ctrl_pop_double(void);
-scl_force_inline void 		ctrl_push(scl_word n);
-scl_force_inline char* 		ctrl_pop_string(void);
-scl_force_inline scl_word 	ctrl_pop(void);
-scl_force_inline scl_word 	ctrl_pop_word(void);
-scl_force_inline void 		ctrl_push_word(scl_word n);
-scl_force_inline ssize_t 	ctrl_stack_size(void);
-scl_force_inline void 		scl_security_check_null(scl_word n);
-scl_force_inline void 		sap_open(void);
-scl_force_inline void 		sap_close(void);
-scl_force_inline void 		op_add(void);
-scl_force_inline void 		op_sub(void);
-scl_force_inline void 		op_mul(void);
-scl_force_inline void 		op_div(void);
-scl_force_inline void 		op_mod(void);
-scl_force_inline void 		op_land(void);
-scl_force_inline void 		op_lor(void);
-scl_force_inline void 		op_lxor(void);
-scl_force_inline void 		op_lnot(void);
-scl_force_inline void 		op_lsh(void);
-scl_force_inline void 		op_rsh(void);
-scl_force_inline void 		op_pow(void);
-scl_force_inline void 		op_dadd(void);
-scl_force_inline void 		op_dsub(void);
-scl_force_inline void 		op_dmul(void);
-scl_force_inline void 		op_ddiv(void);
+void 		throw(int code, char* msg);
+void 		ctrl_required(ssize_t n, char* func);
+void 		ctrl_where(char* file, size_t line, size_t col);
+void 		ctrl_fn_start(char* name);
+void 		ctrl_fn_end(void);
+void 		ctrl_fn_end_with_return(void);
+void 		ctrl_fn_native_start(char* name);
+void 		ctrl_fn_native_end(void);
+void 		ctrl_fn_nps_start(char* name);
+void 		ctrl_fn_nps_end(void);
+void 		ctrl_push_string(const char* c);
+void 		ctrl_push_double(double d);
+void 		ctrl_push_long(long long n);
+long long 	ctrl_pop_long(void);
+double 		ctrl_pop_double(void);
+void 		ctrl_push(scl_word n);
+char* 		ctrl_pop_string(void);
+scl_word 	ctrl_pop(void);
+scl_word 	ctrl_pop_word(void);
+void 		ctrl_push_word(scl_word n);
+ssize_t 	ctrl_stack_size(void);
+void 		scl_security_check_null(scl_word n);
+void 		sap_open(void);
+void 		sap_close(void);
+void 		op_add(void);
+void 		op_sub(void);
+void 		op_mul(void);
+void 		op_div(void);
+void 		op_mod(void);
+void 		op_land(void);
+void 		op_lor(void);
+void 		op_lxor(void);
+void 		op_lnot(void);
+void 		op_lsh(void);
+void 		op_rsh(void);
+void 		op_pow(void);
+void 		op_dadd(void);
+void 		op_dsub(void);
+void 		op_dmul(void);
+void 		op_ddiv(void);
 
 void ctrl_trace(void);
 void heap_collect(void);

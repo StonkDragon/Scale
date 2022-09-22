@@ -21,7 +21,7 @@ extern size_t 		 sap_index;
 
 #pragma region Natives
 
-scl_native void native_dumpstack() {
+sclNativeImpl(dumpstack) {
 	printf("Dump:\n");
 	ssize_t stack_offset = stack.offset[stack_depth];
 	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
@@ -31,47 +31,47 @@ scl_native void native_dumpstack() {
 	printf("\n");
 }
 
-scl_native void native_exit() {
+sclNativeImpl(exit) {
 	long long n = ctrl_pop_long();
 	safe_exit(n);
 }
 
-scl_native void native_sleep() {
+sclNativeImpl(sleep) {
 	long long c = ctrl_pop_long();
 	sleep(c);
 }
 
-scl_native void native_getenv() {
+sclNativeImpl(getenv) {
 	char *c = ctrl_pop_string();
 	char *prop = getenv(c);
 	ctrl_push_string(prop);
 }
 
-scl_native void native_less() {
+sclNativeImpl(less) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a < b);
 }
 
-scl_native void native_more() {
+sclNativeImpl(more) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a > b);
 }
 
-scl_native void native_equal() {
+sclNativeImpl(equal) {
 	int64_t a = ctrl_pop_long();
 	int64_t b = ctrl_pop_long();
 	ctrl_push_long(a == b);
 }
 
-scl_native void native_dup() {
+sclNativeImpl(dup) {
 	scl_word c = ctrl_pop();
 	ctrl_push(c);
 	ctrl_push(c);
 }
 
-scl_native void native_over() {
+sclNativeImpl(over) {
 	void *a = ctrl_pop();
 	void *b = ctrl_pop();
 	void *c = ctrl_pop();
@@ -80,22 +80,22 @@ scl_native void native_over() {
 	ctrl_push(c);
 }
 
-scl_native void native_swap() {
+sclNativeImpl(swap) {
 	void *a = ctrl_pop();
 	void *b = ctrl_pop();
 	ctrl_push(a);
 	ctrl_push(b);
 }
 
-scl_native void native_drop() {
+sclNativeImpl(drop) {
 	ctrl_pop();
 }
 
-scl_native void native_sizeof_stack() {
+sclNativeImpl(sizeof_stack) {
 	ctrl_push_long(stack.ptr - stack.offset[stack_depth]);
 }
 
-scl_native void native_concat() {
+sclNativeImpl(concat) {
 	char *s2 = ctrl_pop_string();
 	char *s1 = ctrl_pop_string();
 	ctrl_push_string(s1);
@@ -119,37 +119,37 @@ scl_native void native_concat() {
 	ctrl_push_string(out);
 }
 
-scl_native void native_random() {
+sclNativeImpl(random) {
 	ctrl_push_long(rand());
 }
 
-scl_native void native_crash() {
+sclNativeImpl(crash) {
 	safe_exit(1);
 }
 
-scl_native void native_and() {
+sclNativeImpl(and) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a && b);
 }
 
-scl_native void native_system() {
+sclNativeImpl(system) {
 	char *cmd = ctrl_pop_string();
 	int ret = system(cmd);
 	ctrl_push_long(ret);
 }
 
-scl_native void native_not() {
+sclNativeImpl(not) {
 	ctrl_push_long(!ctrl_pop_long());
 }
 
-scl_native void native_or() {
+sclNativeImpl(or) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a || b);
 }
 
-scl_native void native_sprintf() {
+sclNativeImpl(sprintf) {
 	char *fmt = ctrl_pop_string();
 	scl_word s = ctrl_pop();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
@@ -158,7 +158,7 @@ scl_native void native_sprintf() {
 	ctrl_push_string(out);
 }
 
-scl_native void native_strlen() {
+sclNativeImpl(strlen) {
 	char *s = ctrl_pop_string();
 	size_t len = 0;
 	while (s[len] != '\0') {
@@ -167,20 +167,20 @@ scl_native void native_strlen() {
 	ctrl_push_long(len);
 }
 
-scl_native void native_strcmp() {
+sclNativeImpl(strcmp) {
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
 	ctrl_push_long(strcmp(s1, s2) == 0);
 }
 
-scl_native void native_strncmp() {
+sclNativeImpl(strncmp) {
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
 	long long n = ctrl_pop_long();
 	ctrl_push_long(strncmp(s1, s2, n) == 0);
 }
 
-scl_native void native_fopen() {
+sclNativeImpl(fopen) {
 	char *mode = ctrl_pop_string();
 	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
@@ -193,31 +193,31 @@ scl_native void native_fopen() {
 	ctrl_push((scl_word) f);
 }
 
-scl_native void native_fclose() {
+sclNativeImpl(fclose) {
 	FILE *f = (FILE*) ctrl_pop();
 	heap_remove(f);
 	fclose(f);
 }
 
-scl_native void native_fseek() {
+sclNativeImpl(fseek) {
 	long long offset = ctrl_pop_long();
 	int whence = ctrl_pop_long();
 	FILE *f = (FILE*) ctrl_pop();
 	fseek(f, offset, whence);
 }
 
-scl_native void native_ftell() {
+sclNativeImpl(ftell) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push((scl_word) f);
 	ctrl_push_long(ftell(f));
 }
 
-scl_native void native_fileno() {
+sclNativeImpl(fileno) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push_long(fileno(f));
 }
 
-scl_native void native_raise() {
+sclNativeImpl(raise) {
 	long long n = ctrl_pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
@@ -229,11 +229,11 @@ scl_native void native_raise() {
 	}
 }
 
-scl_native void native_abort() {
+sclNativeImpl(abort) {
 	abort();
 }
 
-scl_native void native_write() {
+sclNativeImpl(write) {
 	void *s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
@@ -242,7 +242,7 @@ scl_native void native_write() {
 	native_free();
 }
 
-scl_native void native_read() {
+sclNativeImpl(read) {
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
 	void *s = malloc(n);
@@ -255,7 +255,7 @@ scl_native void native_read() {
 	ctrl_push(s);
 }
 
-scl_native void native_strrev() {
+sclNativeImpl(strrev) {
 	char* s = ctrl_pop_string();
 	size_t i = 0;
 	ctrl_push_string(s);
@@ -270,14 +270,14 @@ scl_native void native_strrev() {
 	ctrl_push_string(out);
 }
 
-scl_native void native_malloc() {
+sclNativeImpl(malloc) {
 	long long n = ctrl_pop_long();
 	scl_word s = malloc(n);
 	heap_add(s, 0);
 	ctrl_push(s);
 }
 
-scl_native void native_free() {
+sclNativeImpl(free) {
 	scl_word s = ctrl_pop();
 	int is_alloc = heap_is_alloced(s);
 	heap_remove(s);
@@ -286,127 +286,127 @@ scl_native void native_free() {
 	}
 }
 
-scl_native void native_breakpoint() {
+sclNativeImpl(breakpoint) {
 	printf("Hit breakpoint. Press enter to continue.\n");
 	getchar();
 }
 
-scl_native void native_memset() {
+sclNativeImpl(memset) {
 	scl_word s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long c = ctrl_pop_long();
 	memset(s, c, n);
 }
 
-scl_native void native_memcpy() {
+sclNativeImpl(memcpy) {
 	scl_word s2 = ctrl_pop();
 	scl_word s1 = ctrl_pop();
 	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 }
 
-scl_native void native_time() {
+sclNativeImpl(time) {
 	struct timespec t;
 	clock_gettime(CLOCK_REALTIME, &t);
 	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
 	ctrl_push_long(millis);
 }
 
-scl_native void native_heap_collect() {
+sclNativeImpl(heap_collect) {
 	heap_collect();
 }
 
-scl_native void native_trace() {
+sclNativeImpl(trace) {
 	print_stacktrace();
 }
 
-scl_native void native_sqrt() {
+sclNativeImpl(sqrt) {
     double n = ctrl_pop_double();
     ctrl_push_double(sqrt(n));
 }
 
-scl_native void native_sin() {
+sclNativeImpl(sin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sin(n));
 }
 
-scl_native void native_cos() {
+sclNativeImpl(cos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cos(n));
 }
 
-scl_native void native_tan() {
+sclNativeImpl(tan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tan(n));
 }
 
-scl_native void native_asin() {
+sclNativeImpl(asin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asin(n));
 }
 
-scl_native void native_acos() {
+sclNativeImpl(acos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acos(n));
 }
 
-scl_native void native_atan() {
+sclNativeImpl(atan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atan(n));
 }
 
-scl_native void native_atan2() {
+sclNativeImpl(atan2) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(atan2(n1, n2));
 }
 
-scl_native void native_sinh() {
+sclNativeImpl(sinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sinh(n));
 }
 
-scl_native void native_cosh() {
+sclNativeImpl(cosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cosh(n));
 }
 
-scl_native void native_tanh() {
+sclNativeImpl(tanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tanh(n));
 }
 
-scl_native void native_asinh() {
+sclNativeImpl(asinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asinh(n));
 }
 
-scl_native void native_acosh() {
+sclNativeImpl(acosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acosh(n));
 }
 
-scl_native void native_atanh() {
+sclNativeImpl(atanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atanh(n));
 }
 
-scl_native void native_exp() {
+sclNativeImpl(exp) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(exp(n));
 }
 
-scl_native void native_log() {
+sclNativeImpl(log) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log(n));
 }
 
-scl_native void native_log10() {
+sclNativeImpl(log10) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log10(n));
 }
 
-scl_native void native_longToString() {
+sclNativeImpl(longToString) {
 	long long a = ctrl_pop_long();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
 	heap_add(out, 0);
@@ -414,19 +414,19 @@ scl_native void native_longToString() {
 	ctrl_push_string(out);
 }
 
-scl_native void native_stringToLong() {
+sclNativeImpl(stringToLong) {
 	char *s = ctrl_pop_string();
 	long long a = atoll(s);
 	ctrl_push_long(a);
 }
 
-scl_native void native_stringToDouble() {
+sclNativeImpl(stringToDouble) {
 	char *s = ctrl_pop_string();
 	double a = atof(s);
 	ctrl_push_double(a);
 }
 
-scl_native void native_doubleToString() {
+sclNativeImpl(doubleToString) {
 	double a = ctrl_pop_double();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
 	heap_add(out, 0);
