@@ -25,8 +25,28 @@
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
 #endif
 
+#ifndef COMPILER
+#define COMPILER "gcc"
+#endif
+
 #ifndef PREPROCESSOR
-#define PREPROCESSOR "clang -E"
+#define PREPROCESSOR COMPILER" -E"
+#endif
+
+#ifndef C_VERSION
+#define C_VERSION "gnu17"
+#endif
+
+#ifndef SCALE_INSTALL_DIR
+#define SCALE_INSTALL_DIR "Scale"
+#endif
+
+#ifndef DEFAULT_OUTFILE
+#define DEFAULT_OUTFILE "out.scl"
+#endif
+
+#ifndef FRAMEWORK_VERSION_REQ
+#define FRAMEWORK_VERSION_REQ "2.10"
 #endif
 
 #ifdef _WIN32
@@ -35,87 +55,19 @@
 #define HOME getenv("HOME")
 #endif
 
-#ifndef COMPILER_FEATURES
-#define COMPILER_FEATURES ""
-#endif
-
 namespace sclc
 {
     std::string scaleFolder;
 
-    struct Version {
-        int major;
-        int minor;
-        int patch;
-
-        Version(std::string str) {
-            std::string::difference_type n = std::count(str.begin(), str.end(), '.');
-            if (n == 1) {
-                sscanf(str.c_str(), "%d.%d", &major, &minor);
-                patch = 0;
-            } else if (n == 2) {
-                sscanf(str.c_str(), "%d.%d.%d", &major, &minor, &patch);
-            } else if (n == 0) {
-                sscanf(str.c_str(), "%d", &major);
-                minor = 0;
-                patch = 0;
-            } else {
-                std::cerr << "Unknown version number: " << str << std::endl;
-                exit(1);
-            }
-        }
-        ~Version() {}
-
-        inline bool operator==(Version& v) {
-            return (major == v.major) && (minor == v.minor) && (patch == v.patch);
-        }
-
-        inline bool operator>(Version& v) {
-            if (major > v.major) {
-                return true;
-            } else if (major == v.major) {
-                if (minor > v.minor) {
-                    return true;
-                } else if (minor == v.minor) {
-                    if (patch > v.patch) {
-                        return true;
-                    }
-                    return false;
-                }
-                return false;
-            }
-            return false;
-        }
-
-        inline bool operator>=(Version& v) {
-            return ((*this) > v) || ((*this) == v);
-        }
-
-        inline bool operator<=(Version& v) {
-            return !((*this) > v);
-        }
-
-        inline bool operator<(Version& v) {
-            return !((*this) >= v);
-        }
-
-        inline bool operator!=(Version& v) {
-            return !((*this) == v);
-        }
-
-        std::string asString() {
-            return std::to_string(this->major) + "." + std::to_string(this->minor) + "." + std::to_string(this->patch);
-        }
-    };
-
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
-        std::cout << "  --transpile, -t  Transpile only" << std::endl;
-        std::cout << "  --help, -h       Show this help" << std::endl;
+        std::cout << "  -t, --transpile  Transpile only" << std::endl;
+        std::cout << "  -h, --help       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
         std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
+        std::cout << "  -v, --version    Show version information" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -141,20 +93,20 @@ namespace sclc
         bool assembleOnly       = false;
         bool noCoreFramework    = false;
 
-        std::string outfile     = "out.scl";
-        scaleFolder             = std::string(HOME) + "/Scale";
+        std::string outfile     = std::string(DEFAULT_OUTFILE);
+        scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR);
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
         std::vector<std::string> cflags;
 
-        cflags.push_back("clang");
+        cflags.push_back(std::string(COMPILER));
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I" + scaleFolder + "/Internal");
         cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
-        cflags.push_back("-std=gnu17");
+        cflags.push_back("-std=" + std::string(C_VERSION));
         cflags.push_back("-O2");
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-#ifdef LINK_LM
+#ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
 
@@ -198,6 +150,10 @@ namespace sclc
                     cflags.push_back("-S");
                 } else if (args[i] == "--no-core") {
                     noCoreFramework = true;
+                } else if (args[i] == "-v" || args[i] == "--version") {
+                    std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+                    system(COMPILER" -v");
+                    return 0;
                 } else {
                     cflags.push_back(args[i]);
                 }
@@ -216,7 +172,7 @@ namespace sclc
             frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
-        Version FrameworkMinimumVersion = Version("2.8");
+        Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
         for (std::string framework : frameworks) {
             DragonConfig::ConfigParser parser;
@@ -403,8 +359,8 @@ namespace sclc
         char* source = (char*) malloc(sizeof(char) * 50);
         
         srand(time(NULL));
-        if (!transpileOnly) sprintf(source, ".scale-%08x.tmp", (unsigned int) rand());
-        else sprintf(source, "out");
+        if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
+        else snprintf(source, 4, "out");
         cflags.push_back(std::string(source) + ".c");
 
         FPResult parseResult = Main.parser->parse(std::string(source));
@@ -461,20 +417,7 @@ namespace sclc
 
         std::cout << "Compiling with " << cmd << std::endl;
 
-#define USE_SYSTEM_COMPILER
-#ifdef USE_SYSTEM_COMPILER
         int ret = system(cmd.c_str());
-#else
-        int cc_main(int argc, char *argv[]);
-
-        int argc = cflags.size();
-        char* argv[] = new char*[cflags.size()];
-        for (size_t i = 0; i < argc; i++) {
-
-        }
-
-        int ret = cc_main(argc, argv);
-#endif
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;

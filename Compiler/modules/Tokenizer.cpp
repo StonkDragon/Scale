@@ -121,37 +121,37 @@ namespace sclc
                 column++;
                 if (c == 'n') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\n');
+                    snprintf(iStr, 23, "%d", '\n');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == 't') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\t');
+                    snprintf(iStr, 23, "%d", '\t');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == 'r') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\r');
+                    snprintf(iStr, 23, "%d", '\r');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == '\\') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\\');
+                    snprintf(iStr, 23, "%d", '\\');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == '\'') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\'');
+                    snprintf(iStr, 23, "%d", '\'');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == '\"') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\"');
+                    snprintf(iStr, 23, "%d", '\"');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else if (c == '0') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\0');
+                    snprintf(iStr, 23, "%d", '\0');
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else {
@@ -160,7 +160,7 @@ namespace sclc
             } else {
                 if (source[current + 1] == '\'') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", c);
+                    snprintf(iStr, 23, "%d", c);
                     current += 2;
                     return Token(tok_number, iStr, line, filename, startColumn);
                 } else {

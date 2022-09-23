@@ -1,42 +1,5 @@
 build: {
-  compiler: "clang++";
-  sourceDir: "Compiler";
-  outputDir: "compile";
-  target: "sclc";
-  includes: [
-    "Compiler";
-  ];
-  units: [
-    "Main.cpp";
-    "modules/TokenParser.cpp";
-    "modules/FunctionParser.cpp";
-    "modules/TokenHandlers.cpp";
-    "modules/Tokenizer.cpp";
-    "Common.cpp";
-  ];
-  outFilePrefix: "-o";
-  libraryPathPrefix: "-L";
-  libraryPrefix: "-l";
-  macroPrefix: "-D";
-  includePrefix: "-I";
-  libraryPaths: [];
-  libs: [];
-  std: "gnu++17";
-  defines: [
-    "VERSION=\"2.10\"";
-  ];
-  flags: [];
-  preBuild: [];
-  postBuild: [];
-};
-
-dev: {
-  osTarget: [
-    "linux";
-    "macos";
-  ];
-  wrongOsMsg: "The Dev build is only available for Linux and MacOS.";
-  compiler: "clang++";
+  compiler: "g++";
   sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
@@ -75,7 +38,6 @@ dev: {
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
-    "./makebin 2.10 macos-x86-64";
     "python3 tests.py run";
   ];
 };

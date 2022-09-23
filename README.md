@@ -6,7 +6,7 @@
 
   Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [Scale header file](./Scale/Internal/scale_internal.h.h), which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
 
-  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
+  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
 ## Installation
 
@@ -21,7 +21,7 @@
   Scale has the following dependencies:
 
 Required:
-- [`clang`](https://clang.llvm.org/)
+- `gcc`
 - `python3` ([install.py](./install.py))
 
 Optional:
