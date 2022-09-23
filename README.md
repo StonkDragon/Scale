@@ -22,7 +22,6 @@
 
 Required:
 - [`clang`](https://clang.llvm.org/)
-- `cpp`
 - `python3` ([install.py](./install.py))
 
 Optional:

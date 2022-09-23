@@ -26,7 +26,7 @@
 #endif
 
 #ifndef PREPROCESSOR
-#define PREPROCESSOR "cpp"
+#define PREPROCESSOR "clang -E"
 #endif
 
 #ifdef _WIN32
@@ -143,9 +143,20 @@ namespace sclc
 
         std::string outfile     = "out.scl";
         scaleFolder             = std::string(HOME) + "/Scale";
-        std::string cmd         = "clang " + std::string(COMPILER_FEATURES) + " -I" + scaleFolder + "/Frameworks -I" + scaleFolder + "/Internal " + scaleFolder + "/Internal/scale_internal.c -std=gnu17 -O2 -DVERSION=\"" + std::string(VERSION) + "\" ";
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
+        std::vector<std::string> cflags;
+
+        cflags.push_back("clang");
+        cflags.push_back("-I" + scaleFolder + "/Frameworks");
+        cflags.push_back("-I" + scaleFolder + "/Internal");
+        cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
+        cflags.push_back("-std=gnu17");
+        cflags.push_back("-O2");
+        cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+#ifdef LINK_LM
+        cflags.push_back("-lm");
+#endif
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -184,11 +195,11 @@ namespace sclc
                     }
                 } else if (args[i] == "-S") {
                     assembleOnly = true;
-                    cmd += "-S ";
+                    cflags.push_back("-S");
                 } else if (args[i] == "--no-core") {
                     noCoreFramework = true;
                 } else {
-                    cmd += args[i] + " ";
+                    cflags.push_back(args[i]);
                 }
             }
         }
@@ -198,7 +209,8 @@ namespace sclc
             return 1;
         }
 
-        cmd += "-o \"" + outfile + "\" ";
+        cflags.push_back("-o");
+        cflags.push_back("\"" + outfile + "\"");
 
         if (!noCoreFramework)
             frameworks.push_back("Core");
@@ -239,7 +251,7 @@ namespace sclc
 
             for (size_t i = 0; i < compilerFlags.size(); i++) {
                 std::string flag = compilerFlags.get(i);
-                cmd += flag + " ";
+                cflags.push_back(flag);
             }
 
             Main.frameworks.push_back(framework);
@@ -248,8 +260,9 @@ namespace sclc
             unsigned long implementersSize = implementers.size();
             for (unsigned long i = 0; i < implementersSize; i++) {
                 std::string implementer = implementers.get(i);
-                if (!assembleOnly)
-                    cmd += scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer + " ";
+                if (!assembleOnly) {
+                    cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                }
             }
             for (unsigned long i = 0; i < implHeaders.size(); i++) {
                 std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
@@ -265,7 +278,20 @@ namespace sclc
             std::string filename = files[i];
             std::cout << "Compiling " << filename << "..." << std::endl;
 
-            std::string preproc_cmd = globalPreproc + " " + filename + " " + filename + ".scale-preproc";
+            FILE* tmp = fopen(filename.c_str(), "r");
+            fseek(tmp, 0, SEEK_END);
+            long size = ftell(tmp);
+            fseek(tmp, 0, SEEK_SET);
+
+            char* buffer = new char[size];
+            fread(buffer, 1, size, tmp);
+
+            FILE* file = fopen((filename + ".c").c_str(), "w");
+            fwrite(buffer, size, 1, file);
+            fclose(file);
+            fclose(tmp);
+
+            std::string preproc_cmd = globalPreproc + " " + filename + ".c -o " + filename + ".scale-preproc";
             int preprocResult = system(preproc_cmd.c_str());
 
             if (preprocResult != 0) {
@@ -324,6 +350,7 @@ namespace sclc
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
             remove(std::string(filename + ".scale-preproc").c_str());
+            remove(std::string(filename + ".c").c_str());
         }
 
         if (preprocessOnly) {
@@ -378,8 +405,7 @@ namespace sclc
         srand(time(NULL));
         if (!transpileOnly) sprintf(source, ".scale-%08x.tmp", (unsigned int) rand());
         else sprintf(source, "out");
-        cmd += source;
-        cmd += ".c ";
+        cflags.push_back(std::string(source) + ".c");
 
         FPResult parseResult = Main.parser->parse(std::string(source));
 
@@ -428,9 +454,27 @@ namespace sclc
             return 0;
         }
 
+        std::string cmd = "";
+        for (std::string s : cflags) {
+            cmd += s + " ";
+        }
+
         std::cout << "Compiling with " << cmd << std::endl;
 
+#define USE_SYSTEM_COMPILER
+#ifdef USE_SYSTEM_COMPILER
         int ret = system(cmd.c_str());
+#else
+        int cc_main(int argc, char *argv[]);
+
+        int argc = cflags.size();
+        char* argv[] = new char*[cflags.size()];
+        for (size_t i = 0; i < argc; i++) {
+
+        }
+
+        int ret = cc_main(argc, argv);
+#endif
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
