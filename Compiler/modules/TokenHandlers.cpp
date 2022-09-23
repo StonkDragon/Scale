@@ -176,7 +176,7 @@ namespace sclc
             result.column = to.getColumn();
             return result;
         }
-        if (from.getType() == tok_identifier && Main.parser->hasContainer(from)) {
+        if (from.getType() == tok_identifier && hasContainer(Main.parser->result, from)) {
             FPResult result;
             result.message = "Use of containers in for loops is not supported.";
             result.success = false;
@@ -186,7 +186,7 @@ namespace sclc
             result.column = from.getColumn();
             return result;
         }
-        if (to.getType() == tok_identifier && Main.parser->hasContainer(to)) {
+        if (to.getType() == tok_identifier && hasContainer(Main.parser->result, to)) {
             FPResult result;
             result.message = "Use of containers in for loops is not supported.";
             result.success = false;

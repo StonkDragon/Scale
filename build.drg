@@ -12,6 +12,7 @@ build: {
     "modules/FunctionParser.cpp";
     "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
+    "modules/Transpiler.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";

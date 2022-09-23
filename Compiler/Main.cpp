@@ -67,6 +67,7 @@ namespace sclc
         std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
         std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
+        std::cout << "  --no-main        Do not check for main Function" << std::endl;
         std::cout << "  -v, --version    Show version information" << std::endl;
     }
 
@@ -150,6 +151,8 @@ namespace sclc
                     cflags.push_back("-S");
                 } else if (args[i] == "--no-core") {
                     noCoreFramework = true;
+                } else if (args[i] == "--no-main") {
+                    Main.options.noMain = true;
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system(COMPILER" -v");

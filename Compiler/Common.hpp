@@ -8,6 +8,7 @@
 #include <regex>
 
 #define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
+#define append(...) fprintf(fp, __VA_ARGS__)
 
 #undef INT_MAX
 #undef INT_MIN
@@ -381,49 +382,7 @@ namespace sclc
             this->result = result;
         }
         ~FunctionParser() {}
-        bool hasFunction(Token name) {
-            for (Function func : result.functions) {
-                if (func.name == name.getValue()) {
-                    return true;
-                }
-            }
-            for (Prototype proto : result.prototypes) {
-                if (proto.name == name.getValue()) {
-                    bool hasFunction = false;
-                    for (Function func : result.functions) {
-                        if (func.name == proto.name) {
-                            hasFunction = true;
-                            break;
-                        }
-                    }
-                    if (!hasFunction) {
-                        std::cerr << name.getFile() << ":" << name.getLine() << ":" << name.getColumn() << ": Error: Missing Implementation for function " << name.getValue() << std::endl;
-                        exit(1);
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-        bool hasExtern(Token name) {
-            for (Extern extern_ : result.externs) {
-                if (extern_.name == name.getValue()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        bool hasContainer(Token name) {
-            for (Container container_ : result.containers) {
-                if (container_.name == name.getValue()) {
-                    return true;
-                }
-            }
-            return false;
-        }
         FPResult parse(std::string filename);
-        Function getFunctionByName(std::string name);
-        Container getContainerByName(std::string name);
     };
 
     class Tokenizer
@@ -449,10 +408,24 @@ namespace sclc
         bool debug;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
+        struct options {
+            bool noMain;
+        } options;
     } _Main;
 
     extern _Main Main;
+    extern std::string scaleFolder;
 
+    struct Transpiler {
+        static void writeHeader(FILE* fp);
+        static void writeFunctionHeaders(FILE* fp, TPResult result);
+        static void writeExternHeaders(FILE* fp, TPResult result);
+        static void writeInternalFunctions(FILE* fp, TPResult result);
+        static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
+        static void writeContainers(FILE* fp, TPResult result);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);
+    };
+    
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     int isCharacter(char c);
@@ -472,5 +445,14 @@ namespace sclc
     int lastIndexOf(char* src, char c);
     bool hasVar(Token name);
     hash hash1(char* data);
+    FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
+    FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
+    FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
+    Function getFunctionByName(TPResult result, std::string name);
+    Container getContainerByName(TPResult result, std::string name);
+    bool hasFunction(TPResult result, Token name);
+    bool hasExtern(TPResult result, Token name);
+    bool hasContainer(TPResult result, Token name);
 }
 #endif // COMMON_H

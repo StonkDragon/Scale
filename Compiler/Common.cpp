@@ -41,7 +41,7 @@ namespace sclc
     #endif
 
     std::vector<std::string> vars;
-    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>()};
+    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0}};
 
     void signalHandler(int signum) {
         std::cout << "Signal " << signum << " received." << std::endl;
