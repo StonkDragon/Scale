@@ -228,6 +228,7 @@ namespace sclc
         std::string value;
         int column;
         int line;
+        TokenType type;
     };
 
     struct Operation {

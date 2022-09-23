@@ -39,6 +39,7 @@ namespace sclc
                 result.line = token.getLine();
                 result.in = token.getFile();
                 result.column = token.getColumn();
+                result.type = token.getType();
                 return result;
             }
         }
@@ -63,6 +64,7 @@ namespace sclc
             result.in = token.getFile();
             result.value = token.getValue();
             result.column = token.getColumn();
+            result.type = token.getType();
             return result;
         }
         FPResult result;
@@ -80,6 +82,7 @@ namespace sclc
             result.in = keywDeclare.getFile();
             result.value = keywDeclare.getValue();
             result.column = keywDeclare.getColumn();
+            result.type = keywDeclare.getType();
             return result;
         }
         if (loopVar.getType() != tok_identifier) {
@@ -90,6 +93,7 @@ namespace sclc
             result.in = loopVar.getFile();
             result.value = loopVar.getValue();
             result.column = loopVar.getColumn();
+            result.type = loopVar.getType();
             return result;
         }
         if (keywIn.getType() != tok_in) {
@@ -100,9 +104,10 @@ namespace sclc
             result.in = keywIn.getFile();
             result.value = keywIn.getValue();
             result.column = keywIn.getColumn();
+            result.type = keywIn.getType();
             return result;
         }
-        if (from.getType() != tok_number) {
+        if (from.getType() != tok_number && from.getType() != tok_char_literal) {
             FPResult result;
             result.message = "Expected integer after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
@@ -110,6 +115,7 @@ namespace sclc
             result.in = from.getFile();
             result.value = from.getValue();
             result.column = from.getColumn();
+            result.type = from.getType();
             return result;
         }
         if (keywTo.getType() != tok_to) {
@@ -120,9 +126,10 @@ namespace sclc
             result.in = keywTo.getFile();
             result.value = keywTo.getValue();
             result.column = keywTo.getColumn();
+            result.type = keywTo.getType();
             return result;
         }
-        if (to.getType() != tok_number) {
+        if (to.getType() != tok_number && to.getType() != tok_char_literal) {
             FPResult result;
             result.message = "Expected integer after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
@@ -130,6 +137,7 @@ namespace sclc
             result.in = to.getFile();
             result.value = to.getValue();
             result.column = to.getColumn();
+            result.type = to.getType();
             return result;
         }
         if (keywDo.getType() != tok_do) {
@@ -140,16 +148,17 @@ namespace sclc
             result.in = keywDo.getFile();
             result.value = keywDo.getValue();
             result.column = keywDo.getColumn();
+            result.type = keywDo.getType();
             return result;
         }
 
         long long lower = 0;
-        if (from.getType() == tok_number) {
+        if (from.getType() == tok_number || from.getType() == tok_char_literal) {
             lower = parseNumber(from.getValue());
         }
 
         long long higher = 0;
-        if (to.getType() == tok_number) {
+        if (to.getType() == tok_number || to.getType() == tok_char_literal) {
             higher = parseNumber(to.getValue());
         }
 
@@ -164,6 +173,7 @@ namespace sclc
             result.in = from.getFile();
             result.value = from.getValue();
             result.column = from.getColumn();
+            result.type = from.getType();
             return result;
         }
         if (to.getType() == tok_identifier && !hasVar(to)) {
@@ -174,6 +184,7 @@ namespace sclc
             result.in = to.getFile();
             result.value = to.getValue();
             result.column = to.getColumn();
+            result.type = to.getType();
             return result;
         }
         if (from.getType() == tok_identifier && hasContainer(Main.parser->result, from)) {
@@ -184,6 +195,7 @@ namespace sclc
             result.in = from.getFile();
             result.value = from.getValue();
             result.column = from.getColumn();
+            result.type = from.getType();
             return result;
         }
         if (to.getType() == tok_identifier && hasContainer(Main.parser->result, to)) {
@@ -194,6 +206,7 @@ namespace sclc
             result.in = to.getFile();
             result.value = to.getValue();
             result.column = to.getColumn();
+            result.type = to.getType();
             return result;
         }
 
@@ -228,6 +241,7 @@ namespace sclc
             result.in = keywTo.getFile();
             result.value = keywTo.getValue();
             result.column = keywTo.getColumn();
+            result.type = keywTo.getType();
             return result;
         }
         (*scopeDepth)++;
@@ -254,6 +268,7 @@ namespace sclc
             result.in = token.getFile();
             result.value = token.getValue();
             result.column = token.getColumn();
+            result.type = token.getType();
             return result;
         }
         FPResult result;

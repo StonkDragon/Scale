@@ -35,6 +35,7 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -46,6 +47,7 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -57,6 +59,7 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -67,26 +70,38 @@ namespace sclc
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
-                    while (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_comma) {
+                    while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
                         if (tokens[i].getType() == tok_identifier) {
                             currentFunction->addArgument(tokens[i].getValue());
+                        } else {
+                            FPResult result;
+                            result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
                         }
                         i++;
                         if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
                             if (tokens[i].getType() == tok_comma) {
                                 i++;
                             }
-                        } else {
-                            FPResult result;
-                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.success = false;
-                            errors.push_back(result);
                             continue;
                         }
+                        FPResult result;
+                        result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
                     }
                 }
                 if (currentFunction->args.size() > 32) {
@@ -96,6 +111,7 @@ namespace sclc
                     result.value = func.getValue();
                     result.line = func.getLine();
                     result.in = func.getFile();
+                    result.type = func.getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -126,6 +142,7 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -143,6 +160,7 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -154,6 +172,7 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -165,6 +184,7 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -187,6 +207,7 @@ namespace sclc
                             result.value = tokens[i + 1].getValue();
                             result.line = tokens[i + 1].getLine();
                             result.in = tokens[i + 1].getFile();
+                            result.type = tokens[i + 1].getType();
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -198,6 +219,7 @@ namespace sclc
                         result.value = tokens[i + 1].getValue();
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
+                        result.type = tokens[i + 1].getType();
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -210,6 +232,7 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
+                    result.type = tokens[i].getType();
                     result.success = false;
                     errors.push_back(result);
                     continue;

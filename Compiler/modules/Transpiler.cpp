@@ -275,6 +275,7 @@ namespace sclc
                         err.line = body[i].getLine();
                         err.in = body[i].getFile();
                         err.value = body[i].getValue();
+                        err.type =  body[i].getType();
                         errors.push_back(err);
                         continue;
                     }
@@ -289,6 +290,7 @@ namespace sclc
                         err.line = body[i].getLine();
                         err.in = body[i].getFile();
                         err.value = body[i].getValue();
+                        err.type =  body[i].getType();
                         errors.push_back(err);
                         continue;
                     }
@@ -301,7 +303,7 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
-                } else if (body[i].getType() == tok_number) {
+                } else if (body[i].getType() == tok_number || body[i].getType() == tok_char_literal) {
                     FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
                         errors.push_back(numberHandled);
@@ -358,6 +360,7 @@ namespace sclc
                         err.line = body[i + 1].getLine();
                         err.in = body[i + 1].getFile();
                         err.value = body[i + 1].getValue();
+                        err.type =  body[i + 1].getType();
                         errors.push_back(err);
                         if (body[i + 2].getType() != tok_do)
                             goto lbl_repeat_do_tok_chk;
@@ -373,6 +376,7 @@ namespace sclc
                         err.line = body[i + 2].getLine();
                         err.in = body[i + 2].getFile();
                         err.value = body[i + 2].getValue();
+                        err.type =  body[i + 2].getType();
                         errors.push_back(err);
                         i += 2;
                         continue;
@@ -494,6 +498,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -508,6 +513,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -520,6 +526,7 @@ namespace sclc
                         err.line = body[i + 1].getLine();
                         err.in = body[i + 1].getFile();
                         err.value = body[i + 1].getValue();
+                        err.type =  body[i + 1].getType();
                         errors.push_back(err);
                     }
                 } else if (body[i].getType() == tok_store) {
@@ -535,6 +542,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -549,6 +557,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -564,6 +573,7 @@ namespace sclc
                             result.line = body[i].getLine();
                             result.in = body[i].getFile();
                             result.value = body[i].getValue();
+                            result.type =  body[i].getType();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -574,6 +584,7 @@ namespace sclc
                             result.line = body[i].getLine();
                             result.in = body[i].getFile();
                             result.value = body[i].getValue();
+                            result.type =  body[i].getType();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -591,6 +602,7 @@ namespace sclc
                         result.line = body[i + 1].getLine();
                         result.in = body[i + 1].getFile();
                         result.value = body[i + 1].getValue();
+                        result.type =  body[i + 1].getType();
                         result.column = body[i + 1].getColumn();
                         errors.push_back(result);
                     }
@@ -624,6 +636,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -638,6 +651,7 @@ namespace sclc
                             err.line = body[i].getLine();
                             err.in = body[i].getFile();
                             err.value = body[i].getValue();
+                            err.type =  body[i].getType();
                             errors.push_back(err);
                             continue;
                         }
@@ -653,6 +667,7 @@ namespace sclc
                             result.line = body[i].getLine();
                             result.in = body[i].getFile();
                             result.value = body[i].getValue();
+                            result.type =  body[i].getType();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -663,6 +678,7 @@ namespace sclc
                             result.line = body[i].getLine();
                             result.in = body[i].getFile();
                             result.value = body[i].getValue();
+                            result.type =  body[i].getType();
                             result.column = body[i].getColumn();
                             errors.push_back(result);
                         }
@@ -701,6 +717,7 @@ namespace sclc
                         result.line = body[i].getLine();
                         result.in = body[i].getFile();
                         result.value = body[i].getValue();
+                        result.type =  body[i].getType();
                         result.column = body[i].getColumn();
                         errors.push_back(result);
                     }
@@ -713,6 +730,7 @@ namespace sclc
                         result.line = body[i].getLine();
                         result.in = body[i].getFile();
                         result.value = body[i].getValue();
+                        result.type =  body[i].getType();
                         result.column = body[i].getColumn();
                         errors.push_back(result);
                     }
@@ -756,6 +774,7 @@ namespace sclc
                         result.line = body[i].getLine();
                         result.in = body[i].getFile();
                         result.value = body[i].getValue();
+                        result.type =  body[i].getType();
                         result.column = body[i].getColumn();
                         errors.push_back(result);
                     }
@@ -777,6 +796,7 @@ namespace sclc
                     result.line = body[i].getLine();
                     result.in = body[i].getFile();
                     result.value = body[i].getValue();
+                    result.type =  body[i].getType();
                     result.column = body[i].getColumn();
                     errors.push_back(result);
                 }
@@ -809,6 +829,7 @@ namespace sclc
                 result.line = sap_tokens[sap_tokens.size() - 1].getLine();
                 result.in = sap_tokens[sap_tokens.size() - 1].getFile();
                 result.value = sap_tokens[sap_tokens.size() - 1].getValue();
+                result.type =  sap_tokens[sap_tokens.size() - 1].getType();
                 result.column = sap_tokens[sap_tokens.size() - 1].getColumn();
                 errors.push_back(result);
             }

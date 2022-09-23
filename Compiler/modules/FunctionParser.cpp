@@ -90,7 +90,8 @@ namespace sclc
         remove((filename + std::string(".c")).c_str());
         FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
 
-        if (getFunctionByName(result, "main") == Function("%NULFUNC%") && !Main.options.noMain) {
+        Function mainFunction = getFunctionByName(result, "main");
+        if (mainFunction == Function("%NULFUNC%") && !Main.options.noMain) {
             FPResult result;
             result.success = false;
             result.message = "No entry point found";
@@ -108,6 +109,15 @@ namespace sclc
         Transpiler::writeContainers(fp, result);
         Transpiler::writeFunctions(fp, errors, warns, globals, result);
 
+        std::string mainCall = "  fn_main(";
+        for (ssize_t j = (ssize_t) mainFunction.getArgs().size() - 1; j >= 0; j--) {
+            if (j != (ssize_t) mainFunction.getArgs().size() - 1) {
+                mainCall += ", ";
+            }
+            mainCall += "ctrl_pop()";
+        }
+        mainCall += ");\n";
+
         std::string mainEntry = 
         "int main(int argc, char const *argv[]) {\n"
         "  signal(SIGINT, process_signal);\n"
@@ -123,8 +133,8 @@ namespace sclc
         "  for (int i = argc - 1; i > 0; i--) {\n"
         "    ctrl_push_string(argv[i]);\n"
         "  }\n"
-        "\n"
-        "  fn_main();\n"
+        "\n" +
+        mainCall +
         "  heap_collect();\n"
         "  return 0;\n"
         "}\n";
