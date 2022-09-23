@@ -110,11 +110,6 @@ namespace sclc
             return std::to_string(this->major) + "." + std::to_string(this->minor) + "." + std::to_string(this->patch);
         }
     };
-    
-    extern std::vector<std::string> vars;
-
-    long long parseNumber(std::string str);
-    double parseDouble(std::string str);
 
     enum TokenType {
         tok_eof,
@@ -229,39 +224,6 @@ namespace sclc
         int column;
         int line;
         TokenType type;
-    };
-
-    struct Operation {
-        std::string funcName;
-        std::vector<std::string> args;
-        std::string type;
-        std::string varName;
-        std::string op;
-        std::string left, right;
-
-        std::string getOp() { return op; }
-        std::string getLeft() { return left; }
-        std::string getType() { return type; }
-        std::string getRight() { return right; }
-        std::string getVarName() { return varName; }
-        std::string getFuncName() { return funcName; }
-        std::vector<std::string> getArgs() { return args; }
-        void addArg(std::string arg) { args.push_back(arg); }
-
-        Operation(std::string funcName, std::string varName, std::string op, std::string left, std::string right, std::string type) {
-            this->funcName = funcName;
-            this->varName = varName;
-            this->op = op;
-            this->left = left;
-            this->right = right;
-            this->type = type;
-        }
-    };
-
-    struct ParsedFunction
-    {
-        std::string name;
-        std::vector<Operation> operations;
     };
 
     enum Modifier
@@ -400,6 +362,16 @@ namespace sclc
         Token nextToken();
         void printTokens();
     };
+    
+    struct Transpiler {
+        static void writeHeader(FILE* fp);
+        static void writeFunctionHeaders(FILE* fp, TPResult result);
+        static void writeExternHeaders(FILE* fp, TPResult result);
+        static void writeInternalFunctions(FILE* fp, TPResult result);
+        static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
+        static void writeContainers(FILE* fp, TPResult result);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);
+    };
 
     typedef struct _Main
     {
@@ -416,17 +388,10 @@ namespace sclc
 
     extern _Main Main;
     extern std::string scaleFolder;
+    extern std::vector<std::string> vars;
 
-    struct Transpiler {
-        static void writeHeader(FILE* fp);
-        static void writeFunctionHeaders(FILE* fp, TPResult result);
-        static void writeExternHeaders(FILE* fp, TPResult result);
-        static void writeInternalFunctions(FILE* fp, TPResult result);
-        static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
-        static void writeContainers(FILE* fp, TPResult result);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);
-    };
-    
+    long long parseNumber(std::string str);
+    double parseDouble(std::string str);
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     int isCharacter(char c);
