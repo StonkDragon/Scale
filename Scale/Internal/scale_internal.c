@@ -10,7 +10,7 @@ scl_stack_t	 callstk = {0, {0}, {0}};
 size_t		 memalloced_ptr = 0;
 scl_memory_t memalloced[MALLOC_LIMIT] = {0};
 size_t 		 sap_index = 0;
-size_t 		 sap_enabled[STACK_SIZE] = {0};
+size_t 		 sap_enabled[STACK_SIZE] = {0}; 
 size_t 		 sap_count[STACK_SIZE] = {0};
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
@@ -65,14 +65,12 @@ void heap_add(scl_word ptr, int isFile) {
 			memalloced[i].ptr = ptr;
 			memalloced[i].isFile = isFile;
 			memalloced[i].level = stack_depth;
-			memalloced[i].returned = 0;
 			return;
 		}
 	}
 	memalloced[memalloced_ptr].ptr = ptr;
 	memalloced[memalloced_ptr].isFile = isFile;
 	memalloced[memalloced_ptr].level = stack_depth;
-	memalloced[memalloced_ptr].returned = 0;
 	memalloced_ptr++;
 }
 
@@ -242,7 +240,7 @@ void ctrl_push_long(long long n) {
 }
 
 long long ctrl_pop_long() {
-	if (sap_enabled[sap_index]) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
@@ -254,7 +252,7 @@ long long ctrl_pop_long() {
 }
 
 double ctrl_pop_double() {
-	if (sap_enabled[sap_index]) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
@@ -276,7 +274,7 @@ void ctrl_push(scl_word n) {
 }
 
 char* ctrl_pop_string() {
-	if (sap_enabled[sap_index]) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
@@ -288,7 +286,7 @@ char* ctrl_pop_string() {
 }
 
 scl_word ctrl_pop() {
-	if (sap_enabled[sap_index]) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
@@ -300,7 +298,7 @@ scl_word ctrl_pop() {
 }
 
 scl_word ctrl_pop_word() {
-	if (sap_enabled[sap_index]) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
