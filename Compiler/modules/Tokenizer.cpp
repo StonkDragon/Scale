@@ -324,7 +324,11 @@ namespace sclc
                 name++;
 
                 line = atoi(lineStr);
-                data += "#LINE:" + std::to_string(line) + ";FILE:" + std::string(name).substr(0, std::string(name).size() - 2) + ";\n";
+                std::string filename = std::string(name);
+                if (strends(filename, ".c")) {
+                    filename = filename.substr(0, std::string(name).size() - 2);
+                }
+                data += "#LINE:" + std::to_string(line) + ";FILE:" + filename + ";\n";
                 continue;
             }
             // skip if comment
