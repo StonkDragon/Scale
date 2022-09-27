@@ -70,8 +70,6 @@ typedef struct {
 	scl_word ptr;
 	ssize_t	 level;
 	int 	 isFile;
-	size_t   size;
-	int      returned;
 } scl_memory_t;
 typedef struct {
 	ssize_t  ptr;
