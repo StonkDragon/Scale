@@ -33,13 +33,13 @@ end
 // Stack: [int] -> []
 // Prints the integer int to the standard output.
 function putint(_int_)
-    _int_ "%lld" sprintf puts
+    _int_ longToString puts
 end
 
 // Stack: [f] -> []
 // Prints the float f to the standard output.
 function putfloat(_f_)
-    _f_ "%f" sprintf puts
+    _f_ doubleToString puts
 end
 
 // Stack: [err] -> []
