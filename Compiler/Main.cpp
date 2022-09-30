@@ -30,7 +30,7 @@
 #endif
 
 #ifndef PREPROCESSOR
-#define PREPROCESSOR COMPILER" -E"
+#define PREPROCESSOR compiler + " -E"
 #endif
 
 #ifndef C_VERSION
@@ -69,6 +69,7 @@ namespace sclc
         std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
         std::cout << "  --no-main        Do not check for main Function" << std::endl;
         std::cout << "  -v, --version    Show version information" << std::endl;
+        std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -95,21 +96,11 @@ namespace sclc
         bool noCoreFramework    = false;
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
+        std::string compiler    = std::string(COMPILER);
         scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR);
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
-        std::vector<std::string> cflags;
-
-        cflags.push_back(std::string(COMPILER));
-        cflags.push_back("-I" + scaleFolder + "/Frameworks");
-        cflags.push_back("-I" + scaleFolder + "/Internal");
-        cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
-        cflags.push_back("-std=" + std::string(C_VERSION));
-        cflags.push_back("-O2");
-        cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-#ifdef LINK_MATH
-        cflags.push_back("-lm");
-#endif
+        std::vector<std::string> tmpFlags;
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -148,7 +139,7 @@ namespace sclc
                     }
                 } else if (args[i] == "-S") {
                     assembleOnly = true;
-                    cflags.push_back("-S");
+                    tmpFlags.push_back("-S");
                 } else if (args[i] == "--no-core") {
                     noCoreFramework = true;
                 } else if (args[i] == "--no-main") {
@@ -157,11 +148,32 @@ namespace sclc
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system(COMPILER" -v");
                     return 0;
+                } else if (args[i] == "--comp") {
+                    if (i + 1 < args.size()) {
+                        compiler = args[i + 1];
+                        i++;
+                    } else {
+                        std::cerr << "Error: --comp requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else {
-                    cflags.push_back(args[i]);
+                    tmpFlags.push_back(args[i]);
                 }
             }
         }
+
+        std::vector<std::string> cflags;
+
+        cflags.push_back(compiler);
+        cflags.push_back("-I" + scaleFolder + "/Frameworks");
+        cflags.push_back("-I" + scaleFolder + "/Internal");
+        cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
+        cflags.push_back("-std=" + std::string(C_VERSION));
+        cflags.push_back("-O2");
+        cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+#ifdef LINK_MATH
+        cflags.push_back("-lm");
+#endif
 
         if (files.size() == 0) {
             std::cerr << Color::RED << "No translation units specified." << std::endl;
