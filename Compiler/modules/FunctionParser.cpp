@@ -41,6 +41,15 @@ namespace sclc
         return Container("");
     }
 
+    Complex getComplexByName(TPResult result, std::string name) {
+        for (Complex complex : result.complexes) {
+            if (complex.name == name) {
+                return complex;
+            }
+        }
+        return Complex("");
+    }
+
     bool hasFunction(TPResult result, Token name) {
         for (Function func : result.functions) {
             if (func.name == name.getValue()) {
@@ -107,6 +116,7 @@ namespace sclc
         Transpiler::writeInternalFunctions(fp, result);
         Transpiler::writeGlobals(fp, globals, result);
         Transpiler::writeContainers(fp, result);
+        Transpiler::writeComplexes(fp, result);
         Transpiler::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainCall = "  fn_main(";
@@ -135,7 +145,6 @@ namespace sclc
         "  }\n"
         "\n" +
         mainCall +
-        "  heap_collect();\n"
         "  return 0;\n"
         "}\n";
 

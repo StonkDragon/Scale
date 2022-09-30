@@ -84,7 +84,7 @@
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat)\\b"
+					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|complex|new)\\b"
 				}
 			]
 		},
@@ -136,7 +136,7 @@
 		},
 		"symbols": {
 			"name": "keyword",
-			"match": "(->|(\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
+			"match": "(::|->|\\.|(\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
 		}
 	},
 	"scopeName": "source.scale"

@@ -144,6 +144,8 @@ namespace sclc
         tok_declare,        // decl
         tok_container_def,  // container
         tok_repeat,         // repeat
+        tok_complex_def,    // complex
+        tok_new,            // new
 
         // operators
         tok_hash,           // #
@@ -171,6 +173,8 @@ namespace sclc
         tok_sapopen,        // [
         tok_sapclose,       // ]
         tok_container_acc,  // ->
+        tok_double_column,  // ::
+        tok_dot,            // .
 
         tok_identifier,     // foo
         tok_number,         // 123
@@ -298,6 +302,33 @@ namespace sclc
         }
     };
 
+    struct Complex {
+        std::string name;
+        std::vector<std::string> members;
+        Complex(std::string name) {
+            this->name = name;
+        }
+        void addMember(std::string member) {
+            members.push_back(member);
+        }
+        bool hasMember(std::string member) {
+            for (std::string m : members) {
+                if (m == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        int indexOfMember(std::string member) {
+            for (size_t i = 0; i < members.size(); i++) {
+                if (members[i] == member) {
+                    return ((int) i) * 8;
+                }
+            }
+            return -1;
+        }
+    };
+
     struct Prototype
     {
         std::string name;
@@ -316,6 +347,7 @@ namespace sclc
         std::vector<std::string> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
+        std::vector<Complex> complexes;
     };
 
     class TokenParser
@@ -370,7 +402,8 @@ namespace sclc
         static void writeInternalFunctions(FILE* fp, TPResult result);
         static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);
+        static void writeComplexes(FILE* fp, TPResult result);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
     };
 
     typedef struct _Main
@@ -417,6 +450,7 @@ namespace sclc
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function getFunctionByName(TPResult result, std::string name);
     Container getContainerByName(TPResult result, std::string name);
+    Complex getComplexByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);

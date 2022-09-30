@@ -199,6 +199,14 @@ namespace sclc
                     value += c;
                     column++;
                 }
+            } else if (c == ':') {
+                c = source[++current];
+                column++;
+                if (c == ':') {
+                    value += c;
+                } else {
+                    syntaxError("Expected ':' after ':'");
+                }
             }
             c = source[++current];
         } else if (c == '.') {
@@ -214,12 +222,9 @@ namespace sclc
             case '/':
                 value += c;
                 break;
-            
-            default:
-                syntaxError("Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" + std::to_string(c) + "'");
             }
-            c = source[++current];
-            column++;
+            // c = source[++current];
+            // column++;
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
@@ -261,6 +266,8 @@ namespace sclc
         TYPES("ref", ref, line, filename, startColumn);
         TYPES("container", container_def, line, filename, startColumn);
         TYPES("repeat", repeat, line, filename, startColumn);
+        TYPES("complex", complex_def, line, filename, startColumn);
+        TYPES("new", new, line, filename, startColumn);
         
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);
@@ -284,9 +291,11 @@ namespace sclc
         TYPES(".-", dsub, line, filename, startColumn);
         TYPES(".*", dmul, line, filename, startColumn);
         TYPES("./", ddiv, line, filename, startColumn);
+        TYPES(".", dot, line, filename, startColumn);
         TYPES("[", sapopen, line, filename, startColumn);
         TYPES("]", sapclose, line, filename, startColumn);
         TYPES("->", container_acc, line, filename, startColumn);
+        TYPES("::", double_column, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

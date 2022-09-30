@@ -13,6 +13,7 @@ namespace sclc
     {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
+        Complex* currentComplex = nullptr;
 
         bool functionPrivateStack = true;
         bool funcNoWarn = false;
@@ -21,6 +22,7 @@ namespace sclc
         std::vector<std::string> uses;
         std::vector<std::string> globals;
         std::vector<Container> containers;
+        std::vector<Complex> complexes;
 
         std::vector<FPResult> errors;
 
@@ -43,6 +45,18 @@ namespace sclc
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Error: Cannot define function inside of a container.";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentComplex != nullptr) {
+                    FPResult result;
+                    result.message = "Error: Cannot define function inside of a complex.";
                     result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
@@ -135,9 +149,12 @@ namespace sclc
                 } else if (currentContainer != nullptr) {
                     containers.push_back(*currentContainer);
                     currentContainer = nullptr;
+                } else if (currentComplex != nullptr) {
+                    complexes.push_back(*currentComplex);
+                    currentComplex = nullptr;
                 } else {
                     FPResult result;
-                    result.message = "Unexpected 'end' keyword outside of function or container body.";
+                    result.message = "Unexpected 'end' keyword outside of function, container or complex body.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -177,6 +194,18 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
+                if (currentComplex != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a container inside of a complex.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
@@ -191,6 +220,57 @@ namespace sclc
                 }
                 i++;
                 currentContainer = new Container(tokens[i].getValue());
+            } else if (token.getType() == tok_complex_def) {
+                if (currentContainer != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a complex inside of a container.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a complex inside of a function.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentComplex != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a complex inside another complex.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                currentComplex = new Complex(tokens[i].getValue());
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
@@ -237,16 +317,16 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr) {
+            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentComplex == nullptr) {
                 std::string name = tokens[i + 1].getValue();
                 Extern externFunction(name);
                 externs.push_back(externFunction);
                 i++;
             } else {
-                if (currentFunction != nullptr && currentContainer == nullptr) {
+                if (currentFunction != nullptr && currentContainer == nullptr && currentComplex == nullptr) {
                     currentFunction->addToken(token);
                 } else {
-                    if (token.getType() == tok_declare && currentContainer == nullptr) {
+                    if (token.getType() == tok_declare && currentContainer == nullptr && currentComplex == nullptr) {
                         if (tokens[i + 1].getType() != tok_identifier) {
                             FPResult result;
                             result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
@@ -274,6 +354,20 @@ namespace sclc
                         }
                         currentContainer->addMember(tokens[i + 1].getValue());
                         i++;
+                    } else if (token.getType() == tok_declare && currentComplex != nullptr) {
+                        if (tokens[i + 1].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        currentComplex->addMember(tokens[i + 1].getValue());
+                        i++;
                     }
                 }
             }
@@ -285,6 +379,7 @@ namespace sclc
         result.prototypes = prototypes;
         result.globals = globals;
         result.containers = containers;
+        result.complexes = complexes;
         result.errors = errors;
         return result;
     }

@@ -130,6 +130,18 @@ namespace sclc
         append("\n");
     }
 
+    void Transpiler::writeComplexes(FILE* fp, TPResult result) {
+        append("/* COMPLEXES */\n");
+        for (Complex c : result.complexes) {
+            append("struct %s {\n", c.name.c_str());
+            for (std::string s : c.members) {
+                append("  scl_word %s;\n", s.c_str());
+            }
+            append("};\n");
+        }
+        append("\n");
+    }
+
     void Transpiler::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result) {
         (void) warns;
         append("/* FUNCTIONS */\n");
@@ -227,7 +239,7 @@ namespace sclc
                     if (!operatorsHandled.success) {
                         errors.push_back(operatorsHandled);
                     }
-                } else if (body[i].getType() == tok_identifier && hasVar(body[i])) {
+                } else if (body[i].getType() == tok_identifier && hasVar(body[i]) && body[i + 1].getType() != tok_double_column) {
                     std::string loadFrom = body[i].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -303,6 +315,70 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
+                } else if (body[i].getType() == tok_identifier && hasVar(body[i]) && body[i + 1].getType() == tok_double_column) {
+                    std::string varName = body[i].getValue();
+                    i += 2;
+                    if (body[i].getType() != tok_identifier) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    std::string complexName = body[i].getValue();
+                    i++;
+                    if (body[i].getType() != tok_dot) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected '.', but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    i++;
+                    if (body[i].getType() != tok_identifier) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    std::string memberName = body[i].getValue();
+
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("{\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("scl_word addr = _%s;\n", varName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("scl_security_check_null(addr);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push(((struct %s*) addr)->%s);\n", complexName.c_str(), memberName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("}\n");
                 } else if (body[i].getType() == tok_number || body[i].getType() == tok_char_literal) {
                     FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
                     if (!numberHandled.success) {
@@ -323,6 +399,25 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push((scl_word) 1);\n");
+                } else if (body[i].getType() == tok_new) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    i++;
+                    if (body[i].getType() != tok_identifier) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    const char* complex = body[i].value.c_str();
+                    append("ctrl_push(malloc(sizeof(struct %s)));\n", complex);
                 } else if (body[i].getType() == tok_if) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -483,7 +578,7 @@ namespace sclc
                     } else if (hasFunction(result, toGet)) {
                         append("ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
                         i++;
-                    } else if (hasVar(toGet)) {
+                    } else if (hasVar(toGet) && body[i + 2].getType() != tok_double_column) {
                         append("ctrl_push(&_%s);\n", toGet.getValue().c_str());
                         i++;
                     } else if (hasContainer(result, toGet)) {
@@ -518,6 +613,54 @@ namespace sclc
                             continue;
                         }
                         append("ctrl_push(&($_%s.%s));\n", containerName.c_str(), memberName.c_str());
+                    } else if (body[i + 2].getType() == tok_double_column) {
+                        i++;
+                        std::string varName = body[i].getValue();
+                        i += 2;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string complexName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_dot) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '.', but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        i++;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string memberName = body[i].getValue();
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("ctrl_push(&(((struct %s*) _%s)->%s));\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         FPResult err;
                         err.success = false;
@@ -565,6 +708,53 @@ namespace sclc
                             append("  ");
                         }
                         append("$_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                    } else if (body[i + 1].getType() == tok_double_column) {
+                        std::string varName = body[i].getValue();
+                        i += 2;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string complexName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_dot) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '.', but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        i++;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string memberName = body[i].getValue();
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("((struct %s*) _%s)->%s = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             FPResult result;
@@ -659,6 +849,53 @@ namespace sclc
                             append("  ");
                         }
                         append("*((scl_word*) $_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                    } else if (body[i + 1].getType() == tok_double_column) {
+                        std::string varName = body[i].getValue();
+                        i += 2;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string complexName = body[i].getValue();
+                        i++;
+                        if (body[i].getType() != tok_dot) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected '.', but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        i++;
+                        if (body[i].getType() != tok_identifier) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
+                        std::string memberName = body[i].getValue();
+                        for (int j = 0; j < scopeDepth; j++) {
+                            append("  ");
+                        }
+                        append("*((scl_word*) ((struct %s*) _%s)->%s) = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             FPResult result;
