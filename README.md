@@ -142,6 +142,8 @@ Example:
 
   - [Containers](./examples/container.scale)
 
+  - [Complex](./examples/complex.scale)
+
   - [Pointer Dereferencing](./examples/deref.scale)
 
 # Build
