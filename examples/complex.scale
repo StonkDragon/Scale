@@ -1,0 +1,12 @@
+#include "core.scale"
+
+complex Foo
+  decl bar
+end
+
+function main()
+  decl f
+  new Foo store f
+  "foo" store f::Foo.bar
+  f::Foo.bar puts 
+end
