@@ -120,10 +120,6 @@ void 		op_dmul(void);
 void 		op_ddiv(void);
 
 void ctrl_trace(void);
-void heap_collect(void);
-void heap_add(scl_word ptr, int isFile);
-int  heap_is_alloced(scl_word ptr);
-void heap_remove(scl_word ptr);
 void scl_security_safe_exit(int code);
 void print_stacktrace(void);
 void process_signal(int sig_num);

@@ -105,7 +105,6 @@ sclNativeImpl(concat) {
 	native_strlen();
 	long long len2 = ctrl_pop_long();
 	char *out = (char*) malloc(len + len2 + 1);
-	heap_add(out, 0);
 	size_t i = 0;
 	while (s1[i] != '\0') {
 		out[i] = s1[i];
@@ -153,7 +152,6 @@ sclNativeImpl(sprintf) {
 	char *fmt = ctrl_pop_string();
 	scl_word s = ctrl_pop();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
-	heap_add(out, 0);
 	sprintf(out, fmt, s);
 	ctrl_push_string(out);
 }
@@ -189,13 +187,11 @@ sclNativeImpl(fopen) {
 		sprintf(err, "Unable to open file '%s'", name);
 		scl_security_throw(EX_IO_ERROR, err);
 	}
-	heap_add(f, 1);
 	ctrl_push((scl_word) f);
 }
 
 sclNativeImpl(fclose) {
 	FILE *f = (FILE*) ctrl_pop();
-	heap_remove(f);
 	fclose(f);
 }
 
@@ -238,15 +234,12 @@ sclNativeImpl(write) {
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
 	write(fd, s, n);
-	ctrl_push(s);
-	native_free();
 }
 
 sclNativeImpl(read) {
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
 	void *s = malloc(n);
-	heap_add(s, 0);
 	int ret = read(fd, s, n);
 	if (ret == -1) {
 		ctrl_push_long(EX_IO_ERROR);
@@ -262,7 +255,6 @@ sclNativeImpl(strrev) {
 	native_strlen();
 	long long len = ctrl_pop_long();
 	char* out = (char*) malloc(len + 1);
-	heap_add(out, 0);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
 	}
@@ -273,17 +265,12 @@ sclNativeImpl(strrev) {
 sclNativeImpl(malloc) {
 	long long n = ctrl_pop_long();
 	scl_word s = malloc(n);
-	heap_add(s, 0);
 	ctrl_push(s);
 }
 
 sclNativeImpl(free) {
 	scl_word s = ctrl_pop();
-	int is_alloc = heap_is_alloced(s);
-	heap_remove(s);
-	if (is_alloc) {
-		free(s);
-	}
+	free(s);
 }
 
 sclNativeImpl(breakpoint) {
@@ -310,10 +297,6 @@ sclNativeImpl(time) {
 	clock_gettime(CLOCK_REALTIME, &t);
 	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
 	ctrl_push_long(millis);
-}
-
-sclNativeImpl(heap_collect) {
-	heap_collect();
 }
 
 sclNativeImpl(trace) {
@@ -409,7 +392,6 @@ sclNativeImpl(log10) {
 sclNativeImpl(longToString) {
 	long long a = ctrl_pop_long();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
-	heap_add(out, 0);
 	sprintf(out, "%lld", a);
 	ctrl_push_string(out);
 }
@@ -429,7 +411,6 @@ sclNativeImpl(stringToDouble) {
 sclNativeImpl(doubleToString) {
 	double a = ctrl_pop_double();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
-	heap_add(out, 0);
 	sprintf(out, "%f", a);
 	ctrl_push_string(out);
 }

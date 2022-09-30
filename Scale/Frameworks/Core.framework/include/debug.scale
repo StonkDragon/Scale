@@ -32,10 +32,6 @@ extern abort
 // Breakpoint.
 extern breakpoint
 
-// Stack: no change
-// Runs garbage collection.
-extern heap_collect
-
 // Stack: [msg] -> []
 // Prints msg to stderr and exits with exit code 1.
 function throw(_msg_) Color_Reset _msg_ concat eputs trace 1 exit end

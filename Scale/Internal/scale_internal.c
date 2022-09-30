@@ -43,57 +43,6 @@ void scl_security_check_null(scl_word ptr) {
 
 #pragma endregion
 
-#pragma region Memory Management/GC
-
-void heap_collect() {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == 0)
-			continue;
-		
-		if (memalloced[i].isFile) {
-			fclose(memalloced[i].ptr);
-		} else {
-			free(memalloced[i].ptr);
-		}
-		memalloced[i].ptr = 0;
-	}
-}
-
-void heap_add(scl_word ptr, int isFile) {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == NULL || memalloced[i].ptr == ptr) {
-			memalloced[i].ptr = ptr;
-			memalloced[i].isFile = isFile;
-			memalloced[i].level = stack_depth;
-			return;
-		}
-	}
-	memalloced[memalloced_ptr].ptr = ptr;
-	memalloced[memalloced_ptr].isFile = isFile;
-	memalloced[memalloced_ptr].level = stack_depth;
-	memalloced_ptr++;
-}
-
-int heap_is_alloced(scl_word ptr) {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == ptr) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-void heap_remove(scl_word ptr) {
-	for (size_t i = 0; i < memalloced_ptr; i++) {
-		if (memalloced[i].ptr == ptr) {
-			memalloced[i].ptr = 0;
-			return;
-		}
-	}
-}
-
-#pragma endregion
-
 #pragma region Function Management
 
 void ctrl_fn_start(char* name) {
@@ -199,7 +148,6 @@ void process_signal(int sig_num)
 		printf("errno: %s\n", strerror(errno));
 	}
 	print_stacktrace();
-	heap_collect();
 
 	scl_security_safe_exit(sig_num);
 }

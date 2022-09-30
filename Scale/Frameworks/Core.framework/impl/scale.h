@@ -42,7 +42,6 @@ sclNativeImpl(breakpoint);
 sclNativeImpl(memset);
 sclNativeImpl(memcpy);
 sclNativeImpl(time);
-sclNativeImpl(heap_collect);
 sclNativeImpl(trace);
 sclNativeImpl(sqrt);
 sclNativeImpl(sin);
