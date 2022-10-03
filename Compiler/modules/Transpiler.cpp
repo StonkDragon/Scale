@@ -37,7 +37,7 @@ namespace sclc
                 if (i != (ssize_t) function.getArgs().size() - 1) {
                     append(", ");
                 }
-                append("scl_word _%s", var.c_str());
+                append("scl_value _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
                 append("void");
@@ -68,7 +68,7 @@ namespace sclc
         }
         append("};\n");
 
-        append("const void* __scl_internal__function_ptrs[] = {\n");
+        append("const scl_value __scl_internal__function_ptrs[] = {\n");
         for (Extern extern_ : result.externs) {
             append("  native_%s,\n", extern_.name.c_str());
         }
@@ -96,7 +96,7 @@ namespace sclc
         append("/* GLOBALS */\n");
 
         for (std::string s : result.globals) {
-            append("scl_word _%s;\n", s.c_str());
+            append("scl_value _%s;\n", s.c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
@@ -109,13 +109,13 @@ namespace sclc
         for (Container c : result.containers) {
             append("struct {\n");
             for (std::string s : c.members) {
-                append("  scl_word %s;\n", s.c_str());
+                append("  scl_value %s;\n", s.c_str());
             }
             append("} $_%s = {0};\n", c.name.c_str());
         }
 
         append("\n");
-        append("const scl_word* __scl_internal__globals_ptrs[] = {\n");
+        append("const scl_value* __scl_internal__globals_ptrs[] = {\n");
         for (std::string s : result.globals) {
             append("  &_%s,\n", s.c_str());
         }
@@ -133,9 +133,10 @@ namespace sclc
     void Transpiler::writeComplexes(FILE* fp, TPResult result) {
         append("/* COMPLEXES */\n");
         for (Complex c : result.complexes) {
-            append("struct %s {\n", c.name.c_str());
+            append("struct scl_struct_%s {\n", c.name.c_str());
+            append("  char* $__type;\n");
             for (std::string s : c.members) {
-                append("  scl_word %s;\n", s.c_str());
+                append("  scl_value %s;\n", s.c_str());
             }
             append("};\n");
         }
@@ -191,7 +192,7 @@ namespace sclc
                 if (i != (ssize_t) function.getArgs().size() - 1) {
                     append(", ");
                 }
-                append("scl_word _%s", var.c_str());
+                append("scl_value _%s", var.c_str());
             }
             if (function.getArgs().size() == 0) {
                 append("void");
@@ -239,7 +240,7 @@ namespace sclc
                     if (!operatorsHandled.success) {
                         errors.push_back(operatorsHandled);
                     }
-                } else if (body[i].getType() == tok_identifier && hasVar(body[i]) && body[i + 1].getType() != tok_double_column) {
+                } else if (body[i].getType() == tok_identifier && hasVar(body[i])) {
                     std::string loadFrom = body[i].getValue();
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -315,9 +316,8 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
-                } else if (body[i].getType() == tok_identifier && hasVar(body[i]) && body[i + 1].getType() == tok_double_column) {
-                    std::string varName = body[i].getValue();
-                    i += 2;
+                } else if (body[i].getType() == tok_double_column) {
+                    i++;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
                         err.success = false;
@@ -331,6 +331,18 @@ namespace sclc
                         continue;
                     }
                     std::string complexName = body[i].getValue();
+                    if (getComplexByName(result, complexName) == Complex("")) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
                     i++;
                     if (body[i].getType() != tok_dot) {
                         FPResult err;
@@ -358,6 +370,18 @@ namespace sclc
                         continue;
                     }
                     std::string memberName = body[i].getValue();
+                    if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
 
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -366,7 +390,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("scl_word addr = _%s;\n", varName.c_str());
+                    append("scl_value addr = ctrl_pop();\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -374,7 +398,27 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push(((struct %s*) addr)->%s);\n", complexName.c_str(), memberName.c_str());
+                    append("if (strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") != 0) {\n", complexName.c_str(), complexName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  char* throw_msg = malloc(256);");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  sprintf(throw_msg, \"Complex '%%s' can't be cast to complex '%s'\", ((struct scl_struct_%s*) addr)->$__type);\n", complexName.c_str(), complexName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("}\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push(((struct scl_struct_%s*) addr)->%s);\n", complexName.c_str(), memberName.c_str());
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -393,16 +437,13 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push((scl_word) 0);\n");
+                    append("ctrl_push((scl_value) 0);\n");
                 } else if (body[i].getType() == tok_true) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push((scl_word) 1);\n");
+                    append("ctrl_push((scl_value) 1);\n");
                 } else if (body[i].getType() == tok_new) {
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
                     i++;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
@@ -416,8 +457,70 @@ namespace sclc
                         errors.push_back(err);
                         continue;
                     }
-                    const char* complex = body[i].value.c_str();
-                    append("ctrl_push(malloc(sizeof(struct %s)));\n", complex);
+                    std::string complex = body[i].getValue();
+                    if (getComplexByName(result, complex) == Complex("")) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("{\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("struct scl_struct_%s* new_tmp = malloc(sizeof(struct scl_struct_%s));\n", complex.c_str(), complex.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("new_tmp->$__type = \"%s\";\n", complex.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push(new_tmp);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("}\n");
+                } else if (body[i].getType() == tok_is) {
+                    i++;
+                    if (body[i].getType() != tok_identifier) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    std::string complex = body[i].getValue();
+                    if (getComplexByName(result, complex) == Complex("")) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("ctrl_push_long(strcmp(((struct scl_struct_%s*) ctrl_pop())->$__type, \"%s\") == 0);\n", complex.c_str(), complex.c_str());
                 } else if (body[i].getType() == tok_if) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -476,7 +579,7 @@ namespace sclc
                         i += 2;
                         continue;
                     }
-                    append("for (scl_word %c = 0; %c < (scl_word) %s; %c++) {\n",
+                    append("for (scl_value %c = 0; %c < (scl_value) %s; %c++) {\n",
                         'a' + repeat_depth,
                         'a' + repeat_depth,
                         body[i + 1].getValue().c_str(),
@@ -525,7 +628,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("scl_word ret;\n");
+                    append("scl_value ret;\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -573,10 +676,10 @@ namespace sclc
                         append("  ");
                     }
                     if (hasExtern(result, toGet)) {
-                        append("ctrl_push((scl_word) &native_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push((scl_value) &native_%s);\n", toGet.getValue().c_str());
                         i++;
                     } else if (hasFunction(result, toGet)) {
-                        append("ctrl_push((scl_word) &fn_%s);\n", toGet.getValue().c_str());
+                        append("ctrl_push((scl_value) &fn_%s);\n", toGet.getValue().c_str());
                         i++;
                     } else if (hasVar(toGet) && body[i + 2].getType() != tok_double_column) {
                         append("ctrl_push(&_%s);\n", toGet.getValue().c_str());
@@ -630,6 +733,18 @@ namespace sclc
                             continue;
                         }
                         std::string complexName = body[i].getValue();
+                        if (getComplexByName(result, complexName) == Complex("")) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         i++;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
@@ -657,10 +772,22 @@ namespace sclc
                             continue;
                         }
                         std::string memberName = body[i].getValue();
+                        if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
                         }
-                        append("ctrl_push(&(((struct %s*) _%s)->%s));\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                        append("ctrl_push(&(((struct scl_struct_%s*) _%s)->%s));\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         FPResult err;
                         err.success = false;
@@ -724,6 +851,18 @@ namespace sclc
                             continue;
                         }
                         std::string complexName = body[i].getValue();
+                        if (getComplexByName(result, complexName) == Complex("")) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         i++;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
@@ -751,10 +890,22 @@ namespace sclc
                             continue;
                         }
                         std::string memberName = body[i].getValue();
+                        if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
                         }
-                        append("((struct %s*) _%s)->%s = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                        append("((struct scl_struct_%s*) _%s)->%s = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             FPResult result;
@@ -801,7 +952,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("scl_word _%s;\n", loadFrom.c_str());
+                    append("scl_value _%s;\n", loadFrom.c_str());
                     i++;
                 } else if (body[i].getType() == tok_continue) {
                     for (int j = 0; j < scopeDepth; j++) {
@@ -848,7 +999,7 @@ namespace sclc
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
                         }
-                        append("*((scl_word*) $_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                        append("*((scl_value*) $_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
                     } else if (body[i + 1].getType() == tok_double_column) {
                         std::string varName = body[i].getValue();
                         i += 2;
@@ -865,6 +1016,18 @@ namespace sclc
                             continue;
                         }
                         std::string complexName = body[i].getValue();
+                        if (getComplexByName(result, complexName) == Complex("")) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         i++;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
@@ -892,10 +1055,23 @@ namespace sclc
                             continue;
                         }
                         std::string memberName = body[i].getValue();
+                        if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                            FPResult err;
+                            err.success = false;
+                            err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                            err.column = body[i].getColumn();
+                            err.line = body[i].getLine();
+                            err.in = body[i].getFile();
+                            err.value = body[i].getValue();
+                            err.type =  body[i].getType();
+                            errors.push_back(err);
+                            continue;
+                        }
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
                         }
-                        append("*((scl_word*) ((struct %s*) _%s)->%s) = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                        append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                        append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             FPResult result;
@@ -922,7 +1098,7 @@ namespace sclc
                         for (int j = 0; j < scopeDepth; j++) {
                             append("  ");
                         }
-                        append("*((scl_word*) _%s) = ctrl_pop();\n", body[i].getValue().c_str());
+                        append("*((scl_value*) _%s) = ctrl_pop();\n", body[i].getValue().c_str());
                     }
                 } else if (body[i].getType() == tok_deref) {
                     for (int j = 0; j < scopeDepth; j++) {
@@ -932,7 +1108,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("scl_word addr = ctrl_pop();\n");
+                    append("scl_value addr = ctrl_pop();\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -940,7 +1116,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push(*(scl_word*) addr);\n");
+                    append("ctrl_push(*(scl_value*) addr);\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -978,7 +1154,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("scl_word addr = ctrl_pop();\n");
+                    append("scl_value addr = ctrl_pop();\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -986,7 +1162,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push(*(scl_word*) addr + (%s * 8));\n", index.getValue().c_str());
+                    append("ctrl_push(*(scl_value*) addr + (%s * 8));\n", index.getValue().c_str());
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }

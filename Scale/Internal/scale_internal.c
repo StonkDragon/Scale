@@ -14,20 +14,26 @@ size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
+#define PRIMITIVE "primitive"
 
 #pragma region Security
 
 void scl_security_throw(int code, char* msg) {
-	if (msg) fprintf(stderr, "Exception: %s\n", msg);
-	process_signal(code);
+	printf("\n");
+	printf("%s:%zu:%zu: %s\n", current_file, current_line, current_column, msg);
+	if (errno) {
+		printf("errno: %s\n", strerror(errno));
+	}
+	print_stacktrace();
+
+	scl_security_safe_exit(code);
 }
 
 void scl_security_required_arg_count(ssize_t n, char* func) {
-	if (stack.ptr < n) {
+	if ((stack.ptr - stack.offset[stack_depth]) < n) {
 		char* err = (char*) malloc(MAX_STRING_SIZE);
 		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
 		scl_security_throw(EX_STACK_UNDERFLOW, err);
-		free(err);
 	}
 }
 
@@ -35,7 +41,7 @@ void scl_security_safe_exit(int code) {
 	exit(code);
 }
 
-void scl_security_check_null(scl_word ptr) {
+void scl_security_check_null(scl_value ptr) {
 	if (ptr == NULL) {
 		scl_security_throw(EX_BAD_PTR, "Null pointer");
 	}
@@ -122,24 +128,6 @@ void process_signal(int sig_num)
 	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
 	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
 	else if (sig_num == SIGTERM) signalString = "Software Termiation";
-
-	// Scale Exceptions
-	else if (sig_num == EX_BAD_PTR) signalString = "Bad pointer";
-	else if (sig_num == EX_STACK_OVERFLOW) signalString = "Stack overflow";
-	else if (sig_num == EX_STACK_UNDERFLOW) signalString = "Stack underflow";
-	else if (sig_num == EX_IO_ERROR) signalString = "IO error";
-	else if (sig_num == EX_INVALID_ARGUMENT) signalString = "Invalid argument";
-	else if (sig_num == EX_UNHANDLED_DATA) {
-		if (stack.ptr == 1) {
-			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu element too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu element too much!", stack.ptr);
-		} else {
-			signalString = (char*) malloc(strlen("Unhandled data on the stack. %zu elements too much!") + LONG_AS_STR_LEN);
-			sprintf(signalString, "Unhandled data on the stack. %zu elements too much!", stack.ptr);
-		}
-	}
-	else if (sig_num == EX_CAST_ERROR) signalString = "Cast Error";
-	else if (sig_num == EX_SAP_ERROR) signalString = "SAP Error";
 	else signalString = "Unknown signal";
 
 	printf("\n");
@@ -163,7 +151,8 @@ void ctrl_push_string(const char* c) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr++] = (scl_word) c;
+	stack.data[stack.ptr] = (scl_value) c;
+	stack.ptr++;
 }
 
 void ctrl_push_double(double d) {
@@ -173,7 +162,8 @@ void ctrl_push_double(double d) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr++] = *(scl_word*) &d;
+	stack.data[stack.ptr] = *(scl_value*) &d;
+	stack.ptr++;
 }
 
 void ctrl_push_long(long long n) {
@@ -183,7 +173,7 @@ void ctrl_push_long(long long n) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = (scl_word) n;
+	stack.data[stack.ptr] = (scl_value) n;
 	stack.ptr++;
 }
 
@@ -194,8 +184,8 @@ long long ctrl_pop_long() {
 	if (stack.ptr <= stack.offset[stack_depth]) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	long long value = (long long) stack.data[--stack.ptr];
-	stack.data[stack.ptr + 1] = NULL;
+	stack.ptr--;
+	long long value = (long long) stack.data[stack.ptr];
 	return value;
 }
 
@@ -206,19 +196,20 @@ double ctrl_pop_double() {
 	if (stack.ptr <= stack.offset[stack_depth]) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	double value = *(double*) &stack.data[--stack.ptr];
-	stack.data[stack.ptr + 1] = NULL;
+	stack.ptr--;
+	double value = *(double*) &(stack.data[stack.ptr]);
 	return value;
 }
 
-void ctrl_push(scl_word n) {
+void ctrl_push(scl_value n) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr++] = n;
+	stack.data[stack.ptr] = n;
+	stack.ptr++;
 }
 
 char* ctrl_pop_string() {
@@ -228,43 +219,51 @@ char* ctrl_pop_string() {
 	if (stack.ptr <= stack.offset[stack_depth]) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	char* value = (char*) stack.data[--stack.ptr];
-	stack.data[stack.ptr + 1] = NULL;
+	stack.ptr--;
+	char* value = (char*) stack.data[stack.ptr];
 	return value;
 }
 
-scl_word ctrl_pop() {
+scl_value ctrl_pop() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
 	if (stack.ptr <= stack.offset[stack_depth]) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
-	void* value = stack.data[--stack.ptr];
-	stack.data[stack.ptr + 1] = NULL;
-	return value;
+	stack.ptr--;
+	return stack.data[stack.ptr];
 }
 
-scl_word ctrl_pop_word() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	void* value = stack.data[--stack.ptr];
-	stack.data[stack.ptr + 1] = NULL;
-	return value;
+scl_value ctrl_pop_word() {
+	return ctrl_pop();
 }
 
-void ctrl_push_word(scl_word n) {
+void ctrl_push_word(scl_value n) {
+	ctrl_push(n);
+}
+
+void ctrl_push_complex(scl_value complex) {
 	if (sap_enabled[sap_index]) {
 		sap_count[sap_index]++;
 	}
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr++] = n;
+	stack.data[stack.ptr] = complex;
+	stack.ptr++;
+}
+
+scl_value ctrl_pop_complex(void) {
+	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
+		sap_count[sap_index]--;
+	}
+	if (stack.ptr <= stack.offset[stack_depth]) {
+		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
+	}
+	stack.ptr--;
+	scl_value value = stack.data[stack.ptr];
+	return value;
 }
 
 ssize_t ctrl_stack_size(void) {

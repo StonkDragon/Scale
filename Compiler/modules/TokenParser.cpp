@@ -219,6 +219,18 @@ namespace sclc
                     continue;
                 }
                 i++;
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float") {
+                    FPResult result;
+                    result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 currentContainer = new Container(tokens[i].getValue());
             } else if (token.getType() == tok_complex_def) {
                 if (currentContainer != nullptr) {
@@ -270,6 +282,18 @@ namespace sclc
                     continue;
                 }
                 i++;
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float") {
+                    FPResult result;
+                    result.message = "Invalid name for complex: '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 currentComplex = new Complex(tokens[i].getValue());
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {

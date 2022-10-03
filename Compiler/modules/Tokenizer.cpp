@@ -221,10 +221,10 @@ namespace sclc
             case '*':
             case '/':
                 value += c;
+                c = source[++current];
+                column++;
                 break;
             }
-            // c = source[++current];
-            // column++;
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
@@ -268,6 +268,7 @@ namespace sclc
         TYPES("repeat", repeat, line, filename, startColumn);
         TYPES("complex", complex_def, line, filename, startColumn);
         TYPES("new", new, line, filename, startColumn);
+        TYPES("is", is, line, filename, startColumn);
         
         TYPES("@", hash, line, filename, startColumn);
         TYPES("(", open_paren, line, filename, startColumn);

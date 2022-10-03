@@ -35,6 +35,8 @@ extern sizeof_stack
 // pointers to it are accessible.
 extern malloc
 
+extern realloc
+
 // Stack: [ptr] -> []
 // Frees the memory pointed to by ptr.
 extern free

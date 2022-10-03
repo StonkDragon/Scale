@@ -146,6 +146,7 @@ namespace sclc
         tok_repeat,         // repeat
         tok_complex_def,    // complex
         tok_new,            // new
+        tok_is,             // is
 
         // operators
         tok_hash,           // #
@@ -326,6 +327,9 @@ namespace sclc
                 }
             }
             return -1;
+        }
+        inline bool operator==(const Complex& other) const {
+            return other.name == this->name;
         }
     };
 

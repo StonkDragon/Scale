@@ -211,7 +211,7 @@ namespace sclc
         }
 
         if (!hasVar(loopVar)) {
-            fprintf(fp, "scl_word _%s;", loopVar.getValue().c_str());
+            fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
         }
 
         fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());

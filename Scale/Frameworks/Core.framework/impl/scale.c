@@ -66,23 +66,23 @@ sclNativeImpl(equal) {
 }
 
 sclNativeImpl(dup) {
-	scl_word c = ctrl_pop();
+	scl_value c = ctrl_pop();
 	ctrl_push(c);
 	ctrl_push(c);
 }
 
 sclNativeImpl(over) {
-	void *a = ctrl_pop();
-	void *b = ctrl_pop();
-	void *c = ctrl_pop();
+	scl_value a = ctrl_pop();
+	scl_value b = ctrl_pop();
+	scl_value c = ctrl_pop();
 	ctrl_push(a);
 	ctrl_push(b);
 	ctrl_push(c);
 }
 
 sclNativeImpl(swap) {
-	void *a = ctrl_pop();
-	void *b = ctrl_pop();
+	scl_value a = ctrl_pop();
+	scl_value b = ctrl_pop();
 	ctrl_push(a);
 	ctrl_push(b);
 }
@@ -150,7 +150,7 @@ sclNativeImpl(or) {
 
 sclNativeImpl(sprintf) {
 	char *fmt = ctrl_pop_string();
-	scl_word s = ctrl_pop();
+	scl_value s = ctrl_pop();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
 	sprintf(out, fmt, s);
 	ctrl_push_string(out);
@@ -187,7 +187,7 @@ sclNativeImpl(fopen) {
 		sprintf(err, "Unable to open file '%s'", name);
 		scl_security_throw(EX_IO_ERROR, err);
 	}
-	ctrl_push((scl_word) f);
+	ctrl_push((scl_value) f);
 }
 
 sclNativeImpl(fclose) {
@@ -204,7 +204,7 @@ sclNativeImpl(fseek) {
 
 sclNativeImpl(ftell) {
 	FILE *f = (FILE*) ctrl_pop();
-	ctrl_push((scl_word) f);
+	ctrl_push((scl_value) f);
 	ctrl_push_long(ftell(f));
 }
 
@@ -230,16 +230,19 @@ sclNativeImpl(abort) {
 }
 
 sclNativeImpl(write) {
-	void *s = ctrl_pop();
+	scl_value s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
-	write(fd, s, n);
+	ssize_t result = write(fd, s, n);
+	if (result == -1) {
+		scl_security_throw(EX_INVALID_ARGUMENT, "Write failed");
+	}
 }
 
 sclNativeImpl(read) {
 	long long n = ctrl_pop_long();
 	long long fd = ctrl_pop_long();
-	void *s = malloc(n);
+	scl_value s = malloc(n);
 	int ret = read(fd, s, n);
 	if (ret == -1) {
 		ctrl_push_long(EX_IO_ERROR);
@@ -264,12 +267,18 @@ sclNativeImpl(strrev) {
 
 sclNativeImpl(malloc) {
 	long long n = ctrl_pop_long();
-	scl_word s = malloc(n);
+	scl_value s = malloc(n);
 	ctrl_push(s);
 }
 
+sclNativeImpl(realloc) {
+	long long n = ctrl_pop_long();
+	scl_value s = ctrl_pop();
+	ctrl_push(realloc(s, n));
+}
+
 sclNativeImpl(free) {
-	scl_word s = ctrl_pop();
+	scl_value s = ctrl_pop();
 	free(s);
 }
 
@@ -279,15 +288,15 @@ sclNativeImpl(breakpoint) {
 }
 
 sclNativeImpl(memset) {
-	scl_word s = ctrl_pop();
+	scl_value s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long c = ctrl_pop_long();
 	memset(s, c, n);
 }
 
 sclNativeImpl(memcpy) {
-	scl_word s2 = ctrl_pop();
-	scl_word s1 = ctrl_pop();
+	scl_value s2 = ctrl_pop();
+	scl_value s1 = ctrl_pop();
 	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 }
@@ -391,7 +400,7 @@ sclNativeImpl(log10) {
 
 sclNativeImpl(longToString) {
 	long long a = ctrl_pop_long();
-	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
+	char *out = (char*) malloc(25);
 	sprintf(out, "%lld", a);
 	ctrl_push_string(out);
 }
@@ -410,7 +419,7 @@ sclNativeImpl(stringToDouble) {
 
 sclNativeImpl(doubleToString) {
 	double a = ctrl_pop_double();
-	char *out = (char*) malloc(LONG_AS_STR_LEN + 1);
+	char *out = (char*) malloc(100);
 	sprintf(out, "%f", a);
 	ctrl_push_string(out);
 }

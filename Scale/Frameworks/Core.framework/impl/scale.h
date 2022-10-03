@@ -37,6 +37,7 @@ sclNativeImpl(write);
 sclNativeImpl(read);
 sclNativeImpl(strrev);
 sclNativeImpl(malloc);
+sclNativeImpl(realloc);
 sclNativeImpl(free);
 sclNativeImpl(breakpoint);
 sclNativeImpl(memset);
