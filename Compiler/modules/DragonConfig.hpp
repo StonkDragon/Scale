@@ -8,6 +8,8 @@
 typedef unsigned long u_long;
 #endif
 
+using namespace std;
+
 namespace DragonConfig {
     enum class EntryType {
         String,
