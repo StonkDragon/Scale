@@ -52,7 +52,7 @@ void scl_security_check_null(scl_value ptr) {
 #pragma region Function Management
 
 void ctrl_fn_start(char* name) {
-	callstk.data[callstk.ptr++] = name;
+	callstk.data[callstk.ptr++].ptr = name;
 	stack_depth++;
 	stack.offset[stack_depth] = stack.ptr;
 }
@@ -84,7 +84,7 @@ void sap_close(void) {
 }
 
 void ctrl_fn_native_start(char* name) {
-	callstk.data[callstk.ptr++] = name;
+	callstk.data[callstk.ptr++].ptr = name;
 }
 
 void ctrl_fn_native_end() {
@@ -92,7 +92,7 @@ void ctrl_fn_native_end() {
 }
 
 void ctrl_fn_nps_start(char* name) {
-	callstk.data[callstk.ptr++] = name;
+	callstk.data[callstk.ptr++].ptr = name;
 }
 
 void ctrl_fn_nps_end() {
@@ -112,7 +112,7 @@ void ctrl_where(char* file, size_t line, size_t col) {
 void print_stacktrace() {
 	printf("Stacktrace:\n");
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", (char*) callstk.data[i]);
+		printf("  %s\n", (char*) callstk.data[i].ptr);
 	}
 	printf("\n");
 }
@@ -151,7 +151,7 @@ void ctrl_push_string(const char* c) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = (scl_value) c;
+	stack.data[stack.ptr].ptr = (scl_value) c;
 	stack.ptr++;
 }
 
@@ -162,7 +162,7 @@ void ctrl_push_double(double d) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = *(scl_value*) &d;
+	stack.data[stack.ptr].floating = d;
 	stack.ptr++;
 }
 
@@ -173,7 +173,7 @@ void ctrl_push_long(long long n) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = (scl_value) n;
+	stack.data[stack.ptr].ptr = (scl_value) n;
 	stack.ptr++;
 }
 
@@ -185,7 +185,7 @@ long long ctrl_pop_long() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	long long value = (long long) stack.data[stack.ptr];
+	long long value = (long long) stack.data[stack.ptr].ptr;
 	return value;
 }
 
@@ -197,7 +197,7 @@ double ctrl_pop_double() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	double value = *(double*) &(stack.data[stack.ptr]);
+	double value = stack.data[stack.ptr].floating;
 	return value;
 }
 
@@ -208,7 +208,7 @@ void ctrl_push(scl_value n) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = n;
+	stack.data[stack.ptr].ptr = n;
 	stack.ptr++;
 }
 
@@ -220,7 +220,7 @@ char* ctrl_pop_string() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	char* value = (char*) stack.data[stack.ptr];
+	char* value = (char*) stack.data[stack.ptr].ptr;
 	return value;
 }
 
@@ -232,7 +232,7 @@ scl_value ctrl_pop() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	return stack.data[stack.ptr];
+	return stack.data[stack.ptr].ptr;
 }
 
 scl_value ctrl_pop_word() {
@@ -250,7 +250,7 @@ void ctrl_push_complex(scl_value complex) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr] = complex;
+	stack.data[stack.ptr].ptr = complex;
 	stack.ptr++;
 }
 
@@ -262,8 +262,7 @@ scl_value ctrl_pop_complex(void) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	scl_value value = stack.data[stack.ptr];
-	return value;
+	return stack.data[stack.ptr].ptr;
 }
 
 ssize_t ctrl_stack_size(void) {

@@ -84,7 +84,10 @@ typedef struct {
 } scl_memory_t;
 typedef struct {
 	ssize_t   ptr;
-	scl_value data[STACK_SIZE];
+	union {
+		scl_value ptr;
+		double floating;
+	} data[STACK_SIZE];
 	ssize_t   offset[STACK_SIZE];
 } scl_stack_t;
 

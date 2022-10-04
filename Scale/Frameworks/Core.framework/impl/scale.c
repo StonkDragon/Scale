@@ -25,7 +25,7 @@ sclNativeImpl(dumpstack) {
 	printf("Dump:\n");
 	ssize_t stack_offset = stack.offset[stack_depth];
 	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
-		long long v = (long long) stack.data[i];
+		long long v = (long long) stack.data[i].ptr;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
