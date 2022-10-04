@@ -16,6 +16,9 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#else
+#include <process.h>
+#define execv _execv
 #endif
 
 #include "Common.hpp"
@@ -70,6 +73,7 @@ namespace sclc
         std::cout << "  --no-main        Do not check for main Function" << std::endl;
         std::cout << "  -v, --version    Show version information" << std::endl;
         std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
+        std::cout << "  -run             Run the compiled program" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -94,6 +98,7 @@ namespace sclc
         bool preprocessOnly     = false;
         bool assembleOnly       = false;
         bool noCoreFramework    = false;
+        bool doRun              = false;
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
@@ -156,6 +161,8 @@ namespace sclc
                         std::cerr << "Error: --comp requires an argument" << std::endl;
                         return 1;
                     }
+                } else if (args[i] == "-run") {
+                    doRun = true;
                 } else {
                     tmpFlags.push_back(args[i]);
                 }
@@ -241,13 +248,13 @@ namespace sclc
             }
         }
 
-        std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+        if (!doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
         std::vector<Token>  tokens;
 
         for (size_t i = 0; i < files.size(); i++) {
             std::string filename = files[i];
-            std::cout << "Compiling " << filename << "..." << std::endl;
+            if (!doRun) std::cout << "Compiling " << filename << "..." << std::endl;
 
             FILE* tmp = fopen(filename.c_str(), "r");
             fseek(tmp, 0, SEEK_END);
@@ -457,7 +464,7 @@ namespace sclc
             cmd += s + " ";
         }
 
-        std::cout << "Compiling with " << cmd << std::endl;
+        if (!doRun) std::cout << "Compiling with " << cmd << std::endl;
 
         int ret = system(cmd.c_str());
 
@@ -470,11 +477,21 @@ namespace sclc
         remove((std::string(source) + ".c").c_str());
         remove((std::string(source) + ".h").c_str());
         
-        std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
+        if (!doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
         auto end = chrono::high_resolution_clock::now();
         double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
-        std::cout << "Took " << duration << " seconds." << std::endl;
+        if (!doRun) std::cout << "Took " << duration << " seconds." << std::endl;
+
+        if (doRun) {
+            const char** argv = new const char*[1];
+            argv[0] = (const char*) outfile.c_str();
+        #ifdef _WIN32
+            execv(argv[0], (const char* const*) argv);
+        #else
+            execv(argv[0], (char* const*) argv);
+        #endif
+        }
 
         return 0;
     }
