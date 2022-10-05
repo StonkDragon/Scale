@@ -178,9 +178,6 @@ namespace sclc
         cflags.push_back("-std=" + std::string(C_VERSION));
         cflags.push_back("-O2");
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-#ifdef LINK_MATH
-        cflags.push_back("-lm");
-#endif
 
         if (files.size() == 0) {
             std::cerr << Color::RED << "No translation units specified." << std::endl;
@@ -458,6 +455,14 @@ namespace sclc
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
+
+        for (std::string s : tmpFlags) {
+            cflags.push_back(s);
+        }
+
+#ifdef LINK_MATH
+        cflags.push_back("-lm");
+#endif
 
         std::string cmd = "";
         for (std::string s : cflags) {
