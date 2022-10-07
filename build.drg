@@ -23,7 +23,7 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"2.10\"";
+    "VERSION=\"3.0\"";
   ];
   std: "gnu++17";
   flags: [

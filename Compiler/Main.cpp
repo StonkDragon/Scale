@@ -49,7 +49,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "2.10"
+#define FRAMEWORK_VERSION_REQ "3.0"
 #endif
 
 #ifdef _WIN32
