@@ -118,18 +118,6 @@ namespace sclc
                         errors.push_back(result);
                     }
                 }
-                if (currentFunction->args.size() > 32) {
-                    FPResult result;
-                    result.message = "Functions can't have more than 32 Arguments!";
-                    result.column = func.getColumn();
-                    result.value = func.getValue();
-                    result.line = func.getLine();
-                    result.in = func.getFile();
-                    result.type = func.getType();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     if (!functionPrivateStack) {

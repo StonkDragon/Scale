@@ -119,14 +119,7 @@ namespace sclc
         Transpiler::writeComplexes(fp, result);
         Transpiler::writeFunctions(fp, errors, warns, globals, result);
 
-        std::string mainCall = "  fn_main(";
-        for (ssize_t j = (ssize_t) mainFunction.getArgs().size() - 1; j >= 0; j--) {
-            if (j != (ssize_t) mainFunction.getArgs().size() - 1) {
-                mainCall += ", ";
-            }
-            mainCall += "ctrl_pop()";
-        }
-        mainCall += ");\n";
+        std::string mainCall = "  fn_main(void);\n";
 
         std::string mainEntry = 
         "int main(int argc, char const *argv[]) {\n"
@@ -140,15 +133,17 @@ namespace sclc
         "  signal(SIGTERM, process_signal);\n"
         "#endif\n"
         "\n"
-        "  for (int i = argc - 1; i > 0; i--) {\n"
+        "  for (int i = 1; i < argc; i++) {\n"
         "    ctrl_push_string(argv[i]);\n"
         "  }\n"
-        "\n" +
-        mainCall +
+        "\n"
+        "  scl_security_required_arg_count(" + std::to_string(mainFunction.getArgs().size()) + ", \"main()\");\n"
+        "  fn_main();\n"
         "  return 0;\n"
         "}\n";
 
-        append("%s\n", mainEntry.c_str());
+        if (!Main.options.noMain)
+            append("%s\n", mainEntry.c_str());
 
         append("#ifdef __cplusplus\n");
         append("}\n");

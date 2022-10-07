@@ -31,18 +31,7 @@ namespace sclc
         append("/* FUNCTION HEADERS */\n");
 
         for (Function function : result.functions) {
-            append("void fn_%s(", function.getName().c_str());
-            for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
-                std::string var = function.getArgs()[i];
-                if (i != (ssize_t) function.getArgs().size() - 1) {
-                    append(", ");
-                }
-                append("scl_value _%s", var.c_str());
-            }
-            if (function.getArgs().size() == 0) {
-                append("void");
-            }
-            append(");\n");
+            append("void fn_%s(void);\n", function.getName().c_str());
         }
         
         append("\n");
@@ -76,18 +65,8 @@ namespace sclc
             append("  fn_%s,\n", function.getName().c_str());
         }
         append("};\n");
-        
-        append("const char __scl_internal__function_args[] = {\n");
-        for (Extern extern_ : result.externs) {
-            append("  0,\n");
-        }
-        for (Function function : result.functions) {
-            append("  %zu,\n", function.getArgs().size());
-        }
-        append("};\n");
         append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.externs.size());
         append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.externs.size());
-        append("const size_t __scl_internal__function_args_size = %zu;\n", result.functions.size() + result.externs.size());
 
         append("\n");
     }
@@ -173,8 +152,6 @@ namespace sclc
 
             (void) noWarns;
 
-            append("void fn_%s(", function.getName().c_str());
-
             std::string functionDeclaration = "";
 
             functionDeclaration += function.getName() + "(";
@@ -185,19 +162,14 @@ namespace sclc
                 functionDeclaration += function.getArgs()[i];
             }
             functionDeclaration += ")";
+
+            append("void fn_%s(void) {\n", function.getName().c_str());
             
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
-                if (i != (ssize_t) function.getArgs().size() - 1) {
-                    append(", ");
-                }
-                append("scl_value _%s", var.c_str());
+                append("  scl_value _%s = ctrl_pop();\n", var.c_str());
             }
-            if (function.getArgs().size() == 0) {
-                append("void");
-            }
-            append(") {\n");
 
             for (int j = 0; j < scopeDepth; j++) {
                 append("  ");
@@ -255,15 +227,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("fn_%s(", body[i].getValue().c_str());
-                    Function func = getFunctionByName(result, body[i].getValue());
-                    for (ssize_t j = (ssize_t) func.getArgs().size() - 1; j >= 0; j--) {
-                        if (j != (ssize_t) func.getArgs().size() - 1) {
-                            append(", ");
-                        }
-                        append("ctrl_pop()");
-                    }
-                    append(");\n");
+                    append("fn_%s();\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_identifier && hasExtern(result, body[i])) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
