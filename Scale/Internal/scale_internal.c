@@ -1,5 +1,9 @@
 #include "scale_internal.h"
 
+#ifdef __cplusplus
+#error C++ is not supported by Scale
+#endif
+
 /* Variables */
 char* 		 current_file = "<init>";
 size_t 		 current_line = 0;
@@ -14,7 +18,6 @@ size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
-#define PRIMITIVE "primitive"
 
 #pragma region Security
 
