@@ -8,32 +8,13 @@
 #define DEBUG
 #endif
 
-// Stack: no change
-// Dumps the current stack to the console.
 extern dumpstack
-
-// Stack: no change
-// Prints the call stack to the console.
 extern trace
-
-// Stack: no change
-// Exits the program with exit code 1.
 extern crash
-
-// Stack: [ex] -> []
-// Raises signal ex.
 extern raise
-
-// Stack: no change
-// Raises signal SIGABRT.
 extern abort
-
-// Stack: no change
-// Breakpoint.
 extern breakpoint
 
-// Stack: [msg] -> []
-// Prints msg to stderr and exits with exit code 1.
 function throw(_msg_) Color_Reset _msg_ concat eputs trace 1 exit end
 
 #endif
