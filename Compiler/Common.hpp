@@ -128,14 +128,11 @@ namespace sclc
         tok_do,             // do
         tok_done,           // done
         tok_extern,         // extern
-        tok_sizeof,         // sizeof
-        tok_macro,          // macro
         tok_break,          // break
         tok_continue,       // continue
         tok_for,            // for
         tok_in,             // in
         tok_to,             // to
-        tok_proto,          // proto
         tok_ref,            // ref
         tok_deref,          // deref
         tok_addr_ref,       // addr
@@ -346,8 +343,8 @@ namespace sclc
 
     struct TPResult {
         std::vector<Function> functions;
-        std::vector<Extern> externs;
-        std::vector<Prototype> prototypes;
+        std::vector<Function> extern_functions;
+        std::vector<std::string> extern_globals;
         std::vector<std::string> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
@@ -359,8 +356,8 @@ namespace sclc
     private:
         std::vector<Token> tokens;
         std::vector<Function> functions;
-        std::vector<Extern> externs;
-        std::vector<Prototype> prototypes;
+        std::vector<Function> extern_functions;
+        std::vector<std::string> extern_globals;
     public:
         TokenParser(std::vector<Token> tokens) {
             this->tokens = tokens;
