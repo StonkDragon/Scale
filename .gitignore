@@ -48,6 +48,7 @@ out.h
 *.pdb
 test.txt
 .vscode
+.fleet
 private
 build
 makebin
