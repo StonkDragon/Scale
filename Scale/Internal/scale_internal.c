@@ -11,10 +11,8 @@ size_t 		 current_column = 0;
 size_t 		 stack_depth = 0;
 scl_stack_t  stack = {0, {0}, {0}};
 scl_stack_t	 callstk = {0, {0}, {0}};
-size_t		 memalloced_ptr = 0;
-scl_memory_t memalloced[MALLOC_LIMIT] = {0};
 size_t 		 sap_index = 0;
-size_t 		 sap_enabled[STACK_SIZE] = {0}; 
+size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
@@ -84,14 +82,6 @@ void sap_close(void) {
 		ctrl_pop();
 	}
 	sap_index--;
-}
-
-void ctrl_fn_native_start(char* name) {
-	callstk.data[callstk.ptr++].ptr = name;
-}
-
-void ctrl_fn_native_end() {
-	callstk.ptr--;
 }
 
 void ctrl_fn_nps_start(char* name) {
@@ -180,6 +170,17 @@ void ctrl_push_long(long long n) {
 	stack.ptr++;
 }
 
+void ctrl_push(scl_value n) {
+	if (sap_enabled[sap_index]) {
+		sap_count[sap_index]++;
+	}
+	if (stack.ptr + 1 >= STACK_SIZE) {
+		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
+	}
+	stack.data[stack.ptr].ptr = n;
+	stack.ptr++;
+}
+
 long long ctrl_pop_long() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
@@ -204,17 +205,6 @@ double ctrl_pop_double() {
 	return value;
 }
 
-void ctrl_push(scl_value n) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
-	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].ptr = n;
-	stack.ptr++;
-}
-
 char* ctrl_pop_string() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
@@ -228,36 +218,6 @@ char* ctrl_pop_string() {
 }
 
 scl_value ctrl_pop() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	stack.ptr--;
-	return stack.data[stack.ptr].ptr;
-}
-
-scl_value ctrl_pop_word() {
-	return ctrl_pop();
-}
-
-void ctrl_push_word(scl_value n) {
-	ctrl_push(n);
-}
-
-void ctrl_push_complex(scl_value complex) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
-	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].ptr = complex;
-	stack.ptr++;
-}
-
-scl_value ctrl_pop_complex(void) {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}

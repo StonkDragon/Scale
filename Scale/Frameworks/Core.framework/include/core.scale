@@ -5,30 +5,30 @@
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
 
-extern exit
-extern sleep
-extern system
-extern getenv
-extern sizeof_stack
-extern malloc
-extern realloc
-extern free
-extern less
-extern more
-extern equal
-extern and
-extern not
-extern or
-extern strlen
-extern strcmp
-extern strncmp
-extern concat
-extern strrev
-extern time
-extern longToString
-extern stringToLong
-extern stringToDouble
-extern doubleToString
+extern function exit(_code_)
+extern function sleep(_millis_)
+extern function system(_cmd_)
+extern function getenv(_key_)
+extern function sizeof_stack()
+extern function malloc(_size_)
+extern function realloc(_size_, _ptr_)
+extern function free(_ptr_)
+extern function less(_a_, _b_)
+extern function more(_a, _b_)
+extern function equal(_a_, _b_)
+extern function and(_a_, _b_)
+extern function not(_a_)
+extern function or(_a_, _b_)
+extern function strlen(_str_)
+extern function strcmp(_str1_, _str2_)
+extern function strncmp(_str1_, _str2_, _n_)
+extern function concat(_str1_, _str2_)
+extern function strrev(_str_)
+extern function time()
+extern function longToString(_long_)
+extern function stringToLong(_str_)
+extern function stringToDouble(_str_)
+extern function doubleToString(_double_)
 
 @nps @nowarn function clearstack()
     while sizeof_stack 0 more do

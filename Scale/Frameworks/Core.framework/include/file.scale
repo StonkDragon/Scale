@@ -2,11 +2,11 @@
 #define _CORE_FRAMEWORK__FILE_SCALE_
 #include "core.scale"
 
-extern fopen
-extern fclose
-extern ftell
-extern fileno
-extern fseek
+extern function fopen(_filename_, _mode_)
+extern function fclose(_file_)
+extern function ftell(_file_)
+extern function fileno(_file_)
+extern function fseek(_file_, _whence_, _offset_)
 
 function fwrite(_buf_, _size_, _file_)
     _file_ fileno _size_ _buf_ write

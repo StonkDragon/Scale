@@ -6,61 +6,37 @@
 #define CONST_E         2.71828182845904523536028747135266250
 #define CONST_PI        3.14159265358979323846264338327950288
 
-extern sqrt
-extern sin
-extern cos
-extern tan
-extern asin
-extern acos
-extern atan
-extern atan2
-extern sinh
-extern cosh
-extern tanh
-extern asinh
-extern acosh
-extern atanh
-extern exp
-extern log
-extern log10
-extern random
+extern function sqrt()
+extern function sin()
+extern function cos()
+extern function tan()
+extern function asin()
+extern function acos()
+extern function atan()
+extern function atan2()
+extern function sinh()
+extern function cosh()
+extern function tanh()
+extern function asinh()
+extern function acosh()
+extern function atanh()
+extern function exp()
+extern function log()
+extern function log10()
+extern function random()
 
-function iseven(_i_)      _i_ 2 % 0 equal return end
-
-function isodd(_i_)       _i_ iseven not return end
-
-function inc(_i_)         _i_ 1 + return end
-
-function dec(_i_)         _i_ 1 - return end
-
-function lrandom(_limit_) random _limit_ % return end
-
+function iseven(_i_)          _i_ 2 % 0 equal return end
+function isodd(_i_)           _i_ iseven not return end
+function inc(_i_)             _i_ 1 + return end
+function dec(_i_)             _i_ 1 - return end
+function lrandom(_limit_)     random _limit_ % return end
 function lerp(_a_, _b_, _t_)  _b_ _a_ - _t_ * _a_ + return end
-
-function neg(_i_)      _i_ 0 swap - return end
-
-function itod(_i_)
-  _i_ longToString stringToDouble return
-end
-
-function dtoi(_d_)
-  _d_ doubleToString stringToLong return
-end
-
-function dtos(_d_)
-  _d_ doubleToString return
-end
-
-function itos(_l_)
-  _l_ longToString return
-end
-
-function stod(_s_)
-  _s_ stringToDouble return
-end
-
-function stoi(_s_)
-  _s_ stringToLong return
-end
+function neg(_i_)             _i_ 0 swap - return end
+function itod(_i_)            _i_ longToString stringToDouble return end
+function dtoi(_d_)            _d_ doubleToString stringToLong return end
+function dtos(_d_)            _d_ doubleToString return end
+function itos(_l_)            _l_ longToString return end
+function stod(_s_)            _s_ stringToDouble return end
+function stoi(_s_)            _s_ stringToLong return end
 
 #endif

@@ -1,18 +1,18 @@
 #ifndef _CORE_FRAMEWORK__IO_SCALE_
 #define _CORE_FRAMEWORK__IO_SCALE_
 
-extern write
-extern read
-extern sprintf
+extern function write(_fd_, _str_, _n_)
+extern function read(_fd_, _s_, _n_)
+extern function sprintf(_fmt_, _s_)
 
 function puts(_str_)
-    1 _str_ strlen _str_ write
-    1 1 "\n" write
+    1 _str_ _str_ strlen write
+    1 "\n" 1 write
 end
 
 function eputs(_str_)
-    2 _str_ strlen _str_ write
-    2 1 "\n" write
+    2 _str_ _str_ strlen write
+    2 "\n" 1 write
 end
 
 function putint(_int_)

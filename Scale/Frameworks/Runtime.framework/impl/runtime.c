@@ -17,7 +17,7 @@ hash hash1(char* data) {
     return h;
 }
 
-sclNativeImpl(Runtime_hasFramework) {
+sclDefFunc(Runtime_hasFramework) {
     char* name = ctrl_pop_string();
     for (size_t i = 0; i < __scl_internal__frameworks_size; i++) {
         if (strcmp(name, __scl_internal__frameworks[i]) == 0) {
@@ -28,14 +28,14 @@ sclNativeImpl(Runtime_hasFramework) {
     ctrl_push_long(0);
 }
 
-sclNativeImpl(Runtime_listFrameworks) {
+sclDefFunc(Runtime_listFrameworks) {
     printf("Frameworks:\n");
     for (size_t i = 0; i < __scl_internal__frameworks_size; i++) {
         printf(" %s\n", __scl_internal__frameworks[i]);
     }
 }
 
-sclNativeImpl(Runtime_getFunctionID) {
+sclDefFunc(Runtime_getFunctionID) {
     char* name = ctrl_pop_string();
     hash h = hash1(name);
     
@@ -48,7 +48,7 @@ sclNativeImpl(Runtime_getFunctionID) {
     ctrl_push_long(-1);
 }
 
-sclNativeImpl(Runtime_callByID) {
+sclDefFunc(Runtime_callByID) {
     int id = ctrl_pop_long();
     if (id == -1) {
         fprintf(stderr, "Error: Method not found");

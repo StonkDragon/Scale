@@ -21,7 +21,7 @@ extern size_t 		 sap_index;
 
 #pragma region Natives
 
-sclNativeImpl(dumpstack) {
+sclDefFunc(dumpstack) {
 	printf("Dump:\n");
 	ssize_t stack_offset = stack.offset[stack_depth];
 	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
@@ -31,78 +31,52 @@ sclNativeImpl(dumpstack) {
 	printf("\n");
 }
 
-sclNativeImpl(exit) {
+sclDefFunc(exit) {
 	long long n = ctrl_pop_long();
 	scl_security_safe_exit(n);
 }
 
-sclNativeImpl(sleep) {
+sclDefFunc(sleep) {
 	long long c = ctrl_pop_long();
 	sleep(c);
 }
 
-sclNativeImpl(getenv) {
+sclDefFunc(getenv) {
 	char *c = ctrl_pop_string();
 	char *prop = getenv(c);
 	ctrl_push_string(prop);
 }
 
-sclNativeImpl(less) {
+sclDefFunc(less) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a < b);
 }
 
-sclNativeImpl(more) {
+sclDefFunc(more) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a > b);
 }
 
-sclNativeImpl(equal) {
+sclDefFunc(equal) {
 	int64_t a = ctrl_pop_long();
 	int64_t b = ctrl_pop_long();
 	ctrl_push_long(a == b);
 }
 
-sclNativeImpl(dup) {
-	scl_value c = ctrl_pop();
-	ctrl_push(c);
-	ctrl_push(c);
-}
-
-sclNativeImpl(over) {
-	scl_value a = ctrl_pop();
-	scl_value b = ctrl_pop();
-	scl_value c = ctrl_pop();
-	ctrl_push(a);
-	ctrl_push(b);
-	ctrl_push(c);
-}
-
-sclNativeImpl(swap) {
-	scl_value a = ctrl_pop();
-	scl_value b = ctrl_pop();
-	ctrl_push(a);
-	ctrl_push(b);
-}
-
-sclNativeImpl(drop) {
-	ctrl_pop();
-}
-
-sclNativeImpl(sizeof_stack) {
+sclDefFunc(sizeof_stack) {
 	ctrl_push_long(stack.ptr - stack.offset[stack_depth]);
 }
 
-sclNativeImpl(concat) {
+sclDefFunc(concat) {
 	char *s2 = ctrl_pop_string();
 	char *s1 = ctrl_pop_string();
 	ctrl_push_string(s1);
-	native_strlen();
+	fn_strlen();
 	long long len = ctrl_pop_long();
 	ctrl_push_string(s2);
-	native_strlen();
+	fn_strlen();
 	long long len2 = ctrl_pop_long();
 	char *out = (char*) malloc(len + len2 + 1);
 	size_t i = 0;
@@ -118,45 +92,45 @@ sclNativeImpl(concat) {
 	ctrl_push_string(out);
 }
 
-sclNativeImpl(random) {
+sclDefFunc(random) {
 	ctrl_push_long(rand());
 }
 
-sclNativeImpl(crash) {
+sclDefFunc(crash) {
 	scl_security_safe_exit(1);
 }
 
-sclNativeImpl(and) {
+sclDefFunc(and) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a && b);
 }
 
-sclNativeImpl(system) {
+sclDefFunc(system) {
 	char *cmd = ctrl_pop_string();
 	int ret = system(cmd);
 	ctrl_push_long(ret);
 }
 
-sclNativeImpl(not) {
+sclDefFunc(not) {
 	ctrl_push_long(!ctrl_pop_long());
 }
 
-sclNativeImpl(or) {
+sclDefFunc(or) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a || b);
 }
 
-sclNativeImpl(sprintf) {
-	char *fmt = ctrl_pop_string();
+sclDefFunc(sprintf) {
 	scl_value s = ctrl_pop();
+	char *fmt = ctrl_pop_string();
 	char *out = (char*) malloc(LONG_AS_STR_LEN + strlen(fmt) + 1);
 	sprintf(out, fmt, s);
 	ctrl_push_string(out);
 }
 
-sclNativeImpl(strlen) {
+sclDefFunc(strlen) {
 	char *s = ctrl_pop_string();
 	size_t len = 0;
 	while (s[len] != '\0') {
@@ -165,20 +139,20 @@ sclNativeImpl(strlen) {
 	ctrl_push_long(len);
 }
 
-sclNativeImpl(strcmp) {
+sclDefFunc(strcmp) {
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
 	ctrl_push_long(strcmp(s1, s2) == 0);
 }
 
-sclNativeImpl(strncmp) {
+sclDefFunc(strncmp) {
+	long long n = ctrl_pop_long();
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
-	long long n = ctrl_pop_long();
 	ctrl_push_long(strncmp(s1, s2, n) == 0);
 }
 
-sclNativeImpl(fopen) {
+sclDefFunc(fopen) {
 	char *mode = ctrl_pop_string();
 	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
@@ -190,30 +164,30 @@ sclNativeImpl(fopen) {
 	ctrl_push((scl_value) f);
 }
 
-sclNativeImpl(fclose) {
+sclDefFunc(fclose) {
 	FILE *f = (FILE*) ctrl_pop();
 	fclose(f);
 }
 
-sclNativeImpl(fseek) {
+sclDefFunc(fseek) {
 	long long offset = ctrl_pop_long();
 	int whence = ctrl_pop_long();
 	FILE *f = (FILE*) ctrl_pop();
 	fseek(f, offset, whence);
 }
 
-sclNativeImpl(ftell) {
+sclDefFunc(ftell) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push((scl_value) f);
 	ctrl_push_long(ftell(f));
 }
 
-sclNativeImpl(fileno) {
+sclDefFunc(fileno) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push_long(fileno(f));
 }
 
-sclNativeImpl(raise) {
+sclDefFunc(raise) {
 	long long n = ctrl_pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
@@ -225,13 +199,13 @@ sclNativeImpl(raise) {
 	}
 }
 
-sclNativeImpl(abort) {
+sclDefFunc(abort) {
 	abort();
 }
 
-sclNativeImpl(write) {
-	scl_value s = ctrl_pop();
+sclDefFunc(write) {
 	long long n = ctrl_pop_long();
+	scl_value s = ctrl_pop();
 	long long fd = ctrl_pop_long();
 	ssize_t result = write(fd, s, n);
 	if (result == -1) {
@@ -239,23 +213,23 @@ sclNativeImpl(write) {
 	}
 }
 
-sclNativeImpl(read) {
+sclDefFunc(read) {
 	long long n = ctrl_pop_long();
-	long long fd = ctrl_pop_long();
 	scl_value s = malloc(n);
+	long long fd = ctrl_pop_long();
 	int ret = read(fd, s, n);
 	if (ret == -1) {
 		ctrl_push_long(EX_IO_ERROR);
-		native_raise();
+		fn_raise();
 	}
 	ctrl_push(s);
 }
 
-sclNativeImpl(strrev) {
+sclDefFunc(strrev) {
 	char* s = ctrl_pop_string();
 	size_t i = 0;
 	ctrl_push_string(s);
-	native_strlen();
+	fn_strlen();
 	long long len = ctrl_pop_long();
 	char* out = (char*) malloc(len + 1);
 	for (i = len - 1; i >= 0; i--) {
@@ -265,159 +239,159 @@ sclNativeImpl(strrev) {
 	ctrl_push_string(out);
 }
 
-sclNativeImpl(malloc) {
+sclDefFunc(malloc) {
 	long long n = ctrl_pop_long();
 	scl_value s = malloc(n);
 	ctrl_push(s);
 }
 
-sclNativeImpl(realloc) {
+sclDefFunc(realloc) {
 	long long n = ctrl_pop_long();
 	scl_value s = ctrl_pop();
 	ctrl_push(realloc(s, n));
 }
 
-sclNativeImpl(free) {
+sclDefFunc(free) {
 	scl_value s = ctrl_pop();
 	free(s);
 }
 
-sclNativeImpl(breakpoint) {
+sclDefFunc(breakpoint) {
 	printf("Hit breakpoint. Press enter to continue.\n");
 	getchar();
 }
 
-sclNativeImpl(memset) {
+sclDefFunc(memset) {
 	scl_value s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long c = ctrl_pop_long();
 	memset(s, c, n);
 }
 
-sclNativeImpl(memcpy) {
+sclDefFunc(memcpy) {
 	scl_value s2 = ctrl_pop();
 	scl_value s1 = ctrl_pop();
 	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 }
 
-sclNativeImpl(time) {
+sclDefFunc(time) {
 	struct timespec t;
 	clock_gettime(CLOCK_REALTIME, &t);
 	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
 	ctrl_push_long(millis);
 }
 
-sclNativeImpl(trace) {
+sclDefFunc(trace) {
 	print_stacktrace();
 }
 
-sclNativeImpl(sqrt) {
+sclDefFunc(sqrt) {
     double n = ctrl_pop_double();
     ctrl_push_double(sqrt(n));
 }
 
-sclNativeImpl(sin) {
+sclDefFunc(sin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sin(n));
 }
 
-sclNativeImpl(cos) {
+sclDefFunc(cos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cos(n));
 }
 
-sclNativeImpl(tan) {
+sclDefFunc(tan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tan(n));
 }
 
-sclNativeImpl(asin) {
+sclDefFunc(asin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asin(n));
 }
 
-sclNativeImpl(acos) {
+sclDefFunc(acos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acos(n));
 }
 
-sclNativeImpl(atan) {
+sclDefFunc(atan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atan(n));
 }
 
-sclNativeImpl(atan2) {
+sclDefFunc(atan2) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(atan2(n1, n2));
 }
 
-sclNativeImpl(sinh) {
+sclDefFunc(sinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sinh(n));
 }
 
-sclNativeImpl(cosh) {
+sclDefFunc(cosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cosh(n));
 }
 
-sclNativeImpl(tanh) {
+sclDefFunc(tanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tanh(n));
 }
 
-sclNativeImpl(asinh) {
+sclDefFunc(asinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asinh(n));
 }
 
-sclNativeImpl(acosh) {
+sclDefFunc(acosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acosh(n));
 }
 
-sclNativeImpl(atanh) {
+sclDefFunc(atanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atanh(n));
 }
 
-sclNativeImpl(exp) {
+sclDefFunc(exp) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(exp(n));
 }
 
-sclNativeImpl(log) {
+sclDefFunc(log) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log(n));
 }
 
-sclNativeImpl(log10) {
+sclDefFunc(log10) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log10(n));
 }
 
-sclNativeImpl(longToString) {
+sclDefFunc(longToString) {
 	long long a = ctrl_pop_long();
 	char *out = (char*) malloc(25);
 	sprintf(out, "%lld", a);
 	ctrl_push_string(out);
 }
 
-sclNativeImpl(stringToLong) {
+sclDefFunc(stringToLong) {
 	char *s = ctrl_pop_string();
 	long long a = atoll(s);
 	ctrl_push_long(a);
 }
 
-sclNativeImpl(stringToDouble) {
+sclDefFunc(stringToDouble) {
 	char *s = ctrl_pop_string();
 	double a = atof(s);
 	ctrl_push_double(a);
 }
 
-sclNativeImpl(doubleToString) {
+sclDefFunc(doubleToString) {
 	double a = ctrl_pop_double();
 	char *out = (char*) malloc(100);
 	sprintf(out, "%f", a);

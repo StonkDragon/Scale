@@ -27,20 +27,11 @@
 
 /* Function header */
 #define sclDefFunc(name, ...)   	\
-  void fn_ ## name ##(__VA_ARGS__)
+  void fn_ ## name (__VA_ARGS__)
 
 /* Call a function with the given name and arguments. */
 #define sclCallFunc(name, ...)  	\
-  fn_ ## name ##(__VA_ARGS__)
-
-/* Call a native function with the given name. */
-#define sclCallNative(name)    	\
-  ctrl_fn_native_start(#name); 	\
-  native_ ## name ##();     	\
-  ctrl_fn_native_end()
-
-#define sclNativeImpl(name) \
-	void native_ ## name (void)
+  fn_ ## name (__VA_ARGS__)
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
@@ -97,25 +88,24 @@ void		ctrl_where(char* file, size_t line, size_t col);
 void		ctrl_fn_start(char* name);
 void		ctrl_fn_end(void);
 void		ctrl_fn_end_with_return(void);
-void		ctrl_fn_native_start(char* name);
-void		ctrl_fn_native_end(void);
+void		ctrl_fn_fn_start(char* name);
+void		ctrl_fn_fn_end(void);
 void		ctrl_fn_nps_start(char* name);
 void		ctrl_fn_nps_end(void);
-void		ctrl_push_complex(scl_value complex);
 void		ctrl_push_string(const char* c);
-void		ctrl_push_word(scl_value n);
 void		ctrl_push_long(long long n);
 void		ctrl_push_double(double d);
 void		ctrl_push(scl_value n);
-scl_value 	ctrl_pop_complex(void);
 char*		ctrl_pop_string(void);
 double		ctrl_pop_double(void);
 long long	ctrl_pop_long(void);
-scl_value	ctrl_pop_word(void);
 scl_value	ctrl_pop(void);
 ssize_t	 	ctrl_stack_size(void);
+void 		ctrl_trace(void);
+void 		print_stacktrace(void);
+void 		process_signal(int sig_num);
 void		scl_security_check_null(scl_value n);
-void		scl_security_check_uaf(scl_value ptr);
+void 		scl_security_safe_exit(int code);
 void 		sap_open(void);
 void		sap_close(void);
 void		op_add(void);
@@ -134,10 +124,5 @@ void		op_dadd(void);
 void		op_dsub(void);
 void		op_dmul(void);
 void		op_ddiv(void);
-
-void ctrl_trace(void);
-void scl_security_safe_exit(int code);
-void print_stacktrace(void);
-void process_signal(int sig_num);
 
 #endif
