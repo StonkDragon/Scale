@@ -254,7 +254,6 @@ namespace sclc
         TYPES("for", for, line, filename, startColumn);
         TYPES("in", in, line, filename, startColumn);
         TYPES("to", to, line, filename, startColumn);
-        TYPES("proto", proto, line, filename, startColumn);
         TYPES("load", load, line, filename, startColumn);
         TYPES("store", store, line, filename, startColumn);
         TYPES("decl", declare, line, filename, startColumn);

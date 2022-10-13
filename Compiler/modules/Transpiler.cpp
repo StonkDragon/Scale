@@ -38,10 +38,17 @@ namespace sclc
     }
 
     void Transpiler::writeExternHeaders(FILE* fp, TPResult result) {
-        append("/* EXTERNS */\n");
+        append("/* EXTERN FUNCTIONS */\n");
 
-        for (Extern extern_ : result.externs) {
-            append("void native_%s(void);\n", extern_.name.c_str());
+        for (Function func : result.extern_functions) {
+            bool hasFunction = false;
+            for (Function f : result.functions) {
+                if (f.getName() == func.getName()) {
+                    hasFunction = true;
+                }
+            }
+            if (!hasFunction)
+                append("void fn_%s(void);\n", func.name.c_str());
         }
 
         append("\n");
@@ -49,8 +56,8 @@ namespace sclc
 
     void Transpiler::writeInternalFunctions(FILE* fp, TPResult result) {
         append("const unsigned long long __scl_internal__function_names[] = {\n");
-        for (Extern extern_ : result.externs) {
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) extern_.name.c_str()), (char*) extern_.name.c_str());
+        for (Function func : result.extern_functions) {
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.name.c_str()), (char*) func.name.c_str());
         }
         for (Function function : result.functions) {
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
@@ -58,15 +65,15 @@ namespace sclc
         append("};\n");
 
         append("const scl_value __scl_internal__function_ptrs[] = {\n");
-        for (Extern extern_ : result.externs) {
-            append("  native_%s,\n", extern_.name.c_str());
+        for (Function func : result.extern_functions) {
+            append("  fn_%s,\n", func.name.c_str());
         }
         for (Function function : result.functions) {
             append("  fn_%s,\n", function.getName().c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.externs.size());
-        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.externs.size());
+        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
     }
@@ -228,19 +235,6 @@ namespace sclc
                         append("  ");
                     }
                     append("fn_%s();\n", body[i].getValue().c_str());
-                } else if (body[i].getType() == tok_identifier && hasExtern(result, body[i])) {
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
-                    append("ctrl_fn_native_start(\"%s\");\n", body[i].getValue().c_str());
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
-                    append("native_%s();\n", body[i].getValue().c_str());
-                    for (int j = 0; j < scopeDepth; j++) {
-                        append("  ");
-                    }
-                    append("ctrl_fn_native_end();\n");
                 } else if (body[i].getType() == tok_identifier && hasContainer(result, body[i])) {
                     std::string containerName = body[i].getValue();
                     i++;
@@ -639,10 +633,7 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    if (hasExtern(result, toGet)) {
-                        append("ctrl_push((scl_value) &native_%s);\n", toGet.getValue().c_str());
-                        i++;
-                    } else if (hasFunction(result, toGet)) {
+                    if (hasFunction(result, toGet)) {
                         append("ctrl_push((scl_value) &fn_%s);\n", toGet.getValue().c_str());
                         i++;
                     } else if (hasVar(toGet) && body[i + 2].getType() != tok_double_column) {

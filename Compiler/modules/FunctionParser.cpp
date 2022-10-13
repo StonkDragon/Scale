@@ -19,13 +19,8 @@ namespace sclc
                 return func;
             }
         }
-        for (Prototype proto : result.prototypes) {
-            if (proto.name == name) {
-                Function func(name);
-                func.args = std::vector<std::string>();
-                for (int i = 0; i < proto.argCount; i++) {
-                    func.args.push_back("$arg" + std::to_string(i));
-                }
+        for (Function func : result.extern_functions) {
+            if (func.name == name) {
                 return func;
             }
         }
@@ -56,27 +51,8 @@ namespace sclc
                 return true;
             }
         }
-        for (Prototype proto : result.prototypes) {
-            if (proto.name == name.getValue()) {
-                bool hasFunction = false;
-                for (Function func : result.functions) {
-                    if (func.name == proto.name) {
-                        hasFunction = true;
-                        break;
-                    }
-                }
-                if (!hasFunction) {
-                    std::cerr << name.getFile() << ":" << name.getLine() << ":" << name.getColumn() << ": Error: Missing Implementation for function " << name.getValue() << std::endl;
-                    exit(1);
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-    bool hasExtern(TPResult result, Token name) {
-        for (Extern extern_ : result.externs) {
-            if (extern_.name == name.getValue()) {
+        for (Function func : result.extern_functions) {
+            if (func.name == name.getValue()) {
                 return true;
             }
         }

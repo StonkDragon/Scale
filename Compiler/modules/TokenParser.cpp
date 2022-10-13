@@ -117,6 +117,16 @@ namespace sclc
                         result.success = false;
                         errors.push_back(result);
                     }
+                } else {
+                    FPResult result;
+                    result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                    result.column = tokens[i].getColumn();
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
                 }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
@@ -152,11 +162,6 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.getType() == tok_proto) {
-                std::string name = tokens[++i].getValue();
-                std::string argstring = tokens[++i].getValue();
-                int argCount = stoi(argstring);
-                prototypes.push_back(Prototype(name, argCount));
             } else if (token.getType() == tok_container_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -330,65 +335,135 @@ namespace sclc
                     continue;
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentComplex == nullptr) {
-                std::string name = tokens[i + 1].getValue();
-                Extern externFunction(name);
-                externs.push_back(externFunction);
                 i++;
-            } else {
-                if (currentFunction != nullptr && currentContainer == nullptr && currentComplex == nullptr) {
-                    currentFunction->addToken(token);
-                } else {
-                    if (token.getType() == tok_declare && currentContainer == nullptr && currentComplex == nullptr) {
-                        if (tokens[i + 1].getType() != tok_identifier) {
+                Token type = tokens[i];
+                if (type.getType() == tok_function) {
+                    std::string name = tokens[i + 1].getValue();
+                    Token funcTok = tokens[i + 1];
+                    Function func = Function(name);
+                    i += 2;
+                    if (tokens[i].getType() == tok_open_paren) {
+                        i++;
+                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                            if (tokens[i].getType() == tok_identifier) {
+                                func.addArgument(tokens[i].getValue());
+                            } else {
+                                FPResult result;
+                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            i++;
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                if (tokens[i].getType() == tok_comma) {
+                                    i++;
+                                }
+                                continue;
+                            }
                             FPResult result;
-                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
                             result.success = false;
                             errors.push_back(result);
-                            continue;
                         }
-                        globals.push_back(tokens[i + 1].getValue());
-                        i++;
-                    } else if (token.getType() == tok_declare && currentContainer != nullptr) {
-                        if (tokens[i + 1].getType() != tok_identifier) {
-                            FPResult result;
-                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        currentContainer->addMember(tokens[i + 1].getValue());
-                        i++;
-                    } else if (token.getType() == tok_declare && currentComplex != nullptr) {
-                        if (tokens[i + 1].getType() != tok_identifier) {
-                            FPResult result;
-                            result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        currentComplex->addMember(tokens[i + 1].getValue());
-                        i++;
+                    } else {
+                        FPResult result;
+                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
                     }
+                    extern_functions.push_back(func);
+                } else if (type.getType() == tok_declare) {
+                    i++;
+                    if (tokens[i].getType() != tok_identifier) {
+                        FPResult result;
+                        result.message = "Expected itentifier for variable declaration, but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    extern_globals.push_back(tokens[i].getValue());
+                } else {
+                    FPResult result;
+                    result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
+                    result.column = tokens[i].getColumn();
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.success = false;
+                    errors.push_back(result);
                 }
+            } else if (currentFunction != nullptr && currentContainer == nullptr && currentComplex == nullptr) {
+                currentFunction->addToken(token);
+            } else if (token.getType() == tok_declare && currentContainer == nullptr && currentComplex == nullptr) {
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                globals.push_back(tokens[i + 1].getValue());
+                i++;
+            } else if (token.getType() == tok_declare && currentContainer != nullptr) {
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentContainer->addMember(tokens[i + 1].getValue());
+                i++;
+            } else if (token.getType() == tok_declare && currentComplex != nullptr) {
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentComplex->addMember(tokens[i + 1].getValue());
+                i++;
             }
         }
 
         TPResult result;
         result.functions = functions;
-        result.externs = externs;
-        result.prototypes = prototypes;
+        result.extern_functions = extern_functions;
+        result.extern_globals = extern_globals;
         result.globals = globals;
         result.containers = containers;
         result.complexes = complexes;
