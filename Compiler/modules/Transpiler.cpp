@@ -204,14 +204,16 @@ namespace sclc
             {
                 if (body[i].getType() == tok_ignore) continue;
 
-                for (int j = 0; j < scopeDepth; j++) {
-                    append("  ");
-                }
                 std::string file = body[i].getFile();
-                if (strncmp(file.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                    append("ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
-                } else {
-                    append("ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+                if (!Main.options.transpileOnly) {
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    if (strncmp(file.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
+                        append("ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
+                    } else {
+                        append("ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+                    }
                 }
 
                 if (isOperator(body[i])) {
@@ -345,6 +347,7 @@ namespace sclc
                         append("  ");
                     }
                     append("{\n");
+                    scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -356,11 +359,27 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("if (strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") != 0) {\n", complexName.c_str(), complexName.c_str());
+                    append("if (!scl_is_complex(addr)) {\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("  char* throw_msg = malloc(256);");
+                    append("  char* throw_msg = malloc(256);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  sprintf(throw_msg, \"Complex '%s' can't be cast to non-complex type\");\n", complexName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("} else if (strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") != 0) {\n", complexName.c_str(), complexName.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  char* throw_msg = malloc(256);\n");
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -377,6 +396,7 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push(((struct scl_struct_%s*) addr)->%s);\n", complexName.c_str(), memberName.c_str());
+                    scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -432,10 +452,11 @@ namespace sclc
                         append("  ");
                     }
                     append("{\n");
+                    scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("struct scl_struct_%s* new_tmp = malloc(sizeof(struct scl_struct_%s));\n", complex.c_str(), complex.c_str());
+                    append("struct scl_struct_%s* new_tmp = scl_alloc_complex(sizeof(struct scl_struct_%s));\n", complex.c_str(), complex.c_str());
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -444,6 +465,7 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push(new_tmp);\n");
+                    scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -478,7 +500,19 @@ namespace sclc
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    append("ctrl_push_long(strcmp(((struct scl_struct_%s*) ctrl_pop())->$__type, \"%s\") == 0);\n", complex.c_str(), complex.c_str());
+                    append("{\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  scl_value addr = ctrl_pop();\n");
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("  ctrl_push_long(scl_is_complex(addr) && strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") == 0);\n", complex.c_str(), complex.c_str());
+                    for (int j = 0; j < scopeDepth; j++) {
+                        append("  ");
+                    }
+                    append("}\n");
                 } else if (body[i].getType() == tok_if) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
@@ -1060,6 +1094,7 @@ namespace sclc
                         append("  ");
                     }
                     append("{\n");
+                    scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -1072,6 +1107,7 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push(*(scl_value*) addr);\n");
+                    scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -1106,6 +1142,7 @@ namespace sclc
                         append("  ");
                     }
                     append("{\n");
+                    scopeDepth++;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
@@ -1118,6 +1155,7 @@ namespace sclc
                         append("  ");
                     }
                     append("ctrl_push(*(scl_value*) addr + (%s * 8));\n", index.getValue().c_str());
+                    scopeDepth--;
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
