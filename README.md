@@ -4,9 +4,9 @@
 
   Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [scale.h](./Scale/Frameworks/Core.framework/impl/scale.h) header file, which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [Scale header file](./Scale/Internal/scale_internal.h.h), which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
 
-  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
+  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
 ## Installation
 
@@ -21,8 +21,7 @@
   Scale has the following dependencies:
 
 Required:
-- [`clang`](https://clang.llvm.org/)
-- `cpp`
+- `gcc`
 - `python3` ([install.py](./install.py))
 
 Optional:
@@ -34,10 +33,10 @@ Optional:
 
   The following operators are supported:
 
-  - `+`: Addition
-  - `-`: Subtraction
-  - `*`: Multiplication
-  - `/`: Division
+  - `+`: Addition (Prefix with `.` to operate on floats)
+  - `-`: Subtraction (Prefix with `.` to operate on floats)
+  - `*`: Multiplication (Prefix with `.` to operate on floats)
+  - `/`: Division (Prefix with `.` to operate on floats)
   - `%`: Modulo
   - `&`: Logical AND
   - `|`: Logical OR
@@ -49,12 +48,14 @@ Optional:
 
   - `[`: Stack Autodrop Pool Open
   - `]`: Stack Autodrop Pool Close
+  - `->`: Container Access
+  - `::`: Structure Dereference
 
 ## Keywords
 
   - `function`: Define a function
   - `end`: End a function
-  - `extern`: Declare a C function prototype
+  - `extern`: Declare an externally defined function or global variable
   - `while`: Begin a while loop header
   - `else`: Define an else block
   - `do`: End a while loop header and begin the loop body
@@ -67,12 +68,16 @@ Optional:
   - `for`: Begin a for loop header
   - `in`: Define for loop iterator
   - `to`: Define for loop end value
-  - `proto`: Define a function prototype (Scale Funcion)
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
   - `deref`: Push the value at the address on the stack
   - `ref`: Write the value at the address on the stack to the following variable
+  - `container`: Declare a new Container to hold multiple values
+  - `repeat`: Define repeat iterator loop
+  - `complex`: Define a complex
+  - `new`: Create a new value of a Complex type
+  - `is`: Check if a value is of a specific type
 
 ## Argument Notation
 
@@ -132,6 +137,8 @@ Example:
 
   - [For Loops](./examples/for.scale)
 
+  - [Repeat](./examples/repeat.scale)
+
   - [FizzBuzz](./examples/fizzbuzz.scale)
 
   - [Fibonacci](./examples/fib.scale)
@@ -139,6 +146,10 @@ Example:
   - [Sizeof](./examples/sizeof.scale)
 
   - [Stack Autodrop Pool](./examples/sap.scale)
+
+  - [Containers](./examples/container.scale)
+
+  - [Complex](./examples/complex.scale)
 
   - [Pointer Dereferencing](./examples/deref.scale)
 
@@ -152,7 +163,7 @@ Example:
 $ dragon build
 ```
 
-  This will build the compiler and put the binary in the `compile` directory.
+  This will build the compiler, move the binary to your `/usr/local/bin` folder, and run tests.
 
 # License
 

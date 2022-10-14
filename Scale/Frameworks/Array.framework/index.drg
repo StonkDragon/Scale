@@ -2,11 +2,7 @@ framework: {
     version: "3.0";
     headerDir: "include";
     implDir: "impl";
-    implementers: [
-        "scale.c";
-    ];
+    implementers: [];
     implHeaderDir: "impl";
-    implHeaders: [
-        "scale.h";
-    ];
+    implHeaders: [];
 };

@@ -91,16 +91,6 @@
 		],
 		"description": "Static functions are not automatically exported to the host."
 	},
-	"Macro": {
-		"scope": "source.scale",
-		"prefix": "macro",
-		"body": [
-			"@inline @static function ${1:name}($2)",
-			"  $0",
-			"end"
-		],
-		"description": "Macro"
-	},
 	"Load Var": {
 		"scope": "source.scale",
 		"prefix": "load",
@@ -137,7 +127,7 @@
 		"scope": "source.scale",
 		"prefix": "for loop",
 		"body": [
-			"for :${1:i} in ${2:1} to ${3:10} do",
+			"for decl ${1:i} in ${2:1} to ${3:10} do",
 			"  $0",
 			"done"
 		],
@@ -174,6 +164,16 @@
 			"[$0]"
 		],
 		"description": "Stack Autodrop Pool"
+	},
+	"Repeat": {
+		"scope": "source.scale",
+		"prefix": "repeat",
+		"body": [
+			"repeat ${1:10} do",
+			"  $0",
+			"done"
+		],
+		"description": "Repeat Block"
 	},
 	
 	"#include": {

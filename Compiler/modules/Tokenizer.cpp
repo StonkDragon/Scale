@@ -9,6 +9,17 @@
 
 #include "../Common.hpp"
 
+#define syntaxError(msg) \
+    do { \
+    FPResult result; \
+    result.message = msg; \
+    result.in = filename; \
+    result.line = line; \
+    result.column = startColumn; \
+    result.value = value; \
+    errors.push_back(result); \
+    } while (0)
+    
 namespace sclc
 {
     std::vector<Token> Tokenizer::getTokens() {
@@ -19,6 +30,7 @@ namespace sclc
     static int column = 0;
     static int startColumn = 0;
     static std::string filename;
+
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);
@@ -91,8 +103,7 @@ namespace sclc
             c = source[++current];
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
-                    std::cout << Color::BOLDRED << "Error: " << Color::RESET << filename << ":" << line << ":" << startColumn << ": " << "Unterminated std::string" << std::endl;
-                    exit(1);
+                    syntaxError("Unterminated string");
                 }
                 value += c;
                 column++;
@@ -110,55 +121,53 @@ namespace sclc
                 column++;
                 if (c == 'n') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\n');
+                    snprintf(iStr, 23, "%d", '\n');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == 't') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\t');
+                    snprintf(iStr, 23, "%d", '\t');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == 'r') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\r');
+                    snprintf(iStr, 23, "%d", '\r');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == '\\') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\\');
+                    snprintf(iStr, 23, "%d", '\\');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == '\'') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\'');
+                    snprintf(iStr, 23, "%d", '\'');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == '\"') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\"');
+                    snprintf(iStr, 23, "%d", '\"');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else if (c == '0') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", '\0');
+                    snprintf(iStr, 23, "%d", '\0');
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else {
-                    std::cerr << "Unknown escape sequence: '\\" << c << "'" << std::endl;
-                    exit(1);
+                    syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
                 }
             } else {
                 if (source[current + 1] == '\'') {
                     char* iStr = (char*) malloc(4);
-                    sprintf(iStr, "%d", c);
+                    snprintf(iStr, 23, "%d", c);
                     current += 2;
-                    return Token(tok_number, iStr, line, filename, startColumn);
+                    return Token(tok_char_literal, iStr, line, filename, startColumn);
                 } else {
-                    std::cerr << "Error: Invalid character literal: '" << c << "'" << std::endl;
-                    exit(1);
+                    syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
                 }
             }
-        } else if (isOperator(c)) {
+        } else if (isOperator(c) && value != "-") {
             value += c;
             startColumn = column;
             column++;
@@ -168,8 +177,7 @@ namespace sclc
                 if (c == '>') {
                     value += c;
                 } else {
-                    std::cerr << "Error: Expected '>' after '>'\n";
-                    exit(1);
+                    syntaxError("Expected '>' after '>'");
                 }
             } else if (c == '<') {
                 c = source[++current];
@@ -177,14 +185,27 @@ namespace sclc
                 if (c == '<') {
                     value += c;
                 } else {
-                    std::cerr << "Error: Expected '<' after '<'\n";
-                    exit(1);
+                    syntaxError("Expected '<' after '<'");
                 }
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
                     c = source[++current];
                     column++;
                     value += c;
+                }
+            } else if (c == '-') {
+                if (source[current + 1] == '>') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == ':') {
+                c = source[++current];
+                column++;
+                if (c == ':') {
+                    value += c;
+                } else {
+                    syntaxError("Expected ':' after ':'");
                 }
             }
             c = source[++current];
@@ -200,14 +221,10 @@ namespace sclc
             case '*':
             case '/':
                 value += c;
+                c = source[++current];
+                column++;
                 break;
-            
-            default:
-                std::cerr << "Error: Expected '+', '-', '*', or '/' after '.' for double operation, but got: '" << c << "'" << std::endl;
-                exit(1);
             }
-            c = source[++current];
-            column++;
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
@@ -222,56 +239,63 @@ namespace sclc
             return nextToken();
         }
 
-        TYPES("function", function, line, filename, startColumn);
-        TYPES("end", end, line, filename, startColumn);
-        TYPES("extern", extern, line, filename, startColumn);
-        TYPES("while", while, line, filename, startColumn);
-        TYPES("else", else, line, filename, startColumn);
-        TYPES("do", do, line, filename, startColumn);
-        TYPES("done", done, line, filename, startColumn);
-        TYPES("if", if, line, filename, startColumn);
-        TYPES("fi", fi, line, filename, startColumn);
-        TYPES("return", return, line, filename, startColumn);
-        TYPES("break", break, line, filename, startColumn);
-        TYPES("continue", continue, line, filename, startColumn);
-        TYPES("for", for, line, filename, startColumn);
-        TYPES("in", in, line, filename, startColumn);
-        TYPES("to", to, line, filename, startColumn);
-        TYPES("proto", proto, line, filename, startColumn);
-        TYPES("load", load, line, filename, startColumn);
-        TYPES("store", store, line, filename, startColumn);
-        TYPES("decl", declare, line, filename, startColumn);
-        TYPES("addr", addr_ref, line, filename, startColumn);
-        TYPES("nil", nil, line, filename, startColumn);
-        TYPES("true", true, line, filename, startColumn);
-        TYPES("false", false, line, filename, startColumn);
-        TYPES("deref", deref, line, filename, startColumn);
-        TYPES("ref", ref, line, filename, startColumn);
+        TOKEN("function",   tok_function, line, filename, startColumn);
+        TOKEN("end",        tok_end, line, filename, startColumn);
+        TOKEN("extern",     tok_extern, line, filename, startColumn);
+        TOKEN("while",      tok_while, line, filename, startColumn);
+        TOKEN("else",       tok_else, line, filename, startColumn);
+        TOKEN("do",         tok_do, line, filename, startColumn);
+        TOKEN("done",       tok_done, line, filename, startColumn);
+        TOKEN("if",         tok_if, line, filename, startColumn);
+        TOKEN("fi",         tok_fi, line, filename, startColumn);
+        TOKEN("return",     tok_return, line, filename, startColumn);
+        TOKEN("break",      tok_break, line, filename, startColumn);
+        TOKEN("continue",   tok_continue, line, filename, startColumn);
+        TOKEN("for",        tok_for, line, filename, startColumn);
+        TOKEN("in",         tok_in, line, filename, startColumn);
+        TOKEN("to",         tok_to, line, filename, startColumn);
+        TOKEN("load",       tok_load, line, filename, startColumn);
+        TOKEN("store",      tok_store, line, filename, startColumn);
+        TOKEN("decl",       tok_declare, line, filename, startColumn);
+        TOKEN("addr",       tok_addr_ref, line, filename, startColumn);
+        TOKEN("nil",        tok_nil, line, filename, startColumn);
+        TOKEN("true",       tok_true, line, filename, startColumn);
+        TOKEN("false",      tok_false, line, filename, startColumn);
+        TOKEN("deref",      tok_deref, line, filename, startColumn);
+        TOKEN("ref",        tok_ref, line, filename, startColumn);
+        TOKEN("container",  tok_container_def, line, filename, startColumn);
+        TOKEN("repeat",     tok_repeat, line, filename, startColumn);
+        TOKEN("complex",    tok_complex_def, line, filename, startColumn);
+        TOKEN("new",        tok_new, line, filename, startColumn);
+        TOKEN("is",         tok_is, line, filename, startColumn);
         
-        TYPES("@", hash, line, filename, startColumn);
-        TYPES("(", open_paren, line, filename, startColumn);
-        TYPES(")", close_paren, line, filename, startColumn);
-        TYPES("{", curly_open, line, filename, startColumn);
-        TYPES("}", curly_close, line, filename, startColumn);
-        TYPES(",", comma, line, filename, startColumn);
-        TYPES("+", add, line, filename, startColumn);
-        TYPES("-", sub, line, filename, startColumn);
-        TYPES("*", mul, line, filename, startColumn);
-        TYPES("/", div, line, filename, startColumn);
-        TYPES("%", mod, line, filename, startColumn);
-        TYPES("&", land, line, filename, startColumn);
-        TYPES("|", lor, line, filename, startColumn);
-        TYPES("^", lxor, line, filename, startColumn);
-        TYPES("~", lnot, line, filename, startColumn);
-        TYPES("<<", lsh, line, filename, startColumn);
-        TYPES(">>", rsh, line, filename, startColumn);
-        TYPES("**", pow, line, filename, startColumn);
-        TYPES(".+", dadd, line, filename, startColumn);
-        TYPES(".-", dsub, line, filename, startColumn);
-        TYPES(".*", dmul, line, filename, startColumn);
-        TYPES("./", ddiv, line, filename, startColumn);
-        TYPES("[", sapopen, line, filename, startColumn);
-        TYPES("]", sapclose, line, filename, startColumn);
+        TOKEN("@",          tok_hash, line, filename, startColumn);
+        TOKEN("(",          tok_open_paren, line, filename, startColumn);
+        TOKEN(")",          tok_close_paren, line, filename, startColumn);
+        TOKEN("{",          tok_curly_open, line, filename, startColumn);
+        TOKEN("}",          tok_curly_close, line, filename, startColumn);
+        TOKEN(",",          tok_comma, line, filename, startColumn);
+        TOKEN("+",          tok_add, line, filename, startColumn);
+        TOKEN("-",          tok_sub, line, filename, startColumn);
+        TOKEN("*",          tok_mul, line, filename, startColumn);
+        TOKEN("/",          tok_div, line, filename, startColumn);
+        TOKEN("%",          tok_mod, line, filename, startColumn);
+        TOKEN("&",          tok_land, line, filename, startColumn);
+        TOKEN("|",          tok_lor, line, filename, startColumn);
+        TOKEN("^",          tok_lxor, line, filename, startColumn);
+        TOKEN("~",          tok_lnot, line, filename, startColumn);
+        TOKEN("<<",         tok_lsh, line, filename, startColumn);
+        TOKEN(">>",         tok_rsh, line, filename, startColumn);
+        TOKEN("**",         tok_pow, line, filename, startColumn);
+        TOKEN(".+",         tok_dadd, line, filename, startColumn);
+        TOKEN(".-",         tok_dsub, line, filename, startColumn);
+        TOKEN(".*",         tok_dmul, line, filename, startColumn);
+        TOKEN("./",         tok_ddiv, line, filename, startColumn);
+        TOKEN(".",          tok_dot, line, filename, startColumn);
+        TOKEN("[",          tok_sapopen, line, filename, startColumn);
+        TOKEN("]",          tok_sapclose, line, filename, startColumn);
+        TOKEN("->",         tok_container_acc, line, filename, startColumn);
+        TOKEN("::",         tok_double_column, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);
@@ -279,7 +303,7 @@ namespace sclc
         return Token(tok_identifier, value, line, filename, startColumn);
     }
 
-    void Tokenizer::tokenize(std::string source) {
+    FPResult Tokenizer::tokenize(std::string source) {
         FILE *fp;
 
         std::string data = "";
@@ -288,7 +312,7 @@ namespace sclc
         
         fp = fopen(file.c_str(), "r");
         if (fp == NULL) {
-            printf("Error: Could not open file %s\n", file.c_str());
+            printf("IO Error: Could not open file %s\n", file.c_str());
             exit(1);
         }
 
@@ -309,7 +333,11 @@ namespace sclc
                 name++;
 
                 line = atoi(lineStr);
-                data += "#LINE:" + std::to_string(line) + ";FILE:" + name + ";\n";
+                std::string filename = std::string(name);
+                if (strends(filename, ".c")) {
+                    filename = filename.substr(0, std::string(name).size() - 2);
+                }
+                data += "#LINE:" + std::to_string(line) + ";FILE:" + filename + ";\n";
                 continue;
             }
             // skip if comment
@@ -349,6 +377,10 @@ namespace sclc
             this->tokens.push_back(token);
             token = nextToken();
         }
+
+        FPResult result;
+        result.errors = errors;
+        return result;
     }
 
     void Tokenizer::printTokens() {

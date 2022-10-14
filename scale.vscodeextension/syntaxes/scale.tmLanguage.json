@@ -18,6 +18,9 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#constants"
+		},
+		{
 			"include": "#funcs"
 		},
 		{
@@ -64,7 +67,16 @@
 			"patterns": [
 				{
 					"name": "entity.name.function",
-					"match": "#(include|ifdef|ifndef|if|define|undef|endif|error|warning|else)"
+					"match": "#(include|ifdef|ifndef|if|define|undef|endif|error|warning|else)\\b"
+				}
+			]
+		},
+		"constants": {
+			"name": "entity.name.function",
+			"patterns": [
+				{
+					"name": "entity.name.function",
+					"match": "\\b(true|false|nil)\\b"
 				}
 			]
 		},
@@ -72,7 +84,7 @@
 			"patterns": [
 				{
 					"name": "keyword",
-					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|nil)\\b"
+					"match": "\\b(deref|ref|addr|decl|load|store|proto|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|complex|new|is)\\b"
 				}
 			]
 		},
@@ -124,7 +136,7 @@
 		},
 		"symbols": {
 			"name": "keyword",
-			"match": "((\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
+			"match": "(::|->|\\.|(\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
 		}
 	},
 	"scopeName": "source.scale"

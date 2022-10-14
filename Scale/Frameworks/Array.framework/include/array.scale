@@ -1,0 +1,71 @@
+#ifndef ARRAY_H
+#define ARRAY_H
+
+extern trace
+
+complex Array
+  decl values
+  decl count
+  decl capacity
+end
+
+function arrayGet(arr, index)
+  index arr::Array.count more index 0 less or if
+    "Invalid Array access: tried getting value at index "
+    index longToString concat
+    ", which is out of bounds for array" concat
+    1 exit
+  fi
+
+  arr::Array.values index 8 * + deref return
+end
+
+function arraySet(arr, index, value)
+  index arr::Array.count 1 - more index 0 less or if
+    "Invalid Array access: tried setting value at index "
+    index longToString concat
+    ", which is out of bounds for array" concat
+    puts trace
+    1 exit
+  fi
+
+  decl tmp
+  arr::Array.values index 8 * + store tmp
+  value ref tmp
+end
+
+function arrayTop(arr)
+  arr::Array.values arr::Array.count 1 - 8 * + deref return
+end
+
+function arrayPush(arr, value)
+  arr::Array.count arr::Array.capacity more
+  arr::Array.count arr::Array.capacity equal
+  
+  or if
+    arr::Array.capacity 2 * store arr::Array.capacity
+    arr::Array.values arr::Array.capacity 8 * realloc
+    store arr::Array.values
+  fi
+
+  decl tmp
+  arr::Array.values arr::Array.count 8 * + store tmp
+  value ref tmp
+  arr::Array.count 1 + store arr::Array.count
+end
+
+function arrayPop(arr)
+  arr::Array.count 1 - store arr::Array.count
+end
+
+function arrayCreate(initialSize)
+  decl arr
+  new Array store arr
+  initialSize 8 * malloc
+  store arr::Array.values
+  0 store arr::Array.count
+  initialSize store arr::Array.capacity
+  arr return
+end
+
+#endif

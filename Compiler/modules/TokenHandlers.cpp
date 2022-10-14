@@ -36,9 +36,10 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "Unknown operator type: " + std::to_string(token.type);
-                result.where = token.getLine();
+                result.line = token.getLine();
                 result.in = token.getFile();
                 result.column = token.getColumn();
+                result.type = token.getType();
                 return result;
             }
         }
@@ -59,10 +60,11 @@ namespace sclc
             FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.where = token.getLine();
+            result.line = token.getLine();
             result.in = token.getFile();
-            result.token = token.getValue();
+            result.value = token.getValue();
             result.column = token.getColumn();
+            result.type = token.getType();
             return result;
         }
         FPResult result;
@@ -76,159 +78,173 @@ namespace sclc
             FPResult result;
             result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
             result.success = false;
-            result.where = keywDeclare.getLine();
+            result.line = keywDeclare.getLine();
             result.in = keywDeclare.getFile();
-            result.token = keywDeclare.getValue();
+            result.value = keywDeclare.getValue();
             result.column = keywDeclare.getColumn();
+            result.type = keywDeclare.getType();
             return result;
         }
         if (loopVar.getType() != tok_identifier) {
             FPResult result;
             result.message = "Expected identifier after 'decl', but got: '" + loopVar.getValue() + "'";
             result.success = false;
-            result.where = loopVar.getLine();
+            result.line = loopVar.getLine();
             result.in = loopVar.getFile();
-            result.token = loopVar.getValue();
+            result.value = loopVar.getValue();
             result.column = loopVar.getColumn();
+            result.type = loopVar.getType();
             return result;
         }
         if (keywIn.getType() != tok_in) {
             FPResult result;
             result.message = "Expected 'in' keyword in for loop header, but got: '" + keywIn.getValue() + "'";
             result.success = false;
-            result.where = keywIn.getLine();
+            result.line = keywIn.getLine();
             result.in = keywIn.getFile();
-            result.token = keywIn.getValue();
+            result.value = keywIn.getValue();
             result.column = keywIn.getColumn();
+            result.type = keywIn.getType();
             return result;
         }
-        if (from.getType() != tok_number && from.getType() != tok_identifier) {
+        if (from.getType() != tok_number && from.getType() != tok_char_literal) {
             FPResult result;
-            result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
+            result.message = "Expected integer after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
-            result.where = from.getLine();
+            result.line = from.getLine();
             result.in = from.getFile();
-            result.token = from.getValue();
+            result.value = from.getValue();
             result.column = from.getColumn();
+            result.type = from.getType();
             return result;
         }
         if (keywTo.getType() != tok_to) {
             FPResult result;
             result.message = "Expected 'to' keyword in for loop header, but got: '" + keywTo.getValue() + "'";
             result.success = false;
-            result.where = keywTo.getLine();
+            result.line = keywTo.getLine();
             result.in = keywTo.getFile();
-            result.token = keywTo.getValue();
+            result.value = keywTo.getValue();
             result.column = keywTo.getColumn();
+            result.type = keywTo.getType();
             return result;
         }
-        if (to.getType() != tok_number && to.getType() != tok_identifier) {
+        if (to.getType() != tok_number && to.getType() != tok_char_literal) {
             FPResult result;
-            result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
+            result.message = "Expected integer after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
-            result.where = to.getLine();
+            result.line = to.getLine();
             result.in = to.getFile();
-            result.token = to.getValue();
+            result.value = to.getValue();
             result.column = to.getColumn();
+            result.type = to.getType();
             return result;
         }
         if (keywDo.getType() != tok_do) {
             FPResult result;
             result.message = "Expected 'do' keyword to finish for loop header, but got: '" + keywDo.getValue() + "'";
             result.success = false;
-            result.where = keywDo.getLine();
+            result.line = keywDo.getLine();
             result.in = keywDo.getFile();
-            result.token = keywDo.getValue();
+            result.value = keywDo.getValue();
             result.column = keywDo.getColumn();
+            result.type = keywDo.getType();
             return result;
         }
-        bool doNumberCheck = false;
+
         long long lower = 0;
-        if (from.getType() == tok_number) {
+        if (from.getType() == tok_number || from.getType() == tok_char_literal) {
             lower = parseNumber(from.getValue());
-            doNumberCheck = true;
-        } else if (from.getType() != tok_identifier) {
-            FPResult result;
-            result.message = "Expected number or variable after 'in', but got: '" + from.getValue() + "'";
-            result.success = false;
-            result.where = from.getLine();
-            result.in = from.getFile();
-            result.token = from.getValue();
-            result.column = from.getColumn();
-            return result;
         }
+
         long long higher = 0;
-        if (to.getType() == tok_number) {
+        if (to.getType() == tok_number || to.getType() == tok_char_literal) {
             higher = parseNumber(to.getValue());
-            doNumberCheck = true;
-        } else if (to.getType() != tok_identifier) {
+        }
+
+        for (int j = 0; j < *scopeDepth; j++) {
+            fprintf(fp, "  ");
+        }
+        if (from.getType() == tok_identifier && !hasVar(from)) {
             FPResult result;
-            result.message = "Expected number or variable after 'to', but got: '" + to.getValue() + "'";
+            result.message = "Use of variables in for loops is not supported.";
             result.success = false;
-            result.where = to.getLine();
+            result.line = from.getLine();
+            result.in = from.getFile();
+            result.value = from.getValue();
+            result.column = from.getColumn();
+            result.type = from.getType();
+            return result;
+        }
+        if (to.getType() == tok_identifier && !hasVar(to)) {
+            FPResult result;
+            result.message = "Use of variables in for loops is not supported.";
+            result.success = false;
+            result.line = to.getLine();
             result.in = to.getFile();
-            result.token = to.getValue();
+            result.value = to.getValue();
             result.column = to.getColumn();
+            result.type = to.getType();
+            return result;
+        }
+        if (from.getType() == tok_identifier && hasContainer(Main.parser->result, from)) {
+            FPResult result;
+            result.message = "Use of containers in for loops is not supported.";
+            result.success = false;
+            result.line = from.getLine();
+            result.in = from.getFile();
+            result.value = from.getValue();
+            result.column = from.getColumn();
+            result.type = from.getType();
+            return result;
+        }
+        if (to.getType() == tok_identifier && hasContainer(Main.parser->result, to)) {
+            FPResult result;
+            result.message = "Use of containers in for loops is not supported.";
+            result.success = false;
+            result.line = to.getLine();
+            result.in = to.getFile();
+            result.value = to.getValue();
+            result.column = to.getColumn();
+            result.type = to.getType();
             return result;
         }
 
-        bool varExists = false;
-        for (size_t i = 0; i < vars->size(); i++) {
-            if (vars->at(i) == loopVar.getValue()) {
-                varExists = true;
-                break;
-            }
-        }
-        if (!varExists) {
-            for (int j = 0; j < *scopeDepth; j++) {
-                fprintf(fp, "  ");
-            }
-            fprintf(fp, "scl_word _%s;\n", loopVar.getValue().c_str());
+        if (!hasVar(loopVar)) {
+            fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
         }
 
-        if (!doNumberCheck || lower <= higher) {
-            for (int j = 0; j < *scopeDepth; j++) {
-                fprintf(fp, "  ");
-            }
-            if (from.getType() == tok_identifier && !hasVar(from)) {
-                FPResult result;
-                result.message = "Use of undeclared variable: '" + from.getValue() + "'";
-                result.success = false;
-                result.where = from.getLine();
-                result.in = from.getFile();
-                result.token = from.getValue();
-                result.column = from.getColumn();
-                return result;
-            }
-            if (to.getType() == tok_identifier && !hasVar(to)) {
-                FPResult result;
-                result.message = "Use of undeclared variable: '" + to.getValue() + "'";
-                result.success = false;
-                result.where = to.getLine();
-                result.in = to.getFile();
-                result.token = to.getValue();
-                result.column = to.getColumn();
-                return result;
-            }
+        fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());
+        fprintf(fp, "%s", from.getValue().c_str());
 
-            fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", (from.getType() == tok_identifier ? "_" : ""));
-            fprintf(fp, "%s", from.getValue().c_str());
-            fprintf(fp, "; _%s <= (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", (to.getType() == tok_identifier ? "_" : ""));
+        if (lower < higher) {
+            fprintf(fp, "; _%s < (void*) ", loopVar.getValue().c_str());
             fprintf(fp, "%s", to.getValue().c_str());
             fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
+        } else if (lower > higher) {
+            fprintf(fp, "; _%s > (void*) ", loopVar.getValue().c_str());
+            fprintf(fp, "%s", to.getValue().c_str());
+            fprintf(fp, "; _%s--) {\n", loopVar.getValue().c_str());
+        } else if (lower <= higher) {
+            fprintf(fp, "; _%s <= (void*) ", loopVar.getValue().c_str());
+            fprintf(fp, "%s", to.getValue().c_str());
+            fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
+        } else if (lower >= higher) {
+            fprintf(fp, "; _%s >= (void*) ", loopVar.getValue().c_str());
+            fprintf(fp, "%s", to.getValue().c_str());
+            fprintf(fp, "; _%s--) {\n", loopVar.getValue().c_str());
         } else {
             FPResult result;
-            result.message = "Lower bound of for loop is greater than upper bound";
+            result.message = "Invalid looping condition.";
             result.success = false;
-            result.where = from.getLine();
-            result.in = from.getFile();
-            result.token = from.getValue();
-            result.column = from.getColumn();
+            result.line = keywTo.getLine();
+            result.in = keywTo.getFile();
+            result.value = keywTo.getValue();
+            result.column = keywTo.getColumn();
+            result.type = keywTo.getType();
             return result;
         }
-        *scopeDepth = *scopeDepth + 1;
+        (*scopeDepth)++;
 
         vars->push_back(loopVar.getValue());
         FPResult result;
@@ -248,10 +264,11 @@ namespace sclc
             FPResult result;
             result.success = false;
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.where = token.getLine();
+            result.line = token.getLine();
             result.in = token.getFile();
-            result.token = token.getValue();
+            result.value = token.getValue();
             result.column = token.getColumn();
+            result.type = token.getType();
             return result;
         }
         FPResult result;

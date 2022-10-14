@@ -1,0 +1,7 @@
+#include "core.scale"
+
+function main()
+  repeat 10 do
+    "Hello" puts
+  done
+end

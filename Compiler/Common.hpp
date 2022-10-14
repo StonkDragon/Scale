@@ -7,7 +7,8 @@
 #include <cstring>
 #include <regex>
 
-#define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
+#define TOKEN(x, y, line, file, column) if (value == x) return Token(y, value, line, file, column)
+#define append(...) fprintf(fp, __VA_ARGS__)
 
 #undef INT_MAX
 #undef INT_MIN
@@ -44,11 +45,71 @@ namespace sclc
         static const std::string BOLDCYAN;
         static const std::string BOLDWHITE;
     };
-    
-    extern std::vector<std::string> vars;
 
-    long long parseNumber(std::string str);
-    double parseDouble(std::string str);
+    struct Version {
+        int major;
+        int minor;
+        int patch;
+
+        Version(std::string str) {
+            std::string::difference_type n = std::count(str.begin(), str.end(), '.');
+            if (n == 1) {
+                sscanf(str.c_str(), "%d.%d", &major, &minor);
+                patch = 0;
+            } else if (n == 2) {
+                sscanf(str.c_str(), "%d.%d.%d", &major, &minor, &patch);
+            } else if (n == 0) {
+                sscanf(str.c_str(), "%d", &major);
+                minor = 0;
+                patch = 0;
+            } else {
+                std::cerr << "Unknown version number: " << str << std::endl;
+                exit(1);
+            }
+        }
+        ~Version() {}
+
+        inline bool operator==(Version& v) {
+            return (major == v.major) && (minor == v.minor) && (patch == v.patch);
+        }
+
+        inline bool operator>(Version& v) {
+            if (major > v.major) {
+                return true;
+            } else if (major == v.major) {
+                if (minor > v.minor) {
+                    return true;
+                } else if (minor == v.minor) {
+                    if (patch > v.patch) {
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        inline bool operator>=(Version& v) {
+            return ((*this) > v) || ((*this) == v);
+        }
+
+        inline bool operator<=(Version& v) {
+            return !((*this) > v);
+        }
+
+        inline bool operator<(Version& v) {
+            return !((*this) >= v);
+        }
+
+        inline bool operator!=(Version& v) {
+            return !((*this) == v);
+        }
+
+        std::string asString() {
+            return std::to_string(this->major) + "." + std::to_string(this->minor) + "." + std::to_string(this->patch);
+        }
+    };
 
     enum TokenType {
         tok_eof,
@@ -67,20 +128,22 @@ namespace sclc
         tok_do,             // do
         tok_done,           // done
         tok_extern,         // extern
-        tok_sizeof,         // sizeof
-        tok_macro,          // macro
         tok_break,          // break
         tok_continue,       // continue
         tok_for,            // for
         tok_in,             // in
         tok_to,             // to
-        tok_proto,          // proto
         tok_ref,            // ref
         tok_deref,          // deref
         tok_addr_ref,       // addr
         tok_load,           // load
         tok_store,          // store
         tok_declare,        // decl
+        tok_container_def,  // container
+        tok_repeat,         // repeat
+        tok_complex_def,    // complex
+        tok_new,            // new
+        tok_is,             // is
 
         // operators
         tok_hash,           // #
@@ -107,6 +170,9 @@ namespace sclc
         tok_ddiv,           // ./
         tok_sapopen,        // [
         tok_sapclose,       // ]
+        tok_container_acc,  // ->
+        tok_double_column,  // ::
+        tok_dot,            // .
 
         tok_identifier,     // foo
         tok_number,         // 123
@@ -156,42 +222,10 @@ namespace sclc
         std::string in;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
-        std::string token;
+        std::string value;
         int column;
-        int where;
-    };
-
-    struct Operation {
-        std::string funcName;
-        std::vector<std::string> args;
-        std::string type;
-        std::string varName;
-        std::string op;
-        std::string left, right;
-
-        std::string getOp() { return op; }
-        std::string getLeft() { return left; }
-        std::string getType() { return type; }
-        std::string getRight() { return right; }
-        std::string getVarName() { return varName; }
-        std::string getFuncName() { return funcName; }
-        std::vector<std::string> getArgs() { return args; }
-        void addArg(std::string arg) { args.push_back(arg); }
-
-        Operation(std::string funcName, std::string varName, std::string op, std::string left, std::string right, std::string type) {
-            this->funcName = funcName;
-            this->varName = varName;
-            this->op = op;
-            this->left = left;
-            this->right = right;
-            this->type = type;
-        }
-    };
-
-    struct ParsedFunction
-    {
-        std::string name;
-        std::vector<Operation> operations;
+        int line;
+        TokenType type;
     };
 
     enum Modifier
@@ -247,6 +281,55 @@ namespace sclc
         ~Extern() {}
     };
 
+    struct Container {
+        std::string name;
+        std::vector<std::string> members;
+        Container(std::string name) {
+            this->name = name;
+        }
+        void addMember(std::string member) {
+            members.push_back(member);
+        }
+        bool hasMember(std::string member) {
+            for (std::string m : members) {
+                if (m == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    struct Complex {
+        std::string name;
+        std::vector<std::string> members;
+        Complex(std::string name) {
+            this->name = name;
+        }
+        void addMember(std::string member) {
+            members.push_back(member);
+        }
+        bool hasMember(std::string member) {
+            for (std::string m : members) {
+                if (m == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        int indexOfMember(std::string member) {
+            for (size_t i = 0; i < members.size(); i++) {
+                if (members[i] == member) {
+                    return ((int) i) * 8;
+                }
+            }
+            return -1;
+        }
+        inline bool operator==(const Complex& other) const {
+            return other.name == this->name;
+        }
+    };
+
     struct Prototype
     {
         std::string name;
@@ -260,9 +343,12 @@ namespace sclc
 
     struct TPResult {
         std::vector<Function> functions;
-        std::vector<Extern> externs;
-        std::vector<Prototype> prototypes;
+        std::vector<Function> extern_functions;
+        std::vector<std::string> extern_globals;
         std::vector<std::string> globals;
+        std::vector<Container> containers;
+        std::vector<FPResult> errors;
+        std::vector<Complex> complexes;
     };
 
     class TokenParser
@@ -270,8 +356,8 @@ namespace sclc
     private:
         std::vector<Token> tokens;
         std::vector<Function> functions;
-        std::vector<Extern> externs;
-        std::vector<Prototype> prototypes;
+        std::vector<Function> extern_functions;
+        std::vector<std::string> extern_globals;
     public:
         TokenParser(std::vector<Token> tokens) {
             this->tokens = tokens;
@@ -292,54 +378,33 @@ namespace sclc
             this->result = result;
         }
         ~FunctionParser() {}
-        bool hasFunction(Token name) {
-            for (Function func : result.functions) {
-                if (func.name == name.getValue()) {
-                    return true;
-                }
-            }
-            for (Prototype proto : result.prototypes) {
-                if (proto.name == name.getValue()) {
-                    bool hasFunction = false;
-                    for (Function func : result.functions) {
-                        if (func.name == proto.name) {
-                            hasFunction = true;
-                            break;
-                        }
-                    }
-                    if (!hasFunction) {
-                        std::cerr << name.getFile() << ":" << name.getLine() << ":" << name.getColumn() << ": Error: Missing Implementation for function " << name.getValue() << std::endl;
-                        exit(1);
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-        bool hasExtern(Token name) {
-            for (Extern extern_ : result.externs) {
-                if (extern_.name == name.getValue()) {
-                    return true;
-                }
-            }
-            return false;
-        }
         FPResult parse(std::string filename);
-        Function getFunctionByName(std::string name);
     };
 
     class Tokenizer
     {
         std::vector<Token> tokens;
+        std::vector<FPResult> errors;
         char* source;
         size_t current;
     public:
         Tokenizer() {current = 0;}
         ~Tokenizer() {}
-        void tokenize(std::string source);
+        FPResult tokenize(std::string source);
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
+    };
+    
+    struct Transpiler {
+        static void writeHeader(FILE* fp);
+        static void writeFunctionHeaders(FILE* fp, TPResult result);
+        static void writeExternHeaders(FILE* fp, TPResult result);
+        static void writeInternalFunctions(FILE* fp, TPResult result);
+        static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
+        static void writeContainers(FILE* fp, TPResult result);
+        static void writeComplexes(FILE* fp, TPResult result);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
     };
 
     typedef struct _Main
@@ -350,10 +415,18 @@ namespace sclc
         bool debug;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
+        struct options {
+            bool noMain;
+            bool transpileOnly;
+        } options;
     } _Main;
 
     extern _Main Main;
+    extern std::string scaleFolder;
+    extern std::vector<std::string> vars;
 
+    long long parseNumber(std::string str);
+    double parseDouble(std::string str);
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     int isCharacter(char c);
@@ -373,5 +446,15 @@ namespace sclc
     int lastIndexOf(char* src, char c);
     bool hasVar(Token name);
     hash hash1(char* data);
+    FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
+    FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
+    FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
+    Function getFunctionByName(TPResult result, std::string name);
+    Container getContainerByName(TPResult result, std::string name);
+    Complex getComplexByName(TPResult result, std::string name);
+    bool hasFunction(TPResult result, Token name);
+    bool hasExtern(TPResult result, Token name);
+    bool hasContainer(TPResult result, Token name);
 }
 #endif // COMMON_H

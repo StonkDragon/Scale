@@ -54,7 +54,7 @@ namespace DragonConfig {
         bool operator!=(const StringEntry& other) {
             return !operator==(other);
         }
-        void print(ostream& stream, int indent = 0) {
+        void print(std::ostream& stream, int indent = 0) {
             stream << std::string(indent, ' ') << this->getKey() << ": \"" << this->value << "\";" << std::endl;
         }
     };
@@ -109,7 +109,7 @@ namespace DragonConfig {
         bool operator!=(const ListEntry& other) {
             return !operator==(other);
         }
-        void print(ostream& stream, int indent = 0) {
+        void print(std::ostream& stream, int indent = 0) {
             stream << std::string(indent, ' ') << this->getKey() << ": [" << std::endl;
             indent += 2;
             for (unsigned long i = 0; i < this->value.size(); i++) {
@@ -272,7 +272,7 @@ namespace DragonConfig {
         bool isEmpty() {
             return this->compounds.empty() && this->lists.empty() && this->strings.empty();
         }
-        void print(ostream& stream, int indent = 0) {
+        void print(std::ostream& stream, int indent = 0) {
             if (this->getKey() == ".root") {
                 for (u_long i = 0; i < this->strings.size(); i++) {
                     this->strings[i].print(stream, indent);

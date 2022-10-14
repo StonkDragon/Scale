@@ -1,43 +1,21 @@
-// file.scale
 #ifndef _CORE_FRAMEWORK__FILE_SCALE_
 #define _CORE_FRAMEWORK__FILE_SCALE_
 #include "core.scale"
 
-// Stack: [name, mode] -> [fileptr]
-// Open a file by name in the given mode and
-// push a file pointer to the stack.
-extern fopen
+extern function fopen(_filename_, _mode_)
+extern function fclose(_file_)
+extern function ftell(_file_)
+extern function fileno(_file_)
+extern function fseek(_file_, _whence_, _offset_)
 
-// Stack: [fileptr] -> []
-// Close a file pointer.
-extern fclose
-
-// Stack: [fileptr] -> [fileptr int]
-// Runs ftell() and pushes the result to the stack.
-extern ftell
-
-// Stack: [fileptr] -> [int]
-// Pushes the file descriptor of the file pointer to the stack.
-extern fileno
-
-// Stack: [fileptr, whence, offset] -> []
-// Seeks to a new position in the file.
-extern fseek
-
-// Stack: [buf, size, file] -> []
-// Write size bytes from buf to file ptr.
 function fwrite(_buf_, _size_, _file_)
     _file_ fileno _size_ _buf_ write
 end
 
-// Stack: [file, str] -> []
-// Write str to file.
 function fprintf(_file_, _str_)
     _file_ fileno _str_ strlen _str_ write
 end
 
-// Stack: [file, size] -> [buf]
-// Read size bytes from f into buf.
 function fread(_f_, _size_)
     decl _buf_
     _f_ fileno _size_ read
@@ -45,20 +23,14 @@ function fread(_f_, _size_)
     _buf_ return
 end
 
-// Stack: [file, offset] -> []
-// Seek to offset from the beginning of the file.
 function fseekstart(_f_, _offset_)
     _f_ 0 _offset_ fseek
 end
 
-// Stack: [file, offset] -> []
-// Seek to offset from the end of the file.
 function fseekend(_f_, _offset_)
     _f_ 2 _offset_ fseek
 end
 
-// Stack: [file, offset] -> []
-// Seek to offset from the current position in the file.
 function fseekcur(_f_, _offset_)
     _f_ 1 _offset_ fseek
 end

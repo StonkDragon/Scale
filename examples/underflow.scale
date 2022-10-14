@@ -1,9 +1,6 @@
 #include "core.scale"
 
 function main()
-  decl str
-  "ERRORS ARE WANTED!!!\n" store str
-  2 str strlen str write
   "foo" "bar" foo
 end
 

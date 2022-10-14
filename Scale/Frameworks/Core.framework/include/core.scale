@@ -1,171 +1,71 @@
 #include "io.scale"
 
-// core.scale
 #ifndef _CORE_FRAMEWORK__CORE_SCALE_
 #define _CORE_FRAMEWORK__CORE_SCALE_
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
 
-// Stack: [i] -> []
-// Exits with exit code i.
-extern exit
+extern function exit(_code_)
+extern function sleep(_millis_)
+extern function system(_cmd_)
+extern function getenv(_key_)
+extern function sizeof_stack()
+extern function malloc(_size_)
+extern function realloc(_size_, _ptr_)
+extern function free(_ptr_)
+extern function less(_a_, _b_)
+extern function more(_a, _b_)
+extern function equal(_a_, _b_)
+extern function and(_a_, _b_)
+extern function not(_a_)
+extern function or(_a_, _b_)
+extern function strlen(_str_)
+extern function strcmp(_str1_, _str2_)
+extern function strncmp(_str1_, _str2_, _n_)
+extern function concat(_str1_, _str2_)
+extern function strrev(_str_)
+extern function time()
+extern function longToString(_long_)
+extern function stringToLong(_str_)
+extern function stringToDouble(_str_)
+extern function doubleToString(_double_)
 
-// Stack: [c] -> []
-// Sleeps for c milliseconds.
-extern sleep
-
-// Stack: [cmd] -> [ret]
-// Executes the command cmd and pushes
-// the return value to the stack.
-extern system
-
-// Stack: [key] -> [value]
-// Pushes the value of the environment variable key
-// to the stack.
-extern getenv
-
-// Stack: [<any>] -> [size]
-// Pushes the size of the stack to the stack.
-extern sizeof_stack
-
-// Stack: [size] -> [ptr]
-// Allocates size bytes of memory and pushes
-// a pointer to the allocated memory to the stack.
-// Malloced memory is garbage collected when no
-// pointers to it are accessible.
-extern malloc
-
-// Stack: [ptr] -> []
-// Frees the memory pointed to by ptr.
-extern free
-
-// Stack: [a b] -> [(a < b)]
-// Pushes 1 if a is less than b, 0 otherwise.
-extern less
-
-// Stack: [a b] -> [(a > b)]
-// Pushes 1 if a is greater than b, 0 otherwise.
-extern more
-
-// Stack: [a b] -> [(a == b)]
-// Pushes 1 if a is equal to b, 0 otherwise.
-extern equal
-
-// Stack: [a b] -> [(a && b)]
-// Pushes 1 if a and b are both 1, 0 otherwise.
-extern and
-
-// Stack: [a] -> [(!a)]
-// Pushes 1 if a is 0, 0 otherwise.
-extern not
-
-// Stack: [a b] -> [(a || b)]
-// Pushes 1 if a or b is 1, 0 otherwise.
-extern or
-
-// Stack: [str] -> [strlen]
-// Pushes the length of the string to the stack.
-extern strlen
-
-// Stack: [s2 s1] -> [strcmp]
-// Pushes 1 if the strings s1 and s2
-// are equal, 0 otherwise.
-extern strcmp
-
-// Stack: [n s1 s2] -> [strncmp]
-// Pushes 1 if the first n characters of
-// the strings s1 and s2 are equal, 0 otherwise.
-extern strncmp
-
-// Stack: [s1 s2] -> [concat]
-// Pushes the concatenation of s1 and s2
-// to the stack.
-extern concat
-
-// Stack: [s] -> [strrev]
-// Pushes the reverse of the string s
-// to the stack.
-extern strrev
-
-// Stack: [<any>] -> [time]
-// Pushes the current timestamp in milliseconds to the stack.
-extern time
-
-// Stack: [n] -> [string]
-// Converts the integer n to a string and pushes it to the stack.
-extern longToString
-
-// Stack: [string] -> [n]
-// Converts the string to an integer and pushes it to the stack.
-extern stringToLong
-
-// Stack: [n] -> [string]
-// Converts the double n to a string and pushes it to the stack.
-extern stringToDouble
-
-// Stack: [string] -> [n]
-// Converts the string to a double and pushes it to the stack.
-extern doubleToString
-
-// Stack: [<any>] -> []
-// Clears the stack.
 @nps @nowarn function clearstack()
     while sizeof_stack 0 more do
         drop
     done
 end
 
-// Stack: [a b c] -> [b a c]
-// Swaps the values of a and b, while keeping
-// c at the same position.
 @nps @nowarn function swap2(_a_, _b_, _c_)
     _b_ _a_ _c_
 end
 
-// Stack: [a b] -> [a b a]
-// Duplicates the value of a, while keeping
-// b at the same position.
 @nps @nowarn function sdup2(_a_, _b_)
     _a_ _b_ _a_
 end
 
-// Stack: [a] -> [a a]
-// Duplicates the value of a.
 @nps @nowarn function dup(_a_)
     _a_ _a_
 end
 
-// Stack: [a b] -> [b a]
-// Swaps the values of a and b.
 @nps @nowarn function swap(_a_, _b_)
     _b_ _a_
 end
 
-// Stack: [a] -> []
-// Drops the value of a from the stack.
 @nps @nowarn function drop(_a_) [_a_] end
 
-// Stack: [a b c] -> [c b a]
-// Swaps the values of a and c, while keeping
-// b at the same position.
 @nps @nowarn function over(_a_, _b_, _c_)
     _c_ _b_ _a_
 end
 
-// Stack: no change
-// No operation.
 function nop()
     0 sleep
 end
 
-// Stack: [s1 s2] -> [strstarts]
-// Pushes 1 if s1 starts with s2, 0 otherwise.
 function strstarts(_s1_, _s2_)
     _s2_ strlen _s2_ _s1_ strncmp return
 end
 
-// Stack: [type] -> [sizeof(type)]
-// Pushes the size of the type to the stack.
 function sizeof(_type_)
     _type_ "int" strcmp if
         4 return
@@ -194,26 +94,18 @@ function sizeof(_type_)
     -1 return
 end
 
-// Stack: [val] -> [(val & 255)]
-// Pushes the lowest 8 bits of val to the stack.
 function toChar(_val_)
     _val_ 255 & return
 end
 
-// Stack: [val] -> [(val & 2147483647)]
-// Pushes the lowest 32 bits of val to the stack.
 function toInt(_val_)
     _val_ 2147483647 & return
 end
 
-// Stack: [val] -> [(val & 32767)]
-// Pushes the lowest 16 bits of val to the stack.
 function toShort(_val_)
     _val_ 32767 & return
 end
 
-// Stack: [str] -> [chars]
-// Pushes the characters of str to the stack.
 @nps @nowarn function toChars(_str_)
     decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + deref toChar _i_ 1 - store _i_ done
 end

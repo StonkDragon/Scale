@@ -1,5 +1,9 @@
 #include "Common.hpp"
 
+#ifndef _WIN32
+#include <execinfo.h>
+#endif
+
 namespace sclc
 {
     #ifdef _WIN32
@@ -41,11 +45,29 @@ namespace sclc
     #endif
 
     std::vector<std::string> vars;
-    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>()};
+    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0, 0}};
+
+    void print_trace(void) {
+#ifndef _WIN32
+        void* array[10];
+        char** strings;
+        int size, i;
+
+        size = backtrace(array, 10);
+        strings = backtrace_symbols(array, size);
+        if (strings != NULL) {
+            for (i = 0; i < size; i++)
+                printf("  %s\n", strings[i]);
+        }
+
+        free(strings);
+#endif
+    }
 
     void signalHandler(int signum) {
         std::cout << "Signal " << signum << " received." << std::endl;
         if (errno != 0) std::cout << "Error: " << std::strerror(errno) << std::endl;
+        print_trace();
         exit(signum);
     }
 
@@ -86,7 +108,7 @@ namespace sclc
     }
 
     int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>';
+        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':';
     }
 
     bool isOperator(Token token) {
