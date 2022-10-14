@@ -116,6 +116,7 @@ namespace sclc
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
                     transpileOnly = true;
+                    Main.options.transpileOnly = true;
                 } else if (args[i] == "--help" || args[i] == "-h") {
                     usage(args[0]);
                     return 0;

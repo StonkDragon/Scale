@@ -7,7 +7,7 @@
 #include <cstring>
 #include <regex>
 
-#define TYPES(x, y, line, file, column) if (value == x) return Token(tok_##y, value, line, file, column)
+#define TOKEN(x, y, line, file, column) if (value == x) return Token(y, value, line, file, column)
 #define append(...) fprintf(fp, __VA_ARGS__)
 
 #undef INT_MAX
@@ -417,6 +417,7 @@ namespace sclc
         std::vector<std::string> frameworks;
         struct options {
             bool noMain;
+            bool transpileOnly;
         } options;
     } _Main;
 
