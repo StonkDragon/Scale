@@ -253,6 +253,7 @@ sclDefFunc(realloc) {
 
 sclDefFunc(free) {
 	scl_value s = ctrl_pop();
+	scl_dealloc_complex(s);
 	free(s);
 }
 

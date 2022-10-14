@@ -14,6 +14,8 @@ scl_stack_t	 callstk = {0, {0}, {0}};
 size_t 		 sap_index = 0;
 size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
+scl_value    alloced_complexes[STACK_SIZE] = {0};
+size_t 		 alloced_complexes_count = 0;
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
 
@@ -230,6 +232,33 @@ scl_value ctrl_pop() {
 
 ssize_t ctrl_stack_size(void) {
 	return stack.ptr - stack.offset[stack_depth];
+}
+
+#pragma endregion
+
+#pragma region Complex
+
+int scl_is_complex(void* p) {
+	for (size_t i = 0; i < alloced_complexes_count; i++) {
+		if (p != 0 && alloced_complexes[i] == p) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+scl_value scl_alloc_complex(size_t size) {
+	scl_value ptr = malloc(size);
+	alloced_complexes[alloced_complexes_count++] = ptr;
+	return ptr;
+}
+
+void scl_dealloc_complex(scl_value ptr) {
+	for (size_t i = 0; i < alloced_complexes_count; i++) {
+		if (alloced_complexes[i] == ptr) {
+			alloced_complexes[i] = 0;
+		}
+	}
 }
 
 #pragma endregion

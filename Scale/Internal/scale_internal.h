@@ -63,23 +63,22 @@
 
 typedef signed long ssize_t;
 typedef void* scl_value;
-typedef struct {
-	char* type;
-	scl_value value;
-} scl_frame;
-typedef scl_frame scl_var;
+typedef union {
+	scl_value ptr;
+	double floating;
+} scl_frame_t;
+typedef scl_frame_t scl_var;
+
 typedef struct {
 	scl_value ptr;
 	ssize_t   level;
 	int       isFile;
 } scl_memory_t;
+
 typedef struct {
-	ssize_t   ptr;
-	union {
-		scl_value ptr;
-		double floating;
-	} data[STACK_SIZE];
-	ssize_t   offset[STACK_SIZE];
+	ssize_t     ptr;
+	scl_frame_t data[STACK_SIZE];
+	ssize_t     offset[STACK_SIZE];
 } scl_stack_t;
 
 void		scl_security_throw(int code, char* msg);
@@ -101,6 +100,9 @@ double		ctrl_pop_double(void);
 long long	ctrl_pop_long(void);
 scl_value	ctrl_pop(void);
 ssize_t	 	ctrl_stack_size(void);
+int		 	scl_is_complex(void* p);
+scl_value	scl_alloc_complex(size_t size);
+void		scl_dealloc_complex(scl_value ptr);
 void 		ctrl_trace(void);
 void 		print_stacktrace(void);
 void 		process_signal(int sig_num);
