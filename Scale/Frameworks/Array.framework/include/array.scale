@@ -1,7 +1,7 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-extern trace
+extern function trace()
 
 complex Array
   decl values
@@ -59,6 +59,10 @@ function arrayPop(arr)
 end
 
 function arrayCreate(initialSize)
+  initialSize 1 less if
+    "Invalid Argument: initialSize must not be 0 or less" puts trace 1 exit
+  fi
+
   decl arr
   new Array store arr
   initialSize 8 * malloc
