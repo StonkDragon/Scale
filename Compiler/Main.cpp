@@ -125,7 +125,7 @@ namespace sclc
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
-                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework")) {
+                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework") && !fileExists("./" + framework + ".framework")) {
                             std::cerr << "Framework '" << framework << "' not found" << std::endl;
                             return 1;
                         }
@@ -195,54 +195,106 @@ namespace sclc
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
         for (std::string framework : frameworks) {
-            DragonConfig::ConfigParser parser;
-            DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
-            DragonConfig::ListEntry implementers = root.getList("implementers");
-            DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
-            DragonConfig::ListEntry depends = root.getList("depends");
-            DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
-            std::string version = root.getString("version").getValue();
-            std::string headerDir = root.getString("headerDir").getValue();
-            std::string implDir = root.getString("implDir").getValue();
-            std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+            if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
+                DragonConfig::ListEntry implementers = root.getList("implementers");
+                DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
+                DragonConfig::ListEntry depends = root.getList("depends");
+                DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
+                std::string version = root.getString("version").getValue();
+                std::string headerDir = root.getString("headerDir").getValue();
+                std::string implDir = root.getString("implDir").getValue();
+                std::string implHeaderDir = root.getString("implHeaderDir").getValue();
 
-            Version ver = Version(version);
-            Version compilerVersion = Version(VERSION);
-            if (ver > compilerVersion) {
-                std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                return 1;
-            }
-            if (ver < FrameworkMinimumVersion) {
-                fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                return 1;
-            }
-
-            for (size_t i = 0; i < depends.size(); i++) {
-                std::string depend = depends.get(i);
-                if (!contains(frameworks, depend)) {
-                    std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
                     return 1;
                 }
-            }
-
-            for (size_t i = 0; i < compilerFlags.size(); i++) {
-                std::string flag = compilerFlags.get(i);
-                cflags.push_back(flag);
-            }
-
-            Main.frameworks.push_back(framework);
-
-            globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-            unsigned long implementersSize = implementers.size();
-            for (unsigned long i = 0; i < implementersSize; i++) {
-                std::string implementer = implementers.get(i);
-                if (!assembleOnly) {
-                    cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
                 }
-            }
-            for (unsigned long i = 0; i < implHeaders.size(); i++) {
-                std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
-                Main.frameworkNativeHeaders.push_back(header);
+
+                for (size_t i = 0; i < depends.size(); i++) {
+                    std::string depend = depends.get(i);
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return 1;
+                    }
+                }
+
+                for (size_t i = 0; i < compilerFlags.size(); i++) {
+                    std::string flag = compilerFlags.get(i);
+                    cflags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers.size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers.get(i);
+                    if (!assembleOnly) {
+                        cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; i < implHeaders.size(); i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
+            } else if (fileExists("./" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry root = parser.parse("./" + framework + ".framework/index.drg").getCompound("framework");
+                DragonConfig::ListEntry implementers = root.getList("implementers");
+                DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
+                DragonConfig::ListEntry depends = root.getList("depends");
+                DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
+                std::string version = root.getString("version").getValue();
+                std::string headerDir = root.getString("headerDir").getValue();
+                std::string implDir = root.getString("implDir").getValue();
+                std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return 1;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
+                }
+
+                for (size_t i = 0; i < depends.size(); i++) {
+                    std::string depend = depends.get(i);
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return 1;
+                    }
+                }
+
+                for (size_t i = 0; i < compilerFlags.size(); i++) {
+                    std::string flag = compilerFlags.get(i);
+                    cflags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                globalPreproc += " -I./" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers.size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers.get(i);
+                    if (!assembleOnly) {
+                        cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; i < implHeaders.size(); i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
             }
         }
 
