@@ -265,25 +265,25 @@ void scl_dealloc_complex(scl_value ptr) {
 
 #pragma region Operators
 
-void op_add() {
+operator(add) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a + b);
 }
 
-void op_sub() {
+operator(sub) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a - b);
 }
 
-void op_mul() {
+operator(mul) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a * b);
 }
 
-void op_div() {
+operator(div) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -292,7 +292,7 @@ void op_div() {
 	ctrl_push_long(a / b);
 }
 
-void op_mod() {
+operator(mod) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -301,42 +301,42 @@ void op_mod() {
 	ctrl_push_long(a % b);
 }
 
-void op_land() {
+operator(land) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a & b);
 }
 
-void op_lor() {
+operator(lor) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a | b);
 }
 
-void op_lxor() {
+operator(lxor) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a ^ b);
 }
 
-void op_lnot() {
+operator(lnot) {
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(~a);
 }
 
-void op_lsh() {
+operator(lsh) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a << b);
 }
 
-void op_rsh() {
+operator(rsh) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a >> b);
 }
 
-void op_pow() {
+operator(pow) {
 	long long exp = ctrl_pop_long();
 	if (exp < 0) {
 		scl_security_throw(EX_BAD_PTR, "Negative exponent!");
@@ -351,25 +351,25 @@ void op_pow() {
 	ctrl_push_long(intResult);
 }
 
-void op_dadd() {
+operator(dadd) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(n1 + n2);
 }
 
-void op_dsub() {
+operator(dsub) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(n1 - n2);
 }
 
-void op_dmul() {
+operator(dmul) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(n1 * n2);
 }
 
-void op_ddiv() {
+operator(ddiv) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(n1 / n2);
