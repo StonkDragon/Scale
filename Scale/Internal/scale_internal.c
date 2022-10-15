@@ -98,8 +98,11 @@ void ctrl_fn_nps_end() {
 
 #pragma region Exceptions
 
-void ctrl_where(char* file, size_t line, size_t col) {
+void ctrl_set_file(char* file) {
 	current_file = file;
+}
+
+void ctrl_set_pos(size_t line, size_t col) {
 	current_line = line;
 	current_column = col;
 }

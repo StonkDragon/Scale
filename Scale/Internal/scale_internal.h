@@ -75,7 +75,8 @@ void		scl_security_throw(int code, char* msg);
 void		scl_security_required_arg_count(ssize_t n, char* func);
 void		scl_security_check_null(scl_value n);
 void 		scl_security_safe_exit(int code);
-void		ctrl_where(char* file, size_t line, size_t col);
+void		ctrl_set_file(char* file);
+void        ctrl_set_pos(size_t line, size_t col);
 void 		process_signal(int sig_num);
 
 void		ctrl_fn_start(char* name);
