@@ -164,6 +164,8 @@ namespace sclc
                     }
                 } else if (args[i] == "-run") {
                     doRun = true;
+                } else if (args[i] == "-debug") {
+                    Main.options.debugBuild = true;
                 } else {
                     tmpFlags.push_back(args[i]);
                 }
