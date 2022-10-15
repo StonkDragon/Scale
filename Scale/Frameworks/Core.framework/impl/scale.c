@@ -7,9 +7,7 @@ extern "C" {
 
 #include "scale.h"
 
-extern size_t		 memalloced_ptr[STACK_SIZE];
 extern size_t 		 stack_depth;
-extern scl_memory_t  memalloced[STACK_SIZE][MALLOC_LIMIT];
 extern scl_stack_t	 callstk;
 extern scl_stack_t   stack;
 extern char* 		 current_file;
