@@ -178,6 +178,14 @@ namespace sclc
                 append("  scl_value _%s = ctrl_pop();\n", var.c_str());
             }
 
+            if (!Main.options.transpileOnly || Main.options.debugBuild) {
+                if (strncmp(function.getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
+                    append("  ctrl_set_file(\"(Scale Framework) %s\");\n", function.getFile().c_str() + scaleFolder.size() + 12);
+                } else {
+                    append("  ctrl_set_file(\"%s\");\n", function.getFile().c_str());
+                }
+            }
+
             for (int j = 0; j < scopeDepth; j++) {
                 append("  ");
             }
@@ -205,15 +213,11 @@ namespace sclc
                 if (body[i].getType() == tok_ignore) continue;
 
                 std::string file = body[i].getFile();
-                if (!Main.options.transpileOnly) {
+                if (!Main.options.transpileOnly || Main.options.debugBuild) {
                     for (int j = 0; j < scopeDepth; j++) {
                         append("  ");
                     }
-                    if (strncmp(file.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                        append("ctrl_where(\"(Scale Framework) %s\", %d, %d);\n", body[i].getFile().c_str() + scaleFolder.size() + 12, body[i].getLine(), body[i].getColumn());
-                    } else {
-                        append("ctrl_where(\"%s\", %d, %d);\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
-                    }
+                    append("ctrl_set_pos(%d, %d);\n", body[i].getLine(), body[i].getColumn());
                 }
 
                 if (isOperator(body[i])) {

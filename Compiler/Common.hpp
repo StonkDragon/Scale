@@ -238,6 +238,7 @@ namespace sclc
     struct Function
     {
         std::string name;
+        std::string file;
         std::vector<Token> body;
         std::vector<Modifier> modifiers;
         std::vector<std::string> args;
@@ -265,6 +266,12 @@ namespace sclc
         }
         std::vector<std::string> getArgs() {
             return args;
+        }
+        std::string getFile() {
+            return file;
+        }
+        void setFile(std::string file) {
+            this->file = file;
         }
 
         bool operator==(const Function& other) const {
@@ -412,12 +419,12 @@ namespace sclc
         Tokenizer* tokenizer;
         TokenParser* lexer;
         FunctionParser* parser;
-        bool debug;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
         struct options {
             bool noMain;
             bool transpileOnly;
+            bool debugBuild;
         } options;
     } _Main;
 

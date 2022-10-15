@@ -81,6 +81,7 @@ namespace sclc
                 std::string name = tokens[i + 1].getValue();
                 Token func = tokens[i + 1];
                 currentFunction = new Function(name);
+                currentFunction->setFile(func.getFile());
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
