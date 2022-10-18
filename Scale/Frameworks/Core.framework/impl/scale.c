@@ -275,10 +275,7 @@ sclDefFunc(memcpy) {
 }
 
 sclDefFunc(time) {
-	struct timespec t;
-	clock_gettime(CLOCK_REALTIME, &t);
-	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
-	ctrl_push_long(millis);
+	ctrl_push_long(time(NULL));
 }
 
 sclDefFunc(trace) {
