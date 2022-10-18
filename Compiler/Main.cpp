@@ -64,6 +64,8 @@ namespace sclc
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Accepted Flags:" << std::endl;
         std::cout << "  -t, --transpile  Transpile only" << std::endl;
         std::cout << "  -h, --help       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
@@ -74,6 +76,9 @@ namespace sclc
         std::cout << "  -v, --version    Show version information" << std::endl;
         std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
         std::cout << "  -run             Run the compiled program" << std::endl;
+        std::cout << "  -cflags          Print c compiler flags and exit" << std::endl;
+        std::cout << std::endl;
+        std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -99,6 +104,7 @@ namespace sclc
         bool assembleOnly       = false;
         bool noCoreFramework    = false;
         bool doRun              = false;
+        bool printCflags        = false;
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
@@ -166,6 +172,8 @@ namespace sclc
                     doRun = true;
                 } else if (args[i] == "-debug") {
                     Main.options.debugBuild = true;
+                } else if (args[i] == "-cflags") {
+                    printCflags = true;
                 } else {
                     tmpFlags.push_back(args[i]);
                 }
@@ -174,7 +182,8 @@ namespace sclc
 
         std::vector<std::string> cflags;
 
-        cflags.push_back(compiler);
+        if (!printCflags)
+            cflags.push_back(compiler);
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I" + scaleFolder + "/Internal");
         cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
@@ -187,8 +196,10 @@ namespace sclc
             return 1;
         }
 
-        cflags.push_back("-o");
-        cflags.push_back("\"" + outfile + "\"");
+        if (!printCflags) {
+            cflags.push_back("-o");
+            cflags.push_back("\"" + outfile + "\"");
+        }
 
         if (!noCoreFramework)
             frameworks.push_back("Core");
@@ -304,7 +315,7 @@ namespace sclc
         
         std::vector<Token>  tokens;
 
-        for (size_t i = 0; i < files.size(); i++) {
+        for (size_t i = 0; i < files.size() && !printCflags; i++) {
             std::string filename = files[i];
             if (!doRun) std::cout << "Compiling " << filename << "..." << std::endl;
 
@@ -397,11 +408,14 @@ namespace sclc
             return 0;
         }
 
-        TokenParser lexer(tokens);
-        Main.lexer = &lexer;
-        TPResult result = Main.lexer->parse();
+        TPResult result;
+        if (!printCflags) {
+            TokenParser lexer(tokens);
+            Main.lexer = &lexer;
+            result = Main.lexer->parse();
+        }
 
-        if (result.errors.size() > 0) {
+        if (!printCflags && result.errors.size() > 0) {
             for (FPResult error : result.errors) {
                 if (error.line == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
@@ -446,62 +460,64 @@ namespace sclc
             return result.errors.size();
         }
         
-        FunctionParser parser(result);
-        Main.parser = &parser;
-        char* source = (char*) malloc(sizeof(char) * 50);
-        
-        srand(time(NULL));
-        if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
-        else snprintf(source, 4, "out");
-        cflags.push_back(std::string(source) + ".c");
+        char* source = NULL;
+        if (!printCflags) {
+            FunctionParser parser(result);
+            Main.parser = &parser;
+            source = (char*) malloc(sizeof(char) * 50);
+            
+            srand(time(NULL));
+            if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
+            else snprintf(source, 4, "out");
+            cflags.push_back(std::string(source) + ".c");
 
-        FPResult parseResult = Main.parser->parse(std::string(source));
-
-        if (parseResult.errors.size() > 0) {
-            for (FPResult error : parseResult.errors) {
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                while (fgets(line, 500, f) != NULL) {
-                    if (i == error.line) {
-                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l;
-                        if (error.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                        } else if (error.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
-                        } else {
-                            l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
-                    } else if (i == error.line - 1 || i == error.line - 2) {
-                        if (strlen(line) > 0)
-                            std::cerr << "  " << line;
-                    } else if (i == error.line + 1 || i == error.line + 2) {
-                        if (strlen(line) > 0)
-                            std::cerr << "  " << line;
+            FPResult parseResult = Main.parser->parse(std::string(source));
+            if (parseResult.errors.size() > 0) {
+                for (FPResult error : parseResult.errors) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
                     }
-                    i++;
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
                 }
-                fclose(f);
-                std::cerr << std::endl;
-                free(line);
+                remove((std::string(source) + ".c").c_str());
+                remove((std::string(source) + ".h").c_str());
+                return parseResult.errors.size();
             }
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
-            return parseResult.errors.size();
         }
 
         if (transpileOnly) {
@@ -524,18 +540,27 @@ namespace sclc
             cmd += s + " ";
         }
 
-        if (!doRun) std::cout << "Compiling with " << cmd << std::endl;
+        if (!doRun && !printCflags) std::cout << "Compiling with " << cmd << std::endl;
+
+        if (printCflags) {
+            std::cout << cmd << std::endl;
+            return 0;
+        }
 
         int ret = system(cmd.c_str());
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
+            if (source == NULL)
+                return ret;
             remove((std::string(source) + ".c").c_str());
             remove((std::string(source) + ".h").c_str());
             return ret;
         }
-        remove((std::string(source) + ".c").c_str());
-        remove((std::string(source) + ".h").c_str());
+        if (source != NULL) {
+            remove((std::string(source) + ".c").c_str());
+            remove((std::string(source) + ".h").c_str());
+        }
         
         if (!doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
