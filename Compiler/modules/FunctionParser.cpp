@@ -68,6 +68,7 @@ namespace sclc
     }
 
     FPResult FunctionParser::parse(std::string filename) {
+        int scopeDepth = 0;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<std::string> globals;

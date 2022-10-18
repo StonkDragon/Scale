@@ -8,7 +8,7 @@
 #include <regex>
 
 #define TOKEN(x, y, line, file, column) if (value == x) return Token(y, value, line, file, column)
-#define append(...) fprintf(fp, __VA_ARGS__)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
 
 #undef INT_MAX
 #undef INT_MIN
