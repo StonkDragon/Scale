@@ -22,11 +22,12 @@
 
 #define LINE_LENGTH 48
 
-typedef unsigned long long hash;
-
 namespace sclc
 {
-    struct Color {
+    typedef unsigned long long hash;
+
+    class Color {
+    public:
         static const std::string RESET;
         static const std::string BLACK;
         static const std::string RED;
@@ -46,11 +47,12 @@ namespace sclc
         static const std::string BOLDWHITE;
     };
 
-    struct Version {
+    class Version {
         int major;
         int minor;
         int patch;
 
+    public:
         Version(std::string str) {
             std::string::difference_type n = std::count(str.begin(), str.end(), '.');
             if (n == 1) {
@@ -184,13 +186,14 @@ namespace sclc
         tok_newline,
     };
 
-    struct Token
+    class Token
     {
         TokenType type;
         int line;
         int column;
         std::string file;
         std::string value;
+    public:
         std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
         }
@@ -216,7 +219,8 @@ namespace sclc
         }
     };
 
-    struct FPResult {
+    class FPResult {
+    public:
         bool success;
         std::string message;
         std::string in;
@@ -235,13 +239,14 @@ namespace sclc
         mod_sap
     };
 
-    struct Function
+    class Function
     {
         std::string name;
         std::string file;
         std::vector<Token> body;
         std::vector<Modifier> modifiers;
         std::vector<std::string> args;
+    public:
         Function(std::string name) {
             this->name = name;
         }
@@ -279,18 +284,21 @@ namespace sclc
         }
     };
 
-    struct Extern
+    class Extern
     {
         std::string name;
+    public:
         Extern(std::string name) {
             this->name = name;
         }
         ~Extern() {}
+        std::string getName() const { return name; }
     };
 
-    struct Container {
+    class Container {
         std::string name;
         std::vector<std::string> members;
+    public:
         Container(std::string name) {
             this->name = name;
         }
@@ -305,11 +313,14 @@ namespace sclc
             }
             return false;
         }
+        std::string getName() const { return name; }
+        std::vector<std::string> getMembers() const { return members; }
     };
 
-    struct Complex {
+    class Complex {
         std::string name;
         std::vector<std::string> members;
+    public:
         Complex(std::string name) {
             this->name = name;
         }
@@ -335,20 +346,29 @@ namespace sclc
         inline bool operator==(const Complex& other) const {
             return other.name == this->name;
         }
+        std::string getName() const { return name; }
+        std::vector<std::string> getMembers() const { return members; }
+        void setName(const std::string& name) { this->name = name; }
     };
 
-    struct Prototype
+    class Prototype
     {
         std::string name;
         int argCount;
+    public:
         Prototype(std::string name, int argCount) {
             this->name = name;
             this->argCount = argCount;
         }
         ~Prototype() {}
+        std::string getName() const { return name; }
+        int getArgCount() const { return argCount; }
+        void setArgCount(int argCount) { this->argCount = argCount; }
+        void setName(std::string name) { this->name = name; }
     };
 
-    struct TPResult {
+    class TPResult {
+    public:
         std::vector<Function> functions;
         std::vector<Function> extern_functions;
         std::vector<std::string> extern_globals;
@@ -376,16 +396,18 @@ namespace sclc
         static bool canAssign(Token token);
     };
 
-    struct FunctionParser
+    class FunctionParser
     {
         TPResult result;
 
+    public:
         FunctionParser(TPResult result)
         {
             this->result = result;
         }
         ~FunctionParser() {}
         FPResult parse(std::string filename);
+        TPResult getResult();
     };
 
     class Tokenizer
@@ -403,7 +425,8 @@ namespace sclc
         void printTokens();
     };
     
-    struct Transpiler {
+    class Transpiler {
+    public:
         static void writeHeader(FILE* fp);
         static void writeFunctionHeaders(FILE* fp, TPResult result);
         static void writeExternHeaders(FILE* fp, TPResult result);
