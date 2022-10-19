@@ -13,6 +13,7 @@ build: {
     "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
     "modules/Transpiler.cpp";
+    "modules/DragonConfig.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";
