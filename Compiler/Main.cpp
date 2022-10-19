@@ -90,8 +90,7 @@ namespace sclc
         return false;
     }
 
-    int main(std::vector<std::string> args)
-    {
+    int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
             return 1;
@@ -135,7 +134,14 @@ namespace sclc
                             std::cerr << "Framework '" << framework << "' not found" << std::endl;
                             return 1;
                         }
-                        frameworks.push_back(framework);
+                        bool alreadyIncluded = false;
+                        for (auto f : frameworks) {
+                            if (f == framework) {
+                                alreadyIncluded = true;
+                            }
+                        }
+                        if (!alreadyIncluded)
+                            frameworks.push_back(framework);
                         i++;
                     } else {
                         std::cerr << "Error: -f requires an argument" << std::endl;
@@ -201,7 +207,13 @@ namespace sclc
             cflags.push_back("\"" + outfile + "\"");
         }
 
-        if (!noCoreFramework)
+        bool alreadyIncluded = false;
+        for (auto f : frameworks) {
+            if (f == "Core") {
+                alreadyIncluded = true;
+            }
+        }
+        if (!noCoreFramework && !alreadyIncluded)
             frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
@@ -319,7 +331,7 @@ namespace sclc
             std::string filename = files[i];
             if (!doRun) std::cout << "Compiling " << filename << "..." << std::endl;
 
-            FILE* tmp = fopen(filename.c_str(), "r");
+            FILE* tmp = fopen(filename.c_str(), "rb");
             fseek(tmp, 0, SEEK_END);
             long size = ftell(tmp);
             fseek(tmp, 0, SEEK_SET);
@@ -327,7 +339,7 @@ namespace sclc
             char* buffer = new char[size];
             fread(buffer, 1, size, tmp);
 
-            FILE* file = fopen((filename + ".c").c_str(), "w");
+            FILE* file = fopen((filename + ".c").c_str(), "wb");
             fwrite(buffer, size, 1, file);
             fclose(file);
             fclose(tmp);
