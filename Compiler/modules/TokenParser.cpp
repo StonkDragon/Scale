@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 
 namespace sclc
 {

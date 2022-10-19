@@ -9,18 +9,18 @@
 
 #include <stdio.h>
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 
 namespace sclc
 {
     Function getFunctionByName(TPResult result, std::string name) {
         for (Function func : result.functions) {
-            if (func.name == name) {
+            if (func.getName() == name) {
                 return func;
             }
         }
         for (Function func : result.extern_functions) {
-            if (func.name == name) {
+            if (func.getName() == name) {
                 return func;
             }
         }
@@ -29,7 +29,7 @@ namespace sclc
 
     Container getContainerByName(TPResult result, std::string name) {
         for (Container container : result.containers) {
-            if (container.name == name) {
+            if (container.getName() == name) {
                 return container;
             }
         }
@@ -38,7 +38,7 @@ namespace sclc
 
     Complex getComplexByName(TPResult result, std::string name) {
         for (Complex complex : result.complexes) {
-            if (complex.name == name) {
+            if (complex.getName() == name) {
                 return complex;
             }
         }
@@ -47,12 +47,12 @@ namespace sclc
 
     bool hasFunction(TPResult result, Token name) {
         for (Function func : result.functions) {
-            if (func.name == name.getValue()) {
+            if (func.getName() == name.getValue()) {
                 return true;
             }
         }
         for (Function func : result.extern_functions) {
-            if (func.name == name.getValue()) {
+            if (func.getName() == name.getValue()) {
                 return true;
             }
         }
@@ -60,11 +60,15 @@ namespace sclc
     }
     bool hasContainer(TPResult result, Token name) {
         for (Container container_ : result.containers) {
-            if (container_.name == name.getValue()) {
+            if (container_.getName() == name.getValue()) {
                 return true;
             }
         }
         return false;
+    }
+
+    TPResult FunctionParser::getResult() {
+        return result;
     }
 
     FPResult FunctionParser::parse(std::string filename) {

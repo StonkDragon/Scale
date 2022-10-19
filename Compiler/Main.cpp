@@ -21,8 +21,8 @@
 #define execv _execv
 #endif
 
-#include "Common.hpp"
-#include "modules/DragonConfig.hpp"
+#include "headers/Common.hpp"
+#include "headers/DragonConfig.hpp"
 
 #ifndef VERSION
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
@@ -222,15 +222,32 @@ namespace sclc
         for (std::string framework : frameworks) {
             if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
                 DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
-                DragonConfig::ListEntry implementers = root.getList("implementers");
-                DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
-                DragonConfig::ListEntry depends = root.getList("depends");
-                DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
-                std::string version = root.getString("version").getValue();
-                std::string headerDir = root.getString("headerDir").getValue();
-                std::string implDir = root.getString("implDir").getValue();
-                std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+                DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return 1;
+                }
+                root = root->getCompound("framework");
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
                 Version ver = Version(version);
                 Version compilerVersion = Version(VERSION);
@@ -243,44 +260,61 @@ namespace sclc
                     return 1;
                 }
 
-                for (size_t i = 0; i < depends.size(); i++) {
-                    std::string depend = depends.get(i);
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->get(i);
                     if (!contains(frameworks, depend)) {
                         std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                         return 1;
                     }
                 }
 
-                for (size_t i = 0; i < compilerFlags.size(); i++) {
-                    std::string flag = compilerFlags.get(i);
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->get(i);
                     cflags.push_back(flag);
                 }
 
                 Main.frameworks.push_back(framework);
 
-                globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-                unsigned long implementersSize = implementers.size();
+                if (headerDir.size() > 0) globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize; i++) {
-                    std::string implementer = implementers.get(i);
+                    std::string implementer = implementers->get(i);
                     if (!assembleOnly) {
                         cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
                     }
                 }
-                for (unsigned long i = 0; i < implHeaders.size(); i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
                     Main.frameworkNativeHeaders.push_back(header);
                 }
             } else if (fileExists("./" + framework + ".framework/index.drg")) {
                 DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry root = parser.parse("./" + framework + ".framework/index.drg").getCompound("framework");
-                DragonConfig::ListEntry implementers = root.getList("implementers");
-                DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
-                DragonConfig::ListEntry depends = root.getList("depends");
-                DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
-                std::string version = root.getString("version").getValue();
-                std::string headerDir = root.getString("headerDir").getValue();
-                std::string implDir = root.getString("implDir").getValue();
-                std::string implHeaderDir = root.getString("implHeaderDir").getValue();
+                DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return 1;
+                }
+                root = root->getCompound("framework");
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
                 Version ver = Version(version);
                 Version compilerVersion = Version(VERSION);
@@ -293,31 +327,31 @@ namespace sclc
                     return 1;
                 }
 
-                for (size_t i = 0; i < depends.size(); i++) {
-                    std::string depend = depends.get(i);
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->get(i);
                     if (!contains(frameworks, depend)) {
                         std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                         return 1;
                     }
                 }
 
-                for (size_t i = 0; i < compilerFlags.size(); i++) {
-                    std::string flag = compilerFlags.get(i);
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->get(i);
                     cflags.push_back(flag);
                 }
 
                 Main.frameworks.push_back(framework);
 
-                globalPreproc += " -I./" + framework + ".framework/" + headerDir;
-                unsigned long implementersSize = implementers.size();
-                for (unsigned long i = 0; i < implementersSize; i++) {
-                    std::string implementer = implementers.get(i);
+                if (headerDir.size() > 0) globalPreproc += " -I./" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
+                    std::string implementer = implementers->get(i);
                     if (!assembleOnly) {
                         cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
                     }
                 }
-                for (unsigned long i = 0; i < implHeaders.size(); i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
                     Main.frameworkNativeHeaders.push_back(header);
                 }
             }

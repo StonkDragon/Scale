@@ -7,7 +7,7 @@
 #include <vector>
 #include <regex>
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 
 #define syntaxError(msg) \
     do { \
@@ -373,7 +373,7 @@ namespace sclc
         current = 0;
 
         Token token = nextToken();
-        while (token.type != tok_eof) {
+        while (token.getType() != tok_eof) {
             this->tokens.push_back(token);
             token = nextToken();
         }

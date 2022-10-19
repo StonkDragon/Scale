@@ -7,14 +7,14 @@
 #include <vector>
 #include <regex>
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 namespace sclc
 {
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth) {
         for (int j = 0; j < scopeDepth; j++) {
             fprintf(fp, "  ");
         }
-        switch (token.type) {
+        switch (token.getType()) {
             case tok_add: fprintf(fp, "op_add();\n"); break;
             case tok_sub: fprintf(fp, "op_sub();\n"); break;
             case tok_mul: fprintf(fp, "op_mul();\n"); break;
@@ -35,7 +35,7 @@ namespace sclc
             {
                 FPResult result;
                 result.success = false;
-                result.message = "Unknown operator type: " + std::to_string(token.type);
+                result.message = "Unknown operator type: " + std::to_string(token.getType());
                 result.line = token.getLine();
                 result.in = token.getFile();
                 result.column = token.getColumn();
@@ -187,7 +187,7 @@ namespace sclc
             result.type = to.getType();
             return result;
         }
-        if (from.getType() == tok_identifier && hasContainer(Main.parser->result, from)) {
+        if (from.getType() == tok_identifier && hasContainer(Main.parser->getResult(), from)) {
             FPResult result;
             result.message = "Use of containers in for loops is not supported.";
             result.success = false;
@@ -198,7 +198,7 @@ namespace sclc
             result.type = from.getType();
             return result;
         }
-        if (to.getType() == tok_identifier && hasContainer(Main.parser->result, to)) {
+        if (to.getType() == tok_identifier && hasContainer(Main.parser->getResult(), to)) {
             FPResult result;
             result.message = "Use of containers in for loops is not supported.";
             result.success = false;

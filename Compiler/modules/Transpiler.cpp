@@ -1,7 +1,7 @@
 #ifndef _TRANSPILER_CPP
 #define _TRANSPILER_CPP
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 
 #define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.column = body[i - 1].getColumn(); err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
 
@@ -53,7 +53,7 @@ namespace sclc
                 }
             }
             if (!hasFunction)
-                append("void fn_%s(void);\n", func.name.c_str());
+                append("void fn_%s(void);\n", func.getName().c_str());
         }
 
         append("\n");
@@ -63,7 +63,7 @@ namespace sclc
         int scopeDepth = 0;
         append("const unsigned long long __scl_internal__function_names[] = {\n");
         for (Function func : result.extern_functions) {
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.name.c_str()), (char*) func.name.c_str());
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.getName().c_str()), (char*) func.getName().c_str());
         }
         for (Function function : result.functions) {
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
@@ -72,7 +72,7 @@ namespace sclc
 
         append("const scl_value __scl_internal__function_ptrs[] = {\n");
         for (Function func : result.extern_functions) {
-            append("  fn_%s,\n", func.name.c_str());
+            append("  fn_%s,\n", func.getName().c_str());
         }
         for (Function function : result.functions) {
             append("  fn_%s,\n", function.getName().c_str());
@@ -102,10 +102,10 @@ namespace sclc
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
-            for (std::string s : c.members) {
+            for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
-            append("} $_%s = {0};\n", c.name.c_str());
+            append("} $_%s = {0};\n", c.getName().c_str());
         }
 
         append("\n");
@@ -114,8 +114,8 @@ namespace sclc
             append("  &_%s,\n", s.c_str());
         }
         for (Container c : result.containers) {
-            for (std::string s : c.members) {
-                append("  &$_%s.%s,\n", c.name.c_str(), s.c_str());
+            for (std::string s : c.getMembers()) {
+                append("  &$_%s.%s,\n", c.getName().c_str(), s.c_str());
             }
         }
         append("};\n");
@@ -128,9 +128,9 @@ namespace sclc
         int scopeDepth = 0;
         append("/* COMPLEXES */\n");
         for (Complex c : result.complexes) {
-            append("struct scl_struct_%s {\n", c.name.c_str());
+            append("struct scl_struct_%s {\n", c.getName().c_str());
             append("  char* $__type;\n");
-            for (std::string s : c.members) {
+            for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
             append("};\n");
