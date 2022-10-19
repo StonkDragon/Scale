@@ -3,6 +3,8 @@
 
 #include "../Common.hpp"
 
+#define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.column = body[i - 1].getColumn(); err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
+
 namespace sclc
 {
     void Transpiler::writeHeader(FILE* fp) {
@@ -235,7 +237,7 @@ namespace sclc
                     append("fn_%s();\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_identifier && hasContainer(result, body[i])) {
                     std::string containerName = body[i].getValue();
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_container_acc) {
                         FPResult err;
                         err.success = false;
@@ -248,7 +250,7 @@ namespace sclc
                         errors.push_back(err);
                         continue;
                     }
-                    i++;
+                    ITER_INC;
                     std::string memberName = body[i].getValue();
                     Container container = getContainerByName(result, containerName);
                     if (!container.hasMember(memberName)) {
@@ -267,7 +269,7 @@ namespace sclc
                 } else if (body[i].getType() == tok_string_literal) {
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_double_column) {
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
                         err.success = false;
@@ -293,7 +295,7 @@ namespace sclc
                         errors.push_back(err);
                         continue;
                     }
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         FPResult err;
                         err.success = false;
@@ -306,7 +308,7 @@ namespace sclc
                         errors.push_back(err);
                         continue;
                     }
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
                         err.success = false;
@@ -364,7 +366,7 @@ namespace sclc
                 } else if (body[i].getType() == tok_true) {
                     append("ctrl_push((scl_value) 1);\n");
                 } else if (body[i].getType() == tok_new) {
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
                         err.success = false;
@@ -398,7 +400,7 @@ namespace sclc
                     scopeDepth--;
                     append("}\n");
                 } else if (body[i].getType() == tok_is) {
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_identifier) {
                         FPResult err;
                         err.success = false;
@@ -533,14 +535,14 @@ namespace sclc
                     Token toGet = body[i + 1];
                     if (hasFunction(result, toGet)) {
                         append("ctrl_push((scl_value) &fn_%s);\n", toGet.getValue().c_str());
-                        i++;
+                        ITER_INC;
                     } else if (hasVar(toGet) && body[i + 2].getType() != tok_double_column) {
                         append("ctrl_push(&_%s);\n", toGet.getValue().c_str());
-                        i++;
+                        ITER_INC;
                     } else if (hasContainer(result, toGet)) {
-                        i++;
+                        ITER_INC;
                         std::string containerName = body[i].getValue();
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_container_acc) {
                             FPResult err;
                             err.success = false;
@@ -553,7 +555,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         std::string memberName = body[i].getValue();
                         Container container = getContainerByName(result, containerName);
                         if (!container.hasMember(memberName)) {
@@ -570,7 +572,7 @@ namespace sclc
                         }
                         append("ctrl_push(&($_%s.%s));\n", containerName.c_str(), memberName.c_str());
                     } else if (body[i + 2].getType() == tok_double_column) {
-                        i++;
+                        ITER_INC;
                         std::string varName = body[i].getValue();
                         i += 2;
                         if (body[i].getType() != tok_identifier) {
@@ -598,7 +600,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
                             err.success = false;
@@ -611,7 +613,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_identifier) {
                             FPResult err;
                             err.success = false;
@@ -650,10 +652,10 @@ namespace sclc
                         errors.push_back(err);
                     }
                 } else if (body[i].getType() == tok_store) {
-                    i++;
+                    ITER_INC;
                     if (body[i + 1].getType() == tok_container_acc) {
                         std::string containerName = body[i].getValue();
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_container_acc) {
                             FPResult err;
                             err.success = false;
@@ -666,7 +668,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         std::string memberName = body[i].getValue();
                         Container container = getContainerByName(result, containerName);
                         if (!container.hasMember(memberName)) {
@@ -710,7 +712,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
                             err.success = false;
@@ -723,7 +725,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_identifier) {
                             FPResult err;
                             err.success = false;
@@ -791,16 +793,16 @@ namespace sclc
                     vars.push_back(body[i + 1].getValue());
                     std::string loadFrom = body[i + 1].getValue();
                     append("scl_value _%s;\n", loadFrom.c_str());
-                    i++;
+                    ITER_INC;
                 } else if (body[i].getType() == tok_continue) {
                     append("continue;\n");
                 } else if (body[i].getType() == tok_break) {
                     append("break;\n");
                 } else if (body[i].getType() == tok_ref) {
-                    i++;
+                    ITER_INC;
                     if (body[i + 1].getType() == tok_container_acc) {
                         std::string containerName = body[i].getValue();
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_container_acc) {
                             FPResult err;
                             err.success = false;
@@ -813,7 +815,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         std::string memberName = body[i].getValue();
                         Container container = getContainerByName(result, containerName);
                         if (!container.hasMember(memberName)) {
@@ -857,7 +859,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_dot) {
                             FPResult err;
                             err.success = false;
@@ -870,7 +872,7 @@ namespace sclc
                             errors.push_back(err);
                             continue;
                         }
-                        i++;
+                        ITER_INC;
                         if (body[i].getType() != tok_identifier) {
                             FPResult err;
                             err.success = false;
@@ -931,7 +933,7 @@ namespace sclc
                     scopeDepth--;
                     append("}\n");
                 } else if (body[i].getType() == tok_curly_open) {
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_number) {
                         FPResult result;
                         result.message = "Expected integer, but got '" + body[i].getValue() + "'";
@@ -944,7 +946,7 @@ namespace sclc
                         errors.push_back(result);
                     }
                     Token index = body[i];
-                    i++;
+                    ITER_INC;
                     if (body[i].getType() != tok_curly_close) {
                         FPResult result;
                         result.message = "Expected '}', but got '" + body[i].getValue() + "'";
