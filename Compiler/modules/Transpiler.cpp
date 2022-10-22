@@ -1,6 +1,8 @@
 #ifndef _TRANSPILER_CPP
 #define _TRANSPILER_CPP
 
+#include <filesystem>
+
 #include "../headers/Common.hpp"
 
 #define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.column = body[i - 1].getColumn(); err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
@@ -153,14 +155,11 @@ namespace sclc
             }
 
             scopeDepth = 0;
-            bool funcPrivateStack = true;
             bool noWarns = false;
             bool sap = false;
 
             for (Modifier modifier : function.getModifiers()) {
-                if (modifier == mod_nps) {
-                    funcPrivateStack = false;
-                } else if (modifier == mod_nowarn) {
+                if (modifier == mod_nowarn) {
                     noWarns = true;
                 } else if (modifier == mod_sap) {
                     sap = true;
@@ -191,18 +190,15 @@ namespace sclc
             }
 
             if (!Main.options.transpileOnly || Main.options.debugBuild) {
+                std::string file = function.getFile();
                 if (strncmp(function.getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                    append("ctrl_set_file(\"(Scale Framework) %s\");\n", function.getFile().c_str() + scaleFolder.size() + 12);
+                    append("ctrl_set_file(\"%s\");\n", function.getFile().c_str() + scaleFolder.size() + 12);
                 } else {
                     append("ctrl_set_file(\"%s\");\n", function.getFile().c_str());
                 }
             }
 
-            if (funcPrivateStack) {
-                append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
-            } else {
-                append("ctrl_fn_nps_start(\"%s\");\n", functionDeclaration.c_str());
-            }
+            append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
 
             if (sap) {
                 append("sap_open();\n");
@@ -233,7 +229,10 @@ namespace sclc
                     append("ctrl_push(_%s);\n", loadFrom.c_str());
                 } else if (body[i].getType() == tok_identifier && hasFunction(result, body[i])) {
                     append("scl_security_required_arg_count(%zu, ", getFunctionByName(result, body[i].getValue()).getArgs().size());
+                    int tmpScopeDepth = scopeDepth;
+                    scopeDepth = 0;
                     append("\"%s\");\n", body[i].getValue().c_str());
+                    scopeDepth = tmpScopeDepth;
                     append("fn_%s();\n", body[i].getValue().c_str());
                 } else if (body[i].getType() == tok_identifier && hasContainer(result, body[i])) {
                     std::string containerName = body[i].getValue();
@@ -268,6 +267,23 @@ namespace sclc
                     append("ctrl_push($_%s.%s);\n", containerName.c_str(), memberName.c_str());
                 } else if (body[i].getType() == tok_string_literal) {
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
+                } else if (body[i].getType() == tok_cdecl) {
+                    ITER_INC;
+                    if (body[i].getType() != tok_string_literal) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected string literal, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    std::string s = replaceAll(body[i].getValue(), "\\\\\\\\", "\\");
+                    s = replaceAll(s, "\\\\\"", "\"");
+                    append("%s\n", s.c_str());
                 } else if (body[i].getType() == tok_double_column) {
                     ITER_INC;
                     if (body[i].getType() != tok_identifier) {
@@ -511,26 +527,13 @@ namespace sclc
                     }
                     if (was_rep.size() > 0) was_rep.pop_back();
                 } else if (body[i].getType() == tok_return) {
-                    append("{\n");
-                    scopeDepth++;
-                    append("scl_value ret;\n");
-                    append("ssize_t stk_sz = ctrl_stack_size();\n");
-                    append("if (stk_sz > 0) {ret = ctrl_pop();}\n");
                     for (ssize_t j = 0; j < sap_depth; j++) {
                         append("sap_close();\n");
                     }
                     if (sap) {
                         append("sap_close();\n");
                     }
-                    if (funcPrivateStack) {
-                        append("ctrl_fn_end();\n");
-                    } else {
-                        append("ctrl_fn_nps_end();\n");
-                    }
-                    append("if (stk_sz > 0) {ctrl_push(ret);}\n");
                     append("return;\n");
-                    scopeDepth--;
-                    append("}\n");
                 } else if (body[i].getType() == tok_addr_ref) {
                     Token toGet = body[i + 1];
                     if (hasFunction(result, toGet)) {
@@ -1001,19 +1004,7 @@ namespace sclc
                 }
             }
             scopeDepth = 1;
-            if (funcPrivateStack) {
-                if (body.size() <= 0) {
-                    append("ctrl_fn_end();\n");
-                } else if (body[body.size() - 1].getType() != tok_return) {
-                    append("ctrl_fn_end();\n");
-                }
-            } else {
-                if (body.size() <= 0) {
-                    append("ctrl_fn_nps_end();\n");
-                } else if (body[body.size() - 1].getType() != tok_return) {
-                    append("ctrl_fn_nps_end();\n");
-                }
-            }
+            append("ctrl_fn_end();\n");
             if (sap) {
                 append("sap_close();\n");
             }
