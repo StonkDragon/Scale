@@ -105,9 +105,32 @@ namespace sclc
                 if (c == '\n' || c == '\r' || c == '\0') {
                     syntaxError("Unterminated string");
                 }
-                value += c;
-                column++;
-                c = source[++current];
+                
+                if (c == '\\') {
+                    column++;
+                    c = source[++current];
+                    switch (c)
+                    {
+                        case '0':
+                        case 't':
+                        case 'r':
+                        case 'n':
+                        case '"':
+                        case '\\':
+                            value += '\\';
+                            value += c;
+                            c = source[++current];
+                            break;
+                        
+                        default:
+                            syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
+                            break;
+                    }
+                } else {
+                    value += c;
+                    column++;
+                    c = source[++current];
+                }
             }
             current++;
             column++;
@@ -268,6 +291,7 @@ namespace sclc
         TOKEN("complex",    tok_complex_def, line, filename, startColumn);
         TOKEN("new",        tok_new, line, filename, startColumn);
         TOKEN("is",         tok_is, line, filename, startColumn);
+        TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);
         
         TOKEN("@",          tok_hash, line, filename, startColumn);
         TOKEN("(",          tok_open_paren, line, filename, startColumn);
