@@ -9,8 +9,8 @@ char* 		 current_file = "<init>";
 size_t 		 current_line = 0;
 size_t 		 current_column = 0;
 size_t 		 stack_depth = 0;
-scl_stack_t  stack = {0, {0}, {0}};
-scl_stack_t	 callstk = {0, {0}, {0}};
+scl_stack_t  stack = {0, {0}};
+scl_stack_t	 callstk = {0, {0}};
 size_t 		 sap_index = 0;
 size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
@@ -33,7 +33,7 @@ void scl_security_throw(int code, char* msg) {
 }
 
 void scl_security_required_arg_count(ssize_t n, char* func) {
-	if ((stack.ptr - stack.offset[stack_depth]) < n) {
+	if (stack.ptr < n) {
 		char* err = (char*) malloc(MAX_STRING_SIZE);
 		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
 		scl_security_throw(EX_STACK_UNDERFLOW, err);
@@ -56,14 +56,10 @@ void scl_security_check_null(scl_value ptr) {
 
 void ctrl_fn_start(char* name) {
 	callstk.data[callstk.ptr++].ptr = name;
-	stack_depth++;
-	stack.offset[stack_depth] = stack.ptr;
 }
 
 void ctrl_fn_end() {
 	callstk.ptr--;
-	stack.offset[stack_depth] = 0;
-	stack_depth--;
 }
 
 void sap_open(void) {
@@ -84,14 +80,6 @@ void sap_close(void) {
 		ctrl_pop();
 	}
 	sap_index--;
-}
-
-void ctrl_fn_nps_start(char* name) {
-	callstk.data[callstk.ptr++].ptr = name;
-}
-
-void ctrl_fn_nps_end() {
-	callstk.ptr--;
 }
 
 #pragma endregion
@@ -190,7 +178,7 @@ long long ctrl_pop_long() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
+	if (stack.ptr <= 0) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
@@ -202,7 +190,7 @@ double ctrl_pop_double() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
+	if (stack.ptr <= 0) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
@@ -214,7 +202,7 @@ char* ctrl_pop_string() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
+	if (stack.ptr <= 0) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
@@ -226,7 +214,7 @@ scl_value ctrl_pop() {
 	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
 		sap_count[sap_index]--;
 	}
-	if (stack.ptr <= stack.offset[stack_depth]) {
+	if (stack.ptr <= 0) {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
@@ -234,7 +222,7 @@ scl_value ctrl_pop() {
 }
 
 ssize_t ctrl_stack_size(void) {
-	return stack.ptr - stack.offset[stack_depth];
+	return stack.ptr - 0;
 }
 
 #pragma endregion

@@ -68,7 +68,6 @@ typedef union {
 typedef struct {
 	ssize_t     ptr;
 	scl_frame_t data[STACK_SIZE];
-	ssize_t     offset[STACK_SIZE];
 } scl_stack_t;
 
 void		scl_security_throw(int code, char* msg);
@@ -81,11 +80,6 @@ void 		process_signal(int sig_num);
 
 void		ctrl_fn_start(char* name);
 void		ctrl_fn_end(void);
-void		ctrl_fn_end_with_return(void);
-void		ctrl_fn_fn_start(char* name);
-void		ctrl_fn_fn_end(void);
-void		ctrl_fn_nps_start(char* name);
-void		ctrl_fn_nps_end(void);
 void 		ctrl_trace(void);
 void 		print_stacktrace(void);
 

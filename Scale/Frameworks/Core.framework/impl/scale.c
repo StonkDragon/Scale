@@ -21,8 +21,7 @@ extern size_t 		 sap_index;
 
 sclDefFunc(dumpstack) {
 	printf("Dump:\n");
-	ssize_t stack_offset = stack.offset[stack_depth];
-	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
+	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
 		long long v = (long long) stack.data[i].ptr;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
@@ -64,7 +63,7 @@ sclDefFunc(equal) {
 }
 
 sclDefFunc(sizeof_stack) {
-	ctrl_push_long(stack.ptr - stack.offset[stack_depth]);
+	ctrl_push_long(stack.ptr);
 }
 
 sclDefFunc(concat) {
