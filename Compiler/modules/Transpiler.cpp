@@ -281,8 +281,8 @@ namespace sclc
                         errors.push_back(err);
                         continue;
                     }
-                    std::string s = replaceAll(body[i].getValue(), "\\\\\\\\", "\\");
-                    s = replaceAll(s, "\\\\\"", "\"");
+                    std::string s = replaceAll(body[i].getValue(), R"(\\\\)", "\\");
+                    s = replaceAll(s, R"(\\\")", "\"");
                     append("%s\n", s.c_str());
                 } else if (body[i].getType() == tok_double_column) {
                     ITER_INC;
