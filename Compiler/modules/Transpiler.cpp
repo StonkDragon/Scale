@@ -267,6 +267,22 @@ namespace sclc
                     append("ctrl_push($_%s.%s);\n", containerName.c_str(), memberName.c_str());
                 } else if (body[i].getType() == tok_string_literal) {
                     append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
+                } else if (body[i].getType() == tok_as) {
+                    ITER_INC;
+                    if (body[i].getType() != tok_identifier) {
+                        FPResult err;
+                        err.success = false;
+                        err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                        err.column = body[i].getColumn();
+                        err.line = body[i].getLine();
+                        err.in = body[i].getFile();
+                        err.value = body[i].getValue();
+                        err.type =  body[i].getType();
+                        errors.push_back(err);
+                        continue;
+                    }
+                    std::string type = body[i].getValue();
+                    append("ctrl_typecast(\"%s\");\n", type.c_str());
                 } else if (body[i].getType() == tok_cdecl) {
                     ITER_INC;
                     if (body[i].getType() != tok_string_literal) {
@@ -533,6 +549,7 @@ namespace sclc
                     if (sap) {
                         append("sap_close();\n");
                     }
+                    append("ctrl_fn_end();\n");
                     append("return;\n");
                 } else if (body[i].getType() == tok_addr_ref) {
                     Token toGet = body[i + 1];

@@ -63,7 +63,7 @@ function nop()
 end
 
 function strstarts(_s1_, _s2_)
-    _s2_ strlen _s2_ _s1_ strncmp return
+    _s2_ strlen _s2_ _s1_ strncmp
 end
 
 function sizeof(_type_)
@@ -95,15 +95,15 @@ function sizeof(_type_)
 end
 
 function toChar(_val_)
-    _val_ 255 & return
+    _val_ 255 &
 end
 
 function toInt(_val_)
-    _val_ 2147483647 & return
+    _val_ 2147483647 &
 end
 
 function toShort(_val_)
-    _val_ 32767 & return
+    _val_ 32767 &
 end
 
 @nps @nowarn function toChars(_str_)

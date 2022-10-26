@@ -60,9 +60,16 @@
 
 typedef signed long ssize_t;
 typedef void* scl_value;
-typedef union {
-	scl_value ptr;
-	double floating;
+typedef long long scl_int;
+typedef char* scl_str;
+typedef double scl_float;
+
+typedef struct {
+	scl_str type;
+	union {
+		scl_value 	i;
+		scl_float 		f;
+	} value;
 } scl_frame_t;
 
 typedef struct {
@@ -70,25 +77,25 @@ typedef struct {
 	scl_frame_t data[STACK_SIZE];
 } scl_stack_t;
 
-void		scl_security_throw(int code, char* msg);
-void		scl_security_required_arg_count(ssize_t n, char* func);
+void		scl_security_throw(int code, scl_str msg);
+void		scl_security_required_arg_count(ssize_t n, scl_str func);
 void		scl_security_check_null(scl_value n);
 void 		scl_security_safe_exit(int code);
-void		ctrl_set_file(char* file);
+void		ctrl_set_file(scl_str file);
 void        ctrl_set_pos(size_t line, size_t col);
 void 		process_signal(int sig_num);
 
-void		ctrl_fn_start(char* name);
+void		ctrl_fn_start(scl_str name);
 void		ctrl_fn_end(void);
 void 		ctrl_trace(void);
 void 		print_stacktrace(void);
 
-void		ctrl_push_string(const char* c);
+void		ctrl_push_string(const scl_str c);
 void		ctrl_push_long(long long n);
-void		ctrl_push_double(double d);
+void		ctrl_push_double(scl_float d);
 void		ctrl_push(scl_value n);
-char*		ctrl_pop_string(void);
-double		ctrl_pop_double(void);
+scl_str		ctrl_pop_string(void);
+scl_float	ctrl_pop_double(void);
 long long	ctrl_pop_long(void);
 scl_value	ctrl_pop(void);
 ssize_t	 	ctrl_stack_size(void);

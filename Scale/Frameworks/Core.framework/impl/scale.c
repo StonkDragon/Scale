@@ -22,7 +22,7 @@ extern size_t 		 sap_index;
 sclDefFunc(dumpstack) {
 	printf("Dump:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack.data[i].ptr;
+		long long v = (long long) stack.data[i].value.i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");

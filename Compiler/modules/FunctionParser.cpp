@@ -115,7 +115,7 @@ namespace sclc
         "#endif\n"
         "\n"
         "  for (int i = 1; i < argc; i++) {\n"
-        "    ctrl_push_string(argv[i]);\n"
+        "    ctrl_push_string((scl_str) argv[i]);\n"
         "  }\n"
         "\n"
         "  scl_security_required_arg_count(" + std::to_string(mainFunction.getArgs().size()) + ", \"main()\");\n"

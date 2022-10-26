@@ -146,7 +146,8 @@ namespace sclc
         tok_complex_def,    // complex
         tok_new,            // new
         tok_is,             // is
-        tok_cdecl,          // cdecl
+        tok_cdecl,          // cdecl,
+        tok_as,             // as
 
         // operators
         tok_hash,           // #
