@@ -293,6 +293,8 @@ namespace sclc
         TOKEN("is",         tok_is, line, filename, startColumn);
         TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);
         TOKEN("as",         tok_as, line, filename, startColumn);
+        TOKEN("goto",       tok_goto, line, filename, startColumn);
+        TOKEN("label",      tok_label, line, filename, startColumn);
         
         TOKEN("@",          tok_hash, line, filename, startColumn);
         TOKEN("(",          tok_open_paren, line, filename, startColumn);
