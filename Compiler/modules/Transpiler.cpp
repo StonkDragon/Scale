@@ -39,6 +39,10 @@ namespace sclc {
         FILE* nomangled = fopen("scale_support.h", "a");
         fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
         fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
+        fprintf(nomangled, "#define scl_export(func_name) \\\n");
+        fprintf(nomangled, "    void func_name (void); \\\n");
+        fprintf(nomangled, "    void fn_ ## func_name () { func_name (); } \\\n");
+        fprintf(nomangled, "    void func_name (void)\n\n");
         fprintf(nomangled, "#define ssize_t signed long\n");
         fprintf(nomangled, "#define scl_value void*\n");
         fprintf(nomangled, "#define scl_int long long\n");
@@ -343,25 +347,6 @@ namespace sclc {
 
                         case tok_string_literal: {
                             append("ctrl_push_string(\"%s\");\n", body[i].getValue().c_str());
-                            break;
-                        }
-
-                        case tok_as: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string type = body[i].getValue();
-                            append("ctrl_typecast(\"%s\");\n", type.c_str());
                             break;
                         }
 

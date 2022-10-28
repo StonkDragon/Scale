@@ -27,7 +27,7 @@
 
 /* Function header */
 #define sclDefFunc(name)   	\
-  void fn_ ## name ()
+  void fn_ ## name (void)
 
 /* Call a function with the given name and arguments. */
 #define sclCallFunc(name)  	\
