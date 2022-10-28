@@ -147,7 +147,6 @@ namespace sclc
         tok_new,            // new
         tok_is,             // is
         tok_cdecl,          // cdecl
-        tok_as,             // as
         tok_label,          // label
         tok_goto,           // goto
 
