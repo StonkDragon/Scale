@@ -1,4 +1,4 @@
-#include "Common.hpp"
+#include "headers/Common.hpp"
 
 #ifndef _WIN32
 #include <execinfo.h>
@@ -45,7 +45,7 @@ namespace sclc
     #endif
 
     std::vector<std::string> vars;
-    _Main Main = {0, 0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0, 0}};
+    _Main Main = {0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0, 0, 0}};
 
     void print_trace(void) {
 #ifndef _WIN32
@@ -112,7 +112,8 @@ namespace sclc
     }
 
     bool isOperator(Token token) {
-        return token.type == tok_add || token.type == tok_sub || token.type == tok_mul || token.type == tok_div || token.type == tok_mod || token.type == tok_land || token.type == tok_lor || token.type == tok_lxor || token.type == tok_lnot || token.type == tok_lsh || token.type == tok_rsh || token.type == tok_pow || token.type == tok_dadd || token.type == tok_dsub || token.type == tok_dmul || token.type == tok_ddiv;
+        TokenType type = token.getType();
+        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow || type == tok_dadd || type == tok_dsub || type == tok_dmul || type == tok_ddiv;
     }
 
     bool fileExists(const std::string& name) {

@@ -21,8 +21,8 @@
 #define execv _execv
 #endif
 
-#include "Common.hpp"
-#include "modules/DragonConfig.hpp"
+#include "headers/Common.hpp"
+#include "headers/DragonConfig.hpp"
 
 #ifndef VERSION
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
@@ -64,6 +64,8 @@ namespace sclc
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Accepted Flags:" << std::endl;
         std::cout << "  -t, --transpile  Transpile only" << std::endl;
         std::cout << "  -h, --help       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
@@ -74,6 +76,9 @@ namespace sclc
         std::cout << "  -v, --version    Show version information" << std::endl;
         std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
         std::cout << "  -run             Run the compiled program" << std::endl;
+        std::cout << "  -cflags          Print c compiler flags and exit" << std::endl;
+        std::cout << std::endl;
+        std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -85,8 +90,7 @@ namespace sclc
         return false;
     }
 
-    int main(std::vector<std::string> args)
-    {
+    int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
             return 1;
@@ -99,6 +103,7 @@ namespace sclc
         bool assembleOnly       = false;
         bool noCoreFramework    = false;
         bool doRun              = false;
+        bool printCflags        = false;
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
@@ -125,11 +130,18 @@ namespace sclc
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
-                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework")) {
+                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework") && !fileExists("./" + framework + ".framework")) {
                             std::cerr << "Framework '" << framework << "' not found" << std::endl;
                             return 1;
                         }
-                        frameworks.push_back(framework);
+                        bool alreadyIncluded = false;
+                        for (auto f : frameworks) {
+                            if (f == framework) {
+                                alreadyIncluded = true;
+                            }
+                        }
+                        if (!alreadyIncluded)
+                            frameworks.push_back(framework);
                         i++;
                     } else {
                         std::cerr << "Error: -f requires an argument" << std::endl;
@@ -164,6 +176,10 @@ namespace sclc
                     }
                 } else if (args[i] == "-run") {
                     doRun = true;
+                } else if (args[i] == "-debug") {
+                    Main.options.debugBuild = true;
+                } else if (args[i] == "-cflags") {
+                    printCflags = true;
                 } else {
                     tmpFlags.push_back(args[i]);
                 }
@@ -172,7 +188,8 @@ namespace sclc
 
         std::vector<std::string> cflags;
 
-        cflags.push_back(compiler);
+        if (!printCflags)
+            cflags.push_back(compiler);
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I" + scaleFolder + "/Internal");
         cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
@@ -185,64 +202,158 @@ namespace sclc
             return 1;
         }
 
-        cflags.push_back("-o");
-        cflags.push_back("\"" + outfile + "\"");
+        if (!printCflags) {
+            cflags.push_back("-o");
+            cflags.push_back("\"" + outfile + "\"");
+        }
 
-        if (!noCoreFramework)
+        bool alreadyIncluded = false;
+        for (auto f : frameworks) {
+            if (f == "Core") {
+                alreadyIncluded = true;
+            }
+        }
+        if (!noCoreFramework && !alreadyIncluded)
             frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
         for (std::string framework : frameworks) {
-            DragonConfig::ConfigParser parser;
-            DragonConfig::CompoundEntry root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg").getCompound("framework");
-            DragonConfig::ListEntry implementers = root.getList("implementers");
-            DragonConfig::ListEntry implHeaders = root.getList("implHeaders");
-            DragonConfig::ListEntry depends = root.getList("depends");
-            DragonConfig::ListEntry compilerFlags = root.getList("compilerFlags");
-            std::string version = root.getString("version").getValue();
-            std::string headerDir = root.getString("headerDir").getValue();
-            std::string implDir = root.getString("implDir").getValue();
-            std::string implHeaderDir = root.getString("implHeaderDir").getValue();
-
-            Version ver = Version(version);
-            Version compilerVersion = Version(VERSION);
-            if (ver > compilerVersion) {
-                std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                return 1;
-            }
-            if (ver < FrameworkMinimumVersion) {
-                fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                return 1;
-            }
-
-            for (size_t i = 0; i < depends.size(); i++) {
-                std::string depend = depends.get(i);
-                if (!contains(frameworks, depend)) {
-                    std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+            if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
                     return 1;
                 }
-            }
+                root = root->getCompound("framework");
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
 
-            for (size_t i = 0; i < compilerFlags.size(); i++) {
-                std::string flag = compilerFlags.get(i);
-                cflags.push_back(flag);
-            }
-
-            Main.frameworks.push_back(framework);
-
-            globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-            unsigned long implementersSize = implementers.size();
-            for (unsigned long i = 0; i < implementersSize; i++) {
-                std::string implementer = implementers.get(i);
-                if (!assembleOnly) {
-                    cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
                 }
-            }
-            for (unsigned long i = 0; i < implHeaders.size(); i++) {
-                std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders.get(i);
-                Main.frameworkNativeHeaders.push_back(header);
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return 1;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->get(i);
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return 1;
+                    }
+                }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->get(i);
+                    cflags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers->get(i);
+                    if (!assembleOnly) {
+                        cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
+            } else if (fileExists("./" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return 1;
+                }
+                root = root->getCompound("framework");
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return 1;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->get(i);
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return 1;
+                    }
+                }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->get(i);
+                    cflags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) globalPreproc += " -I./" + framework + ".framework/" + headerDir;
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
+                    std::string implementer = implementers->get(i);
+                    if (!assembleOnly) {
+                        cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
             }
         }
 
@@ -250,11 +361,11 @@ namespace sclc
         
         std::vector<Token>  tokens;
 
-        for (size_t i = 0; i < files.size(); i++) {
+        for (size_t i = 0; i < files.size() && !printCflags; i++) {
             std::string filename = files[i];
             if (!doRun) std::cout << "Compiling " << filename << "..." << std::endl;
 
-            FILE* tmp = fopen(filename.c_str(), "r");
+            FILE* tmp = fopen(filename.c_str(), "rb");
             fseek(tmp, 0, SEEK_END);
             long size = ftell(tmp);
             fseek(tmp, 0, SEEK_SET);
@@ -262,7 +373,7 @@ namespace sclc
             char* buffer = new char[size];
             fread(buffer, 1, size, tmp);
 
-            FILE* file = fopen((filename + ".c").c_str(), "w");
+            FILE* file = fopen((filename + ".c").c_str(), "wb");
             fwrite(buffer, size, 1, file);
             fclose(file);
             fclose(tmp);
@@ -343,11 +454,14 @@ namespace sclc
             return 0;
         }
 
-        TokenParser lexer(tokens);
-        Main.lexer = &lexer;
-        TPResult result = Main.lexer->parse();
+        TPResult result;
+        if (!printCflags) {
+            TokenParser lexer(tokens);
+            Main.lexer = &lexer;
+            result = Main.lexer->parse();
+        }
 
-        if (result.errors.size() > 0) {
+        if (!printCflags && result.errors.size() > 0) {
             for (FPResult error : result.errors) {
                 if (error.line == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
@@ -392,62 +506,64 @@ namespace sclc
             return result.errors.size();
         }
         
-        FunctionParser parser(result);
-        Main.parser = &parser;
-        char* source = (char*) malloc(sizeof(char) * 50);
-        
-        srand(time(NULL));
-        if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
-        else snprintf(source, 4, "out");
-        cflags.push_back(std::string(source) + ".c");
+        char* source = NULL;
+        if (!printCflags) {
+            FunctionParser parser(result);
+            Main.parser = &parser;
+            source = (char*) malloc(sizeof(char) * 50);
+            
+            srand(time(NULL));
+            if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
+            else snprintf(source, 4, "out");
+            cflags.push_back(std::string(source) + ".c");
 
-        FPResult parseResult = Main.parser->parse(std::string(source));
-
-        if (parseResult.errors.size() > 0) {
-            for (FPResult error : parseResult.errors) {
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                while (fgets(line, 500, f) != NULL) {
-                    if (i == error.line) {
-                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l;
-                        if (error.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                        } else if (error.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
-                        } else {
-                            l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
-                    } else if (i == error.line - 1 || i == error.line - 2) {
-                        if (strlen(line) > 0)
-                            std::cerr << "  " << line;
-                    } else if (i == error.line + 1 || i == error.line + 2) {
-                        if (strlen(line) > 0)
-                            std::cerr << "  " << line;
+            FPResult parseResult = Main.parser->parse(std::string(source));
+            if (parseResult.errors.size() > 0) {
+                for (FPResult error : parseResult.errors) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
                     }
-                    i++;
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
                 }
-                fclose(f);
-                std::cerr << std::endl;
-                free(line);
+                remove((std::string(source) + ".c").c_str());
+                remove((std::string(source) + ".h").c_str());
+                return parseResult.errors.size();
             }
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
-            return parseResult.errors.size();
         }
 
         if (transpileOnly) {
@@ -470,18 +586,27 @@ namespace sclc
             cmd += s + " ";
         }
 
-        if (!doRun) std::cout << "Compiling with " << cmd << std::endl;
+        if (!doRun && !printCflags) std::cout << "Compiling with " << cmd << std::endl;
+
+        if (printCflags) {
+            std::cout << cmd << std::endl;
+            return 0;
+        }
 
         int ret = system(cmd.c_str());
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
+            if (source == NULL)
+                return ret;
             remove((std::string(source) + ".c").c_str());
             remove((std::string(source) + ".h").c_str());
             return ret;
         }
-        remove((std::string(source) + ".c").c_str());
-        remove((std::string(source) + ".h").c_str());
+        if (source != NULL) {
+            remove((std::string(source) + ".c").c_str());
+            remove((std::string(source) + ".h").c_str());
+        }
         
         if (!doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
@@ -503,8 +628,7 @@ namespace sclc
     }
 }
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
     signal(SIGILL, sclc::signalHandler);

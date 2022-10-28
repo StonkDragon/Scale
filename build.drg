@@ -13,6 +13,7 @@ build: {
     "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
     "modules/Transpiler.cpp";
+    "modules/DragonConfig.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";
@@ -23,7 +24,7 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"3.0\"";
+    "VERSION=\"3.1\"";
   ];
   std: "gnu++17";
   flags: [
@@ -40,5 +41,6 @@ build: {
     "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "python3 tests.py run";
+    "rm scale_support.h";
   ];
 };

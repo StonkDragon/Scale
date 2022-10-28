@@ -1,0 +1,91 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "scale",
+	"patterns": [
+		{"include": "#comment"},
+		{"include": "#keyw_preprocessor"},
+		{"include": "#keyw_operator"},
+		{"include": "#keyword"},
+		{"include": "#keyw_constant"},
+		{"include": "#function_declaration"},
+		{"include": "#end_function"},
+		{"include": "#quoted_string"},
+		{"include": "#quoted_char"},
+		{"include": "#constant_number"},
+		{"include": "#default"}
+	],
+	"repository": {
+		"comment": {
+			"name": "string.comment",
+			"begin": "//",
+			"end": "\n",
+			"patterns": [{
+				"name": "comment",
+				"match": "\\\\."
+			}]
+		},
+		"keyw_preprocessor": {
+			"name": "meta.preprocessor",
+			"patterns": [{
+				"name": "meta.preprocessor",
+				"match": "#(include|ifdef|ifndef|if|define|undef|endif|error|warning|else)\\b"
+			}]
+		},
+		"keyw_constant": {
+			"name": "entity.name.function",
+			"patterns": [{
+				"name": "entity.name.function",
+				"match": "\\b(true|false|nil)\\b"
+			}]
+		},
+		"keyword": {
+			"patterns": [{
+				"name": "keyword.control",
+				"match": "\\b(deref|ref|addr|decl|store|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|complex|new|is)\\b"
+			}]
+		},
+		"function_declaration": {
+			"patterns": [{
+				"name": "variable.name",
+				"match": "[A-Za-z_]+([A-Za-z_0-9]+)?\\("
+			}]
+		},
+		"end_function": {
+			"patterns": [{
+				"name": "variable.name",
+				"match": "\\)"
+			}]
+		},
+		"quoted_string": {
+			"name": "string.quoted.double",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [{
+				"name": "string",
+				"match": "\\\\."
+			}]
+		},
+		"quoted_char": {
+			"name": "constant.character",
+			"begin": "'",
+			"end": "'",
+			"patterns": [{
+				"name": "char",
+				"match": "\\\\?."
+			}]
+		},
+		"constant_number": {
+			"name": "constant.numeric",
+			"match": "\\b(0x[0-9a-fA-F]+|0b[0-1]+|0o[0-7]+|[0-9]+(\\.[0-9]+)?)\\b"
+		},
+		"default": {
+			"name": "variable.name",
+			"match": "."
+		},
+		"keyw_operator": {
+			"name": "keyword.control",
+			"match": "(::|->|\\.|(\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
+		}
+	},
+	"scopeName": "source.scale"
+}

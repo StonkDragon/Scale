@@ -4,7 +4,7 @@
 
   Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using the [Scale header file](./Scale/Internal/scale_internal.h.h), which supplies function declarations for all of the Scale functions. It also contains Macros for calling your own Scale functions from C.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file. This file contains C-declarations for all important Scale internal functions and data types. If you have any scale functions marked with the `nomangle` modifier, C-declarations for those functions will also appear in the file. The `scl_export`-Macro defined in said file allows you to declare functions that can be called from scale.
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
@@ -78,8 +78,11 @@ Optional:
   - `complex`: Define a complex
   - `new`: Create a new value of a Complex type
   - `is`: Check if a value is of a specific type
+  - `cdecl`: Interprets the following string literal as C-code
+  - `label`: Declare a new label
+  - `goto`: Goto a label
 
-## Argument Notation
+## Argument Notation/Calling Convention
 
 Say we have following function:
 

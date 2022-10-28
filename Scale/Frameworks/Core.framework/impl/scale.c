@@ -7,9 +7,7 @@ extern "C" {
 
 #include "scale.h"
 
-extern size_t		 memalloced_ptr[STACK_SIZE];
 extern size_t 		 stack_depth;
-extern scl_memory_t  memalloced[STACK_SIZE][MALLOC_LIMIT];
 extern scl_stack_t	 callstk;
 extern scl_stack_t   stack;
 extern char* 		 current_file;
@@ -23,9 +21,8 @@ extern size_t 		 sap_index;
 
 sclDefFunc(dumpstack) {
 	printf("Dump:\n");
-	ssize_t stack_offset = stack.offset[stack_depth];
-	for (ssize_t i = stack.ptr - 1; i >= stack_offset; i--) {
-		long long v = (long long) stack.data[i].ptr;
+	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack.data[i].value.i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
@@ -66,7 +63,7 @@ sclDefFunc(equal) {
 }
 
 sclDefFunc(sizeof_stack) {
-	ctrl_push_long(stack.ptr - stack.offset[stack_depth]);
+	ctrl_push_long(stack.ptr);
 }
 
 sclDefFunc(concat) {
@@ -277,10 +274,7 @@ sclDefFunc(memcpy) {
 }
 
 sclDefFunc(time) {
-	struct timespec t;
-	clock_gettime(CLOCK_REALTIME, &t);
-	long long millis = t.tv_sec * 1000 + t.tv_nsec / 1000000;
-	ctrl_push_long(millis);
+	ctrl_push_long(time(NULL));
 }
 
 sclDefFunc(trace) {

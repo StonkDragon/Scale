@@ -5,19 +5,19 @@
 #include <string>
 #include <vector>
 
-#include "../Common.hpp"
+#include "../headers/Common.hpp"
 
 namespace sclc
 {
-    TPResult TokenParser::parse()
-    {
+    TPResult TokenParser::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Complex* currentComplex = nullptr;
 
-        bool functionPrivateStack = true;
+        bool funcPrivateStack = true;
         bool funcNoWarn = false;
         bool funcSAP = false;
+        bool funcNoMangle = false;
 
         std::vector<std::string> uses;
         std::vector<std::string> globals;
@@ -81,6 +81,11 @@ namespace sclc
                 std::string name = tokens[i + 1].getValue();
                 Token func = tokens[i + 1];
                 currentFunction = new Function(name);
+                currentFunction->setFile(func.getFile());
+                if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
+                if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
+                if (funcSAP) currentFunction->addModifier(mod_sap);
+                if (funcNoMangle) currentFunction->addModifier(mod_nomangle);
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
@@ -130,18 +135,10 @@ namespace sclc
                 }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
-                    if (!functionPrivateStack) {
-                        currentFunction->addModifier(mod_nps);
-                        functionPrivateStack = true;
-                    }
-                    if (funcNoWarn) {
-                        currentFunction->addModifier(mod_nowarn);
-                        funcNoWarn = false;
-                    }
-                    if (funcSAP) {
-                        currentFunction->addModifier(mod_sap);
-                        funcSAP = false;
-                    }
+                    funcPrivateStack = true;
+                    funcNoWarn = false;
+                    funcSAP = false;
+                    funcNoMangle = false;
                     addIfAbsent(functions, *currentFunction);
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
@@ -292,11 +289,13 @@ namespace sclc
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
                         if (tokens[i + 1].getValue() == "nps") {
-                            functionPrivateStack = false;
+                            funcPrivateStack = false;
                         } else if (tokens[i + 1].getValue() == "nowarn") {
                             funcNoWarn = true;
                         } else if (tokens[i + 1].getValue() == "sap") {
                             funcSAP = true;
+                        } else if (tokens[i + 1].getValue() == "nomangle") {
+                            funcNoMangle = true;
                         } else {
                             FPResult result;
                             result.message = "Error: " + tokens[i + 1].getValue() + " is not a valid modifier.";

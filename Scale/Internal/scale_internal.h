@@ -26,12 +26,15 @@
 #endif
 
 /* Function header */
-#define sclDefFunc(name, ...)   	\
-  void fn_ ## name (__VA_ARGS__)
+#define sclDefFunc(name)   	\
+  void fn_ ## name (void)
 
 /* Call a function with the given name and arguments. */
-#define sclCallFunc(name, ...)  	\
-  fn_ ## name (__VA_ARGS__)
+#define sclCallFunc(name)  	\
+  fn_ ## name ()
+
+#define operator(a) \
+  void op_ ## a (void)
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
@@ -55,76 +58,69 @@
 #define EX_CAST_ERROR 		134
 #define EX_SAP_ERROR 		135
 
-// Types
-#define TYPE_STR "str"
-#define TYPE_LONG "int"
-#define TYPE_DOUBLE "float"
-
-
-typedef signed long ssize_t;
-typedef void* scl_value;
-typedef union {
-	scl_value ptr;
-	double floating;
-} scl_frame_t;
-typedef scl_frame_t scl_var;
+#define ssize_t signed long
+#define scl_value void*
+#define scl_int long long
+#define scl_str char*
+#define scl_float double
 
 typedef struct {
-	scl_value ptr;
-	ssize_t   level;
-	int       isFile;
-} scl_memory_t;
+	scl_str type;
+	union {
+		scl_value 	i;
+		scl_float 	f;
+	} value;
+} scl_frame_t;
 
 typedef struct {
 	ssize_t     ptr;
 	scl_frame_t data[STACK_SIZE];
-	ssize_t     offset[STACK_SIZE];
 } scl_stack_t;
 
-void		scl_security_throw(int code, char* msg);
-void		scl_security_required_arg_count(ssize_t n, char* func);
-void		ctrl_where(char* file, size_t line, size_t col);
-void		ctrl_fn_start(char* name);
+void		scl_security_throw(int code, scl_str msg);
+void		scl_security_required_arg_count(ssize_t n, scl_str func);
+void		scl_security_check_null(scl_value n);
+void 		scl_security_safe_exit(int code);
+void		ctrl_set_file(scl_str file);
+void        ctrl_set_pos(size_t line, size_t col);
+void 		process_signal(int sig_num);
+
+void		ctrl_fn_start(scl_str name);
 void		ctrl_fn_end(void);
-void		ctrl_fn_end_with_return(void);
-void		ctrl_fn_fn_start(char* name);
-void		ctrl_fn_fn_end(void);
-void		ctrl_fn_nps_start(char* name);
-void		ctrl_fn_nps_end(void);
-void		ctrl_push_string(const char* c);
+void 		ctrl_trace(void);
+void 		print_stacktrace(void);
+
+void		ctrl_push_string(const scl_str c);
 void		ctrl_push_long(long long n);
-void		ctrl_push_double(double d);
+void		ctrl_push_double(scl_float d);
 void		ctrl_push(scl_value n);
-char*		ctrl_pop_string(void);
-double		ctrl_pop_double(void);
+scl_str		ctrl_pop_string(void);
+scl_float	ctrl_pop_double(void);
 long long	ctrl_pop_long(void);
 scl_value	ctrl_pop(void);
 ssize_t	 	ctrl_stack_size(void);
+void 		sap_open(void);
+void		sap_close(void);
+
 int		 	scl_is_complex(void* p);
 scl_value	scl_alloc_complex(size_t size);
 void		scl_dealloc_complex(scl_value ptr);
-void 		ctrl_trace(void);
-void 		print_stacktrace(void);
-void 		process_signal(int sig_num);
-void		scl_security_check_null(scl_value n);
-void 		scl_security_safe_exit(int code);
-void 		sap_open(void);
-void		sap_close(void);
-void		op_add(void);
-void		op_sub(void);
-void		op_mul(void);
-void		op_div(void);
-void		op_mod(void);
-void		op_land(void);
-void		op_lor(void);
-void		op_lxor(void);
-void		op_lnot(void);
-void		op_lsh(void);
-void		op_rsh(void);
-void		op_pow(void);
-void		op_dadd(void);
-void		op_dsub(void);
-void		op_dmul(void);
-void		op_ddiv(void);
+
+operator(add);
+operator(sub);
+operator(mul);
+operator(div);
+operator(mod);
+operator(land);
+operator(lor);
+operator(lxor);
+operator(lnot);
+operator(lsh);
+operator(rsh);
+operator(pow);
+operator(dadd);
+operator(dsub);
+operator(dmul);
+operator(ddiv);
 
 #endif
