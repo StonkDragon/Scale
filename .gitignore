@@ -7,9 +7,7 @@
 *.obj
 *.elf
 *.scale.c
-*.scale.h
 out.c
-out.h
 
 # Linker output
 *.ilk
@@ -55,6 +53,7 @@ makebin
 compile
 experimental
 gen.js
+scale_support.h
 
 # Kernel Module Compile Results
 *.mod*
