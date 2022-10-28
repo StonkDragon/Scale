@@ -91,25 +91,37 @@ namespace sclc
             errors.push_back(result);
         }
 
-        Transpiler::writeHeader(fp);
-        Transpiler::writeFunctionHeaders(fp, result);
-        Transpiler::writeExternHeaders(fp, result);
-        Transpiler::writeInternalFunctions(fp, result);
-        Transpiler::writeGlobals(fp, globals, result);
-        Transpiler::writeContainers(fp, result);
-        Transpiler::writeComplexes(fp, result);
-        Transpiler::writeFunctions(fp, errors, warns, globals, result);
+        ConvertC::writeHeader(fp);
+        ConvertC::writeFunctionHeaders(fp, result);
+        ConvertC::writeExternHeaders(fp, result);
+        ConvertC::writeInternalFunctions(fp, result);
+        ConvertC::writeGlobals(fp, globals, result);
+        ConvertC::writeContainers(fp, result);
+        ConvertC::writeComplexes(fp, result);
+        ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainCall = "  fn_main(void);\n";
 
         std::string mainEntry = 
         "int main(int argc, char const *argv[]) {\n"
+        "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
+        "#endif\n"
+        "#ifdef SIGILL\n"
         "  signal(SIGILL, process_signal);\n"
+        "#endif\n"
+        "#ifdef SIGABRT\n"
         "  signal(SIGABRT, process_signal);\n"
+        "#endif\n"
+        "#ifdef SIGFPE\n"
         "  signal(SIGFPE, process_signal);\n"
+        "#endif\n"
+        "#ifdef SIGSEGV\n"
         "  signal(SIGSEGV, process_signal);\n"
+        "#endif\n"
+        "#ifdef SIGBUS\n"
         "  signal(SIGBUS, process_signal);\n"
+        "#endif\n"
         "#ifdef SIGTERM\n"
         "  signal(SIGTERM, process_signal);\n"
         "#endif\n"
@@ -118,6 +130,7 @@ namespace sclc
         "    ctrl_push_string((scl_str) argv[i]);\n"
         "  }\n"
         "\n"
+        "  srand(time(NULL));\n"
         "  scl_security_required_arg_count(" + std::to_string(mainFunction.getArgs().size()) + ", \"main()\");\n"
         "  fn_main();\n"
         "  return 0;\n"

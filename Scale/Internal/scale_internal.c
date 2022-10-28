@@ -5,7 +5,7 @@
 #endif
 
 /* Variables */
-scl_str 		 current_file = "<init>";
+scl_str      current_file = "<init>";
 size_t 		 current_line = 0;
 size_t 		 current_column = 0;
 size_t 		 stack_depth = 0;
@@ -107,13 +107,28 @@ void process_signal(int sig_num)
 {
 	scl_str signalString;
 	// Signals
+	if (sig_num == -1) signalString = NULL;
+#ifdef SIGABRT
 	if (sig_num == SIGABRT) signalString = "abort() called";
+#endif
+#ifdef SIGFPE
 	else if (sig_num == SIGFPE) signalString = "Floating point exception";
+#endif
+#ifdef SIGILL
 	else if (sig_num == SIGILL) signalString = "Illegal instruction";
+#endif
+#ifdef SIGINT
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
+#endif
+#ifdef SIGSEGV
 	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
+#endif
+#ifdef SIGBUS
 	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
+#endif
+#ifdef SIGTERM
 	else if (sig_num == SIGTERM) signalString = "Software Termiation";
+#endif
 	else signalString = "Unknown signal";
 
 	printf("\n");

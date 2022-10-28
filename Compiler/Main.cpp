@@ -628,8 +628,7 @@ namespace sclc
     }
 }
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
     signal(SIGILL, sclc::signalHandler);

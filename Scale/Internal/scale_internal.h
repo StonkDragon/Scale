@@ -58,17 +58,17 @@
 #define EX_CAST_ERROR 		134
 #define EX_SAP_ERROR 		135
 
-typedef signed long ssize_t;
-typedef void* scl_value;
-typedef long long scl_int;
-typedef char* scl_str;
-typedef double scl_float;
+#define ssize_t signed long
+#define scl_value void*
+#define scl_int long long
+#define scl_str char*
+#define scl_float double
 
 typedef struct {
 	scl_str type;
 	union {
 		scl_value 	i;
-		scl_float 		f;
+		scl_float 	f;
 	} value;
 } scl_frame_t;
 
