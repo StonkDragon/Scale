@@ -146,8 +146,10 @@ namespace sclc
         tok_complex_def,    // complex
         tok_new,            // new
         tok_is,             // is
-        tok_cdecl,          // cdecl,
+        tok_cdecl,          // cdecl
         tok_as,             // as
+        tok_label,          // label
+        tok_goto,           // goto
 
         // operators
         tok_hash,           // #
@@ -238,7 +240,8 @@ namespace sclc
     {
         mod_nps,
         mod_nowarn,
-        mod_sap
+        mod_sap,
+        mod_nomangle
     };
 
     class Function
@@ -403,8 +406,7 @@ namespace sclc
         TPResult result;
 
     public:
-        FunctionParser(TPResult result)
-        {
+        FunctionParser(TPResult result) {
             this->result = result;
         }
         ~FunctionParser() {}
@@ -427,7 +429,7 @@ namespace sclc
         void printTokens();
     };
     
-    class Transpiler {
+    class ConvertC {
     public:
         static void writeHeader(FILE* fp);
         static void writeFunctionHeaders(FILE* fp, TPResult result);
