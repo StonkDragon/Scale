@@ -156,7 +156,7 @@ namespace sclc {
         }
         for (Container c : result.containers) {
             for (std::string s : c.getMembers()) {
-                append("  &$_%s.%s,\n", c.getName().c_str(), s.c_str());
+                append("  (void*) &$_%s.%s,\n", c.getName().c_str(), s.c_str());
             }
         }
         append("};\n");
