@@ -85,7 +85,21 @@ namespace sclc
                 if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
                 if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
                 if (funcSAP) currentFunction->addModifier(mod_sap);
-                if (funcNoMangle) currentFunction->addModifier(mod_nomangle);
+                if (funcNoMangle) {
+                    if (currentFunction->getName() == "main") {
+                        FPResult result;
+                        result.message = "Main function must be mangled!";
+                        result.column = tokens[i + 1].getColumn();
+                        result.value = tokens[i + 1].getValue();
+                        result.line = tokens[i + 1].getLine();
+                        result.in = tokens[i + 1].getFile();
+                        result.type = tokens[i + 1].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    currentFunction->addModifier(mod_nomangle);
+                }
                 i += 2;
                 if (tokens[i].getType() == tok_open_paren) {
                     i++;
