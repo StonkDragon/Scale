@@ -104,6 +104,7 @@ namespace sclc
         bool noCoreFramework    = false;
         bool doRun              = false;
         bool printCflags        = false;
+        bool dontSpecifyOutFile = false;
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
@@ -157,6 +158,7 @@ namespace sclc
                     }
                 } else if (args[i] == "-S") {
                     assembleOnly = true;
+                    dontSpecifyOutFile = true;
                     tmpFlags.push_back("-S");
                 } else if (args[i] == "--no-core") {
                     noCoreFramework = true;
@@ -181,6 +183,8 @@ namespace sclc
                 } else if (args[i] == "-cflags") {
                     printCflags = true;
                 } else {
+                    if (args[i] == "-c")
+                        dontSpecifyOutFile = true;
                     tmpFlags.push_back(args[i]);
                 }
             }
@@ -202,7 +206,7 @@ namespace sclc
             return 1;
         }
 
-        if (!printCflags) {
+        if (!printCflags && !dontSpecifyOutFile) {
             cflags.push_back("-o");
             cflags.push_back("\"" + outfile + "\"");
         }
