@@ -8,7 +8,6 @@
 scl_str      current_file = "<init>";
 size_t 		 current_line = 0;
 size_t 		 current_column = 0;
-size_t 		 stack_depth = 0;
 scl_stack_t  stack = {0, {{0}}};
 scl_stack_t	 callstk = {0, {{0}}};
 size_t 		 sap_index = 0;
@@ -103,8 +102,7 @@ void print_stacktrace() {
 	printf("\n");
 }
 
-void process_signal(int sig_num)
-{
+void process_signal(int sig_num) {
 	scl_str signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
@@ -253,8 +251,9 @@ void ctrl_typecast(scl_str new_type) {
 #pragma region Complex
 
 int scl_is_complex(void* p) {
+	if (p == NULL) return 0;
 	for (size_t i = 0; i < alloced_complexes_count; i++) {
-		if (p != 0 && alloced_complexes[i] == p) {
+		if (alloced_complexes[i] == p) {
 			return 1;
 		}
 	}
@@ -279,25 +278,25 @@ void scl_dealloc_complex(scl_value ptr) {
 
 #pragma region Operators
 
-operator(add) {
+void op_add(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a + b);
 }
 
-operator(sub) {
+void op_sub(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a - b);
 }
 
-operator(mul) {
+void op_mul(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a * b);
 }
 
-operator(div) {
+void op_div(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -306,7 +305,7 @@ operator(div) {
 	ctrl_push_long(a / b);
 }
 
-operator(mod) {
+void op_mod(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -315,42 +314,42 @@ operator(mod) {
 	ctrl_push_long(a % b);
 }
 
-operator(land) {
+void op_land(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a & b);
 }
 
-operator(lor) {
+void op_lor(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a | b);
 }
 
-operator(lxor) {
+void op_lxor(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a ^ b);
 }
 
-operator(lnot) {
+void op_lnot(void) {
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(~a);
 }
 
-operator(lsh) {
+void op_lsh(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a << b);
 }
 
-operator(rsh) {
+void op_rsh(void) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a >> b);
 }
 
-operator(pow) {
+void op_pow(void) {
 	scl_int exp = ctrl_pop_long();
 	if (exp < 0) {
 		scl_security_throw(EX_BAD_PTR, "Negative exponent!");
@@ -365,25 +364,25 @@ operator(pow) {
 	ctrl_push_long(intResult);
 }
 
-operator(dadd) {
+void op_dadd(void) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 + n2);
 }
 
-operator(dsub) {
+void op_dsub(void) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 - n2);
 }
 
-operator(dmul) {
+void op_dmul(void) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 * n2);
 }
 
-operator(ddiv) {
+void op_ddiv(void) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 / n2);

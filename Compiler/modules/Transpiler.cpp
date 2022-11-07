@@ -22,12 +22,12 @@ namespace sclc {
         }
 
         append("\n");
-        append("const char* const __scl_internal__frameworks[] = {\n");
+        append("const char* const __scl_internal__frameworks[] asm(\"frameworks\") = {\n");
         for (std::string framework : Main.frameworks) {
             append("  \"%s\",\n", framework.c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__frameworks_size = %zu;\n", Main.frameworks.size());
+        append("const size_t __scl_internal__frameworks_size asm(\"frameworks_size\") = %zu;\n", Main.frameworks.size());
         append("\n");
     }
 
@@ -35,30 +35,44 @@ namespace sclc {
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
 
-        remove("scale_support.h");
-        FILE* nomangled = fopen("scale_support.h", "a");
-        fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
-        fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
-        fprintf(nomangled, "#define scl_export(func_name) \\\n");
-        fprintf(nomangled, "    void func_name (void); \\\n");
-        fprintf(nomangled, "    void fn_ ## func_name () { func_name (); } \\\n");
-        fprintf(nomangled, "    void func_name (void)\n\n");
-        fprintf(nomangled, "#define ssize_t signed long\n");
-        fprintf(nomangled, "#define scl_value void*\n");
-        fprintf(nomangled, "#define scl_int long long\n");
-        fprintf(nomangled, "#define scl_str char*\n");
-        fprintf(nomangled, "#define scl_float double\n\n");
-        fprintf(nomangled, "void ctrl_push_string(const scl_str c);\n");
-        fprintf(nomangled, "void ctrl_push_long(long long n);\n");
-        fprintf(nomangled, "void ctrl_push_double(scl_float d);\n");
-        fprintf(nomangled, "void ctrl_push(scl_value n);\n");
-        fprintf(nomangled, "scl_str ctrl_pop_string(void);\n");
-        fprintf(nomangled, "scl_float ctrl_pop_double(void);\n");
-        fprintf(nomangled, "long long ctrl_pop_long(void);\n");
-        fprintf(nomangled, "scl_value ctrl_pop(void);\n\n");
+        FILE* nomangled;
+        if (Main.options.transpileOnly) {
+            remove("scale_support.h");
+            nomangled = fopen("scale_support.h", "a");
+            fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
+            fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
+
+            fprintf(nomangled, "#ifndef ASM_FN_FMT\n");
+            fprintf(nomangled, "#ifdef __APPLE__\n");
+            fprintf(nomangled, "#define ASM_FN_FMT(name) \"[\" #name \"]\"\n");
+            fprintf(nomangled, "#else\n");
+            fprintf(nomangled, "#define ASM_FN_FMT(name) \"\\\\\\\"[\" #name \"]\\\\\\\"\"\n");
+            fprintf(nomangled, "#endif\n");
+            fprintf(nomangled, "#endif\n");
+
+            fprintf(nomangled, "#define scl_export(func_name) \\\n");
+            fprintf(nomangled, "    void func_name (void); \\\n");
+            fprintf(nomangled, "    void fn_ ## func_name (void) asm(ASM_FN_FMT(func_name)); \\\n");
+            fprintf(nomangled, "    void fn_ ## func_name () { func_name (); } \\\n");
+            fprintf(nomangled, "    void func_name (void)\n\n");
+            fprintf(nomangled, "#define ssize_t signed long\n");
+            fprintf(nomangled, "#define scl_value void*\n");
+            fprintf(nomangled, "#define scl_int long long\n");
+            fprintf(nomangled, "#define scl_str char*\n");
+            fprintf(nomangled, "#define scl_float double\n\n");
+            fprintf(nomangled, "void ctrl_push_string(const scl_str c);\n");
+            fprintf(nomangled, "void ctrl_push_long(long long n);\n");
+            fprintf(nomangled, "void ctrl_push_double(scl_float d);\n");
+            fprintf(nomangled, "void ctrl_push(scl_value n);\n");
+            fprintf(nomangled, "scl_str ctrl_pop_string(void);\n");
+            fprintf(nomangled, "scl_float ctrl_pop_double(void);\n");
+            fprintf(nomangled, "long long ctrl_pop_long(void);\n");
+            fprintf(nomangled, "scl_value ctrl_pop(void);\n\n");
+        }
 
         for (Function function : result.functions) {
-            append("void fn_%s(void);\n", function.getName().c_str());
+            append("void fn_%s(void) asm(\"" ASM_FN_FMT "\");\n", function.getName().c_str(), function.getName().c_str());
+            if (!Main.options.transpileOnly) continue;
             for (Modifier m : function.getModifiers()) {
                 if (m == mod_nomangle) {
                     std::string args = "(";
@@ -70,14 +84,16 @@ namespace sclc {
                         args += function.getArgs()[i];
                     }
                     args += ")";
-
+                    
                     fprintf(nomangled, "void %s%s;\n", function.getName().c_str(), args.c_str());
                 }
             }
         }
 
-        fprintf(nomangled, "#endif\n");
-        fclose(nomangled);
+        if (Main.options.transpileOnly) {
+            fprintf(nomangled, "#endif\n");
+            fclose(nomangled);
+        }
         
         append("\n");
     }
@@ -86,15 +102,26 @@ namespace sclc {
         int scopeDepth = 0;
         append("/* EXTERN FUNCTIONS */\n");
 
-        for (Function func : result.extern_functions) {
+        for (Function function : result.extern_functions) {
             bool hasFunction = false;
             for (Function f : result.functions) {
-                if (f.getName() == func.getName()) {
+                if (f.getName() == function.getName()) {
                     hasFunction = true;
                 }
             }
-            if (!hasFunction)
-                append("void fn_%s(void);\n", func.getName().c_str());
+            if (!hasFunction) {
+                std::string functionDeclaration = "";
+
+                functionDeclaration += function.getName() + "(";
+                for (size_t i = 0; i < function.getArgs().size(); i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function.getArgs()[i];
+                }
+                functionDeclaration += ")";
+                append("void fn_%s(void) asm(\"" ASM_FN_FMT "\");\n", function.getName().c_str(), function.getName().c_str());
+            }
         }
 
         append("\n");
@@ -102,7 +129,7 @@ namespace sclc {
 
     void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        append("const unsigned long long __scl_internal__function_names[] = {\n");
+        append("const unsigned long long __scl_internal__function_names[] asm(\"function_names\") = {\n");
         for (Function func : result.extern_functions) {
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.getName().c_str()), (char*) func.getName().c_str());
         }
@@ -111,7 +138,7 @@ namespace sclc {
         }
         append("};\n");
 
-        append("const scl_value __scl_internal__function_ptrs[] = {\n");
+        append("const scl_value __scl_internal__function_ptrs[] asm(\"function_ptrs\") = {\n");
         for (Function func : result.extern_functions) {
             append("  fn_%s,\n", func.getName().c_str());
         }
@@ -119,8 +146,8 @@ namespace sclc {
             append("  fn_%s,\n", function.getName().c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.extern_functions.size());
-        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t __scl_internal__function_ptrs_size asm(\"function_ptrs_size\") = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t __scl_internal__function_names_size asm(\"function_names_size\") = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
     }
@@ -130,7 +157,7 @@ namespace sclc {
         append("/* GLOBALS */\n");
 
         for (std::string s : result.globals) {
-            append("scl_value _%s;\n", s.c_str());
+            append("scl_value _%s asm(\"global_%s\");\n", s.c_str(), s.c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
@@ -146,21 +173,21 @@ namespace sclc {
             for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
-            append("} $_%s = {0};\n", c.getName().c_str());
+            append("} $_%s asm(\"container_%s\") = {0};\n", c.getName().c_str(), c.getName().c_str());
         }
 
         append("\n");
-        append("const scl_value* __scl_internal__globals_ptrs[] = {\n");
+        append("const scl_value* __scl_internal__globals_ptrs[] asm(\"globals_ptrs\") = {\n");
         for (std::string s : result.globals) {
-            append("  &_%s,\n", s.c_str());
+            append("  (const scl_value*) &_%s,\n", s.c_str());
         }
         for (Container c : result.containers) {
             for (std::string s : c.getMembers()) {
-                append("  (void*) &$_%s.%s,\n", c.getName().c_str(), s.c_str());
+                append("  (const scl_value*) &$_%s.%s,\n", c.getName().c_str(), s.c_str());
             }
         }
         append("};\n");
-        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size());
+        append("const size_t __scl_internal__globals_ptrs_size asm(\"globals_ptrs_size\") = %zu;\n", result.globals.size());
         
         append("\n");
     }
@@ -249,7 +276,7 @@ namespace sclc {
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
-                append("scl_value _%s = ctrl_pop();\n", var.c_str());
+                append("register scl_value _%s = ctrl_pop();\n", var.c_str());
             }
 
             if (!Main.options.transpileOnly || Main.options.debugBuild) {
@@ -935,7 +962,7 @@ namespace sclc {
                             }
                             vars.push_back(body[i + 1].getValue());
                             std::string loadFrom = body[i + 1].getValue();
-                            append("scl_value _%s;\n", loadFrom.c_str());
+                            append("register scl_value _%s;\n", loadFrom.c_str());
                             ITER_INC;
                             break;
                         }

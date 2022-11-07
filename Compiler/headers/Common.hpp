@@ -22,6 +22,14 @@
 
 #define LINE_LENGTH 48
 
+#ifndef ASM_FN_FMT
+#ifdef __APPLE__
+#define ASM_FN_FMT "[%s]"
+#else
+#define ASM_FN_FMT "\\\"[%s]\\\""
+#endif
+#endif
+
 namespace sclc
 {
     typedef unsigned long long hash;

@@ -25,8 +25,18 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
+#ifndef ASM_FN_FMT
+#ifdef __APPLE__
+#define ASM_FN_FMT(name) "[" #name "]"
+#else
+#define ASM_FN_FMT(name) "\"[" #name "]\""
+#endif
+#endif
+
 /* Function header */
-#define sclDefFunc(name)   	\
+#define sclDefFunc(name)   	    \
+  void fn_ ## name (void) asm(ASM_FN_FMT(name))
+#define sclDeclFunc(name)   	\
   void fn_ ## name (void)
 
 /* Call a function with the given name and arguments. */
@@ -34,7 +44,7 @@
   fn_ ## name ()
 
 #define operator(a) \
-  void op_ ## a (void)
+  void op_ ## a (void) asm(#a)
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
@@ -77,34 +87,34 @@ typedef struct {
 	scl_frame_t data[STACK_SIZE];
 } scl_stack_t;
 
-void		scl_security_throw(int code, scl_str msg);
-void		scl_security_required_arg_count(ssize_t n, scl_str func);
-void		scl_security_check_null(scl_value n);
-void 		scl_security_safe_exit(int code);
-void		ctrl_set_file(scl_str file);
-void        ctrl_set_pos(size_t line, size_t col);
-void 		process_signal(int sig_num);
+void		scl_security_throw(int code, scl_str msg) asm("throw");
+void		scl_security_required_arg_count(ssize_t n, scl_str func) asm("requires");
+void		scl_security_check_null(scl_value n) asm("is_null");
+void 		scl_security_safe_exit(int code) asm("safe_exit");
+void		ctrl_set_file(scl_str file) asm("set_file");
+void        ctrl_set_pos(size_t line, size_t col) asm("set_pos");
+void 		process_signal(int sig_num) asm("proc_signal");
 
-void		ctrl_fn_start(scl_str name);
-void		ctrl_fn_end(void);
-void 		ctrl_trace(void);
-void 		print_stacktrace(void);
+void		ctrl_fn_start(scl_str name) asm("function_begin");
+void		ctrl_fn_end(void) asm("function_end");
+void 		ctrl_trace(void) asm("trace");
+void 		print_stacktrace(void) asm("print_trace");
 
-void		ctrl_push_string(const scl_str c);
-void		ctrl_push_long(long long n);
-void		ctrl_push_double(scl_float d);
-void		ctrl_push(scl_value n);
-scl_str		ctrl_pop_string(void);
-scl_float	ctrl_pop_double(void);
-long long	ctrl_pop_long(void);
-scl_value	ctrl_pop(void);
-ssize_t	 	ctrl_stack_size(void);
-void 		sap_open(void);
-void		sap_close(void);
+void		ctrl_push_string(const scl_str c) asm("push_str");
+void		ctrl_push_long(long long n) asm("push_int");
+void		ctrl_push_double(scl_float d) asm("push_float");
+void		ctrl_push(scl_value n) asm("push_any");
+scl_str		ctrl_pop_string(void) asm("pop_str");
+scl_float	ctrl_pop_double(void) asm("pop_float");
+long long	ctrl_pop_long(void) asm("pop_int");
+scl_value	ctrl_pop(void) asm("pop_any");
+ssize_t	 	ctrl_stack_size(void) asm("stack_size");
+void 		sap_open(void) asm("sap_push");
+void		sap_close(void) asm("sap_pop");
 
-int		 	scl_is_complex(void* p);
-scl_value	scl_alloc_complex(size_t size);
-void		scl_dealloc_complex(scl_value ptr);
+int		 	scl_is_complex(void* p) asm("is_complex");
+scl_value	scl_alloc_complex(size_t size) asm("create_complex");
+void		scl_dealloc_complex(scl_value ptr) asm("destroy_complex");
 
 operator(add);
 operator(sub);
