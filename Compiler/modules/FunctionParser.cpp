@@ -77,8 +77,8 @@ namespace sclc
         std::vector<FPResult> warns;
         std::vector<std::string> globals;
 
-        remove((filename + std::string(".c")).c_str());
-        FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
+        remove(filename.c_str());
+        FILE* fp = fopen(filename.c_str(), "a");
 
         Function mainFunction = getFunctionByName(result, "main");
         if (mainFunction == Function("%NULFUNC%") && !Main.options.noMain) {
