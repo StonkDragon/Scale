@@ -49,7 +49,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "3.0"
+#define FRAMEWORK_VERSION_REQ "3.2"
 #endif
 
 #ifdef _WIN32
@@ -112,6 +112,7 @@ namespace sclc
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
+        std::string optimizer   = "O2"; 
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -185,6 +186,8 @@ namespace sclc
                 } else {
                     if (args[i] == "-c")
                         dontSpecifyOutFile = true;
+                    if (args[i][0] == '-' && args[i][1] == 'O')
+                        optimizer = std::string(args[i].c_str() + 1);
                     tmpFlags.push_back(args[i]);
                 }
             }
@@ -198,7 +201,7 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + "/Internal");
         cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        cflags.push_back("-O2");
+        cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
 
         if (files.size() == 0) {
@@ -510,18 +513,14 @@ namespace sclc
             return result.errors.size();
         }
         
-        char* source = NULL;
+        std::string source = "out.c";
         if (!printCflags) {
             FunctionParser parser(result);
             Main.parser = &parser;
-            source = (char*) malloc(sizeof(char) * 50);
             
             srand(time(NULL));
-            if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
-            else snprintf(source, 4, "out");
-            cflags.push_back(std::string(source) + ".c");
 
-            FPResult parseResult = Main.parser->parse(std::string(source));
+            FPResult parseResult = Main.parser->parse(source);
             if (parseResult.errors.size() > 0) {
                 for (FPResult error : parseResult.errors) {
                     if (error.line == 0) {
@@ -564,8 +563,8 @@ namespace sclc
                     std::cerr << std::endl;
                     free(line);
                 }
-                remove((std::string(source) + ".c").c_str());
-                remove((std::string(source) + ".h").c_str());
+                remove((source + ".c").c_str());
+                remove((source + ".h").c_str());
                 return parseResult.errors.size();
             }
         }
@@ -580,6 +579,8 @@ namespace sclc
         for (std::string s : tmpFlags) {
             cflags.push_back(s);
         }
+        
+        cflags.push_back(source);
 
 #ifdef LINK_MATH
         cflags.push_back("-lm");
@@ -601,15 +602,11 @@ namespace sclc
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
-            if (source == NULL)
-                return ret;
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
+            remove(source.c_str());
             return ret;
         }
-        if (source != NULL) {
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
+        if (!transpileOnly) {
+            remove(source.c_str());
         }
         
         if (!doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
