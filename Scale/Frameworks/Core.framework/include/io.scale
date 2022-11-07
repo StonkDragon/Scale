@@ -3,7 +3,6 @@
 
 extern function write(_fd_, _str_, _n_)
 extern function read(_fd_, _s_, _n_)
-extern function sprintf(_fmt_, _s_)
 
 function puts(_str_)
     1 _str_ _str_ strlen write
