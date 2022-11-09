@@ -53,7 +53,7 @@ makebin
 compile
 experimental
 gen.js
-./scale_support.h
+scale_support.h
 
 # Kernel Module Compile Results
 *.mod*
