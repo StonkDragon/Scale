@@ -4,27 +4,27 @@
 // Formatted IO
 #ifdef _WIN32
 #warning "Formatted IO not supported on Windows"
-function Color_Reset()   "" end
-function Color_Black()   "" end
-function Color_Red()     "" end
-function Color_Green()   "" end
-function Color_Yellow()  "" end
-function Color_Blue()    "" end
-function Color_Magenta() "" end
-function Color_Cyan()    "" end
-function Color_White()   "" end
-function Color_Bold()    "" end
+function Color_Reset()   "" return end
+function Color_Black()   "" return end
+function Color_Red()     "" return end
+function Color_Green()   "" return end
+function Color_Yellow()  "" return end
+function Color_Blue()    "" return end
+function Color_Magenta() "" return end
+function Color_Cyan()    "" return end
+function Color_White()   "" return end
+function Color_Bold()    "" return end
 #else
-function Color_Reset()   "\033[0m"  end
-function Color_Black()   "\033[30m" end
-function Color_Red()     "\033[31m" end
-function Color_Green()   "\033[32m" end
-function Color_Yellow()  "\033[33m" end
-function Color_Blue()    "\033[34m" end
-function Color_Magenta() "\033[35m" end
-function Color_Cyan()    "\033[36m" end
-function Color_White()   "\033[37m" end
-function Color_Bold()    "\033[1m"  end
+function Color_Reset()   "\033[0m"  return end
+function Color_Black()   "\033[30m" return end
+function Color_Red()     "\033[31m" return end
+function Color_Green()   "\033[32m" return end
+function Color_Yellow()  "\033[33m" return end
+function Color_Blue()    "\033[34m" return end
+function Color_Magenta() "\033[35m" return end
+function Color_Cyan()    "\033[36m" return end
+function Color_White()   "\033[37m" return end
+function Color_Bold()    "\033[1m"  return end
 #endif
 
 #endif

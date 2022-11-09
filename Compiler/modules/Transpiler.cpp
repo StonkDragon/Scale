@@ -173,13 +173,15 @@ namespace sclc {
         for (std::string s : result.globals) {
             append("  (const scl_value*) &_%s,\n", s.c_str());
         }
+        size_t container_member_count = 0;
         for (Container c : result.containers) {
             for (std::string s : c.getMembers()) {
                 append("  (const scl_value*) &cont_%s.%s,\n", c.getName().c_str(), s.c_str());
+                container_member_count++;
             }
         }
         append("};\n");
-        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size());
+        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size() + container_member_count);
         
         append("\n");
     }
@@ -214,16 +216,16 @@ namespace sclc {
 
             scopeDepth = 0;
             bool noWarns = false;
-            bool sap = false;
             bool no_mangle = false;
+            bool nps = false;
 
             for (Modifier modifier : function.getModifiers()) {
                 if (modifier == mod_nowarn) {
                     noWarns = true;
-                } else if (modifier == mod_sap) {
-                    sap = true;
                 } else if (modifier == mod_nomangle) {
                     no_mangle = true;
+                } else if (modifier == mod_nps) {
+                    nps = true;
                 }
             }
 
@@ -282,9 +284,7 @@ namespace sclc {
 
             append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
 
-            if (sap) {
-                append("sap_open();\n");
-            }
+            if (!nps) append("sap_open();\n");
 
             std::vector<Token> body = function.getBody();
             std::vector<Token> sap_tokens;
@@ -679,14 +679,16 @@ namespace sclc {
                         }
 
                         case tok_return: {
+                            append("{\n");
+                            append("  scl_value ret = ctrl_pop();\n");
                             for (ssize_t j = 0; j < sap_depth; j++) {
-                                append("sap_close();\n");
+                                append("  sap_close();\n");
                             }
-                            if (sap) {
-                                append("sap_close();\n");
-                            }
-                            append("ctrl_fn_end();\n");
-                            append("return;\n");
+                            if (!nps) append("  sap_close();\n");
+                            append("  ctrl_push(ret);\n");
+                            append("  ctrl_fn_end();\n");
+                            append("  return;\n");
+                            append("}\n");
                             break;
                         }
 
@@ -1260,10 +1262,8 @@ namespace sclc {
                 }
             }
             scopeDepth = 1;
+            if (!nps) append("sap_close();\n");
             append("ctrl_fn_end();\n");
-            if (sap) {
-                append("sap_close();\n");
-            }
             scopeDepth = 0;
             append("}\n\n");
 

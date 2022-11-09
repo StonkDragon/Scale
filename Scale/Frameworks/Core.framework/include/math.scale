@@ -25,18 +25,18 @@ extern function log()
 extern function log10()
 extern function random()
 
-function iseven(_i_)          _i_ 2 % 0 equal end
-function isodd(_i_)           _i_ iseven not end
-function inc(_i_)             _i_ 1 + end
-function dec(_i_)             _i_ 1 - end
-function lrandom(_limit_)     random _limit_ % end
-function lerp(_a_, _b_, _t_)  _b_ _a_ - _t_ * _a_ + end
-function neg(_i_)             _i_ 0 swap - end
-function itod(_i_)            _i_ longToString stringToDouble end
-function dtoi(_d_)            _d_ doubleToString stringToLong end
-function dtos(_d_)            _d_ doubleToString end
-function itos(_l_)            _l_ longToString end
-function stod(_s_)            _s_ stringToDouble end
-function stoi(_s_)            _s_ stringToLong end
+function iseven(_i_)          _i_ 2 % 0 equal return end
+function isodd(_i_)           _i_ iseven not return end
+function inc(_i_)             _i_ 1 + return end
+function dec(_i_)             _i_ 1 - return end
+function lrandom(_limit_)     random _limit_ % return end
+function lerp(_a_, _b_, _t_)  _b_ _a_ - _t_ * _a_ + return end
+function neg(_i_)             _i_ 0 swap - return end
+function itod(_i_)            _i_ longToString stringToDouble return end
+function dtoi(_d_)            _d_ doubleToString stringToLong return end
+function dtos(_d_)            _d_ doubleToString return end
+function itos(_l_)            _l_ longToString return end
+function stod(_s_)            _s_ stringToDouble return end
+function stoi(_s_)            _s_ stringToLong return end
 
 #endif

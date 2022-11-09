@@ -15,8 +15,55 @@ size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
 scl_value    alloced_structes[STACK_SIZE] = {0};
 size_t 		 alloced_structes_count = 0;
+scl_value    allocated[STACK_SIZE] = {0};
+size_t 		 allocated_count = 0;
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
+
+#pragma region GC
+
+extern const scl_value* __scl_internal__globals_ptrs[];
+extern const size_t __scl_internal__globals_ptrs_size;
+
+void scl_gc_alloc(scl_value ptr) {
+	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == 0) {
+			allocated[i] = ptr;
+			return;
+		}
+	}
+	allocated[allocated_count++] = ptr;
+}
+
+void scl_gc_collect() {
+	for (size_t i = 0; i < allocated_count; i++) {
+		for (ssize_t j = stack.ptr - 1; j >= 0; j--) {
+			if (stack.data[j].value.i == allocated[i]) {
+				goto next;
+			}
+		}
+		for (size_t j = 0; j < __scl_internal__globals_ptrs_size; j++) {
+			if (*(__scl_internal__globals_ptrs[j]) == allocated[i]) {
+				goto next;
+			}
+		}
+		scl_free(allocated[i]);
+		allocated[i] = 0;
+	next:
+		(void) 0;
+	}
+}
+
+void scl_gc_remove(scl_value ptr) {
+	for (size_t i = 0; i < allocated_count; i--) {
+		if (allocated[i] == ptr) {
+			allocated[i] = 0;
+			return;
+		}
+	}
+}
+
+#pragma endregion
 
 #pragma region Security
 
@@ -33,7 +80,7 @@ void scl_security_throw(int code, scl_str msg) {
 
 void scl_security_required_arg_count(ssize_t n, scl_str func) {
 	if (stack.ptr < n) {
-		scl_str err = (scl_str) malloc(MAX_STRING_SIZE);
+		scl_str err = (scl_str) scl_alloc(MAX_STRING_SIZE);
 		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
 		scl_security_throw(EX_STACK_UNDERFLOW, err);
 	}
@@ -58,6 +105,7 @@ void ctrl_fn_start(scl_str name) {
 }
 
 void ctrl_fn_end() {
+	scl_gc_collect();
 	callstk.ptr--;
 }
 
@@ -261,8 +309,9 @@ int scl_is_struct(void* p) {
 }
 
 scl_value scl_alloc_struct(size_t size) {
-	scl_value ptr = malloc(size);
+	scl_value ptr = scl_alloc(size);
 	alloced_structes[alloced_structes_count++] = ptr;
+	scl_gc_alloc(ptr);
 	return ptr;
 }
 
@@ -272,6 +321,16 @@ void scl_dealloc_struct(scl_value ptr) {
 			alloced_structes[i] = 0;
 		}
 	}
+}
+
+scl_value scl_alloc(size_t size) {
+	scl_value ptr = malloc(size);
+	scl_gc_alloc(ptr);
+	return ptr;
+}
+
+void scl_free(scl_value ptr) {
+	scl_gc_remove(ptr);
 }
 
 #pragma endregion

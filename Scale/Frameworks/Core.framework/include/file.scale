@@ -20,7 +20,7 @@ function fread(_f_, _size_)
     decl _buf_
     _f_ fileno _size_ read
     store _buf_
-    _buf_
+    _buf_ return
 end
 
 function fseekstart(_f_, _offset_)

@@ -17,7 +17,7 @@ function arrayGet(arr, index)
     1 exit
   fi
 
-  arr::Array.values index 8 * + deref
+  arr::Array.values index 8 * + deref return
 end
 
 function arraySet(arr, index, value)
@@ -35,7 +35,7 @@ function arraySet(arr, index, value)
 end
 
 function arrayTop(arr)
-  arr::Array.values arr::Array.count 1 - 8 * + deref
+  arr::Array.values arr::Array.count 1 - 8 * + deref return
 end
 
 function arrayPush(arr, value)
@@ -65,11 +65,11 @@ function arrayCreate(initialSize)
 
   decl arr
   new Array store arr
-  initialSize 8 * malloc
+  initialSize 8 * scl_alloc
   store arr::Array.values
   initialSize store arr::Array.count
   initialSize store arr::Array.capacity
-  arr
+  arr return
 end
 
 #endif

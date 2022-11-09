@@ -74,7 +74,7 @@ sclDefFunc(concat) {
 	ctrl_push_string(s2);
 	fn_strlen();
 	long long len2 = ctrl_pop_long();
-	char *out = (char*) malloc(len + len2 + 1);
+	char *out = (char*) scl_alloc(len + len2 + 1);
 	size_t i = 0;
 	while (s1[i] != '\0') {
 		out[i] = s1[i];
@@ -143,7 +143,7 @@ sclDefFunc(fopen) {
 	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
 	if (f == NULL) {
-		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
+		char* err = scl_alloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
 		sprintf(err, "Unable to open file '%s'", name);
 		scl_security_throw(EX_IO_ERROR, err);
 	}
@@ -201,7 +201,7 @@ sclDefFunc(write) {
 
 sclDefFunc(read) {
 	long long n = ctrl_pop_long();
-	scl_value s = malloc(n);
+	scl_value s = scl_alloc(n);
 	long long fd = ctrl_pop_long();
 	int ret = read(fd, s, n);
 	if (ret == -1) {
@@ -217,7 +217,7 @@ sclDefFunc(strrev) {
 	ctrl_push_string(s);
 	fn_strlen();
 	long long len = ctrl_pop_long();
-	char* out = (char*) malloc(len + 1);
+	char* out = (char*) scl_alloc(len + 1);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
 	}
@@ -227,7 +227,7 @@ sclDefFunc(strrev) {
 
 sclDefFunc(malloc) {
 	long long n = ctrl_pop_long();
-	scl_value s = malloc(n);
+	scl_value s = scl_alloc(n);
 	ctrl_push(s);
 }
 
@@ -240,7 +240,7 @@ sclDefFunc(realloc) {
 sclDefFunc(free) {
 	scl_value s = ctrl_pop();
 	scl_dealloc_struct(s);
-	free(s);
+	scl_free(s);
 }
 
 sclDefFunc(breakpoint) {
@@ -358,7 +358,7 @@ sclDefFunc(log10) {
 
 sclDefFunc(longToString) {
 	long long a = ctrl_pop_long();
-	char *out = (char*) malloc(25);
+	char *out = (char*) scl_alloc(25);
 	sprintf(out, "%lld", a);
 	ctrl_push_string(out);
 }
@@ -377,7 +377,7 @@ sclDefFunc(stringToDouble) {
 
 sclDefFunc(doubleToString) {
 	double a = ctrl_pop_double();
-	char *out = (char*) malloc(100);
+	char *out = (char*) scl_alloc(100);
 	sprintf(out, "%f", a);
 	ctrl_push_string(out);
 }
