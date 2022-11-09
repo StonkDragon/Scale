@@ -48,6 +48,7 @@ void scl_gc_collect() {
 			}
 		}
 		scl_free(allocated[i]);
+		free(allocated[i]);
 		allocated[i] = 0;
 	next:
 		(void) 0;
