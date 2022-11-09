@@ -143,7 +143,7 @@ sclDefFunc(fopen) {
 	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
 	if (f == NULL) {
-		char* err = scl_alloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
+		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
 		sprintf(err, "Unable to open file '%s'", name);
 		scl_security_throw(EX_IO_ERROR, err);
 	}
