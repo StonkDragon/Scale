@@ -51,6 +51,7 @@ void scl_gc_collect() {
 		free(allocated[i]);
 		allocated[i] = 0;
 	next:
+		// Line needed otherwise compiler error: Expected Expression
 		(void) 0;
 	}
 }
