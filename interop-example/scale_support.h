@@ -1,16 +1,9 @@
 #ifndef SCALE_SUPPORT_H
 #define SCALE_SUPPORT_H
 
-#ifndef ASM_FN_FMT
-#ifdef __APPLE__
-#define ASM_FN_FMT(name) "[" #name "]"
-#else
-#define ASM_FN_FMT(name) "\\\"[" #name "]\\\""
-#endif
-#endif
 #define scl_export(func_name) \
     void func_name (void); \
-    void fn_ ## func_name (void) asm(ASM_FN_FMT(func_name)); \
+    void fn_ ## func_name (void); \
     void fn_ ## func_name () { func_name (); } \
     void func_name (void)
 
