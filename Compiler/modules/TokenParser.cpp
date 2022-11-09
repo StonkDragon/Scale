@@ -22,7 +22,7 @@ namespace sclc
         std::vector<std::string> uses;
         std::vector<std::string> globals;
         std::vector<Container> containers;
-        std::vector<Struct> structes;
+        std::vector<Struct> structs;
 
         std::vector<FPResult> errors;
 
@@ -159,7 +159,7 @@ namespace sclc
                     containers.push_back(*currentContainer);
                     currentContainer = nullptr;
                 } else if (currentStruct != nullptr) {
-                    structes.push_back(*currentStruct);
+                    structs.push_back(*currentStruct);
                     currentStruct = nullptr;
                 } else {
                     FPResult result;
@@ -479,7 +479,7 @@ namespace sclc
         result.extern_globals = extern_globals;
         result.globals = globals;
         result.containers = containers;
-        result.structes = structes;
+        result.structs = structs;
         result.errors = errors;
         return result;
     }

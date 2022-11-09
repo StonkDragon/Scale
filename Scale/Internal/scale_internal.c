@@ -13,8 +13,8 @@ scl_stack_t	 callstk = {0, {{0}}};
 size_t 		 sap_index = 0;
 size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
-scl_value    alloced_structes[STACK_SIZE] = {0};
-size_t 		 alloced_structes_count = 0;
+scl_value    alloced_structs[STACK_SIZE] = {0};
+size_t 		 alloced_structs_count = 0;
 scl_value    allocated[STACK_SIZE] = {0};
 size_t 		 allocated_count = 0;
 
@@ -302,8 +302,8 @@ void ctrl_typecast(scl_str new_type) {
 
 int scl_is_struct(void* p) {
 	if (p == NULL) return 0;
-	for (size_t i = 0; i < alloced_structes_count; i++) {
-		if (alloced_structes[i] == p) {
+	for (size_t i = 0; i < alloced_structs_count; i++) {
+		if (alloced_structs[i] == p) {
 			return 1;
 		}
 	}
@@ -312,15 +312,15 @@ int scl_is_struct(void* p) {
 
 scl_value scl_alloc_struct(size_t size) {
 	scl_value ptr = scl_alloc(size);
-	alloced_structes[alloced_structes_count++] = ptr;
+	alloced_structs[alloced_structs_count++] = ptr;
 	scl_gc_alloc(ptr);
 	return ptr;
 }
 
 void scl_dealloc_struct(scl_value ptr) {
-	for (size_t i = 0; i < alloced_structes_count; i++) {
-		if (alloced_structes[i] == ptr) {
-			alloced_structes[i] = 0;
+	for (size_t i = 0; i < alloced_structs_count; i++) {
+		if (alloced_structs[i] == ptr) {
+			alloced_structs[i] = 0;
 		}
 	}
 }

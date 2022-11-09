@@ -387,7 +387,7 @@ namespace sclc
         std::vector<std::string> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
-        std::vector<Struct> structes;
+        std::vector<Struct> structs;
     };
 
     class TokenParser
@@ -444,7 +444,7 @@ namespace sclc
         static void writeInternalFunctions(FILE* fp, TPResult result);
         static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
-        static void writeStructes(FILE* fp, TPResult result);
+        static void writeStructs(FILE* fp, TPResult result);
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
     };
 

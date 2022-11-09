@@ -186,10 +186,10 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeStructes(FILE* fp, TPResult result) {
+    void ConvertC::writeStructs(FILE* fp, TPResult result) {
         int scopeDepth = 0;
         append("/* COMPLEXES */\n");
-        for (Struct c : result.structes) {
+        for (Struct c : result.structs) {
             append("struct scl_struct_%s {\n", c.getName().c_str());
             append("  scl_str $__type__;\n");
             for (std::string s : c.getMembers()) {

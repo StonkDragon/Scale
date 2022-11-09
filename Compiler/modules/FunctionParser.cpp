@@ -37,7 +37,7 @@ namespace sclc
     }
 
     Struct getStructByName(TPResult result, std::string name) {
-        for (Struct struct_ : result.structes) {
+        for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
             }
@@ -97,7 +97,7 @@ namespace sclc
         ConvertC::writeInternalFunctions(fp, result);
         ConvertC::writeGlobals(fp, globals, result);
         ConvertC::writeContainers(fp, result);
-        ConvertC::writeStructes(fp, result);
+        ConvertC::writeStructs(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainCall = "  fn_main(void);\n";
