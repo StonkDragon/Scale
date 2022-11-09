@@ -447,6 +447,49 @@ namespace sclc
                 remove(std::string(filename + ".scale-preproc").c_str());
                 return result.errors.size();
             }
+            if (result.warns.size() > 0) {
+                for (FPResult error : result.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
+            }
 
             std::vector<Token> theseTokens = Main.tokenizer->getTokens();
 
@@ -512,7 +555,7 @@ namespace sclc
             }
             return result.errors.size();
         }
-        
+
         std::string source = "out.c";
         if (!printCflags) {
             FunctionParser parser(result);
@@ -566,6 +609,50 @@ namespace sclc
                 remove((source + ".c").c_str());
                 remove((source + ".h").c_str());
                 return parseResult.errors.size();
+            }
+
+            if (parseResult.warns.size() > 0) {
+                for (FPResult error : parseResult.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
             }
         }
 
