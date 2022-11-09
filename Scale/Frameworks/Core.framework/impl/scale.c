@@ -18,7 +18,7 @@ extern size_t 		 sap_index;
 
 #pragma region Natives
 
-sclDeclFunc(dumpstack) {
+sclDefFunc(dumpstack) {
 	printf("Dump:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
 		long long v = (long long) stack.data[i].value.i;
@@ -27,45 +27,45 @@ sclDeclFunc(dumpstack) {
 	printf("\n");
 }
 
-sclDeclFunc(exit) {
+sclDefFunc(exit) {
 	long long n = ctrl_pop_long();
 	scl_security_safe_exit(n);
 }
 
-sclDeclFunc(sleep) {
+sclDefFunc(sleep) {
 	long long c = ctrl_pop_long();
 	sleep(c);
 }
 
-sclDeclFunc(getenv) {
+sclDefFunc(getenv) {
 	char *c = ctrl_pop_string();
 	char *prop = getenv(c);
 	ctrl_push_string(prop);
 }
 
-sclDeclFunc(less) {
+sclDefFunc(less) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a < b);
 }
 
-sclDeclFunc(more) {
+sclDefFunc(more) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a > b);
 }
 
-sclDeclFunc(equal) {
+sclDefFunc(equal) {
 	int64_t a = ctrl_pop_long();
 	int64_t b = ctrl_pop_long();
 	ctrl_push_long(a == b);
 }
 
-sclDeclFunc(sizeof_stack) {
+sclDefFunc(sizeof_stack) {
 	ctrl_push_long(stack.ptr);
 }
 
-sclDeclFunc(concat) {
+sclDefFunc(concat) {
 	char *s2 = ctrl_pop_string();
 	char *s1 = ctrl_pop_string();
 	ctrl_push_string(s1);
@@ -88,57 +88,57 @@ sclDeclFunc(concat) {
 	ctrl_push_string(out);
 }
 
-sclDeclFunc(random) {
+sclDefFunc(random) {
 	ctrl_push_long(rand());
 }
 
-sclDeclFunc(crash) {
+sclDefFunc(crash) {
 	scl_security_safe_exit(1);
 }
 
-sclDeclFunc(and) {
+sclDefFunc(and) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a && b);
 }
 
-sclDeclFunc(system) {
+sclDefFunc(system) {
 	char *cmd = ctrl_pop_string();
 	int ret = system(cmd);
 	ctrl_push_long(ret);
 }
 
-sclDeclFunc(not) {
+sclDefFunc(not) {
 	ctrl_push_long(!ctrl_pop_long());
 }
 
-sclDeclFunc(or) {
+sclDefFunc(or) {
 	int a = ctrl_pop_long();
 	int b = ctrl_pop_long();
 	ctrl_push_long(a || b);
 }
 
-sclDeclFunc(strlen) {
+sclDefFunc(strlen) {
 	char *s = ctrl_pop_string();
 	size_t len;
 	for (len = 0; s[len] != '\0'; len++);
 	ctrl_push_long(len);
 }
 
-sclDeclFunc(strcmp) {
+sclDefFunc(strcmp) {
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
 	ctrl_push_long(strcmp(s1, s2) == 0);
 }
 
-sclDeclFunc(strncmp) {
+sclDefFunc(strncmp) {
 	long long n = ctrl_pop_long();
 	char *s1 = ctrl_pop_string();
 	char *s2 = ctrl_pop_string();
 	ctrl_push_long(strncmp(s1, s2, n) == 0);
 }
 
-sclDeclFunc(fopen) {
+sclDefFunc(fopen) {
 	char *mode = ctrl_pop_string();
 	char *name = ctrl_pop_string();
 	FILE *f = fopen(name, mode);
@@ -150,30 +150,30 @@ sclDeclFunc(fopen) {
 	ctrl_push((scl_value) f);
 }
 
-sclDeclFunc(fclose) {
+sclDefFunc(fclose) {
 	FILE *f = (FILE*) ctrl_pop();
 	fclose(f);
 }
 
-sclDeclFunc(fseek) {
+sclDefFunc(fseek) {
 	long long offset = ctrl_pop_long();
 	int whence = ctrl_pop_long();
 	FILE *f = (FILE*) ctrl_pop();
 	fseek(f, offset, whence);
 }
 
-sclDeclFunc(ftell) {
+sclDefFunc(ftell) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push((scl_value) f);
 	ctrl_push_long(ftell(f));
 }
 
-sclDeclFunc(fileno) {
+sclDefFunc(fileno) {
 	FILE *f = (FILE*) ctrl_pop();
 	ctrl_push_long(fileno(f));
 }
 
-sclDeclFunc(raise) {
+sclDefFunc(raise) {
 	long long n = ctrl_pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
@@ -185,11 +185,11 @@ sclDeclFunc(raise) {
 	}
 }
 
-sclDeclFunc(abort) {
+sclDefFunc(abort) {
 	abort();
 }
 
-sclDeclFunc(write) {
+sclDefFunc(write) {
 	long long n = ctrl_pop_long();
 	scl_value s = ctrl_pop();
 	long long fd = ctrl_pop_long();
@@ -199,7 +199,7 @@ sclDeclFunc(write) {
 	}
 }
 
-sclDeclFunc(read) {
+sclDefFunc(read) {
 	long long n = ctrl_pop_long();
 	scl_value s = malloc(n);
 	long long fd = ctrl_pop_long();
@@ -211,7 +211,7 @@ sclDeclFunc(read) {
 	ctrl_push(s);
 }
 
-sclDeclFunc(strrev) {
+sclDefFunc(strrev) {
 	char* s = ctrl_pop_string();
 	size_t i = 0;
 	ctrl_push_string(s);
@@ -225,157 +225,157 @@ sclDeclFunc(strrev) {
 	ctrl_push_string(out);
 }
 
-sclDeclFunc(malloc) {
+sclDefFunc(malloc) {
 	long long n = ctrl_pop_long();
 	scl_value s = malloc(n);
 	ctrl_push(s);
 }
 
-sclDeclFunc(realloc) {
+sclDefFunc(realloc) {
 	long long n = ctrl_pop_long();
 	scl_value s = ctrl_pop();
 	ctrl_push(realloc(s, n));
 }
 
-sclDeclFunc(free) {
+sclDefFunc(free) {
 	scl_value s = ctrl_pop();
-	scl_dealloc_complex(s);
+	scl_dealloc_struct(s);
 	free(s);
 }
 
-sclDeclFunc(breakpoint) {
+sclDefFunc(breakpoint) {
 	printf("Hit breakpoint. Press enter to continue.\n");
 	getchar();
 }
 
-sclDeclFunc(memset) {
+sclDefFunc(memset) {
 	scl_value s = ctrl_pop();
 	long long n = ctrl_pop_long();
 	long long c = ctrl_pop_long();
 	memset(s, c, n);
 }
 
-sclDeclFunc(memcpy) {
+sclDefFunc(memcpy) {
 	scl_value s2 = ctrl_pop();
 	scl_value s1 = ctrl_pop();
 	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 }
 
-sclDeclFunc(time) {
+sclDefFunc(time) {
 	ctrl_push_long(time(NULL));
 }
 
-sclDeclFunc(trace) {
+sclDefFunc(trace) {
 	print_stacktrace();
 }
 
-sclDeclFunc(sqrt) {
+sclDefFunc(sqrt) {
     double n = ctrl_pop_double();
     ctrl_push_double(sqrt(n));
 }
 
-sclDeclFunc(sin) {
+sclDefFunc(sin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sin(n));
 }
 
-sclDeclFunc(cos) {
+sclDefFunc(cos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cos(n));
 }
 
-sclDeclFunc(tan) {
+sclDefFunc(tan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tan(n));
 }
 
-sclDeclFunc(asin) {
+sclDefFunc(asin) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asin(n));
 }
 
-sclDeclFunc(acos) {
+sclDefFunc(acos) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acos(n));
 }
 
-sclDeclFunc(atan) {
+sclDefFunc(atan) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atan(n));
 }
 
-sclDeclFunc(atan2) {
+sclDefFunc(atan2) {
 	double n2 = ctrl_pop_double();
 	double n1 = ctrl_pop_double();
 	ctrl_push_double(atan2(n1, n2));
 }
 
-sclDeclFunc(sinh) {
+sclDefFunc(sinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(sinh(n));
 }
 
-sclDeclFunc(cosh) {
+sclDefFunc(cosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(cosh(n));
 }
 
-sclDeclFunc(tanh) {
+sclDefFunc(tanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(tanh(n));
 }
 
-sclDeclFunc(asinh) {
+sclDefFunc(asinh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(asinh(n));
 }
 
-sclDeclFunc(acosh) {
+sclDefFunc(acosh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(acosh(n));
 }
 
-sclDeclFunc(atanh) {
+sclDefFunc(atanh) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(atanh(n));
 }
 
-sclDeclFunc(exp) {
+sclDefFunc(exp) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(exp(n));
 }
 
-sclDeclFunc(log) {
+sclDefFunc(log) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log(n));
 }
 
-sclDeclFunc(log10) {
+sclDefFunc(log10) {
 	double n = ctrl_pop_double();
 	ctrl_push_double(log10(n));
 }
 
-sclDeclFunc(longToString) {
+sclDefFunc(longToString) {
 	long long a = ctrl_pop_long();
 	char *out = (char*) malloc(25);
 	sprintf(out, "%lld", a);
 	ctrl_push_string(out);
 }
 
-sclDeclFunc(stringToLong) {
+sclDefFunc(stringToLong) {
 	char *s = ctrl_pop_string();
 	long long a = atoll(s);
 	ctrl_push_long(a);
 }
 
-sclDeclFunc(stringToDouble) {
+sclDefFunc(stringToDouble) {
 	char *s = ctrl_pop_string();
 	double a = atof(s);
 	ctrl_push_double(a);
 }
 
-sclDeclFunc(doubleToString) {
+sclDefFunc(doubleToString) {
 	double a = ctrl_pop_double();
 	char *out = (char*) malloc(100);
 	sprintf(out, "%f", a);

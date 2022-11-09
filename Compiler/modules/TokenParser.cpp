@@ -12,7 +12,7 @@ namespace sclc
     TPResult TokenParser::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
-        Complex* currentComplex = nullptr;
+        Struct* currentStruct = nullptr;
 
         bool funcPrivateStack = true;
         bool funcNoWarn = false;
@@ -22,7 +22,7 @@ namespace sclc
         std::vector<std::string> uses;
         std::vector<std::string> globals;
         std::vector<Container> containers;
-        std::vector<Complex> complexes;
+        std::vector<Struct> structes;
 
         std::vector<FPResult> errors;
 
@@ -54,9 +54,9 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                if (currentComplex != nullptr) {
+                if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Error: Cannot define function inside of a complex.";
+                    result.message = "Error: Cannot define function inside of a struct.";
                     result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
@@ -158,12 +158,12 @@ namespace sclc
                 } else if (currentContainer != nullptr) {
                     containers.push_back(*currentContainer);
                     currentContainer = nullptr;
-                } else if (currentComplex != nullptr) {
-                    complexes.push_back(*currentComplex);
-                    currentComplex = nullptr;
+                } else if (currentStruct != nullptr) {
+                    structes.push_back(*currentStruct);
+                    currentStruct = nullptr;
                 } else {
                     FPResult result;
-                    result.message = "Unexpected 'end' keyword outside of function, container or complex body.";
+                    result.message = "Unexpected 'end' keyword outside of function, container or struct body.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -198,9 +198,9 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                if (currentComplex != nullptr) {
+                if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of a complex.";
+                    result.message = "Cannot define a container inside of a struct.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -236,10 +236,10 @@ namespace sclc
                     continue;
                 }
                 currentContainer = new Container(tokens[i].getValue());
-            } else if (token.getType() == tok_complex_def) {
+            } else if (token.getType() == tok_struct_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a complex inside of a container.";
+                    result.message = "Cannot define a struct inside of a container.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -251,7 +251,7 @@ namespace sclc
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a complex inside of a function.";
+                    result.message = "Cannot define a struct inside of a function.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -261,9 +261,9 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                if (currentComplex != nullptr) {
+                if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a complex inside another complex.";
+                    result.message = "Cannot define a struct inside another struct.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -288,7 +288,7 @@ namespace sclc
                 i++;
                 if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float") {
                     FPResult result;
-                    result.message = "Invalid name for complex: '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Invalid name for struct: '" + tokens[i + 1].getValue() + "'";
                     result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
@@ -298,7 +298,7 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                currentComplex = new Complex(tokens[i].getValue());
+                currentStruct = new Struct(tokens[i].getValue());
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
@@ -347,7 +347,7 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentComplex == nullptr) {
+            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentStruct == nullptr) {
                 i++;
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
@@ -426,9 +426,9 @@ namespace sclc
                     result.success = false;
                     errors.push_back(result);
                 }
-            } else if (currentFunction != nullptr && currentContainer == nullptr && currentComplex == nullptr) {
+            } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
                 currentFunction->addToken(token);
-            } else if (token.getType() == tok_declare && currentContainer == nullptr && currentComplex == nullptr) {
+            } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
@@ -456,7 +456,7 @@ namespace sclc
                 }
                 currentContainer->addMember(tokens[i + 1].getValue());
                 i++;
-            } else if (token.getType() == tok_declare && currentComplex != nullptr) {
+            } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
@@ -468,7 +468,7 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                currentComplex->addMember(tokens[i + 1].getValue());
+                currentStruct->addMember(tokens[i + 1].getValue());
                 i++;
             }
         }
@@ -479,7 +479,7 @@ namespace sclc
         result.extern_globals = extern_globals;
         result.globals = globals;
         result.containers = containers;
-        result.complexes = complexes;
+        result.structes = structes;
         result.errors = errors;
         return result;
     }

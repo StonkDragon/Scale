@@ -3,7 +3,7 @@
 
 extern function trace()
 
-complex Array
+struct Array
   decl values
   decl count
   decl capacity

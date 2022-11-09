@@ -1,6 +1,6 @@
 #include "core.scale"
 
-complex Foo
+struct Foo
   decl bar
 end
 

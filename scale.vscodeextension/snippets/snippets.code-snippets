@@ -161,15 +161,15 @@
 		],
 		"description": "Container"
 	},
-	"Complex": {
+	"Struct": {
 		"scope": "source.scale",
-		"prefix": "complex",
+		"prefix": "struct",
 		"body": [
-			"complex ${1:name}",
+			"struct ${1:name}",
 			"\tdecl $0",
 			"end"
 		],
-		"description": "Complex"
+		"description": "Struct"
 	},
 	
 	"#include": {

@@ -151,7 +151,7 @@ namespace sclc
         tok_declare,        // decl
         tok_container_def,  // container
         tok_repeat,         // repeat
-        tok_complex_def,    // complex
+        tok_struct_def,    // struct
         tok_new,            // new
         tok_is,             // is
         tok_cdecl,          // cdecl
@@ -329,11 +329,11 @@ namespace sclc
         std::vector<std::string> getMembers() const { return members; }
     };
 
-    class Complex {
+    class Struct {
         std::string name;
         std::vector<std::string> members;
     public:
-        Complex(std::string name) {
+        Struct(std::string name) {
             this->name = name;
         }
         void addMember(std::string member) {
@@ -355,7 +355,7 @@ namespace sclc
             }
             return -1;
         }
-        inline bool operator==(const Complex& other) const {
+        inline bool operator==(const Struct& other) const {
             return other.name == this->name;
         }
         std::string getName() const { return name; }
@@ -387,7 +387,7 @@ namespace sclc
         std::vector<std::string> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
-        std::vector<Complex> complexes;
+        std::vector<Struct> structes;
     };
 
     class TokenParser
@@ -444,7 +444,7 @@ namespace sclc
         static void writeInternalFunctions(FILE* fp, TPResult result);
         static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
-        static void writeComplexes(FILE* fp, TPResult result);
+        static void writeStructes(FILE* fp, TPResult result);
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
     };
 
@@ -493,7 +493,7 @@ namespace sclc
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function getFunctionByName(TPResult result, std::string name);
     Container getContainerByName(TPResult result, std::string name);
-    Complex getComplexByName(TPResult result, std::string name);
+    Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);

@@ -288,7 +288,7 @@ namespace sclc
         TOKEN("ref",        tok_ref, line, filename, startColumn);
         TOKEN("container",  tok_container_def, line, filename, startColumn);
         TOKEN("repeat",     tok_repeat, line, filename, startColumn);
-        TOKEN("complex",    tok_complex_def, line, filename, startColumn);
+        TOKEN("struct",    tok_struct_def, line, filename, startColumn);
         TOKEN("new",        tok_new, line, filename, startColumn);
         TOKEN("is",         tok_is, line, filename, startColumn);
         TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);

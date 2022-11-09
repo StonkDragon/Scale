@@ -13,8 +13,8 @@ scl_stack_t	 callstk = {0, {{0}}};
 size_t 		 sap_index = 0;
 size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
-scl_value    alloced_complexes[STACK_SIZE] = {0};
-size_t 		 alloced_complexes_count = 0;
+scl_value    alloced_structes[STACK_SIZE] = {0};
+size_t 		 alloced_structes_count = 0;
 
 #define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
 
@@ -248,28 +248,28 @@ void ctrl_typecast(scl_str new_type) {
 
 #pragma endregion
 
-#pragma region Complex
+#pragma region Struct
 
-int scl_is_complex(void* p) {
+int scl_is_struct(void* p) {
 	if (p == NULL) return 0;
-	for (size_t i = 0; i < alloced_complexes_count; i++) {
-		if (alloced_complexes[i] == p) {
+	for (size_t i = 0; i < alloced_structes_count; i++) {
+		if (alloced_structes[i] == p) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-scl_value scl_alloc_complex(size_t size) {
+scl_value scl_alloc_struct(size_t size) {
 	scl_value ptr = malloc(size);
-	alloced_complexes[alloced_complexes_count++] = ptr;
+	alloced_structes[alloced_structes_count++] = ptr;
 	return ptr;
 }
 
-void scl_dealloc_complex(scl_value ptr) {
-	for (size_t i = 0; i < alloced_complexes_count; i++) {
-		if (alloced_complexes[i] == ptr) {
-			alloced_complexes[i] = 0;
+void scl_dealloc_struct(scl_value ptr) {
+	for (size_t i = 0; i < alloced_structes_count; i++) {
+		if (alloced_structes[i] == ptr) {
+			alloced_structes[i] = 0;
 		}
 	}
 }

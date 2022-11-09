@@ -25,21 +25,11 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-#ifndef ASM_FN_FMT
-#ifdef __APPLE__
-#define ASM_FN_FMT(name) "[" #name "]"
-#else
-#define ASM_FN_FMT(name) "\"[" #name "]\""
-#endif
-#endif
-
 /* Function header */
-#define sclDefFunc(name)   	    \
-  void fn_ ## name (void) asm(ASM_FN_FMT(name))
-#define sclDeclFunc(name)   	\
+#define sclDefFunc(name) \
   void fn_ ## name (void)
 
-/* Call a function with the given name and arguments. */
+/* Call a function with the given name. */
 #define sclCallFunc(name)  	\
   fn_ ## name ()
 
@@ -112,9 +102,9 @@ ssize_t	 	ctrl_stack_size(void) asm("stack_size");
 void 		sap_open(void) asm("sap_push");
 void		sap_close(void) asm("sap_pop");
 
-int		 	scl_is_complex(void* p) asm("is_complex");
-scl_value	scl_alloc_complex(size_t size) asm("create_complex");
-void		scl_dealloc_complex(scl_value ptr) asm("destroy_complex");
+int		 	scl_is_struct(void* p) asm("is_struct");
+scl_value	scl_alloc_struct(size_t size) asm("create_struct");
+void		scl_dealloc_struct(scl_value ptr) asm("destroy_struct");
 
 operator(add);
 operator(sub);

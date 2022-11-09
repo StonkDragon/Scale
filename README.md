@@ -75,8 +75,8 @@ Optional:
   - `ref`: Write the value at the address on the stack to the following variable
   - `container`: Declare a new Container to hold multiple values
   - `repeat`: Define repeat iterator loop
-  - `complex`: Define a complex
-  - `new`: Create a new value of a Complex type
+  - `struct`: Define a struct
+  - `new`: Create a new value of a Struct type
   - `is`: Check if a value is of a specific type
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
@@ -152,7 +152,7 @@ Example:
 
   - [Containers](./examples/container.scale)
 
-  - [Complex](./examples/complex.scale)
+  - [Struct](./examples/struct.scale)
 
   - [Pointer Dereferencing](./examples/deref.scale)
 

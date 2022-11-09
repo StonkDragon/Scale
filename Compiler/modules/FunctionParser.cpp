@@ -36,13 +36,13 @@ namespace sclc
         return Container("");
     }
 
-    Complex getComplexByName(TPResult result, std::string name) {
-        for (Complex complex : result.complexes) {
-            if (complex.getName() == name) {
-                return complex;
+    Struct getStructByName(TPResult result, std::string name) {
+        for (Struct struct_ : result.structes) {
+            if (struct_.getName() == name) {
+                return struct_;
             }
         }
-        return Complex("");
+        return Struct("");
     }
 
     bool hasFunction(TPResult result, Token name) {
@@ -97,7 +97,7 @@ namespace sclc
         ConvertC::writeInternalFunctions(fp, result);
         ConvertC::writeGlobals(fp, globals, result);
         ConvertC::writeContainers(fp, result);
-        ConvertC::writeComplexes(fp, result);
+        ConvertC::writeStructes(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainCall = "  fn_main(void);\n";
