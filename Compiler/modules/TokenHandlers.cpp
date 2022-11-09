@@ -107,7 +107,7 @@ namespace sclc
             result.type = keywIn.getType();
             return result;
         }
-        if (from.getType() != tok_number && from.getType() != tok_char_literal) {
+        if (from.getType() != tok_number) {
             FPResult result;
             result.message = "Expected integer after 'in', but got: '" + from.getValue() + "'";
             result.success = false;
@@ -129,7 +129,7 @@ namespace sclc
             result.type = keywTo.getType();
             return result;
         }
-        if (to.getType() != tok_number && to.getType() != tok_char_literal) {
+        if (to.getType() != tok_number) {
             FPResult result;
             result.message = "Expected integer after 'to', but got: '" + to.getValue() + "'";
             result.success = false;
@@ -152,15 +152,8 @@ namespace sclc
             return result;
         }
 
-        long long lower = 0;
-        if (from.getType() == tok_number || from.getType() == tok_char_literal) {
-            lower = parseNumber(from.getValue());
-        }
-
-        long long higher = 0;
-        if (to.getType() == tok_number || to.getType() == tok_char_literal) {
-            higher = parseNumber(to.getValue());
-        }
+        long long lower = parseNumber(from.getValue());
+        long long higher = parseNumber(to.getValue());
 
         for (int j = 0; j < *scopeDepth; j++) {
             fprintf(fp, "  ");
@@ -214,6 +207,42 @@ namespace sclc
             fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
         }
 
+        std::vector<FPResult> warns;
+
+        if (hasFunction(Main.parser->getResult(), loopVar)) {
+            FPResult result;
+            result.message = "Variable '" + loopVar.getValue() + "' shadowed by function '" + loopVar.getValue() + "'";
+            result.success = false;
+            result.line = loopVar.getLine();
+            result.in = loopVar.getFile();
+            result.value = loopVar.getValue();
+            result.type =  loopVar.getType();
+            result.column = loopVar.getColumn();
+            warns.push_back(result);
+        }
+        if (hasContainer(Main.parser->getResult(), loopVar)) {
+            FPResult result;
+            result.message = "Variable '" + loopVar.getValue() + "' shadowed by container '" + loopVar.getValue() + "'";
+            result.success = false;
+            result.line = loopVar.getLine();
+            result.in = loopVar.getFile();
+            result.value = loopVar.getValue();
+            result.type =  loopVar.getType();
+            result.column = loopVar.getColumn();
+            warns.push_back(result);
+        }
+        if (hasVar(loopVar)) {
+            FPResult result;
+            result.message = "Variable '" + loopVar.getValue() + "' is already declared and shadows it.";
+            result.success = false;
+            result.line = loopVar.getLine();
+            result.in = loopVar.getFile();
+            result.value = loopVar.getValue();
+            result.type =  loopVar.getType();
+            result.column = loopVar.getColumn();
+            warns.push_back(result);
+        }
+
         fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());
         fprintf(fp, "%s", from.getValue().c_str());
 
@@ -223,14 +252,6 @@ namespace sclc
             fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
         } else if (lower > higher) {
             fprintf(fp, "; _%s > (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", to.getValue().c_str());
-            fprintf(fp, "; _%s--) {\n", loopVar.getValue().c_str());
-        } else if (lower <= higher) {
-            fprintf(fp, "; _%s <= (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", to.getValue().c_str());
-            fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
-        } else if (lower >= higher) {
-            fprintf(fp, "; _%s >= (void*) ", loopVar.getValue().c_str());
             fprintf(fp, "%s", to.getValue().c_str());
             fprintf(fp, "; _%s--) {\n", loopVar.getValue().c_str());
         } else {
@@ -250,6 +271,7 @@ namespace sclc
         FPResult result;
         result.success = true;
         result.message = "";
+        result.warns = warns;
         return result;
     }
 

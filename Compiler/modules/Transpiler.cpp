@@ -22,12 +22,12 @@ namespace sclc {
         }
 
         append("\n");
-        append("const char* const __scl_internal__frameworks[] asm(\"frameworks\") = {\n");
+        append("const char* const __scl_internal__frameworks[] = {\n");
         for (std::string framework : Main.frameworks) {
             append("  \"%s\",\n", framework.c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__frameworks_size asm(\"frameworks_size\") = %zu;\n", Main.frameworks.size());
+        append("const size_t __scl_internal__frameworks_size = %zu;\n", Main.frameworks.size());
         append("\n");
     }
 
@@ -42,17 +42,9 @@ namespace sclc {
             fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
             fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
 
-            fprintf(nomangled, "#ifndef ASM_FN_FMT\n");
-            fprintf(nomangled, "#ifdef __APPLE__\n");
-            fprintf(nomangled, "#define ASM_FN_FMT(name) \"[\" #name \"]\"\n");
-            fprintf(nomangled, "#else\n");
-            fprintf(nomangled, "#define ASM_FN_FMT(name) \"\\\\\\\"[\" #name \"]\\\\\\\"\"\n");
-            fprintf(nomangled, "#endif\n");
-            fprintf(nomangled, "#endif\n");
-
             fprintf(nomangled, "#define scl_export(func_name) \\\n");
             fprintf(nomangled, "    void func_name (void); \\\n");
-            fprintf(nomangled, "    void fn_ ## func_name (void) asm(ASM_FN_FMT(func_name)); \\\n");
+            fprintf(nomangled, "    void fn_ ## func_name (void); \\\n");
             fprintf(nomangled, "    void fn_ ## func_name () { func_name (); } \\\n");
             fprintf(nomangled, "    void func_name (void)\n\n");
             fprintf(nomangled, "#define ssize_t signed long\n");
@@ -71,7 +63,7 @@ namespace sclc {
         }
 
         for (Function function : result.functions) {
-            append("void fn_%s(void) asm(\"" ASM_FN_FMT "\");\n", function.getName().c_str(), function.getName().c_str());
+            append("void fn_%s(void);\n", function.getName().c_str());
             if (!Main.options.transpileOnly) continue;
             for (Modifier m : function.getModifiers()) {
                 if (m == mod_nomangle) {
@@ -120,7 +112,7 @@ namespace sclc {
                     functionDeclaration += function.getArgs()[i];
                 }
                 functionDeclaration += ")";
-                append("void fn_%s(void) asm(\"" ASM_FN_FMT "\");\n", function.getName().c_str(), function.getName().c_str());
+                append("void fn_%s(void);\n", function.getName().c_str());
             }
         }
 
@@ -129,7 +121,7 @@ namespace sclc {
 
     void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        append("const unsigned long long __scl_internal__function_names[] asm(\"function_names\") = {\n");
+        append("const unsigned long long __scl_internal__function_names[] = {\n");
         for (Function func : result.extern_functions) {
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.getName().c_str()), (char*) func.getName().c_str());
         }
@@ -138,7 +130,7 @@ namespace sclc {
         }
         append("};\n");
 
-        append("const scl_value __scl_internal__function_ptrs[] asm(\"function_ptrs\") = {\n");
+        append("const scl_value __scl_internal__function_ptrs[] = {\n");
         for (Function func : result.extern_functions) {
             append("  fn_%s,\n", func.getName().c_str());
         }
@@ -146,8 +138,8 @@ namespace sclc {
             append("  fn_%s,\n", function.getName().c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__function_ptrs_size asm(\"function_ptrs_size\") = %zu;\n", result.functions.size() + result.extern_functions.size());
-        append("const size_t __scl_internal__function_names_size asm(\"function_names_size\") = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
     }
@@ -157,7 +149,7 @@ namespace sclc {
         append("/* GLOBALS */\n");
 
         for (std::string s : result.globals) {
-            append("scl_value _%s asm(\"global_%s\");\n", s.c_str(), s.c_str());
+            append("scl_value _%s;", s.c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
@@ -173,31 +165,31 @@ namespace sclc {
             for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
-            append("} $_%s asm(\"container_%s\") = {0};\n", c.getName().c_str(), c.getName().c_str());
+            append("} cont_%s = {0};\n", c.getName().c_str());
         }
 
         append("\n");
-        append("const scl_value* __scl_internal__globals_ptrs[] asm(\"globals_ptrs\") = {\n");
+        append("const scl_value* __scl_internal__globals_ptrs[] = {\n");
         for (std::string s : result.globals) {
             append("  (const scl_value*) &_%s,\n", s.c_str());
         }
         for (Container c : result.containers) {
             for (std::string s : c.getMembers()) {
-                append("  (const scl_value*) &$_%s.%s,\n", c.getName().c_str(), s.c_str());
+                append("  (const scl_value*) &cont_%s.%s,\n", c.getName().c_str(), s.c_str());
             }
         }
         append("};\n");
-        append("const size_t __scl_internal__globals_ptrs_size asm(\"globals_ptrs_size\") = %zu;\n", result.globals.size());
+        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size());
         
         append("\n");
     }
 
-    void ConvertC::writeComplexes(FILE* fp, TPResult result) {
+    void ConvertC::writeStructes(FILE* fp, TPResult result) {
         int scopeDepth = 0;
         append("/* COMPLEXES */\n");
-        for (Complex c : result.complexes) {
+        for (Struct c : result.structes) {
             append("struct scl_struct_%s {\n", c.getName().c_str());
-            append("  char* $__type;\n");
+            append("  scl_str $__type__;\n");
             for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
@@ -317,10 +309,7 @@ namespace sclc {
                 } else {
                     switch (body[i].getType()) {
                         case tok_identifier: {
-                            if (hasVar(body[i])) {
-                                std::string loadFrom = body[i].getValue();
-                                append("ctrl_push(_%s);\n", loadFrom.c_str());
-                            } else if (hasFunction(result, body[i])) {
+                            if (hasFunction(result, body[i])) {
                                 append("scl_security_required_arg_count(%zu, ", getFunctionByName(result, body[i].getValue()).getArgs().size());
                                 int tmpScopeDepth = scopeDepth;
                                 scopeDepth = 0;
@@ -357,7 +346,10 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("ctrl_push($_%s.%s);\n", containerName.c_str(), memberName.c_str());
+                                append("ctrl_push(cont_%s.%s);\n", containerName.c_str(), memberName.c_str());
+                            } else if (hasVar(body[i])) {
+                                std::string loadFrom = body[i].getValue();
+                                append("ctrl_push(_%s);\n", loadFrom.c_str());
                             } else {
                                 FPResult result;
                                 result.message = "Unknown identifier: '" + body[i].getValue() + "'";
@@ -411,11 +403,11 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
-                            std::string complexName = body[i].getValue();
-                            if (getComplexByName(result, complexName) == Complex("")) {
+                            std::string structName = body[i].getValue();
+                            if (getStructByName(result, structName) == Struct("")) {
                                 FPResult err;
                                 err.success = false;
-                                err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                 err.column = body[i].getColumn();
                                 err.line = body[i].getLine();
                                 err.in = body[i].getFile();
@@ -451,10 +443,10 @@ namespace sclc {
                                 continue;
                             }
                             std::string memberName = body[i].getValue();
-                            if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                            if (!getStructByName(result, structName).hasMember(memberName)) {
                                 FPResult err;
                                 err.success = false;
-                                err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                                err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
                                 err.column = body[i].getColumn();
                                 err.line = body[i].getLine();
                                 err.in = body[i].getFile();
@@ -468,16 +460,16 @@ namespace sclc {
                             scopeDepth++;
                             append("scl_value addr = ctrl_pop();\n");
                             append("scl_security_check_null(addr);\n");
-                            append("if (!scl_is_complex(addr)) {\n");
+                            append("if (!scl_is_struct(addr)) {\n");
                             append("  char* throw_msg = malloc(256);\n");
-                            append("  sprintf(throw_msg, \"Non-complex type cannot be cast to complex '%s'\");\n", complexName.c_str());
+                            append("  sprintf(throw_msg, \"Non-struct type cannot be cast to struct '%s'\");\n", structName.c_str());
                             append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
-                            append("} else if (strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") != 0) {\n", complexName.c_str(), complexName.c_str());
+                            append("} else if (strcmp(((struct scl_struct_%s*) addr)->$__type__, \"%s\") != 0) {\n", structName.c_str(), structName.c_str());
                             append("  char* throw_msg = malloc(256);\n");
-                            append("  sprintf(throw_msg, \"Complex '%%s' can't be cast to complex '%s'\", ((struct scl_struct_%s*) addr)->$__type);\n", complexName.c_str(), complexName.c_str());
+                            append("  sprintf(throw_msg, \"Struct '%%s' can't be cast to struct '%s'\", ((struct scl_struct_%s*) addr)->$__type__);\n", structName.c_str(), structName.c_str());
                             append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
                             append("}\n");
-                            append("ctrl_push(((struct scl_struct_%s*) addr)->%s);\n", complexName.c_str(), memberName.c_str());
+                            append("ctrl_push(((struct scl_struct_%s*) addr)->%s);\n", structName.c_str(), memberName.c_str());
                             scopeDepth--;
                             append("}\n");
                             break;
@@ -525,11 +517,11 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
-                            std::string complex = body[i].getValue();
-                            if (getComplexByName(result, complex) == Complex("")) {
+                            std::string struct_ = body[i].getValue();
+                            if (getStructByName(result, struct_) == Struct("")) {
                                 FPResult err;
                                 err.success = false;
-                                err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                 err.column = body[i].getColumn();
                                 err.line = body[i].getLine();
                                 err.in = body[i].getFile();
@@ -540,8 +532,8 @@ namespace sclc {
                             }
                             append("{\n");
                             scopeDepth++;
-                            append("struct scl_struct_%s* new_tmp = scl_alloc_complex(sizeof(struct scl_struct_%s));\n", complex.c_str(), complex.c_str());
-                            append("new_tmp->$__type = \"%s\";\n", complex.c_str());
+                            append("struct scl_struct_%s* new_tmp = scl_alloc_struct(sizeof(struct scl_struct_%s));\n", struct_.c_str(), struct_.c_str());
+                            append("new_tmp->$__type__ = \"%s\";\n", struct_.c_str());
                             append("ctrl_push(new_tmp);\n");
                             scopeDepth--;
                             append("}\n");
@@ -562,11 +554,11 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
-                            std::string complex = body[i].getValue();
-                            if (getComplexByName(result, complex) == Complex("")) {
+                            std::string struct_ = body[i].getValue();
+                            if (getStructByName(result, struct_) == Struct("")) {
                                 FPResult err;
                                 err.success = false;
-                                err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                 err.column = body[i].getColumn();
                                 err.line = body[i].getLine();
                                 err.in = body[i].getFile();
@@ -577,7 +569,7 @@ namespace sclc {
                             }
                             append("{\n");
                             append("  scl_value addr = ctrl_pop();\n");
-                            append("  ctrl_push_long(scl_is_complex(addr) && strcmp(((struct scl_struct_%s*) addr)->$__type, \"%s\") == 0);\n", complex.c_str(), complex.c_str());
+                            append("  ctrl_push_long(scl_is_struct(addr) && strcmp(((struct scl_struct_%s*) addr)->$__type__, \"%s\") == 0);\n", struct_.c_str(), struct_.c_str());
                             append("}\n");
                             break;
                         }
@@ -666,6 +658,9 @@ namespace sclc {
                             if (!forHandled.success) {
                                 errors.push_back(forHandled);
                             }
+                            if (forHandled.warns.size() > 0) {
+                                warns.insert(warns.end(), forHandled.warns.begin(), forHandled.warns.end());
+                            }
                             was_rep.push_back(false);
                             i += 7;
                             break;
@@ -734,7 +729,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("ctrl_push(&($_%s.%s));\n", containerName.c_str(), memberName.c_str());
+                                append("ctrl_push(&(cont_%s.%s));\n", containerName.c_str(), memberName.c_str());
                             } else if (body[i + 2].getType() == tok_double_column) {
                                 ITER_INC;
                                 std::string varName = body[i].getValue();
@@ -751,11 +746,11 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                std::string complexName = body[i].getValue();
-                                if (getComplexByName(result, complexName) == Complex("")) {
+                                std::string structName = body[i].getValue();
+                                if (getStructByName(result, structName) == Struct("")) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -791,10 +786,10 @@ namespace sclc {
                                     continue;
                                 }
                                 std::string memberName = body[i].getValue();
-                                if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                                if (!getStructByName(result, structName).hasMember(memberName)) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -803,7 +798,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("ctrl_push(&(((struct scl_struct_%s*) _%s)->%s));\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                                append("ctrl_push(&(((struct scl_struct_%s*) _%s)->%s));\n", structName.c_str(), varName.c_str(), memberName.c_str());
                             } else {
                                 FPResult err;
                                 err.success = false;
@@ -850,7 +845,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("$_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                                append("cont_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
                             } else if (body[i + 1].getType() == tok_double_column) {
                                 std::string varName = body[i].getValue();
                                 i += 2;
@@ -866,11 +861,11 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                std::string complexName = body[i].getValue();
-                                if (getComplexByName(result, complexName) == Complex("")) {
+                                std::string structName = body[i].getValue();
+                                if (getStructByName(result, structName) == Struct("")) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -906,10 +901,10 @@ namespace sclc {
                                     continue;
                                 }
                                 std::string memberName = body[i].getValue();
-                                if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                                if (!getStructByName(result, structName).hasMember(memberName)) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -918,7 +913,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("((struct scl_struct_%s*) _%s)->%s = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                                append("((struct scl_struct_%s*) _%s)->%s = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
                             } else {
                                 if (body[i].getType() != tok_identifier) {
                                     FPResult result;
@@ -959,6 +954,40 @@ namespace sclc {
                                 result.type =  body[i + 1].getType();
                                 result.column = body[i + 1].getColumn();
                                 errors.push_back(result);
+                                continue;
+                            }
+                            if (hasFunction(result, body[i + 1])) {
+                                FPResult result;
+                                result.message = "Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'";
+                                result.success = false;
+                                result.line = body[i + 1].getLine();
+                                result.in = body[i + 1].getFile();
+                                result.value = body[i + 1].getValue();
+                                result.type =  body[i + 1].getType();
+                                result.column = body[i + 1].getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasContainer(result, body[i + 1])) {
+                                FPResult result;
+                                result.message = "Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'";
+                                result.success = false;
+                                result.line = body[i + 1].getLine();
+                                result.in = body[i + 1].getFile();
+                                result.value = body[i + 1].getValue();
+                                result.type =  body[i + 1].getType();
+                                result.column = body[i + 1].getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasVar(body[i + 1])) {
+                                FPResult result;
+                                result.message = "Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.";
+                                result.success = false;
+                                result.line = body[i + 1].getLine();
+                                result.in = body[i + 1].getFile();
+                                result.value = body[i + 1].getValue();
+                                result.type =  body[i + 1].getType();
+                                result.column = body[i + 1].getColumn();
+                                warns.push_back(result);
                             }
                             vars.push_back(body[i + 1].getValue());
                             std::string loadFrom = body[i + 1].getValue();
@@ -1043,7 +1072,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("*((scl_value*) $_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                                append("*((scl_value*) cont_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
                             } else if (body[i + 1].getType() == tok_double_column) {
                                 std::string varName = body[i].getValue();
                                 i += 2;
@@ -1059,11 +1088,11 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                std::string complexName = body[i].getValue();
-                                if (getComplexByName(result, complexName) == Complex("")) {
+                                std::string structName = body[i].getValue();
+                                if (getStructByName(result, structName) == Struct("")) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Usage of undeclared complex '" + body[i].getValue() + "'";
+                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -1099,10 +1128,10 @@ namespace sclc {
                                     continue;
                                 }
                                 std::string memberName = body[i].getValue();
-                                if (!getComplexByName(result, complexName).hasMember(memberName)) {
+                                if (!getStructByName(result, structName).hasMember(memberName)) {
                                     FPResult err;
                                     err.success = false;
-                                    err.message = "Unknown member of complex '" + complexName + "': '" + body[i].getValue() + "'";
+                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
                                     err.column = body[i].getColumn();
                                     err.line = body[i].getLine();
                                     err.in = body[i].getFile();
@@ -1111,7 +1140,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", complexName.c_str(), varName.c_str(), memberName.c_str());
+                                append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
                             } else {
                                 if (body[i].getType() != tok_identifier) {
                                     FPResult result;
