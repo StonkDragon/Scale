@@ -35,6 +35,7 @@ build: {
     "-pedantic";
   ];
   preBuild: [
+    "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
     "rm -rf $HOME/Scale";
     "cp -r Scale $HOME";
   ];
