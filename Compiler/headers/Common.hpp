@@ -151,7 +151,7 @@ namespace sclc
         tok_declare,        // decl
         tok_container_def,  // container
         tok_repeat,         // repeat
-        tok_struct_def,    // struct
+        tok_struct_def,     // struct
         tok_new,            // new
         tok_is,             // is
         tok_cdecl,          // cdecl
@@ -294,17 +294,6 @@ namespace sclc
         bool operator==(const Function& other) const {
             return name == other.name;
         }
-    };
-
-    class Extern
-    {
-        std::string name;
-    public:
-        Extern(std::string name) {
-            this->name = name;
-        }
-        ~Extern() {}
-        std::string getName() const { return name; }
     };
 
     class Container {
