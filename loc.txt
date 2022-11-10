@@ -20,7 +20,7 @@
       59 Scale/Frameworks/Runtime.framework/impl/runtime.c
       11 Scale/Frameworks/Runtime.framework/impl/runtime.h
        9 Scale/Frameworks/Runtime.framework/include/runtime.scale
-     452 Scale/Internal/scale_internal.c
+     453 Scale/Internal/scale_internal.c
      132 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
        5 examples/cdecl.scale
@@ -43,4 +43,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       26 interop-example/scale_support.h
-    6264 total
+    6265 total

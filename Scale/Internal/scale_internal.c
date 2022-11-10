@@ -37,6 +37,7 @@ void scl_gc_alloc(scl_value ptr) {
 
 void scl_gc_collect() {
 	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == 0) goto next;
 		for (ssize_t j = stack.ptr - 1; j >= 0; j--) {
 			if (stack.data[j].value.i == allocated[i]) {
 				goto next;
@@ -51,13 +52,13 @@ void scl_gc_collect() {
 		free(allocated[i]);
 		allocated[i] = 0;
 	next:
-		// Line needed otherwise compiler error: Expected Expression
+		// Line needed otherwise compiler error: expected statement
 		(void) 0;
 	}
 }
 
 void scl_gc_remove(scl_value ptr) {
-	for (size_t i = 0; i < allocated_count; i--) {
+	for (size_t i = 0; i < allocated_count; i++) {
 		if (allocated[i] == ptr) {
 			allocated[i] = 0;
 			return;
