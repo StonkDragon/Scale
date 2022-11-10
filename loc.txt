@@ -1,6 +1,6 @@
      205 Compiler/Common.cpp
      737 Compiler/Main.cpp
-     501 Compiler/headers/Common.hpp
+     490 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
      352 Compiler/modules/DragonConfig.cpp
      157 Compiler/modules/FunctionParser.cpp
@@ -20,7 +20,7 @@
       59 Scale/Frameworks/Runtime.framework/impl/runtime.c
       11 Scale/Frameworks/Runtime.framework/impl/runtime.h
        9 Scale/Frameworks/Runtime.framework/include/runtime.scale
-     453 Scale/Internal/scale_internal.c
+     454 Scale/Internal/scale_internal.c
      132 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
        5 examples/cdecl.scale
@@ -43,4 +43,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       26 interop-example/scale_support.h
-    6265 total
+    6255 total
