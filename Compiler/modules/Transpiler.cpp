@@ -131,8 +131,8 @@ namespace sclc {
         append("};\n");
 
         append("const scl_value __scl_internal__function_ptrs[] = {\n");
-        for (Function func : result.extern_functions) {
-            append("  fn_%s,\n", func.getName().c_str());
+        for (Function function : result.extern_functions) {
+            append("  fn_%s,\n", function.getName().c_str());
         }
         for (Function function : result.functions) {
             append("  fn_%s,\n", function.getName().c_str());

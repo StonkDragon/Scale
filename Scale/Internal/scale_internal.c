@@ -333,6 +333,7 @@ scl_value scl_alloc(size_t size) {
 }
 
 void scl_free(scl_value ptr) {
+	scl_dealloc_struct(ptr);
 	scl_gc_remove(ptr);
 }
 
