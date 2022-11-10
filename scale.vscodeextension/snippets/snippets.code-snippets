@@ -63,9 +63,9 @@
 		"scope": "source.scale",
 		"prefix": "extern",
 		"body": [
-			"extern ${1:name}"
+			"extern"
 		],
-		"description": "Declare an external function"
+		"description": "Declare an extern function or variable"
 	},
 	"Load Var": {
 		"scope": "source.scale",
