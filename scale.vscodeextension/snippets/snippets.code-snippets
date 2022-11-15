@@ -121,7 +121,7 @@
 		"scope": "source.scale",
 		"prefix": "reference",
 		"body": [
-			"ref ${1:name}"
+			"store @${1:name}"
 		],
 		"description": "Referenced write"
 	},
@@ -129,7 +129,7 @@
 		"scope": "source.scale",
 		"prefix": "dereference",
 		"body": [
-			"deref"
+			"@"
 		],
 		"description": "Address Dereference"
 	},

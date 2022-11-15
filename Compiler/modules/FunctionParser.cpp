@@ -103,7 +103,7 @@ namespace sclc
         std::string mainCall = "  fn_main(void);\n";
 
         std::string mainEntry = 
-        "int main(int argc, char const *argv[]) {\n"
+        "int main(int argc, const scl_str argv[]) {\n"
         "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
         "#endif\n"
@@ -131,7 +131,6 @@ namespace sclc
         "  }\n"
         "\n"
         "  srand(time(NULL));\n"
-        "  scl_security_required_arg_count(" + std::to_string(mainFunction.getArgs().size()) + ", \"main()\");\n"
         "  fn_main();\n"
         "  return 0;\n"
         "}\n";
