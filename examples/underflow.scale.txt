@@ -1,5 +1,5 @@
 
-examples/underflow.scale:4:15: Error: Function foo requires 3 arguments, but only 2 are provided.
+examples/underflow.scale:4:15: Error: Function foo(foo, bar, baz) requires 3 arguments, but only 2 are provided.
 Stacktrace:
   main()
 

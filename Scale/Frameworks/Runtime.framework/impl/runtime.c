@@ -1,11 +1,11 @@
 #include "runtime.h"
 
-extern const char* const __scl_internal__frameworks[];
-extern const size_t __scl_internal__frameworks_size;
+extern const char* const scl_internal_frameworks[];
+extern const size_t scl_internal_frameworks_size;
 
-extern const void* __scl_internal__function_ptrs[];
-extern const unsigned long long __scl_internal__function_names[];
-extern const size_t __scl_internal__function_names_size;
+extern const scl_method scl_internal_function_ptrs[];
+extern const unsigned long long scl_internal_function_names[];
+extern const size_t scl_internal_function_names_size;
 
 typedef unsigned long long hash;
 
@@ -19,8 +19,8 @@ hash hash1(char* data) {
 
 sclDefFunc(Runtime_hasFramework) {
     char* name = ctrl_pop_string();
-    for (size_t i = 0; i < __scl_internal__frameworks_size; i++) {
-        if (strcmp(name, __scl_internal__frameworks[i]) == 0) {
+    for (size_t i = 0; i < scl_internal_frameworks_size; i++) {
+        if (strcmp(name, scl_internal_frameworks[i]) == 0) {
             ctrl_push_long(1);
             return;
         }
@@ -30,8 +30,8 @@ sclDefFunc(Runtime_hasFramework) {
 
 sclDefFunc(Runtime_listFrameworks) {
     printf("Frameworks:\n");
-    for (size_t i = 0; i < __scl_internal__frameworks_size; i++) {
-        printf(" %s\n", __scl_internal__frameworks[i]);
+    for (size_t i = 0; i < scl_internal_frameworks_size; i++) {
+        printf(" %s\n", scl_internal_frameworks[i]);
     }
 }
 
@@ -39,8 +39,8 @@ sclDefFunc(Runtime_getFunctionID) {
     char* name = ctrl_pop_string();
     hash h = hash1(name);
     
-    for (size_t i = 0; i < __scl_internal__function_names_size; i++) {
-        if (h == __scl_internal__function_names[i]) {
+    for (size_t i = 0; i < scl_internal_function_names_size; i++) {
+        if (h == scl_internal_function_names[i]) {
             ctrl_push_long(i);
             return;
         }
@@ -54,6 +54,5 @@ sclDefFunc(Runtime_callByID) {
         fprintf(stderr, "Error: Method not found");
         return;
     }
-    const void* func = __scl_internal__function_ptrs[id];
-    ((void (*)(void)) func)();
+    scl_internal_function_ptrs[id]();
 }

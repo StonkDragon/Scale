@@ -18,12 +18,37 @@ size_t 		 alloced_structs_count = 0;
 scl_value    allocated[STACK_SIZE] = {0};
 size_t 		 allocated_count = 0;
 
-#define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
+#define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
+
+#pragma region Functions
+
+extern const scl_method scl_internal_function_ptrs[];
+extern const unsigned long long scl_internal_function_names_with_args[];
+extern const size_t scl_internal_function_names_size;
+
+hash hash1(char* data) {
+    hash h = 7;
+    for (int i = 0; i < strlen(data); i++) {
+        h = h * 31 + data[i];
+    }
+    return h;
+}
+
+scl_method scl_method_for_name(scl_int name_hash) {
+    for (size_t i = 0; i < scl_internal_function_names_size; i++) {
+        if (name_hash == scl_internal_function_names_with_args[i]) {
+            return scl_internal_function_ptrs[i];
+        }
+    }
+	return NULL;
+}
+
+#pragma endregion
 
 #pragma region GC
 
-extern const scl_value* __scl_internal__globals_ptrs[];
-extern const size_t __scl_internal__globals_ptrs_size;
+extern const scl_value* scl_internal_globals_ptrs[];
+extern const size_t scl_internal_globals_ptrs_size;
 
 void scl_gc_alloc(scl_value ptr) {
 	for (size_t i = 0; i < allocated_count; i++) {
@@ -43,14 +68,14 @@ void scl_gc_collect() {
 				goto next;
 			}
 		}
-		for (size_t j = 0; j < __scl_internal__globals_ptrs_size; j++) {
-			if (*(__scl_internal__globals_ptrs[j]) == allocated[i]) {
+		for (size_t j = 0; j < scl_internal_globals_ptrs_size; j++) {
+			if (*(scl_internal_globals_ptrs[j]) == allocated[i]) {
 				goto next;
 			}
 		}
-		scl_free(allocated[i]);
-		free(allocated[i]);
-		allocated[i] = 0;
+		scl_value tmp = allocated[i];
+		scl_free(tmp);
+		free(tmp);
 	next:
 		// Line needed otherwise compiler error: expected statement
 		(void) 0;
@@ -61,9 +86,19 @@ void scl_gc_remove(scl_value ptr) {
 	for (size_t i = 0; i < allocated_count; i++) {
 		if (allocated[i] == ptr) {
 			allocated[i] = 0;
-			return;
 		}
 	}
+}
+
+scl_value scl_alloc(size_t size) {
+	scl_value ptr = malloc(size);
+	scl_gc_alloc(ptr);
+	return ptr;
+}
+
+void scl_free(scl_value ptr) {
+	scl_dealloc_struct(ptr);
+	scl_gc_remove(ptr);
 }
 
 #pragma endregion
@@ -324,17 +359,6 @@ void scl_dealloc_struct(scl_value ptr) {
 			alloced_structs[i] = 0;
 		}
 	}
-}
-
-scl_value scl_alloc(size_t size) {
-	scl_value ptr = malloc(size);
-	scl_gc_alloc(ptr);
-	return ptr;
-}
-
-void scl_free(scl_value ptr) {
-	scl_dealloc_struct(ptr);
-	scl_gc_remove(ptr);
 }
 
 #pragma endregion
