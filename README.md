@@ -45,6 +45,8 @@ Optional:
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
+  - `@` in `store`: Store top of stack at address in variable
+  - `@` otherwise: Push the value at the address on the stack onto the stack
 
   - `[`: Stack Autodrop Pool Open
   - `]`: Stack Autodrop Pool Close
@@ -71,8 +73,6 @@ Optional:
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
-  - `deref`: Push the value at the address on the stack
-  - `ref`: Write the value at the address on the stack to the following variable
   - `container`: Declare a new Container to hold multiple values
   - `repeat`: Define repeat iterator loop
   - `struct`: Define a struct

@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "../headers/Common.hpp"
+#include "../headers/TranspilerDefs.hpp"
 
 #define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.column = body[i - 1].getColumn(); err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
 
@@ -22,12 +23,12 @@ namespace sclc {
         }
 
         append("\n");
-        append("const char* const __scl_internal__frameworks[] = {\n");
+        append("const char* const scl_internal_frameworks[] = {\n");
         for (std::string framework : Main.frameworks) {
             append("  \"%s\",\n", framework.c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__frameworks_size = %zu;\n", Main.frameworks.size());
+        append("const size_t scl_internal_frameworks_size = %zu;\n", Main.frameworks.size());
         append("\n");
     }
 
@@ -121,16 +122,46 @@ namespace sclc {
 
     void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        append("const unsigned long long __scl_internal__function_names[] = {\n");
-        for (Function func : result.extern_functions) {
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) func.getName().c_str()), (char*) func.getName().c_str());
+        append("const unsigned long long scl_internal_function_names_with_args[] = {\n");
+        for (Function function : result.extern_functions) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += function.getName() + "(";
+            for (size_t i = 0; i < function.getArgs().size(); i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += function.getArgs()[i];
+            }
+            functionDeclaration += ")";
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
         }
         for (Function function : result.functions) {
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) function.getName().c_str()), (char*) function.getName().c_str());
+            std::string functionDeclaration = "";
+
+            functionDeclaration += function.getName() + "(";
+            for (size_t i = 0; i < function.getArgs().size(); i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += function.getArgs()[i];
+            }
+            functionDeclaration += ")";
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
+        }
+        append("};\n");
+        append("const unsigned long long scl_internal_function_names[] = {\n");
+        for (Function function : result.extern_functions) {
+            std::string functionDeclaration = function.getName();
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
+        }
+        for (Function function : result.functions) {
+            std::string functionDeclaration = function.getName();
+            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
         }
         append("};\n");
 
-        append("const scl_value __scl_internal__function_ptrs[] = {\n");
+        append("const scl_method scl_internal_function_ptrs[] = {\n");
         for (Function function : result.extern_functions) {
             append("  fn_%s,\n", function.getName().c_str());
         }
@@ -138,8 +169,8 @@ namespace sclc {
             append("  fn_%s,\n", function.getName().c_str());
         }
         append("};\n");
-        append("const size_t __scl_internal__function_ptrs_size = %zu;\n", result.functions.size() + result.extern_functions.size());
-        append("const size_t __scl_internal__function_names_size = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t scl_internal_function_ptrs_size = %zu;\n", result.functions.size() + result.extern_functions.size());
+        append("const size_t scl_internal_function_names_size = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
     }
@@ -169,7 +200,7 @@ namespace sclc {
         }
 
         append("\n");
-        append("const scl_value* __scl_internal__globals_ptrs[] = {\n");
+        append("const scl_value* scl_internal_globals_ptrs[] = {\n");
         for (std::string s : result.globals) {
             append("  (const scl_value*) &_%s,\n", s.c_str());
         }
@@ -181,7 +212,7 @@ namespace sclc {
             }
         }
         append("};\n");
-        append("const size_t __scl_internal__globals_ptrs_size = %zu;\n", result.globals.size() + container_member_count);
+        append("const size_t scl_internal_globals_ptrs_size = %zu;\n", result.globals.size() + container_member_count);
         
         append("\n");
     }
@@ -191,7 +222,8 @@ namespace sclc {
         append("/* COMPLEXES */\n");
         for (Struct c : result.structs) {
             append("struct scl_struct_%s {\n", c.getName().c_str());
-            append("  scl_str $__type__;\n");
+            append("  scl_int $__type__;\n");
+            append("  scl_str $__type_name__;\n");
             for (std::string s : c.getMembers()) {
                 append("  scl_value %s;\n", s.c_str());
             }
@@ -310,24 +342,28 @@ namespace sclc {
                     switch (body[i].getType()) {
                         case tok_identifier: {
                             if (hasFunction(result, body[i])) {
-                                append("scl_security_required_arg_count(%zu, ", getFunctionByName(result, body[i].getValue()).getArgs().size());
+                                Function f = getFunctionByName(result, body[i].getValue());
+                                std::string functionDeclaration = "";
+
+                                functionDeclaration += f.getName() + "(";
+                                for (size_t i = 0; i < f.getArgs().size(); i++) {
+                                    if (i != 0) {
+                                        functionDeclaration += ", ";
+                                    }
+                                    functionDeclaration += f.getArgs()[i];
+                                }
+                                functionDeclaration += ")";
+                                append("scl_security_required_arg_count(%zu, ", f.getArgs().size());
                                 int tmpScopeDepth = scopeDepth;
                                 scopeDepth = 0;
-                                append("\"%s\");\n", body[i].getValue().c_str());
+                                append("\"%s\");\n", functionDeclaration.c_str());
                                 scopeDepth = tmpScopeDepth;
-                                append("fn_%s();\n", body[i].getValue().c_str());
+                                append("scl_method_for_name(0x%016llx)();\n", hash1((char*) functionDeclaration.c_str()));
                             } else if (hasContainer(result, body[i])) {
                                 std::string containerName = body[i].getValue();
                                 ITER_INC;
                                 if (body[i].getType() != tok_container_acc) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -335,14 +371,7 @@ namespace sclc {
                                 std::string memberName = body[i].getValue();
                                 Container container = getContainerByName(result, containerName);
                                 if (!container.hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown container member: '" + memberName + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Unknown container member: '" + memberName + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -351,15 +380,8 @@ namespace sclc {
                                 std::string loadFrom = body[i].getValue();
                                 append("ctrl_push(_%s);\n", loadFrom.c_str());
                             } else {
-                                FPResult result;
-                                result.message = "Unknown identifier: '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
                             }
                             break;
                         }
@@ -372,14 +394,7 @@ namespace sclc {
                         case tok_cdecl: {
                             ITER_INC;
                             if (body[i].getType() != tok_string_literal) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected string literal, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected string literal, but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
@@ -392,66 +407,31 @@ namespace sclc {
                         case tok_double_column: {
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             std::string structName = body[i].getValue();
                             if (getStructByName(result, structName) == Struct("")) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             ITER_INC;
                             if (body[i].getType() != tok_dot) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected '.', but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             std::string memberName = body[i].getValue();
                             if (!getStructByName(result, structName).hasMember(memberName)) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
@@ -464,9 +444,9 @@ namespace sclc {
                             append("  char* throw_msg = malloc(256);\n");
                             append("  sprintf(throw_msg, \"Non-struct type cannot be cast to struct '%s'\");\n", structName.c_str());
                             append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
-                            append("} else if (strcmp(((struct scl_struct_%s*) addr)->$__type__, \"%s\") != 0) {\n", structName.c_str(), structName.c_str());
+                            append("} else if (((struct scl_struct_%s*) addr)->$__type__ != 0x%016llx) {\n", structName.c_str(), hash1((char*) structName.c_str()));
                             append("  char* throw_msg = malloc(256);\n");
-                            append("  sprintf(throw_msg, \"Struct '%%s' can't be cast to struct '%s'\", ((struct scl_struct_%s*) addr)->$__type__);\n", structName.c_str(), structName.c_str());
+                            append("  sprintf(throw_msg, \"Struct '%%s' can't be cast to struct '%s'\", ((struct scl_struct_%s*) addr)->$__type_name__);\n", structName.c_str(), structName.c_str());
                             append("  scl_security_throw(EX_CAST_ERROR, throw_msg);\n");
                             append("}\n");
                             append("ctrl_push(((struct scl_struct_%s*) addr)->%s);\n", structName.c_str(), memberName.c_str());
@@ -506,34 +486,21 @@ namespace sclc {
                         case tok_new: {
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             std::string struct_ = body[i].getValue();
                             if (getStructByName(result, struct_) == Struct("")) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             append("{\n");
                             scopeDepth++;
                             append("struct scl_struct_%s* new_tmp = scl_alloc_struct(sizeof(struct scl_struct_%s));\n", struct_.c_str(), struct_.c_str());
-                            append("new_tmp->$__type__ = \"%s\";\n", struct_.c_str());
+                            append("new_tmp->$__type__ = 0x%016llx;\n", hash1((char*) struct_.c_str()));
+                            append("new_tmp->$__type_name__ = \"%s\";\n", struct_.c_str());
                             append("ctrl_push(new_tmp);\n");
                             scopeDepth--;
                             append("}\n");
@@ -543,33 +510,19 @@ namespace sclc {
                         case tok_is: {
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             std::string struct_ = body[i].getValue();
                             if (getStructByName(result, struct_) == Struct("")) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                err.column = body[i].getColumn();
-                                err.line = body[i].getLine();
-                                err.in = body[i].getFile();
-                                err.value = body[i].getValue();
-                                err.type =  body[i].getType();
+                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 continue;
                             }
                             append("{\n");
                             append("  scl_value addr = ctrl_pop();\n");
-                            append("  ctrl_push_long(scl_is_struct(addr) && strcmp(((struct scl_struct_%s*) addr)->$__type__, \"%s\") == 0);\n", struct_.c_str(), struct_.c_str());
+                            append("  ctrl_push_long(scl_is_struct(addr) && ((struct scl_struct_%s*) addr)->$__type__ == 0x%016llx\");\n", struct_.c_str(), hash1((char*) struct_.c_str()));
                             append("}\n");
                             break;
                         }
@@ -601,14 +554,7 @@ namespace sclc {
 
                         case tok_repeat: {
                             if (body[i + 1].getType() != tok_number) {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected integer, but got '" + body[i + 1].getValue() + "'";
-                                err.column = body[i + 1].getColumn();
-                                err.line = body[i + 1].getLine();
-                                err.in = body[i + 1].getFile();
-                                err.value = body[i + 1].getValue();
-                                err.type =  body[i + 1].getType();
+                                transpilerError("Expected integer, but got '" + body[i + 1].getValue() + "'", i+1);
                                 errors.push_back(err);
                                 if (body[i + 2].getType() != tok_do)
                                     goto lbl_repeat_do_tok_chk;
@@ -617,14 +563,7 @@ namespace sclc {
                             }
                             if (body[i + 2].getType() != tok_do) {
                             lbl_repeat_do_tok_chk:
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Expected 'do', but got '" + body[i + 2].getValue() + "'";
-                                err.column = body[i + 2].getColumn();
-                                err.line = body[i + 2].getLine();
-                                err.in = body[i + 2].getFile();
-                                err.value = body[i + 2].getValue();
-                                err.type =  body[i + 2].getType();
+                                transpilerError("Expected 'do', but got '" + body[i + 2].getValue() + "'", i+2);
                                 errors.push_back(err);
                                 i += 2;
                                 continue;
@@ -705,14 +644,7 @@ namespace sclc {
                                 std::string containerName = body[i].getValue();
                                 ITER_INC;
                                 if (body[i].getType() != tok_container_acc) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -720,14 +652,7 @@ namespace sclc {
                                 std::string memberName = body[i].getValue();
                                 Container container = getContainerByName(result, containerName);
                                 if (!container.hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown container member: '" + memberName + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Unknown container member: '" + memberName + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -737,79 +662,37 @@ namespace sclc {
                                 std::string varName = body[i].getValue();
                                 i += 2;
                                 if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
                                 std::string structName = body[i].getValue();
                                 if (getStructByName(result, structName) == Struct("")) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
                                 ITER_INC;
                                 if (body[i].getType() != tok_dot) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '.', but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
                                 ITER_INC;
                                 if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
                                 std::string memberName = body[i].getValue();
                                 if (!getStructByName(result, structName).hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
+                                    transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
                                 append("ctrl_push(&(((struct scl_struct_%s*) _%s)->%s));\n", structName.c_str(), varName.c_str(), memberName.c_str());
                             } else {
-                                FPResult err;
-                                err.success = false;
-                                err.message = "Unknown variable: '" + toGet.getValue() + "'";
-                                err.column = body[i + 1].getColumn();
-                                err.line = body[i + 1].getLine();
-                                err.in = body[i + 1].getFile();
-                                err.value = body[i + 1].getValue();
-                                err.type =  body[i + 1].getType();
+                                transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
                                 errors.push_back(err);
                             }
                             break;
@@ -817,179 +700,153 @@ namespace sclc {
 
                         case tok_store: {
                             ITER_INC;
-                            if (body[i + 1].getType() == tok_container_acc) {
-                                std::string containerName = body[i].getValue();
+                            if (body[i].getType() == tok_addr_of) {
                                 ITER_INC;
-                                if (body[i].getType() != tok_container_acc) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
+                                if (body[i + 1].getType() == tok_container_acc) {
+                                    std::string containerName = body[i].getValue();
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_container_acc) {
+                                        transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    std::string memberName = body[i].getValue();
+                                    Container container = getContainerByName(result, containerName);
+                                    if (!container.hasMember(memberName)) {
+                                        transpilerError("Unknown container member: '" + memberName + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    append("*((scl_value*) cont_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                                } else if (body[i + 1].getType() == tok_double_column) {
+                                    std::string varName = body[i].getValue();
+                                    i += 2;
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    std::string structName = body[i].getValue();
+                                    if (getStructByName(result, structName) == Struct("")) {
+                                        transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_dot) {
+                                        transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    std::string memberName = body[i].getValue();
+                                    if (!getStructByName(result, structName).hasMember(memberName)) {
+                                        transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
+                                } else {
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                        errors.push_back(err);
+                                    }
+                                    if (!hasVar(body[i])) {
+                                        transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                    append("*((scl_value*) _%s) = ctrl_pop();\n", body[i].getValue().c_str());
                                 }
-                                ITER_INC;
-                                std::string memberName = body[i].getValue();
-                                Container container = getContainerByName(result, containerName);
-                                if (!container.hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown container member: '" + memberName + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("cont_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
-                            } else if (body[i + 1].getType() == tok_double_column) {
-                                std::string varName = body[i].getValue();
-                                i += 2;
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string structName = body[i].getValue();
-                                if (getStructByName(result, structName) == Struct("")) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '.', but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string memberName = body[i].getValue();
-                                if (!getStructByName(result, structName).hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("((struct scl_struct_%s*) _%s)->%s = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
                             } else {
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "'" + body[i].getValue() + "' is not an identifier!";
-                                    result.success = false;
-                                    result.line = body[i].getLine();
-                                    result.in = body[i].getFile();
-                                    result.value = body[i].getValue();
-                                    result.type =  body[i].getType();
-                                    result.column = body[i].getColumn();
-                                    errors.push_back(result);
+                                if (body[i + 1].getType() == tok_container_acc) {
+                                    std::string containerName = body[i].getValue();
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_container_acc) {
+                                        transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    std::string memberName = body[i].getValue();
+                                    Container container = getContainerByName(result, containerName);
+                                    if (!container.hasMember(memberName)) {
+                                        transpilerError("Unknown container member: '" + memberName + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    append("cont_%s.%s = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
+                                } else if (body[i + 1].getType() == tok_double_column) {
+                                    std::string varName = body[i].getValue();
+                                    i += 2;
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    std::string structName = body[i].getValue();
+                                    if (getStructByName(result, structName) == Struct("")) {
+                                        transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_dot) {
+                                        transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    std::string memberName = body[i].getValue();
+                                    if (!getStructByName(result, structName).hasMember(memberName)) {
+                                        transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    append("((struct scl_struct_%s*) _%s)->%s = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
+                                } else {
+                                    if (body[i].getType() != tok_identifier) {
+                                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                        errors.push_back(err);
+                                    }
+                                    if (!hasVar(body[i])) {
+                                        transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                    std::string storeIn = body[i].getValue();
+                                    append("_%s = ctrl_pop();\n", storeIn.c_str());
                                 }
-                                if (!hasVar(body[i])) {
-                                    FPResult result;
-                                    result.message = "Use of undefined variable '" + body[i].getValue() + "'";
-                                    result.success = false;
-                                    result.line = body[i].getLine();
-                                    result.in = body[i].getFile();
-                                    result.value = body[i].getValue();
-                                    result.type =  body[i].getType();
-                                    result.column = body[i].getColumn();
-                                    errors.push_back(result);
-                                }
-                                std::string storeIn = body[i].getValue();
-                                append("_%s = ctrl_pop();\n", storeIn.c_str());
                             }
                             break;
                         }
 
                         case tok_declare: {
                             if (body[i + 1].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "'" + body[i + 1].getValue() + "' is not an identifier!";
-                                result.success = false;
-                                result.line = body[i + 1].getLine();
-                                result.in = body[i + 1].getFile();
-                                result.value = body[i + 1].getValue();
-                                result.type =  body[i + 1].getType();
-                                result.column = body[i + 1].getColumn();
-                                errors.push_back(result);
+                                transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+                                errors.push_back(err);
                                 continue;
                             }
                             if (hasFunction(result, body[i + 1])) {
-                                FPResult result;
-                                result.message = "Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i + 1].getLine();
-                                result.in = body[i + 1].getFile();
-                                result.value = body[i + 1].getValue();
-                                result.type =  body[i + 1].getType();
-                                result.column = body[i + 1].getColumn();
-                                warns.push_back(result);
+                                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+                                warns.push_back(err);
                             }
                             if (hasContainer(result, body[i + 1])) {
-                                FPResult result;
-                                result.message = "Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i + 1].getLine();
-                                result.in = body[i + 1].getFile();
-                                result.value = body[i + 1].getValue();
-                                result.type =  body[i + 1].getType();
-                                result.column = body[i + 1].getColumn();
-                                warns.push_back(result);
+                                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+                                warns.push_back(err);
                             }
                             if (hasVar(body[i + 1])) {
-                                FPResult result;
-                                result.message = "Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.";
-                                result.success = false;
-                                result.line = body[i + 1].getLine();
-                                result.in = body[i + 1].getFile();
-                                result.value = body[i + 1].getValue();
-                                result.type =  body[i + 1].getType();
-                                result.column = body[i + 1].getColumn();
-                                warns.push_back(result);
+                                transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+                                warns.push_back(err);
                             }
                             vars.push_back(body[i + 1].getValue());
                             std::string loadFrom = body[i + 1].getValue();
@@ -1011,15 +868,8 @@ namespace sclc {
                         case tok_goto: {
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
                             }
                             append("goto %s;\n", body[i].getValue().c_str());
                             break;
@@ -1028,150 +878,14 @@ namespace sclc {
                         case tok_label: {
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
                             }
                             append("%s:\n", body[i].getValue().c_str());
                             break;
                         }
 
-                        case tok_ref: {
-                            ITER_INC;
-                            if (body[i + 1].getType() == tok_container_acc) {
-                                std::string containerName = body[i].getValue();
-                                ITER_INC;
-                                if (body[i].getType() != tok_container_acc) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '->' to access container contents, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                std::string memberName = body[i].getValue();
-                                Container container = getContainerByName(result, containerName);
-                                if (!container.hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown container member: '" + memberName + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("*((scl_value*) cont_%s.%s) = ctrl_pop();\n", containerName.c_str(), memberName.c_str());
-                            } else if (body[i + 1].getType() == tok_double_column) {
-                                std::string varName = body[i].getValue();
-                                i += 2;
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string structName = body[i].getValue();
-                                if (getStructByName(result, structName) == Struct("")) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Usage of undeclared struct '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected '.', but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string memberName = body[i].getValue();
-                                if (!getStructByName(result, structName).hasMember(memberName)) {
-                                    FPResult err;
-                                    err.success = false;
-                                    err.message = "Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'";
-                                    err.column = body[i].getColumn();
-                                    err.line = body[i].getLine();
-                                    err.in = body[i].getFile();
-                                    err.value = body[i].getValue();
-                                    err.type =  body[i].getType();
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("*((scl_value*) ((struct scl_struct_%s*) _%s)->%s) = ctrl_pop();\n", structName.c_str(), varName.c_str(), memberName.c_str());
-                            } else {
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "'" + body[i].getValue() + "' is not an identifier!";
-                                    result.success = false;
-                                    result.line = body[i].getLine();
-                                    result.in = body[i].getFile();
-                                    result.value = body[i].getValue();
-                                    result.type =  body[i].getType();
-                                    result.column = body[i].getColumn();
-                                    errors.push_back(result);
-                                }
-                                if (!hasVar(body[i])) {
-                                    FPResult result;
-                                    result.message = "Use of undefined variable '" + body[i].getValue() + "'";
-                                    result.success = false;
-                                    result.line = body[i].getLine();
-                                    result.in = body[i].getFile();
-                                    result.value = body[i].getValue();
-                                    result.type =  body[i].getType();
-                                    result.column = body[i].getColumn();
-                                    errors.push_back(result);
-                                }
-                                append("*((scl_value*) _%s) = ctrl_pop();\n", body[i].getValue().c_str());
-                            }
-                            break;
-                        }
-
-                        case tok_deref: {
+                        case tok_addr_of: {
                             append("{\n");
                             scopeDepth++;
                             append("scl_value addr = ctrl_pop();\n");
@@ -1185,28 +899,14 @@ namespace sclc {
                         case tok_curly_open: {
                             ITER_INC;
                             if (body[i].getType() != tok_number) {
-                                FPResult result;
-                                result.message = "Expected integer, but got '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Expected integer, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
                             }
                             Token index = body[i];
                             ITER_INC;
                             if (body[i].getType() != tok_curly_close) {
-                                FPResult result;
-                                result.message = "Expected '}', but got '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Expected '}', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
                             }
                             append("{\n");
                             scopeDepth++;
@@ -1229,15 +929,8 @@ namespace sclc {
 
                         case tok_sapclose: {
                             if (sap_depth == 0) {
-                                FPResult result;
-                                result.message = "Trying to close unexistent SAP";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.type =  body[i].getType();
-                                result.column = body[i].getColumn();
-                                errors.push_back(result);
+                                transpilerError("Trying to close unexistent SAP", i);
+                                errors.push_back(err);
                             }
                             append("sap_close();\n");
                             sap_depth--;
@@ -1248,15 +941,8 @@ namespace sclc {
                         }
 
                         default: {
-                            FPResult result;
-                            result.message = "Unknown identifier: '" + body[i].getValue() + "'";
-                            result.success = false;
-                            result.line = body[i].getLine();
-                            result.in = body[i].getFile();
-                            result.value = body[i].getValue();
-                            result.type =  body[i].getType();
-                            result.column = body[i].getColumn();
-                            errors.push_back(result);
+                            transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
                         }
                     }
                 }
@@ -1268,15 +954,8 @@ namespace sclc {
             append("}\n\n");
 
             if (sap_depth > 0) {
-                FPResult result;
-                result.message = "SAP never closed, Opened here:";
-                result.success = false;
-                result.line = sap_tokens[sap_tokens.size() - 1].getLine();
-                result.in = sap_tokens[sap_tokens.size() - 1].getFile();
-                result.value = sap_tokens[sap_tokens.size() - 1].getValue();
-                result.type =  sap_tokens[sap_tokens.size() - 1].getType();
-                result.column = sap_tokens[sap_tokens.size() - 1].getColumn();
-                errors.push_back(result);
+                transpilerError("SAP never closed, Opened here:", sap_tokens.size() - 1);
+                errors.push_back(err);
             }
         }
     }

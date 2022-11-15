@@ -19,7 +19,7 @@
     result.value = value; \
     errors.push_back(result); \
     } while (0)
-    
+
 namespace sclc
 {
     std::vector<Token> Tokenizer::getTokens() {
@@ -30,6 +30,7 @@ namespace sclc
     static int column = 0;
     static int startColumn = 0;
     static std::string filename;
+    static bool inFunction = false;
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -262,6 +263,9 @@ namespace sclc
             return nextToken();
         }
 
+        if (value == "function") inFunction = true;
+        if (value == "end") inFunction = false;
+
         TOKEN("function",   tok_function, line, filename, startColumn);
         TOKEN("end",        tok_end, line, filename, startColumn);
         TOKEN("extern",     tok_extern, line, filename, startColumn);
@@ -284,8 +288,6 @@ namespace sclc
         TOKEN("nil",        tok_nil, line, filename, startColumn);
         TOKEN("true",       tok_true, line, filename, startColumn);
         TOKEN("false",      tok_false, line, filename, startColumn);
-        TOKEN("deref",      tok_deref, line, filename, startColumn);
-        TOKEN("ref",        tok_ref, line, filename, startColumn);
         TOKEN("container",  tok_container_def, line, filename, startColumn);
         TOKEN("repeat",     tok_repeat, line, filename, startColumn);
         TOKEN("struct",     tok_struct_def, line, filename, startColumn);
@@ -295,7 +297,11 @@ namespace sclc
         TOKEN("goto",       tok_goto, line, filename, startColumn);
         TOKEN("label",      tok_label, line, filename, startColumn);
         
-        TOKEN("@",          tok_hash, line, filename, startColumn);
+        if (inFunction) {
+            TOKEN("@",      tok_addr_of, line, filename, startColumn);
+        } else {
+            TOKEN("@",      tok_hash, line, filename, startColumn);
+        }
         TOKEN("(",          tok_open_paren, line, filename, startColumn);
         TOKEN(")",          tok_close_paren, line, filename, startColumn);
         TOKEN("{",          tok_curly_open, line, filename, startColumn);

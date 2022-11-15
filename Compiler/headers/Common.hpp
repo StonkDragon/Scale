@@ -143,8 +143,6 @@ namespace sclc
         tok_for,            // for
         tok_in,             // in
         tok_to,             // to
-        tok_ref,            // ref
-        tok_deref,          // deref
         tok_addr_ref,       // addr
         tok_load,           // load
         tok_store,          // store
@@ -159,7 +157,8 @@ namespace sclc
         tok_goto,           // goto
 
         // operators
-        tok_hash,           // #
+        tok_hash,           // @
+        tok_addr_of,        // @
         tok_open_paren,     // (
         tok_close_paren,    // )
         tok_curly_open,     // {
