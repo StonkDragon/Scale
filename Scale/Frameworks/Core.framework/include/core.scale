@@ -107,7 +107,7 @@ function toShort(_val_)
 end
 
 @nps @nowarn function toChars(_str_)
-    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + deref toChar _i_ 1 - store _i_ done
+    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
 end
 
 #endif

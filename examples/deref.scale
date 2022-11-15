@@ -1,5 +1,5 @@
 #include "core.scale"
 
 function main()
-  "Hi" 1 + deref toChar putint
+  "Hi" 1 + @ toChar putint
 end

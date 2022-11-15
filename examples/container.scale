@@ -10,7 +10,7 @@ function main()
   foo->bar puts
   
   8 malloc store foo->baz
-  "ref/deref" ref foo->baz
+  "ref/deref" store @ foo->baz
 
-  foo->baz deref puts
+  foo->baz @ puts
 end

@@ -17,7 +17,7 @@ function arrayGet(arr, index)
     1 exit
   fi
 
-  arr::Array.values index 8 * + deref return
+  arr::Array.values index 8 * + @ return
 end
 
 function arraySet(arr, index, value)
@@ -35,7 +35,7 @@ function arraySet(arr, index, value)
 end
 
 function arrayTop(arr)
-  arr::Array.values arr::Array.count 1 - 8 * + deref return
+  arr::Array.values arr::Array.count 1 - 8 * + @ return
 end
 
 function arrayPush(arr, value)
