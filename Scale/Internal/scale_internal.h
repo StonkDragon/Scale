@@ -70,7 +70,6 @@
 #define scl_float double
 
 typedef void (*scl_method)(void);
-typedef unsigned scl_int hash;
 
 typedef struct {
 	scl_str type;

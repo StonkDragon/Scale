@@ -26,14 +26,6 @@ extern const scl_method scl_internal_function_ptrs[];
 extern const unsigned long long scl_internal_function_names_with_args[];
 extern const size_t scl_internal_function_names_size;
 
-hash hash1(char* data) {
-    hash h = 7;
-    for (int i = 0; i < strlen(data); i++) {
-        h = h * 31 + data[i];
-    }
-    return h;
-}
-
 scl_method scl_method_for_name(scl_int name_hash) {
     for (size_t i = 0; i < scl_internal_function_names_size; i++) {
         if (name_hash == scl_internal_function_names_with_args[i]) {
@@ -117,11 +109,10 @@ void scl_security_throw(int code, scl_str msg) {
 }
 
 void scl_security_required_arg_count(ssize_t n, scl_str func) {
-	if (stack.ptr < n) {
-		scl_str err = (scl_str) scl_alloc(MAX_STRING_SIZE);
-		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
-		scl_security_throw(EX_STACK_UNDERFLOW, err);
-	}
+	if (stack.ptr >= n) return;
+	scl_str err = (scl_str) scl_alloc(MAX_STRING_SIZE);
+	sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
+	scl_security_throw(EX_STACK_UNDERFLOW, err);
 }
 
 void scl_security_safe_exit(int code) {
@@ -129,9 +120,8 @@ void scl_security_safe_exit(int code) {
 }
 
 void scl_security_check_null(scl_value ptr) {
-	if (ptr == NULL) {
-		scl_security_throw(EX_BAD_PTR, "Null pointer");
-	}
+	if (ptr != NULL) return;
+	scl_security_throw(EX_BAD_PTR, "Null pointer");
 }
 
 #pragma endregion
@@ -336,7 +326,7 @@ void ctrl_typecast(scl_str new_type) {
 
 #pragma region Struct
 
-int scl_is_struct(void* p) {
+int scl_is_struct(scl_value p) {
 	if (p == NULL) return 0;
 	for (size_t i = 0; i < alloced_structs_count; i++) {
 		if (alloced_structs[i] == p) {
