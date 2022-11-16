@@ -436,8 +436,7 @@ namespace sclc
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
     };
 
-    typedef struct _Main
-    {
+    struct _Main {
         Tokenizer* tokenizer;
         TokenParser* lexer;
         FunctionParser* parser;
@@ -447,8 +446,14 @@ namespace sclc
             bool noMain;
             bool transpileOnly;
             bool debugBuild;
+            bool assembleOnly;
+            bool noCoreFramework;
+            bool doRun;
+            bool printCflags;
+            bool dontSpecifyOutFile;
+            bool preprocessOnly;
         } options;
-    } _Main;
+    };
 
     extern _Main Main;
     extern std::string scaleFolder;

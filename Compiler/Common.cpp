@@ -45,7 +45,7 @@ namespace sclc
     #endif
 
     std::vector<std::string> vars;
-    _Main Main = {0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0, 0, 0}};
+    _Main Main = _Main();
 
     void print_trace(void) {
 #ifndef _WIN32
