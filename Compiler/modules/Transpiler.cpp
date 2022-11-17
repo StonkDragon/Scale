@@ -299,10 +299,13 @@ namespace sclc {
             
             scopeDepth++;
 
+            append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
+            
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
                 std::string var = function.getArgs()[i];
                 vars.push_back(var);
-                append("register scl_value _%s = ctrl_pop();\n", var.c_str());
+                append("scl_value _%s = ctrl_pop();\n", var.c_str());
+                append("scl_gc_addlocal(&_%s);\n", var.c_str());
             }
 
             if (!Main.options.transpileOnly || Main.options.debugBuild) {
@@ -313,8 +316,6 @@ namespace sclc {
                     append("ctrl_set_file(\"%s\");\n", function.getFile().c_str());
                 }
             }
-
-            append("ctrl_fn_start(\"%s\");\n", functionDeclaration.c_str());
 
             if (!nps) append("sap_open();\n");
 
@@ -330,7 +331,12 @@ namespace sclc {
 
                 std::string file = body[i].getFile();
                 if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                    append("ctrl_set_pos(%d, %d);\n", body[i].getLine(), body[i].getColumn());
+                    if (
+                        body[i].getType() != tok_declare && body[i].getType() != tok_while &&
+                        body[i].getType() != tok_end && body[i].getType() != tok_fi &&
+                        body[i].getType() != tok_done
+                    )
+                        append("ctrl_set_pos(%d, %d);\n", body[i].getLine(), body[i].getColumn());
                 }
 
                 if (isOperator(body[i])) {
@@ -358,7 +364,15 @@ namespace sclc {
                                 scopeDepth = 0;
                                 append("\"%s\");\n", functionDeclaration.c_str());
                                 scopeDepth = tmpScopeDepth;
-                                append("scl_method_for_name(0x%016llx)();\n", hash1((char*) functionDeclaration.c_str()));
+                                append("fn_%s();\n", body[i].getValue().c_str());
+                                if (!Main.options.transpileOnly || Main.options.debugBuild) {
+                                    std::string file = function.getFile();
+                                    if (strncmp(function.getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
+                                        append("ctrl_set_file(\"%s\");\n", function.getFile().c_str() + scaleFolder.size() + 12);
+                                    } else {
+                                        append("ctrl_set_file(\"%s\");\n", function.getFile().c_str());
+                                    }
+                                }
                             } else if (hasContainer(result, body[i])) {
                                 std::string containerName = body[i].getValue();
                                 ITER_INC;
@@ -522,7 +536,7 @@ namespace sclc {
                             }
                             append("{\n");
                             append("  scl_value addr = ctrl_pop();\n");
-                            append("  ctrl_push_long(scl_is_struct(addr) && ((struct scl_struct_%s*) addr)->$__type__ == 0x%016llx\");\n", struct_.c_str(), hash1((char*) struct_.c_str()));
+                            append("  ctrl_push_long(scl_is_struct(addr) && ((struct scl_struct_%s*) addr)->$__type__ == 0x%016llx);\n", struct_.c_str(), hash1((char*) struct_.c_str()));
                             append("}\n");
                             break;
                         }
@@ -850,7 +864,8 @@ namespace sclc {
                             }
                             vars.push_back(body[i + 1].getValue());
                             std::string loadFrom = body[i + 1].getValue();
-                            append("register scl_value _%s;\n", loadFrom.c_str());
+                            append("scl_value _%s;\n", loadFrom.c_str());
+                            append("scl_gc_addlocal(&_%s);\n", loadFrom.c_str());
                             ITER_INC;
                             break;
                         }

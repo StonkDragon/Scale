@@ -205,6 +205,7 @@ namespace sclc
 
         if (!hasVar(loopVar)) {
             fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
+            fprintf(fp, "scl_gc_addlocal(&_%s);\n", loopVar.getValue().c_str());
         }
 
         std::vector<FPResult> warns;

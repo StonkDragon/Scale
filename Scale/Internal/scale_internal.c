@@ -8,8 +8,8 @@
 scl_str      current_file = "<init>";
 size_t 		 current_line = 0;
 size_t 		 current_column = 0;
-scl_stack_t  stack = {0, {{0}}};
-scl_stack_t	 callstk = {0, {{0}}};
+scl_stack_t  stack = {0, {0}};
+scl_stack_t	 callstk = {0, {0}};
 size_t 		 sap_index = 0;
 size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
@@ -17,47 +17,30 @@ scl_value    alloced_structs[STACK_SIZE] = {0};
 size_t 		 alloced_structs_count = 0;
 scl_value    allocated[STACK_SIZE] = {0};
 size_t 		 allocated_count = 0;
+scl_value*   locals[STACK_SIZE][STACK_SIZE] = {{0}};
+size_t 		 locals_count[STACK_SIZE] = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
-
-#pragma region Functions
-
-extern const scl_method scl_internal_function_ptrs[];
-extern const unsigned long long scl_internal_function_names_with_args[];
-extern const size_t scl_internal_function_names_size;
-
-scl_method scl_method_for_name(scl_int name_hash) {
-    for (size_t i = 0; i < scl_internal_function_names_size; i++) {
-        if (name_hash == scl_internal_function_names_with_args[i]) {
-            return scl_internal_function_ptrs[i];
-        }
-    }
-	return NULL;
-}
-
-#pragma endregion
 
 #pragma region GC
 
 extern const scl_value* scl_internal_globals_ptrs[];
 extern const size_t scl_internal_globals_ptrs_size;
 
-void scl_gc_alloc(scl_value ptr) {
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == 0) {
-			allocated[i] = ptr;
-			return;
-		}
-	}
-	allocated[allocated_count++] = ptr;
-}
-
-void scl_gc_collect() {
+void scl_gc_collect(void) {
 	for (size_t i = 0; i < allocated_count; i++) {
 		if (allocated[i] == 0) goto next;
 		for (ssize_t j = stack.ptr - 1; j >= 0; j--) {
-			if (stack.data[j].value.i == allocated[i]) {
+			if (stack.data[j].i == allocated[i]) {
 				goto next;
+			}
+		}
+		for (size_t k = 0; k < callstk.ptr - 1; k++) {
+			for (size_t j = 0; j < locals_count[k]; j++) {
+				if (locals[k][j] == 0) continue;
+				if (*(locals[k][j]) == allocated[i]) {
+					goto next;
+				}
 			}
 		}
 		for (size_t j = 0; j < scl_internal_globals_ptrs_size; j++) {
@@ -65,32 +48,72 @@ void scl_gc_collect() {
 				goto next;
 			}
 		}
-		scl_value tmp = allocated[i];
-		scl_free(tmp);
-		free(tmp);
+		scl_free(allocated[i]);
 	next:
 		// Line needed otherwise compiler error: expected statement
 		(void) 0;
 	}
 }
 
-void scl_gc_remove(scl_value ptr) {
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == ptr) {
-			allocated[i] = 0;
+void scl_gc_addlocal(scl_value* local) {
+	for (size_t i = 0; i < locals_count[callstk.ptr - 1]; i++) {
+		if (locals[callstk.ptr - 1][i] == local) {
+			return;
+		}
+		if (locals[callstk.ptr - 1][i] == 0) {
+			locals[callstk.ptr - 1][i] = local;
+			return;
+		}
+	}
+	locals[callstk.ptr - 1][locals_count[callstk.ptr - 1]++] = local;
+}
+
+void scl_gc_removelocal(scl_value* local) {
+	for (size_t i = 0; i < locals_count[callstk.ptr - 1]; i++) {
+		if (locals[callstk.ptr - 1][i] == local) {
+			locals[callstk.ptr - 1][i] = 0;
+			return;
 		}
 	}
 }
 
 scl_value scl_alloc(size_t size) {
 	scl_value ptr = malloc(size);
-	scl_gc_alloc(ptr);
+	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == 0) {
+			allocated[i] = ptr;
+			return ptr;
+		}
+	}
+	allocated[allocated_count++] = ptr;
+	return ptr;
+}
+
+scl_value scl_realloc(scl_value ptr, size_t size) {
+	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == ptr) {
+			allocated[i] = 0;
+		}
+	}
+	ptr = realloc(ptr, size);
+	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == 0) {
+			allocated[i] = ptr;
+			return ptr;
+		}
+	}
+	allocated[allocated_count++] = ptr;
 	return ptr;
 }
 
 void scl_free(scl_value ptr) {
 	scl_dealloc_struct(ptr);
-	scl_gc_remove(ptr);
+	for (size_t i = 0; i < allocated_count; i++) {
+		if (allocated[i] == ptr) {
+			allocated[i] = 0;
+		}
+	}
+	free(ptr);
 }
 
 #pragma endregion
@@ -109,10 +132,11 @@ void scl_security_throw(int code, scl_str msg) {
 }
 
 void scl_security_required_arg_count(ssize_t n, scl_str func) {
-	if (stack.ptr >= n) return;
-	scl_str err = (scl_str) scl_alloc(MAX_STRING_SIZE);
-	sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
-	scl_security_throw(EX_STACK_UNDERFLOW, err);
+	if (stack.ptr < n) {
+		scl_str err = (scl_str) scl_alloc(MAX_STRING_SIZE);
+		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
+		scl_security_throw(EX_STACK_UNDERFLOW, err);
+	}
 }
 
 void scl_security_safe_exit(int code) {
@@ -120,8 +144,9 @@ void scl_security_safe_exit(int code) {
 }
 
 void scl_security_check_null(scl_value ptr) {
-	if (ptr != NULL) return;
-	scl_security_throw(EX_BAD_PTR, "Null pointer");
+	if (ptr == NULL) {
+		scl_security_throw(EX_BAD_PTR, "Null pointer");
+	}
 }
 
 #pragma endregion
@@ -129,10 +154,13 @@ void scl_security_check_null(scl_value ptr) {
 #pragma region Function Management
 
 void ctrl_fn_start(scl_str name) {
-	callstk.data[callstk.ptr++].value.i = name;
+	callstk.data[callstk.ptr++].i = name;
 }
 
 void ctrl_fn_end() {
+	for (size_t i = 0; i < locals_count[callstk.ptr - 1]; i++) {
+		locals[callstk.ptr - 1][i] = 0;
+	}
 	scl_gc_collect();
 	callstk.ptr--;
 }
@@ -173,7 +201,7 @@ void ctrl_set_pos(size_t line, size_t col) {
 void print_stacktrace() {
 	printf("Stacktrace:\n");
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", (scl_str) callstk.data[i].value.i);
+		printf("  %s\n", (scl_str) callstk.data[i].i);
 	}
 	printf("\n");
 }
@@ -226,8 +254,7 @@ void ctrl_push_string(const scl_str c) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr].type = "str";
-	stack.data[stack.ptr].value.i = (scl_value) c;
+	stack.data[stack.ptr].i = (scl_value) c;
 	stack.ptr++;
 }
 
@@ -238,8 +265,7 @@ void ctrl_push_double(scl_float d) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr].type = "float";
-	stack.data[stack.ptr].value.f = d;
+	stack.data[stack.ptr].f = d;
 	stack.ptr++;
 }
 
@@ -250,8 +276,7 @@ void ctrl_push_long(scl_int n) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr].type = "int";
-	stack.data[stack.ptr].value.i = (scl_value) n;
+	stack.data[stack.ptr].i = (scl_value) n;
 	stack.ptr++;
 }
 
@@ -262,8 +287,7 @@ void ctrl_push(scl_value n) {
 	if (stack.ptr + 1 >= STACK_SIZE) {
 		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
 	}
-	stack.data[stack.ptr].type = "int";
-	stack.data[stack.ptr].value.i = n;
+	stack.data[stack.ptr].i = n;
 	stack.ptr++;
 }
 
@@ -275,7 +299,7 @@ scl_int ctrl_pop_long() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	scl_int value = (scl_int) stack.data[stack.ptr].value.i;
+	scl_int value = (scl_int) stack.data[stack.ptr].i;
 	return value;
 }
 
@@ -287,7 +311,7 @@ scl_float ctrl_pop_double() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	scl_float value = stack.data[stack.ptr].value.f;
+	scl_float value = stack.data[stack.ptr].f;
 	return value;
 }
 
@@ -299,7 +323,7 @@ scl_str ctrl_pop_string() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	scl_str value = (scl_str) stack.data[stack.ptr].value.i;
+	scl_str value = (scl_str) stack.data[stack.ptr].i;
 	return value;
 }
 
@@ -311,15 +335,11 @@ scl_value ctrl_pop() {
 		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
 	}
 	stack.ptr--;
-	return stack.data[stack.ptr].value.i;
+	return stack.data[stack.ptr].i;
 }
 
 ssize_t ctrl_stack_size(void) {
 	return stack.ptr;
-}
-
-void ctrl_typecast(scl_str new_type) {
-	stack.data[stack.ptr - 1].type = new_type;
 }
 
 #pragma endregion
@@ -339,7 +359,6 @@ int scl_is_struct(scl_value p) {
 scl_value scl_alloc_struct(size_t size) {
 	scl_value ptr = scl_alloc(size);
 	alloced_structs[alloced_structs_count++] = ptr;
-	scl_gc_alloc(ptr);
 	return ptr;
 }
 
@@ -355,25 +374,25 @@ void scl_dealloc_struct(scl_value ptr) {
 
 #pragma region Operators
 
-void op_add(void) {
+operator(add) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a + b);
 }
 
-void op_sub(void) {
+operator(sub) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a - b);
 }
 
-void op_mul(void) {
+operator(mul) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a * b);
 }
 
-void op_div(void) {
+operator(div) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -382,7 +401,7 @@ void op_div(void) {
 	ctrl_push_long(a / b);
 }
 
-void op_mod(void) {
+operator(mod) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	if (b == 0) {
@@ -391,42 +410,42 @@ void op_mod(void) {
 	ctrl_push_long(a % b);
 }
 
-void op_land(void) {
+operator(land) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a & b);
 }
 
-void op_lor(void) {
+operator(lor) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a | b);
 }
 
-void op_lxor(void) {
+operator(lxor) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a ^ b);
 }
 
-void op_lnot(void) {
+operator(lnot) {
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(~a);
 }
 
-void op_lsh(void) {
+operator(lsh) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a << b);
 }
 
-void op_rsh(void) {
+operator(rsh) {
 	int64_t b = ctrl_pop_long();
 	int64_t a = ctrl_pop_long();
 	ctrl_push_long(a >> b);
 }
 
-void op_pow(void) {
+operator(pow) {
 	scl_int exp = ctrl_pop_long();
 	if (exp < 0) {
 		scl_security_throw(EX_BAD_PTR, "Negative exponent!");
@@ -441,25 +460,25 @@ void op_pow(void) {
 	ctrl_push_long(intResult);
 }
 
-void op_dadd(void) {
+operator(dadd) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 + n2);
 }
 
-void op_dsub(void) {
+operator(dsub) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 - n2);
 }
 
-void op_dmul(void) {
+operator(dmul) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 * n2);
 }
 
-void op_ddiv(void) {
+operator(ddiv) {
 	scl_float n2 = ctrl_pop_double();
 	scl_float n1 = ctrl_pop_double();
 	ctrl_push_double(n1 / n2);

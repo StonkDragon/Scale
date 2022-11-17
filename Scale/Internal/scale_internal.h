@@ -26,6 +26,12 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
+#if __has_attribute(always_inline)
+#define scl_inline __attribute__((always_inline))
+#else
+#define scl_inline
+#endif
+
 /* Function header */
 #define sclDefFunc(name) \
   void fn_ ## name (void)
@@ -35,7 +41,7 @@
   fn_ ## name ()
 
 #define operator(a) \
-  void op_ ## a (void)
+  scl_inline void op_ ## a (void)
 
 #define nullable __nullable
 #define nonnull  __nonnull
@@ -71,12 +77,9 @@
 
 typedef void (*scl_method)(void);
 
-typedef struct {
-	scl_str type;
-	union {
-		scl_value 	i;
-		scl_float 	f;
-	} value;
+typedef union {
+	scl_value 	i;
+	scl_float 	f;
 } scl_frame_t;
 
 typedef struct {
@@ -110,9 +113,10 @@ ssize_t		ctrl_stack_size(void);
 void		sap_open(void);
 void		sap_close(void);
 
-void		scl_gc_alloc(scl_value ptr);
-void		scl_gc_collect();
-void		scl_gc_remove(scl_value ptr);
+void		scl_gc_collect(void);
+void		scl_gc_addlocal(scl_value* local);
+void		scl_gc_removelocal(scl_value* local);
+scl_value	scl_realloc(scl_value ptr, size_t size);
 scl_value	scl_alloc(size_t size);
 void		scl_free(scl_value ptr);
 

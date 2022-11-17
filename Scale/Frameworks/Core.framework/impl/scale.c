@@ -21,7 +21,7 @@ extern size_t 		 sap_index;
 sclDefFunc(dumpstack) {
 	printf("Dump:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack.data[i].value.i;
+		long long v = (long long) stack.data[i].i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
@@ -234,7 +234,7 @@ sclDefFunc(malloc) {
 sclDefFunc(realloc) {
 	long long n = ctrl_pop_long();
 	scl_value s = ctrl_pop();
-	ctrl_push(realloc(s, n));
+	ctrl_push(scl_realloc(s, n));
 }
 
 sclDefFunc(free) {
