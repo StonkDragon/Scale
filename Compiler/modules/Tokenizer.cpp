@@ -31,6 +31,7 @@ namespace sclc
     static int startColumn = 0;
     static std::string filename;
     static bool inFunction = false;
+    static bool isExtern = false;
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -263,8 +264,10 @@ namespace sclc
             return nextToken();
         }
 
-        if (value == "function") inFunction = true;
+        if (value == "function" && !isExtern) inFunction = true;
         if (value == "end") inFunction = false;
+        if (value == "extern") isExtern = true;
+        else isExtern = false;
 
         TOKEN("function",   tok_function, line, filename, startColumn);
         TOKEN("end",        tok_end, line, filename, startColumn);
