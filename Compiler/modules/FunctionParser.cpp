@@ -100,8 +100,6 @@ namespace sclc
         ConvertC::writeStructs(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
-        std::string mainCall = "  fn_main(void);\n";
-
         std::string mainEntry = 
         "int main(int argc, const scl_str argv[]) {\n"
         "#ifdef SIGINT\n"
