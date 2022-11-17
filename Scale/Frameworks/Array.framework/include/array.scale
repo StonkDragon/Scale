@@ -31,7 +31,7 @@ function arraySet(arr, index, value)
 
   decl tmp
   arr::Array.values index 8 * + store tmp
-  value ref tmp
+  value store @tmp
 end
 
 function arrayTop(arr)
@@ -50,7 +50,7 @@ function arrayPush(arr, value)
 
   decl tmp
   arr::Array.values arr::Array.count 8 * + store tmp
-  value ref tmp
+  value store @tmp
   arr::Array.count 1 + store arr::Array.count
 end
 
@@ -65,7 +65,7 @@ function arrayCreate(initialSize)
 
   decl arr
   new Array store arr
-  initialSize 8 * scl_alloc
+  initialSize 8 * malloc
   store arr::Array.values
   initialSize store arr::Array.count
   initialSize store arr::Array.capacity
