@@ -13,14 +13,5 @@
 #define scl_str char*
 #define scl_float double
 
-void ctrl_push_string(const scl_str c);
-void ctrl_push_long(long long n);
-void ctrl_push_double(scl_float d);
-void ctrl_push(scl_value n);
-scl_str ctrl_pop_string(void);
-scl_float ctrl_pop_double(void);
-long long ctrl_pop_long(void);
-scl_value ctrl_pop(void);
-
 void bar(scl_value a);
 #endif
