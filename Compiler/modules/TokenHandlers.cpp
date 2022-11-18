@@ -15,22 +15,22 @@ namespace sclc
             fprintf(fp, "  ");
         }
         switch (token.getType()) {
-            case tok_add: fprintf(fp, "op_add();\n"); break;
-            case tok_sub: fprintf(fp, "op_sub();\n"); break;
-            case tok_mul: fprintf(fp, "op_mul();\n"); break;
-            case tok_div: fprintf(fp, "op_div();\n"); break;
-            case tok_mod: fprintf(fp, "op_mod();\n"); break;
-            case tok_land: fprintf(fp, "op_land();\n"); break;
-            case tok_lor: fprintf(fp, "op_lor();\n"); break;
-            case tok_lxor: fprintf(fp, "op_lxor();\n"); break;
-            case tok_lnot: fprintf(fp, "op_lnot();\n"); break;
-            case tok_lsh: fprintf(fp, "op_lsh();\n"); break;
-            case tok_rsh: fprintf(fp, "op_rsh();\n"); break;
-            case tok_pow: fprintf(fp, "op_pow();\n"); break;
-            case tok_dadd: fprintf(fp, "op_dadd();\n"); break;
-            case tok_dsub: fprintf(fp, "op_dsub();\n"); break;
-            case tok_dmul: fprintf(fp, "op_dmul();\n"); break;
-            case tok_ddiv: fprintf(fp, "op_ddiv();\n"); break;
+            case tok_add: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a + b; }\n"); break;
+            case tok_sub: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a - b; }\n"); break;
+            case tok_mul: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a * b; }\n"); break;
+            case tok_div: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a / b; }\n"); break;
+            case tok_mod: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a %% b; }\n"); break;
+            case tok_land: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a & b; }\n"); break;
+            case tok_lor: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a | b; }\n"); break;
+            case tok_lxor: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a ^ b; }\n"); break;
+            case tok_lnot: fprintf(fp, "stack.data[stack.ptr - 1].i = ~((scl_int) stack.data[stack.ptr - 1].i);\n"); break;
+            case tok_lsh: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a << b; }\n"); break;
+            case tok_rsh: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a >> b; }\n"); break;
+            case tok_pow: fprintf(fp, "{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 0; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); break;
+            case tok_dadd: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 + n2; }\n"); break;
+            case tok_dsub: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 - n2; }\n"); break;
+            case tok_dmul: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 * n2; }\n"); break;
+            case tok_ddiv: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 / n2; }\n"); break;
             default:
             {
                 FPResult result;
@@ -55,7 +55,7 @@ namespace sclc
             for (int j = 0; j < scopeDepth; j++) {
                 fprintf(fp, "  ");
             }
-            fprintf(fp, "ctrl_push_long(%lld);\n", num);
+            fprintf(fp, "stack.data[stack.ptr++].i = %lld;\n", num);
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;
@@ -205,7 +205,6 @@ namespace sclc
 
         if (!hasVar(loopVar)) {
             fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
-            fprintf(fp, "scl_gc_addlocal(&_%s);\n", loopVar.getValue().c_str());
         }
 
         std::vector<FPResult> warns;
@@ -282,7 +281,7 @@ namespace sclc
             for (int j = 0; j < scopeDepth; j++) {
                 fprintf(fp, "  ");
             }
-            fprintf(fp, "ctrl_push_double(%f);\n", num);
+            fprintf(fp, "stack.data[stack.ptr++].d = %f;\n", num);
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;

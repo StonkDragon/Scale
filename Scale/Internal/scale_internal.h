@@ -78,8 +78,10 @@
 typedef void (*scl_method)(void);
 
 typedef union {
-	scl_value 	i;
+	scl_int 	i;
+	scl_str		s;
 	scl_float 	f;
+	scl_value	v;
 } scl_frame_t;
 
 typedef struct {
@@ -88,20 +90,12 @@ typedef struct {
 } scl_stack_t;
 
 void		scl_security_throw(int code, scl_str msg);
-void		scl_security_required_arg_count(ssize_t n, scl_str func);
-void		scl_security_check_null(scl_value n);
 void		scl_security_safe_exit(int code);
-void		ctrl_set_file(scl_str file);
-void		ctrl_set_pos(size_t line, size_t col);
 void		process_signal(int sig_num);
 
-void		ctrl_fn_start(scl_str name);
-void		ctrl_fn_end(void);
-void		ctrl_trace(void);
 void		print_stacktrace(void);
-scl_method  scl_method_for_name(scl_int name_hash);
 
-void		ctrl_push_string(const scl_str c);
+void		ctrl_push_string(scl_str c);
 void		ctrl_push_long(scl_int n);
 void		ctrl_push_double(scl_float d);
 void		ctrl_push(scl_value n);
@@ -110,8 +104,6 @@ scl_float	ctrl_pop_double(void);
 scl_int		ctrl_pop_long(void);
 scl_value	ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
-void		sap_open(void);
-void		sap_close(void);
 
 void		scl_gc_collect(void);
 void		scl_gc_addlocal(scl_value* local);
@@ -120,25 +112,8 @@ scl_value	scl_realloc(scl_value ptr, size_t size);
 scl_value	scl_alloc(size_t size);
 void		scl_free(scl_value ptr);
 
-int			scl_is_struct(void* p);
+int			scl_is_struct(scl_value p);
 scl_value	scl_alloc_struct(size_t size);
 void		scl_dealloc_struct(scl_value ptr);
-
-operator(add);
-operator(sub);
-operator(mul);
-operator(div);
-operator(mod);
-operator(land);
-operator(lor);
-operator(lxor);
-operator(lnot);
-operator(lsh);
-operator(rsh);
-operator(pow);
-operator(dadd);
-operator(dsub);
-operator(dmul);
-operator(ddiv);
 
 #endif

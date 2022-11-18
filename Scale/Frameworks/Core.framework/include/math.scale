@@ -25,10 +25,8 @@ extern function log()
 extern function log10()
 extern function random()
 
-function iseven(_i_)          _i_ 2 % 0 equal return end
-function isodd(_i_)           _i_ iseven not return end
-function inc(_i_)             _i_ 1 + return end
-function dec(_i_)             _i_ 1 - return end
+function iseven(_i_)          _i_ 2 % 0 == return end
+function isodd(_i_)           _i_ iseven ! return end
 function lrandom(_limit_)     random _limit_ % return end
 function lerp(_a_, _b_, _t_)  _b_ _a_ - _t_ * _a_ + return end
 function neg(_i_)             _i_ 0 swap - return end

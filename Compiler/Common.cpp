@@ -92,7 +92,7 @@ namespace sclc
     }
 
     int isBracket(char c) {
-        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
+        return c == '(' || c == ')' || c == '{' || c == '}';
     }
 
     int isHexDigit(char c) {
@@ -108,7 +108,7 @@ namespace sclc
     }
 
     int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':';
+        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':' || c == '=' || c == '!';
     }
 
     bool isOperator(Token token) {

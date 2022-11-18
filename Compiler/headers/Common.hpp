@@ -180,8 +180,6 @@ namespace sclc
         tok_dsub,           // .-
         tok_dmul,           // .*
         tok_ddiv,           // ./
-        tok_sapopen,        // [
-        tok_sapclose,       // ]
         tok_container_acc,  // ->
         tok_double_column,  // ::
         tok_dot,            // .
@@ -452,6 +450,7 @@ namespace sclc
             bool printCflags;
             bool dontSpecifyOutFile;
             bool preprocessOnly;
+            std::string optimizer;
         } options;
     };
 

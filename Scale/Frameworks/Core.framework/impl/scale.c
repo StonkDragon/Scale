@@ -27,11 +27,6 @@ sclDefFunc(dumpstack) {
 	printf("\n");
 }
 
-sclDefFunc(exit) {
-	long long n = ctrl_pop_long();
-	scl_security_safe_exit(n);
-}
-
 sclDefFunc(sleep) {
 	long long c = ctrl_pop_long();
 	sleep(c);
@@ -41,24 +36,6 @@ sclDefFunc(getenv) {
 	char *c = ctrl_pop_string();
 	char *prop = getenv(c);
 	ctrl_push_string(prop);
-}
-
-sclDefFunc(less) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a < b);
-}
-
-sclDefFunc(more) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a > b);
-}
-
-sclDefFunc(equal) {
-	int64_t a = ctrl_pop_long();
-	int64_t b = ctrl_pop_long();
-	ctrl_push_long(a == b);
 }
 
 sclDefFunc(sizeof_stack) {
@@ -88,7 +65,13 @@ sclDefFunc(concat) {
 	ctrl_push_string(out);
 }
 
+int rand_was_seeded = 0;
+
 sclDefFunc(random) {
+	if (!rand_was_seeded) {
+		srand(time(NULL));
+		rand_was_seeded = 1;
+	}
 	ctrl_push_long(rand());
 }
 
@@ -96,26 +79,10 @@ sclDefFunc(crash) {
 	scl_security_safe_exit(1);
 }
 
-sclDefFunc(and) {
-	int a = ctrl_pop_long();
-	int b = ctrl_pop_long();
-	ctrl_push_long(a && b);
-}
-
 sclDefFunc(system) {
 	char *cmd = ctrl_pop_string();
 	int ret = system(cmd);
 	ctrl_push_long(ret);
-}
-
-sclDefFunc(not) {
-	ctrl_push_long(!ctrl_pop_long());
-}
-
-sclDefFunc(or) {
-	int a = ctrl_pop_long();
-	int b = ctrl_pop_long();
-	ctrl_push_long(a || b);
 }
 
 sclDefFunc(strlen) {
@@ -183,10 +150,6 @@ sclDefFunc(raise) {
 	} else {
 		process_signal(n);
 	}
-}
-
-sclDefFunc(abort) {
-	abort();
 }
 
 sclDefFunc(write) {

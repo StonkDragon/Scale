@@ -199,18 +199,22 @@ namespace sclc
             if (c == '>') {
                 c = source[++current];
                 column++;
-                if (c == '>') {
+                if (c == '>' || c == '=') {
                     value += c;
-                } else {
-                    syntaxError("Expected '>' after '>'");
                 }
             } else if (c == '<') {
                 c = source[++current];
                 column++;
-                if (c == '<') {
+                if (c == '<' || c == '>') {
+                    value += c;
+                }
+            } else if (c == '=') {
+                c = source[++current];
+                column++;
+                if (c == '=') {
                     value += c;
                 } else {
-                    syntaxError("Expected '<' after '<'");
+                    syntaxError("Expected '=' after '='");
                 }
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
@@ -223,6 +227,16 @@ namespace sclc
                     c = source[++current];
                     value += c;
                     column++;
+                } else if (source[current + 1] == '-') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == '+') {
+                if (source[current + 1] == '+') {
+                    c = source[++current];
+                    value += c;
+                    column++;
                 }
             } else if (c == ':') {
                 c = source[++current];
@@ -231,6 +245,24 @@ namespace sclc
                     value += c;
                 } else {
                     syntaxError("Expected ':' after ':'");
+                }
+            } else if (c == '!') {
+                if (source[current + 1] == '=') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == '&') {
+                if (source[current + 1] == '&') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == '|') {
+                if (source[current + 1] == '|') {
+                    c = source[++current];
+                    value += c;
+                    column++;
                 }
             }
             c = source[++current];
@@ -327,10 +359,19 @@ namespace sclc
         TOKEN(".*",         tok_dmul, line, filename, startColumn);
         TOKEN("./",         tok_ddiv, line, filename, startColumn);
         TOKEN(".",          tok_dot, line, filename, startColumn);
-        TOKEN("[",          tok_sapopen, line, filename, startColumn);
-        TOKEN("]",          tok_sapclose, line, filename, startColumn);
         TOKEN("->",         tok_container_acc, line, filename, startColumn);
         TOKEN("::",         tok_double_column, line, filename, startColumn);
+        TOKEN("<",          tok_identifier, line, filename, startColumn);
+        TOKEN("<=",         tok_identifier, line, filename, startColumn);
+        TOKEN(">",          tok_identifier, line, filename, startColumn);
+        TOKEN(">=",         tok_identifier, line, filename, startColumn);
+        TOKEN("==",         tok_identifier, line, filename, startColumn);
+        TOKEN("!",          tok_identifier, line, filename, startColumn);
+        TOKEN("!=",         tok_identifier, line, filename, startColumn);
+        TOKEN("&&",         tok_identifier, line, filename, startColumn);
+        TOKEN("||",         tok_identifier, line, filename, startColumn);
+        TOKEN("++",         tok_identifier, line, filename, startColumn);
+        TOKEN("--",         tok_identifier, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

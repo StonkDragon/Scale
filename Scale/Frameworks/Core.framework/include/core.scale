@@ -5,7 +5,6 @@
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
 
-extern function exit(_code_)
 extern function sleep(_millis_)
 extern function system(_cmd_)
 extern function getenv(_key_)
@@ -13,12 +12,6 @@ extern function sizeof_stack()
 extern function malloc(_size_)
 extern function realloc(_size_, _ptr_)
 extern function free(_ptr_)
-extern function less(_a_, _b_)
-extern function more(_a, _b_)
-extern function equal(_a_, _b_)
-extern function and(_a_, _b_)
-extern function not(_a_)
-extern function or(_a_, _b_)
 extern function strlen(_str_)
 extern function strcmp(_str1_, _str2_)
 extern function strncmp(_str1_, _str2_, _n_)
@@ -29,34 +22,6 @@ extern function longToString(_long_)
 extern function stringToLong(_str_)
 extern function stringToDouble(_str_)
 extern function doubleToString(_double_)
-
-@nps @nowarn function clearstack()
-    while sizeof_stack 0 more do
-        drop
-    done
-end
-
-@nps @nowarn function swap2(_a_, _b_, _c_)
-    _b_ _a_ _c_
-end
-
-@nps @nowarn function sdup2(_a_, _b_)
-    _a_ _b_ _a_
-end
-
-@nps @nowarn function dup(_a_)
-    _a_ _a_
-end
-
-@nps @nowarn function swap(_a_, _b_)
-    _b_ _a_
-end
-
-@nps @nowarn function drop(_a_) [_a_] end
-
-@nps @nowarn function over(_a_, _b_, _c_)
-    _c_ _b_ _a_
-end
 
 function nop()
     0 sleep
@@ -107,7 +72,7 @@ function toShort(_val_)
 end
 
 @nps @nowarn function toChars(_str_)
-    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
+    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 >= do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
 end
 
 #endif

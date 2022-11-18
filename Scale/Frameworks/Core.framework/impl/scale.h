@@ -4,24 +4,13 @@
 #include <scale_internal.h>
 
 sclDefFunc(dumpstack);
-sclDefFunc(exit);
 sclDefFunc(sleep);
 sclDefFunc(getenv);
-sclDefFunc(less);
-sclDefFunc(more);
-sclDefFunc(equal);
-sclDefFunc(dup);
-sclDefFunc(over);
-sclDefFunc(swap);
-sclDefFunc(drop);
 sclDefFunc(sizeof_stack);
 sclDefFunc(concat);
 sclDefFunc(random);
 sclDefFunc(crash);
-sclDefFunc(and);
 sclDefFunc(system);
-sclDefFunc(not);
-sclDefFunc(or);
 sclDefFunc(sprintf);
 sclDefFunc(strlen);
 sclDefFunc(strcmp);
@@ -32,7 +21,6 @@ sclDefFunc(fseek);
 sclDefFunc(ftell);
 sclDefFunc(fileno);
 sclDefFunc(raise);
-sclDefFunc(abort);
 sclDefFunc(write);
 sclDefFunc(read);
 sclDefFunc(strrev);

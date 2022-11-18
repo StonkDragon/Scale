@@ -101,7 +101,7 @@ namespace sclc
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainEntry = 
-        "int main(int argc, const scl_str argv[]) {\n"
+        "int main(int argc, scl_str argv[]) {\n"
         "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
         "#endif\n"
@@ -125,10 +125,9 @@ namespace sclc
         "#endif\n"
         "\n"
         "  for (int i = 1; i < argc; i++) {\n"
-        "    ctrl_push_string((scl_str) argv[i]);\n"
+        "    stack.data[stack.ptr++].s = argv[i];\n"
         "  }\n"
         "\n"
-        "  srand(time(NULL));\n"
         "  fn_main();\n"
         "  return 0;\n"
         "}\n";

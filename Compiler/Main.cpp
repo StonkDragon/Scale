@@ -105,7 +105,7 @@ namespace sclc
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O2"; 
+        std::string optimizer   = "O2";
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -186,6 +186,7 @@ namespace sclc
         }
 
         std::vector<std::string> cflags;
+        Main.options.optimizer = optimizer;
 
         if (!Main.options.printCflags)
             cflags.push_back(compiler);

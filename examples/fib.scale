@@ -9,7 +9,7 @@ function main()
     0 store x
     1 store y
     
-    while x N less do
+    while x N < do
         x putint
 
         x y + store z

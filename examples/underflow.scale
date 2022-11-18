@@ -4,8 +4,8 @@ function main()
   "foo" "bar" foo
 end
 
-function foo(foo, bar, baz)
-  foo puts
+function foo(foo_, bar, baz)
+  foo_ puts
   bar puts
   baz puts
 end

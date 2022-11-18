@@ -6,7 +6,7 @@ function main()
     label a
     i 1 + store i
     i putint
-    i 10 less if
+    i 10 < if
         goto a
     fi
 end

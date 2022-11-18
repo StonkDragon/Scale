@@ -426,7 +426,7 @@ namespace sclc
                     result.success = false;
                     errors.push_back(result);
                 }
-            } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
+                } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {

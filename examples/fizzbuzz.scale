@@ -1,12 +1,12 @@
 #include "core.scale"
 
 function main()
-  1 while dup 100 less do
-    dup 15 % 0 equal if
+  1 while dup 100 < do
+    dup 15 % 0 == if
       "FizzBuzz" puts
-    else dup 3 % 0 equal if
+    else dup 3 % 0 == if
       "Fizz" puts
-      else dup 5 % 0 equal if
+      else dup 5 % 0 == if
         "Buzz" puts
         else
           dup putint
