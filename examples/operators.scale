@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main() -> none
+function main(): none
   1 2   +  putint
   2 3   -  putint
   2 4   *  putint

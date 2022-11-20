@@ -1,8 +1,8 @@
 #include "core.scale"
 
-function main() -> none
+function main(): none
   // Create a new variable called 'foo'
-  decl foo
+  decl foo: str
   // push "Hello, World!" to the stack
   // and assign it to the variable 'foo'
   // this pops the string off the stack

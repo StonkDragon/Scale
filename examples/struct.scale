@@ -1,12 +1,12 @@
 #include "core.scale"
 
 struct Foo
-  decl bar
+  decl bar: any
 end
 
-function main() -> none
-  decl f
+function main(): none
+  decl f: Foo
   new Foo store f
-  "foo" store f::Foo.bar
-  f::Foo.bar puts 
+  "foo" store f.bar
+  f.bar puts 
 end

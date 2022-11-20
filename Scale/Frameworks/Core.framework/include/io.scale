@@ -1,28 +1,28 @@
 #ifndef _CORE_FRAMEWORK__IO_SCALE_
 #define _CORE_FRAMEWORK__IO_SCALE_
 
-extern function write(_fd_, _str_, _n_) -> none
-extern function read(_fd_, _s_, _n_) -> any
+extern function write(_fd_, _str_, _n_): none
+extern function read(_fd_, _s_, _n_): any
 
-function puts(_str_) -> none
+function puts(_str_): none
     1 _str_ _str_ strlen write
     1 "\n" 1 write
 end
 
-function eputs(_str_) -> none
+function eputs(_str_): none
     2 _str_ _str_ strlen write
     2 "\n" 1 write
 end
 
-function putint(_int_) -> none
+function putint(_int_): none
     _int_ longToString puts
 end
 
-function putfloat(_f_) -> none
+function putfloat(_f_): none
     _f_ doubleToString puts
 end
 
-function throwerr(_err_) -> none
+function throwerr(_err_): none
     _err_ eputs 1 exit
 end
 

@@ -75,7 +75,7 @@ namespace sclc
         int scopeDepth = 0;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
-        std::vector<std::string> globals;
+        std::vector<Variable> globals;
 
         remove(filename.c_str());
         FILE* fp = fopen(filename.c_str(), "a");

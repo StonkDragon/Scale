@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main() -> none
+function main(): none
     decl i
     0 store i
     label a

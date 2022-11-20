@@ -4,27 +4,27 @@
 // Formatted IO
 #ifdef _WIN32
 #warning "Formatted IO not supported on Windows"
-function Color_Reset() -> str   "" return end
-function Color_Black() -> str   "" return end
-function Color_Red() -> str     "" return end
-function Color_Green() -> str   "" return end
-function Color_Yellow() -> str  "" return end
-function Color_Blue() -> str    "" return end
-function Color_Magenta() -> str "" return end
-function Color_Cyan() -> str    "" return end
-function Color_White() -> str   "" return end
-function Color_Bold() -> str    "" return end
+function Color_Reset(): str   "" return end
+function Color_Black(): str   "" return end
+function Color_Red(): str     "" return end
+function Color_Green(): str   "" return end
+function Color_Yellow(): str  "" return end
+function Color_Blue(): str    "" return end
+function Color_Magenta(): str "" return end
+function Color_Cyan(): str    "" return end
+function Color_White(): str   "" return end
+function Color_Bold(): str    "" return end
 #else
-function Color_Reset() -> str   "\033[0m"  return end
-function Color_Black() -> str   "\033[30m" return end
-function Color_Red() -> str     "\033[31m" return end
-function Color_Green() -> str   "\033[32m" return end
-function Color_Yellow() -> str  "\033[33m" return end
-function Color_Blue() -> str    "\033[34m" return end
-function Color_Magenta() -> str "\033[35m" return end
-function Color_Cyan() -> str    "\033[36m" return end
-function Color_White() -> str   "\033[37m" return end
-function Color_Bold() -> str    "\033[1m"  return end
+function Color_Reset(): str   "\033[0m"  return end
+function Color_Black(): str   "\033[30m" return end
+function Color_Red(): str     "\033[31m" return end
+function Color_Green(): str   "\033[32m" return end
+function Color_Yellow(): str  "\033[33m" return end
+function Color_Blue(): str    "\033[34m" return end
+function Color_Magenta(): str "\033[35m" return end
+function Color_Cyan(): str    "\033[36m" return end
+function Color_White(): str   "\033[37m" return end
+function Color_Bold(): str    "\033[1m"  return end
 #endif
 
 #endif

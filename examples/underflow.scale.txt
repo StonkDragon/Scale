@@ -1,7 +1,7 @@
 
 Core.framework/include/io.scale:8:19: Invalid/Illegal Memory Access
 Stacktrace:
-  puts(_str_)
-  foo(foo_, bar, baz)
+  puts(_str_ -> any)
+  foo(foo_ -> any, bar -> any, baz -> any)
   main()
 

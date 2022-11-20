@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main() -> none
+function main(): none
   "int" sizeof putint
   "long" sizeof putint
   "long long" sizeof putint

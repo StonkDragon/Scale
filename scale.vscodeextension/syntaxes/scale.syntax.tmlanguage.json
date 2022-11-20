@@ -41,7 +41,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(addr|decl|store|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|struct|new|is|cdecl)\\b"
+				"match": "\\b(addr|decl|store|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|struct|new|is|cdecl|none|int|float|any|str)\\b"
 			}]
 		},
 		"function_declaration": {
@@ -84,7 +84,7 @@
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(::|->|\\.|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|==|!=?|<(<|=)?|>(>|=)?|~|\\[|\\])"
+			"match": "(:|\\.|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|==|!=?|<(<|=)?|>(>|=)?|~|\\[|\\])"
 		}
 	},
 	"scopeName": "source.scale"

@@ -68,7 +68,7 @@ namespace sclc
         return result;
     }
 
-    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth2) {
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth2) {
         int scopeDepth = *scopeDepth2;
         if (keywDeclare.getType() != tok_declare) {
             FPResult result;
@@ -197,7 +197,7 @@ namespace sclc
         }
 
         if (!hasVar(loopVar)) {
-            append("scl_value Var_%s;\n", loopVar.getValue().c_str());
+            append("scl_int Var_%s;\n", loopVar.getValue().c_str());
         }
 
         std::vector<FPResult> warns;
@@ -236,16 +236,16 @@ namespace sclc
             warns.push_back(result);
         }
 
-        append("for (Var_%s = (void*) ", loopVar.getValue().c_str());
+        append("for (Var_%s = ", loopVar.getValue().c_str());
         scopeDepth = 0;
         append("%s", from.getValue().c_str());
 
         if (lower < higher) {
-            append("; Var_%s < (void*) ", loopVar.getValue().c_str());
+            append("; Var_%s < ", loopVar.getValue().c_str());
             append("%s", to.getValue().c_str());
             append("; Var_%s++) {\n", loopVar.getValue().c_str());
         } else if (lower > higher) {
-            append("; Var_%s > (void*) ", loopVar.getValue().c_str());
+            append("; Var_%s > ", loopVar.getValue().c_str());
             append("%s", to.getValue().c_str());
             append("; Var_%s--) {\n", loopVar.getValue().c_str());
         } else {
@@ -261,7 +261,7 @@ namespace sclc
         }
         (*scopeDepth2)++;
 
-        vars->push_back(loopVar.getValue());
+        if (!hasVar(loopVar)) vars->push_back(Variable(loopVar.getValue(), "int"));
         FPResult result;
         result.success = true;
         result.message = "";

@@ -44,7 +44,7 @@ namespace sclc
     const std::string Color::BOLDWHITE = "\033[1m\033[37m";
     #endif
 
-    std::vector<std::string> vars;
+    std::vector<Variable> vars;
     _Main Main = _Main();
 
     void print_trace(void) {
@@ -158,12 +158,21 @@ namespace sclc
     }
 
     bool hasVar(Token name) {
-        for (std::string var : vars) {
-            if (var == name.getValue()) {
+        for (Variable var : vars) {
+            if (var.getName() == name.getValue()) {
                 return true;
             }
         }
         return false;
+    }
+
+    Variable getVar(Token name) {
+        for (Variable var : vars) {
+            if (var.getName() == name.getValue()) {
+                return var;
+            }
+        }
+        return Variable("","");
     }
 
     long long parseNumber(std::string str) {

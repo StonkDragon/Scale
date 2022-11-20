@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main() -> none
+function main(): none
   1 while dup 100 < do
     dup 15 % 0 == if
       "FizzBuzz" puts

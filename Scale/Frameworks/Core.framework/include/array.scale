@@ -9,37 +9,37 @@ struct Array
   decl capacity
 end
 
-extern function arraySort(array) -> Array
+extern function arraySort(array -> Array) -> Array
 
-function arrayGet(arr, index) -> any
-  arr::Array.values {index} @ return
+function arrayGet(arr -> Array, index) -> any
+  arr.values index 3 << + @ return
 end
 
-function arraySet(arr, index, value) -> none
-  decl tmp
-  arr::Array.values index 3 << + store tmp
+function arraySet(arr -> Array, index, value) -> none
+  decl tmp -> any
+  arr.values index 3 << + store tmp
   value store @tmp
 end
 
-function arrayTop(arr) -> any
-  arr::Array.values arr::Array.count 1 - 3 << + @ return
+function arrayTop(arr -> Array) -> any
+  arr.values arr.count 1 - 3 << + @ return
 end
 
-function arrayPush(arr, value) -> none
-  arr::Array.count arr::Array.capacity >= if
-    arr::Array.capacity 2 * store arr::Array.capacity
-    arr::Array.values arr::Array.capacity 8 * realloc
-    store arr::Array.values
+function arrayPush(arr -> Array, value) -> none
+  arr.count arr.capacity >= if
+    arr.capacity 2 * store arr.capacity
+    arr.values arr.capacity 8 * realloc
+    store arr.values
   fi
 
-  decl tmp
-  arr::Array.values arr::Array.count 3 << + store tmp
+  decl tmp -> any
+  arr.values arr.count 3 << + store tmp
   value store @tmp
-  arr::Array.count 1 + store arr::Array.count
+  arr.count 1 + store arr.count
 end
 
-function arrayPop(arr) -> none
-  arr::Array.count 1 - store arr::Array.count
+function arrayPop(arr -> Array) -> none
+  arr.count 1 - store arr.count
 end
 
 function arrayCreate(initialSize) -> Array
@@ -47,12 +47,12 @@ function arrayCreate(initialSize) -> Array
     "Invalid Argument: initialSize must not be 0 or less\n" puts trace 1 exit
   fi
 
-  decl arr
+  decl arr -> Array
   new Array store arr
   initialSize 8 * malloc
-  store arr::Array.values
-  initialSize store arr::Array.count
-  initialSize store arr::Array.capacity
+  store arr.values
+  initialSize store arr.count
+  initialSize store arr.capacity
   arr return
 end
 

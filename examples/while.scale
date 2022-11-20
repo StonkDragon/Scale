@@ -1,7 +1,7 @@
 #include "core.scale"
 #include "math.scale"
 
-function main() -> none
+function main(): none
   // push 0 to the stack
   0
   // increment the stack by 1

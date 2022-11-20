@@ -34,6 +34,19 @@ namespace sclc {
         append("\n");
     }
 
+    std::string sclReturnTypeToCReturnType(TPResult result, std::string t) {
+        std::string return_type = "any";
+        if (t == "any") return_type = "scl_value";
+        else if (t == "none") return_type = "void";
+        else if (t == "int") return_type = "scl_int";
+        else if (t == "float") return_type = "scl_float";
+        else if (t == "str") return_type = "scl_str";
+        else if (!(getStructByName(result, t) == Struct(""))) {
+            return_type = "struct Struct_" + getStructByName(result, t).getName() + "*";
+        }
+        return return_type;
+    }
+
     void ConvertC::writeFunctionHeaders(FILE* fp, TPResult result) {
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
@@ -64,14 +77,7 @@ namespace sclc {
             if (function.getReturnType().size() > 0) {
                 std::string t = function.getReturnType();
                 append("/* Returns %s */\n", t.c_str());
-                if (t == "any") return_type = "scl_value";
-                else if (t == "none") return_type = "void";
-                else if (t == "int") return_type = "scl_int";
-                else if (t == "float") return_type = "scl_float";
-                else if (t == "str") return_type = "scl_str";
-                else if (!(getStructByName(result, t) == Struct(""))) {
-                    return_type = "struct Struct_" + getStructByName(result, t).getName() + "*";
-                }
+                return_type = sclReturnTypeToCReturnType(result, t);
             }
 
             append("%s Function_%s(void);\n", return_type.c_str(), function.getName().c_str());
@@ -83,8 +89,8 @@ namespace sclc {
                         if (i != 0) {
                             args += ", ";
                         }
-                        args += "scl_value ";
-                        args += function.getArgs()[i];
+                        args += sclReturnTypeToCReturnType(result, function.getArgs()[i].getType()) + " ";
+                        args += function.getArgs()[i].getName();
                     }
                     args += ")";
                     
@@ -115,7 +121,7 @@ namespace sclc {
                     if (i != 0) {
                         functionDeclaration += ", ";
                     }
-                    functionDeclaration += function.getArgs()[i];
+                    functionDeclaration += function.getArgs()[i].getName() + " -> " + function.getArgs()[i].getType();
                 }
                 functionDeclaration += ")";
                 std::string return_type = "void";
@@ -123,14 +129,7 @@ namespace sclc {
                 if (function.getReturnType().size() > 0) {
                     std::string t = function.getReturnType();
                     append("/* Returns %s */\n", t.c_str());
-                    if (t == "any") return_type = "scl_value";
-                    else if (t == "none") return_type = "void";
-                    else if (t == "int") return_type = "scl_int";
-                    else if (t == "float") return_type = "scl_float";
-                    else if (t == "str") return_type = "scl_str";
-                    else if (!(getStructByName(result, t) == Struct(""))) {
-                        return_type = "struct Struct_" + getStructByName(result, t).getName() + "*";
-                    }
+                    return_type = sclReturnTypeToCReturnType(result, t);
                 }
 
                 append("%s Function_%s(void);\n", return_type.c_str(), function.getName().c_str());
@@ -151,7 +150,7 @@ namespace sclc {
                 if (i != 0) {
                     functionDeclaration += ", ";
                 }
-                functionDeclaration += function.getArgs()[i];
+                functionDeclaration += function.getArgs()[i].getName() + " -> " + function.getArgs()[i].getType();
             }
             functionDeclaration += ")";
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
@@ -164,7 +163,7 @@ namespace sclc {
                 if (i != 0) {
                     functionDeclaration += ", ";
                 }
-                functionDeclaration += function.getArgs()[i];
+                functionDeclaration += function.getArgs()[i].getName() + " -> " + function.getArgs()[i].getType();
             }
             functionDeclaration += ")";
             append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
@@ -195,13 +194,13 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result) {
+    void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result) {
         int scopeDepth = 0;
         append("/* GLOBALS */\n");
 
-        for (std::string s : result.globals) {
-            append("scl_value Var_%s;\n", s.c_str());
-            if (Main.options.transpileOnly) fprintf(nomangled, "extern scl_value Var_%s;\n", s.c_str());
+        for (Variable s : result.globals) {
+            append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
+            if (Main.options.transpileOnly) fprintf(nomangled, "extern %s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             vars.push_back(s);
             globals.push_back(s);
         }
@@ -214,14 +213,14 @@ namespace sclc {
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
-            for (std::string s : c.getMembers()) {
-                append("  scl_value %s;\n", s.c_str());
+            for (Variable s : c.getMembers()) {
+                append("  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("} Container_%s = {0};\n", c.getName().c_str());
             if (Main.options.transpileOnly) {
                 fprintf(nomangled, "struct Container_%s {\n", c.getName().c_str());
-                for (std::string s : c.getMembers()) {
-                    fprintf(nomangled, "  scl_value %s;\n", s.c_str());
+                for (Variable s : c.getMembers()) {
+                    fprintf(nomangled, "  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
                 }
                 fprintf(nomangled, "};\n");
                 fprintf(nomangled, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
@@ -230,13 +229,13 @@ namespace sclc {
 
         append("\n");
         append("const scl_value* scl_internal_globals_ptrs[] = {\n");
-        for (std::string s : result.globals) {
-            append("  (const scl_value*) &Var_%s,\n", s.c_str());
+        for (Variable s : result.globals) {
+            append("  (const scl_value*) &Var_%s,\n", s.getName().c_str());
         }
         size_t container_member_count = 0;
         for (Container c : result.containers) {
-            for (std::string s : c.getMembers()) {
-                append("  (const scl_value*) &Container_%s.%s,\n", c.getName().c_str(), s.c_str());
+            for (Variable s : c.getMembers()) {
+                append("  (const scl_value*) &Container_%s.%s,\n", c.getName().c_str(), s.getName().c_str());
                 container_member_count++;
             }
         }
@@ -253,16 +252,16 @@ namespace sclc {
             append("struct Struct_%s {\n", c.getName().c_str());
             append("  scl_int $__type__;\n");
             append("  scl_str $__type_name__;\n");
-            for (std::string s : c.getMembers()) {
-                append("  scl_value %s;\n", s.c_str());
+            for (Variable s : c.getMembers()) {
+                append("  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("};\n");
             if (Main.options.transpileOnly) {
                 fprintf(nomangled, "struct %s {\n", c.getName().c_str());
                 fprintf(nomangled, "  scl_int __type_identifier__;\n");
                 fprintf(nomangled, "  scl_str __type_string__;\n");
-                for (std::string s : c.getMembers()) {
-                    fprintf(nomangled, "  scl_value %s;\n", s.c_str());
+                for (Variable s : c.getMembers()) {
+                    fprintf(nomangled, "  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
                 }
                 fprintf(nomangled, "};\n");
             }
@@ -275,7 +274,7 @@ namespace sclc {
         }
     }
 
-    void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result) {
+    void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result) {
         (void) warns;
         int scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
@@ -292,7 +291,7 @@ namespace sclc {
         {
             Function function = result.functions[f];
             vars.clear();
-            for (std::string g : globals) {
+            for (Variable g : globals) {
                 vars.push_back(g);
             }
 
@@ -322,7 +321,7 @@ namespace sclc {
                 if (i != 0) {
                     functionDeclaration += ", ";
                 }
-                functionDeclaration += function.getArgs()[i];
+                functionDeclaration += function.getArgs()[i].getName() + " -> " + function.getArgs()[i].getType();
             }
             functionDeclaration += ")";
 
@@ -358,15 +357,15 @@ namespace sclc {
                     if (i != 0) {
                         args += ", ";
                     }
-                    args += "scl_value Var_";
-                    args += function.getArgs()[i];
+                    args += sclReturnTypeToCReturnType(result, function.getArgs()[i].getType()) + " Var_";
+                    args += function.getArgs()[i].getName();
                 }
                 args += ")";
 
                 append("%s %s%s {\n", return_type.c_str(), function.getName().c_str(), args.c_str());
                 scopeDepth++;
                 for (size_t i = 0; i < function.getArgs().size(); i++) {
-                    append("stack.data[stack.ptr++].v = Var_%s;\n", function.getArgs()[i].c_str());
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function.getArgs()[i].getName().c_str());
                 }
                 if (return_type != "void")
                     append("return Function_%s();\n", function.getName().c_str());
@@ -383,9 +382,9 @@ namespace sclc {
             append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
 
             for (ssize_t i = (ssize_t) function.getArgs().size() - 1; i >= 0; i--) {
-                std::string var = function.getArgs()[i];
+                Variable var = function.getArgs()[i];
                 vars.push_back(var);
-                append("scl_value Var_%s = stack.data[--stack.ptr].v;\n", var.c_str());
+                append("%s Var_%s = stack.data[--stack.ptr].v;\n", sclReturnTypeToCReturnType(result, var.getType()).c_str(), var.getName().c_str());
             }
 
             if (!Main.options.transpileOnly || Main.options.debugBuild) {
@@ -403,8 +402,7 @@ namespace sclc {
             size_t i;
             char repeat_depth = 0;
             int current_line = -1;
-            for (i = 0; i < body.size(); i++)
-            {
+            for (i = 0; i < body.size(); i++) {
                 if (body[i].getType() == tok_ignore) continue;
 
                 std::string file = body[i].getFile();
@@ -534,8 +532,8 @@ namespace sclc {
                             } else if (hasContainer(result, body[i])) {
                                 std::string containerName = body[i].getValue();
                                 ITER_INC;
-                                if (body[i].getType() != tok_container_acc) {
-                                    transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                if (body[i].getType() != tok_dot) {
+                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -547,17 +545,37 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("stack.data[stack.ptr++].v = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                                if (container.getMemberType(memberName) == "float")
+                                    append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                                else
+                                    append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
                             } else if (hasVar(body[i])) {
                                 std::string loadFrom = body[i].getValue();
-                                if ((i + 1) < body.size() && body[i + 1].getType() == tok_identifier) {
-                                    if (body[i + 1].getValue() == "++" || body[i + 1].getValue() == "--") {
-                                        append("stack.data[stack.ptr++].v = %sVar_%s;\n", body[i + 1].getValue().c_str(), loadFrom.c_str());
-                                        ITER_INC;
-                                        break;
+                                Variable v = getVar(body[i]);
+                                if (getStructByName(result, v.getType()) != Struct("")) {
+                                    if (body[i + 1].getType() != tok_dot) {
+                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        continue;
                                     }
+                                    ITER_INC;
+                                    ITER_INC;
+                                    Struct s = getStructByName(result, v.getType());
+                                    if (!s.hasMember(body[i].getValue())) {
+                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                                    if (mem.getType() == "float")
+                                        append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                    else
+                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                } else {
+                                    if (v.getType() == "float")
+                                        append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                                    else
+                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
                                 }
-                                append("stack.data[stack.ptr++].v = Var_%s;\n", loadFrom.c_str());
                             } else {
                                 transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
@@ -583,41 +601,41 @@ namespace sclc {
                             break;
                         }
 
-                        case tok_double_column: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string structName = body[i].getValue();
-                            if (getStructByName(result, structName) == Struct("")) {
-                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            ITER_INC;
-                            if (body[i].getType() != tok_dot) {
-                                transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string memberName = body[i].getValue();
-                            if (!getStructByName(result, structName).hasMember(memberName)) {
-                                transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
+                        // case tok_double_column: {
+                        //     ITER_INC;
+                        //     if (body[i].getType() != tok_identifier) {
+                        //         transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                        //         errors.push_back(err);
+                        //         continue;
+                        //     }
+                        //     std::string structName = body[i].getValue();
+                        //     if (getStructByName(result, structName) == Struct("")) {
+                        //         transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
+                        //         errors.push_back(err);
+                        //         continue;
+                        //     }
+                        //     ITER_INC;
+                        //     if (body[i].getType() != tok_dot) {
+                        //         transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
+                        //         errors.push_back(err);
+                        //         continue;
+                        //     }
+                        //     ITER_INC;
+                        //     if (body[i].getType() != tok_identifier) {
+                        //         transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                        //         errors.push_back(err);
+                        //         continue;
+                        //     }
+                        //     std::string memberName = body[i].getValue();
+                        //     if (!getStructByName(result, structName).hasMember(memberName)) {
+                        //         transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
+                        //         errors.push_back(err);
+                        //         continue;
+                        //     }
 
-                            append("stack.data[stack.ptr - 1].v = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", structName.c_str(), memberName.c_str());
-                            break;
-                        }
+                        //     append("stack.data[stack.ptr - 1].v = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", structName.c_str(), memberName.c_str());
+                        //     break;
+                        // }
 
                         case tok_number:
                         case tok_char_literal: {
@@ -684,10 +702,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
-                            append("{\n");
-                            append("  scl_value addr = stack.data[--stack.ptr].v;\n");
-                            append("  stack.data[stack.ptr++].v = addr && ((struct Struct_%s*) addr)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
-                            append("}\n");
+                            append("stack.data[stack.ptr - 1].v = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
                             break;
                         }
 
@@ -803,19 +818,37 @@ namespace sclc {
                         }
 
                         case tok_addr_ref: {
-                            Token toGet = body[i + 1];
+                            ITER_INC;
+                            Token toGet = body[i];
                             if (hasFunction(result, toGet)) {
                                 append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", toGet.getValue().c_str());
                                 ITER_INC;
-                            } else if (hasVar(toGet) && body[i + 2].getType() != tok_double_column) {
-                                append("stack.data[stack.ptr++].v = &Var_%s;\n", toGet.getValue().c_str());
-                                ITER_INC;
+                            } else if (hasVar(toGet)) {
+                                Variable v = getVar(body[i]);
+                                std::string loadFrom = v.getName();
+                                if (getStructByName(result, v.getType()) != Struct("")) {
+                                    if (body[i + 1].getType() != tok_dot) {
+                                            append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                            continue;
+                                        }
+                                        ITER_INC;
+                                    ITER_INC;
+                                    Struct s = getStructByName(result, v.getType());
+                                    if (!s.hasMember(body[i].getValue())) {
+                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                }
                             } else if (hasContainer(result, toGet)) {
                                 ITER_INC;
                                 std::string containerName = body[i].getValue();
                                 ITER_INC;
-                                if (body[i].getType() != tok_container_acc) {
-                                    transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                if (body[i].getType() != tok_dot) {
+                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
                                     errors.push_back(err);
                                     continue;
                                 }
@@ -827,41 +860,7 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                append("stack.data[stack.ptr++].v = &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
-                            } else if (body[i + 2].getType() == tok_double_column) {
-                                ITER_INC;
-                                std::string varName = body[i].getValue();
-                                i += 2;
-                                if (body[i].getType() != tok_identifier) {
-                                    transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string structName = body[i].getValue();
-                                if (getStructByName(result, structName) == Struct("")) {
-                                    transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
-                                    transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_identifier) {
-                                    transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string memberName = body[i].getValue();
-                                if (!getStructByName(result, structName).hasMember(memberName)) {
-                                    transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("stack.data[stack.ptr++].v = &(((struct Struct_%s*) Var_%s)->%s);\n", structName.c_str(), varName.c_str(), memberName.c_str());
+                                append("stack.data[stack.ptr++].v = (scl_value) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
                             } else {
                                 transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
                                 errors.push_back(err);
@@ -873,11 +872,11 @@ namespace sclc {
                             ITER_INC;
                             if (body[i].getType() == tok_addr_of) {
                                 ITER_INC;
-                                if (body[i + 1].getType() == tok_container_acc) {
+                                if (hasContainer(result, body[i])) {
                                     std::string containerName = body[i].getValue();
                                     ITER_INC;
-                                    if (body[i].getType() != tok_container_acc) {
-                                        transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                    if (body[i].getType() != tok_dot) {
+                                        transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                         continue;
                                     }
@@ -890,39 +889,6 @@ namespace sclc {
                                         continue;
                                     }
                                     append("*((scl_value*) Container_%s.%s) = stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str());
-                                } else if (body[i + 1].getType() == tok_double_column) {
-                                    std::string varName = body[i].getValue();
-                                    i += 2;
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    std::string structName = body[i].getValue();
-                                    if (getStructByName(result, structName) == Struct("")) {
-                                        transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_dot) {
-                                        transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    std::string memberName = body[i].getValue();
-                                    if (!getStructByName(result, structName).hasMember(memberName)) {
-                                        transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    append("*((scl_value*) ((struct Struct_%s*) Var_%s)->%s) = stack.data[--stack.ptr].v;\n", structName.c_str(), varName.c_str(), memberName.c_str());
                                 } else {
                                     if (body[i].getType() != tok_identifier) {
                                         transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -932,14 +898,32 @@ namespace sclc {
                                         transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
-                                    append("*((scl_value*) Var_%s) = stack.data[--stack.ptr].v;\n", body[i].getValue().c_str());
+                                    Variable v = getVar(body[i]);
+                                    std::string loadFrom = v.getName();
+                                    if (getStructByName(result, v.getType()) != Struct("")) {
+                                        if (body[i + 1].getType() != tok_dot) {
+                                            append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                                            continue;
+                                        }
+                                        ITER_INC;
+                                        ITER_INC;
+                                        Struct s = getStructByName(result, v.getType());
+                                        if (!s.hasMember(body[i].getValue())) {
+                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                            errors.push_back(err);
+                                            continue;
+                                        }
+                                        append("*(scl_value*) Var_%s->%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                    } else {
+                                        append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                                    }
                                 }
                             } else {
-                                if (body[i + 1].getType() == tok_container_acc) {
+                                if (hasContainer(result, body[i])) {
                                     std::string containerName = body[i].getValue();
                                     ITER_INC;
-                                    if (body[i].getType() != tok_container_acc) {
-                                        transpilerError("Expected '->' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                    if (body[i].getType() != tok_dot) {
+                                        transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                         continue;
                                     }
@@ -951,40 +935,7 @@ namespace sclc {
                                         errors.push_back(err);
                                         continue;
                                     }
-                                    append("Container_%s.%s = stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str());
-                                } else if (body[i + 1].getType() == tok_double_column) {
-                                    std::string varName = body[i].getValue();
-                                    i += 2;
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    std::string structName = body[i].getValue();
-                                    if (getStructByName(result, structName) == Struct("")) {
-                                        transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_dot) {
-                                        transpilerError("Expected '.', but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    std::string memberName = body[i].getValue();
-                                    if (!getStructByName(result, structName).hasMember(memberName)) {
-                                        transpilerError("Unknown member of struct '" + structName + "': '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    append("((struct Struct_%s*) Var_%s)->%s = stack.data[--stack.ptr].v;\n", structName.c_str(), varName.c_str(), memberName.c_str());
+                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str());
                                 } else {
                                     if (body[i].getType() != tok_identifier) {
                                         transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -994,8 +945,33 @@ namespace sclc {
                                         transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
-                                    std::string storeIn = body[i].getValue();
-                                    append("Var_%s = stack.data[--stack.ptr].v;\n", storeIn.c_str());
+                                    Variable v = getVar(body[i]);
+                                    std::string loadFrom = v.getName();
+                                    if (getStructByName(result, v.getType()) != Struct("")) {
+                                        if (body[i + 1].getType() != tok_dot) {
+                                            append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                                            continue;
+                                        }
+                                        ITER_INC;
+                                        ITER_INC;
+                                        Struct s = getStructByName(result, v.getType());
+                                        if (!s.hasMember(body[i].getValue())) {
+                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                            errors.push_back(err);
+                                            continue;
+                                        }
+                                        Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                                    if (mem.getType() == "float")
+                                        append("Var_%s->%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                    else
+                                        append("Var_%s->%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                                    } else {
+                                        Variable v = getVar(body[i]);
+                                        if (v.getType() == "float")
+                                            append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                                        else
+                                            append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str());
+                                    }
                                 }
                             }
                             break;
@@ -1022,10 +998,32 @@ namespace sclc {
                                 if (!Main.options.Werror) warns.push_back(err);
                                 else errors.push_back(err);
                             }
-                            vars.push_back(body[i + 1].getValue());
-                            std::string loadFrom = body[i + 1].getValue();
-                            append("scl_value Var_%s;\n", loadFrom.c_str());
+                            std::string name = body[i + 1].getValue();
+                            std::string type = "any";
                             ITER_INC;
+                            if (body[i+1].getType() == tok_column) {
+                                ITER_INC;
+                                ITER_INC;
+                                if (body[i].getType() != tok_identifier) {
+                                    FPResult result;
+                                    result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                                    result.column = body[i].getColumn();
+                                    result.value = body[i].getValue();
+                                    result.line = body[i].getLine();
+                                    result.in = body[i].getFile();
+                                    result.type = body[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                }
+                                if (body[i].getValue() == "none") {
+                                    transpilerError("Type 'none' is only valid for function return types.", i);
+                                    errors.push_back(err);
+                                }
+                                type = body[i].getValue();
+                            }
+                            Variable v = Variable(name, type);
+                            vars.push_back(v);
+                            append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str());
                             break;
                         }
 
