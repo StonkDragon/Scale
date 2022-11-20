@@ -9,21 +9,23 @@ struct Array
   decl capacity
 end
 
-function arrayGet(arr, index)
-  arr::Array.values index 8 * + @ return
+extern function arraySort(array) -> Array
+
+function arrayGet(arr, index) -> any
+  arr::Array.values {index} @ return
 end
 
-function arraySet(arr, index, value)
+function arraySet(arr, index, value) -> none
   decl tmp
-  arr::Array.values index 8 * + store tmp
+  arr::Array.values index 3 << + store tmp
   value store @tmp
 end
 
-function arrayTop(arr)
-  arr::Array.values arr::Array.count 1 - 8 * + @ return
+function arrayTop(arr) -> any
+  arr::Array.values arr::Array.count 1 - 3 << + @ return
 end
 
-function arrayPush(arr, value)
+function arrayPush(arr, value) -> none
   arr::Array.count arr::Array.capacity >= if
     arr::Array.capacity 2 * store arr::Array.capacity
     arr::Array.values arr::Array.capacity 8 * realloc
@@ -31,16 +33,16 @@ function arrayPush(arr, value)
   fi
 
   decl tmp
-  arr::Array.values arr::Array.count 8 * + store tmp
+  arr::Array.values arr::Array.count 3 << + store tmp
   value store @tmp
   arr::Array.count 1 + store arr::Array.count
 end
 
-function arrayPop(arr)
+function arrayPop(arr) -> none
   arr::Array.count 1 - store arr::Array.count
 end
 
-function arrayCreate(initialSize)
+function arrayCreate(initialSize) -> Array
   initialSize 1 < if
     "Invalid Argument: initialSize must not be 0 or less\n" puts trace 1 exit
   fi

@@ -2,36 +2,36 @@
 #define _CORE_FRAMEWORK__FILE_SCALE_
 #include "core.scale"
 
-extern function fopen(_filename_, _mode_)
-extern function fclose(_file_)
-extern function ftell(_file_)
-extern function fileno(_file_)
-extern function fseek(_file_, _whence_, _offset_)
+extern function fopen(_filename_, _mode_) -> any
+extern function fclose(_file_) -> none
+extern function ftell(_file_) -> int
+extern function fileno(_file_) -> int
+extern function fseek(_file_, _whence_, _offset_) -> none
 
-function fwrite(_buf_, _size_, _file_)
+function fwrite(_buf_, _size_, _file_) -> none
     _file_ fileno _size_ _buf_ write
 end
 
-function fprintf(_file_, _str_)
+function fprintf(_file_, _str_) -> none
     _file_ fileno _str_ strlen _str_ write
 end
 
-function fread(_f_, _size_)
+function fread(_f_, _size_) -> any
     decl _buf_
     _f_ fileno _size_ read
     store _buf_
     _buf_ return
 end
 
-function fseekstart(_f_, _offset_)
+function fseekstart(_f_, _offset_) -> none
     _f_ 0 _offset_ fseek
 end
 
-function fseekend(_f_, _offset_)
+function fseekend(_f_, _offset_) -> none
     _f_ 2 _offset_ fseek
 end
 
-function fseekcur(_f_, _offset_)
+function fseekcur(_f_, _offset_) -> none
     _f_ 1 _offset_ fseek
 end
 
