@@ -101,18 +101,12 @@ namespace sclc
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string mainEntry = 
-        "int main(int argc, scl_str argv[]) {\n"
+        "int main() {\n"
         "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
         "#endif\n"
-        "#ifdef SIGILL\n"
-        "  signal(SIGILL, process_signal);\n"
-        "#endif\n"
         "#ifdef SIGABRT\n"
         "  signal(SIGABRT, process_signal);\n"
-        "#endif\n"
-        "#ifdef SIGFPE\n"
-        "  signal(SIGFPE, process_signal);\n"
         "#endif\n"
         "#ifdef SIGSEGV\n"
         "  signal(SIGSEGV, process_signal);\n"
@@ -120,15 +114,8 @@ namespace sclc
         "#ifdef SIGBUS\n"
         "  signal(SIGBUS, process_signal);\n"
         "#endif\n"
-        "#ifdef SIGTERM\n"
-        "  signal(SIGTERM, process_signal);\n"
-        "#endif\n"
         "\n"
-        "  for (int i = 1; i < argc; i++) {\n"
-        "    stack.data[stack.ptr++].s = argv[i];\n"
-        "  }\n"
-        "\n"
-        "  fn_main();\n"
+        "  Function_main();\n"
         "  return 0;\n"
         "}\n";
 

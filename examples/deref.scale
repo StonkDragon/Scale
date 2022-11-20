@@ -1,5 +1,5 @@
 #include "core.scale"
 
-function main()
+function main() -> none
   "Hi" 1 + @ toChar putint
 end

@@ -3,8 +3,8 @@
 
 #define scl_export(func_name) \
     void func_name (void); \
-    void fn_ ## func_name (void); \
-    void fn_ ## func_name () { func_name (); } \
+    void Function_ ## func_name (void); \
+    void Function_ ## func_name () { func_name (); } \
     void func_name (void)
 
 #define ssize_t signed long

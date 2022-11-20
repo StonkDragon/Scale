@@ -11,7 +11,6 @@ size_t 		 current_column = 0;
 scl_stack_t  stack = {0, {0}};
 scl_stack_t	 callstk = {0, {0}};
 size_t 		 sap_index = 0;
-size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
 scl_value    alloced_structs[STACK_SIZE] = {0};
 size_t 		 alloced_structs_count = 0;
@@ -22,97 +21,20 @@ size_t 		 locals_count[STACK_SIZE] = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
-#pragma region GC
-
-extern const scl_value* scl_internal_globals_ptrs[];
-extern const size_t scl_internal_globals_ptrs_size;
-
-void scl_gc_collect(void) {
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == 0) goto next;
-		for (ssize_t j = stack.ptr - 1; j >= 0; j--) {
-			if (stack.data[j].v == allocated[i]) {
-				goto next;
-			}
-		}
-		for (size_t k = 0; k < callstk.ptr - 1; k++) {
-			for (size_t j = 0; j < locals_count[k]; j++) {
-				if (locals[k][j] == 0) continue;
-				if (*(locals[k][j]) == allocated[i]) {
-					goto next;
-				}
-			}
-		}
-		for (size_t j = 0; j < scl_internal_globals_ptrs_size; j++) {
-			if (*(scl_internal_globals_ptrs[j]) == allocated[i]) {
-				goto next;
-			}
-		}
-		scl_free(allocated[i]);
-	next:
-		// Line needed otherwise compiler error: expected statement
-		(void) 0;
-	}
-}
-
-void scl_gc_addlocal(scl_value* local) {
-	for (size_t i = 0; i < locals_count[callstk.ptr - 1]; i++) {
-		if (locals[callstk.ptr - 1][i] == local) {
-			return;
-		}
-		if (locals[callstk.ptr - 1][i] == 0) {
-			locals[callstk.ptr - 1][i] = local;
-			return;
-		}
-	}
-	locals[callstk.ptr - 1][locals_count[callstk.ptr - 1]++] = local;
-}
-
-void scl_gc_removelocal(scl_value* local) {
-	for (size_t i = 0; i < locals_count[callstk.ptr - 1]; i++) {
-		if (locals[callstk.ptr - 1][i] == local) {
-			locals[callstk.ptr - 1][i] = 0;
-			return;
-		}
-	}
-}
+#pragma region Memory
 
 scl_value scl_alloc(size_t size) {
 	scl_value ptr = malloc(size);
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == 0) {
-			allocated[i] = ptr;
-			return ptr;
-		}
-	}
-	allocated[allocated_count++] = ptr;
 	return ptr;
 }
 
 scl_value scl_realloc(scl_value ptr, size_t size) {
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == ptr) {
-			allocated[i] = 0;
-		}
-	}
 	ptr = realloc(ptr, size);
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == 0) {
-			allocated[i] = ptr;
-			return ptr;
-		}
-	}
-	allocated[allocated_count++] = ptr;
 	return ptr;
 }
 
 void scl_free(scl_value ptr) {
 	scl_dealloc_struct(ptr);
-	for (size_t i = 0; i < allocated_count; i++) {
-		if (allocated[i] == ptr) {
-			allocated[i] = 0;
-		}
-	}
 	free(ptr);
 }
 

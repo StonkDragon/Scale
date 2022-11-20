@@ -10,6 +10,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/time.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -26,22 +28,13 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-#if __has_attribute(always_inline)
-#define scl_inline __attribute__((always_inline))
-#else
-#define scl_inline
-#endif
-
 /* Function header */
-#define sclDefFunc(name) \
-  void fn_ ## name (void)
+#define sclDefFunc(name, returns) \
+  returns Function_ ## name (void)
 
 /* Call a function with the given name. */
 #define sclCallFunc(name) \
-  fn_ ## name ()
-
-#define operator(a) \
-  scl_inline void op_ ## a (void)
+  Function_ ## name ()
 
 #define nullable __nullable
 #define nonnull  __nonnull
@@ -105,9 +98,6 @@ scl_int		ctrl_pop_long(void);
 scl_value	ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
 
-void		scl_gc_collect(void);
-void		scl_gc_addlocal(scl_value* local);
-void		scl_gc_removelocal(scl_value* local);
 scl_value	scl_realloc(scl_value ptr, size_t size);
 scl_value	scl_alloc(size_t size);
 void		scl_free(scl_value ptr);

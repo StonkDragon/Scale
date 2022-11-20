@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main()
+function main() -> none
   repeat 10 do
     "Hello" puts
   done

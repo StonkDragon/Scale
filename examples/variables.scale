@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main()
+function main() -> none
   // Create a new variable called 'foo'
   decl foo
   // push "Hello, World!" to the stack

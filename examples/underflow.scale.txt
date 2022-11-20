@@ -1,5 +1,7 @@
 
-examples/underflow.scale:4:15: Error: Function foo(foo_, bar, baz) requires 3 arguments, but only 2 are provided.
+Core.framework/include/io.scale:8:19: Invalid/Illegal Memory Access
 Stacktrace:
+  puts(_str_)
+  foo(foo_, bar, baz)
   main()
 

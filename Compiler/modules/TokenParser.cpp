@@ -136,6 +136,21 @@ namespace sclc
                         result.success = false;
                         errors.push_back(result);
                     }
+                    if (tokens[i+1].getType() == tok_container_acc) {
+                        i += 2;
+                        if (tokens[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                        }
+                        currentFunction->setReturnType(tokens[i].getValue());
+                    }
                 } else {
                     FPResult result;
                     result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
@@ -389,6 +404,21 @@ namespace sclc
                             result.type = tokens[i].getType();
                             result.success = false;
                             errors.push_back(result);
+                        }
+                        if (tokens[i+1].getType() == tok_container_acc) {
+                            i += 2;
+                            if (tokens[i].getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                            }
+                            func.setReturnType(tokens[i].getValue());
                         }
                     } else {
                         FPResult result;

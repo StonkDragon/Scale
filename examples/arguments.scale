@@ -1,11 +1,11 @@
 #include "core.scale"
 
-function doStuff(foo, bar, baz)
+function doStuff(foo, bar, baz) -> none
   foo puts
   bar puts
   baz puts
 end
 
-function main()
+function main() -> none
   "foo" "bar" "baz" doStuff
 end

@@ -3,7 +3,7 @@
 		"scope": "source.scale",
 		"prefix": "main",
 		"body": [
-			"function main()",
+			"function main() -> none",
 			"\t$0",
 			"end"
 		],
@@ -13,7 +13,7 @@
 		"scope": "source.scale",
 		"prefix": "function",
 		"body": [
-			"function ${1:name}($2)",
+			"function ${1:name}($2) -> ${3:none}",
 			"\t$0",
 			"end"
 		],

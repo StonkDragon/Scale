@@ -252,6 +252,7 @@ namespace sclc
     {
         std::string name;
         std::string file;
+        std::string return_type;
         std::vector<Token> body;
         std::vector<Modifier> modifiers;
         std::vector<std::string> args;
@@ -286,6 +287,12 @@ namespace sclc
         }
         void setFile(std::string file) {
             this->file = file;
+        }
+        std::string getReturnType() {
+            return return_type;
+        }
+        void setReturnType(std::string type) {
+            return_type = type;
         }
 
         bool operator==(const Function& other) const {
@@ -352,6 +359,7 @@ namespace sclc
     class Prototype
     {
         std::string name;
+        std::string return_type;
         int argCount;
     public:
         Prototype(std::string name, int argCount) {
@@ -359,8 +367,10 @@ namespace sclc
             this->argCount = argCount;
         }
         ~Prototype() {}
-        std::string getName() const { return name; }
-        int getArgCount() const { return argCount; }
+        std::string getName() { return name; }
+        int getArgCount() { return argCount; }
+        std::string getReturnType() { return return_type; }
+        void setReturnType(std::string type) { return_type = type; }
         void setArgCount(int argCount) { this->argCount = argCount; }
         void setName(std::string name) { this->name = name; }
     };
@@ -450,6 +460,7 @@ namespace sclc
             bool printCflags;
             bool dontSpecifyOutFile;
             bool preprocessOnly;
+            bool Werror;
             std::string optimizer;
         } options;
     };

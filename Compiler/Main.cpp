@@ -180,6 +180,8 @@ namespace sclc
                         Main.options.dontSpecifyOutFile = true;
                     if (args[i][0] == '-' && args[i][1] == 'O')
                         optimizer = std::string(args[i].c_str() + 1);
+                    if (args[i] == "-Werror")
+                        Main.options.Werror = true;
                     tmpFlags.push_back(args[i]);
                 }
             }

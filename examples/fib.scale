@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main()
+function main() -> none
     decl N 4000000 store N
     decl x
     decl y

@@ -8,29 +8,27 @@
 #include <regex>
 
 #include "../headers/Common.hpp"
+
 namespace sclc
 {
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth) {
-        for (int j = 0; j < scopeDepth; j++) {
-            fprintf(fp, "  ");
-        }
         switch (token.getType()) {
-            case tok_add: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a + b; }\n"); break;
-            case tok_sub: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a - b; }\n"); break;
-            case tok_mul: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a * b; }\n"); break;
-            case tok_div: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a / b; }\n"); break;
-            case tok_mod: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a %% b; }\n"); break;
-            case tok_land: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a & b; }\n"); break;
-            case tok_lor: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a | b; }\n"); break;
-            case tok_lxor: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a ^ b; }\n"); break;
-            case tok_lnot: fprintf(fp, "stack.data[stack.ptr - 1].i = ~((scl_int) stack.data[stack.ptr - 1].i);\n"); break;
-            case tok_lsh: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a << b; }\n"); break;
-            case tok_rsh: fprintf(fp, "{ scl_int b = stack.data[--stack.ptr].i; scl_int a = stack.data[--stack.ptr].i; stack.data[stack.ptr++].i = a >> b; }\n"); break;
-            case tok_pow: fprintf(fp, "{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 0; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); break;
-            case tok_dadd: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 + n2; }\n"); break;
-            case tok_dsub: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 - n2; }\n"); break;
-            case tok_dmul: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 * n2; }\n"); break;
-            case tok_ddiv: fprintf(fp, "{ scl_float n2 = stack.data[--stack.ptr].f; scl_float n1 = stack.data[--stack.ptr].f; stack.data[stack.ptr++].f = n1 / n2; }\n"); break;
+            case tok_add: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_sub: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_mul: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_div: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_mod: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_land: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_lor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_lxor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_lnot: append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n"); break;
+            case tok_lsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_rsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n"); break;
+            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 0; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); break;
+            case tok_dadd: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f + stack.data[stack.ptr + 1].f;\n"); break;
+            case tok_dsub: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f - stack.data[stack.ptr + 1].f;\n"); break;
+            case tok_dmul: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f * stack.data[stack.ptr + 1].f;\n"); break;
+            case tok_ddiv: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f / stack.data[stack.ptr + 1].f;\n"); break;
             default:
             {
                 FPResult result;
@@ -52,10 +50,7 @@ namespace sclc
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         try {
             long long num = parseNumber(token.getValue());
-            for (int j = 0; j < scopeDepth; j++) {
-                fprintf(fp, "  ");
-            }
-            fprintf(fp, "stack.data[stack.ptr++].i = %lld;\n", num);
+            append("stack.data[stack.ptr++].i = %lld;\n", num);
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;
@@ -73,7 +68,8 @@ namespace sclc
         return result;
     }
 
-    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth) {
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth2) {
+        int scopeDepth = *scopeDepth2;
         if (keywDeclare.getType() != tok_declare) {
             FPResult result;
             result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
@@ -155,9 +151,6 @@ namespace sclc
         long long lower = parseNumber(from.getValue());
         long long higher = parseNumber(to.getValue());
 
-        for (int j = 0; j < *scopeDepth; j++) {
-            fprintf(fp, "  ");
-        }
         if (from.getType() == tok_identifier && !hasVar(from)) {
             FPResult result;
             result.message = "Use of variables in for loops is not supported.";
@@ -204,7 +197,7 @@ namespace sclc
         }
 
         if (!hasVar(loopVar)) {
-            fprintf(fp, "scl_value _%s;", loopVar.getValue().c_str());
+            append("scl_value Var_%s;\n", loopVar.getValue().c_str());
         }
 
         std::vector<FPResult> warns;
@@ -243,17 +236,18 @@ namespace sclc
             warns.push_back(result);
         }
 
-        fprintf(fp, "for (_%s = (void*) ", loopVar.getValue().c_str());
-        fprintf(fp, "%s", from.getValue().c_str());
+        append("for (Var_%s = (void*) ", loopVar.getValue().c_str());
+        scopeDepth = 0;
+        append("%s", from.getValue().c_str());
 
         if (lower < higher) {
-            fprintf(fp, "; _%s < (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", to.getValue().c_str());
-            fprintf(fp, "; _%s++) {\n", loopVar.getValue().c_str());
+            append("; Var_%s < (void*) ", loopVar.getValue().c_str());
+            append("%s", to.getValue().c_str());
+            append("; Var_%s++) {\n", loopVar.getValue().c_str());
         } else if (lower > higher) {
-            fprintf(fp, "; _%s > (void*) ", loopVar.getValue().c_str());
-            fprintf(fp, "%s", to.getValue().c_str());
-            fprintf(fp, "; _%s--) {\n", loopVar.getValue().c_str());
+            append("; Var_%s > (void*) ", loopVar.getValue().c_str());
+            append("%s", to.getValue().c_str());
+            append("; Var_%s--) {\n", loopVar.getValue().c_str());
         } else {
             FPResult result;
             result.message = "Invalid looping condition.";
@@ -265,7 +259,7 @@ namespace sclc
             result.type = keywTo.getType();
             return result;
         }
-        (*scopeDepth)++;
+        (*scopeDepth2)++;
 
         vars->push_back(loopVar.getValue());
         FPResult result;
@@ -278,10 +272,7 @@ namespace sclc
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         try {
             double num = parseDouble(token.getValue());
-            for (int j = 0; j < scopeDepth; j++) {
-                fprintf(fp, "  ");
-            }
-            fprintf(fp, "stack.data[stack.ptr++].d = %f;\n", num);
+            append("stack.data[stack.ptr++].f = %f;\n", num);
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;

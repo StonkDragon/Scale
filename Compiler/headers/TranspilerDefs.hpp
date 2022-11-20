@@ -6,5 +6,4 @@
     err.line = body[(at)].getLine(); \
     err.in = body[(at)].getFile(); \
     err.value = body[(at)].getValue(); \
-    err.type =  body[(at)].getType(); \
-    errors.push_back(err)
+    err.type =  body[(at)].getType()

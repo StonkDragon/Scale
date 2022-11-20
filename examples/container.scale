@@ -5,7 +5,7 @@ container foo
   decl baz
 end
 
-function main()
+function main() -> none
   "load/store" store foo->bar
   foo->bar puts
   
