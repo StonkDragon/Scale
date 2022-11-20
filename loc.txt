@@ -1,28 +1,24 @@
      205 Compiler/Common.cpp
-     730 Compiler/Main.cpp
-     493 Compiler/headers/Common.hpp
+     732 Compiler/Main.cpp
+     504 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
-      10 Compiler/headers/TranspilerDefs.hpp
+       9 Compiler/headers/TranspilerDefs.hpp
      352 Compiler/modules/DragonConfig.cpp
-     153 Compiler/modules/FunctionParser.cpp
-     302 Compiler/modules/TokenHandlers.cpp
-     487 Compiler/modules/TokenParser.cpp
+     140 Compiler/modules/FunctionParser.cpp
+     293 Compiler/modules/TokenHandlers.cpp
+     517 Compiler/modules/TokenParser.cpp
      468 Compiler/modules/Tokenizer.cpp
-    1052 Compiler/modules/Transpiler.cpp
-      57 Scale/Frameworks/Array.framework/include/array.scale
-     354 Scale/Frameworks/Core.framework/impl/scale.c
-      57 Scale/Frameworks/Core.framework/impl/scale.h
+    1094 Compiler/modules/Transpiler.cpp
+     357 Scale/Frameworks/Core.framework/impl/scale.c
+      56 Scale/Frameworks/Core.framework/impl/scale.h
       78 Scale/Frameworks/Core.framework/include/core.scale
       20 Scale/Frameworks/Core.framework/include/debug.scale
       38 Scale/Frameworks/Core.framework/include/file.scale
       30 Scale/Frameworks/Core.framework/include/fmt.scale
       29 Scale/Frameworks/Core.framework/include/io.scale
       40 Scale/Frameworks/Core.framework/include/math.scale
-      58 Scale/Frameworks/Runtime.framework/impl/runtime.c
-      11 Scale/Frameworks/Runtime.framework/impl/runtime.h
-       9 Scale/Frameworks/Runtime.framework/include/runtime.scale
-     255 Scale/Internal/scale_internal.c
-     119 Scale/Internal/scale_internal.h
+     177 Scale/Internal/scale_internal.c
+     109 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
        5 examples/cdecl.scale
       16 examples/container.scale
@@ -42,5 +38,5 @@
       13 examples/while.scale
        9 interop-example/foo.c
       17 interop-example/main.scale
-      26 interop-example/scale_support.h
-    5749 total
+      17 interop-example/scale_support.h
+    5581 total
