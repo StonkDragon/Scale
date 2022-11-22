@@ -803,6 +803,10 @@ namespace sclc {
                         }
 
                         case tok_new: {
+                            {
+                                transpilerError("Using 'new <type>' is deprecated! Use '<type>:new' instead.", i);
+                                warns.push_back(err);
+                            }
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
                                 transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
