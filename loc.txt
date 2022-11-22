@@ -31,12 +31,12 @@
        6 examples/deref.scale
       21 examples/fib.scale
       20 examples/fizzbuzz.scale
-       9 examples/for.scale
+      11 examples/for.scale
        6 examples/hello.scale
       10 examples/if.scale
       15 examples/label-goto.scale
       31 examples/oop.scale
-      21 examples/operators.scale
+      40 examples/operators.scale
        8 examples/repeat.scale
       10 examples/sizeof.scale
       19 examples/struct.scale
@@ -46,4 +46,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6684 total
+    6705 total
