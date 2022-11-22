@@ -1,7 +1,7 @@
 #include "core.scale"
 
 struct Foo
-  decl bar: any
+  decl bar: str
 end
 
 function main(): none
