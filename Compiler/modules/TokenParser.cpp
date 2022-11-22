@@ -78,86 +78,12 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                std::string name = tokens[i + 1].getValue();
-                Token func = tokens[i + 1];
-                currentFunction = new Function(name);
-                currentFunction->setFile(func.getFile());
-                if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
-                if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
-                if (funcSAP) currentFunction->addModifier(mod_sap);
-                if (funcNoMangle) {
-                    if (currentFunction->getName() == "main") {
+                if (tokens[i + 2].getType() == tok_column) {
+                    std::string member_type = tokens[i + 1].getValue();
+                    i += 2;
+                    if (tokens[i].getType() != tok_column) {
                         FPResult result;
-                        result.message = "Main function must be mangled!";
-                        result.column = tokens[i + 1].getColumn();
-                        result.value = tokens[i + 1].getValue();
-                        result.line = tokens[i + 1].getLine();
-                        result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i + 1].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    currentFunction->addModifier(mod_nomangle);
-                }
-                i += 2;
-                if (tokens[i].getType() == tok_open_paren) {
-                    i++;
-                    while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
-                        if (tokens[i].getType() == tok_identifier) {
-                            std::string name = tokens[i].getValue();
-                            std::string type = "any";
-                            if (tokens[i+1].getType() == tok_column) {
-                                i += 2;
-                                if (tokens[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    continue;
-                                }
-                                if (tokens[i].getValue() == "none") {
-                                    FPResult result;
-                                    result.message = "Type 'none' is only valid for function return types.";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    continue;
-                                }
-                                type = tokens[i].getValue();
-                            }
-                            currentFunction->addArgument(Variable(name, type));
-                        } else {
-                            FPResult result;
-                            result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            i++;
-                            continue;
-                        }
-                        i++;
-                        if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
-                            if (tokens[i].getType() == tok_comma) {
-                                i++;
-                            }
-                            continue;
-                        }
-                        FPResult result;
-                        result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                        result.message = "Expected column, but got '" + tokens[i].getValue() + "'";
                         result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
@@ -167,11 +93,86 @@ namespace sclc
                         errors.push_back(result);
                         continue;
                     }
-                    if (tokens[i+1].getType() == tok_column) {
-                        i += 2;
-                        if (tokens[i].getType() != tok_identifier) {
+                    Token func = tokens[i + 1];
+                    std::string name = func.getValue();
+                    currentFunction = new Method(member_type, name);
+                    currentFunction->setFile(func.getFile());
+                    if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
+                    if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
+                    if (funcSAP) currentFunction->addModifier(mod_sap);
+                    if (funcNoMangle) {
+                        if (currentFunction->getName() == "main") {
                             FPResult result;
-                            result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                            result.message = "Main function must be mangled!";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.type = tokens[i + 1].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        currentFunction->addModifier(mod_nomangle);
+                    }
+                    i += 2;
+                    if (tokens[i].getType() == tok_open_paren) {
+                        i++;
+                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                            if (tokens[i].getType() == tok_identifier) {
+                                std::string name = tokens[i].getValue();
+                                std::string type = "any";
+                                if (tokens[i+1].getType() == tok_column) {
+                                    i += 2;
+                                    if (tokens[i].getType() != tok_identifier) {
+                                        FPResult result;
+                                        result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    if (tokens[i].getValue() == "none") {
+                                        FPResult result;
+                                        result.message = "Type 'none' is only valid for function return types.";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    type = tokens[i].getValue();
+                                }
+                                currentFunction->addArgument(Variable(name, type));
+                            } else {
+                                FPResult result;
+                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            i++;
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                if (tokens[i].getType() == tok_comma) {
+                                    i++;
+                                }
+                                continue;
+                            }
+                            FPResult result;
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
                             result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
@@ -181,19 +182,154 @@ namespace sclc
                             errors.push_back(result);
                             continue;
                         }
-                        currentFunction->setReturnType(tokens[i].getValue());
+                        
+                        currentFunction->addArgument(Variable("self", member_type));
+                        if (tokens[i+1].getType() == tok_column) {
+                            i += 2;
+                            if (tokens[i].getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            currentFunction->setReturnType(tokens[i].getValue());
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
                     }
                 } else {
-                    FPResult result;
-                    result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
-                    result.column = tokens[i].getColumn();
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                    std::string name = tokens[i + 1].getValue();
+                    Token func = tokens[i + 1];
+                    currentFunction = new Function(name);
+                    currentFunction->setFile(func.getFile());
+                    if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
+                    if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
+                    if (funcSAP) currentFunction->addModifier(mod_sap);
+                    if (funcNoMangle) {
+                        if (currentFunction->getName() == "main") {
+                            FPResult result;
+                            result.message = "Main function must be mangled!";
+                            result.column = tokens[i + 1].getColumn();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.type = tokens[i + 1].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        currentFunction->addModifier(mod_nomangle);
+                    }
+                    i += 2;
+                    if (tokens[i].getType() == tok_open_paren) {
+                        i++;
+                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                            if (tokens[i].getType() == tok_identifier) {
+                                std::string name = tokens[i].getValue();
+                                std::string type = "any";
+                                if (tokens[i+1].getType() == tok_column) {
+                                    i += 2;
+                                    if (tokens[i].getType() != tok_identifier) {
+                                        FPResult result;
+                                        result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    if (tokens[i].getValue() == "none") {
+                                        FPResult result;
+                                        result.message = "Type 'none' is only valid for function return types.";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    type = tokens[i].getValue();
+                                }
+                                currentFunction->addArgument(Variable(name, type));
+                            } else {
+                                FPResult result;
+                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            i++;
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                if (tokens[i].getType() == tok_comma) {
+                                    i++;
+                                }
+                                continue;
+                            }
+                            FPResult result;
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        if (tokens[i+1].getType() == tok_column) {
+                            i += 2;
+                            if (tokens[i].getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            currentFunction->setReturnType(tokens[i].getValue());
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
                 }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
@@ -201,7 +337,7 @@ namespace sclc
                     funcNoWarn = false;
                     funcSAP = false;
                     funcNoMangle = false;
-                    addIfAbsent(functions, *currentFunction);
+                    addIfAbsent(functions, currentFunction);
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
                     containers.push_back(*currentContainer);
@@ -399,67 +535,12 @@ namespace sclc
                 i++;
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
-                    std::string name = tokens[i + 1].getValue();
-                    Token funcTok = tokens[i + 1];
-                    Function func = Function(name);
-                    i += 2;
-                    if (tokens[i].getType() == tok_open_paren) {
-                        i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
-                            if (tokens[i].getType() == tok_identifier) {
-                                std::string name = tokens[i].getValue();
-                                std::string type = "any";
-                                if (tokens[i+1].getType() == tok_column) {
-                                    i += 2;
-                                    if (tokens[i].getType() != tok_identifier) {
-                                        FPResult result;
-                                        result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                    if (tokens[i].getValue() == "none") {
-                                        FPResult result;
-                                        result.message = "Type 'none' is only valid for function return types.";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                    type = tokens[i].getValue();
-                                }
-                                func.addArgument(Variable(name, type));
-                            } else {
-                                FPResult result;
-                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
-                                if (tokens[i].getType() == tok_comma) {
-                                    i++;
-                                }
-                                continue;
-                            }
+                    if (tokens[i + 2].getType() == tok_column) {
+                        std::string member_type = tokens[i + 1].getValue();
+                        i += 2;
+                        if (tokens[i].getType() != tok_column) {
                             FPResult result;
-                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.message = "Expected column, but got '" + tokens[i].getValue() + "'";
                             result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
@@ -469,11 +550,86 @@ namespace sclc
                             errors.push_back(result);
                             continue;
                         }
-                        if (tokens[i+1].getType() == tok_column) {
-                            i += 2;
-                            if (tokens[i].getType() != tok_identifier) {
+                        Token func = tokens[i + 1];
+                        std::string name = func.getValue();
+                        Function* function = new Method(member_type, name);
+                        function->setFile(func.getFile());
+                        if (!funcPrivateStack) function->addModifier(mod_nps);
+                        if (funcNoWarn) function->addModifier(mod_nowarn);
+                        if (funcSAP) function->addModifier(mod_sap);
+                        if (funcNoMangle) {
+                            if (function->getName() == "main") {
                                 FPResult result;
-                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.message = "Main function must be mangled!";
+                                result.column = tokens[i + 1].getColumn();
+                                result.value = tokens[i + 1].getValue();
+                                result.line = tokens[i + 1].getLine();
+                                result.in = tokens[i + 1].getFile();
+                                result.type = tokens[i + 1].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            function->addModifier(mod_nomangle);
+                        }
+                        i += 2;
+                        if (tokens[i].getType() == tok_open_paren) {
+                            i++;
+                            while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                                if (tokens[i].getType() == tok_identifier) {
+                                    std::string name = tokens[i].getValue();
+                                    std::string type = "any";
+                                    if (tokens[i+1].getType() == tok_column) {
+                                        i += 2;
+                                        if (tokens[i].getType() != tok_identifier) {
+                                            FPResult result;
+                                            result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        if (tokens[i].getValue() == "none") {
+                                            FPResult result;
+                                            result.message = "Type 'none' is only valid for function return types.";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        type = tokens[i].getValue();
+                                    }
+                                    function->addArgument(Variable(name, type));
+                                } else {
+                                    FPResult result;
+                                    result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
+                                }
+                                i++;
+                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                    if (tokens[i].getType() == tok_comma) {
+                                        i++;
+                                    }
+                                    continue;
+                                }
+                                FPResult result;
+                                result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
                                 result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
@@ -483,21 +639,139 @@ namespace sclc
                                 errors.push_back(result);
                                 continue;
                             }
-                            func.setReturnType(tokens[i].getValue());
+                            
+                            function->addArgument(Variable("self", member_type));
+                            if (tokens[i+1].getType() == tok_column) {
+                                i += 2;
+                                if (tokens[i].getType() != tok_identifier) {
+                                    FPResult result;
+                                    result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    continue;
+                                }
+                                function->setReturnType(tokens[i].getValue());
+                            }
+                            extern_functions.push_back(function);
+                        } else {
+                            FPResult result;
+                            result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
                         }
                     } else {
-                        FPResult result;
-                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
+                        std::string name = tokens[i + 1].getValue();
+                        Token funcTok = tokens[i + 1];
+                        Function* func = new Function(name);
+                        func->setFile(funcTok.getFile());
+                        i += 2;
+                        if (tokens[i].getType() == tok_open_paren) {
+                            i++;
+                            while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                                if (tokens[i].getType() == tok_identifier) {
+                                    std::string name = tokens[i].getValue();
+                                    std::string type = "any";
+                                    if (tokens[i+1].getType() == tok_column) {
+                                        i += 2;
+                                        if (tokens[i].getType() != tok_identifier) {
+                                            FPResult result;
+                                            result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        if (tokens[i].getValue() == "none") {
+                                            FPResult result;
+                                            result.message = "Type 'none' is only valid for function return types.";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        type = tokens[i].getValue();
+                                    }
+                                    func->addArgument(Variable(name, type));
+                                } else {
+                                    FPResult result;
+                                    result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
+                                }
+                                i++;
+                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                    if (tokens[i].getType() == tok_comma) {
+                                        i++;
+                                    }
+                                    continue;
+                                }
+                                FPResult result;
+                                result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            if (tokens[i+1].getType() == tok_column) {
+                                i += 2;
+                                if (tokens[i].getType() != tok_identifier) {
+                                    FPResult result;
+                                    result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    continue;
+                                }
+                                func->setReturnType(tokens[i].getValue());
+                            }
+                        } else {
+                            FPResult result;
+                            result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        extern_functions.push_back(func);
                     }
-                    extern_functions.push_back(func);
                 } else if (type.getType() == tok_declare) {
                     i++;
                     if (tokens[i].getType() != tok_identifier) {
@@ -553,7 +827,7 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
+            } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {

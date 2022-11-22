@@ -1,7 +1,7 @@
 #include "core.scale"
 
 function main(): none
-    decl i
+    decl i: int
     0 store i
     label a
     i 1 + store i

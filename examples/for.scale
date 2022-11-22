@@ -1,7 +1,6 @@
 #include "core.scale"
 
 function main(): none
-  // prints numbers 1 to 10 (both including)
   for decl i in 1 to 10 do
     i putint
   done

@@ -279,46 +279,70 @@ namespace sclc
         std::vector<Modifier> modifiers;
         std::vector<Variable> args;
     public:
+        bool isMethod;
         Function(std::string name) {
             this->name = name;
+            this->isMethod = false;
         }
-        ~Function() {}
-        std::string getName() {
+        Function(std::string name, bool isMethod) {
+            this->name = name;
+            this->isMethod = isMethod;
+        }
+        virtual ~Function() {}
+        virtual std::string getName() {
             return name;
         }
-        std::vector<Token> getBody() {
+        virtual std::vector<Token> getBody() {
             return body;
         }
-        void addToken(Token token) {
+        virtual void addToken(Token token) {
             body.push_back(token);
         }
-        void addModifier(Modifier modifier) {
+        virtual void addModifier(Modifier modifier) {
             modifiers.push_back(modifier);
         }
-        std::vector<Modifier> getModifiers() {
+        virtual std::vector<Modifier> getModifiers() {
             return modifiers;
         }
-        void addArgument(Variable arg) {
+        virtual void addArgument(Variable arg) {
             args.push_back(arg);
         }
-        std::vector<Variable> getArgs() {
+        virtual std::vector<Variable> getArgs() {
             return args;
         }
-        std::string getFile() {
+        virtual std::string getFile() {
             return file;
         }
-        void setFile(std::string file) {
+        virtual void setFile(std::string file) {
             this->file = file;
         }
-        std::string getReturnType() {
+        virtual void setName(std::string name) {
+            this->name = name;
+        }
+        virtual std::string getReturnType() {
             return return_type;
         }
-        void setReturnType(std::string type) {
+        virtual void setReturnType(std::string type) {
             return_type = type;
         }
 
-        bool operator==(const Function& other) const {
+        virtual bool operator==(const Function& other) const {
             return name == other.name;
+        }
+    };
+
+    class Method : public Function {
+        std::string member_type;
+    public:
+        Method(std::string member_type, std::string name) : Function(name, true) {
+            this->member_type = member_type;
+            this->isMethod = true;
+        }
+        std::string getMemberType() {
+            return member_type;
+        }
+        void setMemberType(std::string member_type) {
+            this->member_type = member_type;
         }
     };
 
@@ -410,8 +434,8 @@ namespace sclc
 
     class TPResult {
     public:
-        std::vector<Function> functions;
-        std::vector<Function> extern_functions;
+        std::vector<Function*> functions;
+        std::vector<Function*> extern_functions;
         std::vector<Variable> extern_globals;
         std::vector<Variable> globals;
         std::vector<Container> containers;
@@ -423,8 +447,8 @@ namespace sclc
     {
     private:
         std::vector<Token> tokens;
-        std::vector<Function> functions;
-        std::vector<Function> extern_functions;
+        std::vector<Function*> functions;
+        std::vector<Function*> extern_functions;
         std::vector<Variable> extern_globals;
     public:
         TokenParser(std::vector<Token> tokens) {
@@ -517,7 +541,7 @@ namespace sclc
     int isOperator(char c);
     bool isOperator(Token token);
     bool fileExists(const std::string& name);
-    void addIfAbsent(std::vector<Function>& vec, Function str);
+    void addIfAbsent(std::vector<Function*>& vec, Function* str);
     std::string replaceAll(std::string src, std::string from, std::string to);
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
     int lastIndexOf(char* src, char c);
@@ -528,10 +552,12 @@ namespace sclc
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
     FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
-    Function getFunctionByName(TPResult result, std::string name);
+    Function* getFunctionByName(TPResult result, std::string name);
+    Method* getMethodByName(TPResult result, std::string name, std::string type);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
+    bool hasMethod(TPResult result, Token name, std::string type);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);
 }

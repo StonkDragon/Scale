@@ -1,5 +1,5 @@
 #include "core.scale"
 
-function main() : none
+function main(): none
     cdecl "printf(\"Hi!\\n\");"
 end

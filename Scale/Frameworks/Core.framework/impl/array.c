@@ -10,7 +10,7 @@ struct Array {
     scl_value capacity;
 };
 
-struct Array* Function_arraySort(void) {
+struct Array* Method_Array_sort(void) {
     struct Array* array = stack.data[--stack.ptr].v;
     scl_int i = 0;
     while (i < (scl_int) array->capacity) {

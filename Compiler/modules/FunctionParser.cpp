@@ -13,18 +13,35 @@
 
 namespace sclc
 {
-    Function getFunctionByName(TPResult result, std::string name) {
-        for (Function func : result.functions) {
-            if (func.getName() == name) {
+    Function* getFunctionByName(TPResult result, std::string name) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
                 return func;
             }
         }
-        for (Function func : result.extern_functions) {
-            if (func.getName() == name) {
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
                 return func;
             }
         }
-        return Function("%NULFUNC%");
+        return nullptr;
+    }
+    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        return nullptr;
     }
 
     Container getContainerByName(TPResult result, std::string name) {
@@ -46,13 +63,30 @@ namespace sclc
     }
 
     bool hasFunction(TPResult result, Token name) {
-        for (Function func : result.functions) {
-            if (func.getName() == name.getValue()) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
                 return true;
             }
         }
-        for (Function func : result.extern_functions) {
-            if (func.getName() == name.getValue()) {
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool hasMethod(TPResult result, Token name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
+                return true;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
                 return true;
             }
         }
@@ -80,8 +114,8 @@ namespace sclc
         remove(filename.c_str());
         FILE* fp = fopen(filename.c_str(), "a");
 
-        Function mainFunction = getFunctionByName(result, "main");
-        if (mainFunction == Function("%NULFUNC%") && !Main.options.noMain) {
+        Function* mainFunction = getFunctionByName(result, "main");
+        if (mainFunction == nullptr && !Main.options.noMain) {
             FPResult result;
             result.success = false;
             result.message = "No entry point found";

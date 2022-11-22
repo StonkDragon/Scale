@@ -47,11 +47,8 @@ Optional:
   - `**`: Exponentiation
   - `@` in `store`: Store top of stack at address in variable
   - `@` otherwise: Push the value at the address on the stack onto the stack
-
-  - `[`: Stack Autodrop Pool Open
-  - `]`: Stack Autodrop Pool Close
-  - `->`: Container Access
-  - `::`: Structure Dereference
+  - `.`: Container Access/Structure Dereference
+  - `:`: Set type of variable
 
 ## Keywords
 
@@ -81,15 +78,16 @@ Optional:
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
   - `goto`: Goto a label
+  - `self`: Reference to the current object inside a member function
 
 ## Argument Notation/Calling Convention
 
 Say we have following function:
 
 ```
-function foo(a, b, c)
+function foo(a, b, c): int
   a b +
-  c +
+  c + return
 end
 ```
 

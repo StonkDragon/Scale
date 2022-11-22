@@ -22,7 +22,7 @@ sclDefFunc(dumpstack, void) {
 	printf("Dump:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
 		long long v = (long long) stack.data[i].i;
-		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
+		printf("   %zd: 0x%016llx, %lld, %s\n", i, v, v, (scl_str) v);
 	}
 	printf("\n");
 }
@@ -45,23 +45,11 @@ sclDefFunc(sizeof_stack, scl_int) {
 sclDefFunc(concat, scl_str) {
 	scl_str s2 = ctrl_pop_string();
 	scl_str s1 = ctrl_pop_string();
-	ctrl_push_string(s1);
-	Function_strlen();
-	long long len = ctrl_pop_long();
-	ctrl_push_string(s2);
-	Function_strlen();
-	long long len2 = ctrl_pop_long();
+	long long len = strlen(s1);
+	long long len2 = strlen(s2);
 	scl_str out = scl_alloc(len + len2 + 1);
-	size_t i = 0;
-	while (s1[i] != '\0') {
-		out[i] = s1[i];
-		i++;
-	}
-	int j = 0;
-	while (s2[j] != '\0') {
-		out[i + j] = s2[j];
-		j++;
-	}
+	strcpy(out, s1);
+	strcat(out, s2);
 	return out;
 }
 

@@ -1,10 +1,10 @@
 #include "core.scale"
 
 function main(): none
-    decl N 4000000 store N
-    decl x
-    decl y
-    decl z
+    decl N: int 4000000 store N
+    decl x: int
+    decl y: int
+    decl z: int
 
     0 store x
     1 store y

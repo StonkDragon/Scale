@@ -126,10 +126,18 @@ namespace sclc
         }
     }
 
-    void addIfAbsent(std::vector<Function>& vec, Function str) {
+    void addIfAbsent(std::vector<Function*>& vec, Function* str) {
         for (size_t i = 0; i < vec.size(); i++) {
-            if (vec[i] == str) {
-                return;
+            if (str->isMethod && vec[i]->isMethod) {
+                if (vec[i]->getName() == str->getName() && static_cast<Method*>(vec[i])->getMemberType() == static_cast<Method*>(str)->getMemberType()) {
+                    // std::cout << "Method " << str->getName() << " is " << static_cast<Method*>(vec[i])->getMemberType() << std::endl;
+                    return;
+                }
+            } else if (!str->isMethod && !vec[i]->isMethod) {
+                if (*vec[i] == *str) {
+                    // std::cout << "Function " << str->getName() << " exists" << std::endl;
+                    return;
+                }
             }
         }
         vec.push_back(str);

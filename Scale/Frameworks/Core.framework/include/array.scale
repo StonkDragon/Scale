@@ -4,56 +4,53 @@
 extern function trace()
 
 struct Array
-  decl values
-  decl count
-  decl capacity
+  decl values: any
+  decl count: int
+  decl capacity: int
 end
 
-extern function arraySort(array -> Array) -> Array
+extern function Array:sort(): Array
 
-function arrayGet(arr -> Array, index) -> any
-  arr.values index 3 << + @ return
+function Array:get(index: int): any
+  self.values index 3 << + @ return
 end
 
-function arraySet(arr -> Array, index, value) -> none
-  decl tmp -> any
-  arr.values index 3 << + store tmp
+function Array:set(index: int, value: any): none
+  decl tmp: any
+  self.values index 3 << + store tmp
   value store @tmp
 end
 
-function arrayTop(arr -> Array) -> any
-  arr.values arr.count 1 - 3 << + @ return
+function Array:top(): any
+  self.values self.count 1 - 3 << + @ return
 end
 
-function arrayPush(arr -> Array, value) -> none
-  arr.count arr.capacity >= if
-    arr.capacity 2 * store arr.capacity
-    arr.values arr.capacity 8 * realloc
-    store arr.values
+function Array:push(value: any): none
+  self.count self.capacity >= if
+    self.capacity 2 * store self.capacity
+    self.values self.capacity 8 * realloc
+    store self.values
   fi
 
-  decl tmp -> any
-  arr.values arr.count 3 << + store tmp
+  decl tmp: any
+  self.values self.count 3 << + store tmp
   value store @tmp
-  arr.count 1 + store arr.count
+  self.count 1 + store self.count
 end
 
-function arrayPop(arr -> Array) -> none
-  arr.count 1 - store arr.count
+function Array:pop(): none
+  self.count 1 - store self.count
 end
 
-function arrayCreate(initialSize) -> Array
-  initialSize 1 < if
-    "Invalid Argument: initialSize must not be 0 or less\n" puts trace 1 exit
+function Array:init(size: int): none
+  size 1 < if
+    "Invalid Argument: size must not be 0 or less\n" puts trace 1 exit
   fi
 
-  decl arr -> Array
-  new Array store arr
-  initialSize 8 * malloc
-  store arr.values
-  initialSize store arr.count
-  initialSize store arr.capacity
-  arr return
+  size 8 * malloc
+  store self.values
+  0 store self.count
+  size store self.capacity
 end
 
 #endif

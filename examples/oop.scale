@@ -1,0 +1,21 @@
+#include "core.scale"
+#include "array.scale"
+
+struct Foo
+    decl foo: any
+end
+
+function Foo:bar(): none
+    self.foo puts
+end
+
+function Foo:init(msg: str): none
+    msg store self.foo
+end
+
+function main(): none
+    "Hello!" Foo:new decl f:Foo store f
+    f:bar
+    "Hello again!" Foo:new decl g:Foo store g
+    g:bar
+end

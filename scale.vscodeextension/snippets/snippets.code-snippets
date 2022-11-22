@@ -19,6 +19,26 @@
 		],
 		"description": "Create a function"
 	},
+	"Method": {
+		"scope": "source.scale",
+		"prefix": "method",
+		"body": [
+			"function ${1:type}:${2:name}($3): ${4:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Create a member function of a type"
+	},
+	"Init": {
+		"scope": "source.scale",
+		"prefix": "initmethod",
+		"body": [
+			"function ${1:type}:init($2): none",
+			"\t$0",
+			"end"
+		],
+		"description": "Initialization function of a type"
+	},
 	"While Loop": {
 		"scope": "source.scale",
 		"prefix": "while",

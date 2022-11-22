@@ -1,11 +1,9 @@
 #include "core.scale"
 
 function main(): none
-  // outputs "1 == 1" if 1 equals 1
   1 1 == if
     "1 == 1" puts
   fi
-  // outputs "1 != 2" if 1 does not equal 2
   1 2 != if
     "1 != 2" puts
   fi
