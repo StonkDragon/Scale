@@ -24,7 +24,7 @@ namespace sclc
             case tok_lnot: append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n"); break;
             case tok_lsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n"); break;
             case tok_rsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n"); break;
-            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 0; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); break;
+            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); break;
             case tok_dadd: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f + stack.data[stack.ptr + 1].f;\n"); break;
             case tok_dsub: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f - stack.data[stack.ptr + 1].f;\n"); break;
             case tok_dmul: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f * stack.data[stack.ptr + 1].f;\n"); break;
