@@ -4,7 +4,7 @@
       95 Compiler/headers/DragonConfig.hpp
        9 Compiler/headers/TranspilerDefs.hpp
      352 Compiler/modules/DragonConfig.cpp
-     174 Compiler/modules/FunctionParser.cpp
+     180 Compiler/modules/FunctionParser.cpp
      293 Compiler/modules/TokenHandlers.cpp
      978 Compiler/modules/TokenParser.cpp
      455 Compiler/modules/Tokenizer.cpp
@@ -23,8 +23,8 @@
       29 Scale/Frameworks/Core.framework/include/io.scale
       40 Scale/Frameworks/Core.framework/include/math.scale
       10 Scale/Frameworks/Core.framework/include/runtime/runtime.scale
-     189 Scale/Internal/scale_internal.c
-     109 Scale/Internal/scale_internal.h
+     207 Scale/Internal/scale_internal.c
+     110 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
        5 examples/cdecl.scale
       16 examples/container.scale
@@ -46,4 +46,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6496 total
+    6521 total
