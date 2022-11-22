@@ -149,6 +149,18 @@ namespace sclc
                                         continue;
                                     }
                                     type = tokens[i].getValue();
+                                } else {
+                                    FPResult result;
+                                    result.message = "A type is required!";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
                                 }
                                 currentFunction->addArgument(Variable(name, type));
                             } else {
@@ -199,6 +211,18 @@ namespace sclc
                                 continue;
                             }
                             currentFunction->setReturnType(tokens[i].getValue());
+                        } else {
+                            FPResult result;
+                            result.message = "A type is required!";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
                         }
                     } else {
                         FPResult result;
@@ -269,6 +293,18 @@ namespace sclc
                                         continue;
                                     }
                                     type = tokens[i].getValue();
+                                } else {
+                                    FPResult result;
+                                    result.message = "A type is required!";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
                                 }
                                 currentFunction->addArgument(Variable(name, type));
                             } else {
@@ -317,6 +353,18 @@ namespace sclc
                                 continue;
                             }
                             currentFunction->setReturnType(tokens[i].getValue());
+                        } else {
+                            FPResult result;
+                            result.message = "A type is required!";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
                         }
                     } else {
                         FPResult result;
@@ -606,6 +654,18 @@ namespace sclc
                                             continue;
                                         }
                                         type = tokens[i].getValue();
+                                    } else {
+                                        FPResult result;
+                                        result.message = "A type is required!";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        i++;
+                                        continue;
                                     }
                                     function->addArgument(Variable(name, type));
                                 } else {
@@ -656,6 +716,18 @@ namespace sclc
                                     continue;
                                 }
                                 function->setReturnType(tokens[i].getValue());
+                            } else {
+                                FPResult result;
+                                result.message = "A type is required!";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
                             }
                             extern_functions.push_back(function);
                         } else {
@@ -709,6 +781,18 @@ namespace sclc
                                             continue;
                                         }
                                         type = tokens[i].getValue();
+                                    } else {
+                                        FPResult result;
+                                        result.message = "A type is required!";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        i++;
+                                        continue;
                                     }
                                     func->addArgument(Variable(name, type));
                                 } else {
@@ -757,6 +841,18 @@ namespace sclc
                                     continue;
                                 }
                                 func->setReturnType(tokens[i].getValue());
+                            } else {
+                                FPResult result;
+                                result.message = "A type is required!";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
                             }
                         } else {
                             FPResult result;

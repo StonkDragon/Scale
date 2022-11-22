@@ -420,7 +420,11 @@ namespace sclc {
                 append("%s %s%s {\n", return_type.c_str(), function->getName().c_str(), args.c_str());
                 scopeDepth++;
                 for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function->getArgs()[i].getName().c_str());
+                    if (function->getArgs()[i].getType() == "float") {
+                        append("stack.data[stack.ptr++].f = Var_%s;\n", function->getArgs()[i].getName().c_str());
+                    } else {
+                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function->getArgs()[i].getName().c_str());
+                    }
                 }
                 if (return_type != "void") {
                     if (!function->isMethod) {
@@ -459,7 +463,11 @@ namespace sclc {
                 Variable var = function->getArgs()[i];
                 vars.push_back(var);
                 std::string ret_type = sclReturnTypeToCReturnType(result, var.getType());
-                append("%s Var_%s = (%s) stack.data[--stack.ptr].v;\n", ret_type.c_str(), var.getName().c_str(), ret_type.c_str());
+                if (function->getArgs()[i].getType() == "float") {
+                    append("%s Var_%s = stack.data[--stack.ptr].f;\n", ret_type.c_str(), var.getName().c_str());
+                } else {
+                    append("%s Var_%s = (%s) stack.data[--stack.ptr].v;\n", ret_type.c_str(), var.getName().c_str(), ret_type.c_str());
+                }
             }
 
             if (!Main.options.transpileOnly || Main.options.debugBuild) {
@@ -1173,6 +1181,10 @@ namespace sclc {
                                     errors.push_back(err);
                                 }
                                 type = body[i].getValue();
+                            } else {
+                                transpilerError("A type is required!", i);
+                                errors.push_back(err);
+                                continue;
                             }
                             Variable v = Variable(name, type);
                             vars.push_back(v);
