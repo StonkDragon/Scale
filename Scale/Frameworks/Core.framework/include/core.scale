@@ -33,27 +33,18 @@ end
 
 function sizeof(_type_): int
     _type_ "int" strcmp if
-        4 return
-    fi
-    _type_ "long" strcmp if
-        8 return
-    fi
-    _type_ "long long" strcmp if
         8 return
     fi
     _type_ "float" strcmp if
-        4 return
-    fi
-    _type_ "double" strcmp if
         8 return
     fi
-    _type_ "char" strcmp if
-        1 return
+    _type_ "none" strcmp if
+        0 return
     fi
-    _type_ "size_t" strcmp if
+    _type_ "str" strcmp if
         8 return
     fi
-    _type_ "ssize_t" strcmp if
+    _type_ "any" strcmp if
         8 return
     fi
     -1 return
