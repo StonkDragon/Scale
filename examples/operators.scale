@@ -1,16 +1,20 @@
 #include "core.scale"
 
 function main(): none
-  1 2   +  putint
-  2 3   -  putint
-  2 4   *  putint
-  10 5  /  putint
-  5 6   %  putint
-  15 7  ^  putint
-  8     ~  putint
-  12 9  << putint
-  12 10 >> putint
-  6 11  &  putint
-  7 12  |  putint
-  2 12  ** putint
+  1 2      +  putint
+  2 3      -  putint
+  2 4      *  putint
+  10 5     /  putint
+  5 6      %  putint
+  15 7     ^  putint
+  8        ~  putint
+  12 9     << putint
+  12 10    >> putint
+  6 11     &  putint
+  7 12     |  putint
+  2 12     ** putint
+  10.0 3.0 .+ putfloat
+  10.0 3.0 .- putfloat
+  10.0 3.0 .* putfloat
+  10.0 3.0 ./ putfloat
 end
