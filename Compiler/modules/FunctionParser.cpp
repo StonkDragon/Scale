@@ -139,6 +139,14 @@ namespace sclc
             push_args = "  ctrl_push_args(argc, argv);\n";
         }
 
+        std::string main = "";
+        if (mainFunction->getReturnType() == "none") {
+            main = "  Function_main();\n"
+            "  return 0;\n";
+        } else {
+            main = "  return Function_main();\n";
+        }
+
         std::string mainEntry = 
         "int main(int argc, char** argv) {\n"
         "#ifdef SIGINT\n"
@@ -155,8 +163,7 @@ namespace sclc
         "#endif\n"
         "\n" +
         push_args +
-        "  Function_main();\n"
-        "  return 0;\n"
+        main +
         "}\n";
 
         if (!Main.options.noMain)
