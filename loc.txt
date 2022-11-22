@@ -8,7 +8,7 @@
      293 Compiler/modules/TokenHandlers.cpp
     1074 Compiler/modules/TokenParser.cpp
      455 Compiler/modules/Tokenizer.cpp
-    1257 Compiler/modules/Transpiler.cpp
+    1261 Compiler/modules/Transpiler.cpp
       33 Scale/Frameworks/Core.framework/impl/array.c
       10 Scale/Frameworks/Core.framework/impl/array.h
       83 Scale/Frameworks/Core.framework/impl/runtime.c
@@ -25,25 +25,25 @@
       10 Scale/Frameworks/Core.framework/include/runtime/runtime.scale
      207 Scale/Internal/scale_internal.c
      110 Scale/Internal/scale_internal.h
-      11 examples/arguments.scale
-       5 examples/cdecl.scale
-      16 examples/container.scale
-       5 examples/deref.scale
-      19 examples/fib.scale
-      18 examples/fizzbuzz.scale
-       7 examples/for.scale
-       5 examples/hello.scale
+      13 examples/arguments.scale
+       6 examples/cdecl.scale
+      17 examples/container.scale
+       6 examples/deref.scale
+      21 examples/fib.scale
+      20 examples/fizzbuzz.scale
+       9 examples/for.scale
+       6 examples/hello.scale
       10 examples/if.scale
-      12 examples/label-goto.scale
-      21 examples/oop.scale
-      20 examples/operators.scale
-       7 examples/repeat.scale
-       9 examples/sizeof.scale
-      12 examples/struct.scale
-      11 examples/underflow.scale
-       6 examples/variables.scale
-      10 examples/while.scale
+      15 examples/label-goto.scale
+      31 examples/oop.scale
+      21 examples/operators.scale
+       8 examples/repeat.scale
+      10 examples/sizeof.scale
+      19 examples/struct.scale
+      13 examples/underflow.scale
+      11 examples/variables.scale
+      12 examples/while.scale
        9 interop-example/foo.c
       17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6636 total
+    6684 total
