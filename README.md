@@ -48,7 +48,7 @@ Optional:
   - `@` in `store`: Store top of stack at address in variable
   - `@` otherwise: Push the value at the address on the stack onto the stack
   - `.`: Container Access/Structure Dereference
-  - `:`: Set type of variable
+  - `:`: Call a member function of a type/Define type of variable in variable declaration
 
 ## Keywords
 
@@ -78,14 +78,14 @@ Optional:
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
   - `goto`: Goto a label
-  - `self`: Reference to the current object inside a member function
+  - `self`: Reference to the current instance inside a member function
 
 ## Argument Notation/Calling Convention
 
 Say we have following function:
 
 ```
-function foo(a, b, c): int
+function foo(a: int, b: int, c: int): int
   a b +
   c + return
 end
@@ -122,37 +122,25 @@ Example:
 
   Examples can be found in the [examples](./examples) directory.
 
-  Quick links:
+  Here is a list of examples that should explain some of the syntax and practices in Scale:
 
   - [Hello World](./examples/hello.scale)
-
-  - [Argument Notation](./examples/arguments.scale)
-
-  - [If Statements](./examples/if.scale)
-
-  - [While Loops](./examples/while.scale)
-
-  - [Math Operators](./examples/operators.scale)
-
-  - [Variables](./examples/variables.scale)
-
-  - [For Loops](./examples/for.scale)
-
-  - [Repeat](./examples/repeat.scale)
-
+  - [Operators](./examples/operators.scale)
+  - [If-Statement](./examples/if.scale)
+  - [Variables in Scale](./examples/variables.scale)
+  - [While-Loop](./examples/while.scale)
+  - [Fibonacci Numbers](./examples/fib.scale)
+  - [For-Loop](./examples/for.scale)
+  - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
-
-  - [Fibonacci](./examples/fib.scale)
-
-  - [Sizeof](./examples/sizeof.scale)
-
-  - [Stack Autodrop Pool](./examples/sap.scale)
-
-  - [Containers](./examples/container.scale)
-
-  - [Struct](./examples/struct.scale)
-
+  - [Function Arguments](./examples/arguments.scale)
+  - [Stack underflow](./examples/underflow.scale)
   - [Pointer Dereferencing](./examples/deref.scale)
+  - [Container Introduction](./examples/container.scale)
+  - [Structure Introduction](./examples/struct.scale)
+  - [C Declaration codeblock](./examples/cdecl.scale)
+  - [Labels and Goto](./examples/label-goto.scale)
+  - [Object-Oriented Programming in Scale](./examples/oop.scale)
 
 # Build
 
