@@ -2,10 +2,7 @@
 #include "math.scale"
 
 function main(): none
-  // push 0 to the stack
   0
-  // increment the stack by 1
-  // print the current value of the stack
   while dup 10 < do
     ++ dup putint
   done
