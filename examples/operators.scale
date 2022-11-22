@@ -1,5 +1,6 @@
 #include "core.scale"
 
+// just math nothing to see here
 function main(): none
   1 2      +  putint
   2 3      -  putint

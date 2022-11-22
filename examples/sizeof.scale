@@ -1,5 +1,6 @@
 #include "core.scale"
 
+// prints the sizes of all Scale default types
 function main(): none
   "int" sizeof putint
   "float" sizeof putint

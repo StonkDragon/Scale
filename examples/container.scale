@@ -1,5 +1,6 @@
 #include "core.scale"
 
+// a container is a static structure
 container foo
   decl bar: any
   decl baz: any

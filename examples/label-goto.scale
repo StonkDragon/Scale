@@ -1,9 +1,12 @@
 #include "core.scale"
 
+// this is a way of looping without using proper loops
 function main(): none
     decl i: int
     0 store i
-    label a
+
+  label a
+    
     i 1 + store i
     i putint
     i 10 < if

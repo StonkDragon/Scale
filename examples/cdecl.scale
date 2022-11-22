@@ -1,5 +1,6 @@
 #include "core.scale"
 
 function main(): none
+    // this code will be put directly in the c source file
     cdecl "printf(\"Hi!\\n\");"
 end
