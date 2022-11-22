@@ -160,9 +160,21 @@ int scl_is_struct(scl_value p) {
 	return 0;
 }
 
-scl_value scl_alloc_struct(size_t size) {
+typedef unsigned long long hash;
+
+static hash hash1(char* data) {
+    hash h = 7;
+    for (int i = 0; i < strlen(data); i++) {
+        h = h * 31 + data[i];
+    }
+    return h;
+}
+
+scl_value scl_alloc_struct(size_t size, scl_str type_name) {
 	scl_value ptr = scl_alloc(size);
 	alloced_structs[alloced_structs_count++] = ptr;
+	((struct {scl_int type; scl_str type_name;}*) ptr)->type = hash1(type_name);
+    ((struct {scl_int type; scl_str type_name;}*) ptr)->type_name = type_name;
 	return ptr;
 }
 

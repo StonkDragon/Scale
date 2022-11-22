@@ -63,11 +63,11 @@
 #define EX_THREAD_ERROR		136
 
 #define ssize_t signed long
-#define scl_value void*
-#define scl_int long long
-#define scl_str char*
-#define scl_float double
 
+typedef void* scl_value;
+typedef long long scl_int;
+typedef char* scl_str;
+typedef double scl_float;
 typedef void (*scl_method)(void);
 
 typedef union {
@@ -103,7 +103,7 @@ scl_value	scl_alloc(size_t size);
 void		scl_free(scl_value ptr);
 
 int			scl_is_struct(scl_value p);
-scl_value	scl_alloc_struct(size_t size);
+scl_value	scl_alloc_struct(size_t size, scl_str type_name);
 void		scl_dealloc_struct(scl_value ptr);
 
 #endif
