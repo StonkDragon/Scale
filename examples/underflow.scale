@@ -4,7 +4,7 @@ function main(): none
   "foo" "bar" foo
 end
 
-function foo(foo_, bar, baz): none
+function foo(foo_: str, bar: str, baz: str): none
   foo_ puts
   bar puts
   baz puts
