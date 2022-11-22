@@ -1,11 +1,13 @@
 #include "core.scale"
 
-function main()
+function main(): none
+  // this call will fail with a segmentation fault
   "foo" "bar" foo
 end
 
-function foo(foo, bar, baz)
-  foo puts
+// this function has 3 arguments
+function foo(foo_: str, bar: str, baz: str): none
+  foo_ puts
   bar puts
   baz puts
 end

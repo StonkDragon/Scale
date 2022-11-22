@@ -13,18 +13,35 @@
 
 namespace sclc
 {
-    Function getFunctionByName(TPResult result, std::string name) {
-        for (Function func : result.functions) {
-            if (func.getName() == name) {
+    Function* getFunctionByName(TPResult result, std::string name) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
                 return func;
             }
         }
-        for (Function func : result.extern_functions) {
-            if (func.getName() == name) {
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
                 return func;
             }
         }
-        return Function("%NULFUNC%");
+        return nullptr;
+    }
+    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        return nullptr;
     }
 
     Container getContainerByName(TPResult result, std::string name) {
@@ -36,23 +53,40 @@ namespace sclc
         return Container("");
     }
 
-    Complex getComplexByName(TPResult result, std::string name) {
-        for (Complex complex : result.complexes) {
-            if (complex.getName() == name) {
-                return complex;
+    Struct getStructByName(TPResult result, std::string name) {
+        for (Struct struct_ : result.structs) {
+            if (struct_.getName() == name) {
+                return struct_;
             }
         }
-        return Complex("");
+        return Struct("");
     }
 
     bool hasFunction(TPResult result, Token name) {
-        for (Function func : result.functions) {
-            if (func.getName() == name.getValue()) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
                 return true;
             }
         }
-        for (Function func : result.extern_functions) {
-            if (func.getName() == name.getValue()) {
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool hasMethod(TPResult result, Token name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
+                return true;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
                 return true;
             }
         }
@@ -75,13 +109,13 @@ namespace sclc
         int scopeDepth = 0;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
-        std::vector<std::string> globals;
+        std::vector<Variable> globals;
 
-        remove((filename + std::string(".c")).c_str());
-        FILE* fp = fopen((filename + std::string(".c")).c_str(), "a");
+        remove(filename.c_str());
+        FILE* fp = fopen(filename.c_str(), "a");
 
-        Function mainFunction = getFunctionByName(result, "main");
-        if (mainFunction == Function("%NULFUNC%") && !Main.options.noMain) {
+        Function* mainFunction = getFunctionByName(result, "main");
+        if (mainFunction == nullptr && !Main.options.noMain) {
             FPResult result;
             result.success = false;
             result.message = "No entry point found";
@@ -97,24 +131,29 @@ namespace sclc
         ConvertC::writeInternalFunctions(fp, result);
         ConvertC::writeGlobals(fp, globals, result);
         ConvertC::writeContainers(fp, result);
-        ConvertC::writeComplexes(fp, result);
+        ConvertC::writeStructs(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
-        std::string mainCall = "  fn_main(void);\n";
+        std::string push_args = "";
+        if (mainFunction->getArgs().size() > 0) {
+            push_args = "  ctrl_push_args(argc, argv);\n";
+        }
+
+        std::string main = "";
+        if (mainFunction->getReturnType() == "none") {
+            main = "  Function_main();\n"
+            "  return 0;\n";
+        } else {
+            main = "  return Function_main();\n";
+        }
 
         std::string mainEntry = 
-        "int main(int argc, char const *argv[]) {\n"
+        "int main(int argc, char** argv) {\n"
         "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
         "#endif\n"
-        "#ifdef SIGILL\n"
-        "  signal(SIGILL, process_signal);\n"
-        "#endif\n"
         "#ifdef SIGABRT\n"
         "  signal(SIGABRT, process_signal);\n"
-        "#endif\n"
-        "#ifdef SIGFPE\n"
-        "  signal(SIGFPE, process_signal);\n"
         "#endif\n"
         "#ifdef SIGSEGV\n"
         "  signal(SIGSEGV, process_signal);\n"
@@ -122,18 +161,9 @@ namespace sclc
         "#ifdef SIGBUS\n"
         "  signal(SIGBUS, process_signal);\n"
         "#endif\n"
-        "#ifdef SIGTERM\n"
-        "  signal(SIGTERM, process_signal);\n"
-        "#endif\n"
-        "\n"
-        "  for (int i = 1; i < argc; i++) {\n"
-        "    ctrl_push_string((scl_str) argv[i]);\n"
-        "  }\n"
-        "\n"
-        "  srand(time(NULL));\n"
-        "  scl_security_required_arg_count(" + std::to_string(mainFunction.getArgs().size()) + ", \"main()\");\n"
-        "  fn_main();\n"
-        "  return 0;\n"
+        "\n" +
+        push_args +
+        main +
         "}\n";
 
         if (!Main.options.noMain)

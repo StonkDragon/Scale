@@ -44,8 +44,8 @@ namespace sclc
     const std::string Color::BOLDWHITE = "\033[1m\033[37m";
     #endif
 
-    std::vector<std::string> vars;
-    _Main Main = {0, 0, 0, std::vector<std::string>(), std::vector<std::string>(), {0, 0, 0}};
+    std::vector<Variable> vars;
+    _Main Main = _Main();
 
     void print_trace(void) {
 #ifndef _WIN32
@@ -92,7 +92,7 @@ namespace sclc
     }
 
     int isBracket(char c) {
-        return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}';
+        return c == '(' || c == ')' || c == '{' || c == '}';
     }
 
     int isHexDigit(char c) {
@@ -108,7 +108,7 @@ namespace sclc
     }
 
     int isOperator(char c) {
-        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':';
+        return c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':' || c == '=' || c == '!';
     }
 
     bool isOperator(Token token) {
@@ -126,10 +126,18 @@ namespace sclc
         }
     }
 
-    void addIfAbsent(std::vector<Function>& vec, Function str) {
+    void addIfAbsent(std::vector<Function*>& vec, Function* str) {
         for (size_t i = 0; i < vec.size(); i++) {
-            if (vec[i] == str) {
-                return;
+            if (str->isMethod && vec[i]->isMethod) {
+                if (vec[i]->getName() == str->getName() && static_cast<Method*>(vec[i])->getMemberType() == static_cast<Method*>(str)->getMemberType()) {
+                    // std::cout << "Method " << str->getName() << " is " << static_cast<Method*>(vec[i])->getMemberType() << std::endl;
+                    return;
+                }
+            } else if (!str->isMethod && !vec[i]->isMethod) {
+                if (*vec[i] == *str) {
+                    // std::cout << "Function " << str->getName() << " exists" << std::endl;
+                    return;
+                }
             }
         }
         vec.push_back(str);
@@ -158,12 +166,21 @@ namespace sclc
     }
 
     bool hasVar(Token name) {
-        for (std::string var : vars) {
-            if (var == name.getValue()) {
+        for (Variable var : vars) {
+            if (var.getName() == name.getValue()) {
                 return true;
             }
         }
         return false;
+    }
+
+    Variable getVar(Token name) {
+        for (Variable var : vars) {
+            if (var.getName() == name.getValue()) {
+                return var;
+            }
+        }
+        return Variable("","");
     }
 
     long long parseNumber(std::string str) {

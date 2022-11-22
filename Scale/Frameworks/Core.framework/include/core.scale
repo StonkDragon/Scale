@@ -5,109 +5,65 @@
 
 #define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
 
-extern function exit(_code_)
-extern function sleep(_millis_)
-extern function system(_cmd_)
-extern function getenv(_key_)
-extern function sizeof_stack()
-extern function malloc(_size_)
-extern function realloc(_size_, _ptr_)
-extern function free(_ptr_)
-extern function less(_a_, _b_)
-extern function more(_a, _b_)
-extern function equal(_a_, _b_)
-extern function and(_a_, _b_)
-extern function not(_a_)
-extern function or(_a_, _b_)
-extern function strlen(_str_)
-extern function strcmp(_str1_, _str2_)
-extern function strncmp(_str1_, _str2_, _n_)
-extern function concat(_str1_, _str2_)
-extern function strrev(_str_)
-extern function time()
-extern function longToString(_long_)
-extern function stringToLong(_str_)
-extern function stringToDouble(_str_)
-extern function doubleToString(_double_)
+extern function sleep(_millis_: int): none
+extern function system(_cmd_: str): int
+extern function getenv(_key_: str): str
+extern function sizeof_stack(): int
+extern function malloc(_size_: int): any
+extern function realloc(_size_: int, _ptr_: any): any
+extern function free(_ptr_: any): none
+extern function strlen(_str_: str): int
+extern function strcmp(_str1_: str, _str2_: str): int
+extern function strncmp(_str1_: str, _str2_: str, _n_: int): int
+extern function concat(_str1_: str, _str2_: str): str
+extern function strrev(_str_: str): str
+extern function time(): float
+extern function longToString(_long_: int): str
+extern function stringToLong(_str_: str): int
+extern function stringToDouble(_str_: str): float
+extern function doubleToString(_double_: float): str
 
-@nps @nowarn function clearstack()
-    while sizeof_stack 0 more do
-        drop
-    done
-end
-
-@nps @nowarn function swap2(_a_, _b_, _c_)
-    _b_ _a_ _c_
-end
-
-@nps @nowarn function sdup2(_a_, _b_)
-    _a_ _b_ _a_
-end
-
-@nps @nowarn function dup(_a_)
-    _a_ _a_
-end
-
-@nps @nowarn function swap(_a_, _b_)
-    _b_ _a_
-end
-
-@nps @nowarn function drop(_a_) [_a_] end
-
-@nps @nowarn function over(_a_, _b_, _c_)
-    _c_ _b_ _a_
-end
-
-function nop()
+function nop(): none
     0 sleep
 end
 
-function strstarts(_s1_, _s2_)
-    _s2_ strlen _s2_ _s1_ strncmp
+function strstarts(_s1_: str, _s2_: str): int
+    _s2_ strlen _s2_ _s1_ strncmp return
 end
 
-function sizeof(_type_)
+function sizeof(_type_: str): int
     _type_ "int" strcmp if
-        4 return
-    fi
-    _type_ "long" strcmp if
-        8 return
-    fi
-    _type_ "long long" strcmp if
         8 return
     fi
     _type_ "float" strcmp if
-        4 return
-    fi
-    _type_ "double" strcmp if
         8 return
     fi
-    _type_ "char" strcmp if
-        1 return
+    _type_ "none" strcmp if
+        0 return
     fi
-    _type_ "size_t" strcmp if
+    _type_ "str" strcmp if
         8 return
     fi
-    _type_ "ssize_t" strcmp if
+    _type_ "any" strcmp if
         8 return
     fi
     -1 return
 end
 
-function toChar(_val_)
-    _val_ 255 &
+function toChar(_val_: int): int
+    _val_ 255 & return
 end
 
-function toInt(_val_)
-    _val_ 2147483647 &
+function toInt(_val_: int): int
+    _val_ 2147483647 & return
 end
 
-function toShort(_val_)
-    _val_ 32767 &
+function toShort(_val_: int): int
+    _val_ 32767 & return
 end
 
-@nps @nowarn function toChars(_str_)
-    decl _len_ _str_ strlen store _len_ decl _i_ _len_ store _i_ while _i_ 0 more _i_ 0 equal or do _str_ _i_ + deref toChar _i_ 1 - store _i_ done
+@nps @nowarn function toChars(_str_: str): none
+    decl _len_: any _str_ strlen store _len_ decl _i_: any _len_ store _i_ while _i_ 0 >= do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
 end
 
 #endif

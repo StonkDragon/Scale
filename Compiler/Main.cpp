@@ -37,7 +37,7 @@
 #endif
 
 #ifndef C_VERSION
-#define C_VERSION "gnu17"
+#define C_VERSION "gnu2x"
 #endif
 
 #ifndef SCALE_INSTALL_DIR
@@ -49,7 +49,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "3.0"
+#define FRAMEWORK_VERSION_REQ "3.2"
 #endif
 
 #ifdef _WIN32
@@ -77,6 +77,7 @@ namespace sclc
         std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
         std::cout << "  -run             Run the compiled program" << std::endl;
         std::cout << "  -cflags          Print c compiler flags and exit" << std::endl;
+        std::cout << "  -debug           Run in debug mode" << std::endl;
         std::cout << std::endl;
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
     }
@@ -98,19 +99,13 @@ namespace sclc
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        bool transpileOnly      = false;
-        bool preprocessOnly     = false;
-        bool assembleOnly       = false;
-        bool noCoreFramework    = false;
-        bool doRun              = false;
-        bool printCflags        = false;
-
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
         scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR);
         std::vector<std::string> files;
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
+        std::string optimizer   = "O2";
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -120,13 +115,12 @@ namespace sclc
                 files.push_back(args[i]);
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
-                    transpileOnly = true;
                     Main.options.transpileOnly = true;
                 } else if (args[i] == "--help" || args[i] == "-h") {
                     usage(args[0]);
                     return 0;
                 } else if (args[i] == "-E") {
-                    preprocessOnly = true;
+                    Main.options.preprocessOnly = true;
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
@@ -156,10 +150,11 @@ namespace sclc
                         return 1;
                     }
                 } else if (args[i] == "-S") {
-                    assembleOnly = true;
+                    Main.options.assembleOnly = true;
+                    Main.options.dontSpecifyOutFile = true;
                     tmpFlags.push_back("-S");
                 } else if (args[i] == "--no-core") {
-                    noCoreFramework = true;
+                    Main.options.noCoreFramework = true;
                 } else if (args[i] == "--no-main") {
                     Main.options.noMain = true;
                 } else if (args[i] == "-v" || args[i] == "--version") {
@@ -175,26 +170,33 @@ namespace sclc
                         return 1;
                     }
                 } else if (args[i] == "-run") {
-                    doRun = true;
+                    Main.options.doRun = true;
                 } else if (args[i] == "-debug") {
                     Main.options.debugBuild = true;
                 } else if (args[i] == "-cflags") {
-                    printCflags = true;
+                    Main.options.printCflags = true;
                 } else {
+                    if (args[i] == "-c")
+                        Main.options.dontSpecifyOutFile = true;
+                    if (args[i][0] == '-' && args[i][1] == 'O')
+                        optimizer = std::string(args[i].c_str() + 1);
+                    if (args[i] == "-Werror")
+                        Main.options.Werror = true;
                     tmpFlags.push_back(args[i]);
                 }
             }
         }
 
         std::vector<std::string> cflags;
+        Main.options.optimizer = optimizer;
 
-        if (!printCflags)
+        if (!Main.options.printCflags)
             cflags.push_back(compiler);
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I" + scaleFolder + "/Internal");
         cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        cflags.push_back("-O2");
+        cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
 
         if (files.size() == 0) {
@@ -202,7 +204,7 @@ namespace sclc
             return 1;
         }
 
-        if (!printCflags) {
+        if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
             cflags.push_back("-o");
             cflags.push_back("\"" + outfile + "\"");
         }
@@ -213,7 +215,7 @@ namespace sclc
                 alreadyIncluded = true;
             }
         }
-        if (!noCoreFramework && !alreadyIncluded)
+        if (!Main.options.noCoreFramework && !alreadyIncluded)
             frameworks.push_back("Core");
 
         std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
@@ -279,7 +281,7 @@ namespace sclc
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize; i++) {
                     std::string implementer = implementers->get(i);
-                    if (!assembleOnly) {
+                    if (!Main.options.assembleOnly) {
                         cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
                     }
                 }
@@ -346,7 +348,7 @@ namespace sclc
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
                     std::string implementer = implementers->get(i);
-                    if (!assembleOnly) {
+                    if (!Main.options.assembleOnly) {
                         cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
                     }
                 }
@@ -357,13 +359,13 @@ namespace sclc
             }
         }
 
-        if (!doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+        if (!Main.options.doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
         std::vector<Token>  tokens;
 
-        for (size_t i = 0; i < files.size() && !printCflags; i++) {
+        for (size_t i = 0; i < files.size() && !Main.options.printCflags; i++) {
             std::string filename = files[i];
-            if (!doRun) std::cout << "Compiling " << filename << "..." << std::endl;
+            if (!Main.options.doRun) std::cout << "Compiling " << filename << "..." << std::endl;
 
             FILE* tmp = fopen(filename.c_str(), "rb");
             fseek(tmp, 0, SEEK_END);
@@ -386,7 +388,7 @@ namespace sclc
                 return 1;
             }
 
-            if (preprocessOnly) {
+            if (Main.options.preprocessOnly) {
                 std::cout << "Preprocessed " << filename << std::endl;
                 continue;
             }
@@ -440,6 +442,49 @@ namespace sclc
                 remove(std::string(filename + ".scale-preproc").c_str());
                 return result.errors.size();
             }
+            if (result.warns.size() > 0) {
+                for (FPResult error : result.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
+            }
 
             std::vector<Token> theseTokens = Main.tokenizer->getTokens();
 
@@ -449,19 +494,19 @@ namespace sclc
             remove(std::string(filename + ".c").c_str());
         }
 
-        if (preprocessOnly) {
+        if (Main.options.preprocessOnly) {
             std::cout << "Preprocessed " << files.size() << " files." << std::endl;
             return 0;
         }
 
         TPResult result;
-        if (!printCflags) {
+        if (!Main.options.printCflags) {
             TokenParser lexer(tokens);
             Main.lexer = &lexer;
             result = Main.lexer->parse();
         }
 
-        if (!printCflags && result.errors.size() > 0) {
+        if (!Main.options.printCflags && result.errors.size() > 0) {
             for (FPResult error : result.errors) {
                 if (error.line == 0) {
                     std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
@@ -505,19 +550,15 @@ namespace sclc
             }
             return result.errors.size();
         }
-        
-        char* source = NULL;
-        if (!printCflags) {
+
+        std::string source = "out.c";
+        if (!Main.options.printCflags) {
             FunctionParser parser(result);
             Main.parser = &parser;
-            source = (char*) malloc(sizeof(char) * 50);
             
             srand(time(NULL));
-            if (!transpileOnly) snprintf(source, 21, ".scale-%08x.tmp", (unsigned int) rand());
-            else snprintf(source, 4, "out");
-            cflags.push_back(std::string(source) + ".c");
 
-            FPResult parseResult = Main.parser->parse(std::string(source));
+            FPResult parseResult = Main.parser->parse(source);
             if (parseResult.errors.size() > 0) {
                 for (FPResult error : parseResult.errors) {
                     if (error.line == 0) {
@@ -560,13 +601,57 @@ namespace sclc
                     std::cerr << std::endl;
                     free(line);
                 }
-                remove((std::string(source) + ".c").c_str());
-                remove((std::string(source) + ".h").c_str());
+                remove((source + ".c").c_str());
+                remove((source + ".h").c_str());
                 return parseResult.errors.size();
+            }
+
+            if (parseResult.warns.size() > 0) {
+                for (FPResult error : parseResult.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
+                            std::string l;
+                            if (error.type == tok_string_literal) {
+                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
+                            } else if (error.type == tok_char_literal) {
+                                char* c = new char[4];
+                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
+                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                            } else {
+                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
+                            }
+                            if (l.at(l.size() - 1) != '\n') {
+                                l += '\n';
+                            }
+                            std::cerr << l;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
             }
         }
 
-        if (transpileOnly) {
+        if (Main.options.transpileOnly) {
             auto end = chrono::high_resolution_clock::now();
             double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
@@ -576,6 +661,8 @@ namespace sclc
         for (std::string s : tmpFlags) {
             cflags.push_back(s);
         }
+        
+        cflags.push_back(source);
 
 #ifdef LINK_MATH
         cflags.push_back("-lm");
@@ -586,9 +673,9 @@ namespace sclc
             cmd += s + " ";
         }
 
-        if (!doRun && !printCflags) std::cout << "Compiling with " << cmd << std::endl;
+        if (!Main.options.doRun && !Main.options.printCflags) std::cout << "Compiling with " << cmd << std::endl;
 
-        if (printCflags) {
+        if (Main.options.printCflags) {
             std::cout << cmd << std::endl;
             return 0;
         }
@@ -597,24 +684,20 @@ namespace sclc
 
         if (ret != 0) {
             std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
-            if (source == NULL)
-                return ret;
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
+            remove(source.c_str());
             return ret;
         }
-        if (source != NULL) {
-            remove((std::string(source) + ".c").c_str());
-            remove((std::string(source) + ".h").c_str());
+        if (!Main.options.transpileOnly) {
+            remove(source.c_str());
         }
         
-        if (!doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
+        if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
         auto end = chrono::high_resolution_clock::now();
         double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
-        if (!doRun) std::cout << "Took " << duration << " seconds." << std::endl;
+        if (!Main.options.doRun) std::cout << "Took " << duration << " seconds." << std::endl;
 
-        if (doRun) {
+        if (Main.options.doRun) {
             const char** argv = new const char*[1];
             argv[0] = (const char*) outfile.c_str();
         #ifdef _WIN32

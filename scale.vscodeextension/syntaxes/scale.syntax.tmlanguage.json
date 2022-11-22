@@ -12,6 +12,7 @@
 		{"include": "#quoted_string"},
 		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
+		{"include": "#stack_operators"},
 		{"include": "#default"}
 	],
 	"repository": {
@@ -41,7 +42,13 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(deref|ref|addr|decl|store|function|end|extern|while|else|do|done|if|fi|return|for|in|to|container|repeat|complex|new|is)\\b"
+				"match": "\\b(function|end|extern|while|else|do|done|if|fi|return|break|continue|for|in|to|load|store|decl|addr|nil|true|false|container|repeat|struct|new|is|cdecl|goto|label|none|int|float|any|str|self)\\b"
+			}]
+		},
+		"stack_operators": {
+			"patterns": [{
+				"name": "keyword.control.less",
+				"match": "\\b(drop|dup|swap|over|sdup2|swap2|clearstack)\\b"
 			}]
 		},
 		"function_declaration": {
@@ -84,7 +91,7 @@
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(::|->|\\.|(\\.?(\\+|-|\\*|/))|%|&|\\||\\^|<<|>>|~|\\[|\\])"
+			"match": "(:|\\.|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|==|!=?|<(<|=)?|>(>|=)?|~|\\[|\\])"
 		}
 	},
 	"scopeName": "source.scale"

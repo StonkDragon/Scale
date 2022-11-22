@@ -4,7 +4,7 @@
 
   Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file. This file contains C-declarations for all important Scale internal functions and data types. If you have any scale functions marked with the `nomangle` modifier, C-declarations for those functions will also appear in the file. The `scl_export`-Macro defined in said file allows you to declare functions that can be called from scale.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. This file contains C-declarations for all important Scale internal functions and data types. If you have any scale functions marked with the `nomangle` modifier, C-declarations for those functions will also appear in the file. The `scl_export`-Macro defined in said file allows you to declare functions that can be called from scale.
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
@@ -45,11 +45,10 @@ Optional:
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
-
-  - `[`: Stack Autodrop Pool Open
-  - `]`: Stack Autodrop Pool Close
-  - `->`: Container Access
-  - `::`: Structure Dereference
+  - `@` in `store`: Store top of stack at address in variable
+  - `@` otherwise: Push the value at the address on the stack onto the stack
+  - `.`: Container Access/Structure Dereference
+  - `:`: Call a member function of a type/Define type of variable in variable declaration
 
 ## Keywords
 
@@ -71,25 +70,24 @@ Optional:
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
-  - `deref`: Push the value at the address on the stack
-  - `ref`: Write the value at the address on the stack to the following variable
   - `container`: Declare a new Container to hold multiple values
   - `repeat`: Define repeat iterator loop
-  - `complex`: Define a complex
-  - `new`: Create a new value of a Complex type
+  - `struct`: Define a struct
+  - `new`: Create a new value of a Struct type
   - `is`: Check if a value is of a specific type
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
   - `goto`: Goto a label
+  - `self`: Reference to the current instance inside a member function
 
 ## Argument Notation/Calling Convention
 
 Say we have following function:
 
 ```
-function foo(a, b, c)
+function foo(a: int, b: int, c: int): int
   a b +
-  c +
+  c + return
 end
 ```
 
@@ -124,37 +122,25 @@ Example:
 
   Examples can be found in the [examples](./examples) directory.
 
-  Quick links:
+  Here is a list of examples that should explain some of the syntax and practices in Scale:
 
   - [Hello World](./examples/hello.scale)
-
-  - [Argument Notation](./examples/arguments.scale)
-
-  - [If Statements](./examples/if.scale)
-
-  - [While Loops](./examples/while.scale)
-
-  - [Math Operators](./examples/operators.scale)
-
-  - [Variables](./examples/variables.scale)
-
-  - [For Loops](./examples/for.scale)
-
-  - [Repeat](./examples/repeat.scale)
-
+  - [Operators](./examples/operators.scale)
+  - [If-Statement](./examples/if.scale)
+  - [Variables in Scale](./examples/variables.scale)
+  - [While-Loop](./examples/while.scale)
+  - [Fibonacci Numbers](./examples/fib.scale)
+  - [For-Loop](./examples/for.scale)
+  - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
-
-  - [Fibonacci](./examples/fib.scale)
-
-  - [Sizeof](./examples/sizeof.scale)
-
-  - [Stack Autodrop Pool](./examples/sap.scale)
-
-  - [Containers](./examples/container.scale)
-
-  - [Complex](./examples/complex.scale)
-
+  - [Function Arguments](./examples/arguments.scale)
+  - [Stack underflow](./examples/underflow.scale)
   - [Pointer Dereferencing](./examples/deref.scale)
+  - [Container Introduction](./examples/container.scale)
+  - [Structure Introduction](./examples/struct.scale)
+  - [C Declaration codeblock](./examples/cdecl.scale)
+  - [Labels and Goto](./examples/label-goto.scale)
+  - [Object-Oriented Programming in Scale](./examples/oop.scale)
 
 # Build
 

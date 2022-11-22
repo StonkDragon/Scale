@@ -1,6 +1,6 @@
 #include "core.scale"
 
-function main()
-  // prints "Hello, world!" to standard output
+function main(): none
+  // this will print "Hello, World!" to standard output
   "Hello, World!" puts
 end

@@ -1,13 +1,12 @@
 #include "core.scale"
 
-function main()
-  // Create a new variable called 'foo'
-  decl foo
-  // push "Hello, World!" to the stack
-  // and assign it to the variable 'foo'
-  // this pops the string off the stack
+function main(): none
+  // declares a new variable named 'foo' with the type 'str'
+  decl foo: str
+
+  // stores the string "Hello, world!" in foo
   "Hello, world!" store foo
-  // so we push it back onto the stack
-  // and print it out
+
+  // prints "Hello, world!"
   foo puts
 end

@@ -3,7 +3,7 @@
 		"scope": "source.scale",
 		"prefix": "main",
 		"body": [
-			"function main()",
+			"function main(): none",
 			"\t$0",
 			"end"
 		],
@@ -13,11 +13,31 @@
 		"scope": "source.scale",
 		"prefix": "function",
 		"body": [
-			"function ${1:name}($2)",
+			"function ${1:name}($2): ${3:none}",
 			"\t$0",
 			"end"
 		],
 		"description": "Create a function"
+	},
+	"Method": {
+		"scope": "source.scale",
+		"prefix": "method",
+		"body": [
+			"function ${1:type}:${2:name}($3): ${4:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Create a member function of a type"
+	},
+	"Init": {
+		"scope": "source.scale",
+		"prefix": "initmethod",
+		"body": [
+			"function ${1:type}:init($2): none",
+			"\t$0",
+			"end"
+		],
+		"description": "Initialization function of a type"
 	},
 	"While Loop": {
 		"scope": "source.scale",
@@ -63,9 +83,9 @@
 		"scope": "source.scale",
 		"prefix": "extern",
 		"body": [
-			"extern ${1:name}"
+			"extern"
 		],
-		"description": "Declare an external function"
+		"description": "Declare an extern function or variable"
 	},
 	"Load Var": {
 		"scope": "source.scale",
@@ -87,7 +107,7 @@
 		"scope": "source.scale",
 		"prefix": "declare",
 		"body": [
-			"decl ${1:name}"
+			"decl ${1:name}: ${2:any}"
 		],
 		"description": "Declare a variable"
 	},
@@ -113,7 +133,7 @@
 		"scope": "source.scale",
 		"prefix": "prototype",
 		"body": [
-			"extern function ${1:name}($2)"
+			"extern function ${1:name}($2): ${3:none}"
 		],
 		"description": "Declare a prototype"
 	},
@@ -121,7 +141,7 @@
 		"scope": "source.scale",
 		"prefix": "reference",
 		"body": [
-			"ref ${1:name}"
+			"store @${1:name}"
 		],
 		"description": "Referenced write"
 	},
@@ -129,17 +149,9 @@
 		"scope": "source.scale",
 		"prefix": "dereference",
 		"body": [
-			"deref"
+			"@"
 		],
 		"description": "Address Dereference"
-	},
-	"Autodroppool": {
-		"scope": "source.scale",
-		"prefix": "autodrop",
-		"body": [
-			"[ $0 ]"
-		],
-		"description": "Stack Autodrop Pool"
 	},
 	"Repeat": {
 		"scope": "source.scale",
@@ -156,20 +168,20 @@
 		"prefix": "container",
 		"body": [
 			"container ${1:name}",
-			"\tdecl $0",
+			"\tdecl ${2:foo}: ${3:any}",
 			"end"
 		],
 		"description": "Container"
 	},
-	"Complex": {
+	"Struct": {
 		"scope": "source.scale",
-		"prefix": "complex",
+		"prefix": "struct",
 		"body": [
-			"complex ${1:name}",
-			"\tdecl $0",
+			"struct ${1:name}",
+			"\tdecl ${2:foo}: ${3:any}",
 			"end"
 		],
-		"description": "Complex"
+		"description": "Struct"
 	},
 	
 	"#include": {

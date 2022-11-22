@@ -22,6 +22,14 @@
 
 #define LINE_LENGTH 48
 
+#ifndef ASM_FN_FMT
+#ifdef __APPLE__
+#define ASM_FN_FMT "[%s]"
+#else
+#define ASM_FN_FMT "\\\"[%s]\\\""
+#endif
+#endif
+
 namespace sclc
 {
     typedef unsigned long long hash;
@@ -71,11 +79,11 @@ namespace sclc
         }
         ~Version() {}
 
-        inline bool operator==(Version& v) {
+        inline bool operator==(Version& v) const {
             return (major == v.major) && (minor == v.minor) && (patch == v.patch);
         }
 
-        inline bool operator>(Version& v) {
+        inline bool operator>(Version& v) const {
             if (major > v.major) {
                 return true;
             } else if (major == v.major) {
@@ -92,19 +100,19 @@ namespace sclc
             return false;
         }
 
-        inline bool operator>=(Version& v) {
+        inline bool operator>=(Version& v) const {
             return ((*this) > v) || ((*this) == v);
         }
 
-        inline bool operator<=(Version& v) {
+        inline bool operator<=(Version& v) const {
             return !((*this) > v);
         }
 
-        inline bool operator<(Version& v) {
+        inline bool operator<(Version& v) const {
             return !((*this) >= v);
         }
 
-        inline bool operator!=(Version& v) {
+        inline bool operator!=(Version& v) const {
             return !((*this) == v);
         }
 
@@ -135,15 +143,13 @@ namespace sclc
         tok_for,            // for
         tok_in,             // in
         tok_to,             // to
-        tok_ref,            // ref
-        tok_deref,          // deref
         tok_addr_ref,       // addr
         tok_load,           // load
         tok_store,          // store
         tok_declare,        // decl
         tok_container_def,  // container
         tok_repeat,         // repeat
-        tok_complex_def,    // complex
+        tok_struct_def,     // struct
         tok_new,            // new
         tok_is,             // is
         tok_cdecl,          // cdecl
@@ -151,7 +157,8 @@ namespace sclc
         tok_goto,           // goto
 
         // operators
-        tok_hash,           // #
+        tok_hash,           // @
+        tok_addr_of,        // @
         tok_open_paren,     // (
         tok_close_paren,    // )
         tok_curly_open,     // {
@@ -173,10 +180,7 @@ namespace sclc
         tok_dsub,           // .-
         tok_dmul,           // .*
         tok_ddiv,           // ./
-        tok_sapopen,        // [
-        tok_sapclose,       // ]
-        tok_container_acc,  // ->
-        tok_double_column,  // ::
+        tok_column,         // :
         tok_dot,            // .
 
         tok_identifier,     // foo
@@ -243,97 +247,148 @@ namespace sclc
         mod_nomangle
     };
 
+    class Variable {
+        std::string name;
+        std::string type;
+    public:
+        Variable(std::string name, std::string type) {
+            this->name = name;
+            this->type = type;
+        }
+        ~Variable() {}
+        std::string getName() {
+            return name;
+        }
+        std::string getType() {
+            return type;
+        }
+        void setName(std::string name) {
+            this->name = name;
+        }
+        void setType(std::string type) {
+            this->type = type;
+        }
+    };
+
     class Function
     {
         std::string name;
         std::string file;
+        std::string return_type;
         std::vector<Token> body;
         std::vector<Modifier> modifiers;
-        std::vector<std::string> args;
+        std::vector<Variable> args;
     public:
+        bool isMethod;
         Function(std::string name) {
             this->name = name;
+            this->isMethod = false;
         }
-        ~Function() {}
-        std::string getName() {
+        Function(std::string name, bool isMethod) {
+            this->name = name;
+            this->isMethod = isMethod;
+        }
+        virtual ~Function() {}
+        virtual std::string getName() {
             return name;
         }
-        std::vector<Token> getBody() {
+        virtual std::vector<Token> getBody() {
             return body;
         }
-        void addToken(Token token) {
+        virtual void addToken(Token token) {
             body.push_back(token);
         }
-        void addModifier(Modifier modifier) {
+        virtual void addModifier(Modifier modifier) {
             modifiers.push_back(modifier);
         }
-        std::vector<Modifier> getModifiers() {
+        virtual std::vector<Modifier> getModifiers() {
             return modifiers;
         }
-        void addArgument(std::string arg) {
+        virtual void addArgument(Variable arg) {
             args.push_back(arg);
         }
-        std::vector<std::string> getArgs() {
+        virtual std::vector<Variable> getArgs() {
             return args;
         }
-        std::string getFile() {
+        virtual std::string getFile() {
             return file;
         }
-        void setFile(std::string file) {
+        virtual void setFile(std::string file) {
             this->file = file;
         }
+        virtual void setName(std::string name) {
+            this->name = name;
+        }
+        virtual std::string getReturnType() {
+            return return_type;
+        }
+        virtual void setReturnType(std::string type) {
+            return_type = type;
+        }
 
-        bool operator==(const Function& other) const {
+        virtual bool operator==(const Function& other) const {
             return name == other.name;
         }
     };
 
-    class Extern
-    {
-        std::string name;
+    class Method : public Function {
+        std::string member_type;
     public:
-        Extern(std::string name) {
-            this->name = name;
+        Method(std::string member_type, std::string name) : Function(name, true) {
+            this->member_type = member_type;
+            this->isMethod = true;
         }
-        ~Extern() {}
-        std::string getName() const { return name; }
+        std::string getMemberType() {
+            return member_type;
+        }
+        void setMemberType(std::string member_type) {
+            this->member_type = member_type;
+        }
     };
 
     class Container {
         std::string name;
-        std::vector<std::string> members;
+        std::vector<Variable> members;
     public:
         Container(std::string name) {
             this->name = name;
         }
-        void addMember(std::string member) {
+        void addMember(Variable member) {
             members.push_back(member);
         }
         bool hasMember(std::string member) {
-            for (std::string m : members) {
-                if (m == member) {
+            for (Variable m : members) {
+                if (m.getName() == member) {
                     return true;
                 }
             }
             return false;
         }
-        std::string getName() const { return name; }
-        std::vector<std::string> getMembers() const { return members; }
+        std::string getName() { return name; }
+        std::vector<Variable> getMembers() { return members; }
+        std::string getMemberType(std::string member) {
+            for (Variable m : members) {
+                if (m.getName() == member) {
+                    return m.getType();
+                }
+            }
+            return "";
+        }
     };
 
-    class Complex {
+    class Struct {
         std::string name;
-        std::vector<std::string> members;
+        std::vector<Variable> members;
     public:
-        Complex(std::string name) {
+        Struct(std::string name) {
             this->name = name;
         }
-        void addMember(std::string member) {
+        void addMember(Variable member) {
             members.push_back(member);
         }
         bool hasMember(std::string member) {
-            for (std::string m : members) {
-                if (m == member) {
+            for (Variable m : members) {
+                if (m.getName() == member) {
                     return true;
                 }
             }
@@ -341,23 +396,27 @@ namespace sclc
         }
         int indexOfMember(std::string member) {
             for (size_t i = 0; i < members.size(); i++) {
-                if (members[i] == member) {
+                if (members[i].getName() == member) {
                     return ((int) i) * 8;
                 }
             }
             return -1;
         }
-        inline bool operator==(const Complex& other) const {
+        inline bool operator==(const Struct& other) const {
             return other.name == this->name;
         }
-        std::string getName() const { return name; }
-        std::vector<std::string> getMembers() const { return members; }
+        inline bool operator!=(const Struct& other) const {
+            return other.name != this->name;
+        }
+        std::string getName() { return name; }
+        std::vector<Variable> getMembers() { return members; }
         void setName(const std::string& name) { this->name = name; }
     };
 
     class Prototype
     {
         std::string name;
+        std::string return_type;
         int argCount;
     public:
         Prototype(std::string name, int argCount) {
@@ -365,30 +424,32 @@ namespace sclc
             this->argCount = argCount;
         }
         ~Prototype() {}
-        std::string getName() const { return name; }
-        int getArgCount() const { return argCount; }
+        std::string getName() { return name; }
+        int getArgCount() { return argCount; }
+        std::string getReturnType() { return return_type; }
+        void setReturnType(std::string type) { return_type = type; }
         void setArgCount(int argCount) { this->argCount = argCount; }
         void setName(std::string name) { this->name = name; }
     };
 
     class TPResult {
     public:
-        std::vector<Function> functions;
-        std::vector<Function> extern_functions;
-        std::vector<std::string> extern_globals;
-        std::vector<std::string> globals;
+        std::vector<Function*> functions;
+        std::vector<Function*> extern_functions;
+        std::vector<Variable> extern_globals;
+        std::vector<Variable> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
-        std::vector<Complex> complexes;
+        std::vector<Struct> structs;
     };
 
     class TokenParser
     {
     private:
         std::vector<Token> tokens;
-        std::vector<Function> functions;
-        std::vector<Function> extern_functions;
-        std::vector<std::string> extern_globals;
+        std::vector<Function*> functions;
+        std::vector<Function*> extern_functions;
+        std::vector<Variable> extern_globals;
     public:
         TokenParser(std::vector<Token> tokens) {
             this->tokens = tokens;
@@ -434,14 +495,13 @@ namespace sclc
         static void writeFunctionHeaders(FILE* fp, TPResult result);
         static void writeExternHeaders(FILE* fp, TPResult result);
         static void writeInternalFunctions(FILE* fp, TPResult result);
-        static void writeGlobals(FILE* fp, std::vector<std::string>& globals, TPResult result);
+        static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
-        static void writeComplexes(FILE* fp, TPResult result);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& globals, TPResult result);        
+        static void writeStructs(FILE* fp, TPResult result);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result);        
     };
 
-    typedef struct _Main
-    {
+    struct _Main {
         Tokenizer* tokenizer;
         TokenParser* lexer;
         FunctionParser* parser;
@@ -451,12 +511,20 @@ namespace sclc
             bool noMain;
             bool transpileOnly;
             bool debugBuild;
+            bool assembleOnly;
+            bool noCoreFramework;
+            bool doRun;
+            bool printCflags;
+            bool dontSpecifyOutFile;
+            bool preprocessOnly;
+            bool Werror;
+            std::string optimizer;
         } options;
-    } _Main;
+    };
 
     extern _Main Main;
     extern std::string scaleFolder;
-    extern std::vector<std::string> vars;
+    extern std::vector<Variable> vars;
 
     long long parseNumber(std::string str);
     double parseDouble(std::string str);
@@ -473,20 +541,23 @@ namespace sclc
     int isOperator(char c);
     bool isOperator(Token token);
     bool fileExists(const std::string& name);
-    void addIfAbsent(std::vector<Function>& vec, Function str);
+    void addIfAbsent(std::vector<Function*>& vec, Function* str);
     std::string replaceAll(std::string src, std::string from, std::string to);
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
     int lastIndexOf(char* src, char c);
     bool hasVar(Token name);
+    Variable getVar(Token name);
     hash hash1(char* data);
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
-    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<std::string>* vars, FILE* fp, int* scopeDepth);
+    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
-    Function getFunctionByName(TPResult result, std::string name);
+    Function* getFunctionByName(TPResult result, std::string name);
+    Method* getMethodByName(TPResult result, std::string name, std::string type);
     Container getContainerByName(TPResult result, std::string name);
-    Complex getComplexByName(TPResult result, std::string name);
+    Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
+    bool hasMethod(TPResult result, Token name, std::string type);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);
 }

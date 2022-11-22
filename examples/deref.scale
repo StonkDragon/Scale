@@ -1,5 +1,6 @@
 #include "core.scale"
 
-function main()
-  "Hi" 1 + deref toChar putint
+function main(): none
+  // this will print the char code of 'i', which is 105
+  "Hi" 1 + @ toChar putint
 end

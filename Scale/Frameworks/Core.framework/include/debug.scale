@@ -8,13 +8,12 @@
 #define DEBUG
 #endif
 
-extern function dumpstack()
-extern function trace()
-extern function crash()
-extern function raise(_sig_)
-extern function abort()
-extern function breakpoint()
+extern function dumpstack(): none
+extern function trace(): none
+extern function crash(): none
+extern function raise(_sig_: int): none
+extern function breakpoint(): none
 
-function throw(_msg_) Color_Reset _msg_ concat eputs trace 1 exit end
+function throw(_msg_: str): none Color_Reset _msg_ concat eputs trace 1 exit end
 
 #endif

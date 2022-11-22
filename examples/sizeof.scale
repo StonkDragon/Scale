@@ -1,12 +1,10 @@
 #include "core.scale"
 
-function main()
+// prints the sizes of all Scale default types
+function main(): none
   "int" sizeof putint
-  "long" sizeof putint
-  "long long" sizeof putint
   "float" sizeof putint
-  "double" sizeof putint
-  "char" sizeof putint
-  "size_t" sizeof putint
-  "ssize_t" sizeof putint
+  "str" sizeof putint
+  "any" sizeof putint
+  "none" sizeof putint
 end

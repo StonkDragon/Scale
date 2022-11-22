@@ -19,7 +19,7 @@
     result.value = value; \
     errors.push_back(result); \
     } while (0)
-    
+
 namespace sclc
 {
     std::vector<Token> Tokenizer::getTokens() {
@@ -30,6 +30,8 @@ namespace sclc
     static int column = 0;
     static int startColumn = 0;
     static std::string filename;
+    static bool inFunction = false;
+    static bool isExtern = false;
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -197,18 +199,22 @@ namespace sclc
             if (c == '>') {
                 c = source[++current];
                 column++;
-                if (c == '>') {
+                if (c == '>' || c == '=') {
                     value += c;
-                } else {
-                    syntaxError("Expected '>' after '>'");
                 }
             } else if (c == '<') {
                 c = source[++current];
                 column++;
-                if (c == '<') {
+                if (c == '<' || c == '>') {
+                    value += c;
+                }
+            } else if (c == '=') {
+                c = source[++current];
+                column++;
+                if (c == '=') {
                     value += c;
                 } else {
-                    syntaxError("Expected '<' after '<'");
+                    syntaxError("Expected '=' after '='");
                 }
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
@@ -217,18 +223,34 @@ namespace sclc
                     value += c;
                 }
             } else if (c == '-') {
-                if (source[current + 1] == '>') {
+                if (source[current + 1] == '-') {
                     c = source[++current];
                     value += c;
                     column++;
                 }
-            } else if (c == ':') {
-                c = source[++current];
-                column++;
-                if (c == ':') {
+            } else if (c == '+') {
+                if (source[current + 1] == '+') {
+                    c = source[++current];
                     value += c;
-                } else {
-                    syntaxError("Expected ':' after ':'");
+                    column++;
+                }
+            } else if (c == '!') {
+                if (source[current + 1] == '=') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == '&') {
+                if (source[current + 1] == '&') {
+                    c = source[++current];
+                    value += c;
+                    column++;
+                }
+            } else if (c == '|') {
+                if (source[current + 1] == '|') {
+                    c = source[++current];
+                    value += c;
+                    column++;
                 }
             }
             c = source[++current];
@@ -262,6 +284,11 @@ namespace sclc
             return nextToken();
         }
 
+        if (value == "function" && !isExtern) inFunction = true;
+        if (value == "end") inFunction = false;
+        if (value == "extern") isExtern = true;
+        else isExtern = false;
+
         TOKEN("function",   tok_function, line, filename, startColumn);
         TOKEN("end",        tok_end, line, filename, startColumn);
         TOKEN("extern",     tok_extern, line, filename, startColumn);
@@ -284,18 +311,20 @@ namespace sclc
         TOKEN("nil",        tok_nil, line, filename, startColumn);
         TOKEN("true",       tok_true, line, filename, startColumn);
         TOKEN("false",      tok_false, line, filename, startColumn);
-        TOKEN("deref",      tok_deref, line, filename, startColumn);
-        TOKEN("ref",        tok_ref, line, filename, startColumn);
         TOKEN("container",  tok_container_def, line, filename, startColumn);
         TOKEN("repeat",     tok_repeat, line, filename, startColumn);
-        TOKEN("complex",    tok_complex_def, line, filename, startColumn);
+        TOKEN("struct",     tok_struct_def, line, filename, startColumn);
         TOKEN("new",        tok_new, line, filename, startColumn);
         TOKEN("is",         tok_is, line, filename, startColumn);
         TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);
         TOKEN("goto",       tok_goto, line, filename, startColumn);
         TOKEN("label",      tok_label, line, filename, startColumn);
         
-        TOKEN("@",          tok_hash, line, filename, startColumn);
+        if (inFunction) {
+            TOKEN("@",      tok_addr_of, line, filename, startColumn);
+        } else {
+            TOKEN("@",      tok_hash, line, filename, startColumn);
+        }
         TOKEN("(",          tok_open_paren, line, filename, startColumn);
         TOKEN(")",          tok_close_paren, line, filename, startColumn);
         TOKEN("{",          tok_curly_open, line, filename, startColumn);
@@ -318,10 +347,18 @@ namespace sclc
         TOKEN(".*",         tok_dmul, line, filename, startColumn);
         TOKEN("./",         tok_ddiv, line, filename, startColumn);
         TOKEN(".",          tok_dot, line, filename, startColumn);
-        TOKEN("[",          tok_sapopen, line, filename, startColumn);
-        TOKEN("]",          tok_sapclose, line, filename, startColumn);
-        TOKEN("->",         tok_container_acc, line, filename, startColumn);
-        TOKEN("::",         tok_double_column, line, filename, startColumn);
+        TOKEN(":",          tok_column, line, filename, startColumn);
+        TOKEN("<",          tok_identifier, line, filename, startColumn);
+        TOKEN("<=",         tok_identifier, line, filename, startColumn);
+        TOKEN(">",          tok_identifier, line, filename, startColumn);
+        TOKEN(">=",         tok_identifier, line, filename, startColumn);
+        TOKEN("==",         tok_identifier, line, filename, startColumn);
+        TOKEN("!",          tok_identifier, line, filename, startColumn);
+        TOKEN("!=",         tok_identifier, line, filename, startColumn);
+        TOKEN("&&",         tok_identifier, line, filename, startColumn);
+        TOKEN("||",         tok_identifier, line, filename, startColumn);
+        TOKEN("++",         tok_identifier, line, filename, startColumn);
+        TOKEN("--",         tok_identifier, line, filename, startColumn);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, startColumn);

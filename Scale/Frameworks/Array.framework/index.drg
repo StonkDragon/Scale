@@ -1,8 +1,0 @@
-framework: {
-    version: "3.0";
-    headerDir: "include";
-    implDir: "impl";
-    implementers: [];
-    implHeaderDir: "impl";
-    implHeaders: [];
-};

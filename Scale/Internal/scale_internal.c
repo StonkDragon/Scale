@@ -8,16 +8,37 @@
 scl_str      current_file = "<init>";
 size_t 		 current_line = 0;
 size_t 		 current_column = 0;
-size_t 		 stack_depth = 0;
-scl_stack_t  stack = {0, {{0}}};
-scl_stack_t	 callstk = {0, {{0}}};
+scl_stack_t  stack = {0, {0}};
+scl_stack_t	 callstk = {0, {0}};
 size_t 		 sap_index = 0;
-size_t 		 sap_enabled[STACK_SIZE] = {0};
 size_t 		 sap_count[STACK_SIZE] = {0};
-scl_value    alloced_complexes[STACK_SIZE] = {0};
-size_t 		 alloced_complexes_count = 0;
+scl_value    alloced_structs[STACK_SIZE] = {0};
+size_t 		 alloced_structs_count = 0;
+scl_value    allocated[STACK_SIZE] = {0};
+size_t 		 allocated_count = 0;
+scl_value*   locals[STACK_SIZE][STACK_SIZE] = {{0}};
+size_t 		 locals_count[STACK_SIZE] = {0};
 
-#define UNIMPLEMENTED fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1)
+#define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
+
+#pragma region Memory
+
+scl_value scl_alloc(size_t size) {
+	scl_value ptr = malloc(size);
+	return ptr;
+}
+
+scl_value scl_realloc(scl_value ptr, size_t size) {
+	ptr = realloc(ptr, size);
+	return ptr;
+}
+
+void scl_free(scl_value ptr) {
+	scl_dealloc_struct(ptr);
+	free(ptr);
+}
+
+#pragma endregion
 
 #pragma region Security
 
@@ -32,79 +53,23 @@ void scl_security_throw(int code, scl_str msg) {
 	scl_security_safe_exit(code);
 }
 
-void scl_security_required_arg_count(ssize_t n, scl_str func) {
-	if (stack.ptr < n) {
-		scl_str err = (scl_str) malloc(MAX_STRING_SIZE);
-		sprintf(err, "Error: Function %s requires %zu arguments, but only %zu are provided.", func, n, stack.ptr);
-		scl_security_throw(EX_STACK_UNDERFLOW, err);
-	}
-}
-
 void scl_security_safe_exit(int code) {
 	exit(code);
-}
-
-void scl_security_check_null(scl_value ptr) {
-	if (ptr == NULL) {
-		scl_security_throw(EX_BAD_PTR, "Null pointer");
-	}
-}
-
-#pragma endregion
-
-#pragma region Function Management
-
-void ctrl_fn_start(scl_str name) {
-	callstk.data[callstk.ptr++].value.i = name;
-}
-
-void ctrl_fn_end() {
-	callstk.ptr--;
-}
-
-void sap_open(void) {
-	sap_index++;
-	if (sap_index >= STACK_SIZE) {
-		scl_security_throw(EX_SAP_ERROR, "Exhaustive use of SAP");
-	}
-	sap_enabled[sap_index] = 1;
-	sap_count[sap_index] = 0;
-}
-
-void sap_close(void) {
-	if (sap_index == 0) {
-		scl_security_throw(EX_SAP_ERROR, "No SAP open");
-	}
-	sap_enabled[sap_index] = 0;
-	for (size_t i = 0; i < sap_count[sap_index]; i++) {
-		ctrl_pop();
-	}
-	sap_index--;
 }
 
 #pragma endregion
 
 #pragma region Exceptions
 
-void ctrl_set_file(scl_str file) {
-	current_file = file;
-}
-
-void ctrl_set_pos(size_t line, size_t col) {
-	current_line = line;
-	current_column = col;
-}
-
 void print_stacktrace() {
 	printf("Stacktrace:\n");
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", (scl_str) callstk.data[i].value.i);
+		printf("  %s\n", (scl_str) callstk.data[i].i);
 	}
 	printf("\n");
 }
 
-void process_signal(int sig_num)
-{
+void process_signal(int sig_num) {
 	scl_str signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
@@ -145,248 +110,98 @@ void process_signal(int sig_num)
 
 #pragma region Stack Operations
 
-void ctrl_push_string(const scl_str c) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
+void ctrl_push_args(scl_int argc, scl_str argv[]) {
+	struct Array {
+		scl_int $__type__;
+		scl_str $__type_name__;
+		scl_value values;
+		scl_value count;
+		scl_value capacity;
+	};
+	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array");
+	array->capacity = (scl_value) alloced_structs_count;
+	array->count = 0;
+	array->values = scl_alloc(alloced_structs_count);
+	for (scl_int i = 0; i < argc; i++) {
+		((scl_value*) array->values)[(scl_int) array->count++] = argv[i];
 	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].type = "str";
-	stack.data[stack.ptr].value.i = (scl_value) c;
-	stack.ptr++;
+	stack.data[stack.ptr++].v = array;
+}
+
+void ctrl_push_string(scl_str c) {
+	stack.data[stack.ptr++].s = c;
 }
 
 void ctrl_push_double(scl_float d) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
-	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].type = "float";
-	stack.data[stack.ptr].value.f = d;
-	stack.ptr++;
+	stack.data[stack.ptr++].f = d;
 }
 
 void ctrl_push_long(scl_int n) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
-	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].type = "int";
-	stack.data[stack.ptr].value.i = (scl_value) n;
-	stack.ptr++;
+	stack.data[stack.ptr++].i = n;
 }
 
 void ctrl_push(scl_value n) {
-	if (sap_enabled[sap_index]) {
-		sap_count[sap_index]++;
-	}
-	if (stack.ptr + 1 >= STACK_SIZE) {
-		scl_security_throw(EX_STACK_OVERFLOW, "Stack overflow!");
-	}
-	stack.data[stack.ptr].type = "int";
-	stack.data[stack.ptr].value.i = n;
-	stack.ptr++;
+	stack.data[stack.ptr++].v = n;
 }
 
 scl_int ctrl_pop_long() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= 0) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	stack.ptr--;
-	scl_int value = (scl_int) stack.data[stack.ptr].value.i;
-	return value;
+	return stack.data[--stack.ptr].i;
 }
 
 scl_float ctrl_pop_double() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= 0) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	stack.ptr--;
-	scl_float value = stack.data[stack.ptr].value.f;
-	return value;
+	return stack.data[--stack.ptr].f;
 }
 
 scl_str ctrl_pop_string() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= 0) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	stack.ptr--;
-	scl_str value = (scl_str) stack.data[stack.ptr].value.i;
-	return value;
+	return stack.data[--stack.ptr].s;
 }
 
 scl_value ctrl_pop() {
-	if (sap_enabled[sap_index] && sap_count[sap_index] > 0) {
-		sap_count[sap_index]--;
-	}
-	if (stack.ptr <= 0) {
-		scl_security_throw(EX_STACK_UNDERFLOW, "Stack underflow!");
-	}
-	stack.ptr--;
-	return stack.data[stack.ptr].value.i;
+	return stack.data[--stack.ptr].v;
 }
 
 ssize_t ctrl_stack_size(void) {
 	return stack.ptr;
 }
 
-void ctrl_typecast(scl_str new_type) {
-	stack.data[stack.ptr - 1].type = new_type;
-}
-
 #pragma endregion
 
-#pragma region Complex
+#pragma region Struct
 
-int scl_is_complex(void* p) {
-	for (size_t i = 0; i < alloced_complexes_count; i++) {
-		if (p != 0 && alloced_complexes[i] == p) {
+int scl_is_struct(scl_value p) {
+	if (p == NULL) return 0;
+	for (size_t i = 0; i < alloced_structs_count; i++) {
+		if (alloced_structs[i] == p) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-scl_value scl_alloc_complex(size_t size) {
-	scl_value ptr = malloc(size);
-	alloced_complexes[alloced_complexes_count++] = ptr;
+typedef unsigned long long hash;
+
+static hash hash1(char* data) {
+    hash h = 7;
+    for (int i = 0; i < strlen(data); i++) {
+        h = h * 31 + data[i];
+    }
+    return h;
+}
+
+scl_value scl_alloc_struct(size_t size, scl_str type_name) {
+	scl_value ptr = scl_alloc(size);
+	alloced_structs[alloced_structs_count++] = ptr;
+	((struct {scl_int type; scl_str type_name;}*) ptr)->type = hash1(type_name);
+    ((struct {scl_int type; scl_str type_name;}*) ptr)->type_name = type_name;
 	return ptr;
 }
 
-void scl_dealloc_complex(scl_value ptr) {
-	for (size_t i = 0; i < alloced_complexes_count; i++) {
-		if (alloced_complexes[i] == ptr) {
-			alloced_complexes[i] = 0;
+void scl_dealloc_struct(scl_value ptr) {
+	for (size_t i = 0; i < alloced_structs_count; i++) {
+		if (alloced_structs[i] == ptr) {
+			alloced_structs[i] = 0;
 		}
 	}
-}
-
-#pragma endregion
-
-#pragma region Operators
-
-operator(add) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a + b);
-}
-
-operator(sub) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a - b);
-}
-
-operator(mul) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a * b);
-}
-
-operator(div) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	if (b == 0) {
-		scl_security_throw(EX_INVALID_ARGUMENT, "Division by zero!");
-	}
-	ctrl_push_long(a / b);
-}
-
-operator(mod) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	if (b == 0) {
-		scl_security_throw(EX_INVALID_ARGUMENT, "Division by zero!");
-	}
-	ctrl_push_long(a % b);
-}
-
-operator(land) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a & b);
-}
-
-operator(lor) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a | b);
-}
-
-operator(lxor) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a ^ b);
-}
-
-operator(lnot) {
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(~a);
-}
-
-operator(lsh) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a << b);
-}
-
-operator(rsh) {
-	int64_t b = ctrl_pop_long();
-	int64_t a = ctrl_pop_long();
-	ctrl_push_long(a >> b);
-}
-
-operator(pow) {
-	scl_int exp = ctrl_pop_long();
-	if (exp < 0) {
-		scl_security_throw(EX_BAD_PTR, "Negative exponent!");
-	}
-	int64_t base = ctrl_pop_long();
-	scl_int intResult = (int64_t) base;
-	scl_int i = 0;
-	while (i < exp) {
-		intResult *= (int64_t) base;
-		i++;
-	}
-	ctrl_push_long(intResult);
-}
-
-operator(dadd) {
-	scl_float n2 = ctrl_pop_double();
-	scl_float n1 = ctrl_pop_double();
-	ctrl_push_double(n1 + n2);
-}
-
-operator(dsub) {
-	scl_float n2 = ctrl_pop_double();
-	scl_float n1 = ctrl_pop_double();
-	ctrl_push_double(n1 - n2);
-}
-
-operator(dmul) {
-	scl_float n2 = ctrl_pop_double();
-	scl_float n1 = ctrl_pop_double();
-	ctrl_push_double(n1 * n2);
-}
-
-operator(ddiv) {
-	scl_float n2 = ctrl_pop_double();
-	scl_float n1 = ctrl_pop_double();
-	ctrl_push_double(n1 / n2);
 }
 
 #pragma endregion

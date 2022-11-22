@@ -24,9 +24,10 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"3.1\"";
+    "VERSION=\"3.2\"";
+    "C_VERSION=\"gnu2x\"";
   ];
-  std: "gnu++17";
+  std: "gnu++20";
   flags: [
     "-Wall";
     "-Wextra";
@@ -34,6 +35,7 @@ build: {
     "-pedantic";
   ];
   preBuild: [
+    "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
     "rm -rf $HOME/Scale";
     "cp -r Scale $HOME";
   ];
@@ -41,6 +43,5 @@ build: {
     "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "python3 tests.py run";
-    "rm scale_support.h";
   ];
 };

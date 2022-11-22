@@ -1,13 +1,12 @@
 #include "core.scale"
 #include "math.scale"
 
-function main()
-  // push 0 to the stack
+function main(): none
   0
-  // increment the stack by 1
-  // print the current value of the stack
-  while dup 10 less do
-    inc dup putint
+  // this code prints all numbers from 1 to 10 (both including)
+  // without using variables
+  while dup 10 < do
+    ++ dup putint
   done
   drop
 end
