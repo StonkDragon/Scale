@@ -35,6 +35,7 @@
        5 examples/hello.scale
       10 examples/if.scale
       12 examples/label-goto.scale
+      21 examples/oop.scale
       20 examples/operators.scale
        7 examples/repeat.scale
        9 examples/sizeof.scale
@@ -45,4 +46,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6475 total
+    6496 total
