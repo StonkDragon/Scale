@@ -110,6 +110,24 @@ void process_signal(int sig_num) {
 
 #pragma region Stack Operations
 
+void ctrl_push_args(scl_int argc, scl_str argv[]) {
+	struct Array {
+		scl_int $__type__;
+		scl_str $__type_name__;
+		scl_value values;
+		scl_value count;
+		scl_value capacity;
+	};
+	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array");
+	array->capacity = (scl_value) alloced_structs_count;
+	array->count = 0;
+	array->values = scl_alloc(alloced_structs_count);
+	for (scl_int i = 0; i < argc; i++) {
+		((scl_value*) array->values)[(scl_int) array->count++] = argv[i];
+	}
+	stack.data[stack.ptr++].v = array;
+}
+
 void ctrl_push_string(scl_str c) {
 	stack.data[stack.ptr++].s = c;
 }

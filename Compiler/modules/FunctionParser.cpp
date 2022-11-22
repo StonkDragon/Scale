@@ -134,8 +134,13 @@ namespace sclc
         ConvertC::writeStructs(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
+        std::string push_args = "";
+        if (mainFunction->getArgs().size() > 0) {
+            push_args = "  ctrl_push_args(argc, argv);\n";
+        }
+
         std::string mainEntry = 
-        "int main() {\n"
+        "int main(int argc, char** argv) {\n"
         "#ifdef SIGINT\n"
         "  signal(SIGINT, process_signal);\n"
         "#endif\n"
@@ -148,7 +153,8 @@ namespace sclc
         "#ifdef SIGBUS\n"
         "  signal(SIGBUS, process_signal);\n"
         "#endif\n"
-        "\n"
+        "\n" +
+        push_args +
         "  Function_main();\n"
         "  return 0;\n"
         "}\n";

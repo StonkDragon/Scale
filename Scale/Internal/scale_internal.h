@@ -88,6 +88,7 @@ void		process_signal(int sig_num);
 
 void		print_stacktrace(void);
 
+void		ctrl_push_args(scl_int argc, scl_str argv[]);
 void		ctrl_push_string(scl_str c);
 void		ctrl_push_long(scl_int n);
 void		ctrl_push_double(scl_float d);
