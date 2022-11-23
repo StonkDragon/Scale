@@ -1,0 +1,28 @@
+#include "core.scale"
+#include "array.scale"
+#include "math.scale"
+
+function createList(len: int): Array
+    decl arr:Array len Array:new store arr
+    decl i: int 0 store i
+    while i len < do
+        i len i - arr:set
+        i 1 + store i
+    done
+    arr return
+end
+
+function Array:print(): none
+    decl i: int 0 store i
+    while i self.capacity < do
+        i self:get putint
+        i 1 + store i
+    done
+end
+
+function main(): none
+    decl list: Array 1000 createList store list
+    list:print
+    list:sort
+    list:print
+end
