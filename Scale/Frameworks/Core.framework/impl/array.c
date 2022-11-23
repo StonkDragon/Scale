@@ -15,18 +15,17 @@ struct Array* Method_Array_sort(void) {
     scl_int i = 0;
     while (i < (scl_int) array->capacity) {
         scl_int speicher = *(scl_int*)(array->values + (i * 8));
-        scl_int smallestIndex = i;
-        scl_int j = i + 1;
-        while (j < (scl_int) array->capacity) {
-            if (*(scl_int*)(array->values + (j * 8)) < speicher) {
-                speicher = *(scl_int*)(array->values + (j * 8));
-                smallestIndex = j;
+        scl_int j = i - 1;
+        while (j >= 0) {
+            if (speicher < *(scl_int*)(array->values + (j * 8))) {
+                *(scl_int*)(array->values + ((j+1) * 8)) = *(scl_int*)(array->values + (j * 8));
+                *(scl_int*)(array->values + (j * 8)) = speicher;
+            } else {
+                *(scl_int*)(array->values + ((j+1) * 8)) = speicher;
+                break;
             }
-            j++;
+            j--;
         }
-        scl_int tmp = *(scl_int*)(array->values + (i * 8));
-        *(scl_int*)(array->values + (i * 8)) = speicher;
-        *(scl_int*)(array->values + (smallestIndex * 8)) = tmp;
         i++;
     }
     return array;
