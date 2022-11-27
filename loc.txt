@@ -1,49 +1,52 @@
      222 Compiler/Common.cpp
-     732 Compiler/Main.cpp
-     564 Compiler/headers/Common.hpp
+     715 Compiler/Main.cpp
+     567 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
        9 Compiler/headers/TranspilerDefs.hpp
      352 Compiler/modules/DragonConfig.cpp
      187 Compiler/modules/FunctionParser.cpp
      293 Compiler/modules/TokenHandlers.cpp
-    1074 Compiler/modules/TokenParser.cpp
-     455 Compiler/modules/Tokenizer.cpp
-    1261 Compiler/modules/Transpiler.cpp
-      49 Scale/Frameworks/Core.framework/impl/array.c
+    1060 Compiler/modules/TokenParser.cpp
+     468 Compiler/modules/Tokenizer.cpp
+    1197 Compiler/modules/Transpiler.cpp
+      32 Scale/Frameworks/Core.framework/impl/array.c
       10 Scale/Frameworks/Core.framework/impl/array.h
       83 Scale/Frameworks/Core.framework/impl/runtime.c
       14 Scale/Frameworks/Core.framework/impl/runtime.h
      345 Scale/Frameworks/Core.framework/impl/scale.c
       56 Scale/Frameworks/Core.framework/impl/scale.h
-      56 Scale/Frameworks/Core.framework/include/array.scale
-      69 Scale/Frameworks/Core.framework/include/core.scale
-      19 Scale/Frameworks/Core.framework/include/debug.scale
-      38 Scale/Frameworks/Core.framework/include/file.scale
-      30 Scale/Frameworks/Core.framework/include/fmt.scale
-      29 Scale/Frameworks/Core.framework/include/io.scale
-      40 Scale/Frameworks/Core.framework/include/math.scale
-      10 Scale/Frameworks/Core.framework/include/runtime/runtime.scale
+      62 Scale/Frameworks/Core.framework/include/core.scale
+      14 Scale/Frameworks/Core.framework/include/debug.scale
+      34 Scale/Frameworks/Core.framework/include/file.scale
+      11 Scale/Frameworks/Core.framework/include/fmt.scale
+      26 Scale/Frameworks/Core.framework/include/io.scale
+      35 Scale/Frameworks/Core.framework/include/math.scale
+       5 Scale/Frameworks/Core.framework/include/runtime/runtime.scale
+      49 Scale/Frameworks/Core.framework/include/util/array.scale
+       9 Scale/Frameworks/Core.framework/include/util/pair.scale
+      11 Scale/Frameworks/Core.framework/include/util/triple.scale
      207 Scale/Internal/scale_internal.c
      110 Scale/Internal/scale_internal.h
-      13 examples/arguments.scale
-       6 examples/cdecl.scale
-      17 examples/container.scale
-       6 examples/deref.scale
-      21 examples/fib.scale
-      20 examples/fizzbuzz.scale
-      11 examples/for.scale
-       6 examples/hello.scale
-      10 examples/if.scale
-      15 examples/label-goto.scale
-      31 examples/oop.scale
-      40 examples/operators.scale
-       8 examples/repeat.scale
-      10 examples/sizeof.scale
-      19 examples/struct.scale
-      13 examples/underflow.scale
-      11 examples/variables.scale
-      12 examples/while.scale
+      11 examples/arguments.scale
+      25 examples/arraysort.scale
+       5 examples/cdecl.scale
+      14 examples/container.scale
+       5 examples/deref.scale
+      18 examples/fib.scale
+      19 examples/fizzbuzz.scale
+      10 examples/for.scale
+       5 examples/hello.scale
+       9 examples/if.scale
+      13 examples/label-goto.scale
+      27 examples/oop.scale
+      39 examples/operators.scale
+       7 examples/repeat.scale
+       9 examples/sizeof.scale
+      16 examples/struct.scale
+      11 examples/underflow.scale
+       8 examples/variables.scale
+      11 examples/while.scale
        9 interop-example/foo.c
-      17 interop-example/main.scale
+      14 interop-example/main.scale
       17 interop-example/scale_support.h
-    6721 total
+    6580 total
