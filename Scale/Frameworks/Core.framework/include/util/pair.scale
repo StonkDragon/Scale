@@ -1,0 +1,14 @@
+#ifndef UTIL_PAIR_SCALE
+#define UTIL_PAIR_SCALE
+
+struct Pair
+    decl a: any
+    decl b: any
+end
+
+function Pair:init(a: any, b: any): none
+    a store self.a
+    b store self.b
+end
+
+#endif

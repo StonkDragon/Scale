@@ -1,0 +1,10 @@
+#ifndef UTIL_TRIPLE_SCALE
+#define UTIL_TRIPLE_SCALE
+
+struct Triple
+    decl a: any
+    decl b: any
+    decl c: any
+end
+
+#endif

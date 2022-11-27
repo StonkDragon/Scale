@@ -51,19 +51,19 @@ function sizeof(_type_: str): int
 end
 
 function toChar(_val_: int): int
-    _val_ 255 & return
+    _val_ 0xff & return
 end
 
 function toInt(_val_: int): int
-    _val_ 2147483647 & return
+    _val_ 0xffffffff & return
 end
 
 function toShort(_val_: int): int
-    _val_ 32767 & return
+    _val_ 0xffff & return
 end
 
-@nps @nowarn function toChars(_str_: str): none
-    decl _len_: any _str_ strlen store _len_ decl _i_: any _len_ store _i_ while _i_ 0 >= do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
+function toChars(_str_: str): none
+    decl _len_: int _str_ strlen store _len_ decl _i_: int _len_ store _i_ while _i_ 0 >= do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
 end
 
 #endif
