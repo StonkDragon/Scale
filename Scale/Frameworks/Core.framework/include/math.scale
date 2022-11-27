@@ -1,7 +1,4 @@
-
-#ifndef _CORE_FRAMEWORK__MATH_SCALE_
-#define _CORE_FRAMEWORK__MATH_SCALE_
-#include "core.scale"
+using "core" from "Core"
 
 #define CONST_E         2.71828182845904523536028747135266250
 #define CONST_PI        3.14159265358979323846264338327950288
@@ -36,5 +33,3 @@ function dtos(_d_: float): str                   _d_ doubleToString return end
 function itos(_l_: int): str                     _l_ longToString return end
 function stod(_s_: str): float                   _s_ stringToDouble return end
 function stoi(_s_: str): int                     _s_ stringToLong return end
-
-#endif

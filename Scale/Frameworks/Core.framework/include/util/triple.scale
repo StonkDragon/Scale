@@ -1,10 +1,11 @@
-#ifndef UTIL_TRIPLE_SCALE
-#define UTIL_TRIPLE_SCALE
-
 struct Triple
     decl a: any
     decl b: any
     decl c: any
 end
 
-#endif
+function Triple:init(a: any, b: any, c: any): none
+    a store self.a
+    b store self.b
+    c store self.c
+end

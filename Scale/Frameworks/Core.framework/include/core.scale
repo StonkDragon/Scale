@@ -1,9 +1,4 @@
-#include "io.scale"
-
-#ifndef _CORE_FRAMEWORK__CORE_SCALE_
-#define _CORE_FRAMEWORK__CORE_SCALE_
-
-#define HERE __FILE__ ":" concat __LINE__ "%d" sprintf ": " concat concat
+using "io" from "Core"
 
 extern function sleep(_millis_: int): none
 extern function system(_cmd_: str): int
@@ -65,5 +60,3 @@ end
 function toChars(_str_: str): none
     decl _len_: int _str_ strlen store _len_ decl _i_: int _len_ store _i_ while _i_ 0 >= do _str_ _i_ + @ toChar _i_ 1 - store _i_ done
 end
-
-#endif

@@ -1,7 +1,4 @@
-#include "fmt.scale"
-
-#ifndef _CORE_FRAMEWORK__DEBUG_SCALE_
-#define _CORE_FRAMEWORK__DEBUG_SCALE_
+using "fmt" from "Core"
 
 #warning "Debugging build"
 #ifndef DEBUG
@@ -15,5 +12,3 @@ extern function raise(_sig_: int): none
 extern function breakpoint(): none
 
 function throw(_msg_: str): none Color_Reset _msg_ concat eputs trace 1 exit end
-
-#endif

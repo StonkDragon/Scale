@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstring>
 #include <regex>
+#include <unordered_map>
 
 #define TOKEN(x, y, line, file, column) if (value == x) return Token(y, value, line, file, column)
 #define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
@@ -241,9 +242,7 @@ namespace sclc
 
     enum Modifier
     {
-        mod_nps,
         mod_nowarn,
-        mod_sap,
         mod_nomangle
     };
 
@@ -487,6 +486,7 @@ namespace sclc
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
+        void tryFindUsings();
     };
     
     class ConvertC {
@@ -519,6 +519,9 @@ namespace sclc
             bool preprocessOnly;
             bool Werror;
             std::string optimizer;
+            std::vector<std::string> files;
+            std::vector<std::string> includePaths;
+            std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
         } options;
     };
 

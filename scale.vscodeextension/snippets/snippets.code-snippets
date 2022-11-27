@@ -29,6 +29,22 @@
 		],
 		"description": "Create a member function of a type"
 	},
+	"Using": {
+		"scope": "source.scale",
+		"prefix": "using",
+		"body": [
+			"using \"${1:file}\""
+		],
+		"description": "Using"
+	},
+	"Using-From": {
+		"scope": "source.scale",
+		"prefix": "from",
+		"body": [
+			"using \"${1:file}\" from \"${2:framework}\""
+		],
+		"description": "Using From"
+	},
 	"Init": {
 		"scope": "source.scale",
 		"prefix": "initmethod",
@@ -182,86 +198,5 @@
 			"end"
 		],
 		"description": "Struct"
-	},
-	
-	"#include": {
-		"scope": "source.scale",
-		"prefix": "#include",
-		"body": [
-			"#include \"${1:core.scale}\""
-		],
-		"description": "Include a file"
-	},
-	"#define": {
-		"scope": "source.scale",
-		"prefix": "#define",
-		"body": [
-			"#define ${1:name} ${2:value}"
-		],
-		"description": "Define a constant"
-	},
-	"#if": {
-		"scope": "source.scale",
-		"prefix": "#if",
-		"body": [
-			"#if ${1:condition}"
-		],
-		"description": "If statement"
-	},
-	"#else": {
-		"scope": "source.scale",
-		"prefix": "#else",
-		"body": [
-			"#else"
-		],
-		"description": "Else statement"
-	},
-	"#endif": {
-		"scope": "source.scale",
-		"prefix": "#endif",
-		"body": [
-			"#endif"
-		],
-		"description": "End if statement"
-	},
-	"#error": {
-		"scope": "source.scale",
-		"prefix": "#error",
-		"body": [
-			"#error ${1:message}"
-		],
-		"description": "Error message"
-	},
-	"#warning": {
-		"scope": "source.scale",
-		"prefix": "#warning",
-		"body": [
-			"#warning ${1:message}"
-		],
-		"description": "Warning message"
-	},
-	"#ifdef": {
-		"scope": "source.scale",
-		"prefix": "#ifdef",
-		"body": [
-			"#ifdef ${1:name}"
-		],
-		"description": "If defined"
-	},
-	"#ifndef": {
-		"scope": "source.scale",
-		"prefix": "#ifndef",
-		"body": [
-			"#ifndef ${1:name}"
-		],
-		"description": "If not defined"
-	},
-	"#elif": {
-		"scope": "source.scale",
-		"prefix": "#elif",
-		"body": [
-			"#elif ${1:condition}"
-		],
-		"description": "Else if statement"
 	},
 }

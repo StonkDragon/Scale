@@ -1,12 +1,10 @@
-#include "core.scale"
-
+using "core"
 // This function has 3 arguments
 function doStuff(foo: str, bar: str, baz: str): none
   foo puts
   bar puts
   baz puts
 end
-
 function main(): none
   // call the function with 3 arguments
   "foo" "bar" "baz" doStuff

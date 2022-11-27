@@ -1,12 +1,9 @@
-#include "core.scale"
-
+using "core"
 function main(): none
   // declares a new variable named 'foo' with the type 'str'
   decl foo: str
-
   // stores the string "Hello, world!" in foo
   "Hello, world!" store foo
-
   // prints "Hello, world!"
   foo puts
 end

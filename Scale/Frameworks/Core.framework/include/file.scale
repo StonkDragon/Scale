@@ -1,6 +1,4 @@
-#ifndef _CORE_FRAMEWORK__FILE_SCALE_
-#define _CORE_FRAMEWORK__FILE_SCALE_
-#include "core.scale"
+using "core" from "Core"
 
 extern function fopen(_filename_: str, _mode_: str): any
 extern function fclose(_file_: any): none
@@ -34,5 +32,3 @@ end
 function fseekcur(_f_: any, _offset_: int): none
     _f_ 1 _offset_ fseek
 end
-
-#endif

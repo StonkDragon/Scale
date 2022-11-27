@@ -46,29 +46,6 @@ namespace sclc
             startColumn = 0;
         }
 
-        if (c == '#') {
-            char* comment = (char*) malloc(strlen(source + current));
-            size_t i = 0;
-            startColumn = column;
-            while (c != '\n' && c != '\r') {
-                c = source[++current];
-                column++;
-                comment[i++] = c;
-            }
-            comment[i-1] = '\0';
-            comment += 5;
-            column += 5;
-            char* _line = strtok(comment, ";");
-            if (_line != NULL) {
-                line = atoi(_line) - 1;
-            }
-            char* _filename = comment + strlen(_line) + 6;
-            _filename[strlen(_filename) - 1] = '\0';
-            filename = _filename;
-            free(comment - 5);
-            return nextToken();
-        }
-
         if (isCharacter(c)) {
             startColumn = column;
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
@@ -371,11 +348,14 @@ namespace sclc
 
         std::string data = "";
 
-        std::string file = source;
+        filename = source;
+        line = 1;
+        column = 0;
+        startColumn = 0;
         
-        fp = fopen(file.c_str(), "r");
+        fp = fopen(source.c_str(), "r");
         if (fp == NULL) {
-            printf("IO Error: Could not open file %s\n", file.c_str());
+            printf("IO Error: Could not open file %s\n", source.c_str());
             exit(1);
         }
 
@@ -385,24 +365,7 @@ namespace sclc
 
         char *buffer = new char[size + 1];
 
-        size_t line = 1;
-
         while (fgets(buffer, size + 1, fp) != NULL) {
-            if (buffer[0] == '#') {
-                strtok(buffer, " ");
-                char* lineStr = strtok(NULL, " ");
-                char* name = lineStr + strlen(lineStr) + 1;
-                name[lastIndexOf(name, '"')] = '\0';
-                name++;
-
-                line = atoi(lineStr);
-                std::string filename = std::string(name);
-                if (strends(filename, ".c")) {
-                    filename = filename.substr(0, std::string(name).size() - 2);
-                }
-                data += "#LINE:" + std::to_string(line) + ";FILE:" + filename + ";\n";
-                continue;
-            }
             // skip if comment
             if (buffer[0] == '/') {
                 if (buffer[1] == '/') {
@@ -422,8 +385,6 @@ namespace sclc
                 }
                 c++;
             }
-
-            line++;
 
             // add to data
             data += buffer;
@@ -450,6 +411,36 @@ namespace sclc
         for (size_t i = 0; i < tokens.size(); i++) {
             std::cout << "Token: " << tokens.at(i).tostring() << std::endl;
         }
+    }
+
+    std::string findFileInIncludePath(std::string file);
+    void Tokenizer::tryFindUsings() {
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "using") {
+                std::string file = tokens[i + 1].getValue() + ".scale";
+                std::string fullFile;
+                if (tokens[i + 2].getValue() == "from") {
+                    std::string framework = tokens[i + 3].getValue();
+                    fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
+                } else {
+                    fullFile = findFileInIncludePath(file);
+                }
+                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
+                    Main.options.files.push_back(fullFile);
+                }
+            }
+        }
+    }
+
+    std::string findFileInIncludePath(std::string file) {
+        for (std::string path : Main.options.includePaths) {
+            if (fileExists(path + "/" + file)) {
+                return path + "/" + file;
+            }
+        }
+        // TODO: make this a compiler error
+        std::cerr << "Could not find " << file << " on include path!" << std::endl;
+        exit(-1);
     }
 }
 #endif // TOKENIZER_HPP

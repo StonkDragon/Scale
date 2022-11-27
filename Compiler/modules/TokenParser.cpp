@@ -14,9 +14,7 @@ namespace sclc
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
 
-        bool funcPrivateStack = true;
         bool funcNoWarn = false;
-        bool funcSAP = false;
         bool funcNoMangle = false;
 
         std::vector<std::string> uses;
@@ -97,9 +95,7 @@ namespace sclc
                     std::string name = func.getValue();
                     currentFunction = new Method(member_type, name);
                     currentFunction->setFile(func.getFile());
-                    if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
                     if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
-                    if (funcSAP) currentFunction->addModifier(mod_sap);
                     if (funcNoMangle) {
                         if (currentFunction->getName() == "main") {
                             FPResult result;
@@ -241,9 +237,7 @@ namespace sclc
                     Token func = tokens[i + 1];
                     currentFunction = new Function(name);
                     currentFunction->setFile(func.getFile());
-                    if (!funcPrivateStack) currentFunction->addModifier(mod_nps);
                     if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
-                    if (funcSAP) currentFunction->addModifier(mod_sap);
                     if (funcNoMangle) {
                         if (currentFunction->getName() == "main") {
                             FPResult result;
@@ -381,9 +375,7 @@ namespace sclc
                 }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
-                    funcPrivateStack = true;
                     funcNoWarn = false;
-                    funcSAP = false;
                     funcNoMangle = false;
                     addIfAbsent(functions, currentFunction);
                     currentFunction = nullptr;
@@ -534,12 +526,8 @@ namespace sclc
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
-                        if (tokens[i + 1].getValue() == "nps") {
-                            funcPrivateStack = false;
-                        } else if (tokens[i + 1].getValue() == "nowarn") {
+                        if (tokens[i + 1].getValue() == "nowarn") {
                             funcNoWarn = true;
-                        } else if (tokens[i + 1].getValue() == "sap") {
-                            funcSAP = true;
                         } else if (tokens[i + 1].getValue() == "nomangle") {
                             funcNoMangle = true;
                         } else {
@@ -602,9 +590,7 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(member_type, name);
                         function->setFile(func.getFile());
-                        if (!funcPrivateStack) function->addModifier(mod_nps);
                         if (funcNoWarn) function->addModifier(mod_nowarn);
-                        if (funcSAP) function->addModifier(mod_sap);
                         if (funcNoMangle) {
                             if (function->getName() == "main") {
                                 FPResult result;

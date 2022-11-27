@@ -1,16 +1,13 @@
-#include "core.scale"
-#include "array.scale"
-
+using "core"
+using "util/array"
 // new struct named Foo
 struct Foo
     decl foo: any
 end
-
 // member function of Foo called bar
 function Foo:bar(): none
     self.foo puts
 end
-
 // member function of Foo called init
 // this function will be called
 // every time an instance of Foo is created
@@ -18,7 +15,6 @@ end
 function Foo:init(msg: str): none
     msg store self.foo
 end
-
 function main(): none
     // create an instance of Foo with "Hello!" as the msg
     "Hello!" Foo:new decl f:Foo store f

@@ -1,10 +1,5 @@
-#ifndef _RUNTIME_FRAMEWORK__RUNTIME_SCALE_
-#define _RUNTIME_FRAMEWORK__RUNTIME_SCALE_
-
 extern function Runtime_hasFramework(_framework_): int
 extern function Runtime_listFrameworks(): none
 extern function Runtime_getFunctionID(_name_): int
 extern function Runtime_callByID(_id_): any
 extern function Runtime_objectsByType(_type_name_): Array
-
-#endif

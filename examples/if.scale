@@ -1,5 +1,4 @@
-#include "core.scale"
-
+using "core"
 function main(): none
   1 1 == if
     "1 == 1" puts

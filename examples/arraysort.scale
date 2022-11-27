@@ -1,7 +1,6 @@
-#include "core.scale"
-#include "array.scale"
-#include "math.scale"
-
+using "core"
+using "util/array"
+using "math"
 function createList(len: int): Array
     decl arr:Array len Array:new store arr
     decl i: int 0 store i
@@ -11,7 +10,6 @@ function createList(len: int): Array
     done
     arr return
 end
-
 function Array:print(): none
     decl i: int 0 store i
     while i self.capacity < do
@@ -19,7 +17,6 @@ function Array:print(): none
         i 1 + store i
     done
 end
-
 function main(): none
     decl list: Array 1000 createList store list
     list:print

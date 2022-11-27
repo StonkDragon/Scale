@@ -3,7 +3,6 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
-		{"include": "#keyw_preprocessor"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#keyw_constant"},
@@ -25,13 +24,6 @@
 				"match": "\\\\."
 			}]
 		},
-		"keyw_preprocessor": {
-			"name": "meta.preprocessor",
-			"patterns": [{
-				"name": "meta.preprocessor",
-				"match": "#(include|ifdef|ifndef|if|define|undef|endif|error|warning|else)\\b"
-			}]
-		},
 		"keyw_constant": {
 			"name": "entity.name.function",
 			"patterns": [{
@@ -42,7 +34,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|end|extern|while|else|do|done|if|fi|return|break|continue|for|in|to|load|store|decl|addr|nil|true|false|container|repeat|struct|new|is|cdecl|goto|label|none|int|float|any|str|self)\\b"
+				"match": "\\b(function|using|from|end|extern|while|else|do|done|if|fi|return|break|continue|for|in|to|load|store|decl|addr|nil|true|false|container|repeat|struct|new|is|cdecl|goto|label|none|int|float|any|str|self)\\b"
 			}]
 		},
 		"stack_operators": {

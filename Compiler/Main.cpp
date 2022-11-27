@@ -32,10 +32,6 @@
 #define COMPILER "gcc"
 #endif
 
-#ifndef PREPROCESSOR
-#define PREPROCESSOR compiler + " -E"
-#endif
-
 #ifndef C_VERSION
 #define C_VERSION "gnu2x"
 #endif
@@ -69,7 +65,6 @@ namespace sclc
         std::cout << "  -t, --transpile  Transpile only" << std::endl;
         std::cout << "  -h, --help       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
-        std::cout << "  -E               Preprocess only" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
         std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
         std::cout << "  --no-main        Do not check for main Function" << std::endl;
@@ -102,7 +97,6 @@ namespace sclc
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
         scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR);
-        std::vector<std::string> files;
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
@@ -112,7 +106,7 @@ namespace sclc
                 if (!fileExists(args[i])) {
                     continue;
                 }
-                files.push_back(args[i]);
+                Main.options.files.push_back(args[i]);
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
                     Main.options.transpileOnly = true;
@@ -180,6 +174,8 @@ namespace sclc
                         Main.options.dontSpecifyOutFile = true;
                     if (args[i][0] == '-' && args[i][1] == 'O')
                         optimizer = std::string(args[i].c_str() + 1);
+                    if (args[i][0] == '-' && args[i][1] == 'I')
+                        Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
                     if (args[i] == "-Werror")
                         Main.options.Werror = true;
                     tmpFlags.push_back(args[i]);
@@ -199,7 +195,7 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
 
-        if (files.size() == 0) {
+        if (Main.options.files.size() == 0) {
             std::cerr << Color::RED << "No translation units specified." << std::endl;
             return 1;
         }
@@ -218,7 +214,6 @@ namespace sclc
         if (!Main.options.noCoreFramework && !alreadyIncluded)
             frameworks.push_back("Core");
 
-        std::string globalPreproc = std::string(PREPROCESSOR) + " -DVERSION=\"" + std::string(VERSION) + "\" ";
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
         for (std::string framework : frameworks) {
@@ -277,7 +272,10 @@ namespace sclc
 
                 Main.frameworks.push_back(framework);
 
-                if (headerDir.size() > 0) globalPreproc += " -I" + scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                }
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize; i++) {
                     std::string implementer = implementers->get(i);
@@ -344,7 +342,10 @@ namespace sclc
 
                 Main.frameworks.push_back(framework);
 
-                if (headerDir.size() > 0) globalPreproc += " -I./" + framework + ".framework/" + headerDir;
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back("./" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = "./" + framework + ".framework/" + headerDir;
+                }
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
                     std::string implementer = implementers->get(i);
@@ -358,44 +359,27 @@ namespace sclc
                 }
             }
         }
+        Main.options.includePaths.push_back("./");
 
         if (!Main.options.doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
         std::vector<Token>  tokens;
 
-        for (size_t i = 0; i < files.size() && !Main.options.printCflags; i++) {
-            std::string filename = files[i];
-            if (!Main.options.doRun) std::cout << "Compiling " << filename << "..." << std::endl;
-
-            FILE* tmp = fopen(filename.c_str(), "rb");
-            fseek(tmp, 0, SEEK_END);
-            long size = ftell(tmp);
-            fseek(tmp, 0, SEEK_SET);
-
-            char* buffer = new char[size];
-            fread(buffer, 1, size, tmp);
-
-            FILE* file = fopen((filename + ".c").c_str(), "wb");
-            fwrite(buffer, size, 1, file);
-            fclose(file);
-            fclose(tmp);
-
-            std::string preproc_cmd = globalPreproc + " " + filename + ".c -o " + filename + ".scale-preproc";
-            int preprocResult = system(preproc_cmd.c_str());
-
-            if (preprocResult != 0) {
-                std::cout << "Error: Preprocessor failed." << std::endl;
-                return 1;
-            }
-
-            if (Main.options.preprocessOnly) {
-                std::cout << "Preprocessed " << filename << std::endl;
-                continue;
+        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+            std::string filename = Main.options.files[i];
+            if (!Main.options.doRun) {
+                std::cout << "Compiling ";
+                if (strncmp(filename.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
+                    std::cout << std::string(filename.c_str() + scaleFolder.size() + 12);
+                } else {
+                    std::cout << filename;
+                }
+                std::cout << "..." << std::endl;
             }
 
             Tokenizer tokenizer;
             Main.tokenizer = &tokenizer;
-            FPResult result = Main.tokenizer->tokenize(filename + ".scale-preproc");
+            FPResult result = Main.tokenizer->tokenize(filename);
 
             if (result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
@@ -486,16 +470,17 @@ namespace sclc
                 }
             }
 
-            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
+            Main.tokenizer->tryFindUsings();
 
+            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
+            
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
-            remove(std::string(filename + ".scale-preproc").c_str());
             remove(std::string(filename + ".c").c_str());
         }
 
         if (Main.options.preprocessOnly) {
-            std::cout << "Preprocessed " << files.size() << " files." << std::endl;
+            std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
             return 0;
         }
 
@@ -672,8 +657,6 @@ namespace sclc
         for (std::string s : cflags) {
             cmd += s + " ";
         }
-
-        if (!Main.options.doRun && !Main.options.printCflags) std::cout << "Compiling with " << cmd << std::endl;
 
         if (Main.options.printCflags) {
             std::cout << cmd << std::endl;

@@ -1,5 +1,4 @@
-#ifndef _CORE_FRAMEWORK__IO_SCALE_
-#define _CORE_FRAMEWORK__IO_SCALE_
+using "core" from "Core"
 
 extern function write(_fd_: int, _str_: str, _n_: int): none
 extern function read(_fd_: int, _s_: any, _n_: int): any
@@ -25,5 +24,3 @@ end
 function throwerr(_err_: str): none
     _err_ eputs 1 exit
 end
-
-#endif

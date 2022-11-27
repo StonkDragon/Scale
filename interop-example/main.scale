@@ -1,14 +1,11 @@
-#include "core.scale"
-
+using "core"
 // extern function imported from C
 extern function foo()
-
 // nomangle Modifier to export function to C
 @nomangle
 function bar(a)
     a puts
 end
-
 function main()
     // Call C function `foo`
     foo

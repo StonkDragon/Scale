@@ -107,6 +107,7 @@ namespace sclc {
 
     void ConvertC::writeExternHeaders(FILE* fp, TPResult result) {
         int scopeDepth = 0;
+        if (result.extern_functions.size() == 0) return;
         append("/* EXTERN FUNCTIONS */\n");
 
         for (Function* function : result.extern_functions) {
@@ -137,71 +138,20 @@ namespace sclc {
 
     void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        append("const unsigned long long scl_internal_function_names_with_args[] = {\n");
-        for (Function* function : result.extern_functions) {
-            std::string functionDeclaration = "";
-
-            if (function->isMethod) {
-                functionDeclaration += static_cast<Method*>(function)->getMemberType() + ":" + function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            } else {
-                functionDeclaration += function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            }
-            
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        for (Function* function : result.functions) {
-            std::string functionDeclaration = "";
-
-            if (function->isMethod) {
-                functionDeclaration += static_cast<Method*>(function)->getMemberType() + ":" + function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            } else {
-                functionDeclaration += function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            }
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        append("};\n");
         append("const unsigned long long scl_internal_function_names[] = {\n");
         for (Function* function : result.extern_functions) {
             std::string functionDeclaration = function->getName();
             if (function->isMethod) {
                 functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
             }
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
+            append("  0x%016llxLLU /* extern function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
         }
         for (Function* function : result.functions) {
             std::string functionDeclaration = function->getName();
             if (function->isMethod) {
                 functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
             }
-            append("  0x%016llxLLU /* %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
+            append("  0x%016llxLLU /* function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
         }
         append("};\n");
 
@@ -233,14 +183,6 @@ namespace sclc {
             }
         }
         append("};\n");
-        append("const scl_str scl_internal_function_returns[] = {\n");
-        for (Function* function : result.extern_functions) {
-            append("  \"%s\",\n", function->getReturnType().c_str());
-        }
-        for (Function* function : result.functions) {
-            append("  \"%s\",\n", function->getReturnType().c_str());
-        }
-        append("};\n");
         append("const size_t scl_internal_functions_size = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
@@ -248,6 +190,7 @@ namespace sclc {
 
     void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result) {
         int scopeDepth = 0;
+        if (result.globals.size() == 0) return;
         append("/* GLOBALS */\n");
 
         for (Variable s : result.globals) {
@@ -262,6 +205,7 @@ namespace sclc {
 
     void ConvertC::writeContainers(FILE* fp, TPResult result) {
         int scopeDepth = 0;
+        if (result.containers.size() == 0) goto label_writeContainers_global_ptrs;
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
@@ -280,6 +224,8 @@ namespace sclc {
         }
 
         append("\n");
+    label_writeContainers_global_ptrs:
+
         append("const scl_value* scl_internal_globals_ptrs[] = {\n");
         for (Variable s : result.globals) {
             append("  (const scl_value*) &Var_%s,\n", s.getName().c_str());
@@ -299,6 +245,7 @@ namespace sclc {
 
     void ConvertC::writeStructs(FILE* fp, TPResult result) {
         int scopeDepth = 0;
+        if (result.structs.size() == 0) goto label_writeStructs_close_file;
         append("/* STRUCTS */\n");
         for (Struct c : result.structs) {
             append("struct Struct_%s {\n", c.getName().c_str());
@@ -319,6 +266,7 @@ namespace sclc {
             }
         }
         append("\n");
+    label_writeStructs_close_file:
 
         if (Main.options.transpileOnly) {
             fprintf(nomangled, "#endif\n");
@@ -349,22 +297,15 @@ namespace sclc {
 
             scopeDepth = 0;
             bool noWarns = false;
-            bool no_mangle = false;
-            bool nps = false;
-            ssize_t sap_depth = 0;
+            bool noMangle = false;
 
             for (Modifier modifier : function->getModifiers()) {
                 if (modifier == mod_nowarn) {
                     noWarns = true;
                 } else if (modifier == mod_nomangle) {
-                    no_mangle = true;
-                } else if (modifier == mod_nps) {
-                    nps = true;
+                    noMangle = true;
                 }
             }
-
-            (void) noWarns;
-            (void) nps;
 
             std::string functionDeclaration = "";
 
@@ -402,11 +343,11 @@ namespace sclc {
                 err.in = function->getBody()[0].getFile();
                 err.value = function->getBody()[0].getValue();
                 err.type = function->getBody()[0].getType();
-                if (!Main.options.Werror) warns.push_back(err);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
 
-            if (no_mangle) {
+            if (noMangle) {
                 std::string args = "(";
                 for (size_t i = 0; i < function->getArgs().size(); i++) {
                     if (i != 0) {
@@ -480,7 +421,6 @@ namespace sclc {
             }
 
             std::vector<Token> body = function->getBody();
-            std::vector<Token> sap_tokens;
             std::vector<bool> was_rep;
             size_t i;
             char repeat_depth = 0;
@@ -805,7 +745,7 @@ namespace sclc {
                         case tok_new: {
                             {
                                 transpilerError("Using 'new <type>' is deprecated! Use '<type>:new' instead.", i);
-                                warns.push_back(err);
+                                { if (!noWarns) warns.push_back(err); }
                             }
                             ITER_INC;
                             if (body[i].getType() != tok_identifier) {
@@ -1150,17 +1090,17 @@ namespace sclc {
                             }
                             if (hasFunction(result, body[i + 1])) {
                                 transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
-                                if (!Main.options.Werror) warns.push_back(err);
+                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                                 else errors.push_back(err);
                             }
                             if (hasContainer(result, body[i + 1])) {
                                 transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
-                                if (!Main.options.Werror) warns.push_back(err);
+                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                                 else errors.push_back(err);
                             }
                             if (hasVar(body[i + 1])) {
                                 transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
-                                if (!Main.options.Werror) warns.push_back(err);
+                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                                 else errors.push_back(err);
                             }
                             std::string name = body[i + 1].getValue();
@@ -1246,14 +1186,10 @@ namespace sclc {
                 }
             }
             scopeDepth = 1;
-            append("callstk.ptr--;\n");
+            if (body[body.size() - 1].getType() != tok_return)
+                append("callstk.ptr--;\n");
             scopeDepth = 0;
             append("}\n\n");
-
-            if (sap_depth > 0) {
-                transpilerError("SAP never closed, Opened here:", sap_tokens.size() - 1);
-                errors.push_back(err);
-            }
         }
     }
 } // namespace sclc
