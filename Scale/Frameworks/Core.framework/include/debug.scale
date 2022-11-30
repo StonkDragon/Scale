@@ -1,10 +1,5 @@
 using "fmt" from "Core"
 
-#warning "Debugging build"
-#ifndef DEBUG
-#define DEBUG
-#endif
-
 extern function dumpstack(): none
 extern function trace(): none
 extern function crash(): none
