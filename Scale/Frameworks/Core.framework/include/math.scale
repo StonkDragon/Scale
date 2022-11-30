@@ -1,7 +1,12 @@
 using "core" from "Core"
 
-#define CONST_E         2.71828182845904523536028747135266250
-#define CONST_PI        3.14159265358979323846264338327950288
+decl e: float
+decl pi: float
+
+function __init__math_scale(): none
+    2.71828182845904523536028747135266250 store e
+    3.14159265358979323846264338327950288 store pi
+end
 
 extern function sqrt(): float
 extern function sin(): float
