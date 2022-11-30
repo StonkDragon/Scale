@@ -1,6 +1,3 @@
-#ifndef _PARSER_CPP_
-#define _PARSER_CPP_
-
 #include <memory>
 #include <iostream>
 #include <string>
@@ -141,33 +138,44 @@ namespace sclc
 
         std::string main = "";
         if (mainFunction->getReturnType() == "none") {
-            main = "  Function_main();\n"
-            "  return 0;\n";
+            main = "Function_main();\n";
         } else {
-            main = "  return Function_main();\n";
+            main = "return_value = Function_main();\n";
         }
 
-        std::string mainEntry = 
-        "int main(int argc, char** argv) {\n"
-        "#ifdef SIGINT\n"
-        "  signal(SIGINT, process_signal);\n"
-        "#endif\n"
-        "#ifdef SIGABRT\n"
-        "  signal(SIGABRT, process_signal);\n"
-        "#endif\n"
-        "#ifdef SIGSEGV\n"
-        "  signal(SIGSEGV, process_signal);\n"
-        "#endif\n"
-        "#ifdef SIGBUS\n"
-        "  signal(SIGBUS, process_signal);\n"
-        "#endif\n"
-        "\n" +
-        push_args +
-        main +
-        "}\n";
+        if (Main.options.noMain)
+            goto after_main;
+        append("int main(int argc, char** argv) {\n");
+        append("#ifdef SIGINT\n");
+        append("  signal(SIGINT, process_signal);\n");
+        append("#endif\n");
+        append("#ifdef SIGABRT\n");
+        append("  signal(SIGABRT, process_signal);\n");
+        append("#endif\n");
+        append("#ifdef SIGSEGV\n");
+        append("  signal(SIGSEGV, process_signal);\n");
+        append("#endif\n");
+        append("#ifdef SIGBUS\n");
+        append("  signal(SIGBUS, process_signal);\n");
+        append("#endif\n\n");
+        append("  int return_value = 0;\n");
+        if (push_args.size() > 0)
+            append("  %s", push_args.c_str());
+        for (Function* f : result.functions) {
+            if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
+                append("  Function_%s();\n", f->getName().c_str());
+            }
+        }
+        append("  %s", main.c_str());
+        for (Function* f : result.functions) {
+            if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
+                append("  Function_%s();\n", f->getName().c_str());
+            }
+        }
+        append("  return return_value;\n");
+        append("}\n");
 
-        if (!Main.options.noMain)
-            append("%s\n", mainEntry.c_str());
+    after_main:
 
         append("#ifdef __cplusplus\n");
         append("}\n");
@@ -184,4 +192,3 @@ namespace sclc
         return parseResult;
     }
 }
-#endif // _PARSER_CPP_
