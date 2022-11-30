@@ -218,5 +218,4 @@ namespace sclc
         }
         return h;
     }
-
 } // namespace sclc
