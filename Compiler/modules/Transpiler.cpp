@@ -1035,7 +1035,7 @@ namespace sclc {
                                         errors.push_back(err);
                                         continue;
                                     }
-                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str());
+                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].%s;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
                                 } else {
                                     if (body[i].getType() != tok_identifier) {
                                         transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
