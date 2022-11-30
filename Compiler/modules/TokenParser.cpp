@@ -93,7 +93,7 @@ namespace sclc
                     }
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = new Method(member_type, name);
+                    currentFunction = new Method(member_type, name, func);
                     currentFunction->setFile(func.getFile());
                     if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
                     if (funcNoMangle) {
@@ -235,7 +235,7 @@ namespace sclc
                 } else {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
-                    currentFunction = new Function(name);
+                    currentFunction = new Function(name, func);
                     currentFunction->setFile(func.getFile());
                     if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
                     if (funcNoMangle) {
@@ -377,7 +377,26 @@ namespace sclc
                 if (currentFunction != nullptr) {
                     funcNoWarn = false;
                     funcNoMangle = false;
-                    addIfAbsent(functions, currentFunction);
+                    bool containsB = false;
+                    for (size_t i = 0; i < functions.size(); i++) {
+                        if (*(functions.at(i)) == *currentFunction) {
+                            containsB = true;
+                            break;
+                        }
+                    }
+                    if (!containsB) {
+                        functions.push_back(currentFunction);
+                    } else {
+                        FPResult result;
+                        result.message = "Function " + currentFunction->getName() + " already exists";
+                        result.column = currentFunction->getNameToken().getColumn();
+                        result.value = currentFunction->getNameToken().getValue();
+                        result.line = currentFunction->getNameToken().getLine();
+                        result.in = currentFunction->getNameToken().getFile();
+                        result.type = currentFunction->getNameToken().getType();
+                        result.success = false;
+                        errors.push_back(result);
+                    }
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
                     containers.push_back(*currentContainer);
@@ -588,7 +607,7 @@ namespace sclc
                         }
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        Function* function = new Method(member_type, name);
+                        Function* function = new Method(member_type, name, func);
                         function->setFile(func.getFile());
                         if (funcNoWarn) function->addModifier(mod_nowarn);
                         if (funcNoMangle) {
@@ -731,7 +750,7 @@ namespace sclc
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token funcTok = tokens[i + 1];
-                        Function* func = new Function(name);
+                        Function* func = new Function(name, funcTok);
                         func->setFile(funcTok.getFile());
                         i += 2;
                         if (tokens[i].getType() == tok_open_paren) {

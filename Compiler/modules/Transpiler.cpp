@@ -338,11 +338,11 @@ namespace sclc {
                 FPResult err;
                 err.success = false;
                 err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
-                err.column = function->getBody()[0].getColumn();
-                err.line = function->getBody()[0].getLine();
-                err.in = function->getBody()[0].getFile();
-                err.value = function->getBody()[0].getValue();
-                err.type = function->getBody()[0].getType();
+                err.column = function->getNameToken().getColumn();
+                err.line = function->getNameToken().getLine();
+                err.in = function->getNameToken().getFile();
+                err.value = function->getNameToken().getValue();
+                err.type = function->getNameToken().getType();
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
@@ -1186,7 +1186,7 @@ namespace sclc {
                 }
             }
             scopeDepth = 1;
-            if (body[body.size() - 1].getType() != tok_return)
+            if (body.size() == 0 || body[body.size() - 1].getType() != tok_return)
                 append("callstk.ptr--;\n");
             scopeDepth = 0;
             append("}\n\n");

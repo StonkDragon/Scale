@@ -277,63 +277,33 @@ namespace sclc
         std::vector<Token> body;
         std::vector<Modifier> modifiers;
         std::vector<Variable> args;
+        Token* nameToken;
     public:
         bool isMethod;
-        Function(std::string name) {
-            this->name = name;
-            this->isMethod = false;
-        }
-        Function(std::string name, bool isMethod) {
-            this->name = name;
-            this->isMethod = isMethod;
-        }
+        Function(std::string name, Token& nameToken);
+        Function(std::string name, bool isMethod, Token& nameToken);
         virtual ~Function() {}
-        virtual std::string getName() {
-            return name;
-        }
-        virtual std::vector<Token> getBody() {
-            return body;
-        }
-        virtual void addToken(Token token) {
-            body.push_back(token);
-        }
-        virtual void addModifier(Modifier modifier) {
-            modifiers.push_back(modifier);
-        }
-        virtual std::vector<Modifier> getModifiers() {
-            return modifiers;
-        }
-        virtual void addArgument(Variable arg) {
-            args.push_back(arg);
-        }
-        virtual std::vector<Variable> getArgs() {
-            return args;
-        }
-        virtual std::string getFile() {
-            return file;
-        }
-        virtual void setFile(std::string file) {
-            this->file = file;
-        }
-        virtual void setName(std::string name) {
-            this->name = name;
-        }
-        virtual std::string getReturnType() {
-            return return_type;
-        }
-        virtual void setReturnType(std::string type) {
-            return_type = type;
-        }
+        virtual std::string getName();
+        virtual std::vector<Token> getBody();
+        virtual void addToken(Token token);
+        virtual void addModifier(Modifier modifier);
+        virtual std::vector<Modifier> getModifiers();
+        virtual void addArgument(Variable arg);
+        virtual std::vector<Variable> getArgs();
+        virtual std::string getFile();
+        virtual void setFile(std::string file);
+        virtual void setName(std::string name);
+        virtual std::string getReturnType();
+        virtual void setReturnType(std::string type);
+        virtual Token getNameToken();
 
-        virtual bool operator==(const Function& other) const {
-            return name == other.name;
-        }
+        virtual bool operator==(const Function& other) const;
     };
-
+    
     class Method : public Function {
         std::string member_type;
     public:
-        Method(std::string member_type, std::string name) : Function(name, true) {
+        Method(std::string member_type, std::string name, Token& nameToken) : Function(name, true, nameToken) {
             this->member_type = member_type;
             this->isMethod = true;
         }
@@ -563,5 +533,10 @@ namespace sclc
     bool hasMethod(TPResult result, Token name, std::string type);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);
+    
+    template<typename T>
+    bool contains(std::vector<T> v, T val) {
+        return std::find(v.begin(), v.end(), val) != v.end();
+    }
 }
 #endif // COMMON_H
