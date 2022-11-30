@@ -1,6 +1,3 @@
-#ifndef TOKENHANDLERS_CPP_
-#define TOKENHANDLERS_CPP_
-
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -290,5 +287,3 @@ namespace sclc
         return result;
     }
 }
-
-#endif // TOKENHANDLERS_CPP_

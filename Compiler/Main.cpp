@@ -1,6 +1,3 @@
-#ifndef MAIN_CPP_
-#define MAIN_CPP_
-
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
 #endif
@@ -711,5 +708,3 @@ int main(int argc, char const *argv[]) {
     }
     return sclc::main(args);
 }
-
-#endif

@@ -1,6 +1,3 @@
-#ifndef _LEX_PARSER_CPP_
-#define _LEX_PARSER_CPP_
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -1076,4 +1073,3 @@ namespace sclc
         return result;
     }
 }
-#endif

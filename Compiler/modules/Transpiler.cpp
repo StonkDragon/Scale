@@ -1,6 +1,3 @@
-#ifndef _TRANSPILER_CPP
-#define _TRANSPILER_CPP
-
 #include <filesystem>
 
 #include "../headers/Common.hpp"
@@ -1193,5 +1190,3 @@ namespace sclc {
         }
     }
 } // namespace sclc
-
-#endif

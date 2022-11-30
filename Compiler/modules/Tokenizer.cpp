@@ -1,6 +1,3 @@
-#ifndef _TOKENIZER_CPP_
-#define _TOKENIZER_CPP_
-
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -435,6 +432,7 @@ namespace sclc
     std::string findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
             if (fileExists(path + "/" + file)) {
+                if (path == "." || path == "./") return file;
                 return path + "/" + file;
             }
         }
@@ -443,4 +441,3 @@ namespace sclc
         exit(-1);
     }
 }
-#endif // TOKENIZER_HPP
