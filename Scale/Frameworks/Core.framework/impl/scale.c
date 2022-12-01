@@ -9,9 +9,6 @@ extern "C" {
 
 extern scl_stack_t	 callstk;
 extern scl_stack_t   stack;
-extern char* 		 current_file;
-extern size_t 		 current_line;
-extern size_t 		 current_column;
 extern size_t 		 sap_enabled[STACK_SIZE];
 extern size_t 		 sap_count[STACK_SIZE];
 extern size_t 		 sap_index;

@@ -468,7 +468,6 @@ namespace sclc
         static void writeHeader(FILE* fp);
         static void writeFunctionHeaders(FILE* fp, TPResult result);
         static void writeExternHeaders(FILE* fp, TPResult result);
-        static void writeInternalFunctions(FILE* fp, TPResult result);
         static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
         static void writeStructs(FILE* fp, TPResult result);

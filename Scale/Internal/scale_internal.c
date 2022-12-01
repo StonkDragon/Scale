@@ -5,9 +5,6 @@
 #endif
 
 /* Variables */
-scl_str      current_file = "<init>";
-size_t 		 current_line = 0;
-size_t 		 current_column = 0;
 scl_stack_t  stack = {0, {0}};
 scl_stack_t	 callstk = {0, {0}};
 size_t 		 sap_index = 0;
@@ -44,7 +41,7 @@ void scl_free(scl_value ptr) {
 
 void scl_security_throw(int code, scl_str msg) {
 	printf("\n");
-	printf("%s:%zu:%zu: %s\n", current_file, current_line, current_column, msg);
+	printf("Exception: %s\n", msg);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
@@ -74,7 +71,7 @@ void process_signal(int sig_num) {
 	// Signals
 	if (sig_num == -1) signalString = NULL;
 #ifdef SIGABRT
-	if (sig_num == SIGABRT) signalString = "abort() called";
+	else if (sig_num == SIGABRT) signalString = "abort() called";
 #endif
 #ifdef SIGFPE
 	else if (sig_num == SIGFPE) signalString = "Floating point exception";
@@ -92,12 +89,12 @@ void process_signal(int sig_num) {
 	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
 #endif
 #ifdef SIGTERM
-	else if (sig_num == SIGTERM) signalString = "Software Termiation";
+	else if (sig_num == SIGTERM) signalString = "Software Termination";
 #endif
 	else signalString = "Unknown signal";
 
 	printf("\n");
-	printf("%s:%zu:%zu: %s\n", current_file, current_line, current_column, signalString);
+	printf("Exception: %s\n", signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}

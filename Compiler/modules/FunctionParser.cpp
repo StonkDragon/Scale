@@ -77,13 +77,13 @@ namespace sclc
     bool hasMethod(TPResult result, Token name, std::string type) {
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
+            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
                 return true;
             }
         }
         for (Function* func : result.extern_functions) {
             if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && ((Method*) func)->getMemberType() == type) {
+            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
                 return true;
             }
         }
@@ -125,7 +125,6 @@ namespace sclc
         ConvertC::writeHeader(fp);
         ConvertC::writeFunctionHeaders(fp, result);
         ConvertC::writeExternHeaders(fp, result);
-        ConvertC::writeInternalFunctions(fp, result);
         ConvertC::writeGlobals(fp, globals, result);
         ConvertC::writeContainers(fp, result);
         ConvertC::writeStructs(fp, result);

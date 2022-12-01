@@ -20,14 +20,6 @@ namespace sclc {
         for (std::string header : Main.frameworkNativeHeaders) {
             append("#include <%s>\n", header.c_str());
         }
-
-        append("\n");
-        append("const char* const scl_internal_frameworks[] = {\n");
-        for (std::string framework : Main.frameworks) {
-            append("  \"%s\",\n", framework.c_str());
-        }
-        append("};\n");
-        append("const size_t scl_internal_frameworks_size = %zu;\n", Main.frameworks.size());
         append("\n");
     }
 
@@ -133,58 +125,6 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
-        int scopeDepth = 0;
-        append("const unsigned long long scl_internal_function_names[] = {\n");
-        for (Function* function : result.extern_functions) {
-            std::string functionDeclaration = function->getName();
-            if (function->isMethod) {
-                functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
-            }
-            append("  0x%016llxLLU /* extern function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        for (Function* function : result.functions) {
-            std::string functionDeclaration = function->getName();
-            if (function->isMethod) {
-                functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
-            }
-            append("  0x%016llxLLU /* function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        append("};\n");
-
-        append("const scl_method scl_internal_function_ptrs[] = {\n");
-        for (Function* function : result.extern_functions) {
-            std::string return_type = "void";
-
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclReturnTypeToCReturnType(result, t);
-            }
-            if (!function->isMethod) {
-                append("  (scl_method) Function_%s,\n", function->getName().c_str());
-            } else {
-                append("  (scl_method) Method_%s_%s,\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-            }
-        }
-        for (Function* function : result.functions) {
-            std::string return_type = "void";
-
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclReturnTypeToCReturnType(result, t);
-            }
-            if (!function->isMethod) {
-                append("  (scl_method) Function_%s,\n", function->getName().c_str());
-            } else {
-                append("  (scl_method) Method_%s_%s,\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-            }
-        }
-        append("};\n");
-        append("const size_t scl_internal_functions_size = %zu;\n", result.functions.size() + result.extern_functions.size());
-
-        append("\n");
-    }
-
     void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result) {
         int scopeDepth = 0;
         if (result.globals.size() == 0) return;
@@ -202,7 +142,7 @@ namespace sclc {
 
     void ConvertC::writeContainers(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        if (result.containers.size() == 0) goto label_writeContainers_global_ptrs;
+        if (result.containers.size() == 0) return;
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
@@ -219,25 +159,6 @@ namespace sclc {
                 fprintf(nomangled, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
             }
         }
-
-        append("\n");
-    label_writeContainers_global_ptrs:
-
-        append("const scl_value* scl_internal_globals_ptrs[] = {\n");
-        for (Variable s : result.globals) {
-            append("  (const scl_value*) &Var_%s,\n", s.getName().c_str());
-        }
-        size_t container_member_count = 0;
-        for (Container c : result.containers) {
-            for (Variable s : c.getMembers()) {
-                append("  (const scl_value*) &Container_%s.%s,\n", c.getName().c_str(), s.getName().c_str());
-                container_member_count++;
-            }
-        }
-        append("};\n");
-        append("const size_t scl_internal_globals_ptrs_size = %zu;\n", result.globals.size() + container_member_count);
-        
-        append("\n");
     }
 
     void ConvertC::writeStructs(FILE* fp, TPResult result) {
@@ -275,9 +196,6 @@ namespace sclc {
         (void) warns;
         int scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("extern scl_str current_file;\n");
-        append("extern size_t current_line;\n");
-        append("extern size_t current_column;\n");
         append("extern scl_stack_t stack;\n");
         append("extern scl_stack_t callstk;\n\n");
 
@@ -408,38 +326,14 @@ namespace sclc {
                 }
             }
 
-            if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                std::string file = function->getFile();
-                if (strncmp(function->getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                    append("current_file = \"%s\";\n", function->getFile().c_str() + scaleFolder.size() + 12);
-                } else {
-                    append("current_file = \"%s\";\n", function->getFile().c_str());
-                }
-            }
-
             std::vector<Token> body = function->getBody();
             std::vector<bool> was_rep;
             size_t i;
             char repeat_depth = 0;
-            int current_line = -1;
             for (i = 0; i < body.size(); i++) {
                 if (body[i].getType() == tok_ignore) continue;
 
                 std::string file = body[i].getFile();
-                if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                    if (
-                        body[i].getType() != tok_declare && body[i].getType() != tok_while &&
-                        body[i].getType() != tok_end && body[i].getType() != tok_fi &&
-                        body[i].getType() != tok_done
-                    ) {
-                        if (body[i].getLine() != current_line) {
-                            append("current_line = %d;\n", body[i].getLine());
-                            current_line = body[i].getLine();
-                        }
-                        if (!(Main.options.optimizer == "O3" || Main.options.optimizer == "Ofast"))
-	                        append("current_column = %d;\n", body[i].getColumn());
-                    }
-                }
 
                 if (isOperator(body[i])) {
                     FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
@@ -550,16 +444,6 @@ namespace sclc {
                                     }
                                 } else {
                                     append("Function_%s();\n", f->getName().c_str());
-                                }
-                                if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                                    std::string file = function->getFile();
-                                    if (file != f->getFile()) {
-                                        if (strncmp(function->getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                                            append("current_file = \"%s\";\n", function->getFile().c_str() + scaleFolder.size() + 12);
-                                        } else {
-                                            append("current_file = \"%s\";\n", function->getFile().c_str());
-                                        }
-                                    }
                                 }
                             } else if (hasContainer(result, body[i])) {
                                 std::string containerName = body[i].getValue();

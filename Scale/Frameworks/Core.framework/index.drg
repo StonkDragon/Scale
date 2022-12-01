@@ -5,7 +5,6 @@ framework: {
     implementers: [
         "scale.c";
         "array.c";
-        "runtime.c";
     ];
     implHeaderDir: "impl";
     implHeaders: [
