@@ -25,7 +25,7 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"3.2\"";
+    "VERSION=\"3.3\"";
     "C_VERSION=\"gnu2x\"";
   ];
   std: "gnu++20";
