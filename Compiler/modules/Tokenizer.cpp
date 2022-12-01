@@ -293,6 +293,10 @@ namespace sclc
         TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);
         TOKEN("goto",       tok_goto, line, filename, startColumn);
         TOKEN("label",      tok_label, line, filename, startColumn);
+        TOKEN("switch",     tok_switch, line, filename, startColumn);
+        TOKEN("case",       tok_case, line, filename, startColumn);
+        TOKEN("esac",       tok_esac, line, filename, startColumn);
+        TOKEN("default",    tok_default, line, filename, startColumn);
         
         if (inFunction) {
             TOKEN("@",      tok_addr_of, line, filename, startColumn);

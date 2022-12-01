@@ -178,17 +178,17 @@ sclDefFunc(strrev, scl_str) {
 
 void Method_Array_init(void);
 void Method_Array_push(void);
+struct Array {
+	scl_int $__type__;
+	scl_str $__type_name__;
+	scl_value values;
+	scl_value count;
+	scl_value capacity;
+};
 
 sclDefFunc(strsplit, struct Array*) {
     scl_str sep = stack.data[--stack.ptr].s;
     scl_str string = strdup(stack.data[--stack.ptr].s);
-	struct Array {
-		scl_int $__type__;
-		scl_str $__type_name__;
-		scl_value values;
-		scl_value count;
-		scl_value capacity;
-	};
 	
     struct Array* arr = scl_alloc_struct(sizeof(struct Array), "Array");
     stack.data[stack.ptr++].i = 10;

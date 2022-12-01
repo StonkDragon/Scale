@@ -156,6 +156,10 @@ namespace sclc
         tok_cdecl,          // cdecl
         tok_label,          // label
         tok_goto,           // goto
+        tok_switch,         // switch
+        tok_case,           // case
+        tok_esac,           // esac
+        tok_default,        // default
 
         // operators
         tok_hash,           // @

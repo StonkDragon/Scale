@@ -1163,6 +1163,38 @@ namespace sclc {
                             break;
                         }
 
+                        case tok_case: {
+                            ITER_INC;
+                            if (body[i].getType() == tok_string_literal) {
+                                transpilerError("String literal in case statement detected!", i);
+                                errors.push_back(err);
+                            } else {
+                                append("case %s: {\n", body[i].getValue().c_str());
+                                scopeDepth++;
+                            }
+                            break;
+                        }
+
+                        case tok_esac: {
+                            append("break;\n");
+                            scopeDepth--;
+                            append("}\n");
+                            break;
+                        }
+
+                        case tok_default: {
+                            append("default: {\n");
+                            scopeDepth++;
+                            break;
+                        }
+
+                        case tok_switch: {
+                            append("switch (stack.data[--stack.ptr].i) {\n");
+                            scopeDepth++;
+                            was_rep.push_back(false);
+                            break;
+                        }
+
                         case tok_addr_of: {
                             append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
                             break;
