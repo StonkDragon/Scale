@@ -16,7 +16,7 @@
 	],
 	"repository": {
 		"comment": {
-			"name": "string.comment",
+			"name": "comment",
 			"begin": "#",
 			"end": "\n",
 			"patterns": [{
