@@ -65,6 +65,38 @@
 		],
 		"description": "While loop"
 	},
+	"Switch Statement": {
+		"scope": "source.scale",
+		"prefix": "switch",
+		"body": [
+			"${1:value} switch",
+			"\tcase ${2:value}",
+			"\t\t$0",
+			"\tesac",
+			"done"
+		],
+		"description": "While loop"
+	},
+	"Case Statement": {
+		"scope": "source.scale",
+		"prefix": "switch",
+		"body": [
+			"case ${1:value}",
+			"\t$0",
+			"esac"
+		],
+		"description": "While loop"
+	},
+	"Default Statement": {
+		"scope": "source.scale",
+		"prefix": "switch",
+		"body": [
+			"default",
+			"\t$0",
+			"esac"
+		],
+		"description": "While loop"
+	},
 	"If Statement": {
 		"scope": "source.scale",
 		"prefix": "if",
