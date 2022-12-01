@@ -31,6 +31,8 @@
 /* Function header */
 #define sclDefFunc(name, returns) \
   returns Function_ ## name (void)
+#define sclDefMethod(name, type, returns) \
+  returns Method_ ## type ## _ ## name (void)
 
 /* Call a function with the given name. */
 #define sclCallFunc(name) \
