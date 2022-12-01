@@ -1,4 +1,5 @@
 using "io" from "Core"
+using "util/array" from "Core"
 
 extern function sleep(_millis_: int): none
 extern function system(_cmd_: str): int
@@ -8,6 +9,7 @@ extern function malloc(_size_: int): any
 extern function realloc(_size_: int, _ptr_: any): any
 extern function free(_ptr_: any): none
 extern function strlen(_str_: str): int
+extern function strsplit(_str_: str, _delim_: str): Array
 extern function strcmp(_str1_: str, _str2_: str): int
 extern function strncmp(_str1_: str, _str2_: str, _n_: int): int
 extern function concat(_str1_: str, _str2_: str): str

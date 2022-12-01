@@ -176,6 +176,35 @@ sclDefFunc(strrev, scl_str) {
 	return out;
 }
 
+void Method_Array_init(void);
+void Method_Array_push(void);
+
+sclDefFunc(strsplit, struct Array*) {
+    scl_str sep = stack.data[--stack.ptr].s;
+    scl_str string = strdup(stack.data[--stack.ptr].s);
+	struct Array {
+		scl_int $__type__;
+		scl_str $__type_name__;
+		scl_value values;
+		scl_value count;
+		scl_value capacity;
+	};
+	
+    struct Array* arr = scl_alloc_struct(sizeof(struct Array), "Array");
+    stack.data[stack.ptr++].i = 10;
+    stack.data[stack.ptr++].v = arr;
+    Method_Array_init();
+
+    scl_str line = strtok(string, sep);
+    while (line != NULL) {
+        stack.data[stack.ptr++].s = line;
+        stack.data[stack.ptr++].v = arr;
+        Method_Array_push();
+        line = strtok(NULL, sep);
+    }
+    return arr;
+}
+
 sclDefFunc(malloc, scl_value) {
 	long long n = ctrl_pop_long();
 	scl_value s = scl_alloc(n);
