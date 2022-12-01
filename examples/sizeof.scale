@@ -1,5 +1,5 @@
 using "core"
-// prints the sizes of all Scale default types
+# prints the sizes of all Scale default types
 function main(): none
   "int" sizeof putint
   "float" sizeof putint

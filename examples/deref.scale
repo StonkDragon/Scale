@@ -1,5 +1,5 @@
 using "core"
 function main(): none
-  // this will print the char code of 'i', which is 105
+  # this will print the char code of 'i', which is 105
   "Hi" 1 + @ toChar putint
 end

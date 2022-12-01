@@ -17,11 +17,11 @@
 	"repository": {
 		"comment": {
 			"name": "string.comment",
-			"begin": "//",
+			"begin": "#",
 			"end": "\n",
 			"patterns": [{
 				"name": "comment",
-				"match": "\\\\."
+				"match": "."
 			}]
 		},
 		"keyw_constant": {

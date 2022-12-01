@@ -1,7 +1,7 @@
 using "core"
 function main(): none
-  // FizzBuzz is a famous example of showing that
-  // a programming language is turing complete
+  # FizzBuzz is a famous example of showing that
+  # a programming language is turing complete
   1 while dup 100 < do
     dup 15 % 0 == if
       "FizzBuzz" puts

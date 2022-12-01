@@ -1,5 +1,5 @@
 using "core"
-// a container is a static structure
+# a container is a static structure
 container foo
   decl bar: any
   decl baz: any

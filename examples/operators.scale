@@ -1,39 +1,39 @@
 using "core"
-// just math nothing to see here
+# just math nothing to see here
 function main(): none
-  // Addition
+  # Addition
   1 2      +  putint
-  // Subtraction
+  # Subtraction
   2 3      -  putint
-  // Multiplication
+  # Multiplication
   2 4      *  putint
-  // Division
+  # Division
   10 5     /  putint
-  // Modulo operator
+  # Modulo operator
   5 6      %  putint
-  // Logical XOR
+  # Logical XOR
   15 7     ^  putint
-  // Logical NOT
+  # Logical NOT
   8        ~  putint
-  // Logical Bitwise shift left
+  # Logical Bitwise shift left
   12 9     << putint
-  // Logical Bitwise shift right
+  # Logical Bitwise shift right
   12 10    >> putint
-  // Logical AND
+  # Logical AND
   6 11     &  putint
-  // Logical OR
+  # Logical OR
   7 12     |  putint
-  // Exponentiation operator
-  // raises 2 to the 12th power
+  # Exponentiation operator
+  # raises 2 to the 12th power
   2 12     ** putint
   
-  // Floating point operators
-  // Addition
+  # Floating point operators
+  # Addition
   10.0 3.0 .+ putfloat
-  // Subtraction
+  # Subtraction
   10.0 3.0 .- putfloat
-  // Multiplication
+  # Multiplication
   10.0 3.0 .* putfloat
-  // Division
+  # Division
   10.0 3.0 ./ putfloat
 end

@@ -364,21 +364,17 @@ namespace sclc
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
-            if (buffer[0] == '/') {
-                if (buffer[1] == '/') {
-                    data += "\n";
-                    continue;
-                }
+            if (buffer[0] == '#') {
+                data += "\n";
+                continue;
             }
 
             // remove mid line comments
             char *c = buffer;
             while (*c != '\0') {
-                if (*c == '/') {
-                    if (c[1] == '/') {
-                        *c = '\0';
-                        break;
-                    }
+                if (*c == '#') {
+                    *c = '\0';
+                    break;
                 }
                 c++;
             }
