@@ -199,6 +199,14 @@ namespace sclc {
         append("extern scl_stack_t stack;\n");
         append("extern scl_stack_t callstk;\n\n");
 
+        append("/* LOOP STRUCTS */\n");
+        append("struct scl_iterable {\n");
+        scopeDepth++;
+        append("scl_int start;\n");
+        append("scl_int end;\n");
+        scopeDepth--;
+        append("};\n\n");
+
         append("/* FUNCTIONS */\n");
 
         int funcsSize = result.functions.size();
@@ -728,25 +736,147 @@ namespace sclc {
                         }
 
                         case tok_for: {
-                            FPResult forHandled = handleFor(
-                                body[i+1],
-                                body[i+2],
-                                body[i+3],
-                                body[i+4],
-                                body[i+5],
-                                body[i+6],
-                                &vars,
-                                fp,
-                                &scopeDepth
-                            );
-                            if (!forHandled.success) {
-                                errors.push_back(forHandled);
+                            ITER_INC;
+                            Token var = body[i];
+                            if (var.getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got: '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.column = var.getColumn();
+                                result.type = var.getType();
+                                errors.push_back(result);
                             }
-                            if (forHandled.warns.size() > 0) {
-                                warns.insert(warns.end(), forHandled.warns.begin(), forHandled.warns.end());
+                            ITER_INC;
+                            if (body[i].getType() != tok_in) {
+                                FPResult result;
+                                result.message = "Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'";
+                                result.success = false;
+                                result.line = body[i].getLine();
+                                result.in = body[i].getFile();
+                                result.value = body[i].getValue();
+                                result.column = body[i].getColumn();
+                                result.type = body[i].getType();
+                                errors.push_back(result);
                             }
+                            ITER_INC;
+                            push_var();
+                            ITER_INC;
+                            if (body[i].getType() != tok_to) {
+                                transpilerError("Expected 'to', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            ITER_INC;
+                            push_var();
+                            ITER_INC;
+                            std::string iterator_direction = "++";
+                            if (body[i].getType() != tok_do) {
+                                std::string val = body[i].getValue();
+                                if (val == "ascend") {
+                                    iterator_direction = "++";
+                                } else if (val == "descend") {
+                                    iterator_direction = "--";
+                                } else if (val == "add") {
+                                    ITER_INC;
+                                    iterator_direction = " += ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "sub") {
+                                    ITER_INC;
+                                    iterator_direction = " -= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "mul") {
+                                    ITER_INC;
+                                    iterator_direction = " *= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "div") {
+                                    ITER_INC;
+                                    iterator_direction = " /= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "nop") {
+                                    iterator_direction = "";
+                                }
+                                ITER_INC;
+                            }
+                            if (body[i].getType() != tok_do) {
+                                transpilerError("Expected 'do', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            append("struct scl_iterable __it%d = (struct scl_iterable) {0, 0};\n", iterator_count);
+                            append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
+                            append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
+                            
+                            if (!hasVar(var)) {
+                                append("scl_int Var_%s;\n", var.getValue().c_str());
+                            }
+                            
+                            if (iterator_direction == "")
+                                append("for (Var_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
+                            else
+                                append("for (Var_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
+                            iterator_count++;
+                            scopeDepth++;
+
+                            if (hasFunction(Main.parser->getResult(), var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' shadowed by function '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasContainer(Main.parser->getResult(), var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' shadowed by container '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasVar(var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' is already declared and shadows it.";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+
+                            if (!hasVar(var))
+                                vars.push_back(Variable(var.getValue(), "int"));
                             was_rep.push_back(false);
-                            i += 6;
                             break;
                         }
 
@@ -808,7 +938,8 @@ namespace sclc {
                                 append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
                             vars.push_back(Variable(iter_var_tok.getValue(), "any"));
                             std::string iter_type = iterable.getType();
-                            append("for (Var_%s = (scl_value) Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = (scl_value) Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str());
+                            std::string type = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
+                            append("for (Var_%s = (%s) Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = (%s) Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
                             scopeDepth++;
                             ITER_INC;
                             break;

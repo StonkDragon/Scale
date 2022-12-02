@@ -527,7 +527,6 @@ namespace sclc
     hash hash1(char* data);
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
-    FPResult handleFor(Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function* getFunctionByName(TPResult result, std::string name);
     Method* getMethodByName(TPResult result, std::string name, std::string type);
