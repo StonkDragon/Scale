@@ -179,7 +179,7 @@ namespace sclc
             } else if (c == '<') {
                 c = source[++current];
                 column++;
-                if (c == '<' || c == '>') {
+                if (c == '<' || c == '=') {
                     value += c;
                 }
             } else if (c == '=') {
