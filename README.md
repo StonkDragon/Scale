@@ -106,17 +106,8 @@ Example:
     => 6
 ```
 
-## Stack Notation
-
-  The following notation is used to represent the stack:
-
-  - `[]`: An empty stack
-
-  - `[a]`: A stack with the value `a` on top
-
-  - `[a b]`: A stack with two elements, where `b` is on top and `a` is below
-
-  - `[<any>]`: A stack with any number of elements
+## Core Framework
+- [Can be found here](./Scale/Frameworks/Core.framework/Docs.md)
 
 ## Examples
 
