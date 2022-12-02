@@ -1,7 +1,7 @@
 using "core" from "Core"
 
 extern function write(_fd_: int, _str_: str, _n_: int): none
-extern function read(_fd_: int, _s_: any, _n_: int): any
+extern function read(_fd_: int, _n_: int): any
 
 function puts(_str_: str): none
     1 _str_ _str_ strlen write

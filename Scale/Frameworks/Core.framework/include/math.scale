@@ -10,23 +10,23 @@ function __init__math_scale(): none
     3.14159265358979323846264338327950288 store MathConstants.pi
 end
 
-extern function sqrt(): float
-extern function sin(): float
-extern function cos(): float
-extern function tan(): float
-extern function asin(): float
-extern function acos(): float
-extern function atan(): float
+extern function sqrt(_f_: float): float
+extern function sin(_f_: float): float
+extern function cos(_f_: float): float
+extern function tan(_f_: float): float
+extern function asin(_f_: float): float
+extern function acos(_f_: float): float
+extern function atan(_f_: float): float
 extern function atan2(): float
-extern function sinh(): float
-extern function cosh(): float
-extern function tanh(): float
-extern function asinh(): float
-extern function acosh(): float
-extern function atanh(): float
-extern function exp(): float
-extern function log(): float
-extern function log10(): float
+extern function sinh(_f_: float): float
+extern function cosh(_f_: float): float
+extern function tanh(_f_: float): float
+extern function asinh(_f_: float): float
+extern function acosh(_f_: float): float
+extern function atanh(_f_: float): float
+extern function exp(_f_: float): float
+extern function log(_f_: float): float
+extern function log10(_f_: float): float
 extern function random(): int
 
 function iseven(_i_: int): int                   _i_ 2 % 0 == return end
@@ -34,9 +34,3 @@ function isodd(_i_: int): int                    _i_ iseven ! return end
 function lrandom(_limit_: int): int              random _limit_ % return end
 function lerp(_a_: int, _b_: int, _t_: int): int _b_ _a_ - _t_ * _a_ + return end
 function neg(_i_: int): int                      _i_ 0 swap - return end
-function itod(_i_: int): float                   _i_ longToString stringToDouble return end
-function dtoi(_d_: float): int                   _d_ doubleToString stringToLong return end
-function dtos(_d_: float): str                   _d_ doubleToString return end
-function itos(_l_: int): str                     _l_ longToString return end
-function stod(_s_: str): float                   _s_ stringToDouble return end
-function stoi(_s_: str): int                     _s_ stringToLong return end
