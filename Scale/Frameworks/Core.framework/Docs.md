@@ -218,6 +218,16 @@ Seeks to position `_offset_` from the current position of file `_f_`.
 <div style="page-break-after: always;"></div>
 
 ## [Array](./include/util/array.scale)
+### `struct Array`
+Member types:
+- `values: any`
+- `count: int`
+- `capacity: int`
+
+`values`: Contains the contents of the array.
+`count`: Contains the amount of elements in the array.
+`capacity`: Contains the maximum capacity of the array.
+
 ### `function Array:sort(): Array`
 Sorts the array
 
