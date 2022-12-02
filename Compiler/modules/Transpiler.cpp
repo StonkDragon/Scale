@@ -804,7 +804,8 @@ namespace sclc {
                             }
                             append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
                             append("Method_%sIterator_init(%s);\n", iterable.getType().c_str(), iterator_name.c_str());
-                            append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
+                            if (!hasVar(iter_var_tok))
+                                append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
                             vars.push_back(Variable(iter_var_tok.getValue(), "any"));
                             std::string iter_type = iterable.getType();
                             append("for (Var_%s = (scl_value) Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = (scl_value) Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str());
