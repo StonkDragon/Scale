@@ -171,7 +171,7 @@
 		"scope": "source.scale",
 		"prefix": "for",
 		"body": [
-			"for ${1:i} in ${2:1} to ${3:10} do",
+			"for ${1:i} in ${2} to ${3} do",
 			"\t$0",
 			"done"
 		],
@@ -241,4 +241,31 @@
 		],
 		"description": "Struct"
 	},
+	"Iterator": {
+		"scope": "source.scale",
+		"prefix": "iterator",
+		"body": [
+			"struct ${1:type}Iterator",
+			"\t# variables",
+			"\t$3",
+			"end",
+			"function ${1:type}Iterator:init(): none",
+			"\t# initialization",
+			"\t$4",
+			"end",
+			"function ${1:type}Iterator:has_next(): int",
+			"\t# return if continue",
+			"\t$5",
+			"end",
+			"function ${1:type}Iterator:next(): ${2:element_type}",
+			"\t# return next value",
+			"\t$6",
+			"end",
+			"function ${1:type}Iterator:begin(): ${2:element_type}",
+			"\t# return first value",
+			"\t$7",
+			"end"
+		],
+		"description": "Define an iterator for a given type"
+	}
 }
