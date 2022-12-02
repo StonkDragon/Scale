@@ -911,7 +911,7 @@ namespace sclc {
                                 continue;
                             }
 
-                            append("struct Struct_%sIterator* %s = (struct Struct_%sIterator*) scl_alloc_struct(sizeof(struct Struct_%sIterator), \"%sIterator\");\n", iterable.getType().c_str(), iterator_name.c_str(), iterable.getType().c_str(), iterable.getType().c_str(), iterable.getType().c_str());
+                            append("struct Struct_%sIterator %s = (struct Struct_%sIterator) {0};\n", iterable.getType().c_str(), iterator_name.c_str(), iterable.getType().c_str());
                             if (!hasMethod(result, Token(tok_identifier, "init", 0, "", 0), iterable.getType() + "Iterator")) {
                                 transpilerError("Iterator for '" + iterable.getType() + "' has no 'init' method!", i);
                                 errors.push_back(err);
@@ -933,13 +933,13 @@ namespace sclc {
                                 continue;
                             }
                             append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
-                            append("Method_%sIterator_init(%s);\n", iterable.getType().c_str(), iterator_name.c_str());
+                            append("Method_%sIterator_init(&%s);\n", iterable.getType().c_str(), iterator_name.c_str());
                             if (!hasVar(iter_var_tok))
                                 append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
                             vars.push_back(Variable(iter_var_tok.getValue(), "any"));
                             std::string iter_type = iterable.getType();
                             std::string type = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
-                            append("for (Var_%s = (%s) Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = (%s) Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
+                            append("for (Var_%s = (%s) Method_%sIterator_begin(&%s); Method_%sIterator_has_next(&%s); Var_%s = (%s) Method_%sIterator_next(&%s)) {\n", iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
                             scopeDepth++;
                             ITER_INC;
                             break;
