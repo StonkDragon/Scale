@@ -83,6 +83,9 @@ Converts `_val_` to a 16-Bit integer.
 ### `function toInt(_val_: int): int`
 Converts `_val_` to a 32-Bit integer.
 
+### `function toChars(_str_: str): Array`
+Converts `_str_` to an array of characters.
+
 <div style="page-break-after: always;"></div>
 
 ## [IO](./include/io.scale)
