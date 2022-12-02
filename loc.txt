@@ -33,6 +33,7 @@
       18 examples/fib.scale
       19 examples/fizzbuzz.scale
       11 examples/for.scale
+      13 examples/foreach.scale
        5 examples/hello.scale
        9 examples/if.scale
       13 examples/label-goto.scale
@@ -47,4 +48,4 @@
        9 interop-example/foo.c
       14 interop-example/main.scale
       17 interop-example/scale_support.h
-    6612 total
+    6625 total
