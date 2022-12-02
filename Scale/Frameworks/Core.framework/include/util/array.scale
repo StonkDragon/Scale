@@ -6,7 +6,7 @@ struct Array
   decl capacity: int
 end
 
-extern function Array:sort(): Array
+extern function Array:sort(): none
 
 function Array:get(index: int): any
   self.values index 3 << + @ return
