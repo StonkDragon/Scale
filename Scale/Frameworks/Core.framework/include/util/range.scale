@@ -1,0 +1,32 @@
+struct Range
+    decl _start: int
+    decl _end: int
+end
+
+function Range:init(_s: int, _e: int): none
+    _s store self._start
+    _e store self._end
+end
+
+struct RangeIterator
+    decl range: Array
+    decl pos: int
+end
+
+function RangeIterator:has_next(): int
+    self.pos self.range Range._start + self.range Range._end < return
+end
+
+function RangeIterator:next(): int
+    self.pos 1 + store self.pos
+    self.range Range._start self.pos + return
+end
+
+function RangeIterator:begin(): int
+    self.range Range._start return
+end
+
+function RangeIterator:init(range: Range): none
+    range store self.range
+    0 store self.pos
+end

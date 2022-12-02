@@ -807,7 +807,7 @@ namespace sclc {
                             append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
                             vars.push_back(Variable(iter_var_tok.getValue(), "any"));
                             std::string iter_type = iterable.getType();
-                            append("for (Var_%s = Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str());
+                            append("for (Var_%s = (scl_value) Method_%sIterator_begin(%s); Method_%sIterator_has_next(%s); Var_%s = (scl_value) Method_%sIterator_next(%s)) {\n", iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), iter_type.c_str(), iterator_name.c_str());
                             scopeDepth++;
                             ITER_INC;
                             break;
