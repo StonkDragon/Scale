@@ -3,9 +3,13 @@ struct Range
     decl _end: int
 end
 
-function Range:init(_s: int, _e: int): none
-    _s store self._start
-    _e store self._end
+function Range:init(_start: int, _end: int): none
+    _start _end >= if
+        "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
+    fi
+
+    _start store self._start
+    _end store self._end
 end
 
 struct RangeIterator
@@ -14,7 +18,7 @@ struct RangeIterator
 end
 
 function RangeIterator:has_next(): int
-    self.pos self.range Range._start + self.range Range._end < return
+    self.pos self.range Range._start + self.range Range._end <= return
 end
 
 function RangeIterator:next(): int
@@ -29,4 +33,49 @@ end
 function RangeIterator:init(range: Range): none
     range store self.range
     0 store self.pos
+end
+
+function Range:toReverseRange(): ReverseRange
+    self._end self._start ReverseRange:new return
+end
+
+struct ReverseRange
+    decl _start: int
+    decl _end: int
+end
+
+function ReverseRange:init(_start: int, _end: int): none
+    _start _end < if
+        "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
+    fi
+    
+    _start store self._start
+    _end store self._end
+end
+
+struct ReverseRangeIterator
+    decl range: Array
+    decl pos: int
+end
+
+function ReverseRangeIterator:has_next(): int
+    self.range ReverseRange._start self.pos - self.range ReverseRange._end >= return
+end
+
+function ReverseRangeIterator:next(): int
+    self.pos 1 + store self.pos
+    self.range ReverseRange._start self.pos - return
+end
+
+function ReverseRangeIterator:begin(): int
+    self.range ReverseRange._start return
+end
+
+function ReverseRangeIterator:init(range: ReverseRange): none
+    range store self.range
+    0 store self.pos
+end
+
+function ReverseRange:toRange(): Range
+    self._end self._start Range:new return
 end
