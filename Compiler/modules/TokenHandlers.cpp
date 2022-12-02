@@ -65,22 +65,11 @@ namespace sclc
         return result;
     }
 
-    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth2) {
+    FPResult handleFor(Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth2) {
         int scopeDepth = *scopeDepth2;
-        if (keywDeclare.getType() != tok_declare) {
-            FPResult result;
-            result.message = "Expected variable declaration after 'for' keyword, but got: '" + keywDeclare.getValue() + "'";
-            result.success = false;
-            result.line = keywDeclare.getLine();
-            result.in = keywDeclare.getFile();
-            result.value = keywDeclare.getValue();
-            result.column = keywDeclare.getColumn();
-            result.type = keywDeclare.getType();
-            return result;
-        }
         if (loopVar.getType() != tok_identifier) {
             FPResult result;
-            result.message = "Expected identifier after 'decl', but got: '" + loopVar.getValue() + "'";
+            result.message = "Expected identifier, but got: '" + loopVar.getValue() + "'";
             result.success = false;
             result.line = loopVar.getLine();
             result.in = loopVar.getFile();

@@ -276,6 +276,7 @@ namespace sclc
         TOKEN("break",      tok_break, line, filename, startColumn);
         TOKEN("continue",   tok_continue, line, filename, startColumn);
         TOKEN("for",        tok_for, line, filename, startColumn);
+        TOKEN("foreach",    tok_foreach, line, filename, startColumn);
         TOKEN("in",         tok_in, line, filename, startColumn);
         TOKEN("to",         tok_to, line, filename, startColumn);
         TOKEN("load",       tok_load, line, filename, startColumn);

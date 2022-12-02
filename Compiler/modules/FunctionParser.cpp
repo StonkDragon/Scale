@@ -123,11 +123,11 @@ namespace sclc
         }
 
         ConvertC::writeHeader(fp);
-        ConvertC::writeFunctionHeaders(fp, result);
-        ConvertC::writeExternHeaders(fp, result);
         ConvertC::writeGlobals(fp, globals, result);
         ConvertC::writeContainers(fp, result);
         ConvertC::writeStructs(fp, result);
+        ConvertC::writeFunctionHeaders(fp, result);
+        ConvertC::writeExternHeaders(fp, result);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string push_args = "";

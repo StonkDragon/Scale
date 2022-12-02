@@ -1,0 +1,13 @@
+using "core" from "Core"
+
+function main(): none
+    # declare a new variable of type 'Array'
+    decl arr: Array
+    # This will split the string into an array of strings
+    "A B C D E F" " " strsplit store arr
+
+    # Loops over every element of the array and prints it
+    foreach val in arr do
+        val puts
+    done
+end

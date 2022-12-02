@@ -1,10 +1,11 @@
 using "core"
+
 function main(): none
   # this will print the numbers from 1 to 9
   # lower bound inclusive, upper bound exclusive
   # the looping variable implicitly always has the
   # 'int' type
-  for decl i in 1 to 10 do
+  for i in 1 to 10 do
     i putint
   done
 end

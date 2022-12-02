@@ -47,3 +47,27 @@ function Array:init(size: int): none
   0 store self.count
   size store self.capacity
 end
+
+struct ArrayIterator
+    decl array: Array
+    decl pos: int
+end
+
+function ArrayIterator:has_next(): int
+    self.pos self.array Array.count < return
+end
+
+function ArrayIterator:next(): any
+    self.pos 1 + store self.pos
+    self.pos self.array Array:get return
+end
+
+function ArrayIterator:begin(): any
+    self.pos self.array Array:get return
+end
+
+function ArrayIterator:init(arr: Array): none
+    arr store self.array
+    0 store self.pos
+end
+

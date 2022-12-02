@@ -79,7 +79,7 @@
 	},
 	"Case Statement": {
 		"scope": "source.scale",
-		"prefix": "switch",
+		"prefix": "case",
 		"body": [
 			"case ${1:value}",
 			"\t$0",
@@ -89,7 +89,7 @@
 	},
 	"Default Statement": {
 		"scope": "source.scale",
-		"prefix": "switch",
+		"prefix": "default",
 		"body": [
 			"default",
 			"\t$0",
@@ -169,13 +169,23 @@
 	},
 	"For Loop": {
 		"scope": "source.scale",
-		"prefix": "for loop",
+		"prefix": "for",
 		"body": [
-			"for decl ${1:i} in ${2:1} to ${3:10} do",
+			"for ${1:i} in ${2:1} to ${3:10} do",
 			"\t$0",
 			"done"
 		],
 		"description": "For Loop"
+	},
+	"Foreach Loop": {
+		"scope": "source.scale",
+		"prefix": "foreach",
+		"body": [
+			"foreach ${1:value} in ${2:iterable} do",
+			"\t$0",
+			"done"
+		],
+		"description": "Foreach Loop"
 	},
 	"Prototype": {
 		"scope": "source.scale",
