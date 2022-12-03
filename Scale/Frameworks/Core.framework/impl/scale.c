@@ -26,16 +26,14 @@ sclDefFunc(dumpstack, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(sleep, void) {
+sclDefFunc(sleep, void, scl_int c) {
 	callstk.data[callstk.ptr++].s = "sleep()";
-	long long c = ctrl_pop_long();
 	sleep(c);
 	callstk.ptr--;
 }
 
-sclDefFunc(getenv, scl_str) {
+sclDefFunc(getenv, scl_str, scl_str c) {
 	callstk.data[callstk.ptr++].s = "getenv()";
-	scl_str c = ctrl_pop_string();
 	scl_str prop = getenv(c);
 	return prop;
 	callstk.ptr--;
@@ -47,10 +45,8 @@ sclDefFunc(sizeof_stack, scl_int) {
 	return stack.ptr;
 }
 
-sclDefFunc(concat, scl_str) {
+sclDefFunc(concat, scl_str, scl_str s2, scl_str s1) {
 	callstk.data[callstk.ptr++].s = "concat()";
-	scl_str s2 = ctrl_pop_string();
-	scl_str s1 = ctrl_pop_string();
 	long long len = strlen(s1);
 	long long len2 = strlen(s2);
 	scl_str out = scl_alloc(len + len2 + 1);
@@ -78,50 +74,41 @@ sclDefFunc(crash, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(system, scl_int) {
+sclDefFunc(system, scl_int, scl_str cmd) {
 	callstk.data[callstk.ptr++].s = "system()";
-	scl_str cmd = ctrl_pop_string();
 	int ret = system(cmd);
 	callstk.ptr--;
 	return ret;
 }
 
-sclDefFunc(strlen, scl_int) {
+sclDefFunc(strlen, scl_int, scl_str s) {
 	callstk.data[callstk.ptr++].s = "strlen()";
-	scl_str s = ctrl_pop_string();
 	size_t len;
 	for (len = 0; s[len] != '\0'; len++);
 	callstk.ptr--;
 	return len;
 }
 
-sclDefFunc(strcmp, scl_int) {
+sclDefFunc(strcmp, scl_int, scl_str s2, scl_str s1) {
 	callstk.data[callstk.ptr++].s = "strcmp()";
-	scl_str s1 = ctrl_pop_string();
-	scl_str s2 = ctrl_pop_string();
 	callstk.ptr--;
 	return strcmp(s1, s2) == 0;
 }
 
-sclDefFunc(strdup, scl_str) {
+sclDefFunc(strdup, scl_str, scl_str s) {
 	callstk.data[callstk.ptr++].s = "strdup()";
-	scl_str s = ctrl_pop_string();
 	callstk.ptr--;
 	return strdup(s);
 }
 
-sclDefFunc(strncmp, scl_int) {
+sclDefFunc(strncmp, scl_int, scl_str s2, scl_str s1, scl_int n) {
 	callstk.data[callstk.ptr++].s = "strncmp()";
-	long long n = ctrl_pop_long();
-	scl_str s1 = ctrl_pop_string();
-	scl_str s2 = ctrl_pop_string();
 	callstk.ptr--;
 	return strncmp(s1, s2, n) == 0;
 }
 
-sclDefFunc(raise, void) {
+sclDefFunc(raise, void, scl_int n) {
 	callstk.data[callstk.ptr++].s = "raise()";
-	long long n = ctrl_pop_long();
 	if (n != 2 && n != 4 && n != 6 && n != 8 && n != 11) {
 		int raised = raise(n);
 		if (raised != 0) {
@@ -133,13 +120,10 @@ sclDefFunc(raise, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(strrev, scl_str) {
+sclDefFunc(strrev, scl_str, scl_str s) {
 	callstk.data[callstk.ptr++].s = "strrev()";
-	char* s = ctrl_pop_string();
 	size_t i = 0;
-	ctrl_push_string(s);
-	Function_strlen();
-	long long len = ctrl_pop_long();
+	scl_int len = Function_strlen(s);
 	char* out = scl_alloc(len + 1);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
@@ -157,31 +141,26 @@ struct Array {
 	scl_value capacity;
 };
 
-void Method_Array_init(struct Array*);
-void Method_Array_push(struct Array*);
+void Method_Array_init(struct Array*, scl_int);
+void Method_Array_push(struct Array*, scl_value);
 
-sclDefFunc(strsplit, struct Array*) {
+sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string) {
 	callstk.data[callstk.ptr++].s = "strsplit()";
-    scl_str sep = stack.data[--stack.ptr].s;
-    scl_str string = strdup(stack.data[--stack.ptr].s);
 	
     struct Array* arr = scl_alloc_struct(sizeof(struct Array), "Array");
-    stack.data[stack.ptr++].i = 10;
-    Method_Array_init(arr);
+    Method_Array_init(arr, 10);
 
-    scl_str line = strtok(string, sep);
+    scl_str line = strtok(strdup(string), sep);
     while (line != NULL) {
-        stack.data[stack.ptr++].s = line;
-        Method_Array_push(arr);
+        Method_Array_push(arr, line);
         line = strtok(NULL, sep);
     }
 	callstk.ptr--;
     return arr;
 }
 
-sclDefFunc(malloc, scl_value) {
+sclDefFunc(malloc, scl_value, scl_int n) {
 	callstk.data[callstk.ptr++].s = "malloc()";
-	long long n = ctrl_pop_long();
 	scl_value s = scl_alloc(n);
 	if (!s) {
 		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
@@ -191,10 +170,8 @@ sclDefFunc(malloc, scl_value) {
 	return s;
 }
 
-sclDefFunc(realloc, scl_value) {
+sclDefFunc(realloc, scl_value, scl_value s, scl_int n) {
 	callstk.data[callstk.ptr++].s = "realloc()";
-	long long n = ctrl_pop_long();
-	scl_value s = ctrl_pop();
 	if (!s) {
 		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 		return NULL;
@@ -203,9 +180,8 @@ sclDefFunc(realloc, scl_value) {
 	return scl_realloc(s, n);
 }
 
-sclDefFunc(free, void) {
+sclDefFunc(free, void, scl_value s) {
 	callstk.data[callstk.ptr++].s = "free()";
-	scl_value s = ctrl_pop();
 	scl_dealloc_struct(s);
 	scl_free(s);
 	callstk.ptr--;
@@ -218,20 +194,14 @@ sclDefFunc(breakpoint, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(memset, void) {
+sclDefFunc(memset, void, scl_int c, scl_int n, scl_value s) {
 	callstk.data[callstk.ptr++].s = "memset()";
-	scl_value s = ctrl_pop();
-	long long n = ctrl_pop_long();
-	long long c = ctrl_pop_long();
 	memset(s, c, n);
 	callstk.ptr--;
 }
 
-sclDefFunc(memcpy, void) {
+sclDefFunc(memcpy, void, scl_int n, scl_value s1, scl_value s2) {
 	callstk.data[callstk.ptr++].s = "memcpy()";
-	scl_value s2 = ctrl_pop();
-	scl_value s1 = ctrl_pop();
-	long long n = ctrl_pop_long();
 	memcpy(s2, s1, n);
 	callstk.ptr--;
 }
@@ -251,154 +221,132 @@ sclDefFunc(trace, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(sqrt, scl_float) {
+sclDefFunc(sqrt, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "sqrt()";
-    double n = ctrl_pop_double();
 	callstk.ptr--;
     return sqrt(n);
 }
 
-sclDefFunc(sin, scl_float) {
+sclDefFunc(sin, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "sin()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return sin(n);
 }
 
-sclDefFunc(cos, scl_float) {
+sclDefFunc(cos, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "cos()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return cos(n);
 }
 
-sclDefFunc(tan, scl_float) {
+sclDefFunc(tan, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "tan()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return tan(n);
 }
 
-sclDefFunc(asin, scl_float) {
+sclDefFunc(asin, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "asin()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return asin(n);
 }
 
-sclDefFunc(acos, scl_float) {
+sclDefFunc(acos, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "acos()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return acos(n);
 }
 
-sclDefFunc(atan, scl_float) {
+sclDefFunc(atan, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "atan()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return atan(n);
 }
 
-sclDefFunc(atan2, scl_float) {
+sclDefFunc(atan2, scl_float, scl_float n1, scl_float n2) {
 	callstk.data[callstk.ptr++].s = "atan2()";
-	double n2 = ctrl_pop_double();
-	double n1 = ctrl_pop_double();
 	callstk.ptr--;
 	return atan2(n1, n2);
 }
 
-sclDefFunc(sinh, scl_float) {
+sclDefFunc(sinh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "sinh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return sinh(n);
 }
 
-sclDefFunc(cosh, scl_float) {
+sclDefFunc(cosh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "cosh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return cosh(n);
 }
 
-sclDefFunc(tanh, scl_float) {
+sclDefFunc(tanh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "tanh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return tanh(n);
 }
 
-sclDefFunc(asinh, scl_float) {
+sclDefFunc(asinh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "asinh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return asinh(n);
 }
 
-sclDefFunc(acosh, scl_float) {
+sclDefFunc(acosh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "acosh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return acosh(n);
 }
 
-sclDefFunc(atanh, scl_float) {
+sclDefFunc(atanh, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "atanh()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return atanh(n);
 }
 
-sclDefFunc(exp, scl_float) {
+sclDefFunc(exp, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "exp()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return exp(n);
 }
 
-sclDefFunc(log, scl_float) {
+sclDefFunc(log, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "log()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return log(n);
 }
 
-sclDefFunc(log10, scl_float) {
+sclDefFunc(log10, scl_float, scl_float n) {
 	callstk.data[callstk.ptr++].s = "log10()";
-	double n = ctrl_pop_double();
 	callstk.ptr--;
 	return log10(n);
 }
 
-sclDefFunc(longToString, scl_str) {
+sclDefFunc(longToString, scl_str, scl_int a) {
 	callstk.data[callstk.ptr++].s = "longToString()";
-	long long a = ctrl_pop_long();
 	scl_str out = scl_alloc(25);
 	sprintf(out, "%lld", a);
 	callstk.ptr--;
 	return out;
 }
 
-sclDefFunc(stringToLong, scl_int) {
+sclDefFunc(stringToLong, scl_int, scl_str s) {
 	callstk.data[callstk.ptr++].s = "stringToLong()";
-	scl_str s = ctrl_pop_string();
 	long long a = atoll(s);
 	callstk.ptr--;
 	return a;
 }
 
-sclDefFunc(stringToDouble, scl_float) {
+sclDefFunc(stringToDouble, scl_float, scl_str s) {
 	callstk.data[callstk.ptr++].s = "stringToDouble()";
-	scl_str s = ctrl_pop_string();
 	double a = atof(s);
 	callstk.ptr--;
 	return a;
 }
 
-sclDefFunc(doubleToString, scl_str) {
+sclDefFunc(doubleToString, scl_str, scl_float a) {
 	callstk.data[callstk.ptr++].s = "doubleToString()";
-	double a = ctrl_pop_double();
 	scl_str out = scl_alloc(100);
 	sprintf(out, "%f", a);
 	callstk.ptr--;

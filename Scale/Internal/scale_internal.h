@@ -29,10 +29,10 @@
 #endif
 
 /* Function header */
-#define sclDefFunc(name, returns) \
-  returns Function_ ## name (void)
-#define sclDefMethod(name, type, returns) \
-  returns Method_ ## type ## _ ## name (void)
+#define sclDefFunc(name, returns, ...) \
+  returns Function_ ## name (__VA_ARGS__)
+#define sclDefMethod(name, type, returns, ...) \
+  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(", ") __VA_ARGS__)
 
 /* Call a function with the given name. */
 #define sclCallFunc(name) \
