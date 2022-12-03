@@ -64,3 +64,4 @@ Module.symvers
 Mkfile.old
 dkms.conf
 *DS_Store*
+scale.vscodeextension/.DS_Store
