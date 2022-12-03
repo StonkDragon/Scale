@@ -22,11 +22,19 @@ size_t 		 locals_count[STACK_SIZE] = {0};
 
 scl_value scl_alloc(size_t size) {
 	scl_value ptr = malloc(size);
+	if (!ptr) {
+		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+		return NULL;
+	}
 	return ptr;
 }
 
 scl_value scl_realloc(scl_value ptr, size_t size) {
 	ptr = realloc(ptr, size);
+	if (!ptr) {
+		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+		return NULL;
+	}
 	return ptr;
 }
 

@@ -12,7 +12,7 @@
     1427 Compiler/modules/Transpiler.cpp
       30 Scale/Frameworks/Core.framework/impl/array.c
        6 Scale/Frameworks/Core.framework/impl/array.h
-     406 Scale/Frameworks/Core.framework/impl/scale.c
+     414 Scale/Frameworks/Core.framework/impl/scale.c
       56 Scale/Frameworks/Core.framework/impl/scale.h
       73 Scale/Frameworks/Core.framework/include/core.scale
        9 Scale/Frameworks/Core.framework/include/debug.scale
@@ -24,7 +24,7 @@
        9 Scale/Frameworks/Core.framework/include/util/pair.scale
       81 Scale/Frameworks/Core.framework/include/util/range.scale
       11 Scale/Frameworks/Core.framework/include/util/triple.scale
-     204 Scale/Internal/scale_internal.c
+     212 Scale/Internal/scale_internal.c
      112 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       25 examples/arraysort.scale
@@ -51,4 +51,4 @@
        9 interop-example/foo.c
       14 interop-example/main.scale
       17 interop-example/scale_support.h
-    6887 total
+    6903 total

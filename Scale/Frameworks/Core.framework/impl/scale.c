@@ -183,6 +183,10 @@ sclDefFunc(malloc, scl_value) {
 	callstk.data[callstk.ptr++].s = "malloc()";
 	long long n = ctrl_pop_long();
 	scl_value s = scl_alloc(n);
+	if (!s) {
+		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+		return NULL;
+	}
 	callstk.ptr--;
 	return s;
 }
@@ -191,6 +195,10 @@ sclDefFunc(realloc, scl_value) {
 	callstk.data[callstk.ptr++].s = "realloc()";
 	long long n = ctrl_pop_long();
 	scl_value s = ctrl_pop();
+	if (!s) {
+		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+		return NULL;
+	}
 	callstk.ptr--;
 	return scl_realloc(s, n);
 }
