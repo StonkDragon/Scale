@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 32 32"
+   version="1.1"
+   id="svg10"
+   sodipodi:docname="file_type_scale.svg"
+   inkscape:version="1.1 (c4e8f9e, 2021-05-24)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs14" />
+  <sodipodi:namedview
+     id="namedview12"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     showgrid="false"
+     inkscape:zoom="16"
+     inkscape:cx="-2"
+     inkscape:cy="13.9375"
+     inkscape:window-width="2560"
+     inkscape:window-height="1080"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg10"
+     inkscape:snap-page="false" />
+  <title
+     id="title2">file_type_objectivec</title>
+  <polygon
+     points="2.033 30 2.033 2 7.967 2 7.967 4.227 4.723 4.227 4.723 27.773 7.967 27.773 7.967 30 2.033 30"
+     style="fill:#87aade"
+     id="polygon6" />
+  <polygon
+     points="29.967 29.999 24.033 29.999 24.033 27.771 27.277 27.771 27.277 4.226 24.033 4.226 24.033 1.999 29.967 1.999 29.967 29.999"
+     style="fill:#87aade"
+     id="polygon8" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;fill:#5f8dd3;fill-opacity:1;stroke:none"
+     x="6.0381765"
+     y="28.244265"
+     id="text817"><tspan
+       sodipodi:role="line"
+       id="tspan815"
+       x="6.0381765"
+       y="28.244265"
+       style="font-style:normal;font-variant:normal;font-weight:800;font-stretch:normal;font-size:33.3333px;font-family:'JetBrains Mono';-inkscape-font-specification:'JetBrains Mono, Ultra-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#5f8dd3">S</tspan></text>
+</svg>
