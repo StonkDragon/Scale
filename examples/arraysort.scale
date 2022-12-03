@@ -2,7 +2,7 @@ using "core"
 using "util/array"
 using "math"
 function createList(len: int): Array
-    decl arr:Array len Array:new store arr
+    decl arr:Array len Array:new store arr 2 exit
     decl i: int 0 store i
     while i len < do
         i len i - arr:set
