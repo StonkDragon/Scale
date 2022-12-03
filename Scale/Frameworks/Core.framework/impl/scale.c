@@ -20,7 +20,7 @@ sclDefFunc(dumpstack, void) {
 	printf("Dump:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
 		long long v = (long long) stack.data[i].i;
-		printf("   %zd: 0x%016llx, %lld, %s\n", i, v, v, (scl_str) v);
+		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
 	callstk.ptr--;
