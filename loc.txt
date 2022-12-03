@@ -20,7 +20,7 @@
       11 Scale/Frameworks/Core.framework/include/fmt.scale
       31 Scale/Frameworks/Core.framework/include/io.scale
       36 Scale/Frameworks/Core.framework/include/math.scale
-      73 Scale/Frameworks/Core.framework/include/util/array.scale
+      76 Scale/Frameworks/Core.framework/include/util/array.scale
        9 Scale/Frameworks/Core.framework/include/util/pair.scale
       81 Scale/Frameworks/Core.framework/include/util/range.scale
       11 Scale/Frameworks/Core.framework/include/util/triple.scale
@@ -51,4 +51,4 @@
        9 interop-example/foo.c
       14 interop-example/main.scale
       17 interop-example/scale_support.h
-    6913 total
+    6916 total

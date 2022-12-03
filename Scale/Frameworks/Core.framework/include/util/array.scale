@@ -38,7 +38,10 @@ function Array:pop(): none
   self.count 1 - store self.count
 end
 
+extern function dumpstack(): none
+
 function Array:init(size: int): none
+  dumpstack
   size 1 < if
     "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
   fi
