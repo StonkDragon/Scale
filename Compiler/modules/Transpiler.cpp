@@ -61,8 +61,6 @@ namespace sclc {
         if (Main.options.transpileOnly) {
             remove("scale_support.h");
             nomangled = fopen("scale_support.h", "a");
-            fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
-            fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
             fprintf(nomangled, "#include <scale_internal.h>\n\n");
 
             fprintf(nomangled, "#define scl_export(func_name) \\\n");
@@ -323,19 +321,16 @@ namespace sclc {
 
                 append("%s %s%s {\n", return_type.c_str(), function->getName().c_str(), args.c_str());
                 scopeDepth++;
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (function->getArgs()[i].getType() == "float") {
-                        append("stack.data[stack.ptr++].f = Var_%s;\n", function->getArgs()[i].getName().c_str());
-                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
-                    } else {
-                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function->getArgs()[i].getName().c_str());
-                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
-                    }
+                args = "";
+                for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
+                    Variable arg = function->getArgs()[i];
+                    args += "Var_" + arg.getName();
+                    if (i) args += ", ";
                 }
                 if (return_type != "void") {
-                    append("return Function_%s();\n", function->getName().c_str());
+                    append("return Function_%s(%s);\n", function->getName().c_str(), args.c_str());
                 } else {
-                    append("Function_%s();\n", function->getName().c_str());
+                    append("Function_%s(%s);\n", function->getName().c_str(), args.c_str());
                 }
                 scopeDepth--;
                 append("}\n");
