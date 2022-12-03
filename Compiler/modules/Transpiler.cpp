@@ -319,6 +319,16 @@ namespace sclc {
 
             append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
 
+            if (function->isMethod) {
+                append("if (stack.ptr < %zu)\n", function->getArgs().size() - 1);
+            } else {
+                append("if (stack.ptr < %zu)\n", function->getArgs().size());
+            }
+            scopeDepth++;
+            append("scl_security_throw(EX_INVALID_ARGUMENT, \"Not enough data on the stack!\");\n");
+            scopeDepth--;
+
+
             for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
                 Variable var = function->getArgs()[i];
                 vars[varDepth].push_back(var);
