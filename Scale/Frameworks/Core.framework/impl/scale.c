@@ -103,6 +103,13 @@ sclDefFunc(strcmp, scl_int) {
 	return strcmp(s1, s2) == 0;
 }
 
+sclDefFunc(strdup, scl_str) {
+	callstk.data[callstk.ptr++].s = "strdup()";
+	scl_str s = ctrl_pop_string();
+	callstk.ptr--;
+	return strdup(s);
+}
+
 sclDefFunc(strncmp, scl_int) {
 	callstk.data[callstk.ptr++].s = "strncmp()";
 	long long n = ctrl_pop_long();
@@ -110,51 +117,6 @@ sclDefFunc(strncmp, scl_int) {
 	scl_str s2 = ctrl_pop_string();
 	callstk.ptr--;
 	return strncmp(s1, s2, n) == 0;
-}
-
-sclDefFunc(fopen, scl_value) {
-	callstk.data[callstk.ptr++].s = "fopen()";
-	scl_str mode = ctrl_pop_string();
-	scl_str name = ctrl_pop_string();
-	FILE *f = fopen(name, mode);
-	if (f == NULL) {
-		char* err = malloc(strlen("Unable to open file '%s'") + strlen(name) + 1);
-		sprintf(err, "Unable to open file '%s'", name);
-		scl_security_throw(EX_IO_ERROR, err);
-	}
-	callstk.ptr--;
-	return (scl_value) f;
-}
-
-sclDefFunc(fclose, void) {
-	callstk.data[callstk.ptr++].s = "fclose()";
-	FILE *f = (FILE*) ctrl_pop();
-	fclose(f);
-	callstk.ptr--;
-}
-
-sclDefFunc(fseek, void) {
-	callstk.data[callstk.ptr++].s = "fseek()";
-	long long offset = ctrl_pop_long();
-	int whence = ctrl_pop_long();
-	FILE *f = (FILE*) ctrl_pop();
-	fseek(f, offset, whence);
-	callstk.ptr--;
-}
-
-sclDefFunc(ftell, scl_int) {
-	callstk.data[callstk.ptr++].s = "ftell()";
-	FILE *f = (FILE*) ctrl_pop();
-	ctrl_push((scl_value) f);
-	callstk.ptr--;
-	return ftell(f);
-}
-
-sclDefFunc(fileno, scl_int) {
-	callstk.data[callstk.ptr++].s = "fileno()";
-	FILE *f = (FILE*) ctrl_pop();
-	callstk.ptr--;
-	return fileno(f);
 }
 
 sclDefFunc(raise, void) {
@@ -169,32 +131,6 @@ sclDefFunc(raise, void) {
 		process_signal(n);
 	}
 	callstk.ptr--;
-}
-
-sclDefFunc(write, void) {
-	callstk.data[callstk.ptr++].s = "write()";
-	long long n = ctrl_pop_long();
-	scl_value s = ctrl_pop();
-	long long fd = ctrl_pop_long();
-	ssize_t result = write(fd, s, n);
-	if (result == -1) {
-		scl_security_throw(EX_INVALID_ARGUMENT, "Write failed");
-	}
-	callstk.ptr--;
-}
-
-sclDefFunc(read, scl_value) {
-	callstk.data[callstk.ptr++].s = "read()";
-	long long n = ctrl_pop_long();
-	scl_value s = scl_alloc(n);
-	long long fd = ctrl_pop_long();
-	int ret = read(fd, s, n);
-	if (ret == -1) {
-		ctrl_push_long(EX_IO_ERROR);
-		Function_raise();
-	}
-	callstk.ptr--;
-	return s;
 }
 
 sclDefFunc(strrev, scl_str) {

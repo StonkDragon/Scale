@@ -11,6 +11,7 @@ extern function free(_ptr_: any): none
 extern function strlen(_str_: str): int
 extern function strsplit(_str_: str, _delim_: str): Array
 extern function strcmp(_str1_: str, _str2_: str): int
+extern function strdup(_str_: str): str
 extern function strncmp(_str1_: str, _str2_: str, _n_: int): int
 extern function concat(_str1_: str, _str2_: str): str
 extern function strrev(_str_: str): str

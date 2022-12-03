@@ -1,7 +1,14 @@
 using "core" from "Core"
 
-extern function write(_fd_: int, _str_: str, _n_: int): none
-extern function read(_fd_: int, _n_: int): any
+function write(_fd_: int, _str_: str, _n_: int): none
+    cdecl "write(Var__fd_, Var__str_, Var__n_);"
+end
+
+function read(_fd_: int, _n_: int): str
+    decl buf: str _n_ malloc store buf
+    cdecl "read(Var__fd_, Var_buf, Var__n_);"
+    buf return
+end
 
 function puts(_str_: str): none
     1 _str_ _str_ strlen write
