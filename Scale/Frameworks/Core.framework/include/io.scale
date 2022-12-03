@@ -11,13 +11,11 @@ function read(_fd_: int, _n_: int): str
 end
 
 function puts(_str_: str): none
-    1 _str_ _str_ strlen write
-    1 "\n" 1 write
+    cdecl "printf(\"%s\n\", Var__str_);"
 end
 
 function eputs(_str_: str): none
-    2 _str_ _str_ strlen write
-    2 "\n" 1 write
+    cdecl "fprintf(stderr, \"%s\n\", Var__str_);"
 end
 
 function putint(_int_: int): none
