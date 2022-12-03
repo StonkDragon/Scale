@@ -781,7 +781,13 @@ namespace sclc {
                                 ITER_INC;
                             }
                             std::string iterator_direction = "++";
-                            if (body[i].getType() != tok_do) {
+                            if (body[i].getType() == tok_step) {
+                                ITER_INC;
+                                if (body[i].getType() == tok_do) {
+                                    transpilerError("Expected step, but got '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
                                 std::string val = body[i].getValue();
                                 if (val == "+") {
                                     ITER_INC;

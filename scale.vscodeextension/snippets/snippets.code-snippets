@@ -177,6 +177,16 @@
 		],
 		"description": "For Loop"
 	},
+	"For Loop with Step": {
+		"scope": "source.scale",
+		"prefix": "forstep",
+		"body": [
+			"for ${1:i} in ${2} to ${3} step ${4:++} do",
+			"\t$0",
+			"done"
+		],
+		"description": "For Loop with Step"
+	},
 	"Foreach Loop": {
 		"scope": "source.scale",
 		"prefix": "foreach",

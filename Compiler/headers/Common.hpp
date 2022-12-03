@@ -144,6 +144,7 @@ namespace sclc
         tok_for,            // for
         tok_foreach,        // foreach
         tok_in,             // in
+        tok_step,           // step
         tok_to,             // to
         tok_addr_ref,       // addr
         tok_load,           // load

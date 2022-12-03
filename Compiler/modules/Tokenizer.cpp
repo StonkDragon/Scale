@@ -298,6 +298,7 @@ namespace sclc
         TOKEN("case",       tok_case, line, filename, startColumn);
         TOKEN("esac",       tok_esac, line, filename, startColumn);
         TOKEN("default",    tok_default, line, filename, startColumn);
+        TOKEN("step",       tok_step, line, filename, startColumn);
         
         if (inFunction) {
             TOKEN("@",      tok_addr_of, line, filename, startColumn);
