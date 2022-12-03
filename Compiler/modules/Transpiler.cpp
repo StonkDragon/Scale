@@ -133,7 +133,7 @@ namespace sclc {
         for (Variable s : result.globals) {
             append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             if (nomangled && Main.options.transpileOnly) fprintf(nomangled, "extern %s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
-            vars.push_back(s);
+            vars[varDepth].push_back(s);
             globals.push_back(s);
         }
 
@@ -214,8 +214,10 @@ namespace sclc {
         {
             Function* function = result.functions[f];
             vars.clear();
+            std::vector<Variable> defaultScope;
+            vars.push_back(defaultScope);
             for (Variable g : globals) {
-                vars.push_back(g);
+                vars[0].push_back(g);
             }
 
             scopeDepth = 0;
@@ -317,7 +319,7 @@ namespace sclc {
 
             for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
                 Variable var = function->getArgs()[i];
-                vars.push_back(var);
+                vars[varDepth].push_back(var);
                 if (function->isMethod && var.getName() == "self") continue;
                 std::string ret_type = sclReturnTypeToCReturnType(result, var.getType());
                 if (function->getArgs()[i].getType() == "float") {
@@ -684,13 +686,21 @@ namespace sclc {
                         case tok_if: {
                             append("if (stack.data[--stack.ptr].v) {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
                         case tok_else: {
                             scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
                             append("} else {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
@@ -698,6 +708,9 @@ namespace sclc {
                             append("while (1) {\n");
                             scopeDepth++;
                             was_rep.push_back(false);
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
@@ -730,6 +743,9 @@ namespace sclc {
                             );
                             repeat_depth++;
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             was_rep.push_back(true);
                             i += 2;
                             break;
@@ -861,14 +877,18 @@ namespace sclc {
                             append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
                             append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
                             
+                            std::string var_prefix = "";
                             if (!hasVar(var)) {
-                                append("scl_int Var_%s;\n", var.getValue().c_str());
+                                var_prefix = "scl_int ";
                             }
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             
                             if (iterator_direction == "")
-                                append("for (Var_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
+                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
                             else
-                                append("for (Var_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
+                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
                             iterator_count++;
                             scopeDepth++;
 
@@ -907,7 +927,7 @@ namespace sclc {
                             }
 
                             if (!hasVar(var))
-                                vars.push_back(Variable(var.getValue(), "int"));
+                                vars[varDepth].push_back(Variable(var.getValue(), "int"));
                             was_rep.push_back(false);
                             break;
                         }
@@ -966,12 +986,17 @@ namespace sclc {
                             }
                             append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
                             append("Method_%sIterator_init(&%s);\n", iterable.getType().c_str(), iterator_name.c_str());
-                            if (!hasVar(iter_var_tok))
-                                append("scl_value Var_%s;\n", iter_var_tok.getValue().c_str());
-                            vars.push_back(Variable(iter_var_tok.getValue(), "any"));
+                            std::string var_prefix = "";
+                            if (!hasVar(iter_var_tok)) {
+                                var_prefix = "scl_value ";
+                            }
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
+                            vars[varDepth].push_back(Variable(iter_var_tok.getValue(), "any"));
                             std::string iter_type = iterable.getType();
                             std::string type = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
-                            append("for (Var_%s = (%s) Method_%sIterator_begin(&%s); Method_%sIterator_has_next(&%s); Var_%s = (%s) Method_%sIterator_next(&%s)) {\n", iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
+                            append("for (%sVar_%s = (%s) Method_%sIterator_begin(&%s); Method_%sIterator_has_next(&%s); Var_%s = (%s) Method_%sIterator_next(&%s)) {\n", var_prefix.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
                             scopeDepth++;
                             ITER_INC;
                             break;
@@ -981,6 +1006,8 @@ namespace sclc {
                         case tok_fi:
                         case tok_end: {
                             scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
                             append("}\n");
                             if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
                                 repeat_depth--;
@@ -1232,7 +1259,7 @@ namespace sclc {
                                 continue;
                             }
                             Variable v = Variable(name, type);
-                            vars.push_back(v);
+                            vars[varDepth].push_back(v);
                             append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str());
                             break;
                         }
@@ -1275,6 +1302,9 @@ namespace sclc {
                             } else {
                                 append("case %s: {\n", body[i].getValue().c_str());
                                 scopeDepth++;
+                                varDepth++;
+                                std::vector<Variable> defaultScope;
+                                vars.push_back(defaultScope);
                             }
                             break;
                         }
@@ -1282,6 +1312,8 @@ namespace sclc {
                         case tok_esac: {
                             append("break;\n");
                             scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
                             append("}\n");
                             break;
                         }
@@ -1289,12 +1321,18 @@ namespace sclc {
                         case tok_default: {
                             append("default: {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
                         case tok_switch: {
                             append("switch (stack.data[--stack.ptr].i) {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             was_rep.push_back(false);
                             break;
                         }
