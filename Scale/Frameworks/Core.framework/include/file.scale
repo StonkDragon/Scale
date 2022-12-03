@@ -25,7 +25,7 @@ function fseek(_file_: any, _whence_: int, _offset_: int): none
 end
 
 function fwrite(_buf_: any, _size_: int, _file_: any): none
-    cdecl "(void)  fwrite(Var__buf_, 1, Var__size_, Var__file_);"
+    cdecl "int _ignored = fwrite(Var__buf_, 1, Var__size_, Var__file_); (void) _ignored;"
 end
 
 function fputs(_file_: any, _str_: str): none
@@ -43,7 +43,7 @@ end
 
 function fread(_f_: any, _size_: int): any
     decl _buf_: any _size_ malloc store _buf_
-    cdecl "(void)  fread(Var__buf_, 1, Var__size_, Var__f_);"
+    cdecl "int _ignored = fread(Var__buf_, 1, Var__size_, Var__f_); (void) _ignored;"
     _buf_ return
 end
 
