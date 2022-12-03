@@ -64,9 +64,10 @@ Optional:
   - `return`: Return from a function
   - `break`: Break out of a loop
   - `continue`: Continue to the next iteration of a loop
-  - `for`: Begin a for loop header
-  - `in`: Define for loop iterator
-  - `to`: Define for loop end value
+  - `for`: Begin a for-loop header
+  - `in`: Define for-loop start value
+  - `to`: Define for-loop end value
+  - `step`: Define the step of the for-loop
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
@@ -78,7 +79,11 @@ Optional:
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
   - `goto`: Goto a label
-  - `self`: Reference to the current instance inside a member function
+  - `self`: Reference to the current instance inside of a member function
+  - `switch`: Define a switch statement
+  - `case`: Define a case inside of a switch statement
+  - `esac`: End of a case statement
+  - `default`: Define a default statement inside of a switch statement
 
 ## Argument Notation/Calling Convention
 
