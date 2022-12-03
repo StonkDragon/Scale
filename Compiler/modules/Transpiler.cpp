@@ -764,6 +764,10 @@ namespace sclc {
                             ITER_INC;
                             push_var();
                             ITER_INC;
+                            if (body[i].getType() == tok_addr_of) {
+                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                                ITER_INC;
+                            }
                             if (body[i].getType() != tok_to) {
                                 transpilerError("Expected 'to', but got '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
@@ -772,32 +776,36 @@ namespace sclc {
                             ITER_INC;
                             push_var();
                             ITER_INC;
+                            if (body[i].getType() == tok_addr_of) {
+                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                                ITER_INC;
+                            }
                             std::string iterator_direction = "++";
                             if (body[i].getType() != tok_do) {
                                 std::string val = body[i].getValue();
-                                if (val == "ascend") {
-                                    iterator_direction = "++";
-                                } else if (val == "descend") {
-                                    iterator_direction = "--";
-                                } else if (val == "add") {
+                                if (val == "+") {
                                     ITER_INC;
                                     iterator_direction = " += ";
                                     if (body[i].getType() == tok_number) {
                                         iterator_direction += body[i].getValue();
+                                    } else if (body[i].getValue() == "+") {
+                                        iterator_direction = "++";
                                     } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        transpilerError("Expected number or '+', but got '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
-                                } else if (val == "sub") {
+                                } else if (val == "-") {
                                     ITER_INC;
                                     iterator_direction = " -= ";
                                     if (body[i].getType() == tok_number) {
                                         iterator_direction += body[i].getValue();
+                                    } else if (body[i].getValue() == "+") {
+                                        iterator_direction = "--";
                                     } else {
                                         transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
-                                } else if (val == "mul") {
+                                } else if (val == "*") {
                                     ITER_INC;
                                     iterator_direction = " *= ";
                                     if (body[i].getType() == tok_number) {
@@ -806,9 +814,27 @@ namespace sclc {
                                         transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
-                                } else if (val == "div") {
+                                } else if (val == "/") {
                                     ITER_INC;
                                     iterator_direction = " /= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "<<") {
+                                    ITER_INC;
+                                    iterator_direction = " <<= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == ">>") {
+                                    ITER_INC;
+                                    iterator_direction = " >>= ";
                                     if (body[i].getType() == tok_number) {
                                         iterator_direction += body[i].getValue();
                                     } else {

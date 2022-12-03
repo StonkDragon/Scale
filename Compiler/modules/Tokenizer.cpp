@@ -37,7 +37,7 @@ namespace sclc
         char c = source[current];
         std::string value = "";
 
-        if (c == '\n') {
+        if (c == '\n' || c == '\0') {
             line++;
             column = 0;
             startColumn = 0;
@@ -365,11 +365,11 @@ namespace sclc
         int size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
 
-        char *buffer = new char[size + 1];
+        char* buffer = new char[size + 1];
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
-            if (buffer[0] == '#') {
+            if (std::string(buffer).length() <= 1 || buffer[0] == '\0' || buffer[0] == '#' || buffer[0] == '\n' || buffer[0] == '\r') {
                 data += "\n";
                 continue;
             }
@@ -378,6 +378,8 @@ namespace sclc
             char *c = buffer;
             while (*c != '\0') {
                 if (*c == '#') {
+                    *c = '\n';
+                    c++;
                     *c = '\0';
                     break;
                 }
