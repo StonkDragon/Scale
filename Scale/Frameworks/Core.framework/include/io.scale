@@ -19,11 +19,11 @@ function eputs(_str_: str): none
 end
 
 function putint(_int_: int): none
-    _int_ longToString puts
+    cdecl "printf(\"%lld\n\", Var__int_);"
 end
 
 function putfloat(_f_: float): none
-    _f_ doubleToString puts
+    cdecl "printf(\"%f\n\", Var__f_);"
 end
 
 function throwerr(_err_: str): none
