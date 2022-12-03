@@ -127,6 +127,7 @@ Example:
   - [While-Loop](./examples/while.scale)
   - [Fibonacci Numbers](./examples/fib.scale)
   - [For-Loop](./examples/for.scale)
+  - [Switch Expression](./examples/switch.scale)
   - [For-Loop with step](./examples/for-step.scale)
   - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
