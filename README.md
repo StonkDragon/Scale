@@ -122,6 +122,7 @@ Example:
   - [While-Loop](./examples/while.scale)
   - [Fibonacci Numbers](./examples/fib.scale)
   - [For-Loop](./examples/for.scale)
+  - [For-Loop with step](./examples/for-step.scale)
   - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
   - [Function Arguments](./examples/arguments.scale)
@@ -132,6 +133,7 @@ Example:
   - [C Declaration codeblock](./examples/cdecl.scale)
   - [Labels and Goto](./examples/label-goto.scale)
   - [Object-Oriented Programming in Scale](./examples/oop.scale)
+  - [Foreach-Loop](./examples/foreach.scale)
 
 # Build
 
