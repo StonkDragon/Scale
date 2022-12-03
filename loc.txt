@@ -1,5 +1,5 @@
      226 Compiler/Common.cpp
-     710 Compiler/Main.cpp
+     713 Compiler/Main.cpp
      547 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
      166 Compiler/headers/TranspilerDefs.hpp
@@ -50,4 +50,4 @@
        9 interop-example/foo.c
       17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6961 total
+    6964 total

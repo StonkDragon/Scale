@@ -13,6 +13,9 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#ifndef LINK_MATH
+#define LINK_MATH
+#endif
 #else
 #include <process.h>
 #define execv _execv
