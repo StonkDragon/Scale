@@ -334,6 +334,17 @@ namespace sclc {
                 }
                 scopeDepth--;
                 append("}\n");
+            } else if (noMangle && function->isMethod) {
+                FPResult err;
+                err.success = false;
+                err.message = "Methods don't support the @nomangle Modifier!";
+                err.column = function->getNameToken().getColumn();
+                err.line = function->getNameToken().getLine();
+                err.in = function->getNameToken().getFile();
+                err.value = function->getNameToken().getValue();
+                err.type = function->getNameToken().getType();
+                errors.push_back(err);
+                continue;
             }
 
             return_type = "void";
@@ -363,18 +374,6 @@ namespace sclc {
             scopeDepth++;
 
             append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
-
-            // for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
-            //     Variable var = function->getArgs()[i];
-            //     vars[varDepth].push_back(var);
-            //     if (function->isMethod && var.getName() == "self") continue;
-            //     std::string ret_type = sclReturnTypeToCReturnType(result, var.getType());
-            //     if (function->getArgs()[i].getType() == "float") {
-            //         append("%s Var_%s = stack.data[--stack.ptr].f;\n", ret_type.c_str(), var.getName().c_str());
-            //     } else {
-            //         append("%s Var_%s = (%s) stack.data[--stack.ptr].v;\n", ret_type.c_str(), var.getName().c_str(), ret_type.c_str());
-            //     }
-            // }
 
             std::vector<Token> body = function->getBody();
             std::vector<bool> was_rep;
