@@ -48,6 +48,7 @@ namespace sclc
         try {
             long long num = parseNumber(token.getValue());
             append("stack.data[stack.ptr++].i = %lld;\n", num);
+            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;
@@ -69,6 +70,7 @@ namespace sclc
         try {
             double num = parseDouble(token.getValue());
             append("stack.data[stack.ptr++].f = %f;\n", num);
+            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
         } catch (std::exception &e) {
             FPResult result;
             result.success = false;

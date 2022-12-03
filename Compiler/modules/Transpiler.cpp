@@ -288,8 +288,10 @@ namespace sclc {
                 for (size_t i = 0; i < function->getArgs().size(); i++) {
                     if (function->getArgs()[i].getType() == "float") {
                         append("stack.data[stack.ptr++].f = Var_%s;\n", function->getArgs()[i].getName().c_str());
+                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                     } else {
                         append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function->getArgs()[i].getName().c_str());
+                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                     }
                 }
                 if (return_type != "void") {
@@ -356,13 +358,16 @@ namespace sclc {
                                 append("stack.ptr--;\n");
                             } else if (body[i].getValue() == "dup") {
                                 append("stack.data[stack.ptr++].v = stack.data[stack.ptr - 1].v;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             } else if (body[i].getValue() == "swap") {
                                 append("{\n");
                                 scopeDepth++;
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "over") {
@@ -372,8 +377,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = c;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "sdup2") {
@@ -382,8 +390,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "swap2") {
@@ -393,8 +404,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 append("stack.data[stack.ptr++].v = c;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "clearstack") {
@@ -402,29 +416,37 @@ namespace sclc {
                             } else if (body[i].getValue() == "&&") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "!") {
                                 append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
                             } else if (body[i].getValue() == "||") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "<") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == ">") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "==") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "<=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == ">=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "!=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
                             } else if (body[i].getValue() == "++") {
                                 append("stack.data[stack.ptr - 1].i++;\n");
                             } else if (body[i].getValue() == "--") {
@@ -443,8 +465,10 @@ namespace sclc {
                                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                     if (f->getReturnType() == "float") {
                                         append("stack.data[stack.ptr++].f = Function_%s();\n", f->getName().c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                                     } else {
                                         append("stack.data[stack.ptr++].v = (scl_value) Function_%s();\n", f->getName().c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                     }
                                 } else {
                                     append("Function_%s();\n", f->getName().c_str());
@@ -465,10 +489,13 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                if (container.getMemberType(memberName) == "float")
+                                if (container.getMemberType(memberName) == "float") {
                                     append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-                                else
+                                    if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
+                                } else {
                                     append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                                    if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
+                                }
                             } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
                                 if (body[i + 1].getType() == tok_column) {
                                     ITER_INC;
@@ -476,6 +503,7 @@ namespace sclc {
                                     if (body[i].getType() == tok_new) {
                                         std::string struct_ = body[i - 2].getValue();
                                         append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                         if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
                                             append("{\n");
                                             scopeDepth++;
@@ -484,13 +512,16 @@ namespace sclc {
                                             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                                 if (f->getReturnType() == "float") {
                                                     append("stack.data[stack.ptr++].f = Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                    if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                                                 } else {
                                                     append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                    if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                                 }
                                             } else {
                                                 append("Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
                                             }
                                             append("stack.data[stack.ptr++].v = tmp;\n");
+                                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                             scopeDepth--;
                                             append("}\n");
                                         }
@@ -504,8 +535,10 @@ namespace sclc {
                                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                             if (f->getReturnType() == "float") {
                                                 append("stack.data[stack.ptr++].f = Method_%s_%s((struct Struct_%s*) stack.data[--stack.ptr].v);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), ((Method*)(f))->getMemberType().c_str());
+                                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                                             } else {
                                                 append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s((struct Struct_%s*) stack.data[--stack.ptr].v);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), ((Method*)(f))->getMemberType().c_str());
+                                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                             }
                                         } else {
                                             append("Method_%s_%s((struct Struct_%s*) stack.data[--stack.ptr].v);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), ((Method*)(f))->getMemberType().c_str());
@@ -539,12 +572,18 @@ namespace sclc {
                                             continue;
                                         }
                                         Method* f = getMethodByName(result, body[i].getValue(), v.getType());
+                                        if (Main.options.debugBuild) {
+                                            // appendfprintf(stderr, \"Pushing: %lld\\n\",= (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        }
                                         // append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                             if (f->getReturnType() == "float") {
                                                 append("stack.data[stack.ptr++].f = Method_%s_%s(Var_%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), loadFrom.c_str());
+                                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                                             } else {
                                                 append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(Var_%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), loadFrom.c_str());
+                                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                             }
                                         } else {
                                             append("Method_%s_%s(Var_%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), loadFrom.c_str());
@@ -552,6 +591,7 @@ namespace sclc {
                                     } else {
                                         if (body[i + 1].getType() != tok_dot) {
                                             append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                             continue;
                                         }
                                         ITER_INC;
@@ -563,16 +603,22 @@ namespace sclc {
                                             continue;
                                         }
                                         Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                        if (mem.getType() == "float")
+                                        if (mem.getType() == "float") {
                                             append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                        else
+                                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
+                                        } else {
                                             append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
+                                        }
                                     }
                                 } else {
-                                    if (v.getType() == "float")
+                                    if (v.getType() == "float") {
                                         append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
-                                    else
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
+                                    } else {
                                         append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
+                                    }
                                 }
                             } else {
                                 transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
@@ -583,6 +629,7 @@ namespace sclc {
 
                         case tok_string_literal: {
                             append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: '%%s'\\n\", stack.data[stack.ptr - 1].s);\n");
                             break;
                         }
 
@@ -619,11 +666,13 @@ namespace sclc {
                         case tok_nil:
                         case tok_false: {
                             append("stack.data[stack.ptr++].v = (scl_value) 0;\n");
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             break;
                         }
 
                         case tok_true: {
                             append("stack.data[stack.ptr++].v = (scl_value) 1;\n");
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             break;
                         }
 
@@ -645,6 +694,7 @@ namespace sclc {
                                 continue;
                             }
                             append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
                                 append("{\n");
                                 scopeDepth++;
@@ -653,13 +703,16 @@ namespace sclc {
                                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                     if (f->getReturnType() == "float") {
                                         append("stack.data[stack.ptr++].f = Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
                                     } else {
                                         append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                     }
                                 } else {
                                     append("Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
                                 }
                                 append("stack.data[stack.ptr++].v = tmp;\n");
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 scopeDepth--;
                                 append("}\n");
                             }
@@ -985,6 +1038,7 @@ namespace sclc {
                                 continue;
                             }
                             append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             append("Method_%sIterator_init(&%s);\n", iterable.getType().c_str(), iterator_name.c_str());
                             std::string var_prefix = "";
                             if (!hasVar(iter_var_tok)) {
@@ -1043,6 +1097,7 @@ namespace sclc {
                             if (hasFunction(result, toGet)) {
                                 Function* f = getFunctionByName(result, toGet.getValue());
                                 append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 ITER_INC;
                             } else if (hasVar(toGet)) {
                                 Variable v = getVar(body[i]);
@@ -1056,9 +1111,11 @@ namespace sclc {
                                         }
                                         Method* f = getMethodByName(result, body[i].getValue(), v.getType());
                                         append("stack.data[stack.ptr++].v = (scl_value) &Method_%s_%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                     } else {
                                         if (body[i + 1].getType() != tok_dot) {
                                             append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                             continue;
                                         }
                                         ITER_INC;
@@ -1070,9 +1127,11 @@ namespace sclc {
                                             continue;
                                         }
                                         append("stack.data[stack.ptr++].v = (scl_value) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                     }
                                 } else {
                                     append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                    if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                                 }
                             } else if (hasContainer(result, toGet)) {
                                 ITER_INC;
@@ -1092,6 +1151,7 @@ namespace sclc {
                                     continue;
                                 }
                                 append("stack.data[stack.ptr++].v = (scl_value) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
+                                if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             } else {
                                 transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
                                 errors.push_back(err);
@@ -1344,6 +1404,7 @@ namespace sclc {
 
                         case tok_curly_close: {
                             append("stack.ptr -= 2; stack.data[stack.ptr++].v =(*(scl_value*) (stack.data[stack.ptr].v + (stack.data[stack.ptr + 1].i * 8)));\n");
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%p\\n\", stack.data[stack.ptr - 1].v);\n");
                             break;
                         }
 
