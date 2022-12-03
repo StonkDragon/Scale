@@ -1,8 +1,0 @@
-(null)
-
-Exception: Unaccessible Memory Access
-Stacktrace:
-  puts(_str_: str): none
-  foo(foo_: str, bar: str, baz: str): none
-  main(): none
-

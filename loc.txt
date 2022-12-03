@@ -45,10 +45,9 @@
        9 examples/sizeof.scale
       16 examples/struct.scale
       30 examples/switch.scale
-      11 examples/underflow.scale
        8 examples/variables.scale
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
       17 interop-example/scale_support.h
-    6973 total
+    6962 total
