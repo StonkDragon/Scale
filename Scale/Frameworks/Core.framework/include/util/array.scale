@@ -25,9 +25,10 @@ end
 function Array:push(value: any): none
   self.count self.capacity >= if
     self.capacity 2 * store self.capacity
-    self.values self.capacity 8 * realloc
+    self.capacity 8 * self.values realloc
     store self.values
   fi
+
   decl tmp: any
   self.values self.count 3 << + store tmp
   value store @tmp

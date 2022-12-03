@@ -142,7 +142,7 @@ struct Array {
 };
 
 void Method_Array_init(struct Array*, scl_int);
-void Method_Array_push(struct Array*, scl_value);
+void Method_Array_push(struct Array* Var_self, scl_value Var_value);
 
 sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string) {
 	callstk.data[callstk.ptr++].s = "strsplit()";
