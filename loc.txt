@@ -9,7 +9,7 @@
       90 Compiler/modules/TokenHandlers.cpp
     1075 Compiler/modules/TokenParser.cpp
      447 Compiler/modules/Tokenizer.cpp
-    1483 Compiler/modules/Transpiler.cpp
+    1478 Compiler/modules/Transpiler.cpp
       30 Scale/Frameworks/Core.framework/impl/array.c
        6 Scale/Frameworks/Core.framework/impl/array.h
      362 Scale/Frameworks/Core.framework/impl/scale.c
@@ -48,6 +48,6 @@
        8 examples/variables.scale
       11 examples/while.scale
        9 interop-example/foo.c
-      14 interop-example/main.scale
+      17 interop-example/main.scale
       17 interop-example/scale_support.h
-    6962 total
+    6960 total
