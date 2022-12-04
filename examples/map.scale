@@ -1,0 +1,8 @@
+using "util/map" from "Core"
+
+function main(): none
+    decl map: Map ["A": "Apple", "B": "Banana" " " concat "Pineapple" concat] => map
+    
+    "A" map:get puts
+    "B" map:get puts
+end
