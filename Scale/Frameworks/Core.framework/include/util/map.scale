@@ -54,7 +54,7 @@ struct MapIterator
 end
 
 function MapIterator:init(map: Map): none
-    map._data => self.map
+    map._data => self.array
     0 => self.pos
 end
 
