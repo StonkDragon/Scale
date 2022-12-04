@@ -370,16 +370,19 @@ namespace sclc {
             } else {
                 append("%s Method_%s_%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
-            
-            scopeDepth++;
-
-            append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
 
             std::vector<Token> body = function->getBody();
             std::vector<bool> was_rep;
             size_t i;
             char repeat_depth = 0;
             int iterator_count = 0;
+            if (body.size() == 0)
+                goto emptyFunction;
+            
+            scopeDepth++;
+
+            append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
+
             for (i = 0; i < body.size(); i++) {
                 if (body[i].getType() == tok_ignore) continue;
 
@@ -1462,6 +1465,7 @@ namespace sclc {
             scopeDepth = 1;
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return)
                 append("callstk.ptr--;\n");
+        emptyFunction:
             scopeDepth = 0;
             append("}\n\n");
         }
