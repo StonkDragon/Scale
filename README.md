@@ -132,7 +132,6 @@ Example:
   - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
   - [Function Arguments](./examples/arguments.scale)
-  - [Stack underflow](./examples/underflow.scale)
   - [Pointer Dereferencing](./examples/deref.scale)
   - [Container Introduction](./examples/container.scale)
   - [Structure Introduction](./examples/struct.scale)
