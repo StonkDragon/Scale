@@ -48,6 +48,7 @@ test.txt
 .vscode
 .fleet
 private
+private-tests
 build
 makebin
 compile
