@@ -316,8 +316,8 @@ namespace sclc
         } else {
             TOKEN("@",      tok_hash, line, filename, startColumn);
         }
-        TOKEN("(",          tok_open_paren, line, filename, startColumn);
-        TOKEN(")",          tok_close_paren, line, filename, startColumn);
+        TOKEN("(",          tok_paren_open, line, filename, startColumn);
+        TOKEN(")",          tok_paren_close, line, filename, startColumn);
         TOKEN("{",          tok_curly_open, line, filename, startColumn);
         TOKEN("}",          tok_curly_close, line, filename, startColumn);
         TOKEN("[",          tok_bracket_open, line, filename, startColumn);
