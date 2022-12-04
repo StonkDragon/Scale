@@ -109,9 +109,9 @@ namespace sclc
                         currentFunction->addModifier(mod_nomangle);
                     }
                     i += 2;
-                    if (tokens[i].getType() == tok_open_paren) {
+                    if (tokens[i].getType() == tok_paren_open) {
                         i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                             if (tokens[i].getType() == tok_identifier) {
                                 std::string name = tokens[i].getValue();
                                 std::string type = "any";
@@ -170,7 +170,7 @@ namespace sclc
                                 continue;
                             }
                             i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
                                 if (tokens[i].getType() == tok_comma) {
                                     i++;
                                 }
@@ -251,9 +251,9 @@ namespace sclc
                         currentFunction->addModifier(mod_nomangle);
                     }
                     i += 2;
-                    if (tokens[i].getType() == tok_open_paren) {
+                    if (tokens[i].getType() == tok_paren_open) {
                         i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                             if (tokens[i].getType() == tok_identifier) {
                                 std::string name = tokens[i].getValue();
                                 std::string type = "any";
@@ -312,7 +312,7 @@ namespace sclc
                                 continue;
                             }
                             i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
                                 if (tokens[i].getType() == tok_comma) {
                                     i++;
                                 }
@@ -623,9 +623,9 @@ namespace sclc
                             function->addModifier(mod_nomangle);
                         }
                         i += 2;
-                        if (tokens[i].getType() == tok_open_paren) {
+                        if (tokens[i].getType() == tok_paren_open) {
                             i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                                 if (tokens[i].getType() == tok_identifier) {
                                     std::string name = tokens[i].getValue();
                                     std::string type = "any";
@@ -684,7 +684,7 @@ namespace sclc
                                     continue;
                                 }
                                 i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
                                     if (tokens[i].getType() == tok_comma) {
                                         i++;
                                     }
@@ -750,9 +750,9 @@ namespace sclc
                         Function* func = new Function(name, funcTok);
                         func->setFile(funcTok.getFile());
                         i += 2;
-                        if (tokens[i].getType() == tok_open_paren) {
+                        if (tokens[i].getType() == tok_paren_open) {
                             i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_close_paren) {
+                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                                 if (tokens[i].getType() == tok_identifier) {
                                     std::string name = tokens[i].getValue();
                                     std::string type = "any";
@@ -811,7 +811,7 @@ namespace sclc
                                     continue;
                                 }
                                 i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_close_paren) {
+                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
                                     if (tokens[i].getType() == tok_comma) {
                                         i++;
                                     }
