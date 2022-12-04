@@ -363,7 +363,7 @@ namespace sclc
             }
         }
         Main.options.includePaths.push_back("./");
-        if (!Main.options.noCoreFramework && !alreadyIncluded) {
+        if (!Main.options.noCoreFramework) {
             std::string file = "core.scale";
             std::string framework = "Core";
             std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
