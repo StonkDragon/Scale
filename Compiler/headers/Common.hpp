@@ -166,8 +166,8 @@ namespace sclc
         // operators
         tok_hash,           // @
         tok_addr_of,        // @
-        tok_open_paren,     // (
-        tok_close_paren,    // )
+        tok_paren_open,     // (
+        tok_paren_close,    // )
         tok_curly_open,     // {
         tok_curly_close,    // }
         tok_bracket_open,   // [
