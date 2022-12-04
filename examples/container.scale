@@ -1,4 +1,3 @@
-using "core"
 # a container is a static structure
 container foo
   decl bar: any

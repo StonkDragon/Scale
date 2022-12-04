@@ -1,4 +1,3 @@
-using "core" from "Core"
 using "util/range" from "Core"
 
 function main(): none

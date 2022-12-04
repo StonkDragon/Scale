@@ -1,4 +1,3 @@
-using "core"
 function main(): none
   # FizzBuzz is a famous example of showing that
   # a programming language is turing complete

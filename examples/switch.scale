@@ -1,4 +1,3 @@
-using "core" from "Core"
 using "math" from "Core"
 
 function main(): none

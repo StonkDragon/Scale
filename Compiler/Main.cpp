@@ -86,6 +86,8 @@ namespace sclc
         return false;
     }
 
+    std::string findFileInIncludePath(std::string file);
+
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
@@ -211,8 +213,9 @@ namespace sclc
                 alreadyIncluded = true;
             }
         }
-        if (!Main.options.noCoreFramework && !alreadyIncluded)
+        if (!Main.options.noCoreFramework && !alreadyIncluded) {
             frameworks.push_back("Core");
+        }
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
@@ -360,6 +363,14 @@ namespace sclc
             }
         }
         Main.options.includePaths.push_back("./");
+        if (!Main.options.noCoreFramework && !alreadyIncluded) {
+            std::string file = "core.scale";
+            std::string framework = "Core";
+            std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
+            if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
+                Main.options.files.push_back(fullFile);
+            }
+        }
 
         if (!Main.options.doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         

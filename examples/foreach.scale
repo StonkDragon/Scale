@@ -1,4 +1,3 @@
-using "core" from "Core"
 
 function main(): none
     # declare a new variable of type 'Array'

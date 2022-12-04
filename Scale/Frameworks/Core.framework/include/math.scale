@@ -1,4 +1,3 @@
-using "core" from "Core"
 
 container MathConstants
     decl e: float

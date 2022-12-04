@@ -1,4 +1,3 @@
-using "core"
 function main(): none
   # this will print "Hello" 10 times
   repeat 10 do

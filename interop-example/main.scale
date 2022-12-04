@@ -1,4 +1,3 @@
-using "core"
 
 # extern function imported from C
 extern function foo(): none

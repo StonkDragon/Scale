@@ -1,4 +1,3 @@
-using "core"
 # declare a struct named Foo
 struct Foo
   decl bar: str

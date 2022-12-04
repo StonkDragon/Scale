@@ -1,4 +1,3 @@
-using "core"
 function main(): none
     # N is 4000000
     decl N: int 4000000 store N

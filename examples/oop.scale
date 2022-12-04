@@ -1,4 +1,3 @@
-using "core"
 using "util/array"
 # new struct named Foo
 struct Foo

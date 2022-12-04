@@ -1,4 +1,3 @@
-using "core"
 # This function has 3 arguments
 function doStuff(foo: str, bar: str, baz: str): none
   foo puts

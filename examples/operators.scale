@@ -1,4 +1,3 @@
-using "core"
 # just math nothing to see here
 function main(): none
   # Addition

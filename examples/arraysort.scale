@@ -1,4 +1,3 @@
-using "core"
 using "util/array"
 using "math"
 function createList(len: int): Array

@@ -93,7 +93,7 @@ namespace sclc
     }
 
     int isBracket(char c) {
-        return c == '(' || c == ')' || c == '{' || c == '}';
+        return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
     }
 
     int isHexDigit(char c) {

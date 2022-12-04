@@ -1,4 +1,3 @@
-using "core" from "Core"
 
 function write(_fd_: int, _str_: str, _n_: int): none
     cdecl "int _ignored = write(Var__fd_, Var__str_, Var__n_); (void) _ignored;"

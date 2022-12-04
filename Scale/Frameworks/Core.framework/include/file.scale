@@ -1,4 +1,3 @@
-using "core" from "Core"
 
 function fopen(_filename_: str, _mode_: str): any
     decl _f_: any
