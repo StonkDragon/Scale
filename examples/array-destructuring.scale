@@ -1,0 +1,14 @@
+function main(): none
+    decl fruits: Array
+    {"Apple", "Banana", "Pineapple"} => fruits
+    
+    decl apple: str
+    decl banana: str
+    decl pineapple: str
+
+    fruits => (apple, banana, pineapple)
+
+    apple puts
+    banana puts
+    pineapple puts
+end

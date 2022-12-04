@@ -1262,6 +1262,120 @@ namespace sclc {
                                         append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
                                     }
                                 }
+                            } else if (body[i].getType() == tok_open_paren) {
+                                append("{\n");
+                                scopeDepth++;
+                                append("struct Struct_Array* tmp = (struct Struct_Array*) stack.data[--stack.ptr].v;\n");
+                                ITER_INC;
+                                int destructureIndex = 0;
+                                while (body[i].getType() != tok_close_paren) {
+                                    if (body[i].getType() == tok_comma) {
+                                        ITER_INC;
+                                        continue;
+                                    }
+                                    if (body[i].getType() != tok_comma && body[i].getType() != tok_close_paren) {
+                                        if (body[i].getType() == tok_addr_of) {
+                                            ITER_INC;
+                                            if (hasContainer(result, body[i])) {
+                                                std::string containerName = body[i].getValue();
+                                                ITER_INC;
+                                                if (body[i].getType() != tok_dot) {
+                                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                ITER_INC;
+                                                std::string memberName = body[i].getValue();
+                                                Container container = getContainerByName(result, containerName);
+                                                if (!container.hasMember(memberName)) {
+                                                    transpilerError("Unknown container member: '" + memberName + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                append("*((scl_value*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                                            } else {
+                                                if (body[i].getType() != tok_identifier) {
+                                                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                                    errors.push_back(err);
+                                                }
+                                                if (!hasVar(body[i])) {
+                                                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                }
+                                                Variable v = getVar(body[i]);
+                                                std::string loadFrom = v.getName();
+                                                if (getStructByName(result, v.getType()) != Struct("")) {
+                                                    if (body[i + 1].getType() != tok_dot) {
+                                                        append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                                        continue;
+                                                    }
+                                                    ITER_INC;
+                                                    ITER_INC;
+                                                    Struct s = getStructByName(result, v.getType());
+                                                    if (!s.hasMember(body[i].getValue())) {
+                                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                                        errors.push_back(err);
+                                                        continue;
+                                                    }
+                                                    append("*(scl_value*) Var_%s->%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                                                } else {
+                                                    append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                                }
+                                            }
+                                        } else {
+                                            if (hasContainer(result, body[i])) {
+                                                std::string containerName = body[i].getValue();
+                                                ITER_INC;
+                                                if (body[i].getType() != tok_dot) {
+                                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                ITER_INC;
+                                                std::string memberName = body[i].getValue();
+                                                Container container = getContainerByName(result, containerName);
+                                                if (!container.hasMember(memberName)) {
+                                                    transpilerError("Unknown container member: '" + memberName + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                append("(*(scl_value*) &Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                                            } else {
+                                                if (body[i].getType() != tok_identifier) {
+                                                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                                    errors.push_back(err);
+                                                }
+                                                if (!hasVar(body[i])) {
+                                                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                }
+                                                Variable v = getVar(body[i]);
+                                                std::string loadFrom = v.getName();
+                                                if (getStructByName(result, v.getType()) != Struct("")) {
+                                                    if (body[i + 1].getType() != tok_dot) {
+                                                        append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                                        continue;
+                                                    }
+                                                    ITER_INC;
+                                                    ITER_INC;
+                                                    Struct s = getStructByName(result, v.getType());
+                                                    if (!s.hasMember(body[i].getValue())) {
+                                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                                        errors.push_back(err);
+                                                        continue;
+                                                    }
+                                                    append("(*(scl_value*) &Var_%s->%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                                                } else {
+                                                    append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    ITER_INC;
+                                    destructureIndex++;
+                                }
+                                scopeDepth--;
+                                append("}\n");
                             } else {
                                 if (hasContainer(result, body[i])) {
                                     std::string containerName = body[i].getValue();
