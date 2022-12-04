@@ -14,8 +14,8 @@ end
 
 function Array:set(index: int, value: any): none
   decl tmp: any
-  self.values index 3 << + store tmp
-  value store @tmp
+  self.values index 3 << + => tmp
+  value => @tmp
 end
 
 function Array:top(): any
@@ -24,19 +24,19 @@ end
 
 function Array:push(value: any): none
   self.count self.capacity >= if
-    self.capacity 2 * store self.capacity
+    self.capacity 2 * => self.capacity
     self.capacity 8 * self.values realloc
-    store self.values
+    => self.values
   fi
 
   decl tmp: any
-  self.values self.count 3 << + store tmp
-  value store @tmp
-  self.count 1 + store self.count
+  self.values self.count 3 << + => tmp
+  value => @tmp
+  self.count 1 + => self.count
 end
 
 function Array:pop(): none
-  self.count 1 - store self.count
+  self.count 1 - => self.count
 end
 
 function Array:init(size: int): none
@@ -44,9 +44,9 @@ function Array:init(size: int): none
     "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
   fi
   size 8 * malloc
-  store self.values
-  0 store self.count
-  size store self.capacity
+  => self.values
+  0 => self.count
+  size => self.capacity
 end
 
 struct ArrayIterator
@@ -59,7 +59,7 @@ function ArrayIterator:has_next(): int
 end
 
 function ArrayIterator:next(): any
-    self.pos 1 + store self.pos
+    self.pos 1 + => self.pos
     self.pos self.array Array:get return
 end
 
@@ -68,7 +68,7 @@ function ArrayIterator:begin(): any
 end
 
 function ArrayIterator:init(arr: Array): none
-    arr store self.array
-    0 store self.pos
+    arr => self.array
+    0 => self.pos
 end
 

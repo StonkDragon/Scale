@@ -4,6 +4,6 @@ struct Pair
 end
 
 function Pair:init(a: any, b: any): none
-    a store self.a
-    b store self.b
+    a => self.a
+    b => self.b
 end

@@ -4,10 +4,10 @@ container foo
   decl baz: any
 end
 function main(): none
-  "load/store" store foo.bar
+  "load/store" => foo.bar
   foo.bar puts
   
-  8 malloc store foo.baz
-  "ref/deref" store @ foo.baz
+  8 malloc => foo.baz
+  "ref/deref" => @ foo.baz
   foo.baz @ puts
 end

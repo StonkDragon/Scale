@@ -263,6 +263,16 @@ namespace sclc
         if (value == "extern") isExtern = true;
         else isExtern = false;
 
+        if (value == "store") {
+            FPResult result; \
+            result.message = "The 'store' keyword is deprecated!";
+            result.in = filename;
+            result.line = line;
+            result.column = startColumn;
+            result.value = value;
+            warns.push_back(result);
+        }
+
         TOKEN("function",   tok_function, line, filename, startColumn);
         TOKEN("end",        tok_end, line, filename, startColumn);
         TOKEN("extern",     tok_extern, line, filename, startColumn);
@@ -408,6 +418,7 @@ namespace sclc
 
         FPResult result;
         result.errors = errors;
+        result.warns = warns;
         return result;
     }
 

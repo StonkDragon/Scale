@@ -45,9 +45,9 @@ Optional:
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
-  - `=>`: "Into"-Operator, equivalent to `store`
-  - `@` in `store`: Store top of stack at address in variable
-  - `@` otherwise: Push the value at the address on the stack onto the stack
+  - `=>`: Into-Operator, stores the top of the stack in the following variable
+  - `=> @`: Into-Address-Operator, stores the top of the stack at address in variable
+  - `@` Push the value at the address on the stack onto the stack
   - `.`: Container Access/Structure Dereference
   - `:`: Call a member function of a type/Define type of variable in variable declaration
 
@@ -69,7 +69,6 @@ Optional:
   - `in`: Define for-loop start value
   - `to`: Define for-loop end value
   - `step`: Define the step of the for-loop
-  - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
   - `container`: Declare a new Container to hold multiple values

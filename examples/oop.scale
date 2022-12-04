@@ -12,15 +12,15 @@ end
 # every time an instance of Foo is created
 # think of a constructor in Java or C++
 function Foo:init(msg: str): none
-    msg store self.foo
+    msg => self.foo
 end
 function main(): none
     # create an instance of Foo with "Hello!" as the msg
-    "Hello!" Foo:new decl f:Foo store f
+    "Hello!" Foo:new decl f:Foo => f
     # prints "Hello!"
     f:bar
     # create another instance of Foo with "Hello again!" as the msg
-    "Hello again!" Foo:new decl g:Foo store g
+    "Hello again!" Foo:new decl g:Foo => g
     # prints "Hello again!"
     g:bar
 end

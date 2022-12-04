@@ -455,6 +455,7 @@ namespace sclc
     {
         std::vector<Token> tokens;
         std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
         char* source;
         size_t current;
     public:

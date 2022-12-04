@@ -4,7 +4,7 @@ function write(_fd_: int, _str_: str, _n_: int): none
 end
 
 function read(_fd_: int, _n_: int): str
-    decl buf: str _n_ malloc store buf
+    decl buf: str _n_ malloc => buf
     cdecl "int _ignored = read(Var__fd_, Var_buf, Var__n_); (void) _ignored;"
     buf return
 end

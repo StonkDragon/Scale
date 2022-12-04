@@ -41,7 +41,7 @@ function fputfloat(_file_: any, _str_: str): none
 end
 
 function fread(_f_: any, _size_: int): any
-    decl _buf_: any _size_ malloc store _buf_
+    decl _buf_: any _size_ malloc => _buf_
     cdecl "int _ignored = fread(Var__buf_, 1, Var__size_, Var__f_); (void) _ignored;"
     _buf_ return
 end

@@ -3,7 +3,7 @@ function main(): none
     # declare a new variable of type 'Array'
     decl arr: Array
     # This will split the string into an array of strings
-    "A B C D E F" " " strsplit store arr
+    "A B C D E F" " " strsplit => arr
 
     # Loops over every element of the array and prints it
     foreach val in arr do

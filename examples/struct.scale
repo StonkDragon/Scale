@@ -7,9 +7,9 @@ function main(): none
   # instanciate Foo
   # Foo:new and new Foo are functionally equivalent
   # but Foo:new is recommended
-  Foo:new store f
+  Foo:new => f
   # stores the string "foo" into f's 'bar' field
-  "foo" store f.bar
+  "foo" => f.bar
   # prints "foo"
   f.bar puts
 end

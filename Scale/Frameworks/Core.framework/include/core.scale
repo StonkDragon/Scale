@@ -61,13 +61,13 @@ function toShort(_val_: int): int
 end
 
 function toChars(_str_: str): Array
-    decl _len_: int _str_ strlen store _len_
-    decl _i_: int 0 store _i_
-    decl _arr_: Array _len_ Array:new store _arr_
+    decl _len_: int _str_ strlen => _len_
+    decl _i_: int 0 => _i_
+    decl _arr_: Array _len_ Array:new => _arr_
 
     while _i_ _len_ < do
         _str_ _i_ + @ toChar _arr_:push
-        _i_ 1 + store _i_
+        _i_ 1 + => _i_
     done
     _arr_ return
 end
