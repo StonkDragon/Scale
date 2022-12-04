@@ -6,7 +6,7 @@ struct Array
   decl capacity: int
 end
 
-extern function Array:sort(): Array
+extern function Array:sort(): none
 
 function Array:get(index: int): any
   self.values index 3 << + @ return
@@ -25,9 +25,10 @@ end
 function Array:push(value: any): none
   self.count self.capacity >= if
     self.capacity 2 * store self.capacity
-    self.values self.capacity 8 * realloc
+    self.capacity 8 * self.values realloc
     store self.values
   fi
+
   decl tmp: any
   self.values self.count 3 << + store tmp
   value store @tmp
@@ -47,3 +48,27 @@ function Array:init(size: int): none
   0 store self.count
   size store self.capacity
 end
+
+struct ArrayIterator
+    decl array: Array
+    decl pos: int
+end
+
+function ArrayIterator:has_next(): int
+    self.pos self.array Array.count < return
+end
+
+function ArrayIterator:next(): any
+    self.pos 1 + store self.pos
+    self.pos self.array Array:get return
+end
+
+function ArrayIterator:begin(): any
+    self.pos self.array Array:get return
+end
+
+function ArrayIterator:init(arr: Array): none
+    arr store self.array
+    0 store self.pos
+end
+

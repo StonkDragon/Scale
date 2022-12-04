@@ -1,14 +1,17 @@
 using "core"
-// extern function imported from C
-extern function foo()
-// nomangle Modifier to export function to C
+
+# extern function imported from C
+extern function foo(): none
+
+# nomangle Modifier to export function to C
 @nomangle
-function bar(a)
+function bar(a: str): none
     a puts
 end
-function main()
-    // Call C function `foo`
+
+function main(): none
+    # Call C function `foo`
     foo
-    // print "Hello, world!" to stdout
+    # print "Hello, world!" to stdout
     "Hello, world!" puts
 end

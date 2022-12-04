@@ -25,10 +25,10 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"3.2\"";
-    "C_VERSION=\"gnu2x\"";
+    "VERSION=\"3.3\"";
+    "C_VERSION=\"gnu17\"";
   ];
-  std: "gnu++20";
+  std: "gnu++17";
   flags: [
     "-Wall";
     "-Wextra";

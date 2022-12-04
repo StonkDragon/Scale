@@ -1,0 +1,104 @@
+struct Range
+    decl _start: int
+    decl _end: int
+end
+
+function Range:init(_start: int, _end: int): none
+    _start _end > if
+        "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
+    fi
+
+    _start store self._start
+    _end store self._end
+end
+
+function Range:containsRange(other: Range): int
+    other._start self:contains other._end self:contains && if
+        true return
+    fi
+    false return
+end
+
+function Range:overlaps(other: Range): int
+    other._start self:contains other._end self:contains || if
+        true return
+    fi
+    false return
+end
+
+function Range:contains(pos: int): int
+    pos self._start >= if
+        pos self._end <= if
+            true return
+        fi
+    fi
+    false return
+end
+
+struct RangeIterator
+    decl range: Array
+    decl pos: int
+end
+
+function RangeIterator:has_next(): int
+    self.pos self.range Range._start + self.range Range._end <= return
+end
+
+function RangeIterator:next(): int
+    self.pos 1 + store self.pos
+    self.range Range._start self.pos + return
+end
+
+function RangeIterator:begin(): int
+    self.range Range._start return
+end
+
+function RangeIterator:init(range: Range): none
+    range store self.range
+    0 store self.pos
+end
+
+function Range:toReverseRange(): ReverseRange
+    self._end self._start ReverseRange:new return
+end
+
+struct ReverseRange
+    decl _start: int
+    decl _end: int
+end
+
+function ReverseRange:init(_start: int, _end: int): none
+    _start _end < if
+        "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
+    fi
+    
+    _start store self._start
+    _end store self._end
+end
+
+struct ReverseRangeIterator
+    decl range: Array
+    decl pos: int
+end
+
+function ReverseRangeIterator:has_next(): int
+    self.range ReverseRange._start self.pos - self.range ReverseRange._end >= return
+end
+
+function ReverseRangeIterator:next(): int
+    self.pos 1 + store self.pos
+    self.range ReverseRange._start self.pos - return
+end
+
+function ReverseRangeIterator:begin(): int
+    self.range ReverseRange._start return
+end
+
+function ReverseRangeIterator:init(range: ReverseRange): none
+    range store self.range
+    0 store self.pos
+end
+
+function ReverseRange:toRange(): Range
+    self._end self._start Range:new return
+end

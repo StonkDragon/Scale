@@ -1,24 +1,29 @@
 using "core" from "Core"
 
-extern function write(_fd_: int, _str_: str, _n_: int): none
-extern function read(_fd_: int, _s_: any, _n_: int): any
+function write(_fd_: int, _str_: str, _n_: int): none
+    cdecl "int _ignored = write(Var__fd_, Var__str_, Var__n_); (void) _ignored;"
+end
+
+function read(_fd_: int, _n_: int): str
+    decl buf: str _n_ malloc store buf
+    cdecl "int _ignored = read(Var__fd_, Var_buf, Var__n_); (void) _ignored;"
+    buf return
+end
 
 function puts(_str_: str): none
-    1 _str_ _str_ strlen write
-    1 "\n" 1 write
+    cdecl "printf(\"%s\n\", Var__str_);"
 end
 
 function eputs(_str_: str): none
-    2 _str_ _str_ strlen write
-    2 "\n" 1 write
+    cdecl "fprintf(stderr, \"%s\n\", Var__str_);"
 end
 
 function putint(_int_: int): none
-    _int_ longToString puts
+    cdecl "printf(\"%lld\n\", Var__int_);"
 end
 
 function putfloat(_f_: float): none
-    _f_ doubleToString puts
+    cdecl "printf(\"%f\n\", Var__f_);"
 end
 
 function throwerr(_err_: str): none

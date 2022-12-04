@@ -1,6 +1,3 @@
-#ifndef MAIN_CPP_
-#define MAIN_CPP_
-
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"
 #endif
@@ -16,6 +13,9 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#ifndef LINK_MATH
+#define LINK_MATH
+#endif
 #else
 #include <process.h>
 #define execv _execv
@@ -45,7 +45,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "3.2"
+#define FRAMEWORK_VERSION_REQ "3.3"
 #endif
 
 #ifdef _WIN32
@@ -711,5 +711,3 @@ int main(int argc, char const *argv[]) {
     }
     return sclc::main(args);
 }
-
-#endif

@@ -142,7 +142,9 @@ namespace sclc
         tok_break,          // break
         tok_continue,       // continue
         tok_for,            // for
+        tok_foreach,        // foreach
         tok_in,             // in
+        tok_step,           // step
         tok_to,             // to
         tok_addr_ref,       // addr
         tok_load,           // load
@@ -156,6 +158,10 @@ namespace sclc
         tok_cdecl,          // cdecl
         tok_label,          // label
         tok_goto,           // goto
+        tok_switch,         // switch
+        tok_case,           // case
+        tok_esac,           // esac
+        tok_default,        // default
 
         // operators
         tok_hash,           // @
@@ -464,7 +470,6 @@ namespace sclc
         static void writeHeader(FILE* fp);
         static void writeFunctionHeaders(FILE* fp, TPResult result);
         static void writeExternHeaders(FILE* fp, TPResult result);
-        static void writeInternalFunctions(FILE* fp, TPResult result);
         static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result);
         static void writeContainers(FILE* fp, TPResult result);
         static void writeStructs(FILE* fp, TPResult result);
@@ -497,7 +502,8 @@ namespace sclc
 
     extern _Main Main;
     extern std::string scaleFolder;
-    extern std::vector<Variable> vars;
+    extern std::vector<std::vector<Variable>> vars;
+    extern size_t varDepth;
 
     long long parseNumber(std::string str);
     double parseDouble(std::string str);
@@ -523,7 +529,6 @@ namespace sclc
     hash hash1(char* data);
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
-    FPResult handleFor(Token keywDeclare, Token loopVar, Token keywIn, Token from, Token keywTo, Token to, Token keywDo, std::vector<Variable>* vars, FILE* fp, int* scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function* getFunctionByName(TPResult result, std::string name);
     Method* getMethodByName(TPResult result, std::string name, std::string type);

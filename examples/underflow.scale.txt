@@ -1,7 +1,0 @@
-
-Core.framework/include/io.scale:7:19: Invalid/Illegal Memory Access
-Stacktrace:
-  puts(_str_: str): none
-  foo(foo_: str, bar: str, baz: str): none
-  main(): none
-

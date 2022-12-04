@@ -29,8 +29,10 @@
 #endif
 
 /* Function header */
-#define sclDefFunc(name, returns) \
-  returns Function_ ## name (void)
+#define sclDefFunc(name, returns, ...) \
+  returns Function_ ## name (__VA_ARGS__)
+#define sclDefMethod(name, type, returns, ...) \
+  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(", ") __VA_ARGS__)
 
 /* Call a function with the given name. */
 #define sclCallFunc(name) \
@@ -47,10 +49,6 @@
 #define STACK_SIZE			4096
 #endif
 
-#define MALLOC_LIMIT		1024
-#define MAX_STRING_SIZE		512
-#define LONG_AS_STR_LEN		22
-
 // Define scale-specific signals
 #define EX_BAD_PTR			128
 #define EX_STACK_OVERFLOW	129
@@ -59,7 +57,6 @@
 #define EX_IO_ERROR			132
 #define EX_INVALID_ARGUMENT	133
 #define EX_CAST_ERROR		134
-#define EX_SAP_ERROR		135
 #define EX_THREAD_ERROR		136
 
 #define ssize_t signed long
@@ -103,8 +100,6 @@ scl_value	scl_realloc(scl_value ptr, size_t size);
 scl_value	scl_alloc(size_t size);
 void		scl_free(scl_value ptr);
 
-int			scl_is_struct(scl_value p);
 scl_value	scl_alloc_struct(size_t size, scl_str type_name);
-void		scl_dealloc_struct(scl_value ptr);
 
 #endif

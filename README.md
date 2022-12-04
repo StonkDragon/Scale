@@ -64,9 +64,10 @@ Optional:
   - `return`: Return from a function
   - `break`: Break out of a loop
   - `continue`: Continue to the next iteration of a loop
-  - `for`: Begin a for loop header
-  - `in`: Define for loop iterator
-  - `to`: Define for loop end value
+  - `for`: Begin a for-loop header
+  - `in`: Define for-loop start value
+  - `to`: Define for-loop end value
+  - `step`: Define the step of the for-loop
   - `store`: Store the top of the stack in the following variable
   - `decl`: Declare a variable
   - `addr`: Get the address of the following identifier
@@ -78,7 +79,11 @@ Optional:
   - `cdecl`: Interprets the following string literal as C-code
   - `label`: Declare a new label
   - `goto`: Goto a label
-  - `self`: Reference to the current instance inside a member function
+  - `self`: Reference to the current instance inside of a member function
+  - `switch`: Define a switch statement
+  - `case`: Define a case inside of a switch statement
+  - `esac`: End of a case statement
+  - `default`: Define a default statement inside of a switch statement
 
 ## Argument Notation/Calling Convention
 
@@ -106,17 +111,8 @@ Example:
     => 6
 ```
 
-## Stack Notation
-
-  The following notation is used to represent the stack:
-
-  - `[]`: An empty stack
-
-  - `[a]`: A stack with the value `a` on top
-
-  - `[a b]`: A stack with two elements, where `b` is on top and `a` is below
-
-  - `[<any>]`: A stack with any number of elements
+## Core Framework
+- [Can be found here](./Scale/Frameworks/Core.framework/Docs.md)
 
 ## Examples
 
@@ -131,6 +127,8 @@ Example:
   - [While-Loop](./examples/while.scale)
   - [Fibonacci Numbers](./examples/fib.scale)
   - [For-Loop](./examples/for.scale)
+  - [Switch Expression](./examples/switch.scale)
+  - [For-Loop with step](./examples/for-step.scale)
   - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
   - [Function Arguments](./examples/arguments.scale)
@@ -141,6 +139,7 @@ Example:
   - [C Declaration codeblock](./examples/cdecl.scale)
   - [Labels and Goto](./examples/label-goto.scale)
   - [Object-Oriented Programming in Scale](./examples/oop.scale)
+  - [Foreach-Loop](./examples/foreach.scale)
 
 # Build
 

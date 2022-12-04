@@ -1,5 +1,5 @@
 using "core"
-// this is a way of looping without using proper loops
+# this is a way of looping without using proper loops
 function main(): none
     decl i: int
     0 store i

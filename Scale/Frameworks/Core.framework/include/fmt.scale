@@ -1,4 +1,4 @@
-// Formatted IO
+# Formatted IO
 function Color_Reset(): str   "\033[0m"  return end
 function Color_Black(): str   "\033[30m" return end
 function Color_Red(): str     "\033[31m" return end

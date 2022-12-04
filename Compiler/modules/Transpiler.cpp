@@ -1,6 +1,3 @@
-#ifndef _TRANSPILER_CPP
-#define _TRANSPILER_CPP
-
 #include <filesystem>
 
 #include "../headers/Common.hpp"
@@ -23,14 +20,6 @@ namespace sclc {
         for (std::string header : Main.frameworkNativeHeaders) {
             append("#include <%s>\n", header.c_str());
         }
-
-        append("\n");
-        append("const char* const scl_internal_frameworks[] = {\n");
-        for (std::string framework : Main.frameworks) {
-            append("  \"%s\",\n", framework.c_str());
-        }
-        append("};\n");
-        append("const size_t scl_internal_frameworks_size = %zu;\n", Main.frameworks.size());
         append("\n");
     }
 
@@ -47,6 +36,24 @@ namespace sclc {
         return return_type;
     }
 
+    std::string sclGenArgs(TPResult result, Function *func) {
+        std::string args = "";
+        for (ssize_t i = (ssize_t) func->getArgs().size() - 1; i >= 0; i--) {
+            Variable arg = func->getArgs()[i];
+            if (arg.getType() == "float") {
+                args += "stack.data[stack.ptr + " + std::to_string(i) + "].f";
+            } else if (arg.getType() == "int") {
+                args += "stack.data[stack.ptr + " + std::to_string(i) + "].i";
+            } else if (arg.getType() == "str") {
+                args += "stack.data[stack.ptr + " + std::to_string(i) + "].s";
+            } else {
+                args += "(" + sclReturnTypeToCReturnType(result, arg.getType()) + ") stack.data[stack.ptr + " + std::to_string(i) + "].v";
+            }
+            if (i) args += ", ";
+        }
+        return args;
+    }
+
     void ConvertC::writeFunctionHeaders(FILE* fp, TPResult result) {
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
@@ -54,8 +61,6 @@ namespace sclc {
         if (Main.options.transpileOnly) {
             remove("scale_support.h");
             nomangled = fopen("scale_support.h", "a");
-            fprintf(nomangled, "#ifndef SCALE_SUPPORT_H\n");
-            fprintf(nomangled, "#define SCALE_SUPPORT_H\n\n");
             fprintf(nomangled, "#include <scale_internal.h>\n\n");
 
             fprintf(nomangled, "#define scl_export(func_name) \\\n");
@@ -78,11 +83,21 @@ namespace sclc {
                 std::string t = function->getReturnType();
                 return_type = sclReturnTypeToCReturnType(result, t);
             }
+            
+            std::string arguments = "";
+            if (function->getArgs().size() > 0) {
+                for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
+                    arguments += sclReturnTypeToCReturnType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                    if (i) {
+                        arguments += ", ";
+                    }
+                }
+            }
 
             if (!function->isMethod) {
-                append("%s Function_%s(void);\n", return_type.c_str(), function->getName().c_str());
+                append("%s Function_%s(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             } else {
-                append("%s Method_%s_%s(void);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+                append("%s Method_%s_%s(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
             if (!Main.options.transpileOnly) continue;
             for (Modifier m : function->getModifiers()) {
@@ -125,65 +140,23 @@ namespace sclc {
                     return_type = sclReturnTypeToCReturnType(result, t);
                 }
 
+                std::string arguments = "";
+                if (function->getArgs().size() > 0) {
+                    for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
+                        arguments += sclReturnTypeToCReturnType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                        if (i) {
+                            arguments += ", ";
+                        }
+                    }
+                }
+
                 if (!function->isMethod) {
-                    append("%s Function_%s(void);\n", return_type.c_str(), function->getName().c_str());
+                    append("%s Function_%s(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
                 } else {
-                    append("%s Method_%s_%s(void);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+                    append("%s Method_%s_%s(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
                 }
             }
         }
-
-        append("\n");
-    }
-
-    void ConvertC::writeInternalFunctions(FILE* fp, TPResult result) {
-        int scopeDepth = 0;
-        append("const unsigned long long scl_internal_function_names[] = {\n");
-        for (Function* function : result.extern_functions) {
-            std::string functionDeclaration = function->getName();
-            if (function->isMethod) {
-                functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
-            }
-            append("  0x%016llxLLU /* extern function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        for (Function* function : result.functions) {
-            std::string functionDeclaration = function->getName();
-            if (function->isMethod) {
-                functionDeclaration = static_cast<Method*>(function)->getMemberType() + ":" + functionDeclaration;
-            }
-            append("  0x%016llxLLU /* function %s */,\n", hash1((char*) functionDeclaration.c_str()), (char*) functionDeclaration.c_str());
-        }
-        append("};\n");
-
-        append("const scl_method scl_internal_function_ptrs[] = {\n");
-        for (Function* function : result.extern_functions) {
-            std::string return_type = "void";
-
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclReturnTypeToCReturnType(result, t);
-            }
-            if (!function->isMethod) {
-                append("  (scl_method) Function_%s,\n", function->getName().c_str());
-            } else {
-                append("  (scl_method) Method_%s_%s,\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-            }
-        }
-        for (Function* function : result.functions) {
-            std::string return_type = "void";
-
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclReturnTypeToCReturnType(result, t);
-            }
-            if (!function->isMethod) {
-                append("  (scl_method) Function_%s,\n", function->getName().c_str());
-            } else {
-                append("  (scl_method) Method_%s_%s,\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-            }
-        }
-        append("};\n");
-        append("const size_t scl_internal_functions_size = %zu;\n", result.functions.size() + result.extern_functions.size());
 
         append("\n");
     }
@@ -195,8 +168,8 @@ namespace sclc {
 
         for (Variable s : result.globals) {
             append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
-            if (Main.options.transpileOnly) fprintf(nomangled, "extern %s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
-            vars.push_back(s);
+            if (nomangled && Main.options.transpileOnly) fprintf(nomangled, "extern %s Var_%s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
+            vars[varDepth].push_back(s);
             globals.push_back(s);
         }
 
@@ -205,7 +178,7 @@ namespace sclc {
 
     void ConvertC::writeContainers(FILE* fp, TPResult result) {
         int scopeDepth = 0;
-        if (result.containers.size() == 0) goto label_writeContainers_global_ptrs;
+        if (result.containers.size() == 0) return;
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
@@ -213,7 +186,7 @@ namespace sclc {
                 append("  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("} Container_%s = {0};\n", c.getName().c_str());
-            if (Main.options.transpileOnly) {
+            if (nomangled && Main.options.transpileOnly) {
                 fprintf(nomangled, "struct Container_%s {\n", c.getName().c_str());
                 for (Variable s : c.getMembers()) {
                     fprintf(nomangled, "  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
@@ -222,25 +195,6 @@ namespace sclc {
                 fprintf(nomangled, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
             }
         }
-
-        append("\n");
-    label_writeContainers_global_ptrs:
-
-        append("const scl_value* scl_internal_globals_ptrs[] = {\n");
-        for (Variable s : result.globals) {
-            append("  (const scl_value*) &Var_%s,\n", s.getName().c_str());
-        }
-        size_t container_member_count = 0;
-        for (Container c : result.containers) {
-            for (Variable s : c.getMembers()) {
-                append("  (const scl_value*) &Container_%s.%s,\n", c.getName().c_str(), s.getName().c_str());
-                container_member_count++;
-            }
-        }
-        append("};\n");
-        append("const size_t scl_internal_globals_ptrs_size = %zu;\n", result.globals.size() + container_member_count);
-        
-        append("\n");
     }
 
     void ConvertC::writeStructs(FILE* fp, TPResult result) {
@@ -255,7 +209,7 @@ namespace sclc {
                 append("  %s %s;\n", sclReturnTypeToCReturnType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("};\n");
-            if (Main.options.transpileOnly) {
+            if (nomangled && Main.options.transpileOnly) {
                 fprintf(nomangled, "struct %s {\n", c.getName().c_str());
                 fprintf(nomangled, "  scl_int __type_identifier__;\n");
                 fprintf(nomangled, "  scl_str __type_string__;\n");
@@ -268,7 +222,7 @@ namespace sclc {
         append("\n");
     label_writeStructs_close_file:
 
-        if (Main.options.transpileOnly) {
+        if (nomangled && Main.options.transpileOnly) {
             fprintf(nomangled, "#endif\n");
             fclose(nomangled);
         }
@@ -278,11 +232,16 @@ namespace sclc {
         (void) warns;
         int scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("extern scl_str current_file;\n");
-        append("extern size_t current_line;\n");
-        append("extern size_t current_column;\n");
         append("extern scl_stack_t stack;\n");
         append("extern scl_stack_t callstk;\n\n");
+
+        append("/* LOOP STRUCTS */\n");
+        append("struct scl_iterable {\n");
+        scopeDepth++;
+        append("scl_int start;\n");
+        append("scl_int end;\n");
+        scopeDepth--;
+        append("};\n\n");
 
         append("/* FUNCTIONS */\n");
 
@@ -291,8 +250,10 @@ namespace sclc {
         {
             Function* function = result.functions[f];
             vars.clear();
+            std::vector<Variable> defaultScope;
+            vars.push_back(defaultScope);
             for (Variable g : globals) {
-                vars.push_back(g);
+                vars[0].push_back(g);
             }
 
             scopeDepth = 0;
@@ -347,7 +308,7 @@ namespace sclc {
                 else errors.push_back(err);
             }
 
-            if (noMangle) {
+            if (noMangle && !function->isMethod) {
                 std::string args = "(";
                 for (size_t i = 0; i < function->getArgs().size(); i++) {
                     if (i != 0) {
@@ -360,89 +321,72 @@ namespace sclc {
 
                 append("%s %s%s {\n", return_type.c_str(), function->getName().c_str(), args.c_str());
                 scopeDepth++;
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (function->getArgs()[i].getType() == "float") {
-                        append("stack.data[stack.ptr++].f = Var_%s;\n", function->getArgs()[i].getName().c_str());
-                    } else {
-                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", function->getArgs()[i].getName().c_str());
-                    }
+                args = "";
+                for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
+                    Variable arg = function->getArgs()[i];
+                    args += "Var_" + arg.getName();
+                    if (i) args += ", ";
                 }
                 if (return_type != "void") {
-                    if (!function->isMethod) {
-                        append("return Function_%s();\n", function->getName().c_str());
-                    } else {
-                        append("return Method_%s_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-                    }
+                    append("return Function_%s(%s);\n", function->getName().c_str(), args.c_str());
                 } else {
-                    if (!function->isMethod) {
-                        append("Function_%s();\n", function->getName().c_str());
-                    } else {
-                        append("Method_%s_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-                    }
+                    append("Function_%s(%s);\n", function->getName().c_str(), args.c_str());
                 }
                 scopeDepth--;
                 append("}\n");
+            } else if (noMangle && function->isMethod) {
+                FPResult err;
+                err.success = false;
+                err.message = "Methods don't support the @nomangle Modifier!";
+                err.column = function->getNameToken().getColumn();
+                err.line = function->getNameToken().getLine();
+                err.in = function->getNameToken().getFile();
+                err.value = function->getNameToken().getValue();
+                err.type = function->getNameToken().getType();
+                errors.push_back(err);
+                continue;
             }
 
             return_type = "void";
+
+            std::string arguments = "";
+            if (function->getArgs().size() > 0) {
+                for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
+                    Variable var = function->getArgs()[i];
+                    vars[varDepth].push_back(var);
+                    arguments += sclReturnTypeToCReturnType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                    if (i) {
+                        arguments += ", ";
+                    }
+                }
+            }
 
             if (function->getReturnType().size() > 0) {
                 std::string t = function->getReturnType();
                 return_type = sclReturnTypeToCReturnType(result, t);
             }
             if (!function->isMethod) {
-                append("%s Function_%s(void) {\n", return_type.c_str(), function->getName().c_str());
+                append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             } else {
-                append("%s Method_%s_%s(void) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
-            }
-            
-            scopeDepth++;
-
-            append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
-
-            for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
-                Variable var = function->getArgs()[i];
-                vars.push_back(var);
-                std::string ret_type = sclReturnTypeToCReturnType(result, var.getType());
-                if (function->getArgs()[i].getType() == "float") {
-                    append("%s Var_%s = stack.data[--stack.ptr].f;\n", ret_type.c_str(), var.getName().c_str());
-                } else {
-                    append("%s Var_%s = (%s) stack.data[--stack.ptr].v;\n", ret_type.c_str(), var.getName().c_str(), ret_type.c_str());
-                }
-            }
-
-            if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                std::string file = function->getFile();
-                if (strncmp(function->getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                    append("current_file = \"%s\";\n", function->getFile().c_str() + scaleFolder.size() + 12);
-                } else {
-                    append("current_file = \"%s\";\n", function->getFile().c_str());
-                }
+                append("%s Method_%s_%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
 
             std::vector<Token> body = function->getBody();
             std::vector<bool> was_rep;
             size_t i;
             char repeat_depth = 0;
-            int current_line = -1;
+            int iterator_count = 0;
+            if (body.size() == 0)
+                goto emptyFunction;
+            
+            scopeDepth++;
+
+            append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
+
             for (i = 0; i < body.size(); i++) {
                 if (body[i].getType() == tok_ignore) continue;
 
                 std::string file = body[i].getFile();
-                if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                    if (
-                        body[i].getType() != tok_declare && body[i].getType() != tok_while &&
-                        body[i].getType() != tok_end && body[i].getType() != tok_fi &&
-                        body[i].getType() != tok_done
-                    ) {
-                        if (body[i].getLine() != current_line) {
-                            append("current_line = %d;\n", body[i].getLine());
-                            current_line = body[i].getLine();
-                        }
-                        if (!(Main.options.optimizer == "O3" || Main.options.optimizer == "Ofast"))
-	                        append("current_column = %d;\n", body[i].getColumn());
-                    }
-                }
 
                 if (isOperator(body[i])) {
                     FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
@@ -461,13 +405,16 @@ namespace sclc {
                                 append("stack.ptr--;\n");
                             } else if (body[i].getValue() == "dup") {
                                 append("stack.data[stack.ptr++].v = stack.data[stack.ptr - 1].v;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "swap") {
                                 append("{\n");
                                 scopeDepth++;
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                debugPrintPush();
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "over") {
@@ -477,8 +424,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = c;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                debugPrintPush();
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "sdup2") {
@@ -487,8 +437,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                debugPrintPush();
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "swap2") {
@@ -498,8 +451,11 @@ namespace sclc {
                                 append("scl_value b = stack.data[--stack.ptr].v;\n");
                                 append("scl_value a = stack.data[--stack.ptr].v;\n");
                                 append("stack.data[stack.ptr++].v = b;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = a;\n");
+                                debugPrintPush();
                                 append("stack.data[stack.ptr++].v = c;\n");
+                                debugPrintPush();
                                 scopeDepth--;
                                 append("}\n");
                             } else if (body[i].getValue() == "clearstack") {
@@ -507,29 +463,37 @@ namespace sclc {
                             } else if (body[i].getValue() == "&&") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "!") {
                                 append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
                             } else if (body[i].getValue() == "||") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "<") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == ">") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "==") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "<=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == ">=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "!=") {
                                 append("stack.ptr -= 2;\n");
                                 append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
+                                debugPrintPush();
                             } else if (body[i].getValue() == "++") {
                                 append("stack.data[stack.ptr - 1].i++;\n");
                             } else if (body[i].getValue() == "--") {
@@ -545,24 +509,17 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
+                                append("stack.ptr -= %zu;\n", f->getArgs().size());
                                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                     if (f->getReturnType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Function_%s();\n", f->getName().c_str());
+                                        append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                        debugPrintPush();
                                     } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Function_%s();\n", f->getName().c_str());
+                                        append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                        debugPrintPush();
                                     }
                                 } else {
-                                    append("Function_%s();\n", f->getName().c_str());
-                                }
-                                if (!Main.options.transpileOnly || Main.options.debugBuild) {
-                                    std::string file = function->getFile();
-                                    if (file != f->getFile()) {
-                                        if (strncmp(function->getFile().c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                                            append("current_file = \"%s\";\n", function->getFile().c_str() + scaleFolder.size() + 12);
-                                        } else {
-                                            append("current_file = \"%s\";\n", function->getFile().c_str());
-                                        }
-                                    }
+                                    append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                                 }
                             } else if (hasContainer(result, body[i])) {
                                 std::string containerName = body[i].getValue();
@@ -580,10 +537,13 @@ namespace sclc {
                                     errors.push_back(err);
                                     continue;
                                 }
-                                if (container.getMemberType(memberName) == "float")
+                                if (container.getMemberType(memberName) == "float") {
                                     append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-                                else
+                                    debugPrintPush();
+                                } else {
                                     append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                                    debugPrintPush();
+                                }
                             } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
                                 if (body[i + 1].getType() == tok_column) {
                                     ITER_INC;
@@ -591,21 +551,28 @@ namespace sclc {
                                     if (body[i].getType() == tok_new) {
                                         std::string struct_ = body[i - 2].getValue();
                                         append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                                        debugPrintPush();
                                         if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
                                             append("{\n");
                                             scopeDepth++;
-                                            append("scl_value tmp = stack.data[stack.ptr - 1].v;\n");
                                             Method* f = getMethodByName(result, "init", struct_);
+                                            append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
+                                            append("stack.data[stack.ptr++].v = tmp;\n");
+                                            debugPrintPush();
+                                            append("stack.ptr -= %zu;\n", f->getArgs().size());
                                             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                                 if (f->getReturnType() == "float") {
-                                                    append("stack.data[stack.ptr++].f = Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                    debugPrintPush();
                                                 } else {
-                                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                    debugPrintPush();
                                                 }
                                             } else {
-                                                append("Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                                             }
                                             append("stack.data[stack.ptr++].v = tmp;\n");
+                                            debugPrintPush();
                                             scopeDepth--;
                                             append("}\n");
                                         }
@@ -616,14 +583,17 @@ namespace sclc {
                                             continue;
                                         }
                                         Method* f = getMethodByName(result, body[i].getValue(), body[i - 2].getValue());
+                                        append("stack.ptr -= %zu;\n", f->getArgs().size());
                                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                             if (f->getReturnType() == "float") {
-                                                append("stack.data[stack.ptr++].f = Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                debugPrintPush();
                                             } else {
-                                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                debugPrintPush();
                                             }
                                         } else {
-                                            append("Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                            append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                                         }
                                     }
                                 } else {
@@ -655,18 +625,23 @@ namespace sclc {
                                         }
                                         Method* f = getMethodByName(result, body[i].getValue(), v.getType());
                                         append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        append("stack.ptr -= %zu;\n", f->getArgs().size());
+                                        debugPrintPush();
                                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                             if (f->getReturnType() == "float") {
-                                                append("stack.data[stack.ptr++].f = Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                debugPrintPush();
                                             } else {
-                                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                debugPrintPush();
                                             }
                                         } else {
-                                            append("Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                            append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                                         }
                                     } else {
                                         if (body[i + 1].getType() != tok_dot) {
                                             append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                            debugPrintPush();
                                             continue;
                                         }
                                         ITER_INC;
@@ -678,16 +653,22 @@ namespace sclc {
                                             continue;
                                         }
                                         Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                        if (mem.getType() == "float")
+                                        if (mem.getType() == "float") {
                                             append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                        else
+                                            debugPrintPush();
+                                        } else {
                                             append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                            debugPrintPush();
+                                        }
                                     }
                                 } else {
-                                    if (v.getType() == "float")
+                                    if (v.getType() == "float") {
                                         append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
-                                    else
+                                        debugPrintPush();
+                                    } else {
                                         append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                        debugPrintPush();
+                                    }
                                 }
                             } else {
                                 transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
@@ -698,6 +679,7 @@ namespace sclc {
 
                         case tok_string_literal: {
                             append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
+                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: '%%s'\\n\", stack.data[stack.ptr - 1].s);\n");
                             break;
                         }
 
@@ -734,11 +716,13 @@ namespace sclc {
                         case tok_nil:
                         case tok_false: {
                             append("stack.data[stack.ptr++].v = (scl_value) 0;\n");
+                            debugPrintPush();
                             break;
                         }
 
                         case tok_true: {
                             append("stack.data[stack.ptr++].v = (scl_value) 1;\n");
+                            debugPrintPush();
                             break;
                         }
 
@@ -760,21 +744,25 @@ namespace sclc {
                                 continue;
                             }
                             append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                            debugPrintPush();
                             if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
                                 append("{\n");
                                 scopeDepth++;
-                                append("scl_value tmp = stack.data[stack.ptr - 1].v;\n");
                                 Method* f = getMethodByName(result, "init", struct_);
+                                append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
                                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                                     if (f->getReturnType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        append("stack.data[stack.ptr++].f = Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        debugPrintPush();
                                     } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                        debugPrintPush();
                                     }
                                 } else {
-                                    append("Method_%s_%s();\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                                    append("Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
                                 }
                                 append("stack.data[stack.ptr++].v = tmp;\n");
+                                debugPrintPush();
                                 scopeDepth--;
                                 append("}\n");
                             }
@@ -801,13 +789,21 @@ namespace sclc {
                         case tok_if: {
                             append("if (stack.data[--stack.ptr].v) {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
                         case tok_else: {
                             scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
                             append("} else {\n");
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
@@ -815,6 +811,9 @@ namespace sclc {
                             append("while (1) {\n");
                             scopeDepth++;
                             was_rep.push_back(false);
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             break;
                         }
 
@@ -847,32 +846,266 @@ namespace sclc {
                             );
                             repeat_depth++;
                             scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
                             was_rep.push_back(true);
                             i += 2;
                             break;
                         }
 
                         case tok_for: {
-                            FPResult forHandled = handleFor(
-                                body[i+1],
-                                body[i+2],
-                                body[i+3],
-                                body[i+4],
-                                body[i+5],
-                                body[i+6],
-                                body[i+7],
-                                &vars,
-                                fp,
-                                &scopeDepth
-                            );
-                            if (!forHandled.success) {
-                                errors.push_back(forHandled);
+                            ITER_INC;
+                            Token var = body[i];
+                            if (var.getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got: '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.column = var.getColumn();
+                                result.type = var.getType();
+                                errors.push_back(result);
                             }
-                            if (forHandled.warns.size() > 0) {
-                                warns.insert(warns.end(), forHandled.warns.begin(), forHandled.warns.end());
+                            ITER_INC;
+                            if (body[i].getType() != tok_in) {
+                                FPResult result;
+                                result.message = "Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'";
+                                result.success = false;
+                                result.line = body[i].getLine();
+                                result.in = body[i].getFile();
+                                result.value = body[i].getValue();
+                                result.column = body[i].getColumn();
+                                result.type = body[i].getType();
+                                errors.push_back(result);
                             }
+                            ITER_INC;
+                            push_var();
+                            ITER_INC;
+                            if (body[i].getType() == tok_addr_of) {
+                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                                ITER_INC;
+                            }
+                            if (body[i].getType() != tok_to) {
+                                transpilerError("Expected 'to', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            ITER_INC;
+                            push_var();
+                            ITER_INC;
+                            if (body[i].getType() == tok_addr_of) {
+                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                                ITER_INC;
+                            }
+                            std::string iterator_direction = "++";
+                            if (body[i].getType() == tok_step) {
+                                ITER_INC;
+                                if (body[i].getType() == tok_do) {
+                                    transpilerError("Expected step, but got '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                std::string val = body[i].getValue();
+                                if (val == "+") {
+                                    ITER_INC;
+                                    iterator_direction = " += ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else if (body[i].getValue() == "+") {
+                                        iterator_direction = "++";
+                                    } else {
+                                        transpilerError("Expected number or '+', but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "-") {
+                                    ITER_INC;
+                                    iterator_direction = " -= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else if (body[i].getValue() == "+") {
+                                        iterator_direction = "--";
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "*") {
+                                    ITER_INC;
+                                    iterator_direction = " *= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "/") {
+                                    ITER_INC;
+                                    iterator_direction = " /= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "<<") {
+                                    ITER_INC;
+                                    iterator_direction = " <<= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == ">>") {
+                                    ITER_INC;
+                                    iterator_direction = " >>= ";
+                                    if (body[i].getType() == tok_number) {
+                                        iterator_direction += body[i].getValue();
+                                    } else {
+                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                                        errors.push_back(err);
+                                    }
+                                } else if (val == "nop") {
+                                    iterator_direction = "";
+                                }
+                                ITER_INC;
+                            }
+                            if (body[i].getType() != tok_do) {
+                                transpilerError("Expected 'do', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            append("struct scl_iterable __it%d = (struct scl_iterable) {0, 0};\n", iterator_count);
+                            append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
+                            append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
+                            
+                            std::string var_prefix = "";
+                            if (!hasVar(var)) {
+                                var_prefix = "scl_int ";
+                            }
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
+                            
+                            if (iterator_direction == "")
+                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
+                            else
+                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
+                            iterator_count++;
+                            scopeDepth++;
+
+                            if (hasFunction(Main.parser->getResult(), var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' shadowed by function '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasContainer(Main.parser->getResult(), var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' shadowed by container '" + var.getValue() + "'";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+                            if (hasVar(var)) {
+                                FPResult result;
+                                result.message = "Variable '" + var.getValue() + "' is already declared and shadows it.";
+                                result.success = false;
+                                result.line = var.getLine();
+                                result.in = var.getFile();
+                                result.value = var.getValue();
+                                result.type =  var.getType();
+                                result.column = var.getColumn();
+                                warns.push_back(result);
+                            }
+
+                            if (!hasVar(var))
+                                vars[varDepth].push_back(Variable(var.getValue(), "int"));
                             was_rep.push_back(false);
-                            i += 7;
+                            break;
+                        }
+
+                        case tok_foreach: {
+                            ITER_INC;
+                            if (body[i].getType() != tok_identifier) {
+                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            std::string iterator_name = "__it" + std::to_string(iterator_count++);
+                            Token iter_var_tok = body[i];
+                            ITER_INC;
+                            if (body[i].getType() != tok_in) {
+                                transpilerError("Expected 'in', but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            ITER_INC;
+                            Token iterable_tok = body[i];
+                            if (!hasVar(iterable_tok)) {
+                                transpilerError("Variable '" + body[i].getValue() + "' not found!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+
+                            Variable iterable = getVar(iterable_tok);
+
+                            if (getStructByName(result, iterable.getType() + "Iterator") == Struct("")) {
+                                transpilerError("Struct '" + iterable.getType() + "' is not iterable!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+
+                            append("struct Struct_%sIterator %s = (struct Struct_%sIterator) {0};\n", iterable.getType().c_str(), iterator_name.c_str(), iterable.getType().c_str());
+                            if (!hasMethod(result, Token(tok_identifier, "init", 0, "", 0), iterable.getType() + "Iterator")) {
+                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'init' method!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            Method* f = getMethodByName(result, "init", iterable.getType() + "Iterator");
+                            if (!hasMethod(result, Token(tok_identifier, "has_next", 0, "", 0), iterable.getType() + "Iterator")) {
+                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'has_next' method!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            if (!hasMethod(result, Token(tok_identifier, "next", 0, "", 0), iterable.getType() + "Iterator")) {
+                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'next' method!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            if (!hasMethod(result, Token(tok_identifier, "begin", 0, "", 0), iterable.getType() + "Iterator")) {
+                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'begin' method!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
+                            debugPrintPush();
+                            append("stack.data[stack.ptr++].v = &%s;\n", iterator_name.c_str());
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            append("Method_%sIterator_init(%s);\n", iterable.getType().c_str(), sclGenArgs(result, f).c_str());
+                            std::string var_prefix = "";
+                            if (!hasVar(iter_var_tok)) {
+                                var_prefix = "scl_value ";
+                            }
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
+                            vars[varDepth].push_back(Variable(iter_var_tok.getValue(), "any"));
+                            std::string iter_type = iterable.getType();
+                            std::string type = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
+                            append("for (%sVar_%s = (%s) Method_%sIterator_begin(&%s); Method_%sIterator_has_next(&%s); Var_%s = (%s) Method_%sIterator_next(&%s)) {\n", var_prefix.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
+                            scopeDepth++;
+                            ITER_INC;
                             break;
                         }
 
@@ -880,6 +1113,8 @@ namespace sclc {
                         case tok_fi:
                         case tok_end: {
                             scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
                             append("}\n");
                             if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
                                 repeat_depth--;
@@ -915,6 +1150,7 @@ namespace sclc {
                             if (hasFunction(result, toGet)) {
                                 Function* f = getFunctionByName(result, toGet.getValue());
                                 append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
+                                debugPrintPush();
                                 ITER_INC;
                             } else if (hasVar(toGet)) {
                                 Variable v = getVar(body[i]);
@@ -928,9 +1164,11 @@ namespace sclc {
                                         }
                                         Method* f = getMethodByName(result, body[i].getValue(), v.getType());
                                         append("stack.data[stack.ptr++].v = (scl_value) &Method_%s_%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
+                                        debugPrintPush();
                                     } else {
                                         if (body[i + 1].getType() != tok_dot) {
                                             append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                            debugPrintPush();
                                             continue;
                                         }
                                         ITER_INC;
@@ -942,9 +1180,11 @@ namespace sclc {
                                             continue;
                                         }
                                         append("stack.data[stack.ptr++].v = (scl_value) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                                        debugPrintPush();
                                     }
                                 } else {
                                     append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                    debugPrintPush();
                                 }
                             } else if (hasContainer(result, toGet)) {
                                 ITER_INC;
@@ -964,6 +1204,7 @@ namespace sclc {
                                     continue;
                                 }
                                 append("stack.data[stack.ptr++].v = (scl_value) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
+                                debugPrintPush();
                             } else {
                                 transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
                                 errors.push_back(err);
@@ -1038,7 +1279,7 @@ namespace sclc {
                                         errors.push_back(err);
                                         continue;
                                     }
-                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str());
+                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].%s;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
                                 } else {
                                     if (body[i].getType() != tok_identifier) {
                                         transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -1131,7 +1372,7 @@ namespace sclc {
                                 continue;
                             }
                             Variable v = Variable(name, type);
-                            vars.push_back(v);
+                            vars[varDepth].push_back(v);
                             append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str());
                             break;
                         }
@@ -1166,17 +1407,53 @@ namespace sclc {
                             break;
                         }
 
+                        case tok_case: {
+                            ITER_INC;
+                            if (body[i].getType() == tok_string_literal) {
+                                transpilerError("String literal in case statement detected!", i);
+                                errors.push_back(err);
+                            } else {
+                                append("case %s: {\n", body[i].getValue().c_str());
+                                scopeDepth++;
+                                varDepth++;
+                                std::vector<Variable> defaultScope;
+                                vars.push_back(defaultScope);
+                            }
+                            break;
+                        }
+
+                        case tok_esac: {
+                            append("break;\n");
+                            scopeDepth--;
+                            varDepth--;
+                            vars.pop_back();
+                            append("}\n");
+                            break;
+                        }
+
+                        case tok_default: {
+                            append("default: {\n");
+                            scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
+                            break;
+                        }
+
+                        case tok_switch: {
+                            append("switch (stack.data[--stack.ptr].i) {\n");
+                            scopeDepth++;
+                            varDepth++;
+                            std::vector<Variable> defaultScope;
+                            vars.push_back(defaultScope);
+                            was_rep.push_back(false);
+                            break;
+                        }
+
                         case tok_addr_of: {
                             append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
                             break;
                         }
-
-                        case tok_curly_close: {
-                            append("stack.ptr -= 2; stack.data[stack.ptr++].v =(*(scl_value*) (stack.data[stack.ptr].v + (stack.data[stack.ptr + 1].i * 8)));\n");
-                            break;
-                        }
-
-                        case tok_curly_open: break;
 
                         default: {
                             transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
@@ -1188,10 +1465,9 @@ namespace sclc {
             scopeDepth = 1;
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return)
                 append("callstk.ptr--;\n");
+        emptyFunction:
             scopeDepth = 0;
             append("}\n\n");
         }
     }
 } // namespace sclc
-
-#endif

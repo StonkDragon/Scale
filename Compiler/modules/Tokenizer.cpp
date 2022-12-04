@@ -1,6 +1,3 @@
-#ifndef _TOKENIZER_CPP_
-#define _TOKENIZER_CPP_
-
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -40,7 +37,7 @@ namespace sclc
         char c = source[current];
         std::string value = "";
 
-        if (c == '\n') {
+        if (c == '\n' || c == '\0') {
             line++;
             column = 0;
             startColumn = 0;
@@ -182,7 +179,7 @@ namespace sclc
             } else if (c == '<') {
                 c = source[++current];
                 column++;
-                if (c == '<' || c == '>') {
+                if (c == '<' || c == '=') {
                     value += c;
                 }
             } else if (c == '=') {
@@ -279,6 +276,7 @@ namespace sclc
         TOKEN("break",      tok_break, line, filename, startColumn);
         TOKEN("continue",   tok_continue, line, filename, startColumn);
         TOKEN("for",        tok_for, line, filename, startColumn);
+        TOKEN("foreach",    tok_foreach, line, filename, startColumn);
         TOKEN("in",         tok_in, line, filename, startColumn);
         TOKEN("to",         tok_to, line, filename, startColumn);
         TOKEN("load",       tok_load, line, filename, startColumn);
@@ -296,6 +294,11 @@ namespace sclc
         TOKEN("cdecl",      tok_cdecl, line, filename, startColumn);
         TOKEN("goto",       tok_goto, line, filename, startColumn);
         TOKEN("label",      tok_label, line, filename, startColumn);
+        TOKEN("switch",     tok_switch, line, filename, startColumn);
+        TOKEN("case",       tok_case, line, filename, startColumn);
+        TOKEN("esac",       tok_esac, line, filename, startColumn);
+        TOKEN("default",    tok_default, line, filename, startColumn);
+        TOKEN("step",       tok_step, line, filename, startColumn);
         
         if (inFunction) {
             TOKEN("@",      tok_addr_of, line, filename, startColumn);
@@ -363,25 +366,23 @@ namespace sclc
         int size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
 
-        char *buffer = new char[size + 1];
+        char* buffer = new char[size + 1];
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
-            if (buffer[0] == '/') {
-                if (buffer[1] == '/') {
-                    data += "\n";
-                    continue;
-                }
+            if (std::string(buffer).length() <= 1 || buffer[0] == '\0' || buffer[0] == '#' || buffer[0] == '\n' || buffer[0] == '\r') {
+                data += "\n";
+                continue;
             }
 
             // remove mid line comments
             char *c = buffer;
             while (*c != '\0') {
-                if (*c == '/') {
-                    if (c[1] == '/') {
-                        *c = '\0';
-                        break;
-                    }
+                if (*c == '#') {
+                    *c = '\n';
+                    c++;
+                    *c = '\0';
+                    break;
                 }
                 c++;
             }
@@ -435,6 +436,7 @@ namespace sclc
     std::string findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
             if (fileExists(path + "/" + file)) {
+                if (path == "." || path == "./") return file;
                 return path + "/" + file;
             }
         }
@@ -443,4 +445,3 @@ namespace sclc
         exit(-1);
     }
 }
-#endif // TOKENIZER_HPP

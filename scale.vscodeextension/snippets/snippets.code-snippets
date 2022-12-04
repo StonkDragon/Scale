@@ -65,6 +65,38 @@
 		],
 		"description": "While loop"
 	},
+	"Switch Statement": {
+		"scope": "source.scale",
+		"prefix": "switch",
+		"body": [
+			"${1:value} switch",
+			"\tcase ${2:value}",
+			"\t\t$0",
+			"\tesac",
+			"done"
+		],
+		"description": "While loop"
+	},
+	"Case Statement": {
+		"scope": "source.scale",
+		"prefix": "case",
+		"body": [
+			"case ${1:value}",
+			"\t$0",
+			"esac"
+		],
+		"description": "While loop"
+	},
+	"Default Statement": {
+		"scope": "source.scale",
+		"prefix": "default",
+		"body": [
+			"default",
+			"\t$0",
+			"esac"
+		],
+		"description": "While loop"
+	},
 	"If Statement": {
 		"scope": "source.scale",
 		"prefix": "if",
@@ -137,13 +169,33 @@
 	},
 	"For Loop": {
 		"scope": "source.scale",
-		"prefix": "for loop",
+		"prefix": "for",
 		"body": [
-			"for decl ${1:i} in ${2:1} to ${3:10} do",
+			"for ${1:i} in ${2} to ${3} do",
 			"\t$0",
 			"done"
 		],
 		"description": "For Loop"
+	},
+	"For Loop with Step": {
+		"scope": "source.scale",
+		"prefix": "forstep",
+		"body": [
+			"for ${1:i} in ${2} to ${3} step ${4:++} do",
+			"\t$0",
+			"done"
+		],
+		"description": "For Loop with Step"
+	},
+	"Foreach Loop": {
+		"scope": "source.scale",
+		"prefix": "foreach",
+		"body": [
+			"foreach ${1:value} in ${2:iterable} do",
+			"\t$0",
+			"done"
+		],
+		"description": "Foreach Loop"
 	},
 	"Prototype": {
 		"scope": "source.scale",
@@ -199,4 +251,31 @@
 		],
 		"description": "Struct"
 	},
+	"Iterator": {
+		"scope": "source.scale",
+		"prefix": "iterator",
+		"body": [
+			"struct ${1:type}Iterator",
+			"\t# variables",
+			"\t$3",
+			"end",
+			"function ${1:type}Iterator:init(): none",
+			"\t# initialization",
+			"\t$4",
+			"end",
+			"function ${1:type}Iterator:has_next(): int",
+			"\t# return if continue",
+			"\t$5",
+			"end",
+			"function ${1:type}Iterator:next(): ${2:element_type}",
+			"\t# return next value",
+			"\t$6",
+			"end",
+			"function ${1:type}Iterator:begin(): ${2:element_type}",
+			"\t# return first value",
+			"\t$7",
+			"end"
+		],
+		"description": "Define an iterator for a given type"
+	}
 }

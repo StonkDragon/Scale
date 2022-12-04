@@ -1,0 +1,30 @@
+using "core" from "Core"
+using "math" from "Core"
+
+function main(): none
+    # prints:
+    #   first
+    #   second
+    #   third
+    #   fourth
+    #   fifth
+    for i in 0 to 5 do
+        i switch
+            case 0
+                "first" puts
+            esac
+            case 1
+                "second" puts
+            esac
+            case 2
+                "third" puts
+            esac
+            case 3
+                "fourth" puts
+            esac
+            case 4
+                "fifth" puts
+            esac
+        done
+    done
+end

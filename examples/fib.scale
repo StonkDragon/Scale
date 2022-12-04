@@ -1,6 +1,6 @@
 using "core"
 function main(): none
-    // N is 4000000
+    # N is 4000000
     decl N: int 4000000 store N
     decl x: int
     decl y: int
@@ -8,7 +8,7 @@ function main(): none
     0 store x
     1 store y
     
-    // prints out every fibonacci number from 0 to N (4000000)
+    # prints out every fibonacci number from 0 to N (4000000)
     while x N < do
         x putint
         x y + store z

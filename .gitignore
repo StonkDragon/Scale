@@ -48,6 +48,7 @@ test.txt
 .vscode
 .fleet
 private
+private-tests
 build
 makebin
 compile
@@ -64,3 +65,4 @@ Module.symvers
 Mkfile.old
 dkms.conf
 *DS_Store*
+scale.vscodeextension/.DS_Store

@@ -1,0 +1,12 @@
+using "core" from "Core"
+using "util/range" from "Core"
+
+function main(): none
+    decl MIN: int 0 store MIN
+    decl MAX: int 100 store MAX
+
+    # prints every fifth number between 0 and 100
+    for i in MIN to MAX step + 5 do
+        i putint
+    done
+end
