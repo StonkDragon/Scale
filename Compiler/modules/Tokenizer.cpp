@@ -309,6 +309,8 @@ namespace sclc
         TOKEN(")",          tok_close_paren, line, filename, startColumn);
         TOKEN("{",          tok_curly_open, line, filename, startColumn);
         TOKEN("}",          tok_curly_close, line, filename, startColumn);
+        TOKEN("[",          tok_bracket_open, line, filename, startColumn);
+        TOKEN("]",          tok_bracket_close, line, filename, startColumn);
         TOKEN(",",          tok_comma, line, filename, startColumn);
         TOKEN("+",          tok_add, line, filename, startColumn);
         TOKEN("-",          tok_sub, line, filename, startColumn);

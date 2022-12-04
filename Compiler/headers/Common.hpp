@@ -170,6 +170,8 @@ namespace sclc
         tok_close_paren,    // )
         tok_curly_open,     // {
         tok_curly_close,    // }
+        tok_bracket_open,   // [
+        tok_bracket_close,  // ]
         tok_comma,          // ,
         tok_add,            // +
         tok_sub,            // -

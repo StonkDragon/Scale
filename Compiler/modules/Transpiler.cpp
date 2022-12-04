@@ -679,7 +679,7 @@ namespace sclc {
 
                         case tok_string_literal: {
                             append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
-                            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: '%%s'\\n\", stack.data[stack.ptr - 1].s);\n");
+                            debugPrintPush();
                             break;
                         }
 
@@ -1450,14 +1450,53 @@ namespace sclc {
                             break;
                         }
 
+                        case tok_curly_open: {
+                            std::string struct_ = "Array";
+                            if (getStructByName(result, struct_) == Struct("")) {
+                                transpilerError("Struct definition for 'Array' not found!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            debugPrintPush();
+                            append("{\n");
+                            scopeDepth++;
+                            Method* f = getMethodByName(result, "init", struct_);
+                            append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\");\n");
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Method_Array_init(tmp, 1);\n");
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Method_Array_init(tmp, 1);\n");
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Method_Array_init(tmp, 1);\n");
+                            }
+                            while (body[i].getType() != tok_curly_close) {
+                                ITER_INC;
+                                if (body[i].getType() == tok_curly_close) break;
+                                if (body[i].getType() != tok_comma) {
+                                    push_result();
+                                    append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
+                                }
+                            }
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            debugPrintPush();
+                            scopeDepth--;
+                            append("}\n");
+                            break;
+                        }
+
                         case tok_addr_of: {
                             append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
                             break;
                         }
 
                         default: {
-                            transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+                            transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
                             errors.push_back(err);
+                            break;
                         }
                     }
                 }
