@@ -243,7 +243,7 @@
     }
 
 #define push_result()                                                                                                                                                                             \
-    if (hasFunction(result, body[i]))                                                                                                                                                             \
+    if (body[i].getType() == tok_identifier && hasFunction(result, body[i]))                                                                                                                                                             \
     {                                                                                                                                                                                             \
         Function *f = getFunctionByName(result, body[i].getValue());                                                                                                                              \
         if (f->isMethod)                                                                                                                                                                          \
@@ -271,7 +271,7 @@
             append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());                                                                                                    \
         }                                                                                                                                                                                         \
     }                                                                                                                                                                                             \
-    else if (hasContainer(result, body[i]))                                                                                                                                                       \
+    else if (body[i].getType() == tok_identifier && hasContainer(result, body[i]))                                                                                                                                                       \
     {                                                                                                                                                                                             \
         std::string containerName = body[i].getValue();                                                                                                                                           \
         ITER_INC;                                                                                                                                                                                 \
@@ -301,7 +301,7 @@
             debugPrintPush();                                                                                                                                                                     \
         }                                                                                                                                                                                         \
     }                                                                                                                                                                                             \
-    else if (getStructByName(result, body[i].getValue()) != Struct(""))                                                                                                                           \
+    else if (body[i].getType() == tok_identifier && getStructByName(result, body[i].getValue()) != Struct(""))                                                                                                                           \
     {                                                                                                                                                                                             \
         if (body[i + 1].getType() == tok_column)                                                                                                                                                  \
         {                                                                                                                                                                                         \
@@ -457,6 +457,19 @@
                     append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());                                                                \
                     debugPrintPush();                                                                                                                                                             \
                 }                                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+        }                                                                                                                                                                                         \
+        else                                                                                                                                                                                      \
+        {                                                                                                                                                                                         \
+            if (v.getType() == "float")                                                                                                                                                           \
+            {                                                                                                                                                                                     \
+                append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());                                                                                                                \
+                debugPrintPush();                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+            else                                                                                                                                                                                  \
+            {                                                                                                                                                                                     \
+                append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());                                                                                                    \
+                debugPrintPush();                                                                                                                                                                 \
             }                                                                                                                                                                                     \
         }                                                                                                                                                                                         \
     }                                                                                                                                                                                             \

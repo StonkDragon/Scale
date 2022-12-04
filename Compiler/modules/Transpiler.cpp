@@ -1473,13 +1473,20 @@ namespace sclc {
                             } else {
                                 append("Method_Array_init(tmp, 1);\n");
                             }
+                            ITER_INC;
                             while (body[i].getType() != tok_curly_close) {
-                                ITER_INC;
-                                if (body[i].getType() == tok_curly_close) break;
-                                if (body[i].getType() != tok_comma) {
-                                    push_result();
-                                    append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
+                                if (body[i].getType() == tok_comma) {
+                                    ITER_INC;
+                                    continue;
                                 }
+                                bool didPush = false;
+                                while (body[i].getType() != tok_comma && body[i].getType() != tok_curly_close) {
+                                    push_result();
+                                    ITER_INC;
+                                    didPush = true;
+                                }
+                                if (didPush)
+                                    append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
                             }
                             append("stack.data[stack.ptr++].v = tmp;\n");
                             debugPrintPush();
