@@ -9,9 +9,6 @@ extern "C" {
 
 extern scl_stack_t	 callstk;
 extern scl_stack_t   stack;
-extern size_t 		 sap_enabled[STACK_SIZE];
-extern size_t 		 sap_count[STACK_SIZE];
-extern size_t 		 sap_index;
 
 #pragma region Natives
 
@@ -141,16 +138,16 @@ struct Array {
 	scl_value capacity;
 };
 
-void Method_Array_init(struct Array*, scl_int);
+void Method_Array_init(struct Array* Var_self, scl_int Var_size);
 void Method_Array_push(struct Array* Var_self, scl_value Var_value);
 
-sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string) {
+sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string_) {
 	callstk.data[callstk.ptr++].s = "strsplit()";
-	
+	scl_str string = strdup(string_);
     struct Array* arr = scl_alloc_struct(sizeof(struct Array), "Array");
     Method_Array_init(arr, 10);
 
-    scl_str line = strtok(strdup(string), sep);
+    scl_str line = strtok(string, sep);
     while (line != NULL) {
         Method_Array_push(arr, line);
         line = strtok(NULL, sep);
@@ -182,7 +179,6 @@ sclDefFunc(realloc, scl_value, scl_value s, scl_int n) {
 
 sclDefFunc(free, void, scl_value s) {
 	callstk.data[callstk.ptr++].s = "free()";
-	scl_dealloc_struct(s);
 	scl_free(s);
 	callstk.ptr--;
 }

@@ -4,12 +4,35 @@ struct Range
 end
 
 function Range:init(_start: int, _end: int): none
-    _start _end >= if
+    _start _end > if
         "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
     fi
 
     _start store self._start
     _end store self._end
+end
+
+function Range:containsRange(other: Range): int
+    other._start self:contains other._end self:contains && if
+        true return
+    fi
+    false return
+end
+
+function Range:overlaps(other: Range): int
+    other._start self:contains other._end self:contains || if
+        true return
+    fi
+    false return
+end
+
+function Range:contains(pos: int): int
+    pos self._start >= if
+        pos self._end <= if
+            true return
+        fi
+    fi
+    false return
 end
 
 struct RangeIterator
