@@ -45,6 +45,7 @@ Optional:
   - `<<`: Left shift
   - `>>`: Right shift
   - `**`: Exponentiation
+  - `=>`: "Into"-Operator, equivalent to `store`
   - `@` in `store`: Store top of stack at address in variable
   - `@` otherwise: Push the value at the address on the stack onto the stack
   - `.`: Container Access/Structure Dereference

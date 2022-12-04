@@ -7,7 +7,6 @@
 		{"include": "#keyword"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#end_function"},
 		{"include": "#quoted_string"},
 		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
@@ -46,13 +45,7 @@
 		"function_declaration": {
 			"patterns": [{
 				"name": "variable.name",
-				"match": "[A-Za-z_]+([A-Za-z_0-9]+)?\\("
-			}]
-		},
-		"end_function": {
-			"patterns": [{
-				"name": "variable.name",
-				"match": "\\)"
+				"match": "[A-Za-z_]+([A-Za-z_0-9]+)?"
 			}]
 		},
 		"quoted_string": {
@@ -83,7 +76,7 @@
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(:|\\.|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|==|!=?|<(<|=)?|>(>|=)?|~|\\[|\\])"
+			"match": "(:|\\.|,|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|=(=|>)|!=?|<(<|=)?|>(>|=)?|~|\\[|\\]|\\{|\\}|\\(|\\))"
 		}
 	},
 	"scopeName": "source.scale"

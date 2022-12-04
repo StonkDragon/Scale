@@ -185,10 +185,10 @@ namespace sclc
             } else if (c == '=') {
                 c = source[++current];
                 column++;
-                if (c == '=') {
+                if (c == '=' || c == '>') {
                     value += c;
                 } else {
-                    syntaxError("Expected '=' after '='");
+                    syntaxError("Expected '=' or '>' after '='");
                 }
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
@@ -281,6 +281,7 @@ namespace sclc
         TOKEN("to",         tok_to, line, filename, startColumn);
         TOKEN("load",       tok_load, line, filename, startColumn);
         TOKEN("store",      tok_store, line, filename, startColumn);
+        TOKEN("=>",         tok_store, line, filename, startColumn);
         TOKEN("decl",       tok_declare, line, filename, startColumn);
         TOKEN("addr",       tok_addr_ref, line, filename, startColumn);
         TOKEN("nil",        tok_nil, line, filename, startColumn);
