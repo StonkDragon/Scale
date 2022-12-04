@@ -7,14 +7,6 @@
 /* Variables */
 scl_stack_t  stack = {0, {0}};
 scl_stack_t	 callstk = {0, {0}};
-size_t 		 sap_index = 0;
-size_t 		 sap_count[STACK_SIZE] = {0};
-scl_value    alloced_structs[STACK_SIZE] = {0};
-size_t 		 alloced_structs_count = 0;
-scl_value    allocated[STACK_SIZE] = {0};
-size_t 		 allocated_count = 0;
-scl_value*   locals[STACK_SIZE][STACK_SIZE] = {{0}};
-size_t 		 locals_count[STACK_SIZE] = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
@@ -39,7 +31,6 @@ scl_value scl_realloc(scl_value ptr, size_t size) {
 }
 
 void scl_free(scl_value ptr) {
-	scl_dealloc_struct(ptr);
 	free(ptr);
 }
 
@@ -91,10 +82,10 @@ void process_signal(int sig_num) {
 	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
 #endif
 #ifdef SIGSEGV
-	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access";
+	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access (Segmentation violation)";
 #endif
 #ifdef SIGBUS
-	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access";
+	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access (Bus error)";
 #endif
 #ifdef SIGTERM
 	else if (sig_num == SIGTERM) signalString = "Software Termination";
@@ -107,6 +98,12 @@ void process_signal(int sig_num) {
 		printf("errno: %s\n", strerror(errno));
 	}
 	print_stacktrace();
+	printf("Stack:\n");
+	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack.data[i].i;
+		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
+	}
+	printf("\n");
 
 	scl_security_safe_exit(sig_num);
 }
@@ -124,9 +121,9 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 		scl_value capacity;
 	};
 	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array");
-	array->capacity = (scl_value) alloced_structs_count;
+	array->capacity = (scl_value) argc;
 	array->count = 0;
-	array->values = scl_alloc(alloced_structs_count);
+	array->values = scl_alloc(argc);
 	for (scl_int i = 0; i < argc; i++) {
 		((scl_value*) array->values)[(scl_int) array->count++] = argv[i];
 	}
@@ -173,16 +170,6 @@ ssize_t ctrl_stack_size(void) {
 
 #pragma region Struct
 
-int scl_is_struct(scl_value p) {
-	if (p == NULL) return 0;
-	for (size_t i = 0; i < alloced_structs_count; i++) {
-		if (alloced_structs[i] == p) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 typedef unsigned long long hash;
 
 static hash hash1(char* data) {
@@ -195,18 +182,9 @@ static hash hash1(char* data) {
 
 scl_value scl_alloc_struct(size_t size, scl_str type_name) {
 	scl_value ptr = scl_alloc(size);
-	alloced_structs[alloced_structs_count++] = ptr;
 	((struct {scl_int type; scl_str type_name;}*) ptr)->type = hash1(type_name);
     ((struct {scl_int type; scl_str type_name;}*) ptr)->type_name = type_name;
 	return ptr;
-}
-
-void scl_dealloc_struct(scl_value ptr) {
-	for (size_t i = 0; i < alloced_structs_count; i++) {
-		if (alloced_structs[i] == ptr) {
-			alloced_structs[i] = 0;
-		}
-	}
 }
 
 #pragma endregion
