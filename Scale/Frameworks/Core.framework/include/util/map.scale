@@ -1,0 +1,39 @@
+using "util/pair" from "Core"
+
+struct Map
+    decl _data: Array
+end
+
+function Map:init(size: int): none
+    decl data: Array
+    size Array:new => data
+    for i in 0 to size do
+        nil data:push
+    done
+    data => self._data
+end
+
+function Map:get(key: str): any
+    decl data: Array self._data => data
+    for i in 0 to data.count do
+        decl entry: Pair i data:get => entry
+        entry nil == if continue fi
+        entry.a nil == if continue fi
+        key entry.a strcmp if
+            entry.b return
+        fi
+    done
+    nil return
+end
+
+function Map:set(key: str, value: any): none
+    decl data: Array self._data => data
+    for i in 0 to data.count do
+        decl entry: Pair i data:get => entry
+        entry nil == if
+            i key value Pair:new data:set
+            return
+        fi
+    done
+    key value Pair:new data:push
+end

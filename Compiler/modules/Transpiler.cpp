@@ -1609,6 +1609,65 @@ namespace sclc {
                             break;
                         }
 
+                        case tok_bracket_open: {
+                            std::string struct_ = "Map";
+                            if (getStructByName(result, struct_) == Struct("")) {
+                                transpilerError("Struct definition for 'Map' not found!", i);
+                                errors.push_back(err);
+                                continue;
+                            }
+                            debugPrintPush();
+                            append("{\n");
+                            scopeDepth++;
+                            Method* f = getMethodByName(result, "init", struct_);
+                            append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\");\n");
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Method_Map_init(tmp, 1);\n");
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Method_Map_init(tmp, 1);\n");
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Method_Map_init(tmp, 1);\n");
+                            }
+                            ITER_INC;
+                            while (body[i].getType() != tok_bracket_close) {
+                                if (body[i].getType() == tok_comma) {
+                                    ITER_INC;
+                                    continue;
+                                }
+                                if (body[i].getType() != tok_string_literal) {
+                                    transpilerError("Map keys must be strings!", i);
+                                    errors.push_back(err);
+                                    goto map_error;
+                                }
+                                std::string key = body[i].getValue();
+                                ITER_INC;
+                                if (body[i].getType() != tok_column) {
+                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    goto map_error;
+                                }
+                                ITER_INC;
+                                bool didPush = false;
+                                while (body[i].getType() != tok_comma && body[i].getType() != tok_bracket_close) {
+                                    push_result();
+                                    ITER_INC;
+                                    didPush = true;
+                                }
+                                if (didPush)
+                                    append("Method_Map_set(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                            }
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            debugPrintPush();
+                            scopeDepth--;
+                            append("}\n");
+                        map_error:
+                            break;
+                        }
+
                         case tok_addr_of: {
                             append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
                             break;
