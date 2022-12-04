@@ -1435,8 +1435,6 @@ namespace sclc {
                             break;
                         }
 
-                        case tok_column: break;
-
                         case tok_declare: {
                             if (body[i + 1].getType() != tok_identifier) {
                                 transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
