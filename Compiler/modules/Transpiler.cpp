@@ -1262,18 +1262,18 @@ namespace sclc {
                                         append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
                                     }
                                 }
-                            } else if (body[i].getType() == tok_open_paren) {
+                            } else if (body[i].getType() == tok_paren_open) {
                                 append("{\n");
                                 scopeDepth++;
                                 append("struct Struct_Array* tmp = (struct Struct_Array*) stack.data[--stack.ptr].v;\n");
                                 ITER_INC;
                                 int destructureIndex = 0;
-                                while (body[i].getType() != tok_close_paren) {
+                                while (body[i].getType() != tok_paren_close) {
                                     if (body[i].getType() == tok_comma) {
                                         ITER_INC;
                                         continue;
                                     }
-                                    if (body[i].getType() != tok_comma && body[i].getType() != tok_close_paren) {
+                                    if (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
                                         if (body[i].getType() == tok_addr_of) {
                                             ITER_INC;
                                             if (hasContainer(result, body[i])) {
@@ -1665,6 +1665,145 @@ namespace sclc {
                             scopeDepth--;
                             append("}\n");
                         map_error:
+                            break;
+                        }
+
+                        case tok_paren_open: {
+                            if (body[i + 2].getType() == tok_column) {
+                                if (getStructByName(result, "MapEntry") == Struct("")) {
+                                    transpilerError("Struct definition for 'MapEntry' not found!", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                debugPrintPush();
+                                append("{\n");
+                                scopeDepth++;
+                                ITER_INC;
+                                if (body[i].getType() != tok_string_literal) {
+                                    transpilerError("MapEntry keys must be strings!", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                std::string key = body[i].getValue();
+                                ITER_INC;
+                                if (body[i].getType() != tok_column) {
+                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                ITER_INC;
+                                while (body[i].getType() != tok_paren_close) {
+                                    push_result();
+                                    ITER_INC;
+                                }
+                                Method* f = getMethodByName(result, "init", "MapEntry");
+                                append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\");\n");
+                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                    if (f->getReturnType() == "float") {
+                                        append("stack.data[stack.ptr++].f = Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                                        debugPrintPush();
+                                    } else {
+                                        append("stack.data[stack.ptr++].v = (scl_value) Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                                        debugPrintPush();
+                                    }
+                                } else {
+                                    append("Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                                }
+                                append("stack.data[stack.ptr++].v = tmp;\n");
+                                debugPrintPush();
+                                scopeDepth--;
+                                append("}\n");
+                            } else if (body[i + 2].getType() == tok_comma) {
+                                int j = 0;
+                                int commas = 0;
+                                for (; body[i + j].getType() != tok_paren_close; j++) {
+                                    if (body[i + j].getType() == tok_comma) commas++;
+                                }
+                                if (commas == 1) {
+                                    if (getStructByName(result, "Pair") == Struct("")) {
+                                        transpilerError("Struct definition for 'Pair' not found!", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    debugPrintPush();
+                                    append("{\n");
+                                    scopeDepth++;
+                                    ITER_INC;
+                                    while (body[i].getType() != tok_paren_close) {
+                                        if (body[i].getType() == tok_comma) {
+                                            ITER_INC;
+                                            continue;
+                                        }
+                                        while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
+                                            push_result();
+                                            ITER_INC;
+                                        }
+                                    }
+                                    Method* f = getMethodByName(result, "init", "Pair");
+                                    append("struct Struct_Pair* tmp = scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\");\n");
+                                    append("stack.ptr -= 2;\n");
+                                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                        if (f->getReturnType() == "float") {
+                                            append("stack.data[stack.ptr++].f = Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                            debugPrintPush();
+                                        } else {
+                                            append("stack.data[stack.ptr++].v = (scl_value) Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                            debugPrintPush();
+                                        }
+                                    } else {
+                                        append("Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                    }
+                                    append("stack.data[stack.ptr++].v = tmp;\n");
+                                    debugPrintPush();
+                                    scopeDepth--;
+                                    append("}\n");
+                                } else if (commas == 2) {
+                                    if (getStructByName(result, "Triple") == Struct("")) {
+                                        transpilerError("Struct definition for 'Triple' not found!", i);
+                                        errors.push_back(err);
+                                        continue;
+                                    }
+                                    debugPrintPush();
+                                    append("{\n");
+                                    scopeDepth++;
+                                    ITER_INC;
+                                    while (body[i].getType() != tok_paren_close) {
+                                        if (body[i].getType() == tok_comma) {
+                                            ITER_INC;
+                                            continue;
+                                        }
+                                        while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
+                                            push_result();
+                                            ITER_INC;
+                                        }
+                                    }
+                                    Method* f = getMethodByName(result, "init", "Triple");
+                                    append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\");\n");
+                                    append("stack.ptr -= 3;\n");
+                                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                        if (f->getReturnType() == "float") {
+                                            append("stack.data[stack.ptr++].f = Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                            debugPrintPush();
+                                        } else {
+                                            append("stack.data[stack.ptr++].v = (scl_value) Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                            debugPrintPush();
+                                        }
+                                    } else {
+                                        append("Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                                    }
+                                    append("stack.data[stack.ptr++].v = tmp;\n");
+                                    debugPrintPush();
+                                    scopeDepth--;
+                                    append("}\n");
+                                } else {
+                                    transpilerError("Unsupported tuple-like literal!", i);
+                                    errors.push_back(err);
+                                }
+                            } else {
+                                transpilerError("Unsupported tuple-like literal!", i);
+                                errors.push_back(err);
+                            }
+                            
                             break;
                         }
 

@@ -1,0 +1,12 @@
+Apple
+Banana
+Pineapple
+Banana Pineapple
+Apple
+b
+c
+element
+value
+value
+b
+c

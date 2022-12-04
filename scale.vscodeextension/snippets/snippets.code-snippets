@@ -277,5 +277,45 @@
 			"end"
 		],
 		"description": "Define an iterator for a given type"
-	}
+	},
+	"Array literal": {
+		"scope": "source.scale",
+		"prefix": "array",
+		"body": [
+			"{${0:element}}"
+		],
+		"description": "Array literal"
+	},
+	"Map literal": {
+		"scope": "source.scale",
+		"prefix": "map",
+		"body": [
+			"[\"${1:key}\": ${0:value}]",
+		],
+		"description": "Map literal"
+	},
+	"Map Entry literal": {
+		"scope": "source.scale",
+		"prefix": "mapentry",
+		"body": [
+			"(\"${1:key}\": ${0:value})",
+		],
+		"description": "Map Entry literal"
+	},
+	"Pair literal": {
+		"scope": "source.scale",
+		"prefix": "pair",
+		"body": [
+			"(${1:a}, ${0:b})",
+		],
+		"description": "Pair literal"
+	},
+	"Triple literal": {
+		"scope": "source.scale",
+		"prefix": "triple",
+		"body": [
+			"(${1:a}, ${2:b}, ${0:c})",
+		],
+		"description": "Triple literal"
+	},
 }

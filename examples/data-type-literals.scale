@@ -1,0 +1,29 @@
+using "util/map" from "Core"
+using "util/pair" from "Core"
+using "util/triple" from "Core"
+
+function main(): none
+    decl fruits: Array
+    {"Apple", "Banana", "Pineapple"} => fruits
+    
+    decl apple: str
+    decl banana: str
+    decl pineapple: str
+
+    fruits => (apple, banana, pineapple)
+
+    apple puts
+    banana puts
+    pineapple puts
+
+    "B" ["A": apple, "B": banana " " concat pineapple concat] Map:get puts
+    ("A": apple)    MapEntry.value puts
+    ("a", "b")      Pair.b puts
+    ("a", "b", "c") Triple.c puts
+
+    0 {"element"}          Array:get puts
+    "key" ["key": "value"] Map:get puts
+    ("key": "value")       MapEntry.value puts
+    ("a", "b")             Pair.b puts
+    ("a", "b", "c")        Triple.c puts
+end
