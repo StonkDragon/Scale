@@ -39,6 +39,15 @@ function Array:pop(): none
   self.count 1 - => self.count
 end
 
+function Array:contains(val: any): bool
+  for i in 0 to self.count do
+    i self:get val == if
+      true return
+    fi
+  done
+  false return
+end
+
 function Array:init(size: int): none
   size 1 < if
     "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit

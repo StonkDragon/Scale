@@ -119,6 +119,7 @@ Member types:
 - `pi: float`
 
 `e`: The math constant `e`. It is equal to `2.71828182845904523536028747135266250`
+
 `pi`: The math constant `pi`. It is equal to `3.14159265358979323846264338327950288`
 
 ### `function sqrt(_f_: float): float`
@@ -256,6 +257,9 @@ Pushes `value` onto the array. If the array has no more free slots, it will be r
 
 ### `function Array:pop(): none`
 Pops the top value of the array by decrementing the `count` property on the array. Invoking `Array:pop` on an empty array is undefined behavior.
+
+### `function Array:contains(val: any): bool`
+Returns `true` if the array contains val.
 
 ### `function Array:new(size: int): none`
 Create an empty array with an initial capacity of `size` elements, where `size` is bigger than `0`.
