@@ -248,12 +248,6 @@ namespace sclc
         TokenType type;
     };
 
-    enum Modifier
-    {
-        mod_nowarn,
-        mod_nomangle
-    };
-
     class Variable {
         std::string name;
         std::string type;
@@ -283,7 +277,7 @@ namespace sclc
         std::string file;
         std::string return_type;
         std::vector<Token> body;
-        std::vector<Modifier> modifiers;
+        std::vector<std::string> modifiers;
         std::vector<Variable> args;
         Token* nameToken;
     public:
@@ -294,8 +288,8 @@ namespace sclc
         virtual std::string getName();
         virtual std::vector<Token> getBody();
         virtual void addToken(Token token);
-        virtual void addModifier(Modifier modifier);
-        virtual std::vector<Modifier> getModifiers();
+        virtual void addModifier(std::string modifier);
+        virtual std::vector<std::string> getModifiers();
         virtual void addArgument(Variable arg);
         virtual std::vector<Variable> getArgs();
         virtual std::string getFile();

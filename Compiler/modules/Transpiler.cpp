@@ -101,8 +101,8 @@ namespace sclc {
                 append("%s Method_%s_%s(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
             if (!Main.options.transpileOnly) continue;
-            for (Modifier m : function->getModifiers()) {
-                if (m == mod_nomangle) {
+            for (std::string m : function->getModifiers()) {
+                if (m == "nomangle") {
                     std::string args = "(";
                     for (size_t i = 0; i < function->getArgs().size(); i++) {
                         if (i != 0) {
@@ -261,10 +261,10 @@ namespace sclc {
             bool noWarns = false;
             bool noMangle = false;
 
-            for (Modifier modifier : function->getModifiers()) {
-                if (modifier == mod_nowarn) {
+            for (std::string modifier : function->getModifiers()) {
+                if (modifier == "nowarn") {
                     noWarns = true;
-                } else if (modifier == mod_nomangle) {
+                } else if (modifier == "nomangle") {
                     noMangle = true;
                 }
             }
@@ -1370,6 +1370,10 @@ namespace sclc {
                                     }
                                     ITER_INC;
                                     destructureIndex++;
+                                }
+                                if (destructureIndex == 0) {
+                                    transpilerError("Empty Array destructure", i);
+                                    warns.push_back(err);
                                 }
                                 scopeDepth--;
                                 append("}\n");

@@ -11,10 +11,8 @@ namespace sclc
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
 
-        bool funcNoWarn = false;
-        bool funcNoMangle = false;
-
         std::vector<std::string> uses;
+        std::vector<std::string> nextAttributes;
         std::vector<Variable> globals;
         std::vector<Container> containers;
         std::vector<Struct> structs;
@@ -92,22 +90,10 @@ namespace sclc
                     std::string name = func.getValue();
                     currentFunction = new Method(member_type, name, func);
                     currentFunction->setFile(func.getFile());
-                    if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
-                    if (funcNoMangle) {
-                        if (currentFunction->getName() == "main") {
-                            FPResult result;
-                            result.message = "Main function must be mangled!";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.type = tokens[i + 1].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        currentFunction->addModifier(mod_nomangle);
+                    for (std::string m : nextAttributes) {
+                        currentFunction->addModifier(m);
                     }
+                    nextAttributes.clear();
                     i += 2;
                     if (tokens[i].getType() == tok_paren_open) {
                         i++;
@@ -234,22 +220,10 @@ namespace sclc
                     Token func = tokens[i + 1];
                     currentFunction = new Function(name, func);
                     currentFunction->setFile(func.getFile());
-                    if (funcNoWarn) currentFunction->addModifier(mod_nowarn);
-                    if (funcNoMangle) {
-                        if (currentFunction->getName() == "main") {
-                            FPResult result;
-                            result.message = "Main function must be mangled!";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.type = tokens[i + 1].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        currentFunction->addModifier(mod_nomangle);
+                    for (std::string m : nextAttributes) {
+                        currentFunction->addModifier(m);
                     }
+                    nextAttributes.clear();
                     i += 2;
                     if (tokens[i].getType() == tok_paren_open) {
                         i++;
@@ -370,10 +344,8 @@ namespace sclc
                         continue;
                     }
                 }
-            } else if (token.getType() == tok_end) {
+            } else if (token.getType() == tok_end && tokens[i - 1].getValue() != "unsafe") {
                 if (currentFunction != nullptr) {
-                    funcNoWarn = false;
-                    funcNoMangle = false;
                     bool containsB = false;
                     for (size_t i = 0; i < functions.size(); i++) {
                         if (*(functions.at(i)) == *currentFunction) {
@@ -542,22 +514,7 @@ namespace sclc
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
-                        if (tokens[i + 1].getValue() == "nowarn") {
-                            funcNoWarn = true;
-                        } else if (tokens[i + 1].getValue() == "nomangle") {
-                            funcNoMangle = true;
-                        } else {
-                            FPResult result;
-                            result.message = "Error: " + tokens[i + 1].getValue() + " is not a valid modifier.";
-                            result.column = tokens[i + 1].getColumn();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.type = tokens[i + 1].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
+                        nextAttributes.push_back(tokens[i + 1].getValue());
                     } else {
                         FPResult result;
                         result.message = "Error: " + tokens[i + 1].getValue() + " is not a valid modifier.";
@@ -606,22 +563,10 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(member_type, name, func);
                         function->setFile(func.getFile());
-                        if (funcNoWarn) function->addModifier(mod_nowarn);
-                        if (funcNoMangle) {
-                            if (function->getName() == "main") {
-                                FPResult result;
-                                result.message = "Main function must be mangled!";
-                                result.column = tokens[i + 1].getColumn();
-                                result.value = tokens[i + 1].getValue();
-                                result.line = tokens[i + 1].getLine();
-                                result.in = tokens[i + 1].getFile();
-                                result.type = tokens[i + 1].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                continue;
-                            }
-                            function->addModifier(mod_nomangle);
+                        for (std::string m : nextAttributes) {
+                            function->addModifier(m);
                         }
+                        nextAttributes.clear();
                         i += 2;
                         if (tokens[i].getType() == tok_paren_open) {
                             i++;

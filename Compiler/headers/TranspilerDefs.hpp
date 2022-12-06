@@ -423,7 +423,8 @@
     {                                                                                                                                                                                                 \
         transpilerError("This operation may not be used in for-loops", i);                                                                                                                            \
         errors.push_back(err);                                                                                                                                                                        \
-        while (body[i].getType() != tok_do && body[i].getType() != tok_to && body[i].getType() != tok_step) ITER_INC;                                                                                                                                                                                        \
+        while (body[i].getType() != tok_do && body[i].getType() != tok_to && body[i].getType() != tok_step)                                                                                           \
+            ITER_INC;                                                                                                                                                                                 \
     }
 
 #define push_result()                                                                                                                                                                             \

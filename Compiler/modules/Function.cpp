@@ -21,10 +21,10 @@ std::vector<Token> Function::getBody() {
 void Function::addToken(Token token) {
     body.push_back(token);
 }
-void Function::addModifier(Modifier modifier) {
+void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 }
-std::vector<Modifier> Function::getModifiers() {
+std::vector<std::string> Function::getModifiers() {
     return modifiers;
 }
 void Function::addArgument(Variable arg) {
