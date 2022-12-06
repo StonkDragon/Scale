@@ -30,6 +30,7 @@ namespace sclc {
         else if (t == "int") return_type = "scl_int";
         else if (t == "float") return_type = "scl_float";
         else if (t == "str") return_type = "scl_str";
+        else if (t == "bool") return_type = "scl_int";
         else if (!(getStructByName(result, t) == Struct(""))) {
             return_type = "struct Struct_" + getStructByName(result, t).getName() + "*";
         }
@@ -42,7 +43,7 @@ namespace sclc {
             Variable arg = func->getArgs()[i];
             if (arg.getType() == "float") {
                 args += "stack.data[stack.ptr + " + std::to_string(i) + "].f";
-            } else if (arg.getType() == "int") {
+            } else if (arg.getType() == "int" || arg.getType() == "bool") {
                 args += "stack.data[stack.ptr + " + std::to_string(i) + "].i";
             } else if (arg.getType() == "str") {
                 args += "stack.data[stack.ptr + " + std::to_string(i) + "].s";
@@ -881,10 +882,8 @@ namespace sclc {
                                 errors.push_back(result);
                             }
                             ITER_INC;
-                            push_var();
-                            ITER_INC;
-                            if (body[i].getType() == tok_addr_of) {
-                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                            while (body[i].getType() != tok_to) {
+                                push_var();
                                 ITER_INC;
                             }
                             if (body[i].getType() != tok_to) {
@@ -893,10 +892,8 @@ namespace sclc {
                                 continue;
                             }
                             ITER_INC;
-                            push_var();
-                            ITER_INC;
-                            if (body[i].getType() == tok_addr_of) {
-                                append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+                            while (body[i].getType() != tok_step && body[i].getType() != tok_do) {
+                                push_var();
                                 ITER_INC;
                             }
                             std::string iterator_direction = "++";
@@ -1376,6 +1373,57 @@ namespace sclc {
                                 }
                                 scopeDepth--;
                                 append("}\n");
+                            } else if (body[i].getType() == tok_declare) {
+                                if (body[i + 1].getType() != tok_identifier) {
+                                    transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                if (hasFunction(result, body[i + 1])) {
+                                    transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                                    else errors.push_back(err);
+                                }
+                                if (hasContainer(result, body[i + 1])) {
+                                    transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                                    else errors.push_back(err);
+                                }
+                                if (hasVar(body[i + 1])) {
+                                    transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                                    else errors.push_back(err);
+                                }
+                                std::string name = body[i + 1].getValue();
+                                std::string type = "any";
+                                ITER_INC;
+                                if (body[i+1].getType() == tok_column) {
+                                    ITER_INC;
+                                    ITER_INC;
+                                    if (body[i].getType() != tok_identifier) {
+                                        FPResult result;
+                                        result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                                        result.column = body[i].getColumn();
+                                        result.value = body[i].getValue();
+                                        result.line = body[i].getLine();
+                                        result.in = body[i].getFile();
+                                        result.type = body[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                    }
+                                    if (body[i].getValue() == "none") {
+                                        transpilerError("Type 'none' is only valid for function return types.", i);
+                                        errors.push_back(err);
+                                    }
+                                    type = body[i].getValue();
+                                } else {
+                                    transpilerError("A type is required!", i);
+                                    errors.push_back(err);
+                                    continue;
+                                }
+                                Variable v = Variable(name, type);
+                                vars[varDepth].push_back(v);
+                                append("%s Var_%s = (%s) stack.data[--stack.ptr].%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
                             } else {
                                 if (hasContainer(result, body[i])) {
                                     std::string containerName = body[i].getValue();
