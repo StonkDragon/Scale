@@ -5,9 +5,9 @@ end
 function main(): none
   decl f: Foo
   # instanciate Foo
-  # Foo:new and new Foo are functionally equivalent
-  # but Foo:new is recommended
-  Foo:new => f
+  # Foo::new and new Foo are functionally equivalent
+  # but Foo::new is recommended
+  Foo::new => f
   # stores the string "foo" into f's 'bar' field
   "foo" => f.bar
   # prints "foo"

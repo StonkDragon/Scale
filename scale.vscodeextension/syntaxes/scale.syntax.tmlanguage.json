@@ -33,7 +33,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|using|from|end|extern|while|else|do|done|if|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|load|store|decl|addr|nil|true|false|container|repeat|struct|interface|new|is|cdecl|goto|label|none|int|float|any|str|self|bool)\\b"
+				"match": "\\b(function|using|from|end|extern|while|else|do|done|if|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|store|decl|addr|nil|true|false|container|repeat|struct|interface|new|is|cdecl|goto|label|none|int|float|any|str|self|bool|sealed|nowarn|nomangle|static)\\b"
 			}]
 		},
 		"stack_operators": {
@@ -76,7 +76,7 @@
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(:|\\.|,|(\\.?(\\+|-|\\*|/))|%|@([A-Za-z_]+([A-Za-z_0-9]+)?)?|&|\\||\\^|=(=|>)|!=?|<(<|=)?|>(>|=)?|~|\\[|\\]|\\{|\\}|\\(|\\)|\\?)"
+			"match": "(:|\\.|,|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|=(=|>)|!=?|<(<|=)?|>(>|=)?|~|\\[|\\]|\\{|\\}|\\(|\\)|\\?)"
 		}
 	},
 	"scopeName": "source.scale"

@@ -19,7 +19,7 @@ struct Map is Iterable
 
   function init(size: int): none
     decl data: Array
-    size Array:new => data
+    size Array::new => data
     for i in 0 to size do
       nil data:push
     done
@@ -45,11 +45,11 @@ struct Map is Iterable
     for i in 0 to data.count do
       decl entry: MapEntry i data:get => entry
       entry nil == if
-        i key value MapEntry:new data:set
+        i key value MapEntry::new data:set
         return
       fi
     done
-    key value MapEntry:new data:push
+    key value MapEntry::new data:push
   end
 
   function has_next(): bool

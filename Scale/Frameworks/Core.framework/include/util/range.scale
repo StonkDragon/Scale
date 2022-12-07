@@ -54,7 +54,7 @@ struct Range is Iterable
   end
 
   function toReverseRange(): ReverseRange
-    self._end self._start ReverseRange:new return
+    self._end self._start ReverseRange::new return
   end
 end
 
@@ -89,6 +89,6 @@ struct ReverseRange is Iterable
   end
 
   function toRange(): Range
-    self._end self._start Range:new return
+    self._end self._start Range::new return
   end
 end

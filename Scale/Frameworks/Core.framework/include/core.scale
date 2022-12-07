@@ -63,7 +63,7 @@ end
 function toChars(_str_: str): Array
   decl _len_: int _str_ strlen => _len_
   decl _i_: int 0 => _i_
-  decl _arr_: Array _len_ Array:new => _arr_
+  decl _arr_: Array _len_ Array::new => _arr_
 
   while _i_ _len_ < do
     _str_ _i_ + @ toChar _arr_:push

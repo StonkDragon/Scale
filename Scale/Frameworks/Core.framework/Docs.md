@@ -261,22 +261,22 @@ Pops the top value of the array by decrementing the `count` property on the arra
 ### `function Array:contains(val: any): bool`
 Returns `true` if the array contains val.
 
-### `function Array:new(size: int): none`
+### `static function Array::new(size: int): none`
 Create an empty array with an initial capacity of `size` elements, where `size` is bigger than `0`.
 
 <div style="page-break-after: always;"></div>
 
 ## [Pair](./include/util/pair.scale) and [Triple](./include/util/triple.scale)
-### `function Pair:new(a: any, b: any): none`
+### `static function Pair::new(a: any, b: any): none`
 Create a new pair of `a` and `b`.
 
-### `function Triple:new(a: any, b: any, c: any): none`
+### `static function Triple::new(a: any, b: any, c: any): none`
 Create a new triple of `a`, `b` and `c`.
 
 <div style="page-break-after: always;"></div>
 
 ## [Ranges](./include/util/range.scale)
-### `function Range:new(_start: int, _end: int): none`
+### `static function Range::new(_start: int, _end: int): none`
 Create a new Range object from `_start` to `_end` counting up.
 
 ### `function Range:containsRange(other: Range): int`
@@ -291,7 +291,7 @@ Returns `true` if `pos` is contained within the range. For example, on a Range f
 ### `function Range:toReverseRange(): ReverseRange`
 Convert range to a `ReverseRange` object. For example, a range from 1 to 5 will return a `ReverseRange` object from 5 to 1.
 
-### `function ReverseRange:new(_start: int, _end: int): none`
+### `static function ReverseRange::new(_start: int, _end: int): none`
 Create a new ReverseRange object from `_start` to `_end` counting down.
 
 ### `function ReverseRange:toRange(): Range`
