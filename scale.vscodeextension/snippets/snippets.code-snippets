@@ -246,37 +246,31 @@
 		"prefix": "struct",
 		"body": [
 			"struct ${1:name}",
-			"\tdecl ${2:foo}: ${3:any}",
+			"\t$0",
 			"end"
 		],
 		"description": "Struct"
 	},
-	"Iterator": {
+	"Sealed Struct": {
 		"scope": "source.scale",
-		"prefix": "iterator",
+		"prefix": "sealed struct",
 		"body": [
-			"struct ${1:type}Iterator",
-			"\t# variables",
-			"\t$3",
-			"end",
-			"function ${1:type}Iterator:init(): none",
-			"\t# initialization",
-			"\t$4",
-			"end",
-			"function ${1:type}Iterator:has_next(): int",
-			"\t# return if continue",
-			"\t$5",
-			"end",
-			"function ${1:type}Iterator:next(): ${2:element_type}",
-			"\t# return next value",
-			"\t$6",
-			"end",
-			"function ${1:type}Iterator:begin(): ${2:element_type}",
-			"\t# return first value",
-			"\t$7",
+			"@sealed",
+			"struct ${1:name}",
+			"\t$0",
 			"end"
 		],
-		"description": "Define an iterator for a given type"
+		"description": "Struct"
+	},
+	"Interface": {
+		"scope": "source.scale",
+		"prefix": "interface",
+		"body": [
+			"interface ${1:name}",
+			"\t$0",
+			"end"
+		],
+		"description": "Interface"
 	},
 	"Array literal": {
 		"scope": "source.scale",

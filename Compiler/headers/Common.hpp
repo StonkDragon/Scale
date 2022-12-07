@@ -162,8 +162,10 @@ namespace sclc
         tok_case,           // case
         tok_esac,           // esac
         tok_default,        // default
+        tok_interface_def,  // interface
 
         // operators
+        tok_question_mark,  // ?
         tok_hash,           // @
         tok_addr_of,        // @
         tok_paren_open,     // (
@@ -213,6 +215,7 @@ namespace sclc
         std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
         }
+        Token() : Token(tok_ignore, "", 0, "", 0) {}
         Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
             this->line = line;
             this->file = file;
@@ -269,6 +272,15 @@ namespace sclc
         void setType(std::string type) {
             this->type = type;
         }
+        inline bool operator==(const Variable& other) const {
+            if (this->type == "?" || other.type == "?") {
+                return this->name == other.name;
+            }
+            return this->name == other.name && this->type == other.type;
+        }
+        inline bool operator!=(const Variable& other) const {
+            return !((*this) == other);
+        }
     };
 
     class Function
@@ -279,11 +291,11 @@ namespace sclc
         std::vector<Token> body;
         std::vector<std::string> modifiers;
         std::vector<Variable> args;
-        Token* nameToken;
+        Token nameToken;
     public:
         bool isMethod;
-        Function(std::string name, Token& nameToken);
-        Function(std::string name, bool isMethod, Token& nameToken);
+        Function(std::string name, Token nameToken);
+        Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
         virtual std::string getName();
         virtual std::vector<Token> getBody();
@@ -298,22 +310,31 @@ namespace sclc
         virtual std::string getReturnType();
         virtual void setReturnType(std::string type);
         virtual Token getNameToken();
+        virtual void setNameToken(Token t);
 
         virtual bool operator==(const Function& other) const;
     };
     
     class Method : public Function {
         std::string member_type;
+        bool force_add;
     public:
         Method(std::string member_type, std::string name, Token& nameToken) : Function(name, true, nameToken) {
             this->member_type = member_type;
             this->isMethod = true;
+            this->force_add = false;
         }
         std::string getMemberType() {
             return member_type;
         }
         void setMemberType(std::string member_type) {
             this->member_type = member_type;
+        }
+        bool addAnyway() {
+            return force_add;
+        }
+        void forceAdd(bool force) {
+            force_add = force;
         }
     };
 
@@ -347,12 +368,63 @@ namespace sclc
         }
     };
 
+    class Interface {
+        std::string name;
+        std::vector<Function*> to_implement;
+    public:
+        Interface(std::string name) {
+            this->name = name;
+        }
+        bool hasToImplement(std::string func) {
+            for (Function* f : to_implement) {
+                if (f->getName() == func) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        Function* getToImplement(std::string func) {
+            for (Function* f : to_implement) {
+                if (f->getName() == func) {
+                    return f;
+                }
+            }
+            return nullptr;
+        }
+        std::vector<Function*> getImplements() {
+            return to_implement;
+        }
+        void addToImplement(Function* func) {
+            to_implement.push_back(func);
+        }
+        std::string getName() {
+            return name;
+        }
+        void setName(std::string name) {
+            this->name = name;
+        }
+
+        inline bool operator==(const Interface& other) const {
+            return this->name == other.name;
+        }
+        inline bool operator!=(const Interface& other) const {
+            return !((*this) == other);
+        }
+    };
+
     class Struct {
         std::string name;
+        Token name_token;
+        bool is_sealed;
         std::vector<Variable> members;
+        std::vector<std::string> interfaces;
     public:
-        Struct(std::string name) {
+        Struct(std::string name) : Struct(name, Token(tok_ignore, "", 0, "", 0)) {
+            
+        }
+        Struct(std::string name, Token t) {
             this->name = name;
+            this->name_token = t;
         }
         void addMember(Variable member) {
             members.push_back(member);
@@ -372,6 +444,30 @@ namespace sclc
                 }
             }
             return -1;
+        }
+        bool implements(std::string name) {
+            return std::find(interfaces.begin(), interfaces.end(), name) != interfaces.end();
+        }
+        void implement(std::string interface) {
+            interfaces.push_back(interface);
+        }
+        std::vector<std::string> getInterfaces() {
+            return interfaces;
+        }
+        Token nameToken() {
+            return name_token;
+        }
+        void setNameToken(Token t) {
+            this->name_token = t;
+        }
+        bool isSealed() {
+            return is_sealed;
+        }
+        void seal() {
+            is_sealed = true;
+        }
+        void unseal() {
+            is_sealed = true;
         }
         inline bool operator==(const Struct& other) const {
             return other.name == this->name;
@@ -407,6 +503,7 @@ namespace sclc
     public:
         std::vector<Function*> functions;
         std::vector<Function*> extern_functions;
+        std::vector<Interface*> interfaces;
         std::vector<Variable> extern_globals;
         std::vector<Variable> globals;
         std::vector<Container> containers;
@@ -464,12 +561,12 @@ namespace sclc
     
     class ConvertC {
     public:
-        static void writeHeader(FILE* fp);
-        static void writeFunctionHeaders(FILE* fp, TPResult result);
-        static void writeExternHeaders(FILE* fp, TPResult result);
-        static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result);
-        static void writeContainers(FILE* fp, TPResult result);
-        static void writeStructs(FILE* fp, TPResult result);
+        static void writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeFunctionHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeExternHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeContainers(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeStructs(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result);        
     };
 
@@ -528,6 +625,7 @@ namespace sclc
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function* getFunctionByName(TPResult result, std::string name);
+    Interface* getInterfaceByName(TPResult result, std::string name);
     Method* getMethodByName(TPResult result, std::string name, std::string type);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);

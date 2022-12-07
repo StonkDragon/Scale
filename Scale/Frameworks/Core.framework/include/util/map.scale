@@ -1,72 +1,68 @@
 using "util/pair" from "Core"
+using "util/iterable" from "Core"
 
+@sealed
 struct MapEntry
-    decl key: str
-    decl value: any
-end
+  decl key: str
+  decl value: any
 
-function MapEntry:init(key: str, value: any): none
+  function init(key: str, value: any): none
     key => self.key
     value => self.value
+  end
 end
 
-struct Map
-    decl _data: Array
-end
+@sealed
+struct Map is Iterable
+  decl _data: Array
+  decl _pos: int
 
-function Map:init(size: int): none
+  function init(size: int): none
     decl data: Array
     size Array:new => data
     for i in 0 to size do
-        nil data:push
+      nil data:push
     done
     data => self._data
-end
+    0 => self._pos
+  end
 
-function Map:get(key: str): any
+  function get(key: str): any
     decl data: Array self._data => data
     for i in 0 to data.count do
-        decl entry: MapEntry i data:get => entry
-        entry nil == if continue fi
-        entry.key nil == if continue fi
-        key entry.key strcmp if
-            entry.value return
-        fi
+      decl entry: MapEntry i data:get => entry
+      entry nil == if continue fi
+      entry.key nil == if continue fi
+      key entry.key strcmp if
+        entry.value return
+      fi
     done
     nil return
-end
+  end
 
-function Map:set(key: str, value: any): none
+  function set(key: str, value: any): none
     decl data: Array self._data => data
     for i in 0 to data.count do
-        decl entry: MapEntry i data:get => entry
-        entry nil == if
-            i key value MapEntry:new data:set
-            return
-        fi
+      decl entry: MapEntry i data:get => entry
+      entry nil == if
+        i key value MapEntry:new data:set
+        return
+      fi
     done
     key value MapEntry:new data:push
-end
+  end
 
-struct MapIterator
-    decl array: Array
-    decl pos: int
-end
+  function has_next(): bool
+    self._pos self._data Array.count < return
+  end
 
-function MapIterator:init(map: Map): none
-    map._data => self.array
-    0 => self.pos
-end
+  function next(): MapEntry
+    self._pos 1 + => self._pos
+    self._pos self._data Array:get return
+  end
 
-function MapIterator:has_next(): int
-    self.pos self.array Array.count < return
-end
-
-function MapIterator:next(): MapEntry
-    self.pos 1 + => self.pos
-    self.pos self.array Array:get return
-end
-
-function MapIterator:begin(): MapEntry
-    self.pos self.array Array:get return
+  function begin(): MapEntry
+    0 => self._pos
+    self._pos self._data Array:get return
+  end
 end

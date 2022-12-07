@@ -10,12 +10,14 @@ namespace sclc
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
+        Interface* currentInterface = nullptr;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
         std::vector<Variable> globals;
         std::vector<Container> containers;
         std::vector<Struct> structs;
+        std::vector<Interface*> interfaces;
 
         std::vector<FPResult> errors;
 
@@ -48,15 +50,267 @@ namespace sclc
                     continue;
                 }
                 if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Error: Cannot define function inside of a struct.";
-                    result.column = tokens[i + 1].getColumn();
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
-                    result.success = false;
-                    errors.push_back(result);
+                    Token func = tokens[i + 1];
+                    std::string name = func.getValue();
+                    currentFunction = new Method(currentStruct->getName(), name, func);
+                    currentFunction->setFile(func.getFile());
+                    static_cast<Method*>(currentFunction)->forceAdd(true);
+                    for (std::string m : nextAttributes) {
+                        currentFunction->addModifier(m);
+                    }
+                    nextAttributes.clear();
+                    i += 2;
+                    if (tokens[i].getType() == tok_paren_open) {
+                        i++;
+                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                            if (tokens[i].getType() == tok_identifier) {
+                                std::string name = tokens[i].getValue();
+                                std::string type = "any";
+                                if (tokens[i+1].getType() == tok_column) {
+                                    i += 2;
+                                    if (tokens[i].getType() != tok_identifier) {
+                                        FPResult result;
+                                        result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    if (tokens[i].getValue() == "none") {
+                                        FPResult result;
+                                        result.message = "Type 'none' is only valid for function return types.";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    type = tokens[i].getValue();
+                                } else {
+                                    FPResult result;
+                                    result.message = "A type is required!";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
+                                }
+                                currentFunction->addArgument(Variable(name, type));
+                            } else {
+                                FPResult result;
+                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            i++;
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
+                                if (tokens[i].getType() == tok_comma) {
+                                    i++;
+                                }
+                                continue;
+                            }
+                            FPResult result;
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        
+                        currentFunction->addArgument(Variable("self", currentStruct->getName()));
+                        if (tokens[i+1].getType() == tok_column) {
+                            i += 2;
+                            if (tokens[i].getType() != tok_identifier) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            currentFunction->setReturnType(tokens[i].getValue());
+                        } else {
+                            FPResult result;
+                            result.message = "A type is required!";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    std::string name = tokens[i + 1].getValue();
+                    Token func = tokens[i + 1];
+                    Function* functionToImplement = new Function(name, func);
+                    functionToImplement->setFile(func.getFile());
+                    for (std::string m : nextAttributes) {
+                        functionToImplement->addModifier(m);
+                    }
+                    nextAttributes.clear();
+                    i += 2;
+                    if (tokens[i].getType() == tok_paren_open) {
+                        i++;
+                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                            if (tokens[i].getType() == tok_identifier) {
+                                std::string name = tokens[i].getValue();
+                                std::string type = "any";
+                                if (tokens[i+1].getType() == tok_column) {
+                                    i += 2;
+                                    if (tokens[i].getType() != tok_identifier && tokens[i].getType() != tok_question_mark) {
+                                        FPResult result;
+                                        result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    if (tokens[i].getValue() == "none") {
+                                        FPResult result;
+                                        result.message = "Type 'none' is only valid for function return types.";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        continue;
+                                    }
+                                    type = tokens[i].getValue();
+                                } else {
+                                    FPResult result;
+                                    result.message = "A type is required!";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
+                                }
+                                functionToImplement->addArgument(Variable(name, type));
+                            } else {
+                                FPResult result;
+                                result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            i++;
+                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
+                                if (tokens[i].getType() == tok_comma) {
+                                    i++;
+                                }
+                                continue;
+                            }
+                            FPResult result;
+                            result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        if (tokens[i+1].getType() == tok_column) {
+                            i += 2;
+                            if (tokens[i].getType() != tok_identifier && tokens[i].getType() != tok_question_mark) {
+                                FPResult result;
+                                result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            functionToImplement->setReturnType(tokens[i].getValue());
+                        } else {
+                            FPResult result;
+                            result.message = "A type is required!";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    currentInterface->addToImplement(functionToImplement);
                     continue;
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -344,7 +598,7 @@ namespace sclc
                         continue;
                     }
                 }
-            } else if (token.getType() == tok_end && tokens[i - 1].getValue() != "unsafe") {
+            } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     bool containsB = false;
                     for (size_t i = 0; i < functions.size(); i++) {
@@ -373,9 +627,12 @@ namespace sclc
                 } else if (currentStruct != nullptr) {
                     structs.push_back(*currentStruct);
                     currentStruct = nullptr;
+                } else if (currentInterface != nullptr) {
+                    interfaces.push_back(currentInterface);
+                    currentInterface = nullptr;
                 } else {
                     FPResult result;
-                    result.message = "Unexpected 'end' keyword outside of function, container or struct body.";
+                    result.message = "Unexpected 'end' keyword outside of function, container, struct or interface body.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -413,6 +670,18 @@ namespace sclc
                 if (currentStruct != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a container inside of a struct.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a container inside of an interface.";
                     result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
@@ -485,9 +754,21 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a struct inside of an interface.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for variable declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected itentifier for struct declaration, but got '" + tokens[i + 1].getValue() + "'";
                     result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
@@ -510,7 +791,124 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                currentStruct = new Struct(tokens[i].getValue());
+                currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
+                for (std::string m : nextAttributes) {
+                    if (m == "sealed")
+                        currentStruct->seal();
+                }
+                nextAttributes.clear();
+                if (tokens[i + 1].getType() == tok_is) {
+                    i++;
+                    if (tokens[i + 1].getType() != tok_identifier) {
+                        FPResult result;
+                        result.message = "Expected Interface name";
+                        result.column = tokens[i + 1].getColumn();
+                        result.value = tokens[i + 1].getValue();
+                        result.line = tokens[i + 1].getLine();
+                        result.in = tokens[i + 1].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    i++;
+                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end) {
+                        if (tokens[i].getType() == tok_identifier)
+                            currentStruct->implement(tokens[i].getValue());
+                        i++;
+                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end) {
+                            i--;
+                            break;
+                        }
+                        if (i >= tokens.size()) {
+                            FPResult result;
+                            result.message = "Unexpected end of file!";
+                            result.column = tokens[i - 1].getColumn();
+                            result.value = tokens[i - 1].getValue();
+                            result.line = tokens[i - 1].getLine();
+                            result.in = tokens[i - 1].getFile();
+                            result.type = tokens[i - 1].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            break;
+                        }
+                    }
+                }
+            } else if (token.getType() == tok_interface_def) {
+                if (currentContainer != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an interface inside of a container.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an interface inside of a function.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentStruct != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an interface inside of a struct.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an interface inside another interface.";
+                    result.column = token.getColumn();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (tokens[i + 1].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for interface declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                    FPResult result;
+                    result.message = "Invalid name for interface: '" + tokens[i + 1].getValue() + "'";
+                    result.column = tokens[i + 1].getColumn();
+                    result.value = tokens[i + 1].getValue();
+                    result.line = tokens[i + 1].getLine();
+                    result.in = tokens[i + 1].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentInterface = new Interface(tokens[i].getValue());
             } else if (token.getType() == tok_hash) {
                 if (currentFunction == nullptr && currentContainer == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
@@ -540,10 +938,144 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentStruct == nullptr) {
+            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
                 i++;
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
+                    if (currentStruct != nullptr) {
+                        Token func = tokens[i + 1];
+                        std::string name = func.getValue();
+                        Function* function = new Method(currentStruct->getName(), name, func);
+                        function->setFile(func.getFile());
+                        static_cast<Method*>(function)->forceAdd(true);
+                        for (std::string m : nextAttributes) {
+                            function->addModifier(m);
+                        }
+                        nextAttributes.clear();
+                        i += 2;
+                        if (tokens[i].getType() == tok_paren_open) {
+                            i++;
+                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                                if (tokens[i].getType() == tok_identifier) {
+                                    std::string name = tokens[i].getValue();
+                                    std::string type = "any";
+                                    if (tokens[i+1].getType() == tok_column) {
+                                        i += 2;
+                                        if (tokens[i].getType() != tok_identifier) {
+                                            FPResult result;
+                                            result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        if (tokens[i].getValue() == "none") {
+                                            FPResult result;
+                                            result.message = "Type 'none' is only valid for function return types.";
+                                            result.column = tokens[i].getColumn();
+                                            result.value = tokens[i].getValue();
+                                            result.line = tokens[i].getLine();
+                                            result.in = tokens[i].getFile();
+                                            result.type = tokens[i].getType();
+                                            result.success = false;
+                                            errors.push_back(result);
+                                            continue;
+                                        }
+                                        type = tokens[i].getValue();
+                                    } else {
+                                        FPResult result;
+                                        result.message = "A type is required!";
+                                        result.column = tokens[i].getColumn();
+                                        result.value = tokens[i].getValue();
+                                        result.line = tokens[i].getLine();
+                                        result.in = tokens[i].getFile();
+                                        result.type = tokens[i].getType();
+                                        result.success = false;
+                                        errors.push_back(result);
+                                        i++;
+                                        continue;
+                                    }
+                                    function->addArgument(Variable(name, type));
+                                } else {
+                                    FPResult result;
+                                    result.message = "Expected: identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    i++;
+                                    continue;
+                                }
+                                i++;
+                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
+                                    if (tokens[i].getType() == tok_comma) {
+                                        i++;
+                                    }
+                                    continue;
+                                }
+                                FPResult result;
+                                result.message = "Expected: ',' or ')', but got '" + tokens[i].getValue() + "'";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                continue;
+                            }
+                            
+                            function->addArgument(Variable("self", currentStruct->getName()));
+                            if (tokens[i+1].getType() == tok_column) {
+                                i += 2;
+                                if (tokens[i].getType() != tok_identifier) {
+                                    FPResult result;
+                                    result.message = "Expected identifier, but got '" + tokens[i].getValue() + "'";
+                                    result.column = tokens[i].getColumn();
+                                    result.value = tokens[i].getValue();
+                                    result.line = tokens[i].getLine();
+                                    result.in = tokens[i].getFile();
+                                    result.type = tokens[i].getType();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    continue;
+                                }
+                                function->setReturnType(tokens[i].getValue());
+                            } else {
+                                FPResult result;
+                                result.message = "A type is required!";
+                                result.column = tokens[i].getColumn();
+                                result.value = tokens[i].getValue();
+                                result.line = tokens[i].getLine();
+                                result.in = tokens[i].getFile();
+                                result.type = tokens[i].getType();
+                                result.success = false;
+                                errors.push_back(result);
+                                i++;
+                                continue;
+                            }
+                            extern_functions.push_back(function);
+                        } else {
+                            FPResult result;
+                            result.message = "Expected: '(', but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        continue;
+                    }
                     if (tokens[i + 2].getType() == tok_column) {
                         std::string member_type = tokens[i + 1].getValue();
                         i += 2;
@@ -870,7 +1402,7 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-            } else if (currentFunction != nullptr && currentContainer == nullptr && currentStruct == nullptr) {
+            } else if (currentFunction != nullptr && currentContainer == nullptr) {
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -1015,6 +1547,7 @@ namespace sclc
         result.containers = containers;
         result.structs = structs;
         result.errors = errors;
+        result.interfaces = interfaces;
         return result;
     }
 }

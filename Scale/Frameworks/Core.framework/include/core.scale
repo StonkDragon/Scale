@@ -22,52 +22,52 @@ extern function stringToDouble(_str_: str): float
 extern function doubleToString(_double_: float): str
 
 function nop(): none
-    0 sleep
+  0 sleep
 end
 
 function strstarts(_s1_: str, _s2_: str): int
-    _s2_ strlen _s2_ _s1_ strncmp return
+  _s2_ strlen _s2_ _s1_ strncmp return
 end
 
 function sizeof(_type_: str): int
-    _type_ "int" strcmp if
-        8 return
-    fi
-    _type_ "float" strcmp if
-        8 return
-    fi
-    _type_ "none" strcmp if
-        0 return
-    fi
-    _type_ "str" strcmp if
-        8 return
-    fi
-    _type_ "any" strcmp if
-        8 return
-    fi
-    -1 return
+  _type_ "int" strcmp if
+    8 return
+  fi
+  _type_ "float" strcmp if
+    8 return
+  fi
+  _type_ "none" strcmp if
+    0 return
+  fi
+  _type_ "str" strcmp if
+    8 return
+  fi
+  _type_ "any" strcmp if
+    8 return
+  fi
+  -1 return
 end
 
 function toChar(_val_: int): int
-    _val_ 0xff & return
+  _val_ 0xff & return
 end
 
 function toInt(_val_: int): int
-    _val_ 0xffffffff & return
+  _val_ 0xffffffff & return
 end
 
 function toShort(_val_: int): int
-    _val_ 0xffff & return
+  _val_ 0xffff & return
 end
 
 function toChars(_str_: str): Array
-    decl _len_: int _str_ strlen => _len_
-    decl _i_: int 0 => _i_
-    decl _arr_: Array _len_ Array:new => _arr_
+  decl _len_: int _str_ strlen => _len_
+  decl _i_: int 0 => _i_
+  decl _arr_: Array _len_ Array:new => _arr_
 
-    while _i_ _len_ < do
-        _str_ _i_ + @ toChar _arr_:push
-        _i_ 1 + => _i_
-    done
-    _arr_ return
+  while _i_ _len_ < do
+    _str_ _i_ + @ toChar _arr_:push
+    _i_ 1 + => _i_
+  done
+  _arr_ return
 end

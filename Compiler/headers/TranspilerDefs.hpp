@@ -427,6 +427,242 @@
             ITER_INC;                                                                                                                                                                                 \
     }
 
+#define push_var_with_type()                                                                                                                                                                      \
+    if (body[i].getType() == tok_identifier)                                                                                                                                                      \
+    {                                                                                                                                                                                             \
+        if (body[i].getValue() == "self" && !function->isMethod)                                                                                                                                  \
+        {                                                                                                                                                                                         \
+            transpilerError("Can't use 'self' outside a member function.", i);                                                                                                                    \
+            errors.push_back(err);                                                                                                                                                                \
+            break;                                                                                                                                                                             \
+        }                                                                                                                                                                                         \
+        if (hasFunction(result, body[i]))                                                                                                                                                         \
+        {                                                                                                                                                                                         \
+            Function *f = getFunctionByName(result, body[i].getValue());                                                                                                                          \
+            if (f->isMethod)                                                                                                                                                                      \
+            {                                                                                                                                                                                     \
+                transpilerError("'" + f->getName() + "' is a method, not a function.", i);                                                                                                        \
+                errors.push_back(err);                                                                                                                                                            \
+                break;                                                                                                                                                                         \
+            }                                                                                                                                                                                     \
+            append("stack.ptr -= %zu;\n", f->getArgs().size());                                                                                                                                   \
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none")                                                                                                                    \
+            {                                                                                                                                                                                     \
+                if (f->getReturnType() == "float")                                                                                                                                                \
+                {                                                                                                                                                                                 \
+                    append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());                                                                \
+                    debugPrintPush();                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+                else                                                                                                                                                                              \
+                {                                                                                                                                                                                 \
+                    append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());                                                    \
+                    debugPrintPush();                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+                type = f->getReturnType();                                                                                                                                                        \
+            }                                                                                                                                                                                     \
+            else                                                                                                                                                                                  \
+            {                                                                                                                                                                                     \
+                transpilerError("Function '" + f->getName() + "' does not return a value!", i);                                                                                                   \
+                errors.push_back(err);                                                                                                                                                            \
+                break;                                                                                                                                                                         \
+            }                                                                                                                                                                                     \
+        }                                                                                                                                                                                         \
+        else if (hasContainer(result, body[i]))                                                                                                                                                   \
+        {                                                                                                                                                                                         \
+            std::string containerName = body[i].getValue();                                                                                                                                       \
+            ITER_INC;                                                                                                                                                                             \
+            if (body[i].getType() != tok_dot)                                                                                                                                                     \
+            {                                                                                                                                                                                     \
+                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);                                                                            \
+                errors.push_back(err);                                                                                                                                                            \
+                break;                                                                                                                                                                         \
+            }                                                                                                                                                                                     \
+            ITER_INC;                                                                                                                                                                             \
+            std::string memberName = body[i].getValue();                                                                                                                                          \
+            Container container = getContainerByName(result, containerName);                                                                                                                      \
+            if (!container.hasMember(memberName))                                                                                                                                                 \
+            {                                                                                                                                                                                     \
+                transpilerError("Unknown container member: '" + memberName + "'", i);                                                                                                             \
+                errors.push_back(err);                                                                                                                                                            \
+                break;                                                                                                                                                                         \
+            }                                                                                                                                                                                     \
+            if (container.getMemberType(memberName) == "float")                                                                                                                                   \
+            {                                                                                                                                                                                     \
+                append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());                                                                              \
+                debugPrintPush();                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+            else                                                                                                                                                                                  \
+            {                                                                                                                                                                                     \
+                append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());                                                                  \
+                debugPrintPush();                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+            type = container.getMemberType(memberName);                                                                                                                                           \
+        }                                                                                                                                                                                         \
+        else if (getStructByName(result, body[i].getValue()) != Struct(""))                                                                                                                       \
+        {                                                                                                                                                                                         \
+            if (body[i + 1].getType() == tok_column)                                                                                                                                              \
+            {                                                                                                                                                                                     \
+                ITER_INC;                                                                                                                                                                         \
+                ITER_INC;                                                                                                                                                                         \
+                if (body[i].getType() == tok_new)                                                                                                                                                 \
+                {                                                                                                                                                                                 \
+                    transpilerError("Cannot instanciate in foreach loop!", i);                                                                                                                    \
+                    errors.push_back(err);                                                                                                                                                        \
+                    break;                                                                                                                                                                     \
+                }                                                                                                                                                                                 \
+                else                                                                                                                                                                              \
+                {                                                                                                                                                                                 \
+                    if (!hasMethod(result, body[i], body[i - 2].getValue()))                                                                                                                      \
+                    {                                                                                                                                                                             \
+                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + body[i - 2].getValue() + "'", i);                                                               \
+                        errors.push_back(err);                                                                                                                                                    \
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                    Method *f = getMethodByName(result, body[i].getValue(), body[i - 2].getValue());                                                                                              \
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());                                                                                                                           \
+                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none")                                                                                                            \
+                    {                                                                                                                                                                             \
+                        if (f->getReturnType() == "float")                                                                                                                                        \
+                        {                                                                                                                                                                         \
+                            append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method *)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());             \
+                            debugPrintPush();                                                                                                                                                     \
+                        }                                                                                                                                                                         \
+                        else                                                                                                                                                                      \
+                        {                                                                                                                                                                         \
+                            append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method *)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str()); \
+                            debugPrintPush();                                                                                                                                                     \
+                        }                                                                                                                                                                         \
+                        type = f->getReturnType();                                                                                                                                                \
+                    }                                                                                                                                                                             \
+                    else                                                                                                                                                                          \
+                    {                                                                                                                                                                             \
+                        transpilerError("Method '" + f->getMemberType() + ":" + f->getName() + "' does not return a value!", i);                                                                  \
+                        errors.push_back(err);                                                                                                                                                    \
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+            else                                                                                                                                                                                  \
+            {                                                                                                                                                                                     \
+                ITER_INC;                                                                                                                                                                         \
+                ITER_INC;                                                                                                                                                                         \
+                Struct s = getStructByName(result, body[i - 2].getValue());                                                                                                                       \
+                if (!s.hasMember(body[i].getValue()))                                                                                                                                             \
+                {                                                                                                                                                                                 \
+                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);                                                                          \
+                    errors.push_back(err);                                                                                                                                                        \
+                    break;                                                                                                                                                                     \
+                }                                                                                                                                                                                 \
+                Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];                                                                                                           \
+                if (mem.getType() == "float")                                                                                                                                                     \
+                    append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());                            \
+                else                                                                                                                                                                              \
+                    append("stack.data[stack.ptr - 1].v = (scl_value) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());                \
+                type = mem.getType();                                                                                                                                                             \
+            }                                                                                                                                                                                     \
+        }                                                                                                                                                                                         \
+        else if (hasVar(body[i]))                                                                                                                                                                 \
+        {                                                                                                                                                                                         \
+            std::string loadFrom = body[i].getValue();                                                                                                                                            \
+            Variable v = getVar(body[i]);                                                                                                                                                         \
+            if (getStructByName(result, v.getType()) != Struct(""))                                                                                                                               \
+            {                                                                                                                                                                                     \
+                if (body[i + 1].getType() == tok_column)                                                                                                                                          \
+                {                                                                                                                                                                                 \
+                    ITER_INC;                                                                                                                                                                     \
+                    ITER_INC;                                                                                                                                                                     \
+                    if (!hasMethod(result, body[i], v.getType()))                                                                                                                                 \
+                    {                                                                                                                                                                             \
+                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);                                                                          \
+                        errors.push_back(err);                                                                                                                                                    \
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                    Method *f = getMethodByName(result, body[i].getValue(), v.getType());                                                                                                         \
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());                                                                                                \
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());                                                                                                                           \
+                    debugPrintPush();                                                                                                                                                             \
+                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none")                                                                                                            \
+                    {                                                                                                                                                                             \
+                        if (f->getReturnType() == "float")                                                                                                                                        \
+                        {                                                                                                                                                                         \
+                            append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method *)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());             \
+                            debugPrintPush();                                                                                                                                                     \
+                        }                                                                                                                                                                         \
+                        else                                                                                                                                                                      \
+                        {                                                                                                                                                                         \
+                            append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method *)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str()); \
+                            debugPrintPush();                                                                                                                                                     \
+                        }                                                                                                                                                                         \
+                        type = f->getReturnType();                                                                                                                                                \
+                    }                                                                                                                                                                             \
+                    else                                                                                                                                                                          \
+                    {                                                                                                                                                                             \
+                        transpilerError("Method '" + f->getMemberType() + ":" + f->getName() + "' does not return a value!", i);                                                                  \
+                        errors.push_back(err);                                                                                                                                                    \
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+                else                                                                                                                                                                              \
+                {                                                                                                                                                                                 \
+                    if (body[i + 1].getType() != tok_dot)                                                                                                                                         \
+                    {                                                                                                                                                                             \
+                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());                                                                                            \
+                        debugPrintPush();                                                                                                                                                         \
+                        type = getVar(Token(tok_identifier, loadFrom, 0, "", 0)).getType();\
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                    ITER_INC;                                                                                                                                                                     \
+                    ITER_INC;                                                                                                                                                                     \
+                    Struct s = getStructByName(result, v.getType());                                                                                                                              \
+                    if (!s.hasMember(body[i].getValue()))                                                                                                                                         \
+                    {                                                                                                                                                                             \
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);                                                                      \
+                        errors.push_back(err);                                                                                                                                                    \
+                        break;                                                                                                                                                                 \
+                    }                                                                                                                                                                             \
+                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];                                                                                                       \
+                    if (mem.getType() == "float")                                                                                                                                                 \
+                    {                                                                                                                                                                             \
+                        append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());                                                                        \
+                        debugPrintPush();                                                                                                                                                         \
+                    }                                                                                                                                                                             \
+                    else                                                                                                                                                                          \
+                    {                                                                                                                                                                             \
+                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());                                                            \
+                        debugPrintPush();                                                                                                                                                         \
+                    }                                                                                                                                                                             \
+                    type = mem.getType();                                                                                                                                                         \
+                }                                                                                                                                                                                 \
+            }                                                                                                                                                                                     \
+            else                                                                                                                                                                                  \
+            {                                                                                                                                                                                     \
+                if (v.getType() == "float")                                                                                                                                                       \
+                {                                                                                                                                                                                 \
+                    append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());                                                                                                            \
+                    debugPrintPush();                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+                else                                                                                                                                                                              \
+                {                                                                                                                                                                                 \
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());                                                                                                \
+                    debugPrintPush();                                                                                                                                                             \
+                }                                                                                                                                                                                 \
+                type = v.getType();                                                                                                                                                               \
+            }                                                                                                                                                                                     \
+        }                                                                                                                                                                                         \
+        else                                                                                                                                                                                      \
+        {                                                                                                                                                                                         \
+            transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);                                                                                                               \
+            errors.push_back(err);                                                                                                                                                                \
+        }                                                                                                                                                                                         \
+    }                                                                                                                                                                                             \
+    else                                                                                                                                                                                          \
+    {                                                                                                                                                                                             \
+        transpilerError("This operation may not be used in foreach-loops", i);                                                                                                                    \
+        errors.push_back(err);                                                                                                                                                                    \
+        while (body[i].getType() != tok_do)                                                                                       \
+            ITER_INC;                                                                                                                                                                             \
+    }
+
 #define push_result()                                                                                                                                                                             \
     if (body[i].getType() == tok_identifier && hasFunction(result, body[i]))                                                                                                                      \
     {                                                                                                                                                                                             \

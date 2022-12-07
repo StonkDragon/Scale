@@ -1,30 +1,29 @@
-
 function write(_fd_: int, _str_: str, _n_: int): none
-    cdecl "int _ignored = write(Var__fd_, Var__str_, Var__n_); (void) _ignored;"
+  cdecl "int _ignored = write(Var__fd_, Var__str_, Var__n_); (void) _ignored;"
 end
 
 function read(_fd_: int, _n_: int): str
-    decl buf: str _n_ malloc => buf
-    cdecl "int _ignored = read(Var__fd_, Var_buf, Var__n_); (void) _ignored;"
-    buf return
+  decl buf: str _n_ malloc => buf
+  cdecl "int _ignored = read(Var__fd_, Var_buf, Var__n_); (void) _ignored;"
+  buf return
 end
 
 function puts(_str_: str): none
-    cdecl "printf(\"%s\n\", Var__str_);"
+  cdecl "printf(\"%s\n\", Var__str_);"
 end
 
 function eputs(_str_: str): none
-    cdecl "fprintf(stderr, \"%s\n\", Var__str_);"
+  cdecl "fprintf(stderr, \"%s\n\", Var__str_);"
 end
 
 function putint(_int_: int): none
-    cdecl "printf(\"%lld\n\", Var__int_);"
+  cdecl "printf(\"%lld\n\", Var__int_);"
 end
 
 function putfloat(_f_: float): none
-    cdecl "printf(\"%f\n\", Var__f_);"
+  cdecl "printf(\"%f\n\", Var__f_);"
 end
 
 function throwerr(_err_: str): none
-    _err_ eputs 1 exit
+  _err_ eputs 1 exit
 end

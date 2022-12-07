@@ -1,83 +1,78 @@
+using "util/iterable" from "Core"
+
 extern function trace(): none
 
-struct Array
+@sealed
+struct Array is Iterable
   decl values: any
   decl count: int
   decl capacity: int
-end
+  decl _pos: int
+  
+  extern function sort(): none
 
-extern function Array:sort(): none
+  function get(index: int): any
+    self.values index 3 << + @ return
+  end
 
-function Array:get(index: int): any
-  self.values index 3 << + @ return
-end
+  function set(index: int, value: any): none
+    decl tmp: any
+    self.values index 3 << + => tmp
+    value => @tmp
+  end
 
-function Array:set(index: int, value: any): none
-  decl tmp: any
-  self.values index 3 << + => tmp
-  value => @tmp
-end
+  function top(): any
+    self.values self.count 1 - 3 << + @ return
+  end
 
-function Array:top(): any
-  self.values self.count 1 - 3 << + @ return
-end
-
-function Array:push(value: any): none
-  self.count self.capacity >= if
-    self.capacity 2 * => self.capacity
-    self.capacity 8 * self.values realloc
-    => self.values
-  fi
-
-  decl tmp: any
-  self.values self.count 3 << + => tmp
-  value => @tmp
-  self.count 1 + => self.count
-end
-
-function Array:pop(): none
-  self.count 1 - => self.count
-end
-
-function Array:contains(val: any): bool
-  for i in 0 to self.count do
-    i self:get val == if
-      true return
+  function push(value: any): none
+    self.count self.capacity >= if
+      self.capacity 2 * => self.capacity
+      self.capacity 8 * self.values realloc
+      => self.values
     fi
-  done
-  false return
-end
 
-function Array:init(size: int): none
-  size 1 < if
-    "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
-  fi
-  size 8 * malloc
-  => self.values
-  0 => self.count
-  size => self.capacity
-end
+    decl tmp: any
+    self.values self.count 3 << + => tmp
+    value => @tmp
+    self.count 1 + => self.count
+  end
 
-struct ArrayIterator
-    decl array: Array
-    decl pos: int
-end
+  function pop(): none
+    self.count 1 - => self.count
+  end
 
-function ArrayIterator:has_next(): int
-    self.pos self.array Array.count < return
-end
+  function contains(val: any): bool
+    for i in 0 to self.count do
+      i self:get val == if
+        true return
+      fi
+    done
+    false return
+  end
 
-function ArrayIterator:next(): any
-    self.pos 1 + => self.pos
-    self.pos self.array Array:get return
-end
+  function init(size: int): none
+    size 1 < if
+      "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
+    fi
+    size 8 * malloc
+    => self.values
+    0 => self.count
+    0 => self._pos
+    size => self.capacity
+  end
 
-function ArrayIterator:begin(): any
-    self.pos self.array Array:get return
-end
+  function has_next(): bool
+    self._pos self.count < return
+  end
 
-function ArrayIterator:init(arr: Array): none
-    arr => self.array
-    0 => self.pos
-end
+  function next(): any
+    self._pos 1 + => self._pos
+    self._pos self:get return
+  end
 
+  function begin(): any
+    0 => self._pos
+    self._pos self:get return
+  end
+end

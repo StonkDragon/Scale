@@ -310,12 +310,14 @@ namespace sclc
         TOKEN("esac",       tok_esac, line, filename, startColumn);
         TOKEN("default",    tok_default, line, filename, startColumn);
         TOKEN("step",       tok_step, line, filename, startColumn);
+        TOKEN("interface",  tok_interface_def, line, filename, startColumn);
         
         if (inFunction) {
             TOKEN("@",      tok_addr_of, line, filename, startColumn);
         } else {
             TOKEN("@",      tok_hash, line, filename, startColumn);
         }
+        TOKEN("?",          tok_question_mark, line, filename, startColumn);
         TOKEN("(",          tok_paren_open, line, filename, startColumn);
         TOKEN(")",          tok_paren_close, line, filename, startColumn);
         TOKEN("{",          tok_curly_open, line, filename, startColumn);

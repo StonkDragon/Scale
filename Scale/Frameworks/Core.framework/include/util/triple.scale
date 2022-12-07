@@ -1,11 +1,12 @@
+@sealed
 struct Triple
-    decl a: any
-    decl b: any
-    decl c: any
-end
+  decl a: any
+  decl b: any
+  decl c: any
 
-function Triple:init(a: any, b: any, c: any): none
+  function init(a: any, b: any, c: any): none
     a => self.a
     b => self.b
     c => self.c
+  end
 end

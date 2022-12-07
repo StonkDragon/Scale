@@ -8,7 +8,9 @@
 namespace sclc {
     FILE* nomangled;
 
-    void ConvertC::writeHeader(FILE* fp) {
+    void ConvertC::writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         append("#ifdef __cplusplus\n");
         append("extern \"C\" {\n");
@@ -55,7 +57,9 @@ namespace sclc {
         return args;
     }
 
-    void ConvertC::writeFunctionHeaders(FILE* fp, TPResult result) {
+    void ConvertC::writeFunctionHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
 
@@ -121,7 +125,9 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeExternHeaders(FILE* fp, TPResult result) {
+    void ConvertC::writeExternHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         if (result.extern_functions.size() == 0) return;
         append("/* EXTERN FUNCTIONS */\n");
@@ -162,7 +168,9 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result) {
+    void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         if (result.globals.size() == 0) return;
         append("/* GLOBALS */\n");
@@ -177,7 +185,9 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeContainers(FILE* fp, TPResult result) {
+    void ConvertC::writeContainers(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         if (result.containers.size() == 0) return;
         append("/* CONTAINERS */\n");
@@ -198,11 +208,81 @@ namespace sclc {
         }
     }
 
-    void ConvertC::writeStructs(FILE* fp, TPResult result) {
+    bool argsAreIdentical(std::vector<Variable> methodArgs, std::vector<Variable> functionArgs) {
+        if ((methodArgs.size() - 1) != functionArgs.size()) return false;
+        for (size_t i = 0; i < methodArgs.size(); i++) {
+            if (methodArgs[i].getName() == "self") continue;
+            if (methodArgs[i] != functionArgs[i]) return false;
+        }
+        return true;
+    }
+
+    void ConvertC::writeStructs(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
         int scopeDepth = 0;
         if (result.structs.size() == 0) goto label_writeStructs_close_file;
         append("/* STRUCTS */\n");
         for (Struct c : result.structs) {
+            for (std::string i : c.getInterfaces()) {
+                Interface* interface = getInterfaceByName(result, i);
+                if (interface == nullptr) {
+                    FPResult res;
+                    Token t = c.nameToken();
+                    res.success = false;
+                    res.message = "Struct '" + c.getName() + "' implements unknown interface '" + i + "'";
+                    res.column = t.getColumn();
+                    res.line = t.getLine();
+                    res.in = t.getFile();
+                    res.value = t.getValue();
+                    res.type = t.getType();
+                    errors.push_back(res);
+                    continue;
+                }
+                for (Function* f : interface->getImplements()) {
+                    if (!hasMethod(result, Token(tok_identifier, f->getName(), 0, "", 0), c.getName())) {
+                        FPResult res;
+                        Token t = c.nameToken();
+                        res.success = false;
+                        res.message = "No implementation for method '" + f->getName() + "' on struct '" + c.getName() + "'";
+                        res.column = t.getColumn();
+                        res.line = t.getLine();
+                        res.in = t.getFile();
+                        res.value = t.getValue();
+                        res.type = t.getType();
+                        errors.push_back(res);
+                        continue;
+                    }
+                    Method* m = getMethodByName(result, f->getName(), c.getName());
+                    if (!argsAreIdentical(m->getArgs(), f->getArgs())) {
+                        FPResult res;
+                        Token t = m->getNameToken();
+                        res.success = false;
+                        res.message = "Arguments of method '" + c.getName() + ":" + m->getName() + "' do not match implemented method '" + f->getName() + "'";
+                        res.column = t.getColumn();
+                        res.line = t.getLine();
+                        res.in = t.getFile();
+                        res.value = t.getValue();
+                        res.type = t.getType();
+                        errors.push_back(res);
+                        continue;
+                    }
+                    if (f->getReturnType() != "?" && m->getReturnType() != f->getReturnType()) {
+                        FPResult res;
+                        Token t = m->getNameToken();
+                        res.success = false;
+                        res.message = "Return type of method '" + c.getName() + ":" + m->getName() + "' does not match implemented method '" + f->getName() + "'. Return type should be: '" + f->getReturnType() + "'";
+                        res.column = t.getColumn();
+                        res.line = t.getLine();
+                        res.in = t.getFile();
+                        res.value = t.getValue();
+                        res.type = t.getType();
+                        errors.push_back(res);
+                        continue;
+                    }
+                }
+            }
+
             append("struct Struct_%s {\n", c.getName().c_str());
             append("  scl_int $__type__;\n");
             append("  scl_str $__type_name__;\n");
@@ -369,6 +449,18 @@ namespace sclc {
             if (!function->isMethod) {
                 append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             } else {
+                if (!((Method*)(function))->addAnyway() && getStructByName(result, ((Method*)(function))->getMemberType()).isSealed()) {
+                    FPResult result;
+                    result.message = "Struct '" + ((Method*)(function))->getMemberType() + "' is sealed!";
+                    result.column = function->getNameToken().getColumn();
+                    result.value = function->getNameToken().getValue();
+                    result.line = function->getNameToken().getLine();
+                    result.in = function->getNameToken().getFile();
+                    result.type = function->getNameToken().getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 append("%s Method_%s_%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
 
@@ -783,7 +875,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
-                            append("stack.data[stack.ptr - 1].v = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
+                            append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
                             break;
                         }
 
@@ -1047,60 +1139,59 @@ namespace sclc {
                                 errors.push_back(err);
                                 continue;
                             }
+                            std::string type = "";
                             ITER_INC;
-                            Token iterable_tok = body[i];
-                            if (!hasVar(iterable_tok)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' not found!", i);
+                            while (body[i].getType() != tok_do) {
+                                push_var_with_type();
+                                ITER_INC;
+                            }
+                            append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", type.c_str(), iterator_name.c_str(), type.c_str());
+                            
+                            if (!getStructByName(result, type).implements("Iterable")) {
+                                transpilerError("Struct '" + type + "' is not iterable!", i);
                                 errors.push_back(err);
                                 continue;
                             }
 
-                            Variable iterable = getVar(iterable_tok);
-
-                            if (getStructByName(result, iterable.getType() + "Iterator") == Struct("")) {
-                                transpilerError("Struct '" + iterable.getType() + "' is not iterable!", i);
+                            if (!hasMethod(result, Token(tok_identifier, "has_next", 0, "", 0), type)) {
+                                transpilerError("Iterator for '" + type + "' has no 'has_next' method!", i);
                                 errors.push_back(err);
                                 continue;
                             }
-
-                            append("struct Struct_%sIterator %s = (struct Struct_%sIterator) {0};\n", iterable.getType().c_str(), iterator_name.c_str(), iterable.getType().c_str());
-                            if (!hasMethod(result, Token(tok_identifier, "init", 0, "", 0), iterable.getType() + "Iterator")) {
-                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'init' method!", i);
+                            if (!hasMethod(result, Token(tok_identifier, "next", 0, "", 0), type)) {
+                                transpilerError("Iterator for '" + type + "' has no 'next' method!", i);
                                 errors.push_back(err);
                                 continue;
                             }
-                            Method* f = getMethodByName(result, "init", iterable.getType() + "Iterator");
-                            if (!hasMethod(result, Token(tok_identifier, "has_next", 0, "", 0), iterable.getType() + "Iterator")) {
-                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'has_next' method!", i);
+                            Method* nextMethod = getMethodByName(result, "next", type);
+                            if (!hasMethod(result, Token(tok_identifier, "begin", 0, "", 0), type)) {
+                                transpilerError("Iterator for '" + type + "' has no 'begin' method!", i);
                                 errors.push_back(err);
                                 continue;
                             }
-                            if (!hasMethod(result, Token(tok_identifier, "next", 0, "", 0), iterable.getType() + "Iterator")) {
-                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'next' method!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            if (!hasMethod(result, Token(tok_identifier, "begin", 0, "", 0), iterable.getType() + "Iterator")) {
-                                transpilerError("Iterator for '" + iterable.getType() + "' has no 'begin' method!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            append("stack.data[stack.ptr++].v = Var_%s;\n", iterable_tok.getValue().c_str());
-                            debugPrintPush();
-                            append("stack.data[stack.ptr++].v = &%s;\n", iterator_name.c_str());
-                            append("stack.ptr -= %zu;\n", f->getArgs().size());
-                            append("Method_%sIterator_init(%s);\n", iterable.getType().c_str(), sclGenArgs(result, f).c_str());
                             std::string var_prefix = "";
                             if (!hasVar(iter_var_tok)) {
-                                var_prefix = "scl_value ";
+                                var_prefix = sclReturnTypeToCReturnType(result, nextMethod->getReturnType()) + " ";
                             }
                             varDepth++;
                             std::vector<Variable> defaultScope;
                             vars.push_back(defaultScope);
-                            vars[varDepth].push_back(Variable(iter_var_tok.getValue(), "any"));
-                            std::string iter_type = iterable.getType();
-                            std::string type = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
-                            append("for (%sVar_%s = (%s) Method_%sIterator_begin(&%s); Method_%sIterator_has_next(&%s); Var_%s = (%s) Method_%sIterator_next(&%s)) {\n", var_prefix.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_type.c_str(), iterator_name.c_str(), iter_var_tok.getValue().c_str(), type.c_str(), iter_type.c_str(), iterator_name.c_str());
+                            vars[varDepth].push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
+                            std::string cType = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
+                            append(
+                                "for (%sVar_%s = (%s) Method_%s_begin(%s); Method_%s_has_next(%s); Var_%s = (%s) Method_%s_next(%s)) {\n",
+                                var_prefix.c_str(),
+                                iter_var_tok.getValue().c_str(),
+                                cType.c_str(),
+                                type.c_str(),
+                                iterator_name.c_str(),
+                                type.c_str(),
+                                iterator_name.c_str(),
+                                iter_var_tok.getValue().c_str(),
+                                cType.c_str(),
+                                type.c_str(),
+                                iterator_name.c_str()
+                            );
                             scopeDepth++;
                             ITER_INC;
                             break;

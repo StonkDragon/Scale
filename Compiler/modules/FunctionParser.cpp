@@ -25,6 +25,14 @@ namespace sclc
         }
         return nullptr;
     }
+    Interface* getInterfaceByName(TPResult result, std::string name) {
+        for (Interface* i : result.interfaces) {
+            if (i->getName() == name) {
+                return i;
+            }
+        }
+        return nullptr;
+    }
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
@@ -122,12 +130,12 @@ namespace sclc
             errors.push_back(result);
         }
 
-        ConvertC::writeHeader(fp);
-        ConvertC::writeGlobals(fp, globals, result);
-        ConvertC::writeContainers(fp, result);
-        ConvertC::writeStructs(fp, result);
-        ConvertC::writeFunctionHeaders(fp, result);
-        ConvertC::writeExternHeaders(fp, result);
+        ConvertC::writeHeader(fp, errors, warns);
+        ConvertC::writeGlobals(fp, globals, result, errors, warns);
+        ConvertC::writeContainers(fp, result, errors, warns);
+        ConvertC::writeStructs(fp, result, errors, warns);
+        ConvertC::writeFunctionHeaders(fp, result, errors, warns);
+        ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
 
         std::string push_args = "";

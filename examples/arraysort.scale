@@ -9,16 +9,18 @@ function createList(len: int): Array
     done
     arr return
 end
-function Array:print(): none
+
+function printArray(arr: Array): none
     decl i: int 0 => i
-    while i self.capacity < do
-        i self:get putint
+    while i arr.capacity < do
+        i arr:get putint
         i 1 + => i
     done
 end
+
 function main(): none
     decl list: Array 1000 createList => list
-    list:print
+    list printArray
     list:sort
-    list:print
+    list printArray
 end
