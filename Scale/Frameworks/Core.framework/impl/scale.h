@@ -14,7 +14,7 @@ sclDefFunc(system, scl_int, scl_str cmd);
 sclDefFunc(strlen, scl_int, scl_str s);
 sclDefFunc(strcmp, scl_int, scl_str s2, scl_str s1);
 sclDefFunc(strdup, scl_str, scl_str s);
-sclDefFunc(strncmp, scl_int, scl_str s2, scl_str s1, scl_int n);
+sclDefFunc(strncmp, scl_int, scl_int n, scl_str s1, scl_str s2);
 sclDefFunc(raise, void, scl_int n);
 sclDefFunc(strrev, scl_str, scl_str s);
 sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string);

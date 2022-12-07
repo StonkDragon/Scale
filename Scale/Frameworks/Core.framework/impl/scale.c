@@ -32,8 +32,8 @@ sclDefFunc(sleep, void, scl_int c) {
 sclDefFunc(getenv, scl_str, scl_str c) {
 	callstk.data[callstk.ptr++].s = "getenv()";
 	scl_str prop = getenv(c);
-	return prop;
 	callstk.ptr--;
+	return prop;
 }
 
 sclDefFunc(sizeof_stack, scl_int) {
@@ -61,8 +61,9 @@ sclDefFunc(random, scl_int) {
 		srand(time(NULL));
 		rand_was_seeded = 1;
 	}
+	scl_int r = ((scl_int) rand() << 32) | (scl_int) rand();
 	callstk.ptr--;
-	return ((scl_int) rand() << 32) | (scl_int) rand();
+	return r;
 }
 
 sclDefFunc(crash, void) {
@@ -88,20 +89,23 @@ sclDefFunc(strlen, scl_int, scl_str s) {
 
 sclDefFunc(strcmp, scl_int, scl_str s2, scl_str s1) {
 	callstk.data[callstk.ptr++].s = "strcmp()";
+	scl_int t = strcmp(s1, s2) == 0;
 	callstk.ptr--;
-	return strcmp(s1, s2) == 0;
+	return t;
 }
 
 sclDefFunc(strdup, scl_str, scl_str s) {
 	callstk.data[callstk.ptr++].s = "strdup()";
+	scl_str t = strdup(s);
 	callstk.ptr--;
-	return strdup(s);
+	return t;
 }
 
-sclDefFunc(strncmp, scl_int, scl_str s2, scl_str s1, scl_int n) {
+sclDefFunc(strncmp, scl_int, scl_int n, scl_str s1, scl_str s2) {
 	callstk.data[callstk.ptr++].s = "strncmp()";
+	scl_int t = strncmp(s1, s2, n) == 0;
 	callstk.ptr--;
-	return strncmp(s1, s2, n) == 0;
+	return t;
 }
 
 sclDefFunc(raise, void, scl_int n) {
