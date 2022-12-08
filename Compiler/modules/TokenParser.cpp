@@ -20,6 +20,7 @@ namespace sclc
         std::vector<Interface*> interfaces;
 
         std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
 
         for (size_t i = 0; i < tokens.size(); i++)
         {
@@ -50,7 +51,7 @@ namespace sclc
                     continue;
                 }
                 if (currentStruct != nullptr) {
-                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
+                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = new Function(currentStruct->getName() + "$" + name, func);
@@ -924,7 +925,30 @@ namespace sclc
                 currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
                 for (std::string m : nextAttributes) {
                     if (m == "sealed")
-                        currentStruct->seal();
+                        currentStruct->toggleSealed();
+                    if (m == "valued")
+                        currentStruct->toggleReferenceType();
+                    if (m == "reference")
+                        currentStruct->toggleValueType();
+                    if (m == "nowarn")
+                        currentStruct->toggleWarnings();
+                    if (m == "static") {
+                        currentStruct->toggleValueType();
+                        currentStruct->toggleReferenceType();
+                        currentStruct->toggleStatic();
+                    }
+                }
+                if (!currentStruct->heapAllocAllowed() && !currentStruct->stackAllocAllowed() && !currentStruct->isStatic()) {
+                    FPResult result;
+                    result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
+                    result.column = tokens[i].getColumn();
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 nextAttributes.clear();
                 if (tokens[i + 1].getType() == tok_is) {
@@ -1665,7 +1689,12 @@ namespace sclc
                     }
                     type = tokens[i].getValue();
                 }
-                currentStruct->addMember(Variable(name, type));
+                if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
+                    nextAttributes.clear();
+                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type));
+                } else {
+                    currentStruct->addMember(Variable(name, type));
+                }
             } else {
                 if (tokens[i].getType() == tok_identifier) {
                     nextAttributes.push_back(tokens[i].getValue());
@@ -1681,6 +1710,7 @@ namespace sclc
         result.containers = containers;
         result.structs = structs;
         result.errors = errors;
+        result.warns = warns;
         result.interfaces = interfaces;
         return result;
     }

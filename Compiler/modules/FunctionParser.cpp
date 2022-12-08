@@ -105,6 +105,19 @@ namespace sclc
         }
         return false;
     }
+    bool hasGlobal(TPResult result, std::string name) {
+        for (Variable v : result.globals) {
+            if (v.getName() == name) {
+                return true;
+            }
+        }
+        for (Variable v : result.extern_globals) {
+            if (v.getName() == name) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     TPResult FunctionParser::getResult() {
         return result;
@@ -129,6 +142,12 @@ namespace sclc
             result.column = 0;
             errors.push_back(result);
         }
+
+        std::vector<Variable> defaultScope;
+        std::vector<std::vector<Variable>> tmp;
+        vars = tmp;
+        vars.clear();
+        vars.push_back(defaultScope);
 
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeGlobals(fp, globals, result, errors, warns);

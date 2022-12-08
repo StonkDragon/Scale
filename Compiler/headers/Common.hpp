@@ -415,7 +415,7 @@ namespace sclc
     class Struct {
         std::string name;
         Token name_token;
-        bool is_sealed;
+        int flags;
         std::vector<Variable> members;
         std::vector<std::string> interfaces;
     public:
@@ -425,6 +425,9 @@ namespace sclc
         Struct(std::string name, Token t) {
             this->name = name;
             this->name_token = t;
+            toggleWarnings();
+            toggleValueType();
+            toggleReferenceType();
         }
         void addMember(Variable member) {
             members.push_back(member);
@@ -460,14 +463,35 @@ namespace sclc
         void setNameToken(Token t) {
             this->name_token = t;
         }
+        bool heapAllocAllowed() {
+            return (flags & 0b00000001) != 0;
+        }
+        bool stackAllocAllowed() {
+            return (flags & 0b00000010) != 0;
+        }
         bool isSealed() {
-            return is_sealed;
+            return (flags & 0b00000100) != 0;
         }
-        void seal() {
-            is_sealed = true;
+        bool warnsEnabled() {
+            return (flags & 0b00001000) != 0;
         }
-        void unseal() {
-            is_sealed = true;
+        bool isStatic() {
+            return (flags & 0b00010000) != 0;
+        }
+        void toggleReferenceType() {
+            flags ^= 0b00000001;
+        }
+        void toggleValueType() {
+            flags ^= 0b00000010;
+        }
+        void toggleSealed() {
+            flags ^= 0b00000100;
+        }
+        void toggleWarnings() {
+            flags ^= 0b00001000;
+        }
+        void toggleStatic() {
+            flags ^= 0b00010000;
         }
         inline bool operator==(const Struct& other) const {
             return other.name == this->name;
@@ -508,6 +532,7 @@ namespace sclc
         std::vector<Variable> globals;
         std::vector<Container> containers;
         std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
         std::vector<Struct> structs;
     };
 
@@ -633,6 +658,7 @@ namespace sclc
     bool hasMethod(TPResult result, Token name, std::string type);
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);
+    bool hasGlobal(TPResult result, std::string name);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

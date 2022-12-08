@@ -330,11 +330,14 @@ namespace sclc {
         for (int f = 0; f < funcsSize; f++)
         {
             Function* function = result.functions[f];
-            vars.clear();
-            std::vector<Variable> defaultScope;
-            vars.push_back(defaultScope);
+            while (vars.size() < 2) {
+                std::vector<Variable> def;
+                vars.push_back(def);
+            }
+            varDepth = 1;
+            vars[varDepth].clear();
             for (Variable g : globals) {
-                vars[0].push_back(g);
+                vars[varDepth].push_back(g);
             }
 
             scopeDepth = 0;
@@ -644,7 +647,13 @@ namespace sclc {
                                     if (body[i].getType() == tok_column) {
                                         std::string struct_ = body[i - 2].getValue();
                                         ITER_INC;
+                                        Struct s = getStructByName(result, struct_);
                                         if (body[i].getValue() == "new") {
+                                            if (!s.heapAllocAllowed()) {
+                                                transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::new'", i);
+                                                errors.push_back(err);
+                                                continue;
+                                            }
                                             append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
                                             debugPrintPush();
                                             if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
@@ -672,6 +681,11 @@ namespace sclc {
                                                 append("}\n");
                                             }
                                         } else if (body[i].getValue() == "default") {
+                                            if (!s.stackAllocAllowed()) {
+                                                transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::default'", i);
+                                                errors.push_back(err);
+                                                continue;
+                                            }
                                             append("{\n");
                                             scopeDepth++;
                                             append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
@@ -715,6 +729,16 @@ namespace sclc {
                                                     }
                                                 } else {
                                                     append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                                }
+                                            } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
+                                                std::string loadFrom = struct_ + "$" + body[i].getValue();
+                                                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                                                if (v.getType() == "float") {
+                                                    append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                                                    debugPrintPush();
+                                                } else {
+                                                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                                    debugPrintPush();
                                                 }
                                             }
                                         }
@@ -893,6 +917,16 @@ namespace sclc {
                                         debugPrintPush();
                                     } else {
                                         append("stack.data[stack.ptr++].v = (scl_value) Var_self->%s;\n", body[i].getValue().c_str());
+                                        debugPrintPush();
+                                    }
+                                } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                                    std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                                    Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                                    if (v.getType() == "float") {
+                                        append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                                        debugPrintPush();
+                                    } else {
+                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
                                         debugPrintPush();
                                     }
                                 } else {
@@ -1400,6 +1434,11 @@ namespace sclc {
                                     }
                                     append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
                                     debugPrintPush();
+                                } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
+                                    std::string loadFrom = struct_ + "$" + body[i].getValue();
+                                    Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                                    debugPrintPush();
                                 }
                             } else if (hasVar(toGet)) {
                                 Variable v = getVar(body[i]);
@@ -1493,6 +1532,25 @@ namespace sclc {
                                             Struct s = getStructByName(result, m->getMemberType());
                                             if (s.hasMember(body[i].getValue())) {
                                                 append("*(scl_value*) Var_self->%s = stack.data[--stack.ptr].v;\n", body[i].getValue().c_str());
+                                                continue;
+                                            }
+                                        }
+                                        if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
+                                            i += 2;
+                                            Struct s = getStructByName(result, body[i - 2].getValue());
+                                            ITER_INC;
+                                            if (s != Struct("")) {
+                                                if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                                                    transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                                                std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                                                if (mem.getType() == "float")
+                                                    append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                                                else
+                                                    append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
                                                 continue;
                                             }
                                         }
@@ -1741,6 +1799,25 @@ namespace sclc {
                                                 continue;
                                             }
                                         }
+                                        if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
+                                            i += 2;
+                                            Struct s = getStructByName(result, body[i - 2].getValue());
+                                            ITER_INC;
+                                            if (s != Struct("")) {
+                                                if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                                                    transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                                                    errors.push_back(err);
+                                                    continue;
+                                                }
+                                                Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                                                std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                                                if (mem.getType() == "float")
+                                                    append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                                                else
+                                                    append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                                                continue;
+                                            }
+                                        }
                                         transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
                                         errors.push_back(err);
                                     }
@@ -1934,7 +2011,7 @@ namespace sclc {
                                 }
                                 bool didPush = false;
                                 while (body[i].getType() != tok_comma && body[i].getType() != tok_curly_close) {
-                                    push_result();
+                                    push_var_with_string();
                                     ITER_INC;
                                     didPush = true;
                                 }
