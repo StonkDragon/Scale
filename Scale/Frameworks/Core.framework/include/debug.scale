@@ -6,4 +6,4 @@ extern function crash(): none
 extern function raise(_sig_: int): none
 extern function breakpoint(): none
 
-function throw(_msg_: str): none Color_Reset _msg_ concat eputs trace 1 exit end
+function throw(_msg_: str): none ConsoleColor::reset _msg_ concat eputs trace 1 exit end
