@@ -309,9 +309,2048 @@ namespace sclc {
         }
     }
 
-    void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result) {
+    int scopeDepth = 0;
+    size_t i = 0;
+    std::vector<bool> was_rep;
+    char repeat_depth = 0;
+    int iterator_count = 0;
+    bool noWarns;
+    bool noMangle;
+    std::string lastPushedType = "";
+    std::string return_type = "";
+
+#define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult result)
+#define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl;
+#define noUnused \
+        (void) body; \
+        (void) function; \
+        (void) errors; \
+        (void) warns; \
+        (void) fp; \
+        (void) result
+
+    handler(Identifier);
+    handler(New);
+    handler(Repeat);
+    handler(For);
+    handler(Foreach);
+    handler(AddrRef);
+    handler(Store);
+    handler(Declare);
+    handler(CurlyOpen);
+    handler(BracketOpen);
+    handler(ParenOpen);
+    handler(StringLiteral);
+    handler(ExternCBlock);
+    handler(IntegerLiteral);
+    handler(FloatLiteral);
+    handler(FalsyType);
+    handler(TruthyType);
+    handler(Is);
+    handler(If);
+    handler(Else);
+    handler(While);
+    handler(Do);
+    handler(DoneLike);
+    handler(Return);
+    handler(Goto);
+    handler(Label);
+    handler(Case);
+    handler(Esac);
+    handler(Default);
+    handler(Switch);
+    handler(AddrOf);
+    handler(Break);
+    handler(Continue);
+    handler(Token);
+
+    handler(Identifier) {
+        noUnused;
+        if (body[i].getValue() == "self" && !function->isMethod) {
+            transpilerError("Can't use 'self' outside a member function.", i);
+            errors.push_back(err);
+            return;
+        }
+    #pragma region Identifier functions
+        if (body[i].getValue() == "drop") {
+            append("stack.ptr--;\n");
+        } else if (body[i].getValue() == "dup") {
+            append("stack.data[stack.ptr++].v = stack.data[stack.ptr - 1].v;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "swap") {
+            append("{\n");
+            scopeDepth++;
+            append("scl_value b = stack.data[--stack.ptr].v;\n");
+            append("scl_value a = stack.data[--stack.ptr].v;\n");
+            append("stack.data[stack.ptr++].v = b;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = a;\n");
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i].getValue() == "over") {
+            append("{\n");
+            scopeDepth++;
+            append("scl_value c = stack.data[--stack.ptr].v;\n");
+            append("scl_value b = stack.data[--stack.ptr].v;\n");
+            append("scl_value a = stack.data[--stack.ptr].v;\n");
+            append("stack.data[stack.ptr++].v = c;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = b;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = a;\n");
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i].getValue() == "sdup2") {
+            append("{\n");
+            scopeDepth++;
+            append("scl_value b = stack.data[--stack.ptr].v;\n");
+            append("scl_value a = stack.data[--stack.ptr].v;\n");
+            append("stack.data[stack.ptr++].v = a;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = b;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = a;\n");
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i].getValue() == "swap2") {
+            append("{\n");
+            scopeDepth++;
+            append("scl_value c = stack.data[--stack.ptr].v;\n");
+            append("scl_value b = stack.data[--stack.ptr].v;\n");
+            append("scl_value a = stack.data[--stack.ptr].v;\n");
+            append("stack.data[stack.ptr++].v = b;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = a;\n");
+            debugPrintPush();
+            append("stack.data[stack.ptr++].v = c;\n");
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i].getValue() == "clearstack") {
+            append("stack.ptr = 0;\n");
+        } else if (body[i].getValue() == "&&") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "!") {
+            append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
+        } else if (body[i].getValue() == "||") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "<") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == ">") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "==") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "<=") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == ">=") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "!=") {
+            append("stack.ptr -= 2;\n");
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
+            debugPrintPush();
+        } else if (body[i].getValue() == "++") {
+            append("stack.data[stack.ptr - 1].i++;\n");
+        } else if (body[i].getValue() == "--") {
+            append("stack.data[stack.ptr - 1].i--;\n");
+        } else if (body[i].getValue() == "exit") {
+            append("exit(stack.data[--stack.ptr].i);\n");
+        } else if (body[i].getValue() == "abort") {
+            append("abort();\n");
+    #pragma endregion
+        } else if (hasFunction(result, body[i])) {
+            Function* f = getFunctionByName(result, body[i].getValue());
+            if (f->isMethod) {
+                transpilerError("'" + f->getName() + "' is a method, not a function.", i);
+                errors.push_back(err);
+                return;
+            }
+            append("stack.ptr -= %zu;\n", f->getArgs().size());
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                if (f->getReturnType() == "float") {
+                    append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    debugPrintPush();
+                }
+            } else {
+                append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+            }
+            lastPushedType = f->getReturnType();
+        } else if (hasContainer(result, body[i])) {
+            std::string containerName = body[i].getValue();
+            ITER_INC;
+            if (body[i].getType() != tok_dot) {
+                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            std::string memberName = body[i].getValue();
+            Container container = getContainerByName(result, containerName);
+            if (!container.hasMember(memberName)) {
+                transpilerError("Unknown container member: '" + memberName + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            if (container.getMemberType(memberName) == "float") {
+                append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                debugPrintPush();
+            } else {
+                append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                debugPrintPush();
+            }
+            lastPushedType = container.getMemberType(memberName);
+        } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
+            if (body[i + 1].getType() == tok_column) {
+                ITER_INC;
+                ITER_INC;
+                if (body[i].getType() == tok_column) {
+                    std::string struct_ = body[i - 2].getValue();
+                    ITER_INC;
+                    Struct s = getStructByName(result, struct_);
+                    if (body[i].getValue() == "new") {
+                        if (!s.heapAllocAllowed()) {
+                            transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::new'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                        debugPrintPush();
+                        if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+                            append("{\n");
+                            scopeDepth++;
+                            Method* f = getMethodByName(result, "init", struct_);
+                            append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            debugPrintPush();
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            }
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            lastPushedType = struct_;
+                            debugPrintPush();
+                            scopeDepth--;
+                            append("}\n");
+                        }
+                    } else if (body[i].getValue() == "default") {
+                        if (!s.stackAllocAllowed()) {
+                            transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::default'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("{\n");
+                        scopeDepth++;
+                        append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
+                        append("stack.data[stack.ptr++].v = (scl_value*) &tmp;\n");
+                        debugPrintPush();
+                        if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+                            Method* f = getMethodByName(result, "init", struct_);
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            }
+                            append("stack.data[stack.ptr++].v = (scl_value*) &tmp;\n");
+                            lastPushedType = struct_;
+                            debugPrintPush();
+                        }
+                        scopeDepth--;
+                        append("}\n");
+                    } else {
+                        if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+                            Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
+                            if (f->isMethod) {
+                                transpilerError("'" + f->getName() + "' is not static!", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            }
+                            lastPushedType = f->getReturnType();
+                        } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
+                            std::string loadFrom = struct_ + "$" + body[i].getValue();
+                            Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                            if (v.getType() == "float") {
+                                append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                                debugPrintPush();
+                            } else {
+                                append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                                debugPrintPush();
+                            }
+                            lastPushedType = v.getType();
+                        }
+                    }
+                } else {
+                    if (body[i].getType() == tok_new) {
+                        transpilerError("Using '<type>:new' is deprecated! Use '<type>::new' instead.", i);
+                        warns.push_back(err);
+                        std::string struct_ = body[i - 2].getValue();
+                        append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+                        debugPrintPush();
+                        if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+                            append("{\n");
+                            scopeDepth++;
+                            Method* f = getMethodByName(result, "init", struct_);
+                            append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            debugPrintPush();
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                                if (f->getReturnType() == "float") {
+                                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                } else {
+                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                    debugPrintPush();
+                                }
+                            } else {
+                                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            }
+                            append("stack.data[stack.ptr++].v = tmp;\n");
+                            debugPrintPush();
+                            scopeDepth--;
+                            append("}\n");
+                        }
+                        lastPushedType = struct_;
+                    } else {
+                        if (!hasMethod(result, body[i], body[i - 2].getValue())) {
+                            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + body[i - 2].getValue() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        Method* f = getMethodByName(result, body[i].getValue(), body[i - 2].getValue());
+                        append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                            if (f->getReturnType() == "float") {
+                                append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                debugPrintPush();
+                            } else {
+                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                                debugPrintPush();
+                            }
+                        } else {
+                            append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                        }
+                        lastPushedType = f->getReturnType();
+                    }
+                }
+            } else {
+                ITER_INC;
+                ITER_INC;
+                Struct s = getStructByName(result, body[i - 2].getValue());
+                if (!s.hasMember(body[i].getValue())) {
+                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                if (mem.getType() == "float")
+                    append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+                else
+                    append("stack.data[stack.ptr - 1].v = (scl_value) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+                lastPushedType = mem.getType();
+            }
+        } else if (hasVar(body[i])) {
+            std::string loadFrom = body[i].getValue();
+            Variable v = getVar(body[i]);
+            if (getStructByName(result, v.getType()) != Struct("")) {
+                if (body[i + 1].getType() == tok_column) {
+                    ITER_INC;
+                    ITER_INC;
+                    if (!hasMethod(result, body[i], v.getType())) {
+                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Method* f = getMethodByName(result, body[i].getValue(), v.getType());
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    debugPrintPush();
+                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                        if (f->getReturnType() == "float") {
+                            append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            debugPrintPush();
+                        } else {
+                            append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            debugPrintPush();
+                        }
+                    } else {
+                        append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    }
+                    lastPushedType = f->getReturnType();
+                } else {
+                    if (body[i + 1].getType() != tok_dot) {
+                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                        debugPrintPush();
+                        return;
+                    }
+                    ITER_INC;
+                    ITER_INC;
+                    Struct s = getStructByName(result, v.getType());
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                    if (mem.getType() == "float") {
+                        append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                        debugPrintPush();
+                    } else {
+                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                        debugPrintPush();
+                    }
+                    lastPushedType = mem.getType();
+                }
+            } else {
+                if (v.getType() == "float") {
+                    append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                    debugPrintPush();
+                }
+                lastPushedType = v.getType();
+            }
+        } else if (function->isMethod) {
+            Method* m = static_cast<Method*>(function);
+            Struct s = getStructByName(result, m->getMemberType());
+            if (hasMethod(result, body[i], s.getName())) {
+                Method* f = getMethodByName(result, body[i].getValue(), s.getName());
+                append("stack.data[stack.ptr++].v = (scl_value) Var_self;\n");
+                append("stack.ptr -= %zu;\n", f->getArgs().size());
+                debugPrintPush();
+                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                    if (f->getReturnType() == "float") {
+                        append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                        debugPrintPush();
+                    } else {
+                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                        debugPrintPush();
+                    }
+                } else {
+                    append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                }
+                lastPushedType = f->getReturnType();
+            } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                std::string struct_ = s.getName();
+                ITER_INC;
+                if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+                    Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
+                    if (f->isMethod) {
+                        transpilerError("'" + f->getName() + "' is not static!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                        if (f->getReturnType() == "float") {
+                            append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            debugPrintPush();
+                        } else {
+                            append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                            debugPrintPush();
+                        }
+                    } else {
+                        append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    }
+                    lastPushedType = f->getReturnType();
+                }
+            } else if (s.hasMember(body[i].getValue())) {
+                Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                if (mem.getType() == "float") {
+                    append("stack.data[stack.ptr++].f = Var_self->%s;\n", body[i].getValue().c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_self->%s;\n", body[i].getValue().c_str());
+                    debugPrintPush();
+                }
+                lastPushedType = mem.getType();
+            } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                if (v.getType() == "float") {
+                    append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
+                    debugPrintPush();
+                }
+                lastPushedType = v.getType();
+            } else {
+                transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+            }
+        } else {
+            transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+        }
+    }
+
+    handler(New) {
+        noUnused;
+        {
+            transpilerError("Using 'new <type>' is deprecated! Use '<type>::new' instead.", i);
+            { if (!noWarns) warns.push_back(err); }
+        }
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        std::string struct_ = body[i].getValue();
+        if (getStructByName(result, struct_) == Struct("")) {
+            transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
+        debugPrintPush();
+        if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+            append("{\n");
+            scopeDepth++;
+            Method* f = getMethodByName(result, "init", struct_);
+            append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                if (f->getReturnType() == "float") {
+                    append("stack.data[stack.ptr++].f = Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                    debugPrintPush();
+                }
+            } else {
+                append("Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+            }
+            append("stack.data[stack.ptr++].v = tmp;\n");
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        }
+        lastPushedType = struct_;
+    }
+
+    handler(Repeat) {
+        noUnused;
+        if (body[i + 1].getType() != tok_number) {
+            transpilerError("Expected integer, but got '" + body[i + 1].getValue() + "'", i+1);
+            errors.push_back(err);
+            if (body[i + 2].getType() != tok_do)
+                goto lbl_repeat_do_tok_chk;
+            i += 2;
+            return;
+        }
+        if (body[i + 2].getType() != tok_do) {
+        lbl_repeat_do_tok_chk:
+            transpilerError("Expected 'do', but got '" + body[i + 2].getValue() + "'", i+2);
+            errors.push_back(err);
+            i += 2;
+            return;
+        }
+        append("for (scl_value %c = 0; %c < (scl_value) %s; %c++) {\n",
+            'a' + repeat_depth,
+            'a' + repeat_depth,
+            body[i + 1].getValue().c_str(),
+            'a' + repeat_depth
+        );
+        repeat_depth++;
+        scopeDepth++;
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+        was_rep.push_back(true);
+        i += 2;
+    }
+
+    handler(For) {
+        noUnused;
+        ITER_INC;
+        Token var = body[i];
+        if (var.getType() != tok_identifier) {
+            FPResult result;
+            result.message = "Expected identifier, but got: '" + var.getValue() + "'";
+            result.success = false;
+            result.line = var.getLine();
+            result.in = var.getFile();
+            result.value = var.getValue();
+            result.column = var.getColumn();
+            result.type = var.getType();
+            errors.push_back(result);
+        }
+        ITER_INC;
+        if (body[i].getType() != tok_in) {
+            FPResult result;
+            result.message = "Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'";
+            result.success = false;
+            result.line = body[i].getLine();
+            result.in = body[i].getFile();
+            result.value = body[i].getValue();
+            result.column = body[i].getColumn();
+            result.type = body[i].getType();
+            errors.push_back(result);
+        }
+        ITER_INC;
+        while (body[i].getType() != tok_to) {
+            handle(Token);
+            ITER_INC;
+        }
+        if (body[i].getType() != tok_to) {
+            transpilerError("Expected 'to', but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        ITER_INC;
+        while (body[i].getType() != tok_step && body[i].getType() != tok_do) {
+            handle(Token);
+            ITER_INC;
+        }
+        std::string iterator_direction = "++";
+        if (body[i].getType() == tok_step) {
+            ITER_INC;
+            if (body[i].getType() == tok_do) {
+                transpilerError("Expected step, but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string val = body[i].getValue();
+            if (val == "+") {
+                ITER_INC;
+                iterator_direction = " += ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else if (body[i].getValue() == "+") {
+                    iterator_direction = "++";
+                } else {
+                    transpilerError("Expected number or '+', but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == "-") {
+                ITER_INC;
+                iterator_direction = " -= ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else if (body[i].getValue() == "+") {
+                    iterator_direction = "--";
+                } else {
+                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == "*") {
+                ITER_INC;
+                iterator_direction = " *= ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else {
+                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == "/") {
+                ITER_INC;
+                iterator_direction = " /= ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else {
+                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == "<<") {
+                ITER_INC;
+                iterator_direction = " <<= ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else {
+                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == ">>") {
+                ITER_INC;
+                iterator_direction = " >>= ";
+                if (body[i].getType() == tok_number) {
+                    iterator_direction += body[i].getValue();
+                } else {
+                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+            } else if (val == "nop") {
+                iterator_direction = "";
+            }
+            ITER_INC;
+        }
+        if (body[i].getType() != tok_do) {
+            transpilerError("Expected 'do', but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        append("struct scl_iterable __it%d = (struct scl_iterable) {0, 0};\n", iterator_count);
+        append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
+        append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
+        
+        std::string var_prefix = "";
+        if (!hasVar(var)) {
+            var_prefix = "scl_int ";
+        }
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+        
+        if (iterator_direction == "")
+            append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
+        else
+            append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
+        iterator_count++;
+        scopeDepth++;
+
+        if (hasFunction(Main.parser->getResult(), var)) {
+            FPResult result;
+            result.message = "Variable '" + var.getValue() + "' shadowed by function '" + var.getValue() + "'";
+            result.success = false;
+            result.line = var.getLine();
+            result.in = var.getFile();
+            result.value = var.getValue();
+            result.type =  var.getType();
+            result.column = var.getColumn();
+            warns.push_back(result);
+        }
+        if (hasContainer(Main.parser->getResult(), var)) {
+            FPResult result;
+            result.message = "Variable '" + var.getValue() + "' shadowed by container '" + var.getValue() + "'";
+            result.success = false;
+            result.line = var.getLine();
+            result.in = var.getFile();
+            result.value = var.getValue();
+            result.type =  var.getType();
+            result.column = var.getColumn();
+            warns.push_back(result);
+        }
+        if (hasVar(var)) {
+            FPResult result;
+            result.message = "Variable '" + var.getValue() + "' is already declared and shadows it.";
+            result.success = false;
+            result.line = var.getLine();
+            result.in = var.getFile();
+            result.value = var.getValue();
+            result.type =  var.getType();
+            result.column = var.getColumn();
+            warns.push_back(result);
+        }
+
+        if (!hasVar(var))
+            vars[varDepth].push_back(Variable(var.getValue(), "int"));
+        was_rep.push_back(false);
+    }
+
+    handler(Foreach) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        std::string iterator_name = "__it" + std::to_string(iterator_count++);
+        Token iter_var_tok = body[i];
+        ITER_INC;
+        if (body[i].getType() != tok_in) {
+            transpilerError("Expected 'in', but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        ITER_INC;
+        if (body[i].getType() == tok_do) {
+            transpilerError("Expected iterable, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        while (body[i].getType() != tok_do) {
+            handle(Token);
+            ITER_INC;
+        }
+        if (body[i].getType() != tok_do) {
+            transpilerError("Expected 'do', but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", lastPushedType.c_str(), iterator_name.c_str(), lastPushedType.c_str());
+        
+        if (!getStructByName(result, lastPushedType).implements("Iterable")) {
+            transpilerError("Struct '" + lastPushedType + "' is not iterable!", i);
+            errors.push_back(err);
+            return;
+        }
+
+        if (!hasMethod(result, Token(tok_identifier, "has_next", 0, "", 0), lastPushedType)) {
+            transpilerError("Iterator for '" + lastPushedType + "' has no 'has_next' method!", i);
+            errors.push_back(err);
+            return;
+        }
+        if (!hasMethod(result, Token(tok_identifier, "next", 0, "", 0), lastPushedType)) {
+            transpilerError("Iterator for '" + lastPushedType + "' has no 'next' method!", i);
+            errors.push_back(err);
+            return;
+        }
+        Method* nextMethod = getMethodByName(result, "next", lastPushedType);
+        if (!hasMethod(result, Token(tok_identifier, "begin", 0, "", 0), lastPushedType)) {
+            transpilerError("Iterator for '" + lastPushedType + "' has no 'begin' method!", i);
+            errors.push_back(err);
+            return;
+        }
+        std::string var_prefix = "";
+        if (!hasVar(iter_var_tok)) {
+            var_prefix = sclReturnTypeToCReturnType(result, nextMethod->getReturnType()) + " ";
+        }
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+        vars[varDepth].push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
+        std::string cType = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
+        append(
+            "for (%sVar_%s = (%s) Method_%s_begin(%s); Method_%s_has_next(%s); Var_%s = (%s) Method_%s_next(%s)) {\n",
+            var_prefix.c_str(),
+            iter_var_tok.getValue().c_str(),
+            cType.c_str(),
+            lastPushedType.c_str(),
+            iterator_name.c_str(),
+            lastPushedType.c_str(),
+            iterator_name.c_str(),
+            iter_var_tok.getValue().c_str(),
+            cType.c_str(),
+            lastPushedType.c_str(),
+            iterator_name.c_str()
+        );
+        scopeDepth++;
+    }
+
+    handler(AddrRef) {
+        noUnused;
+        ITER_INC;
+        Token toGet = body[i];
+        if (hasFunction(result, toGet)) {
+            Function* f = getFunctionByName(result, toGet.getValue());
+            append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
+            debugPrintPush();
+            ITER_INC;
+        } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
+            ITER_INC;
+            if (body[i].getType() != tok_column) {
+                transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            if (body[i].getType() != tok_column) {
+                transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string struct_ = body[i - 2].getValue();
+            ITER_INC;
+            if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+                Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
+                if (f->isMethod) {
+                    transpilerError("'" + f->getName() + "' is not static!", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
+                debugPrintPush();
+            } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
+                std::string loadFrom = struct_ + "$" + body[i].getValue();
+                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                debugPrintPush();
+            }
+        } else if (hasVar(toGet)) {
+            Variable v = getVar(body[i]);
+            std::string loadFrom = v.getName();
+            if (getStructByName(result, v.getType()) != Struct("")) {
+                if (body[i + 1].getType() == tok_column) {
+                    if (!hasMethod(result, body[i], v.getType())) {
+                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Method* f = getMethodByName(result, body[i].getValue(), v.getType());
+                    append("stack.data[stack.ptr++].v = (scl_value) &Method_%s_%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
+                    debugPrintPush();
+                } else {
+                    if (body[i + 1].getType() != tok_dot) {
+                        append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                        debugPrintPush();
+                        return;
+                    }
+                    ITER_INC;
+                    ITER_INC;
+                    Struct s = getStructByName(result, v.getType());
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                    debugPrintPush();
+                }
+            } else {
+                append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
+                debugPrintPush();
+            }
+        } else if (hasContainer(result, toGet)) {
+            ITER_INC;
+            std::string containerName = body[i].getValue();
+            ITER_INC;
+            if (body[i].getType() != tok_dot) {
+                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            std::string memberName = body[i].getValue();
+            Container container = getContainerByName(result, containerName);
+            if (!container.hasMember(memberName)) {
+                transpilerError("Unknown container member: '" + memberName + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("stack.data[stack.ptr++].v = (scl_value) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
+            debugPrintPush();
+        } else {
+            transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
+            errors.push_back(err);
+            return;
+        }
+        lastPushedType = "any";
+    }
+
+    handler(Store) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() == tok_addr_of) {
+            ITER_INC;
+            if (hasContainer(result, body[i])) {
+                std::string containerName = body[i].getValue();
+                ITER_INC;
+                if (body[i].getType() != tok_dot) {
+                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                ITER_INC;
+                std::string memberName = body[i].getValue();
+                Container container = getContainerByName(result, containerName);
+                if (!container.hasMember(memberName)) {
+                    transpilerError("Unknown container member: '" + memberName + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("*((scl_value*) Container_%s.%s) = stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str());
+            } else {
+                if (body[i].getType() != tok_identifier) {
+                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                    errors.push_back(err);
+                }
+                if (!hasVar(body[i])) {
+                    if (function->isMethod) {
+                        Method* m = static_cast<Method*>(function);
+                        Struct s = getStructByName(result, m->getMemberType());
+                        if (s.hasMember(body[i].getValue())) {
+                            append("*(scl_value*) Var_self->%s = stack.data[--stack.ptr].v;\n", body[i].getValue().c_str());
+                            return;
+                        } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                            append("*(scl_value*) Var_%s$%s = stack.data[--stack.ptr].v;\n", s.getName().c_str(), body[i].getValue().c_str());
+                            return;
+                        }
+                    }
+                    if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
+                        i += 2;
+                        Struct s = getStructByName(result, body[i - 2].getValue());
+                        ITER_INC;
+                        if (s != Struct("")) {
+                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                                transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                            if (mem.getType() == "float")
+                                append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                            else
+                                append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                            return;
+                        }
+                    }
+                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                Variable v = getVar(body[i]);
+                std::string loadFrom = v.getName();
+                if (getStructByName(result, v.getType()) != Struct("")) {
+                    if (body[i + 1].getType() != tok_dot) {
+                        append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        return;
+                    }
+                    ITER_INC;
+                    ITER_INC;
+                    Struct s = getStructByName(result, v.getType());
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("*(scl_value*) Var_%s->%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                } else {
+                    append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                }
+            }
+        } else if (body[i].getType() == tok_paren_open) {
+            append("{\n");
+            scopeDepth++;
+            append("struct Struct_Array* tmp = (struct Struct_Array*) stack.data[--stack.ptr].v;\n");
+            ITER_INC;
+            int destructureIndex = 0;
+            while (body[i].getType() != tok_paren_close) {
+                if (body[i].getType() == tok_comma) {
+                    ITER_INC;
+                    continue;
+                }
+                if (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
+                    if (body[i].getType() == tok_addr_of) {
+                        ITER_INC;
+                        if (hasContainer(result, body[i])) {
+                            std::string containerName = body[i].getValue();
+                            ITER_INC;
+                            if (body[i].getType() != tok_dot) {
+                                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            ITER_INC;
+                            std::string memberName = body[i].getValue();
+                            Container container = getContainerByName(result, containerName);
+                            if (!container.hasMember(memberName)) {
+                                transpilerError("Unknown container member: '" + memberName + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("*((scl_value*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                        } else {
+                            if (body[i].getType() != tok_identifier) {
+                                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                errors.push_back(err);
+                            }
+                            if (!hasVar(body[i])) {
+                                if (function->isMethod) {
+                                    Method* m = static_cast<Method*>(function);
+                                    Struct s = getStructByName(result, m->getMemberType());
+                                    if (s.hasMember(body[i].getValue())) {
+                                        append("*(scl_value*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                        continue;
+                                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                                        append("*(scl_value*) Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
+                                        return;
+                                    }
+                                }
+                                transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                            }
+                            Variable v = getVar(body[i]);
+                            std::string loadFrom = v.getName();
+                            if (getStructByName(result, v.getType()) != Struct("")) {
+                                if (body[i + 1].getType() != tok_dot) {
+                                    append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                    continue;
+                                }
+                                ITER_INC;
+                                ITER_INC;
+                                Struct s = getStructByName(result, v.getType());
+                                if (!s.hasMember(body[i].getValue())) {
+                                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    return;
+                                }
+                                append("*(scl_value*) Var_%s->%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                            } else {
+                                append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                            }
+                        }
+                    } else {
+                        if (hasContainer(result, body[i])) {
+                            std::string containerName = body[i].getValue();
+                            ITER_INC;
+                            if (body[i].getType() != tok_dot) {
+                                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            ITER_INC;
+                            std::string memberName = body[i].getValue();
+                            Container container = getContainerByName(result, containerName);
+                            if (!container.hasMember(memberName)) {
+                                transpilerError("Unknown container member: '" + memberName + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("(*(scl_value*) &Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                        } else {
+                            if (body[i].getType() != tok_identifier) {
+                                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                                errors.push_back(err);
+                            }
+                            if (!hasVar(body[i])) {
+                                if (function->isMethod) {
+                                    Method* m = static_cast<Method*>(function);
+                                    Struct s = getStructByName(result, m->getMemberType());
+                                    if (s.hasMember(body[i].getValue())) {
+                                        append("*(scl_value*) &Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                        continue;
+                                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                                        append("*(scl_value*) &Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
+                                        return;
+                                    }
+                                }
+                                transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                            }
+                            Variable v = getVar(body[i]);
+                            std::string loadFrom = v.getName();
+                            if (getStructByName(result, v.getType()) != Struct("")) {
+                                if (body[i + 1].getType() != tok_dot) {
+                                    append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                    continue;
+                                }
+                                ITER_INC;
+                                ITER_INC;
+                                Struct s = getStructByName(result, v.getType());
+                                if (!s.hasMember(body[i].getValue())) {
+                                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                    errors.push_back(err);
+                                    return;
+                                }
+                                append("(*(scl_value*) &Var_%s->%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                            } else {
+                                append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                            }
+                        }
+                    }
+                }
+                ITER_INC;
+                destructureIndex++;
+            }
+            if (destructureIndex == 0) {
+                transpilerError("Empty Array destructure", i);
+                warns.push_back(err);
+            }
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i].getType() == tok_declare) {
+            if (body[i + 1].getType() != tok_identifier) {
+                transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+                errors.push_back(err);
+                return;
+            }
+            if (hasFunction(result, body[i + 1])) {
+                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
+            }
+            if (hasContainer(result, body[i + 1])) {
+                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
+            }
+            if (hasVar(body[i + 1])) {
+                transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
+            }
+            std::string name = body[i + 1].getValue();
+            std::string type = "any";
+            ITER_INC;
+            if (body[i+1].getType() == tok_column) {
+                ITER_INC;
+                ITER_INC;
+                if (body[i].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                    result.column = body[i].getColumn();
+                    result.value = body[i].getValue();
+                    result.line = body[i].getLine();
+                    result.in = body[i].getFile();
+                    result.type = body[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                }
+                if (body[i].getValue() == "none") {
+                    transpilerError("Type 'none' is only valid for function return types.", i);
+                    errors.push_back(err);
+                }
+                type = body[i].getValue();
+            } else {
+                transpilerError("A type is required!", i);
+                errors.push_back(err);
+                return;
+            }
+            Variable v = Variable(name, type);
+            vars[varDepth].push_back(v);
+            append("%s Var_%s = (%s) stack.data[--stack.ptr].%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
+        } else {
+            if (hasContainer(result, body[i])) {
+                std::string containerName = body[i].getValue();
+                ITER_INC;
+                if (body[i].getType() != tok_dot) {
+                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                ITER_INC;
+                std::string memberName = body[i].getValue();
+                Container container = getContainerByName(result, containerName);
+                if (!container.hasMember(memberName)) {
+                    transpilerError("Unknown container member: '" + memberName + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("Container_%s.%s = (%s) stack.data[--stack.ptr].%s;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
+            } else {
+                if (body[i].getType() != tok_identifier) {
+                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                    errors.push_back(err);
+                }
+                if (!hasVar(body[i])) {
+                    if (function->isMethod) {
+                        Method* m = static_cast<Method*>(function);
+                        Struct s = getStructByName(result, m->getMemberType());
+                        if (s.hasMember(body[i].getValue())) {
+                            Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                            if (mem.getType() == "float")
+                                append("Var_self->%s = stack.data[--stack.ptr].f;\n", body[i].getValue().c_str());
+                            else
+                                append("Var_self->%s = (%s) stack.data[--stack.ptr].v;\n", body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                            return;
+                        } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            if (mem.getType() == "float")
+                                append("Var_%s$%s = stack.data[--stack.ptr].f;\n", s.getName().c_str(), body[i].getValue().c_str());
+                            else
+                                append("Var_%s$%s = (%s) stack.data[--stack.ptr].v;\n", s.getName().c_str(), body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                            return;
+                        }
+                    }
+                    if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
+                        i += 2;
+                        Struct s = getStructByName(result, body[i - 2].getValue());
+                        ITER_INC;
+                        if (s != Struct("")) {
+                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                                transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                            if (mem.getType() == "float")
+                                append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                            else
+                                append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                            return;
+                        }
+                    }
+                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                }
+                Variable v = getVar(body[i]);
+                std::string loadFrom = v.getName();
+                if (getStructByName(result, v.getType()) != Struct("")) {
+                    if (body[i + 1].getType() != tok_dot) {
+                        append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        return;
+                    }
+                    ITER_INC;
+                    ITER_INC;
+                    Struct s = getStructByName(result, v.getType());
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                    if (mem.getType() == "float")
+                        append("Var_%s->%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str(), body[i].getValue().c_str());
+                    else
+                        append("Var_%s->%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
+                } else {
+                    Variable v = getVar(body[i]);
+                    if (v.getType() == "float")
+                        append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                    else
+                        append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str());
+                }
+            }
+        }
+        lastPushedType = "";
+    }
+
+    handler(Declare) {
+        noUnused;
+        if (body[i + 1].getType() != tok_identifier) {
+            transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+            errors.push_back(err);
+            return;
+        }
+        if (hasFunction(result, body[i + 1])) {
+            transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+            else errors.push_back(err);
+        }
+        if (hasContainer(result, body[i + 1])) {
+            transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+            else errors.push_back(err);
+        }
+        if (hasVar(body[i + 1])) {
+            transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+            else errors.push_back(err);
+        }
+        std::string name = body[i + 1].getValue();
+        std::string type = "any";
+        ITER_INC;
+        if (body[i+1].getType() == tok_column) {
+            ITER_INC;
+            ITER_INC;
+            if (body[i].getType() != tok_identifier) {
+                FPResult result;
+                result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
+                result.column = body[i].getColumn();
+                result.value = body[i].getValue();
+                result.line = body[i].getLine();
+                result.in = body[i].getFile();
+                result.type = body[i].getType();
+                result.success = false;
+                errors.push_back(result);
+            }
+            if (body[i].getValue() == "none") {
+                transpilerError("Type 'none' is only valid for function return types.", i);
+                errors.push_back(err);
+            }
+            type = body[i].getValue();
+        } else {
+            transpilerError("A type is required!", i);
+            errors.push_back(err);
+            return;
+        }
+        Variable v = Variable(name, type);
+        vars[varDepth].push_back(v);
+        append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str());
+    }
+
+    handler(CurlyOpen) {
+        noUnused;
+        std::string struct_ = "Array";
+        if (getStructByName(result, struct_) == Struct("")) {
+            transpilerError("Struct definition for 'Array' not found!", i);
+            errors.push_back(err);
+            return;
+        }
+        debugPrintPush();
+        append("{\n");
+        scopeDepth++;
+        Method* f = getMethodByName(result, "init", struct_);
+        append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\");\n");
+        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType() == "float") {
+                append("stack.data[stack.ptr++].f = Method_Array_init(tmp, 1);\n");
+                debugPrintPush();
+            } else {
+                append("stack.data[stack.ptr++].v = (scl_value) Method_Array_init(tmp, 1);\n");
+                debugPrintPush();
+            }
+        } else {
+            append("Method_Array_init(tmp, 1);\n");
+        }
+        ITER_INC;
+        while (body[i].getType() != tok_curly_close) {
+            if (body[i].getType() == tok_comma) {
+                ITER_INC;
+                continue;
+            }
+            bool didPush = false;
+            while (body[i].getType() != tok_comma && body[i].getType() != tok_curly_close) {
+                // std::cout << "Array literal entry:" << std::endl;
+                handle(Token);
+                ITER_INC;
+                didPush = true;
+            }
+            if (didPush)
+                append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
+        }
+        append("stack.data[stack.ptr++].v = tmp;\n");
+        lastPushedType = "Array";
+        debugPrintPush();
+        scopeDepth--;
+        append("}\n");
+    }
+
+    handler(BracketOpen) {
+        noUnused;
+        std::string struct_ = "Map";
+        if (getStructByName(result, struct_) == Struct("")) {
+            transpilerError("Struct definition for 'Map' not found!", i);
+            errors.push_back(err);
+            return;
+        }
+        debugPrintPush();
+        append("{\n");
+        scopeDepth++;
+        Method* f = getMethodByName(result, "init", struct_);
+        append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\");\n");
+        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType() == "float") {
+                append("stack.data[stack.ptr++].f = Method_Map_init(tmp, 1);\n");
+                debugPrintPush();
+            } else {
+                append("stack.data[stack.ptr++].v = (scl_value) Method_Map_init(tmp, 1);\n");
+                debugPrintPush();
+            }
+        } else {
+            append("Method_Map_init(tmp, 1);\n");
+        }
+        ITER_INC;
+        while (body[i].getType() != tok_bracket_close) {
+            if (body[i].getType() == tok_comma) {
+                ITER_INC;
+                continue;
+            }
+            if (body[i].getType() != tok_string_literal) {
+                transpilerError("Map keys must be strings!", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string key = body[i].getValue();
+            ITER_INC;
+            if (body[i].getType() != tok_column) {
+                transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            bool didPush = false;
+            while (body[i].getType() != tok_comma && body[i].getType() != tok_bracket_close) {
+                handle(Token);
+                ITER_INC;
+                didPush = true;
+            }
+            if (didPush)
+                append("Method_Map_set(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+        }
+        append("stack.data[stack.ptr++].v = tmp;\n");
+        lastPushedType = "Map";
+        debugPrintPush();
+        scopeDepth--;
+        append("}\n");
+    }
+
+    handler(ParenOpen) {
+        noUnused;
+        if (body[i + 2].getType() == tok_column) {
+            if (getStructByName(result, "MapEntry") == Struct("")) {
+                transpilerError("Struct definition for 'MapEntry' not found!", i);
+                errors.push_back(err);
+                return;
+            }
+            debugPrintPush();
+            append("{\n");
+            scopeDepth++;
+            ITER_INC;
+            if (body[i].getType() != tok_string_literal) {
+                transpilerError("MapEntry keys must be strings!", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string key = body[i].getValue();
+            ITER_INC;
+            if (body[i].getType() != tok_column) {
+                transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            while (body[i].getType() != tok_paren_close) {
+                handle(Token);
+                ITER_INC;
+            }
+            Method* f = getMethodByName(result, "init", "MapEntry");
+            append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\");\n");
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                if (f->getReturnType() == "float") {
+                    append("stack.data[stack.ptr++].f = Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                    debugPrintPush();
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_value) Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                    debugPrintPush();
+                }
+            } else {
+                append("Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+            }
+            append("stack.data[stack.ptr++].v = tmp;\n");
+            lastPushedType = "MapEntry";
+            debugPrintPush();
+            scopeDepth--;
+            append("}\n");
+        } else if (body[i + 2].getType() == tok_comma) {
+            int j = 0;
+            int commas = 0;
+            for (; body[i + j].getType() != tok_paren_close; j++) {
+                if (body[i + j].getType() == tok_comma) commas++;
+            }
+            if (commas == 1) {
+                if (getStructByName(result, "Pair") == Struct("")) {
+                    transpilerError("Struct definition for 'Pair' not found!", i);
+                    errors.push_back(err);
+                    return;
+                }
+                debugPrintPush();
+                append("{\n");
+                scopeDepth++;
+                ITER_INC;
+                while (body[i].getType() != tok_paren_close) {
+                    if (body[i].getType() == tok_comma) {
+                        ITER_INC;
+                        continue;
+                    }
+                    while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
+                        handle(Token);
+                        ITER_INC;
+                    }
+                }
+                Method* f = getMethodByName(result, "init", "Pair");
+                append("struct Struct_Pair* tmp = scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\");\n");
+                append("stack.ptr -= 2;\n");
+                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                    if (f->getReturnType() == "float") {
+                        append("stack.data[stack.ptr++].f = Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                        debugPrintPush();
+                    } else {
+                        append("stack.data[stack.ptr++].v = (scl_value) Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                        debugPrintPush();
+                    }
+                } else {
+                    append("Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                }
+                append("stack.data[stack.ptr++].v = tmp;\n");
+                lastPushedType = "Pair";
+                debugPrintPush();
+                scopeDepth--;
+                append("}\n");
+            } else if (commas == 2) {
+                if (getStructByName(result, "Triple") == Struct("")) {
+                    transpilerError("Struct definition for 'Triple' not found!", i);
+                    errors.push_back(err);
+                    return;
+                }
+                debugPrintPush();
+                append("{\n");
+                scopeDepth++;
+                ITER_INC;
+                while (body[i].getType() != tok_paren_close) {
+                    if (body[i].getType() == tok_comma) {
+                        ITER_INC;
+                        continue;
+                    }
+                    while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
+                        handle(Token);
+                        ITER_INC;
+                    }
+                }
+                Method* f = getMethodByName(result, "init", "Triple");
+                append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\");\n");
+                append("stack.ptr -= 3;\n");
+                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                    if (f->getReturnType() == "float") {
+                        append("stack.data[stack.ptr++].f = Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                        debugPrintPush();
+                    } else {
+                        append("stack.data[stack.ptr++].v = (scl_value) Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                        debugPrintPush();
+                    }
+                } else {
+                    append("Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
+                }
+                append("stack.data[stack.ptr++].v = tmp;\n");
+                lastPushedType = "Triple";
+                debugPrintPush();
+                scopeDepth--;
+                append("}\n");
+            } else {
+                transpilerError("Unsupported tuple-like literal!", i);
+                errors.push_back(err);
+            }
+        } else {
+            transpilerError("Unsupported tuple-like literal!", i);
+            errors.push_back(err);
+        }
+    }
+
+    handler(StringLiteral) {
+        noUnused;
+        append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
+        lastPushedType = "str";
+        debugPrintPush();
+    }
+
+    handler(ExternCBlock) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() != tok_string_literal) {
+            transpilerError("Expected string literal, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        std::string s = replaceAll(body[i].getValue(), R"(\\\\)", "\\");
+        s = replaceAll(s, R"(\\\")", "\"");
+        append("%s\n", s.c_str());
+    }
+
+    handler(IntegerLiteral) {
+        noUnused;
+        FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
+        if (!numberHandled.success) {
+            errors.push_back(numberHandled);
+        }
+        lastPushedType = "int";
+    }
+
+    handler(FloatLiteral) {
+        noUnused;
+        FPResult numberHandled = handleDouble(fp, body[i], scopeDepth);
+        if (!numberHandled.success) {
+            errors.push_back(numberHandled);
+        }
+        lastPushedType = "float";
+    }
+
+    handler(FalsyType) {
+        noUnused;
+        append("stack.data[stack.ptr++].v = (scl_value) 0;\n");
+        lastPushedType = "bool";
+        debugPrintPush();
+    }
+
+    handler(TruthyType) {
+        noUnused;
+        append("stack.data[stack.ptr++].v = (scl_value) 1;\n");
+        lastPushedType = "bool";
+        debugPrintPush();
+    }
+
+    handler(Is) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        std::string struct_ = body[i].getValue();
+        if (getStructByName(result, struct_) == Struct("")) {
+            transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
+        lastPushedType = "bool";
+    }
+
+    handler(If) {
+        noUnused;
+        append("if (stack.data[--stack.ptr].v) {\n");
+        scopeDepth++;
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(Else) {
+        noUnused;
+        scopeDepth--;
+        varDepth--;
+        vars.pop_back();
+        append("} else {\n");
+        scopeDepth++;
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(While) {
+        noUnused;
+        append("while (1) {\n");
+        scopeDepth++;
+        was_rep.push_back(false);
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(Do) {
+        noUnused;
+        append("if (!stack.data[--stack.ptr].v) break;\n");
+    }
+
+    handler(DoneLike) {
+        noUnused;
+        scopeDepth--;
+        varDepth--;
+        vars.pop_back();
+        append("}\n");
+        if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
+            repeat_depth--;
+        }
+        if (was_rep.size() > 0) was_rep.pop_back();
+    }
+
+    handler(Return) {
+        noUnused;
+        if (i == (body.size() - 1) && (function->getReturnType().size() == 0 || function->getReturnType() == "none")) return;
+        append("callstk.ptr--;\n");
+        if (return_type == "void")
+            append("return;\n");
+        else {
+            if (return_type == "scl_str") {
+                append("return stack.data[--stack.ptr].s;\n");
+            } else if (return_type == "scl_int") {
+                append("return stack.data[--stack.ptr].i;\n");
+            } else if (return_type == "scl_float") {
+                append("return stack.data[--stack.ptr].f;\n");
+            } else if (return_type == "scl_value") {
+                append("return stack.data[--stack.ptr].v;\n");
+            } else if (strncmp(return_type.c_str(), "struct", 6) == 0) {
+                append("return (struct Struct_%s*) stack.data[--stack.ptr].v;\n", function->getReturnType().c_str());
+            }
+        }
+    }
+
+    handler(Goto) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+        }
+        append("goto %s;\n", body[i].getValue().c_str());
+    }
+
+    handler(Label) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+        }
+        append("%s:\n", body[i].getValue().c_str());
+    }
+
+    handler(Case) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getType() == tok_string_literal) {
+            transpilerError("String literal in case statement detected!", i);
+            errors.push_back(err);
+        } else {
+            append("case %s: {\n", body[i].getValue().c_str());
+            scopeDepth++;
+            varDepth++;
+            std::vector<Variable> defaultScope;
+            vars.push_back(defaultScope);
+        }
+    }
+
+    handler(Esac) {
+        noUnused;
+        append("break;\n");
+        scopeDepth--;
+        varDepth--;
+        vars.pop_back();
+        append("}\n");
+    }
+
+    handler(Default) {
+        noUnused;
+        append("default: {\n");
+        scopeDepth++;
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(Switch) {
+        noUnused;
+        append("switch (stack.data[--stack.ptr].i) {\n");
+        scopeDepth++;
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+        was_rep.push_back(false);
+    }
+
+    handler(AddrOf) {
+        noUnused;
+        append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
+        lastPushedType = "any";
+    }
+
+    handler(Break) {
+        noUnused;
+        append("break;\n");
+    }
+
+    handler(Continue) {
+        noUnused;
+        append("continue;\n");
+    }
+
+    handler(Token) {
+        noUnused;
+        if (body[i].getType() == tok_ignore) return;
+
+        std::string file = body[i].getFile();
+
+        // std::cout << "Handling type " << body[i].getType() << " with value '" << body[i].getValue() << "'" << std::endl;
+
+        if (isOperator(body[i])) {
+            FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
+            if (!operatorsHandled.success) {
+                errors.push_back(operatorsHandled);
+            }
+        } else {
+            switch (body[i].getType()) {
+                case tok_identifier: {
+                    handle(Identifier);
+                    break;
+                }
+
+                case tok_string_literal: {
+                    handle(StringLiteral);
+                    break;
+                }
+
+                case tok_cdecl: {
+                    handle(ExternCBlock);
+                    break;
+                }
+
+                case tok_number:
+                case tok_char_literal: {
+                    handle(IntegerLiteral);
+                    break;
+                }
+
+                case tok_number_float: {
+                    handle(FloatLiteral);
+                    break;
+                }
+
+                case tok_nil:
+                case tok_false: {
+                    handle(FalsyType);
+                    break;
+                }
+
+                case tok_true: {
+                    handle(TruthyType);
+                    break;
+                }
+
+                case tok_new: {
+                    handle(New);
+                    break;
+                }
+
+                case tok_is: {
+                    handle(Is);
+                    break;
+                }
+
+                case tok_if: {
+                    handle(If);
+                    break;
+                }
+
+                case tok_else: {
+                    handle(Else);
+                    break;
+                }
+
+                case tok_while: {
+                    handle(While);
+                    break;
+                }
+
+                case tok_do: {
+                    handle(Do);
+                    break;
+                }
+
+                case tok_repeat: {
+                    handle(Repeat);
+                    break;
+                }
+
+                case tok_for: {
+                    handle(For);
+                    break;
+                }
+
+                case tok_foreach: {
+                    handle(Foreach);
+                    break;
+                }
+
+                case tok_done:
+                case tok_fi:
+                case tok_end: {
+                    handle(DoneLike);
+                    break;
+                }
+
+                case tok_return: {
+                    handle(Return);
+                    break;
+                }
+
+                case tok_addr_ref: {
+                    handle(AddrRef);
+                    break;
+                }
+
+                case tok_store: {
+                    handle(Store);
+                    break;
+                }
+
+                case tok_declare: {
+                    handle(Declare);
+                    break;
+                }
+
+                case tok_continue: {
+                    handle(Continue);
+                    break;
+                }
+
+                case tok_break: {
+                    handle(Break);
+                    break;
+                }
+
+                case tok_goto: {
+                    handle(Goto);
+                    break;
+                }
+
+                case tok_label: {
+                    handle(Label);
+                    break;
+                }
+
+                case tok_case: {
+                    handle(Case);
+                    break;
+                }
+
+                case tok_esac: {
+                    handle(Esac);
+                    break;
+                }
+
+                case tok_default: {
+                    handle(Default);
+                    break;
+                }
+
+                case tok_switch: {
+                    handle(Switch);
+                    break;
+                }
+
+                case tok_curly_open: {
+                    handle(CurlyOpen);
+                    break;
+                }
+
+                case tok_bracket_open: {
+                    handle(BracketOpen);
+                    break;
+                }
+
+                case tok_paren_open: {
+                    handle(ParenOpen);
+                    break;
+                }
+
+                case tok_addr_of: {
+                    handle(AddrOf);
+                    break;
+                }
+
+                default: {
+                    transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    break;
+                }
+            }
+        }
+    }
+
+    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result) {
         (void) warns;
-        int scopeDepth = 0;
+        scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
         append("extern scl_stack_t stack;\n");
         append("extern scl_stack_t callstk;\n\n");
@@ -341,8 +2380,8 @@ namespace sclc {
             }
 
             scopeDepth = 0;
-            bool noWarns = false;
-            bool noMangle = false;
+            noWarns = false;
+            noMangle = false;
 
             for (std::string modifier : function->getModifiers()) {
                 if (modifier == "nowarn") {
@@ -374,7 +2413,7 @@ namespace sclc {
                 functionDeclaration += "): " + function->getReturnType();
             }
 
-            std::string return_type = "void";
+            return_type = "void";
 
             if (function->getReturnType().size() > 0) {
                 std::string t = function->getReturnType();
@@ -468,10 +2507,6 @@ namespace sclc {
             }
 
             std::vector<Token> body = function->getBody();
-            std::vector<bool> was_rep;
-            size_t i;
-            char repeat_depth = 0;
-            int iterator_count = 0;
             if (body.size() == 0)
                 goto emptyFunction;
             
@@ -480,1761 +2515,7 @@ namespace sclc {
             append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
 
             for (i = 0; i < body.size(); i++) {
-                if (body[i].getType() == tok_ignore) continue;
-
-                std::string file = body[i].getFile();
-
-                if (isOperator(body[i])) {
-                    FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
-                    if (!operatorsHandled.success) {
-                        errors.push_back(operatorsHandled);
-                    }
-                } else {
-                    switch (body[i].getType()) {
-                        case tok_identifier: {
-                            if (body[i].getValue() == "self" && !function->isMethod) {
-                                transpilerError("Can't use 'self' outside a member function.", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            if (body[i].getValue() == "drop") {
-                                append("stack.ptr--;\n");
-                            } else if (body[i].getValue() == "dup") {
-                                append("stack.data[stack.ptr++].v = stack.data[stack.ptr - 1].v;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "swap") {
-                                append("{\n");
-                                scopeDepth++;
-                                append("scl_value b = stack.data[--stack.ptr].v;\n");
-                                append("scl_value a = stack.data[--stack.ptr].v;\n");
-                                append("stack.data[stack.ptr++].v = b;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = a;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i].getValue() == "over") {
-                                append("{\n");
-                                scopeDepth++;
-                                append("scl_value c = stack.data[--stack.ptr].v;\n");
-                                append("scl_value b = stack.data[--stack.ptr].v;\n");
-                                append("scl_value a = stack.data[--stack.ptr].v;\n");
-                                append("stack.data[stack.ptr++].v = c;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = b;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = a;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i].getValue() == "sdup2") {
-                                append("{\n");
-                                scopeDepth++;
-                                append("scl_value b = stack.data[--stack.ptr].v;\n");
-                                append("scl_value a = stack.data[--stack.ptr].v;\n");
-                                append("stack.data[stack.ptr++].v = a;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = b;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = a;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i].getValue() == "swap2") {
-                                append("{\n");
-                                scopeDepth++;
-                                append("scl_value c = stack.data[--stack.ptr].v;\n");
-                                append("scl_value b = stack.data[--stack.ptr].v;\n");
-                                append("scl_value a = stack.data[--stack.ptr].v;\n");
-                                append("stack.data[stack.ptr++].v = b;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = a;\n");
-                                debugPrintPush();
-                                append("stack.data[stack.ptr++].v = c;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i].getValue() == "clearstack") {
-                                append("stack.ptr = 0;\n");
-                            } else if (body[i].getValue() == "&&") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "!") {
-                                append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
-                            } else if (body[i].getValue() == "||") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "<") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == ">") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "==") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "<=") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == ">=") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "!=") {
-                                append("stack.ptr -= 2;\n");
-                                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
-                                debugPrintPush();
-                            } else if (body[i].getValue() == "++") {
-                                append("stack.data[stack.ptr - 1].i++;\n");
-                            } else if (body[i].getValue() == "--") {
-                                append("stack.data[stack.ptr - 1].i--;\n");
-                            } else if (body[i].getValue() == "exit") {
-                                append("exit(stack.data[--stack.ptr].i);\n");
-                            } else if (body[i].getValue() == "abort") {
-                                append("abort();\n");
-                            } else if (hasFunction(result, body[i])) {
-                                Function* f = getFunctionByName(result, body[i].getValue());
-                                if (f->isMethod) {
-                                    transpilerError("'" + f->getName() + "' is a method, not a function.", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                    if (f->getReturnType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                        debugPrintPush();
-                                    }
-                                } else {
-                                    append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                }
-                            } else if (hasContainer(result, body[i])) {
-                                std::string containerName = body[i].getValue();
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
-                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                std::string memberName = body[i].getValue();
-                                Container container = getContainerByName(result, containerName);
-                                if (!container.hasMember(memberName)) {
-                                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                if (container.getMemberType(memberName) == "float") {
-                                    append("stack.data[stack.ptr++].f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-                                    debugPrintPush();
-                                } else {
-                                    append("stack.data[stack.ptr++].v = (scl_value) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-                                    debugPrintPush();
-                                }
-                            } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
-                                if (body[i + 1].getType() == tok_column) {
-                                    ITER_INC;
-                                    ITER_INC;
-                                    if (body[i].getType() == tok_column) {
-                                        std::string struct_ = body[i - 2].getValue();
-                                        ITER_INC;
-                                        Struct s = getStructByName(result, struct_);
-                                        if (body[i].getValue() == "new") {
-                                            if (!s.heapAllocAllowed()) {
-                                                transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::new'", i);
-                                                errors.push_back(err);
-                                                continue;
-                                            }
-                                            append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
-                                            debugPrintPush();
-                                            if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
-                                                append("{\n");
-                                                scopeDepth++;
-                                                Method* f = getMethodByName(result, "init", struct_);
-                                                append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
-                                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                                debugPrintPush();
-                                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                                    if (f->getReturnType() == "float") {
-                                                        append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    } else {
-                                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    }
-                                                } else {
-                                                    append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                }
-                                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                                debugPrintPush();
-                                                scopeDepth--;
-                                                append("}\n");
-                                            }
-                                        } else if (body[i].getValue() == "default") {
-                                            if (!s.stackAllocAllowed()) {
-                                                transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::default'", i);
-                                                errors.push_back(err);
-                                                continue;
-                                            }
-                                            append("{\n");
-                                            scopeDepth++;
-                                            append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
-                                            append("stack.data[stack.ptr++].v = (scl_value*) &tmp;\n");
-                                            debugPrintPush();
-                                            if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
-                                                Method* f = getMethodByName(result, "init", struct_);
-                                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                                    if (f->getReturnType() == "float") {
-                                                        append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    } else {
-                                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    }
-                                                } else {
-                                                    append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                }
-                                                append("stack.data[stack.ptr++].v = (scl_value*) &tmp;\n");
-                                                debugPrintPush();
-                                            }
-                                            scopeDepth--;
-                                            append("}\n");
-                                        } else {
-                                            if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
-                                                Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
-                                                if (f->isMethod) {
-                                                    transpilerError("'" + f->getName() + "' is not static!", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                                    if (f->getReturnType() == "float") {
-                                                        append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    } else {
-                                                        append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    }
-                                                } else {
-                                                    append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                }
-                                            } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
-                                                std::string loadFrom = struct_ + "$" + body[i].getValue();
-                                                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
-                                                if (v.getType() == "float") {
-                                                    append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
-                                                    debugPrintPush();
-                                                } else {
-                                                    append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
-                                                    debugPrintPush();
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        if (body[i].getType() == tok_new) {
-                                            transpilerError("Using '<type>:new' is deprecated! Use '<type>::new' instead.", i);
-                                            warns.push_back(err);
-                                            std::string struct_ = body[i - 2].getValue();
-                                            append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
-                                            debugPrintPush();
-                                            if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
-                                                append("{\n");
-                                                scopeDepth++;
-                                                Method* f = getMethodByName(result, "init", struct_);
-                                                append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
-                                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                                debugPrintPush();
-                                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                                    if (f->getReturnType() == "float") {
-                                                        append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    } else {
-                                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                        debugPrintPush();
-                                                    }
-                                                } else {
-                                                    append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                }
-                                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                                debugPrintPush();
-                                                scopeDepth--;
-                                                append("}\n");
-                                            }
-                                        } else {
-                                            if (!hasMethod(result, body[i], body[i - 2].getValue())) {
-                                                transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + body[i - 2].getValue() + "'", i);
-                                                errors.push_back(err);
-                                                continue;
-                                            }
-                                            Method* f = getMethodByName(result, body[i].getValue(), body[i - 2].getValue());
-                                            append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                                if (f->getReturnType() == "float") {
-                                                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                    debugPrintPush();
-                                                } else {
-                                                    append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                    debugPrintPush();
-                                                }
-                                            } else {
-                                                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    ITER_INC;
-                                    ITER_INC;
-                                    Struct s = getStructByName(result, body[i - 2].getValue());
-                                    if (!s.hasMember(body[i].getValue())) {
-                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                    if (mem.getType() == "float")
-                                        append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
-                                    else
-                                        append("stack.data[stack.ptr - 1].v = (scl_value) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
-                                }
-                            } else if (hasVar(body[i])) {
-                                std::string loadFrom = body[i].getValue();
-                                Variable v = getVar(body[i]);
-                                if (getStructByName(result, v.getType()) != Struct("")) {
-                                    if (body[i + 1].getType() == tok_column) {
-                                        ITER_INC;
-                                        ITER_INC;
-                                        if (!hasMethod(result, body[i], v.getType())) {
-                                            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        Method* f = getMethodByName(result, body[i].getValue(), v.getType());
-                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
-                                        append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                        debugPrintPush();
-                                        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                            if (f->getReturnType() == "float") {
-                                                append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                debugPrintPush();
-                                            } else {
-                                                append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                debugPrintPush();
-                                            }
-                                        } else {
-                                            append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                        }
-                                    } else {
-                                        if (body[i + 1].getType() != tok_dot) {
-                                            append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
-                                            debugPrintPush();
-                                            continue;
-                                        }
-                                        ITER_INC;
-                                        ITER_INC;
-                                        Struct s = getStructByName(result, v.getType());
-                                        if (!s.hasMember(body[i].getValue())) {
-                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                        if (mem.getType() == "float") {
-                                            append("stack.data[stack.ptr++].f = Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                            debugPrintPush();
-                                        } else {
-                                            append("stack.data[stack.ptr++].v = (scl_value) Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                            debugPrintPush();
-                                        }
-                                    }
-                                } else {
-                                    if (v.getType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
-                                        debugPrintPush();
-                                    }
-                                }
-                            } else if (function->isMethod) {
-                                Method* m = static_cast<Method*>(function);
-                                Struct s = getStructByName(result, m->getMemberType());
-                                if (hasMethod(result, body[i], s.getName())) {
-                                    Method* f = getMethodByName(result, body[i].getValue(), s.getName());
-                                    append("stack.data[stack.ptr++].v = (scl_value) Var_self;\n");
-                                    append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                    debugPrintPush();
-                                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                        if (f->getReturnType() == "float") {
-                                            append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                            debugPrintPush();
-                                        } else {
-                                            append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                            debugPrintPush();
-                                        }
-                                    } else {
-                                        append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                    }
-                                } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
-                                    std::string struct_ = s.getName();
-                                    ITER_INC;
-                                    if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
-                                        Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
-                                        if (f->isMethod) {
-                                            transpilerError("'" + f->getName() + "' is not static!", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        append("stack.ptr -= %zu;\n", f->getArgs().size());
-                                        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                            if (f->getReturnType() == "float") {
-                                                append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                debugPrintPush();
-                                            } else {
-                                                append("stack.data[stack.ptr++].v = (scl_value) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                                debugPrintPush();
-                                            }
-                                        } else {
-                                            append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
-                                        }
-                                    }
-                                } else if (s.hasMember(body[i].getValue())) {
-                                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                    if (mem.getType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Var_self->%s;\n", body[i].getValue().c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Var_self->%s;\n", body[i].getValue().c_str());
-                                        debugPrintPush();
-                                    }
-                                } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                                    std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                                    Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
-                                    if (v.getType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Var_%s;\n", loadFrom.c_str());
-                                        debugPrintPush();
-                                    }
-                                } else {
-                                    transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                }
-                            } else {
-                                transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                            }
-                            break;
-                        }
-
-                        case tok_string_literal: {
-                            append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
-                            debugPrintPush();
-                            break;
-                        }
-
-                        case tok_cdecl: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_string_literal) {
-                                transpilerError("Expected string literal, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string s = replaceAll(body[i].getValue(), R"(\\\\)", "\\");
-                            s = replaceAll(s, R"(\\\")", "\"");
-                            append("%s\n", s.c_str());
-                            break;
-                        }
-
-                        case tok_number:
-                        case tok_char_literal: {
-                            FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
-                            if (!numberHandled.success) {
-                                errors.push_back(numberHandled);
-                            }
-                            break;
-                        }
-
-                        case tok_number_float: {
-                            FPResult numberHandled = handleDouble(fp, body[i], scopeDepth);
-                            if (!numberHandled.success) {
-                                errors.push_back(numberHandled);
-                            }
-                            break;
-                        }
-
-                        case tok_nil:
-                        case tok_false: {
-                            append("stack.data[stack.ptr++].v = (scl_value) 0;\n");
-                            debugPrintPush();
-                            break;
-                        }
-
-                        case tok_true: {
-                            append("stack.data[stack.ptr++].v = (scl_value) 1;\n");
-                            debugPrintPush();
-                            break;
-                        }
-
-                        case tok_new: {
-                            {
-                                transpilerError("Using 'new <type>' is deprecated! Use '<type>::new' instead.", i);
-                                { if (!noWarns) warns.push_back(err); }
-                            }
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string struct_ = body[i].getValue();
-                            if (getStructByName(result, struct_) == Struct("")) {
-                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
-                            debugPrintPush();
-                            if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
-                                append("{\n");
-                                scopeDepth++;
-                                Method* f = getMethodByName(result, "init", struct_);
-                                append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
-                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                    if (f->getReturnType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
-                                        debugPrintPush();
-                                    }
-                                } else {
-                                    append("Method_%s_%s(tmp);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
-                                }
-                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            }
-                            break;
-                        }
-
-                        case tok_is: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string struct_ = body[i].getValue();
-                            if (getStructByName(result, struct_) == Struct("")) {
-                                transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
-                            break;
-                        }
-
-                        case tok_if: {
-                            append("if (stack.data[--stack.ptr].v) {\n");
-                            scopeDepth++;
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            break;
-                        }
-
-                        case tok_else: {
-                            scopeDepth--;
-                            varDepth--;
-                            vars.pop_back();
-                            append("} else {\n");
-                            scopeDepth++;
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            break;
-                        }
-
-                        case tok_while: {
-                            append("while (1) {\n");
-                            scopeDepth++;
-                            was_rep.push_back(false);
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            break;
-                        }
-
-                        case tok_do: {
-                            append("if (!stack.data[--stack.ptr].v) break;\n");
-                            break;
-                        }
-
-                        case tok_repeat: {
-                            if (body[i + 1].getType() != tok_number) {
-                                transpilerError("Expected integer, but got '" + body[i + 1].getValue() + "'", i+1);
-                                errors.push_back(err);
-                                if (body[i + 2].getType() != tok_do)
-                                    goto lbl_repeat_do_tok_chk;
-                                i += 2;
-                                continue;
-                            }
-                            if (body[i + 2].getType() != tok_do) {
-                            lbl_repeat_do_tok_chk:
-                                transpilerError("Expected 'do', but got '" + body[i + 2].getValue() + "'", i+2);
-                                errors.push_back(err);
-                                i += 2;
-                                continue;
-                            }
-                            append("for (scl_value %c = 0; %c < (scl_value) %s; %c++) {\n",
-                                'a' + repeat_depth,
-                                'a' + repeat_depth,
-                                body[i + 1].getValue().c_str(),
-                                'a' + repeat_depth
-                            );
-                            repeat_depth++;
-                            scopeDepth++;
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            was_rep.push_back(true);
-                            i += 2;
-                            break;
-                        }
-
-                        case tok_for: {
-                            ITER_INC;
-                            Token var = body[i];
-                            if (var.getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier, but got: '" + var.getValue() + "'";
-                                result.success = false;
-                                result.line = var.getLine();
-                                result.in = var.getFile();
-                                result.value = var.getValue();
-                                result.column = var.getColumn();
-                                result.type = var.getType();
-                                errors.push_back(result);
-                            }
-                            ITER_INC;
-                            if (body[i].getType() != tok_in) {
-                                FPResult result;
-                                result.message = "Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'";
-                                result.success = false;
-                                result.line = body[i].getLine();
-                                result.in = body[i].getFile();
-                                result.value = body[i].getValue();
-                                result.column = body[i].getColumn();
-                                result.type = body[i].getType();
-                                errors.push_back(result);
-                            }
-                            ITER_INC;
-                            while (body[i].getType() != tok_to) {
-                                push_var();
-                                ITER_INC;
-                            }
-                            if (body[i].getType() != tok_to) {
-                                transpilerError("Expected 'to', but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            ITER_INC;
-                            while (body[i].getType() != tok_step && body[i].getType() != tok_do) {
-                                push_var();
-                                ITER_INC;
-                            }
-                            std::string iterator_direction = "++";
-                            if (body[i].getType() == tok_step) {
-                                ITER_INC;
-                                if (body[i].getType() == tok_do) {
-                                    transpilerError("Expected step, but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string val = body[i].getValue();
-                                if (val == "+") {
-                                    ITER_INC;
-                                    iterator_direction = " += ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else if (body[i].getValue() == "+") {
-                                        iterator_direction = "++";
-                                    } else {
-                                        transpilerError("Expected number or '+', but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == "-") {
-                                    ITER_INC;
-                                    iterator_direction = " -= ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else if (body[i].getValue() == "+") {
-                                        iterator_direction = "--";
-                                    } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == "*") {
-                                    ITER_INC;
-                                    iterator_direction = " *= ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == "/") {
-                                    ITER_INC;
-                                    iterator_direction = " /= ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == "<<") {
-                                    ITER_INC;
-                                    iterator_direction = " <<= ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == ">>") {
-                                    ITER_INC;
-                                    iterator_direction = " >>= ";
-                                    if (body[i].getType() == tok_number) {
-                                        iterator_direction += body[i].getValue();
-                                    } else {
-                                        transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                } else if (val == "nop") {
-                                    iterator_direction = "";
-                                }
-                                ITER_INC;
-                            }
-                            if (body[i].getType() != tok_do) {
-                                transpilerError("Expected 'do', but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            append("struct scl_iterable __it%d = (struct scl_iterable) {0, 0};\n", iterator_count);
-                            append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
-                            append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
-                            
-                            std::string var_prefix = "";
-                            if (!hasVar(var)) {
-                                var_prefix = "scl_int ";
-                            }
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            
-                            if (iterator_direction == "")
-                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
-                            else
-                                append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end; Var_%s%s) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_direction.c_str());
-                            iterator_count++;
-                            scopeDepth++;
-
-                            if (hasFunction(Main.parser->getResult(), var)) {
-                                FPResult result;
-                                result.message = "Variable '" + var.getValue() + "' shadowed by function '" + var.getValue() + "'";
-                                result.success = false;
-                                result.line = var.getLine();
-                                result.in = var.getFile();
-                                result.value = var.getValue();
-                                result.type =  var.getType();
-                                result.column = var.getColumn();
-                                warns.push_back(result);
-                            }
-                            if (hasContainer(Main.parser->getResult(), var)) {
-                                FPResult result;
-                                result.message = "Variable '" + var.getValue() + "' shadowed by container '" + var.getValue() + "'";
-                                result.success = false;
-                                result.line = var.getLine();
-                                result.in = var.getFile();
-                                result.value = var.getValue();
-                                result.type =  var.getType();
-                                result.column = var.getColumn();
-                                warns.push_back(result);
-                            }
-                            if (hasVar(var)) {
-                                FPResult result;
-                                result.message = "Variable '" + var.getValue() + "' is already declared and shadows it.";
-                                result.success = false;
-                                result.line = var.getLine();
-                                result.in = var.getFile();
-                                result.value = var.getValue();
-                                result.type =  var.getType();
-                                result.column = var.getColumn();
-                                warns.push_back(result);
-                            }
-
-                            if (!hasVar(var))
-                                vars[varDepth].push_back(Variable(var.getValue(), "int"));
-                            was_rep.push_back(false);
-                            break;
-                        }
-
-                        case tok_foreach: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string iterator_name = "__it" + std::to_string(iterator_count++);
-                            Token iter_var_tok = body[i];
-                            ITER_INC;
-                            if (body[i].getType() != tok_in) {
-                                transpilerError("Expected 'in', but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string type = "";
-                            ITER_INC;
-                            while (body[i].getType() != tok_do) {
-                                push_var_with_type();
-                                ITER_INC;
-                            }
-                            append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", type.c_str(), iterator_name.c_str(), type.c_str());
-                            
-                            if (!getStructByName(result, type).implements("Iterable")) {
-                                transpilerError("Struct '" + type + "' is not iterable!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-
-                            if (!hasMethod(result, Token(tok_identifier, "has_next", 0, "", 0), type)) {
-                                transpilerError("Iterator for '" + type + "' has no 'has_next' method!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            if (!hasMethod(result, Token(tok_identifier, "next", 0, "", 0), type)) {
-                                transpilerError("Iterator for '" + type + "' has no 'next' method!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            Method* nextMethod = getMethodByName(result, "next", type);
-                            if (!hasMethod(result, Token(tok_identifier, "begin", 0, "", 0), type)) {
-                                transpilerError("Iterator for '" + type + "' has no 'begin' method!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            std::string var_prefix = "";
-                            if (!hasVar(iter_var_tok)) {
-                                var_prefix = sclReturnTypeToCReturnType(result, nextMethod->getReturnType()) + " ";
-                            }
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            vars[varDepth].push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
-                            std::string cType = sclReturnTypeToCReturnType(result, getVar(iter_var_tok).getType());
-                            append(
-                                "for (%sVar_%s = (%s) Method_%s_begin(%s); Method_%s_has_next(%s); Var_%s = (%s) Method_%s_next(%s)) {\n",
-                                var_prefix.c_str(),
-                                iter_var_tok.getValue().c_str(),
-                                cType.c_str(),
-                                type.c_str(),
-                                iterator_name.c_str(),
-                                type.c_str(),
-                                iterator_name.c_str(),
-                                iter_var_tok.getValue().c_str(),
-                                cType.c_str(),
-                                type.c_str(),
-                                iterator_name.c_str()
-                            );
-                            scopeDepth++;
-                            ITER_INC;
-                            break;
-                        }
-
-                        case tok_done:
-                        case tok_fi:
-                        case tok_end: {
-                            scopeDepth--;
-                            varDepth--;
-                            vars.pop_back();
-                            append("}\n");
-                            if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
-                                repeat_depth--;
-                            }
-                            if (was_rep.size() > 0) was_rep.pop_back();
-                            break;
-                        }
-
-                        case tok_return: {
-                            if (i == (body.size() - 1) && (function->getReturnType().size() == 0 || function->getReturnType() == "none")) break;
-                            append("callstk.ptr--;\n");
-                            if (return_type == "void")
-                                append("return;\n");
-                            else {
-                                if (return_type == "scl_str") {
-                                    append("return stack.data[--stack.ptr].s;\n");
-                                } else if (return_type == "scl_int") {
-                                    append("return stack.data[--stack.ptr].i;\n");
-                                } else if (return_type == "scl_float") {
-                                    append("return stack.data[--stack.ptr].f;\n");
-                                } else if (return_type == "scl_value") {
-                                    append("return stack.data[--stack.ptr].v;\n");
-                                } else if (strncmp(return_type.c_str(), "struct", 6) == 0) {
-                                    append("return (struct Struct_%s*) stack.data[--stack.ptr].v;\n", function->getReturnType().c_str());
-                                }
-                            }
-                            break;
-                        }
-
-                        case tok_addr_ref: {
-                            ITER_INC;
-                            Token toGet = body[i];
-                            if (hasFunction(result, toGet)) {
-                                Function* f = getFunctionByName(result, toGet.getValue());
-                                append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
-                                debugPrintPush();
-                                ITER_INC;
-                            } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
-                                ITER_INC;
-                                if (body[i].getType() != tok_column) {
-                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                if (body[i].getType() != tok_column) {
-                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string struct_ = body[i - 2].getValue();
-                                ITER_INC;
-                                if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
-                                    Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
-                                    if (f->isMethod) {
-                                        transpilerError("'" + f->getName() + "' is not static!", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    append("stack.data[stack.ptr++].v = (scl_value) &Function_%s;\n", f->getName().c_str());
-                                    debugPrintPush();
-                                } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
-                                    std::string loadFrom = struct_ + "$" + body[i].getValue();
-                                    Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
-                                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
-                                    debugPrintPush();
-                                }
-                            } else if (hasVar(toGet)) {
-                                Variable v = getVar(body[i]);
-                                std::string loadFrom = v.getName();
-                                if (getStructByName(result, v.getType()) != Struct("")) {
-                                    if (body[i + 1].getType() == tok_column) {
-                                        if (!hasMethod(result, body[i], v.getType())) {
-                                            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        Method* f = getMethodByName(result, body[i].getValue(), v.getType());
-                                        append("stack.data[stack.ptr++].v = (scl_value) &Method_%s_%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
-                                        debugPrintPush();
-                                    } else {
-                                        if (body[i + 1].getType() != tok_dot) {
-                                            append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
-                                            debugPrintPush();
-                                            continue;
-                                        }
-                                        ITER_INC;
-                                        ITER_INC;
-                                        Struct s = getStructByName(result, v.getType());
-                                        if (!s.hasMember(body[i].getValue())) {
-                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        append("stack.data[stack.ptr++].v = (scl_value) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                        debugPrintPush();
-                                    }
-                                } else {
-                                    append("stack.data[stack.ptr++].v = (scl_value) &Var_%s;\n", loadFrom.c_str());
-                                    debugPrintPush();
-                                }
-                            } else if (hasContainer(result, toGet)) {
-                                ITER_INC;
-                                std::string containerName = body[i].getValue();
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
-                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                std::string memberName = body[i].getValue();
-                                Container container = getContainerByName(result, containerName);
-                                if (!container.hasMember(memberName)) {
-                                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                append("stack.data[stack.ptr++].v = (scl_value) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
-                                debugPrintPush();
-                            } else {
-                                transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
-                                errors.push_back(err);
-                            }
-                            break;
-                        }
-
-                        case tok_store: {
-                            ITER_INC;
-                            if (body[i].getType() == tok_addr_of) {
-                                ITER_INC;
-                                if (hasContainer(result, body[i])) {
-                                    std::string containerName = body[i].getValue();
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_dot) {
-                                        transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    std::string memberName = body[i].getValue();
-                                    Container container = getContainerByName(result, containerName);
-                                    if (!container.hasMember(memberName)) {
-                                        transpilerError("Unknown container member: '" + memberName + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    append("*((scl_value*) Container_%s.%s) = stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str());
-                                } else {
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                        errors.push_back(err);
-                                    }
-                                    if (!hasVar(body[i])) {
-                                        if (function->isMethod) {
-                                            Method* m = static_cast<Method*>(function);
-                                            Struct s = getStructByName(result, m->getMemberType());
-                                            if (s.hasMember(body[i].getValue())) {
-                                                append("*(scl_value*) Var_self->%s = stack.data[--stack.ptr].v;\n", body[i].getValue().c_str());
-                                                continue;
-                                            }
-                                        }
-                                        if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
-                                            i += 2;
-                                            Struct s = getStructByName(result, body[i - 2].getValue());
-                                            ITER_INC;
-                                            if (s != Struct("")) {
-                                                if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
-                                                    transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
-                                                std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                                                if (mem.getType() == "float")
-                                                    append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
-                                                else
-                                                    append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
-                                                continue;
-                                            }
-                                        }
-                                        transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    Variable v = getVar(body[i]);
-                                    std::string loadFrom = v.getName();
-                                    if (getStructByName(result, v.getType()) != Struct("")) {
-                                        if (body[i + 1].getType() != tok_dot) {
-                                            append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
-                                            continue;
-                                        }
-                                        ITER_INC;
-                                        ITER_INC;
-                                        Struct s = getStructByName(result, v.getType());
-                                        if (!s.hasMember(body[i].getValue())) {
-                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        append("*(scl_value*) Var_%s->%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                    } else {
-                                        append("*(scl_value*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
-                                    }
-                                }
-                            } else if (body[i].getType() == tok_paren_open) {
-                                append("{\n");
-                                scopeDepth++;
-                                append("struct Struct_Array* tmp = (struct Struct_Array*) stack.data[--stack.ptr].v;\n");
-                                ITER_INC;
-                                int destructureIndex = 0;
-                                while (body[i].getType() != tok_paren_close) {
-                                    if (body[i].getType() == tok_comma) {
-                                        ITER_INC;
-                                        continue;
-                                    }
-                                    if (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                                        if (body[i].getType() == tok_addr_of) {
-                                            ITER_INC;
-                                            if (hasContainer(result, body[i])) {
-                                                std::string containerName = body[i].getValue();
-                                                ITER_INC;
-                                                if (body[i].getType() != tok_dot) {
-                                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                ITER_INC;
-                                                std::string memberName = body[i].getValue();
-                                                Container container = getContainerByName(result, containerName);
-                                                if (!container.hasMember(memberName)) {
-                                                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                append("*((scl_value*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
-                                            } else {
-                                                if (body[i].getType() != tok_identifier) {
-                                                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                                    errors.push_back(err);
-                                                }
-                                                if (!hasVar(body[i])) {
-                                                    if (function->isMethod) {
-                                                        Method* m = static_cast<Method*>(function);
-                                                        Struct s = getStructByName(result, m->getMemberType());
-                                                        if (s.hasMember(body[i].getValue())) {
-                                                            append("*(scl_value*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
-                                                            continue;
-                                                        }
-                                                    }
-                                                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                }
-                                                Variable v = getVar(body[i]);
-                                                std::string loadFrom = v.getName();
-                                                if (getStructByName(result, v.getType()) != Struct("")) {
-                                                    if (body[i + 1].getType() != tok_dot) {
-                                                        append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                                        continue;
-                                                    }
-                                                    ITER_INC;
-                                                    ITER_INC;
-                                                    Struct s = getStructByName(result, v.getType());
-                                                    if (!s.hasMember(body[i].getValue())) {
-                                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                                        errors.push_back(err);
-                                                        continue;
-                                                    }
-                                                    append("*(scl_value*) Var_%s->%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
-                                                } else {
-                                                    append("*(scl_value*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                                }
-                                            }
-                                        } else {
-                                            if (hasContainer(result, body[i])) {
-                                                std::string containerName = body[i].getValue();
-                                                ITER_INC;
-                                                if (body[i].getType() != tok_dot) {
-                                                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                ITER_INC;
-                                                std::string memberName = body[i].getValue();
-                                                Container container = getContainerByName(result, containerName);
-                                                if (!container.hasMember(memberName)) {
-                                                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                append("(*(scl_value*) &Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
-                                            } else {
-                                                if (body[i].getType() != tok_identifier) {
-                                                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                                    errors.push_back(err);
-                                                }
-                                                if (!hasVar(body[i])) {
-                                                    if (function->isMethod) {
-                                                        Method* m = static_cast<Method*>(function);
-                                                        Struct s = getStructByName(result, m->getMemberType());
-                                                        if (s.hasMember(body[i].getValue())) {
-                                                            append("*(scl_value*) &Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
-                                                            continue;
-                                                        }
-                                                    }
-                                                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                }
-                                                Variable v = getVar(body[i]);
-                                                std::string loadFrom = v.getName();
-                                                if (getStructByName(result, v.getType()) != Struct("")) {
-                                                    if (body[i + 1].getType() != tok_dot) {
-                                                        append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                                        continue;
-                                                    }
-                                                    ITER_INC;
-                                                    ITER_INC;
-                                                    Struct s = getStructByName(result, v.getType());
-                                                    if (!s.hasMember(body[i].getValue())) {
-                                                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                                        errors.push_back(err);
-                                                        continue;
-                                                    }
-                                                    append("(*(scl_value*) &Var_%s->%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
-                                                } else {
-                                                    append("(*(scl_value*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    ITER_INC;
-                                    destructureIndex++;
-                                }
-                                if (destructureIndex == 0) {
-                                    transpilerError("Empty Array destructure", i);
-                                    warns.push_back(err);
-                                }
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i].getType() == tok_declare) {
-                                if (body[i + 1].getType() != tok_identifier) {
-                                    transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                if (hasFunction(result, body[i + 1])) {
-                                    transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
-                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                    else errors.push_back(err);
-                                }
-                                if (hasContainer(result, body[i + 1])) {
-                                    transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
-                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                    else errors.push_back(err);
-                                }
-                                if (hasVar(body[i + 1])) {
-                                    transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
-                                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                    else errors.push_back(err);
-                                }
-                                std::string name = body[i + 1].getValue();
-                                std::string type = "any";
-                                ITER_INC;
-                                if (body[i+1].getType() == tok_column) {
-                                    ITER_INC;
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_identifier) {
-                                        FPResult result;
-                                        result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                        result.column = body[i].getColumn();
-                                        result.value = body[i].getValue();
-                                        result.line = body[i].getLine();
-                                        result.in = body[i].getFile();
-                                        result.type = body[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                    }
-                                    if (body[i].getValue() == "none") {
-                                        transpilerError("Type 'none' is only valid for function return types.", i);
-                                        errors.push_back(err);
-                                    }
-                                    type = body[i].getValue();
-                                } else {
-                                    transpilerError("A type is required!", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                Variable v = Variable(name, type);
-                                vars[varDepth].push_back(v);
-                                append("%s Var_%s = (%s) stack.data[--stack.ptr].%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
-                            } else {
-                                if (hasContainer(result, body[i])) {
-                                    std::string containerName = body[i].getValue();
-                                    ITER_INC;
-                                    if (body[i].getType() != tok_dot) {
-                                        transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    ITER_INC;
-                                    std::string memberName = body[i].getValue();
-                                    Container container = getContainerByName(result, containerName);
-                                    if (!container.hasMember(memberName)) {
-                                        transpilerError("Unknown container member: '" + memberName + "'", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    append("Container_%s.%s = (%s) stack.data[--stack.ptr].%s;\n", containerName.c_str(), memberName.c_str(), sclReturnTypeToCReturnType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
-                                } else {
-                                    if (body[i].getType() != tok_identifier) {
-                                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                        errors.push_back(err);
-                                    }
-                                    if (!hasVar(body[i])) {
-                                        if (function->isMethod) {
-                                            Method* m = static_cast<Method*>(function);
-                                            Struct s = getStructByName(result, m->getMemberType());
-                                            if (s.hasMember(body[i].getValue())) {
-                                                Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                                if (mem.getType() == "float")
-                                                    append("Var_self->%s = stack.data[--stack.ptr].f;\n", body[i].getValue().c_str());
-                                                else
-                                                    append("Var_self->%s = (%s) stack.data[--stack.ptr].v;\n", body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
-                                                continue;
-                                            }
-                                        }
-                                        if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
-                                            i += 2;
-                                            Struct s = getStructByName(result, body[i - 2].getValue());
-                                            ITER_INC;
-                                            if (s != Struct("")) {
-                                                if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
-                                                    transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
-                                                    errors.push_back(err);
-                                                    continue;
-                                                }
-                                                Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
-                                                std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                                                if (mem.getType() == "float")
-                                                    append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
-                                                else
-                                                    append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
-                                                continue;
-                                            }
-                                        }
-                                        transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                        errors.push_back(err);
-                                    }
-                                    Variable v = getVar(body[i]);
-                                    std::string loadFrom = v.getName();
-                                    if (getStructByName(result, v.getType()) != Struct("")) {
-                                        if (body[i + 1].getType() != tok_dot) {
-                                            append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
-                                            continue;
-                                        }
-                                        ITER_INC;
-                                        ITER_INC;
-                                        Struct s = getStructByName(result, v.getType());
-                                        if (!s.hasMember(body[i].getValue())) {
-                                            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                            errors.push_back(err);
-                                            continue;
-                                        }
-                                        Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                        if (mem.getType() == "float")
-                                            append("Var_%s->%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                                        else
-                                            append("Var_%s->%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
-                                    } else {
-                                        Variable v = getVar(body[i]);
-                                        if (v.getType() == "float")
-                                            append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
-                                        else
-                                            append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclReturnTypeToCReturnType(result, v.getType()).c_str());
-                                    }
-                                }
-                            }
-                            break;
-                        }
-
-                        case tok_declare: {
-                            if (body[i + 1].getType() != tok_identifier) {
-                                transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            if (hasFunction(result, body[i + 1])) {
-                                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
-                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                else errors.push_back(err);
-                            }
-                            if (hasContainer(result, body[i + 1])) {
-                                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
-                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                else errors.push_back(err);
-                            }
-                            if (hasVar(body[i + 1])) {
-                                transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
-                                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                                else errors.push_back(err);
-                            }
-                            std::string name = body[i + 1].getValue();
-                            std::string type = "any";
-                            ITER_INC;
-                            if (body[i+1].getType() == tok_column) {
-                                ITER_INC;
-                                ITER_INC;
-                                if (body[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                                    result.column = body[i].getColumn();
-                                    result.value = body[i].getValue();
-                                    result.line = body[i].getLine();
-                                    result.in = body[i].getFile();
-                                    result.type = body[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                }
-                                if (body[i].getValue() == "none") {
-                                    transpilerError("Type 'none' is only valid for function return types.", i);
-                                    errors.push_back(err);
-                                }
-                                type = body[i].getValue();
-                            } else {
-                                transpilerError("A type is required!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            Variable v = Variable(name, type);
-                            vars[varDepth].push_back(v);
-                            append("%s Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str());
-                            break;
-                        }
-
-                        case tok_continue: {
-                            append("continue;\n");
-                            break;
-                        }
-
-                        case tok_break: {
-                            append("break;\n");
-                            break;
-                        }
-
-                        case tok_goto: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                            }
-                            append("goto %s;\n", body[i].getValue().c_str());
-                            break;
-                        }
-
-                        case tok_label: {
-                            ITER_INC;
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                            }
-                            append("%s:\n", body[i].getValue().c_str());
-                            break;
-                        }
-
-                        case tok_case: {
-                            ITER_INC;
-                            if (body[i].getType() == tok_string_literal) {
-                                transpilerError("String literal in case statement detected!", i);
-                                errors.push_back(err);
-                            } else {
-                                append("case %s: {\n", body[i].getValue().c_str());
-                                scopeDepth++;
-                                varDepth++;
-                                std::vector<Variable> defaultScope;
-                                vars.push_back(defaultScope);
-                            }
-                            break;
-                        }
-
-                        case tok_esac: {
-                            append("break;\n");
-                            scopeDepth--;
-                            varDepth--;
-                            vars.pop_back();
-                            append("}\n");
-                            break;
-                        }
-
-                        case tok_default: {
-                            append("default: {\n");
-                            scopeDepth++;
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            break;
-                        }
-
-                        case tok_switch: {
-                            append("switch (stack.data[--stack.ptr].i) {\n");
-                            scopeDepth++;
-                            varDepth++;
-                            std::vector<Variable> defaultScope;
-                            vars.push_back(defaultScope);
-                            was_rep.push_back(false);
-                            break;
-                        }
-
-                        case tok_curly_open: {
-                            std::string struct_ = "Array";
-                            if (getStructByName(result, struct_) == Struct("")) {
-                                transpilerError("Struct definition for 'Array' not found!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            debugPrintPush();
-                            append("{\n");
-                            scopeDepth++;
-                            Method* f = getMethodByName(result, "init", struct_);
-                            append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\");\n");
-                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                if (f->getReturnType() == "float") {
-                                    append("stack.data[stack.ptr++].f = Method_Array_init(tmp, 1);\n");
-                                    debugPrintPush();
-                                } else {
-                                    append("stack.data[stack.ptr++].v = (scl_value) Method_Array_init(tmp, 1);\n");
-                                    debugPrintPush();
-                                }
-                            } else {
-                                append("Method_Array_init(tmp, 1);\n");
-                            }
-                            ITER_INC;
-                            while (body[i].getType() != tok_curly_close) {
-                                if (body[i].getType() == tok_comma) {
-                                    ITER_INC;
-                                    continue;
-                                }
-                                bool didPush = false;
-                                while (body[i].getType() != tok_comma && body[i].getType() != tok_curly_close) {
-                                    push_var_with_string();
-                                    ITER_INC;
-                                    didPush = true;
-                                }
-                                if (didPush)
-                                    append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
-                            }
-                            append("stack.data[stack.ptr++].v = tmp;\n");
-                            debugPrintPush();
-                            scopeDepth--;
-                            append("}\n");
-                            break;
-                        }
-
-                        case tok_bracket_open: {
-                            std::string struct_ = "Map";
-                            if (getStructByName(result, struct_) == Struct("")) {
-                                transpilerError("Struct definition for 'Map' not found!", i);
-                                errors.push_back(err);
-                                continue;
-                            }
-                            debugPrintPush();
-                            append("{\n");
-                            scopeDepth++;
-                            Method* f = getMethodByName(result, "init", struct_);
-                            append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\");\n");
-                            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                if (f->getReturnType() == "float") {
-                                    append("stack.data[stack.ptr++].f = Method_Map_init(tmp, 1);\n");
-                                    debugPrintPush();
-                                } else {
-                                    append("stack.data[stack.ptr++].v = (scl_value) Method_Map_init(tmp, 1);\n");
-                                    debugPrintPush();
-                                }
-                            } else {
-                                append("Method_Map_init(tmp, 1);\n");
-                            }
-                            ITER_INC;
-                            while (body[i].getType() != tok_bracket_close) {
-                                if (body[i].getType() == tok_comma) {
-                                    ITER_INC;
-                                    continue;
-                                }
-                                if (body[i].getType() != tok_string_literal) {
-                                    transpilerError("Map keys must be strings!", i);
-                                    errors.push_back(err);
-                                    goto map_error;
-                                }
-                                std::string key = body[i].getValue();
-                                ITER_INC;
-                                if (body[i].getType() != tok_column) {
-                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    goto map_error;
-                                }
-                                ITER_INC;
-                                bool didPush = false;
-                                while (body[i].getType() != tok_comma && body[i].getType() != tok_bracket_close) {
-                                    push_result();
-                                    ITER_INC;
-                                    didPush = true;
-                                }
-                                if (didPush)
-                                    append("Method_Map_set(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
-                            }
-                            append("stack.data[stack.ptr++].v = tmp;\n");
-                            debugPrintPush();
-                            scopeDepth--;
-                            append("}\n");
-                        map_error:
-                            break;
-                        }
-
-                        case tok_paren_open: {
-                            if (body[i + 2].getType() == tok_column) {
-                                if (getStructByName(result, "MapEntry") == Struct("")) {
-                                    transpilerError("Struct definition for 'MapEntry' not found!", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                debugPrintPush();
-                                append("{\n");
-                                scopeDepth++;
-                                ITER_INC;
-                                if (body[i].getType() != tok_string_literal) {
-                                    transpilerError("MapEntry keys must be strings!", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                std::string key = body[i].getValue();
-                                ITER_INC;
-                                if (body[i].getType() != tok_column) {
-                                    transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    continue;
-                                }
-                                ITER_INC;
-                                while (body[i].getType() != tok_paren_close) {
-                                    push_result();
-                                    ITER_INC;
-                                }
-                                Method* f = getMethodByName(result, "init", "MapEntry");
-                                append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\");\n");
-                                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                    if (f->getReturnType() == "float") {
-                                        append("stack.data[stack.ptr++].f = Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
-                                        debugPrintPush();
-                                    } else {
-                                        append("stack.data[stack.ptr++].v = (scl_value) Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
-                                        debugPrintPush();
-                                    }
-                                } else {
-                                    append("Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
-                                }
-                                append("stack.data[stack.ptr++].v = tmp;\n");
-                                debugPrintPush();
-                                scopeDepth--;
-                                append("}\n");
-                            } else if (body[i + 2].getType() == tok_comma) {
-                                int j = 0;
-                                int commas = 0;
-                                for (; body[i + j].getType() != tok_paren_close; j++) {
-                                    if (body[i + j].getType() == tok_comma) commas++;
-                                }
-                                if (commas == 1) {
-                                    if (getStructByName(result, "Pair") == Struct("")) {
-                                        transpilerError("Struct definition for 'Pair' not found!", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    debugPrintPush();
-                                    append("{\n");
-                                    scopeDepth++;
-                                    ITER_INC;
-                                    while (body[i].getType() != tok_paren_close) {
-                                        if (body[i].getType() == tok_comma) {
-                                            ITER_INC;
-                                            continue;
-                                        }
-                                        while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                                            push_result();
-                                            ITER_INC;
-                                        }
-                                    }
-                                    Method* f = getMethodByName(result, "init", "Pair");
-                                    append("struct Struct_Pair* tmp = scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\");\n");
-                                    append("stack.ptr -= 2;\n");
-                                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                        if (f->getReturnType() == "float") {
-                                            append("stack.data[stack.ptr++].f = Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                            debugPrintPush();
-                                        } else {
-                                            append("stack.data[stack.ptr++].v = (scl_value) Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                            debugPrintPush();
-                                        }
-                                    } else {
-                                        append("Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                    }
-                                    append("stack.data[stack.ptr++].v = tmp;\n");
-                                    debugPrintPush();
-                                    scopeDepth--;
-                                    append("}\n");
-                                } else if (commas == 2) {
-                                    if (getStructByName(result, "Triple") == Struct("")) {
-                                        transpilerError("Struct definition for 'Triple' not found!", i);
-                                        errors.push_back(err);
-                                        continue;
-                                    }
-                                    debugPrintPush();
-                                    append("{\n");
-                                    scopeDepth++;
-                                    ITER_INC;
-                                    while (body[i].getType() != tok_paren_close) {
-                                        if (body[i].getType() == tok_comma) {
-                                            ITER_INC;
-                                            continue;
-                                        }
-                                        while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                                            push_result();
-                                            ITER_INC;
-                                        }
-                                    }
-                                    Method* f = getMethodByName(result, "init", "Triple");
-                                    append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\");\n");
-                                    append("stack.ptr -= 3;\n");
-                                    if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                                        if (f->getReturnType() == "float") {
-                                            append("stack.data[stack.ptr++].f = Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                            debugPrintPush();
-                                        } else {
-                                            append("stack.data[stack.ptr++].v = (scl_value) Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                            debugPrintPush();
-                                        }
-                                    } else {
-                                        append("Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
-                                    }
-                                    append("stack.data[stack.ptr++].v = tmp;\n");
-                                    debugPrintPush();
-                                    scopeDepth--;
-                                    append("}\n");
-                                } else {
-                                    transpilerError("Unsupported tuple-like literal!", i);
-                                    errors.push_back(err);
-                                }
-                            } else {
-                                transpilerError("Unsupported tuple-like literal!", i);
-                                errors.push_back(err);
-                            }
-                            
-                            break;
-                        }
-
-                        case tok_addr_of: {
-                            append("stack.data[stack.ptr - 1].v = (*(scl_value*) stack.data[stack.ptr - 1].v);\n");
-                            break;
-                        }
-
-                        default: {
-                            transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
-                            errors.push_back(err);
-                            break;
-                        }
-                    }
-                }
+                handle(Token);
             }
             scopeDepth = 1;
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return)
