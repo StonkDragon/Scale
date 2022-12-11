@@ -55,6 +55,7 @@ compile
 experimental
 gen.js
 scale_support.h
+scale-symbol-table.txt
 
 # Kernel Module Compile Results
 *.mod*
