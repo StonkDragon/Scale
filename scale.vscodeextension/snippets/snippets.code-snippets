@@ -205,14 +205,6 @@
 		],
 		"description": "Declare a prototype"
 	},
-	"Reference": {
-		"scope": "source.scale",
-		"prefix": "reference",
-		"body": [
-			"=> @${1:name}"
-		],
-		"description": "Referenced write"
-	},
 	"Dereference": {
 		"scope": "source.scale",
 		"prefix": "dereference",
