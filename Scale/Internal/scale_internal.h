@@ -29,8 +29,12 @@
 #endif
 
 /* Function header */
+#define sclDefFuncHeader(name, scl_name, returns, ...) \
+  returns Function_ ## name (__VA_ARGS__) __asm("\"" scl_name "\"")
+
 #define sclDefFunc(name, returns, ...) \
   returns Function_ ## name (__VA_ARGS__)
+  
 #define sclDefMethod(name, type, returns, ...) \
   returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(", ") __VA_ARGS__)
 

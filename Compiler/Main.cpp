@@ -29,7 +29,11 @@
 #endif
 
 #ifndef COMPILER
+#ifdef __APPLE__
+#define COMPILER "gcc-12"
+#else
 #define COMPILER "gcc"
+#endif
 #endif
 
 #ifndef C_VERSION
@@ -413,7 +417,7 @@ namespace sclc
                             } else if (error.type == tok_char_literal) {
                                 char* c = new char[4];
                                 snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
+                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
                             } else {
                                 l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
                             }
@@ -458,7 +462,7 @@ namespace sclc
                             } else if (error.type == tok_char_literal) {
                                 char* c = new char[4];
                                 snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
                             } else {
                                 l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
                             }
@@ -481,7 +485,50 @@ namespace sclc
                 }
             }
 
-            Main.tokenizer->tryFindUsings();
+            FPResult usingResult = Main.tokenizer->tryFindUsings();
+            if (!usingResult.success) {
+                if (usingResult.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << usingResult.message << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(usingResult.in).c_str(), "r");
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                fseek(f, 0, SEEK_SET);
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << usingResult.in << ":" << usingResult.line << ":" << usingResult.column << ": " << usingResult.message << std::endl;
+                i = 1;
+                while (fgets(line, 500, f) != NULL) {
+                    if (i == usingResult.line) {
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
+                        std::string l;
+                        if (usingResult.type == tok_string_literal) {
+                            l = replaceFirstAfter(line, "\"" + usingResult.value + "\"", Color::BOLDRED + "\"" + usingResult.value + "\"" + Color::RESET, usingResult.column);
+                        } else if (usingResult.type == tok_char_literal) {
+                            char* c = new char[4];
+                            snprintf(c, 4, "%c", (char) strtol(usingResult.value.c_str(), NULL, 0));
+                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + "'" + c + "'" + Color::RESET, usingResult.column);
+                        } else {
+                            l = replaceFirstAfter(line, usingResult.value, Color::BOLDRED + usingResult.value + Color::RESET, usingResult.column);
+                        }
+                        if (l.at(l.size() - 1) != '\n') {
+                            l += '\n';
+                        }
+                        std::cerr << l;
+                    } else if (i == usingResult.line - 1 || i == usingResult.line - 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    } else if (i == usingResult.line + 1 || i == usingResult.line + 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    }
+                    i++;
+                }
+                fclose(f);
+                std::cerr << std::endl;
+                free(line);
+                remove(std::string(filename + ".scale-preproc").c_str());
+                return 1;
+            }
 
             std::vector<Token> theseTokens = Main.tokenizer->getTokens();
             
@@ -523,7 +570,7 @@ namespace sclc
                         } else if (error.type == tok_char_literal) {
                             char* c = new char[4];
                             snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
+                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
                         } else {
                             l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
                         }
@@ -567,7 +614,7 @@ namespace sclc
                         } else if (error.type == tok_char_literal) {
                             char* c = new char[4];
                             snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
                         } else {
                             l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
                         }
@@ -619,7 +666,7 @@ namespace sclc
                             } else if (error.type == tok_char_literal) {
                                 char* c = new char[4];
                                 snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
+                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
                             } else {
                                 l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
                             }
@@ -666,7 +713,7 @@ namespace sclc
                             } else if (error.type == tok_char_literal) {
                                 char* c = new char[4];
                                 snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
+                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
                             } else {
                                 l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
                             }

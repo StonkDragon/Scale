@@ -137,13 +137,14 @@ sclDefFunc(strrev, scl_str, scl_str s) {
 struct Array {
 	scl_int $__type__;
 	scl_str $__type_name__;
+	scl_value $__lock__;
 	scl_value values;
 	scl_value count;
 	scl_value capacity;
 };
 
-void Method_Array_init(struct Array* Var_self, scl_int Var_size);
-void Method_Array_push(struct Array* Var_self, scl_value Var_value);
+void Method_Array_init(struct Array* Var_self, scl_int Var_size) __asm("\"Array:init(int): none\"");
+void Method_Array_push(struct Array* Var_self, scl_value Var_value) __asm("\"Array:push(any): none\"");
 
 sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string_) {
 	callstk.data[callstk.ptr++].s = "strsplit()";

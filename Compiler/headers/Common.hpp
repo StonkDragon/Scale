@@ -163,6 +163,7 @@ namespace sclc
         tok_esac,           // esac
         tok_default,        // default
         tok_interface_def,  // interface
+        tok_as,             // as
 
         // operators
         tok_question_mark,  // ?
@@ -581,7 +582,7 @@ namespace sclc
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
-        void tryFindUsings();
+        FPResult tryFindUsings();
     };
     
     class ConvertC {

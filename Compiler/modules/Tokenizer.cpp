@@ -264,8 +264,8 @@ namespace sclc
         else isExtern = false;
 
         if (value == "store") {
-            FPResult result; \
-            result.message = "The 'store' keyword is deprecated!";
+            FPResult result;
+            result.message = "The 'store' keyword is deprecated! Use '=>' instead.";
             result.in = filename;
             result.line = line;
             result.column = startColumn;
@@ -311,6 +311,7 @@ namespace sclc
         TOKEN("default",    tok_default, line, filename, startColumn);
         TOKEN("step",       tok_step, line, filename, startColumn);
         TOKEN("interface",  tok_interface_def, line, filename, startColumn);
+        TOKEN("as",  tok_as, line, filename, startColumn);
         
         if (inFunction) {
             TOKEN("@",      tok_addr_of, line, filename, startColumn);
@@ -372,16 +373,26 @@ namespace sclc
         startColumn = 0;
         
         fp = fopen(source.c_str(), "r");
+        int size;
+        char* buffer;
+        Token token;
         if (fp == NULL) {
             printf("IO Error: Could not open file %s\n", source.c_str());
-            exit(1);
+            FPResult r;
+            r.message = "IO Error: Could not open file " + source;
+            r.in = "";
+            r.line = 0;
+            r.column = 0;
+            r.success = false;
+            errors.push_back(r);
+            goto fatal_error;
         }
 
         fseek(fp, 0, SEEK_END);
-        int size = ftell(fp);
+        size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
 
-        char* buffer = new char[size + 1];
+        buffer = new char[size + 1];
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
@@ -412,12 +423,14 @@ namespace sclc
 
         current = 0;
 
-        Token token = nextToken();
+        token = nextToken();
         while (token.getType() != tok_eof) {
             this->tokens.push_back(token);
             token = nextToken();
         }
 
+
+    fatal_error:
         FPResult result;
         result.errors = errors;
         result.warns = warns;
@@ -430,8 +443,8 @@ namespace sclc
         }
     }
 
-    std::string findFileInIncludePath(std::string file);
-    void Tokenizer::tryFindUsings() {
+    FPResult findFileInIncludePath(std::string file);
+    FPResult Tokenizer::tryFindUsings() {
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "using") {
                 std::string file = tokens[i + 1].getValue() + ".scale";
@@ -440,24 +453,39 @@ namespace sclc
                     std::string framework = tokens[i + 3].getValue();
                     fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
                 } else {
-                    fullFile = findFileInIncludePath(file);
+                    FPResult r = findFileInIncludePath(file);
+                    if (r.success) {
+                        fullFile = r.in;
+                    } else {
+                        return r;
+                    }
                 }
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
                     Main.options.files.push_back(fullFile);
                 }
             }
         }
+        FPResult r;
+        r.success = true;
+        return r;
     }
 
-    std::string findFileInIncludePath(std::string file) {
+    FPResult findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
             if (fileExists(path + "/" + file)) {
-                if (path == "." || path == "./") return file;
-                return path + "/" + file;
+                FPResult r;
+                r.success = true;
+                if (path == "." || path == "./") {
+                    r.in = file;
+                } else {
+                    r.in = path + "/" + file;
+                }
+                return r;
             }
         }
-        // TODO: make this a compiler error
-        std::cerr << "Could not find " << file << " on include path!" << std::endl;
-        exit(-1);
+        FPResult r;
+        r.success = false;
+        r.message = "Could not find " + file + " on include path!";
+        return r;
     }
 }

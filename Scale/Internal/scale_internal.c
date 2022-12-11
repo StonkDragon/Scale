@@ -116,6 +116,7 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 	struct Array {
 		scl_int $__type__;
 		scl_str $__type_name__;
+		scl_value $__lock__;
 		scl_value values;
 		scl_value count;
 		scl_value capacity;
@@ -182,8 +183,9 @@ static hash hash1(char* data) {
 
 scl_value scl_alloc_struct(size_t size, scl_str type_name) {
 	scl_value ptr = scl_alloc(size);
-	((struct {scl_int type; scl_str type_name;}*) ptr)->type = hash1(type_name);
-    ((struct {scl_int type; scl_str type_name;}*) ptr)->type_name = type_name;
+	((struct {scl_int type; scl_str type_name; scl_value lock;}*) ptr)->type = hash1(type_name);
+    ((struct {scl_int type; scl_str type_name; scl_value lock;}*) ptr)->type_name = type_name;
+    ((struct {scl_int type; scl_str type_name; scl_value lock;}*) ptr)->lock = 0;
 	return ptr;
 }
 
