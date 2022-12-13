@@ -1,5 +1,4 @@
-@sealed
-struct Triple
+referencetype sealed struct Triple
   decl a: any
   decl b: any
   decl c: any
