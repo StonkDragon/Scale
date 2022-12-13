@@ -434,7 +434,9 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+    #ifdef __APPLE__
     #pragma region Identifier functions
+    #endif
         if (body[i].getValue() == "drop") {
             append("stack.ptr--;\n");
             lastPushedType = "";
@@ -551,7 +553,9 @@ namespace sclc {
             append("exit(stack.data[--stack.ptr].i);\n");
         } else if (body[i].getValue() == "abort") {
             append("abort();\n");
+    #ifdef __APPLE__
     #pragma endregion
+    #endif
         } else if (hasFunction(result, body[i])) {
             Function* f = getFunctionByName(result, body[i].getValue());
             if (f->isMethod) {
