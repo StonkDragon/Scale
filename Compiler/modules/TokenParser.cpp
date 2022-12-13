@@ -862,7 +862,7 @@ namespace sclc
                         currentStruct->toggleStatic();
                     }
                 }
-                if (!currentStruct->heapAllocAllowed() && !currentStruct->stackAllocAllowed() && !currentStruct->isStatic()) {
+                if (!(currentStruct->heapAllocAllowed() || currentStruct->stackAllocAllowed()) && !currentStruct->isStatic()) {
                     FPResult result;
                     result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
                     result.column = tokens[i].getColumn();

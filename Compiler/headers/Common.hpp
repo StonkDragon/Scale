@@ -426,6 +426,7 @@ namespace sclc
         Struct(std::string name, Token t) {
             this->name = name;
             this->name_token = t;
+            this->flags = 0;
             toggleWarnings();
             toggleValueType();
             toggleReferenceType();
