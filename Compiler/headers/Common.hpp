@@ -660,6 +660,7 @@ namespace sclc
     bool hasExtern(TPResult result, Token name);
     bool hasContainer(TPResult result, Token name);
     bool hasGlobal(TPResult result, std::string name);
+    FPResult parseType(std::vector<Token> tokens, size_t* i);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

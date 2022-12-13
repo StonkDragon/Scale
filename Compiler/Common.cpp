@@ -223,4 +223,39 @@ namespace sclc
         }
         return h;
     }
+
+    FPResult parseType(std::vector<Token> body, size_t* i) {
+        // int, str, any, none, Struct
+        FPResult r;
+        if (body[*i].getType() == tok_identifier) {
+            r.value = body[*i].getValue();
+            r.success = true;
+        } else if (body[*i].getType() == tok_question_mark) {
+            r.value = "?";
+            r.success = true;
+        } else if (body[*i].getType() == tok_bracket_open) {
+            std::string type = "[";
+            (*i)++;
+            r = parseType(body, i);
+            if (!r.success) {
+                return r;
+            }
+            type += r.value;
+            (*i)++;
+            if (body[*i].getType() == tok_bracket_close) {
+                type += "]";
+                r.success = true;
+                r.value = type;
+            } else {
+                r.message = "Expected ']', but got '" + body[*i].getValue() + "'";
+                r.column = body[*i].getColumn();
+                r.value = body[*i].getValue();
+                r.line = body[*i].getLine();
+                r.in = body[*i].getFile();
+                r.type = body[*i].getType();
+                r.success = false;
+            }
+        }
+        return r;
+    }
 } // namespace sclc

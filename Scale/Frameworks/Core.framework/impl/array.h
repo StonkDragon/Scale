@@ -12,6 +12,6 @@ struct Array {
     scl_value capacity;
 };
 
-void Method_Array_sort(struct Array* array) __asm("\"Array:sort(): none\"");
+void Method_Array_sort(struct Array* array) __asm("mthd_Array_fnct_sort_sIargs__sItype_none");
 
 #endif

@@ -35,7 +35,10 @@ namespace sclc {
         else if (t == "str") return_type = "scl_str";
         else if (t == "bool") return_type = "scl_int";
         else if (!(getStructByName(result, t) == Struct(""))) {
-            return_type = "struct Struct_" + getStructByName(result, t).getName() + "*";
+            return_type = "scl_" + getStructByName(result, t).getName();
+        } else if (t.at(0) == '[') {
+            std::string type = sclReturnTypeToCReturnType(result, t.substr(1, t.length() - 2));
+            return type + "*";
         }
         return return_type;
     }
@@ -58,10 +61,20 @@ namespace sclc {
         return args;
     }
 
+    std::string typeToASCII(std::string v) {
+        if (v.at(0) == '[') {
+            return "_sIptrType_" + typeToASCII(v.substr(1, v.length() - 2));
+        }
+        if (v == "?") {
+            return "_sIwildcard";
+        }
+        return v;
+    }
+
     std::string generateSymbolForFunction(Function* f) {
-        std::string symbol = f->getName();
+        std::string symbol = "fnct_" + f->getName();
         if (f->isMethod) {
-            symbol = static_cast<Method*>(f)->getMemberType() + ":" + symbol;
+            symbol = "mthd_" + static_cast<Method*>(f)->getMemberType() + "_" + symbol;
         }
         std::string arguments = "";
         if (f->getArgs().size() > 0) {
@@ -72,12 +85,12 @@ namespace sclc {
                     }
                 }
                 if (i) {
-                    arguments += ", ";
+                    arguments += "_";
                 }
-                arguments += f->getArgs()[i].getType();
+                arguments += typeToASCII(f->getArgs()[i].getType());
             }
         }
-        symbol += "(" + arguments + "): " + f->getReturnType();
+        symbol += "_sIargs_" + arguments + "_sItype_" + typeToASCII(f->getReturnType());
 
         if (Main.options.transpileOnly && symbolTable) {
             if (f->isMethod) {
@@ -105,7 +118,7 @@ namespace sclc {
 
             fprintf(nomangled, "#define scl_export(func_name) \\\n");
             fprintf(nomangled, "    void func_name (void); \\\n");
-            fprintf(nomangled, "    void Function_ ## func_name (void) __asm(\"\\\"\"func_name\"(): none\\\"\"); \\\n");
+            fprintf(nomangled, "    void Function_ ## func_name (void) __asm(\"fnct_\" func_name \"_sIargs__sItype_none\"); \\\n");
             fprintf(nomangled, "    void Function_ ## func_name () { func_name (); } \\\n");
             fprintf(nomangled, "    void func_name (void)\n\n");
             fprintf(nomangled, "#define ssize_t signed long\n");
@@ -137,9 +150,9 @@ namespace sclc {
             std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
-                append("%s Function_%s(%s) __asm(\"\\\"%s\\\"\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Function_%s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
-                append("%s Method_%s_%s(%s) __asm(\"\\\"%s\\\"\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
             if (!Main.options.transpileOnly) continue;
             for (std::string m : function->getModifiers()) {
@@ -196,9 +209,9 @@ namespace sclc {
                 std::string symbol = generateSymbolForFunction(function);
 
                 if (!function->isMethod) {
-                    append("%s Function_%s(%s) __asm(\"\\\"%s\\\"\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Function_%s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
-                    append("%s Method_%s_%s(%s) __asm(\"\\\"%s\\\"\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
@@ -264,7 +277,12 @@ namespace sclc {
         (void) warns;
         int scopeDepth = 0;
         if (result.structs.size() == 0) goto label_writeStructs_close_file;
-        append("/* STRUCTS */\n");
+        append("/* STRUCT TYPES */\n");
+        for (Struct c : result.structs) {
+            append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
+        }
+        append("\n");
+        append("/* STRUCT DEFINITIONS */\n");
         for (Struct c : result.structs) {
             for (std::string i : c.getInterfaces()) {
                 Interface* interface = getInterfaceByName(result, i);
@@ -1560,22 +1578,12 @@ namespace sclc {
             if (body[i+1].getType() == tok_column) {
                 ITER_INC;
                 ITER_INC;
-                if (body[i].getType() != tok_identifier) {
-                    FPResult result;
-                    result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                    result.column = body[i].getColumn();
-                    result.value = body[i].getValue();
-                    result.line = body[i].getLine();
-                    result.in = body[i].getFile();
-                    result.type = body[i].getType();
-                    result.success = false;
-                    errors.push_back(result);
+                FPResult r = parseType(body, &i);
+                if (!r.success) {
+                    errors.push_back(r);
+                    return;
                 }
-                if (body[i].getValue() == "none") {
-                    transpilerError("Type 'none' is only valid for function return types.", i);
-                    errors.push_back(err);
-                }
-                type = body[i].getValue();
+                type = r.value;
             } else {
                 transpilerError("A type is required!", i);
                 errors.push_back(err);
@@ -1709,22 +1717,12 @@ namespace sclc {
         if (body[i+1].getType() == tok_column) {
             ITER_INC;
             ITER_INC;
-            if (body[i].getType() != tok_identifier) {
-                FPResult result;
-                result.message = "Expected identifier, but got '" + body[i].getValue() + "'";
-                result.column = body[i].getColumn();
-                result.value = body[i].getValue();
-                result.line = body[i].getLine();
-                result.in = body[i].getFile();
-                result.type = body[i].getType();
-                result.success = false;
-                errors.push_back(result);
+            FPResult r = parseType(body, &i);
+            if (!r.success) {
+                errors.push_back(r);
+                return;
             }
-            if (body[i].getValue() == "none") {
-                transpilerError("Type 'none' is only valid for function return types.", i);
-                errors.push_back(err);
-            }
-            type = body[i].getValue();
+            type = r.value;
         } else {
             transpilerError("A type is required!", i);
             errors.push_back(err);
@@ -2098,6 +2096,7 @@ namespace sclc {
             repeat_depth--;
         }
         if (was_rep.size() > 0) was_rep.pop_back();
+    
     }
 
     handler(Return) {

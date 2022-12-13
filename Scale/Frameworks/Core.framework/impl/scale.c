@@ -143,8 +143,8 @@ struct Array {
 	scl_value capacity;
 };
 
-void Method_Array_init(struct Array* Var_self, scl_int Var_size) __asm("\"Array:init(int): none\"");
-void Method_Array_push(struct Array* Var_self, scl_value Var_value) __asm("\"Array:push(any): none\"");
+void Method_Array_init(struct Array* Var_self, scl_int Var_size) __asm("mthd_Array_fnct_init_sIargs_int_sItype_none");
+void Method_Array_push(struct Array* Var_self, scl_value Var_value) __asm("mthd_Array_fnct_push_sIargs_any_sItype_none");
 
 sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string_) {
 	callstk.data[callstk.ptr++].s = "strsplit()";

@@ -4,7 +4,7 @@ extern function trace(): none
 
 @sealed
 struct Array is Iterable
-  decl values: any
+  decl values: [any]
   decl count: int
   decl capacity: int
   decl _pos: int
@@ -12,11 +12,12 @@ struct Array is Iterable
   extern function sort(): none
 
   function get(index: int): any
+    index 0 <= if self.values @ return fi
     self.values index 3 << + @ return
   end
 
   function set(index: int, value: any): none
-    decl tmp: any
+    decl tmp: [any]
     self.values index 3 << + => tmp
     value => @tmp
   end
@@ -32,7 +33,7 @@ struct Array is Iterable
       => self.values
     fi
 
-    decl tmp: any
+    decl tmp: [any]
     self.values self.count 3 << + => tmp
     value => @tmp
     self.count 1 + => self.count
@@ -72,7 +73,8 @@ struct Array is Iterable
   end
 
   function begin(): any
+    0 self:get
     0 => self._pos
-    self._pos self:get return
+    return
   end
 end

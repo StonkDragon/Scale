@@ -5,9 +5,9 @@ extern function sleep(_millis_: int): none
 extern function system(_cmd_: str): int
 extern function getenv(_key_: str): str
 extern function sizeof_stack(): int
-extern function malloc(_size_: int): any
-extern function realloc(_size_: int, _ptr_: any): any
-extern function free(_ptr_: any): none
+extern function malloc(_size_: int): [any]
+extern function realloc(_size_: int, _ptr_: [any]): [any]
+extern function free(_ptr_: [any]): none
 extern function strlen(_str_: str): int
 extern function strsplit(_str_: str, _delim_: str): Array
 extern function strcmp(_str1_: str, _str2_: str): int
@@ -25,7 +25,7 @@ function nop(): none
   0 sleep
 end
 
-function strstarts(_s1_: str, _s2_: str): int
+function strstarts(_s1_: str, _s2_: str): bool
   _s2_ strlen _s2_ _s1_ strncmp return
 end
 

@@ -445,8 +445,17 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryFindUsings() {
+        bool inFunction = false;
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "using") {
+            if (tokens[i].getType() == tok_function) {
+                inFunction = true;
+            } else if (tokens[i].getType() == tok_end) {
+                inFunction = false;
+            }
+
+            if (inFunction)
+                continue;
+            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "using" && tokens[i + 1].getType() == tok_string_literal) {
                 std::string file = tokens[i + 1].getValue() + ".scale";
                 std::string fullFile;
                 if (tokens[i + 2].getValue() == "from") {

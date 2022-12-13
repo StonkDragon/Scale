@@ -30,7 +30,7 @@
 
 /* Function header */
 #define sclDefFuncHeader(name, scl_name, returns, ...) \
-  returns Function_ ## name (__VA_ARGS__) __asm("\"" scl_name "\"")
+  returns Function_ ## name (__VA_ARGS__) __asm("fnct_" scl_name "")
 
 #define sclDefFunc(name, returns, ...) \
   returns Function_ ## name (__VA_ARGS__)

@@ -69,19 +69,13 @@ namespace sclc
                                     std::string type = "any";
                                     if (tokens[i+1].getType() == tok_column) {
                                         i += 2;
-                                        if (tokens[i].getType() != tok_identifier) {
-                                            FPResult result;
-                                            result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                            result.column = tokens[i].getColumn();
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
+                                        FPResult r = parseType(tokens, &i);
+                                        if (!r.success) {
+                                            errors.push_back(r);
                                             continue;
                                         }
-                                        if (tokens[i].getValue() == "none") {
+                                        type = r.value;
+                                        if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
                                             result.column = tokens[i].getColumn();
@@ -93,7 +87,6 @@ namespace sclc
                                             errors.push_back(result);
                                             continue;
                                         }
-                                        type = tokens[i].getValue();
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
@@ -141,19 +134,13 @@ namespace sclc
                             }
                             if (tokens[i+1].getType() == tok_column) {
                                 i += 2;
-                                if (tokens[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier for function return type, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
+                                FPResult r = parseType(tokens, &i);
+                                if (!r.success) {
+                                    errors.push_back(r);
                                     continue;
                                 }
-                                currentFunction->setReturnType(tokens[i].getValue());
+                                std::string type = r.value;
+                                currentFunction->setReturnType(type);
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
@@ -199,19 +186,13 @@ namespace sclc
                                 std::string type = "any";
                                 if (tokens[i+1].getType() == tok_column) {
                                     i += 2;
-                                    if (tokens[i].getType() != tok_identifier) {
-                                        FPResult result;
-                                        result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
+                                    FPResult r = parseType(tokens, &i);
+                                    if (!r.success) {
+                                        errors.push_back(r);
                                         continue;
                                     }
-                                    if (tokens[i].getValue() == "none") {
+                                    type = r.value;
+                                    if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
                                         result.column = tokens[i].getColumn();
@@ -223,7 +204,6 @@ namespace sclc
                                         errors.push_back(result);
                                         continue;
                                     }
-                                    type = tokens[i].getValue();
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
@@ -273,19 +253,14 @@ namespace sclc
                         currentFunction->addArgument(Variable("self", currentStruct->getName()));
                         if (tokens[i+1].getType() == tok_column) {
                             i += 2;
-                            if (tokens[i].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier for method return type, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
+                            FPResult r = parseType(tokens, &i);
+                            if (!r.success) {
+                                errors.push_back(r);
                                 continue;
                             }
-                            currentFunction->setReturnType(tokens[i].getValue());
+                            std::string type = r.value;
+                            currentFunction->setReturnType(type);
+                            currentFunction->setReturnType(type);
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
@@ -331,19 +306,13 @@ namespace sclc
                                 std::string type = "any";
                                 if (tokens[i+1].getType() == tok_column) {
                                     i += 2;
-                                    if (tokens[i].getType() != tok_identifier && tokens[i].getType() != tok_question_mark) {
-                                        FPResult result;
-                                        result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
+                                    FPResult r = parseType(tokens, &i);
+                                    if (!r.success) {
+                                        errors.push_back(r);
                                         continue;
                                     }
-                                    if (tokens[i].getValue() == "none") {
+                                    type = r.value;
+                                    if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
                                         result.column = tokens[i].getColumn();
@@ -355,7 +324,6 @@ namespace sclc
                                         errors.push_back(result);
                                         continue;
                                     }
-                                    type = tokens[i].getValue();
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
@@ -403,19 +371,13 @@ namespace sclc
                         }
                         if (tokens[i+1].getType() == tok_column) {
                             i += 2;
-                            if (tokens[i].getType() != tok_identifier && tokens[i].getType() != tok_question_mark) {
-                                FPResult result;
-                                result.message = "Expected identifier for function return type, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
+                            FPResult r = parseType(tokens, &i);
+                            if (!r.success) {
+                                errors.push_back(r);
                                 continue;
                             }
-                            functionToImplement->setReturnType(tokens[i].getValue());
+                            std::string type = r.value;
+                            functionToImplement->setReturnType(type);
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
@@ -476,19 +438,13 @@ namespace sclc
                                 std::string type = "any";
                                 if (tokens[i+1].getType() == tok_column) {
                                     i += 2;
-                                    if (tokens[i].getType() != tok_identifier) {
-                                        FPResult result;
-                                        result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
+                                    FPResult r = parseType(tokens, &i);
+                                    if (!r.success) {
+                                        errors.push_back(r);
                                         continue;
                                     }
-                                    if (tokens[i].getValue() == "none") {
+                                    type = r.value;
+                                    if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
                                         result.column = tokens[i].getColumn();
@@ -500,7 +456,6 @@ namespace sclc
                                         errors.push_back(result);
                                         continue;
                                     }
-                                    type = tokens[i].getValue();
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
@@ -550,19 +505,13 @@ namespace sclc
                         currentFunction->addArgument(Variable("self", member_type));
                         if (tokens[i+1].getType() == tok_column) {
                             i += 2;
-                            if (tokens[i].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier for method return type name, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
+                            FPResult r = parseType(tokens, &i);
+                            if (!r.success) {
+                                errors.push_back(r);
                                 continue;
                             }
-                            currentFunction->setReturnType(tokens[i].getValue());
+                            std::string type = r.value;
+                            currentFunction->setReturnType(type);
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
@@ -606,19 +555,13 @@ namespace sclc
                                 std::string type = "any";
                                 if (tokens[i+1].getType() == tok_column) {
                                     i += 2;
-                                    if (tokens[i].getType() != tok_identifier) {
-                                        FPResult result;
-                                        result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                        result.column = tokens[i].getColumn();
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
+                                    FPResult r = parseType(tokens, &i);
+                                    if (!r.success) {
+                                        errors.push_back(r);
                                         continue;
                                     }
-                                    if (tokens[i].getValue() == "none") {
+                                    type = r.value;
+                                    if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
                                         result.column = tokens[i].getColumn();
@@ -630,7 +573,6 @@ namespace sclc
                                         errors.push_back(result);
                                         continue;
                                     }
-                                    type = tokens[i].getValue();
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
@@ -678,19 +620,13 @@ namespace sclc
                         }
                         if (tokens[i+1].getType() == tok_column) {
                             i += 2;
-                            if (tokens[i].getType() != tok_identifier) {
-                                FPResult result;
-                                result.message = "Expected identifier for function return type, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
+                            FPResult r = parseType(tokens, &i);
+                            if (!r.success) {
+                                errors.push_back(r);
                                 continue;
                             }
-                            currentFunction->setReturnType(tokens[i].getValue());
+                            std::string type = r.value;
+                            currentFunction->setReturnType(type);
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
@@ -1103,19 +1039,13 @@ namespace sclc
                                     std::string type = "any";
                                     if (tokens[i+1].getType() == tok_column) {
                                         i += 2;
-                                        if (tokens[i].getType() != tok_identifier) {
-                                            FPResult result;
-                                            result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                            result.column = tokens[i].getColumn();
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
+                                        FPResult r = parseType(tokens, &i);
+                                        if (!r.success) {
+                                            errors.push_back(r);
                                             continue;
                                         }
-                                        if (tokens[i].getValue() == "none") {
+                                        type = r.value;
+                                        if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
                                             result.column = tokens[i].getColumn();
@@ -1127,7 +1057,6 @@ namespace sclc
                                             errors.push_back(result);
                                             continue;
                                         }
-                                        type = tokens[i].getValue();
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
@@ -1177,19 +1106,13 @@ namespace sclc
                             function->addArgument(Variable("self", currentStruct->getName()));
                             if (tokens[i+1].getType() == tok_column) {
                                 i += 2;
-                                if (tokens[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier for method return type, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
+                                FPResult r = parseType(tokens, &i);
+                                if (!r.success) {
+                                    errors.push_back(r);
                                     continue;
                                 }
-                                function->setReturnType(tokens[i].getValue());
+                                std::string type = r.value;
+                                function->setReturnType(type);
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
@@ -1250,19 +1173,13 @@ namespace sclc
                                     std::string type = "any";
                                     if (tokens[i+1].getType() == tok_column) {
                                         i += 2;
-                                        if (tokens[i].getType() != tok_identifier) {
-                                            FPResult result;
-                                            result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                            result.column = tokens[i].getColumn();
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
+                                        FPResult r = parseType(tokens, &i);
+                                        if (!r.success) {
+                                            errors.push_back(r);
                                             continue;
                                         }
-                                        if (tokens[i].getValue() == "none") {
+                                        type = r.value;
+                                        if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
                                             result.column = tokens[i].getColumn();
@@ -1274,7 +1191,6 @@ namespace sclc
                                             errors.push_back(result);
                                             continue;
                                         }
-                                        type = tokens[i].getValue();
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
@@ -1324,19 +1240,13 @@ namespace sclc
                             function->addArgument(Variable("self", member_type));
                             if (tokens[i+1].getType() == tok_column) {
                                 i += 2;
-                                if (tokens[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier for method return type, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
+                                FPResult r = parseType(tokens, &i);
+                                if (!r.success) {
+                                    errors.push_back(r);
                                     continue;
                                 }
-                                function->setReturnType(tokens[i].getValue());
+                                std::string type = r.value;
+                                function->setReturnType(type);
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
@@ -1377,19 +1287,13 @@ namespace sclc
                                     std::string type = "any";
                                     if (tokens[i+1].getType() == tok_column) {
                                         i += 2;
-                                        if (tokens[i].getType() != tok_identifier) {
-                                            FPResult result;
-                                            result.message = "Expected identifier for argument type, but got '" + tokens[i].getValue() + "'";
-                                            result.column = tokens[i].getColumn();
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
+                                        FPResult r = parseType(tokens, &i);
+                                        if (!r.success) {
+                                            errors.push_back(r);
                                             continue;
                                         }
-                                        if (tokens[i].getValue() == "none") {
+                                        type = r.value;
+                                        if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
                                             result.column = tokens[i].getColumn();
@@ -1401,7 +1305,6 @@ namespace sclc
                                             errors.push_back(result);
                                             continue;
                                         }
-                                        type = tokens[i].getValue();
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
@@ -1449,19 +1352,13 @@ namespace sclc
                             }
                             if (tokens[i+1].getType() == tok_column) {
                                 i += 2;
-                                if (tokens[i].getType() != tok_identifier) {
-                                    FPResult result;
-                                    result.message = "Expected identifier for function return type, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
+                                FPResult r = parseType(tokens, &i);
+                                if (!r.success) {
+                                    errors.push_back(r);
                                     continue;
                                 }
-                                func->setReturnType(tokens[i].getValue());
+                                std::string type = r.value;
+                                func->setReturnType(type);
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
@@ -1506,19 +1403,13 @@ namespace sclc
                     std::string type = "any";
                     if (tokens[i+1].getType() == tok_column) {
                         i += 2;
-                        if (tokens[i].getType() != tok_identifier) {
-                            FPResult result;
-                            result.message = "Expected identifier for variable type, but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
                             continue;
                         }
-                        if (tokens[i].getValue() == "none") {
+                        type = r.value;
+                        if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.column = tokens[i].getColumn();
@@ -1530,7 +1421,6 @@ namespace sclc
                             errors.push_back(result);
                             continue;
                         }
-                        type = tokens[i].getValue();
                     }
                     extern_globals.push_back(Variable(name, type));
                 } else {
@@ -1563,19 +1453,13 @@ namespace sclc
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
                     i += 2;
-                    if (tokens[i].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected identifier for variable type, but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
+                    FPResult r = parseType(tokens, &i);
+                    if (!r.success) {
+                        errors.push_back(r);
                         continue;
                     }
-                    if (tokens[i].getValue() == "none") {
+                    type = r.value;
+                    if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.column = tokens[i].getColumn();
@@ -1587,7 +1471,6 @@ namespace sclc
                         errors.push_back(result);
                         continue;
                     }
-                    type = tokens[i].getValue();
                 }
                 globals.push_back(Variable(name, type));
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
@@ -1607,19 +1490,13 @@ namespace sclc
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
                     i += 2;
-                    if (tokens[i].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected identifier for variable type, but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
+                    FPResult r = parseType(tokens, &i);
+                    if (!r.success) {
+                        errors.push_back(r);
                         continue;
                     }
-                    if (tokens[i].getValue() == "none") {
+                    type = r.value;
+                    if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.column = tokens[i].getColumn();
@@ -1631,7 +1508,6 @@ namespace sclc
                         errors.push_back(result);
                         continue;
                     }
-                    type = tokens[i].getValue();
                 }
                 currentContainer->addMember(Variable(name, type));
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
@@ -1651,19 +1527,13 @@ namespace sclc
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
                     i += 2;
-                    if (tokens[i].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected identifier for variable type, but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
+                    FPResult r = parseType(tokens, &i);
+                    if (!r.success) {
+                        errors.push_back(r);
                         continue;
                     }
-                    if (tokens[i].getValue() == "none") {
+                    type = r.value;
+                    if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.column = tokens[i].getColumn();
@@ -1675,7 +1545,6 @@ namespace sclc
                         errors.push_back(result);
                         continue;
                     }
-                    type = tokens[i].getValue();
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
                     nextAttributes.clear();
