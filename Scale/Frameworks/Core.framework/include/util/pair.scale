@@ -1,4 +1,4 @@
-referencetype sealed struct Pai≤r
+referencetype sealed struct Pair
 	decl a: any
 	decl b: any
 
