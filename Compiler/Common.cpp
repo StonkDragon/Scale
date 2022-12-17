@@ -227,6 +227,8 @@ namespace sclc
     FPResult parseType(std::vector<Token> body, size_t* i) {
         // int, str, any, none, Struct
         FPResult r;
+        r.success = false;
+        r.value = "";
         if (body[*i].getType() == tok_identifier) {
             r.value = body[*i].getValue();
             r.success = true;

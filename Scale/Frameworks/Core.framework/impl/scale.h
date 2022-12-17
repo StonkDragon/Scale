@@ -18,12 +18,12 @@ sclDefFuncHeader(strncmp,           "strncmp_sIargs_str_str_int_sItype_int", scl
 sclDefFuncHeader(raise,             "raise_sIargs_int_sItype_none", void, scl_int n);
 sclDefFuncHeader(strrev,            "strrev_sIargs_str_sItype_str", scl_str, scl_str s);
 sclDefFuncHeader(strsplit,          "strsplit_sIargs_str_str_sItype_Array", struct Array*, scl_str sep, scl_str string);
-sclDefFuncHeader(malloc,            "malloc_sIargs_int_sItype__sIptrType_any", scl_value, scl_int n);
-sclDefFuncHeader(realloc,           "realloc_sIargs_int__sIptrType_any_sItype__sIptrType_any", scl_value, scl_value s, scl_int n);
-sclDefFuncHeader(free,              "free_sIargs__sIptrType_any_sItype_none", void, scl_value s);
+sclDefFuncHeader(malloc,            "malloc_sIargs_int_sItype__sIptrType_any", scl_any, scl_int n);
+sclDefFuncHeader(realloc,           "realloc_sIargs_int__sIptrType_any_sItype__sIptrType_any", scl_any, scl_any s, scl_int n);
+sclDefFuncHeader(free,              "free_sIargs__sIptrType_any_sItype_none", void, scl_any s);
 sclDefFuncHeader(breakpoint,        "breakpoint_sIargs__sItype_none", void);
-sclDefFuncHeader(memset,            "memset_sIargs_any_int_int_sItype_none", void, scl_int c, scl_int n, scl_value s);
-sclDefFuncHeader(memcpy,            "memcpy_sIargs_any_any_int_sItype_none", void, scl_int n, scl_value s1, scl_value s2);
+sclDefFuncHeader(memset,            "memset_sIargs_any_int_int_sItype_none", void, scl_int c, scl_int n, scl_any s);
+sclDefFuncHeader(memcpy,            "memcpy_sIargs_any_any_int_sItype_none", void, scl_int n, scl_any s1, scl_any s2);
 sclDefFuncHeader(time,              "time_sIargs__sItype_float", scl_float);
 sclDefFuncHeader(trace,             "trace_sIargs__sItype_none", void);
 sclDefFuncHeader(sqrt,              "sqrt_sIargs_float_sItype_float", scl_float, scl_float n);

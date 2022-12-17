@@ -2,8 +2,8 @@ using "util/iterable" from "Core"
 
 @sealed
 struct Range is Iterable
-  decl _start: int
-  decl _end: int
+  decl lower: int
+  decl upper: int
   decl _pos: int
 
   function init(_start: int, _end: int): none
@@ -11,28 +11,28 @@ struct Range is Iterable
       "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
     fi
 
-    _start => self._start
-    _end => self._end
+    _start => self.lower
+    _end => self.upper
     0 => self._pos
   end
 
   function containsRange(other: Range): int
-    other._start self:contains other._end self:contains && if
+    other.lower self:contains other.upper self:contains && if
       true return
     fi
     false return
   end
 
   function overlaps(other: Range): int
-    other._start self:contains other._end self:contains || if
+    other.lower self:contains other.upper self:contains || if
       true return
     fi
     false return
   end
 
   function contains(pos: int): int
-    pos self._start >= if
-      pos self._end <= if
+    pos self.lower >= if
+      pos self.upper <= if
         true return
       fi
     fi
@@ -40,28 +40,28 @@ struct Range is Iterable
   end
 
   function has_next(): bool
-    self._pos self._start + self._end <= return
+    self._pos self.lower + self.upper <= return
   end
 
   function next(): int
     self._pos 1 + => self._pos
-    self._start self._pos + return
+    self.lower self._pos + return
   end
 
   function begin(): int
     0 => self._pos
-    self._start return
+    self.lower return
   end
 
   function toReverseRange(): ReverseRange
-    self._end self._start ReverseRange::new return
+    self.upper self.lower ReverseRange::new return
   end
 end
 
 @sealed
 struct ReverseRange is Iterable
-  decl _start: int
-  decl _end: int
+  decl lower: int
+  decl upper: int
   decl _pos: int
 
   function init(_start: int, _end: int): none
@@ -69,26 +69,26 @@ struct ReverseRange is Iterable
       "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
     fi
       
-    _start => self._start
-    _end => self._end
+    _start => self.lower
+    _end => self.upper
     0 => self._pos
   end
 
   function has_next(): bool
-    self._start self._pos - self._end >= return
+    self.lower self._pos - self.upper >= return
   end
 
   function next(): int
     self._pos 1 + => self._pos
-    self._start self._pos - return
+    self.lower self._pos - return
   end
 
   function begin(): int
     0 => self._pos
-    self._start return
+    self.lower return
   end
 
   function toRange(): Range
-    self._end self._start Range::new return
+    self.upper self.lower Range::new return
   end
 end

@@ -51,7 +51,7 @@ Concates `_str1_` and `_str2_` together.
 Reverses `_str_`. Returns an empty string if `_str_` has a length of zero.
 
 ### `function time(): float`
-Pushes the current time in seconds as a float onto the stack.
+Pushes the current time in seconds as a float onto the stack->
 
 ### `function longToString(_long_: int): str`
 Converts `_long_` to a string.
@@ -244,7 +244,7 @@ Member types:
 Sorts the array. If the array is empty, the function will do nothing.
 
 ### `function Array:get(index: int): any`
-Pushes the value at `index` onto the stack. It is undefined behavior to access indices greater than or equal to `count`
+Pushes the value at `index` onto the stack-> It is undefined behavior to access indices greater than or equal to `count`
 
 ### `function Array:set(index: int, value: any): none`
 Sets the value at `index` to `value`. It is undefined behavior to access indices greater than or equal to `count`

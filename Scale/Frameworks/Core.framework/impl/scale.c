@@ -7,16 +7,16 @@ extern "C" {
 
 #include "scale.h"
 
-extern scl_stack_t	 callstk;
-extern scl_stack_t   stack;
+extern scl_stack_t* stack;
+extern scl_stack_t  callstk;
 
 #pragma region Natives
 
 sclDefFunc(dumpstack, void) {
 	callstk.data[callstk.ptr++].s = "dumpstack()";
 	printf("Dump:\n");
-	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack.data[i].i;
+	for (ssize_t i = stack->ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack->data[i].i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
@@ -39,7 +39,7 @@ sclDefFunc(getenv, scl_str, scl_str c) {
 sclDefFunc(sizeof_stack, scl_int) {
 	callstk.data[callstk.ptr++].s = "sizeof_stack()";
 	callstk.ptr--;
-	return stack.ptr;
+	return stack->ptr;
 }
 
 sclDefFunc(concat, scl_str, scl_str s2, scl_str s1) {
@@ -137,14 +137,14 @@ sclDefFunc(strrev, scl_str, scl_str s) {
 struct Array {
 	scl_int $__type__;
 	scl_str $__type_name__;
-	scl_value $__lock__;
-	scl_value values;
-	scl_value count;
-	scl_value capacity;
+	scl_any $__lock__;
+	scl_any* values;
+	scl_int count;
+	scl_int capacity;
 };
 
 void Method_Array_init(struct Array* Var_self, scl_int Var_size) __asm("mthd_Array_fnct_init_sIargs_int_sItype_none");
-void Method_Array_push(struct Array* Var_self, scl_value Var_value) __asm("mthd_Array_fnct_push_sIargs_any_sItype_none");
+void Method_Array_push(struct Array* Var_self, scl_any Var_value) __asm("mthd_Array_fnct_push_sIargs_any_sItype_none");
 
 sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string_) {
 	callstk.data[callstk.ptr++].s = "strsplit()";
@@ -161,9 +161,9 @@ sclDefFunc(strsplit, struct Array*, scl_str sep, scl_str string_) {
     return arr;
 }
 
-sclDefFunc(malloc, scl_value, scl_int n) {
+sclDefFunc(malloc, scl_any, scl_int n) {
 	callstk.data[callstk.ptr++].s = "malloc()";
-	scl_value s = scl_alloc(n);
+	scl_any s = scl_alloc(n);
 	if (!s) {
 		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
 		return NULL;
@@ -172,7 +172,7 @@ sclDefFunc(malloc, scl_value, scl_int n) {
 	return s;
 }
 
-sclDefFunc(realloc, scl_value, scl_value s, scl_int n) {
+sclDefFunc(realloc, scl_any, scl_any s, scl_int n) {
 	callstk.data[callstk.ptr++].s = "realloc()";
 	if (!s) {
 		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
@@ -182,7 +182,7 @@ sclDefFunc(realloc, scl_value, scl_value s, scl_int n) {
 	return scl_realloc(s, n);
 }
 
-sclDefFunc(free, void, scl_value s) {
+sclDefFunc(free, void, scl_any s) {
 	callstk.data[callstk.ptr++].s = "free()";
 	scl_free(s);
 	callstk.ptr--;
@@ -195,13 +195,13 @@ sclDefFunc(breakpoint, void) {
 	callstk.ptr--;
 }
 
-sclDefFunc(memset, void, scl_int c, scl_int n, scl_value s) {
+sclDefFunc(memset, void, scl_int c, scl_int n, scl_any s) {
 	callstk.data[callstk.ptr++].s = "memset()";
 	memset(s, c, n);
 	callstk.ptr--;
 }
 
-sclDefFunc(memcpy, void, scl_int n, scl_value s1, scl_value s2) {
+sclDefFunc(memcpy, void, scl_int n, scl_any s1, scl_any s2) {
 	callstk.data[callstk.ptr++].s = "memcpy()";
 	memcpy(s2, s1, n);
 	callstk.ptr--;

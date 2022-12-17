@@ -9,7 +9,7 @@ function read(_fd_: int, _n_: int): str
 end
 
 function puts(_str_: str): none
-  cdecl "printf(\"%s\n\", Var__str_);"
+  cdecl "puts(Var__str_);"
 end
 
 function eputs(_str_: str): none
