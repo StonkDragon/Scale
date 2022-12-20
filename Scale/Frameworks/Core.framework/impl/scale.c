@@ -123,8 +123,8 @@ sclDefFunc(raise, void, scl_int n) {
 
 sclDefFunc(strrev, scl_str, scl_str s) {
 	callstk.data[callstk.ptr++].s = "strrev()";
-	size_t i = 0;
-	scl_int len = Function_strlen(s);
+	scl_int i = 0;
+	scl_int len = strlen(s);
 	char* out = scl_alloc(len + 1);
 	for (i = len - 1; i >= 0; i--) {
 		out[i] = s[i];
