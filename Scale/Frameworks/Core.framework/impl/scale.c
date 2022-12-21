@@ -127,7 +127,7 @@ sclDefFunc(strrev, scl_str, scl_str s) {
 	scl_int len = strlen(s);
 	char* out = scl_alloc(len + 1);
 	for (i = len - 1; i >= 0; i--) {
-		out[i] = s[i];
+		out[i] = s[len - i - 1];
 	}
 	out[len] = '\0';
 	callstk.ptr--;
