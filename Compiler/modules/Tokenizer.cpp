@@ -171,15 +171,15 @@ namespace sclc
             startColumn = column;
             column++;
             if (c == '>') {
-                c = source[++current];
-                column++;
-                if (c == '>' || c == '=') {
+                if (source[current + 1] == '>' || source[current + 1] == '=') {
+                    c = source[++current];
+                    column++;
                     value += c;
                 }
             } else if (c == '<') {
-                c = source[++current];
-                column++;
-                if (c == '<' || c == '=') {
+                if (source[current + 1] == '<' || source[current + 1] == '=') {
+                    c = source[++current];
+                    column++;
                     value += c;
                 }
             } else if (c == '=') {
@@ -271,6 +271,20 @@ namespace sclc
             result.column = startColumn;
             result.value = value;
             warns.push_back(result);
+        }
+
+        if (value == "start_c") {
+            value = "";
+            do {
+                while (c == '\n')
+                    c = source[current++];
+                value += c;
+                c = source[current++];
+                startColumn = column;
+                column++;
+            } while (strncmp("end_c", (source + current), 5) != 0);
+            current += 5;
+            return Token(tok_extern_c, value, line, filename, startColumn);
         }
 
         TOKEN("function",   tok_function, line, filename, startColumn);

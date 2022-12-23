@@ -1,5 +1,3 @@
-using "util/range" from "Core"
-
 function main(): none
     decl MIN: int 0 => MIN
     decl MAX: int 100 => MAX

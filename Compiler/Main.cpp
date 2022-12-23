@@ -107,6 +107,26 @@ namespace sclc
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
 
+        DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
+        if (scaleConfig) {
+            if (scaleConfig->hasMember("outfile"))
+                outfile = scaleConfig->getString("outfile")->getValue();
+
+            if (scaleConfig->hasMember("compiler"))
+                compiler = scaleConfig->getString("compiler")->getValue();
+
+            if (scaleConfig->hasMember("optimizer"))
+                optimizer = scaleConfig->getString("optimizer")->getValue();
+
+            if (scaleConfig->hasMember("frameworks"))
+                for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
+                    frameworks.push_back(scaleConfig->getList("frameworks")->get(i));
+
+            if (scaleConfig->hasMember("compilerFlags"))
+                for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
+                    tmpFlags.push_back(scaleConfig->getList("compilerFlags")->get(i));
+        }
+
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
                 if (!fileExists(args[i])) {
@@ -159,7 +179,7 @@ namespace sclc
                     Main.options.noMain = true;
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
-                    system(COMPILER" -v");
+                    system((compiler + " -v").c_str());
                     return 0;
                 } else if (args[i] == "--comp") {
                     if (i + 1 < args.size()) {

@@ -38,6 +38,14 @@ Returns the length of the string `_str_`. It is undefined behavior if `_str_` is
 ### `function strsplit(_str_: str, _delim_: str): Array`
 Splits the string `_str_` at every occurence of `_delim_` and returns an array containing the results. Returns an empty array if the string does not contain `_delim_`.
 
+Example:
+```scale
+"hello world!" " " strsplit
+```
+Will split the string 'hello world!' at every space character, returning an array with these elements:
+1. "hello"
+2. "world!"
+
 ### `function strcmp(_str1_: str, _str2_: str): int`
 Returns `true`, if `_str1_` and `_str2_` are equal, `false` otherwise.
 
@@ -51,7 +59,7 @@ Concates `_str1_` and `_str2_` together.
 Reverses `_str_`. Returns an empty string if `_str_` has a length of zero.
 
 ### `function time(): float`
-Pushes the current time in seconds as a float onto the stack->
+Pushes the current time in seconds as a float onto the stack.
 
 ### `function longToString(_long_: int): str`
 Converts `_long_` to a string.
@@ -237,14 +245,18 @@ Member types:
 - `capacity: int`
 
 `values`: Contains the contents of the array.
+
 `count`: Contains the amount of elements in the array.
+
 `capacity`: Contains the maximum capacity of the array.
+
+__Modifying any of these values will result in undefined behaviour!__
 
 ### `function Array:sort(): Array`
 Sorts the array. If the array is empty, the function will do nothing.
 
 ### `function Array:get(index: int): any`
-Pushes the value at `index` onto the stack-> It is undefined behavior to access indices greater than or equal to `count`
+Pushes the value at `index` onto the stack. It is undefined behavior to access indices greater than or equal to `count`
 
 ### `function Array:set(index: int, value: any): none`
 Sets the value at `index` to `value`. It is undefined behavior to access indices greater than or equal to `count`

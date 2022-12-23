@@ -4,6 +4,7 @@ function doStuff(foo: str, bar: str, baz: str): none
   bar puts
   baz puts
 end
+
 function main(): none
   # call the function with 3 arguments
   "foo" "bar" "baz" doStuff

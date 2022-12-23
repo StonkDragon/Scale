@@ -7,7 +7,7 @@ extern "C" {
 
 #include "scale.h"
 
-extern scl_stack_t* stack;
+extern scl_stack_t stack;
 extern scl_stack_t  callstk;
 
 #pragma region Natives
@@ -15,8 +15,8 @@ extern scl_stack_t  callstk;
 sclDefFunc(dumpstack, void) {
 	callstk.data[callstk.ptr++].s = "dumpstack()";
 	printf("Dump:\n");
-	for (ssize_t i = stack->ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack->data[i].i;
+	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack.data[i].i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
@@ -39,7 +39,7 @@ sclDefFunc(getenv, scl_str, scl_str c) {
 sclDefFunc(sizeof_stack, scl_int) {
 	callstk.data[callstk.ptr++].s = "sizeof_stack()";
 	callstk.ptr--;
-	return stack->ptr;
+	return stack.ptr;
 }
 
 sclDefFunc(concat, scl_str, scl_str s2, scl_str s1) {

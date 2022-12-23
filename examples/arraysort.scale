@@ -1,5 +1,5 @@
 using "util/array"
-using "math"
+
 function createList(len: int): Array
     decl arr:Array len Array::new => arr
     decl i: int 0 => i

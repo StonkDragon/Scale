@@ -200,6 +200,7 @@ namespace sclc
         tok_number_float,   // 123.456
         tok_string_literal, // "foo"
         tok_char_literal,   // 'a'
+        tok_extern_c,
         tok_illegal,
         tok_ignore,
         tok_newline,

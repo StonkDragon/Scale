@@ -2,6 +2,7 @@
 struct Foo
   decl bar: str
 end
+
 function main(): none
   decl f: Foo
   # instanciate Foo

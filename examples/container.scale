@@ -3,6 +3,7 @@ container foo
   decl bar: any
   decl baz: any
 end
+
 function main(): none
   "load/store" => foo.bar
   foo.bar puts

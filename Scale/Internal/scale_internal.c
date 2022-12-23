@@ -5,7 +5,7 @@
 #endif
 
 /* Variables */
-scl_stack_t* stack;
+scl_stack_t stack;
 scl_stack_t	 callstk = {0, {0}};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
@@ -99,8 +99,8 @@ void process_signal(int sig_num) {
 	}
 	print_stacktrace();
 	printf("Stack:\n");
-	for (ssize_t i = stack->ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack->data[i].i;
+	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+		long long v = (long long) stack.data[i].i;
 		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
 	}
 	printf("\n");
@@ -128,43 +128,43 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 	for (scl_int i = 0; i < argc; i++) {
 		((scl_any*) array->values)[(scl_int) array->count++] = argv[i];
 	}
-	stack->data[stack->ptr++].v = array;
+	stack.data[stack.ptr++].v = array;
 }
 
 void ctrl_push_string(scl_str c) {
-	stack->data[stack->ptr++].s = c;
+	stack.data[stack.ptr++].s = c;
 }
 
 void ctrl_push_double(scl_float d) {
-	stack->data[stack->ptr++].f = d;
+	stack.data[stack.ptr++].f = d;
 }
 
 void ctrl_push_long(scl_int n) {
-	stack->data[stack->ptr++].i = n;
+	stack.data[stack.ptr++].i = n;
 }
 
 void ctrl_push(scl_any n) {
-	stack->data[stack->ptr++].v = n;
+	stack.data[stack.ptr++].v = n;
 }
 
 scl_int ctrl_pop_long() {
-	return stack->data[--stack->ptr].i;
+	return stack.data[--stack.ptr].i;
 }
 
 scl_float ctrl_pop_double() {
-	return stack->data[--stack->ptr].f;
+	return stack.data[--stack.ptr].f;
 }
 
 scl_str ctrl_pop_string() {
-	return stack->data[--stack->ptr].s;
+	return stack.data[--stack.ptr].s;
 }
 
 scl_any ctrl_pop() {
-	return stack->data[--stack->ptr].v;
+	return stack.data[--stack.ptr].v;
 }
 
 ssize_t ctrl_stack_size(void) {
-	return stack->ptr;
+	return stack.ptr;
 }
 
 #pragma endregion

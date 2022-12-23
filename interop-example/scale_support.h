@@ -12,6 +12,6 @@ typedef long long scl_int;
 typedef char* scl_str;
 typedef double scl_float;
 
-extern scl_stack_t* stack;
+extern scl_stack_t stack;
 
 void bar(scl_str a);

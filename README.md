@@ -102,7 +102,7 @@ To Call the function, the arguments must be passed in the following order:
   a b c foo
 ```
 
-The last argument of the function must be on the top of the stack->
+The last argument of the function must be on the top of the stack.
 
 Example:
 

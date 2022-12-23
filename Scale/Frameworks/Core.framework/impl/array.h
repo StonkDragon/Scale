@@ -3,7 +3,7 @@
 
 #include <scale_internal.h>
 
-extern scl_stack_t* stack;
+extern scl_stack_t stack;
 
 struct Array {
     scl_int $__type__;

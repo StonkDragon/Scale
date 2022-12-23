@@ -167,12 +167,12 @@ namespace sclc
         std::string main = "";
         if (mainFunction->getReturnType() == "none") {
             if (mainFunction->getArgs().size() != 0)
-                main = "Function_main((" + sclReturnTypeToCReturnType(result, mainFunction->getArgs()[0].getType()) + ") stack->data[--stack->ptr].v);\n";
+                main = "Function_main((" + sclReturnTypeToCReturnType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
             else
                 main = "Function_main();\n";
         } else {
             if (mainFunction->getArgs().size() != 0)
-                main = "return_value = Function_main((" + sclReturnTypeToCReturnType(result, mainFunction->getArgs()[0].getType()) + ") stack->data[--stack->ptr].v);\n";
+                main = "return_value = Function_main((" + sclReturnTypeToCReturnType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
             else
                 main = "return_value = Function_main();\n";
         }
@@ -192,7 +192,6 @@ namespace sclc
         append("#ifdef SIGBUS\n");
         append("  signal(SIGBUS, process_signal);\n");
         append("#endif\n\n");
-        append("  stack = (scl_stack_t*) malloc(sizeof(scl_stack_t));\n");
         append("  int return_value = 0;\n");
         if (push_args.size() > 0)
             append("  %s", push_args.c_str());
