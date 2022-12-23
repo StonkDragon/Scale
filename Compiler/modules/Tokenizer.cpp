@@ -275,14 +275,12 @@ namespace sclc
 
         if (value == "start_c") {
             value = "";
-            do {
-                while (c == '\n')
-                    c = source[current++];
+            while (strncmp("end_c", (source + current), 5) != 0) {
                 value += c;
                 c = source[current++];
                 startColumn = column;
                 column++;
-            } while (strncmp("end_c", (source + current), 5) != 0);
+            }
             current += 5;
             return Token(tok_extern_c, value, line, filename, startColumn);
         }

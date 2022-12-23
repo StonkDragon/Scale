@@ -1949,17 +1949,47 @@ namespace sclc {
         append("%s\n", s.c_str());
     }
 
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+        std::vector<std::string> tokens;
+        size_t start = 0;
+        size_t end = 0;
+        while ((end = str.find(delimiter, start)) != std::string::npos)
+        {
+            tokens.push_back(str.substr(start, end - start));
+            start = end + delimiter.length();
+        }
+        tokens.push_back(str.substr(start));
+        return tokens;
+    }
+
+
+    std::string ltrim(const std::string& s) {
+        size_t start = s.find_first_not_of(" \t\r\n");
+        return (start == std::string::npos) ? "" : s.substr(start);
+    }
+
     handler(ExternC) {
         noUnused;
-        fprintf(fp, "// Start C\n");
+        append("{// Start C\n");
+        scopeDepth++;
         std::string ext = body[i].getValue();
         for (std::vector<Variable> lvl : vars) {
             for (Variable v : lvl) {
-                ext = replaceAll(ext, v.getName(), "Var_" + v.getName());
+                append("%s* %s = &Var_%s;\n", sclReturnTypeToCReturnType(result, v.getType()).c_str(), v.getName().c_str(), v.getName().c_str());
             }
         }
-        fprintf(fp, "%s\n", ext.c_str());
-        fprintf(fp, "// End C\n");
+        append("{\n");
+        scopeDepth++;
+        std::vector<std::string> lines = split(ext, "\n");
+        for (std::string line : lines) {
+            if (ltrim(line).size() == 0)
+                continue;
+            append("%s\n", ltrim(line).c_str());
+        }
+        scopeDepth--;
+        append("}\n");
+        scopeDepth--;
+        append("}// End C\n");
     }
 
     handler(IntegerLiteral) {

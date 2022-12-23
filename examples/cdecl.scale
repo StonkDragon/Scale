@@ -1,4 +1,12 @@
 function main(): none
+    "Hello, world!" => decl foo: str
+
     # this code will be put directly in the c source file
-    cdecl "printf(\"Hi!\\n\");"
+    start_c
+        printf("Hi!\n");
+
+        // in inline-c pseudo-variables exist that are pointers to the actual values
+        // they have the same name as the scale variable
+        printf("Greeting: %s\n", *foo);
+    end_c
 end
