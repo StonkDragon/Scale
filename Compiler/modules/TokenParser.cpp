@@ -25,6 +25,7 @@ namespace sclc
         for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
+            // std::cout << "Token: " << token.getValue() << ": " << token.getType() << std::endl;
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;

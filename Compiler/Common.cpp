@@ -232,29 +232,6 @@ namespace sclc
         if (body[*i].getType() == tok_identifier) {
             r.value = body[*i].getValue();
             r.success = true;
-            if (body[*(i) + 1].getValue() == "<") {
-                (*i) += 2;
-                std::string type = r.value;
-                r = parseType(body, i);
-                if (!r.success) {
-                    return r;
-                }
-                type += "<" + r.value;
-                (*i)++;
-                if (body[*i].getValue() == ">") {
-                    type += ">";
-                    r.success = true;
-                    r.value = type;
-                } else {
-                    r.message = "Expected '>', but got '" + body[*i].getValue() + "'";
-                    r.column = body[*i].getColumn();
-                    r.value = body[*i].getValue();
-                    r.line = body[*i].getLine();
-                    r.in = body[*i].getFile();
-                    r.type = body[*i].getType();
-                    r.success = false;
-                }
-            }
         } else if (body[*i].getType() == tok_question_mark) {
             r.value = "?";
             r.success = true;

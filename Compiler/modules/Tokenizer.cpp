@@ -273,16 +273,22 @@ namespace sclc
             warns.push_back(result);
         }
 
+        #define debug(_s) printf(#_s ": %d\n", (_s));
         if (value == "start_c") {
             value = "";
+            startColumn = column;
             while (strncmp("end_c", (source + current), 5) != 0) {
+                if (c == '\n') {
+                    line++;
+                    column = 0;
+                }
                 value += c;
                 c = source[current++];
-                startColumn = column;
                 column++;
             }
             current += 5;
-            return Token(tok_extern_c, value, line, filename, startColumn);
+            column += 5;
+            return Token(tok_extern_c, value, 0, filename, startColumn);
         }
 
         TOKEN("function",   tok_function, line, filename, startColumn);

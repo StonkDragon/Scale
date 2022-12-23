@@ -557,6 +557,8 @@ namespace sclc
             remove(std::string(filename + ".c").c_str());
         }
 
+        printf("Done tokenizing\n");
+
         if (Main.options.preprocessOnly) {
             std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
             return 0;
@@ -568,6 +570,8 @@ namespace sclc
             Main.lexer = &lexer;
             result = Main.lexer->parse();
         }
+
+        printf("Done lexer\n");
 
         if (!Main.options.printCflags && result.errors.size() > 0) {
             for (FPResult error : result.errors) {
@@ -613,6 +617,9 @@ namespace sclc
             }
             return result.errors.size();
         }
+
+        printf("lexer errors done\n");
+
         if (!Main.options.printCflags && result.warns.size() > 0) {
             for (FPResult error : result.warns) {
                 if (error.line == 0) {
@@ -656,15 +663,19 @@ namespace sclc
                 free(line);
             }
         }
+        printf("lexer warns done\n");
 
         std::string source = "out.c";
         if (!Main.options.printCflags) {
+            printf("creating parser\n");
             FunctionParser parser(result);
             Main.parser = &parser;
             
             srand(time(NULL));
 
+            printf("parser before\n");
             FPResult parseResult = Main.parser->parse(source);
+            printf("Done parser\n");
             if (parseResult.errors.size() > 0) {
                 for (FPResult error : parseResult.errors) {
                     if (error.line == 0) {

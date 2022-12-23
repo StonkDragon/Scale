@@ -2107,7 +2107,7 @@ namespace sclc {
             } else if (return_type == "scl_any") {
                 append("return stack.data[--stack.ptr].v;\n");
             } else if (strncmp(return_type.c_str(), "scl_", 4) == 0) {
-                append("return (struct Struct_%s*) stack.data[--stack.ptr].v;\n", function->getReturnType().c_str());
+                append("return (%s) stack.data[--stack.ptr].v;\n", sclReturnTypeToCReturnType(result, function->getReturnType()).c_str());
             }
         }
     }
