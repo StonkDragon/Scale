@@ -537,6 +537,7 @@ namespace sclc
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Struct> structs;
+        std::unordered_map<std::string, std::string> typealiases;
     };
 
     class TokenParser
@@ -609,7 +610,7 @@ namespace sclc
             bool transpileOnly;
             bool debugBuild;
             bool assembleOnly;
-            bool noCoreFramework;
+            bool noScaleFramework;
             bool doRun;
             bool printCflags;
             bool dontSpecifyOutFile;

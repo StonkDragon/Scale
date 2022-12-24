@@ -274,10 +274,10 @@ namespace sclc
         }
 
         #define debug(_s) printf(#_s ": %d\n", (_s));
-        if (value == "start_c") {
+        if (value == "inline_c") {
             value = "";
             startColumn = column;
-            while (strncmp("end_c", (source + current), 5) != 0) {
+            while (strncmp("end_inline", (source + current), strlen("end_inline")) != 0) {
                 if (c == '\n') {
                     line++;
                     column = 0;
@@ -286,8 +286,8 @@ namespace sclc
                 c = source[current++];
                 column++;
             }
-            current += 5;
-            column += 5;
+            current += strlen("end_inline");
+            column += strlen("end_inline");
             return Token(tok_extern_c, value, 0, filename, startColumn);
         }
 
@@ -487,6 +487,27 @@ namespace sclc
                         return r;
                     }
                 }
+                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
+                    Main.options.files.push_back(fullFile);
+                }
+            } else if (tokens[i].getType() == tok_identifier &&
+                       tokens[i].getValue() == "import" &&
+                       tokens[i + 1].getType() == tok_identifier &&
+                       tokens[i + 2].getType() == tok_dot &&
+                       tokens[i + 3].getType() == tok_identifier
+                    ) {
+                i++;
+                std::string framework = tokens[i].getValue();
+                i += 2;
+                std::string file = tokens[i].getValue();
+                i++;
+                while (tokens[i].getType() == tok_dot) {
+                    i++;
+                    file += "/" + tokens[i].getValue();
+                    i++;
+                }
+
+                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file + ".scale";
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
                     Main.options.files.push_back(fullFile);
                 }

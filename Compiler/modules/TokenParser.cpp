@@ -18,6 +18,7 @@ namespace sclc
         std::vector<Container> containers;
         std::vector<Struct> structs;
         std::vector<Interface*> interfaces;
+        std::unordered_map<std::string, std::string> typealiases;
 
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
@@ -1555,6 +1556,26 @@ namespace sclc
                 }
             } else {
                 if (tokens[i].getType() == tok_identifier) {
+                    if (tokens[i].getValue() == "typealias") {
+                        i++;
+                        std::string type = tokens[i].getValue();
+                        i++;
+                        if (tokens[i].getType() != tok_string_literal) {
+                            FPResult result;
+                            result.message = "Expected string, but got '" + tokens[i].getValue() + "'";
+                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        std::string replacement = tokens[i].getValue();
+                        typealiases[type] = replacement;
+                        continue;
+                    }
                     nextAttributes.push_back(tokens[i].getValue());
                 }
             }
@@ -1570,6 +1591,7 @@ namespace sclc
         result.errors = errors;
         result.warns = warns;
         result.interfaces = interfaces;
+        result.typealiases = typealiases;
         return result;
     }
 }

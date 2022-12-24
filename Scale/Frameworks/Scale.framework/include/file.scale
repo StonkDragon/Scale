@@ -1,42 +1,42 @@
 
 function fopen(_filename_: str, _mode_: str): any
   decl _f_: any
-  start_c
+  inline_c
   _f_ = fopen(*_filename_, *_mode_);
-  end_c
+  end_inline
   _f_ return
 end
 
 function fclose(_file_: any): none
-  start_c
+  inline_c
   fclose(*_file_);
-  end_c
+  end_inline
 end
 
 function ftell(_file_: any): int
-  start_c
+  inline_c
   stack.data[stack.ptr++].i = ftell(*_file_);
-  end_c
+  end_inline
   return
 end
 
 function fileno(_file_: any): int
-  start_c
+  inline_c
   stack.data[stack.ptr++].i = fileno(*_file_);
-  end_c
+  end_inline
   return
 end
 
 function fseek(_file_: any, _whence_: int, _offset_: int): none
-  start_c
+  inline_c
   fseek(*_file_, *_offset_, *_whence_);
-  end_c
+  end_inline
 end
 
 function fwrite(_buf_: any, _size_: int, _file_: any): none
-  start_c
+  inline_c
   int _ignored = fwrite(*_buf_, 1, *_size_, *_file_); (void) _ignored;
-  end_c
+  end_inline
 end
 
 function fputs(_file_: any, _str_: str): none
@@ -54,9 +54,9 @@ end
 
 function fread(_f_: any, _size_: int): [any]
   decl _buf_: [any] _size_ malloc => _buf_
-  start_c
+  inline_c
   int _ignored = fread(*_buf_, 1, *_size_, *_f_); (void) _ignored;
-  end_c
+  end_inline
   _buf_ return
 end
 

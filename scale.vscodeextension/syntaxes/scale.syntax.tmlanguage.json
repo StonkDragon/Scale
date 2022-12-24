@@ -76,8 +76,8 @@
 			"match": "[A-Za-z_]+([A-Za-z_0-9]+)?"
 		},
 		"query": {
-			"begin": "\\b(start_c)\\b",
-			"end": "\\b(end_c)\\b",
+			"begin": "\\b(inline_c)\\b",
+			"end": "\\b(end_inline)\\b",
 			"beginCaptures": {
 			  "0": { "name": "keyword.control" }
 			},

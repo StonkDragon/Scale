@@ -304,4 +304,14 @@
 		],
 		"description": "Triple literal"
 	},
+	"Inline C": {
+		"scope": "source.scale",
+		"prefix": "inline c",
+		"body": [
+			"inline_c",
+			"\t$0",
+			"end_inline",
+		],
+		"description": "Inline C"
+	},
 }

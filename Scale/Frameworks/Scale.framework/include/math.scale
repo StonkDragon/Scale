@@ -7,152 +7,152 @@ function __init__math_scale(): none
   2.71828182845904523536028747135266250 => MathConstants.e
   3.14159265358979323846264338327950288 => MathConstants.pi
 
-  start_c
+  inline_c
     srand(time(NULL));
-  end_c
+  end_inline
 end
 
 function sqrt(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = sqrt(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function sin(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = sin(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function cos(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = cos(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function tan(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = tan(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function asin(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = asin(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function acos(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = acos(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function atan(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = atan(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function atan2(_f1_: float, _f2_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = atan2(*_f1_, *_f2_);
-  end_c
+  end_inline
   r return
 end
 
 function sinh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = sinh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function cosh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = cosh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function tanh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = tanh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function asinh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = asinh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function acosh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = acosh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function atanh(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = atanh(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function exp(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = exp(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function log(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = log(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function log10(_f_: float): float
   decl r: float
-  start_c
+  inline_c
     *r = log10(*_f_);
-  end_c
+  end_inline
   r return
 end
 
 function random(): int
   decl r: int
-  start_c
+  inline_c
     *r = ((scl_int) rand() << 32) | (scl_int) rand();
-  end_c
+  end_inline
   r return
 end
 

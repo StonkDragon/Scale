@@ -26,6 +26,26 @@ namespace sclc {
         append("\n");
     }
 
+    bool hasTypealias(TPResult r, std::string t) {
+        using spair = std::pair<std::string, std::string>;
+        for (spair p : r.typealiases) {
+            if (p.first == t) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::string getTypealias(TPResult r, std::string t) {
+        using spair = std::pair<std::string, std::string>;
+        for (spair p : r.typealiases) {
+            if (p.first == t) {
+                return p.second;
+            }
+        }
+        return "";
+    }
+
     std::string sclReturnTypeToCReturnType(TPResult result, std::string t) {
         std::string return_type = "scl_any";
         if (t == "any") return_type = "scl_any";
@@ -39,6 +59,8 @@ namespace sclc {
         } else if (t.at(0) == '[') {
             std::string type = sclReturnTypeToCReturnType(result, t.substr(1, t.length() - 2));
             return type + "*";
+        } else if (hasTypealias(result, t)) {
+            return_type = getTypealias(result, t);
         }
         return return_type;
     }

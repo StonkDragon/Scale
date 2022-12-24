@@ -2,61 +2,61 @@ using "io" from "Core"
 using "util/array" from "Core"
 
 function sleep(_millis_: int): none
-  start_c
+  inline_c
     sleep(*_millis_);
-  end_c
+  end_inline
 end
 
 function system(_cmd_: str): int
   decl ret: int
-  start_c
+  inline_c
     *ret = system(*_cmd_);
-  end_c
+  end_inline
   ret return
 end
 
 function getenv(_key_: str): str
   decl v: str
-  start_c
+  inline_c
     *v = getenv(*_key_);
-  end_c
+  end_inline
   v return
 end
 
 function sizeof_stack(): int
-  start_c
+  inline_c
     stack.data[stack.ptr++].i = stack.ptr;
-  end_c
+  end_inline
   return
 end
 
 function malloc(_size_: int): [any]
   decl s: [any]
-  start_c
+  inline_c
     *s = scl_alloc(*_size_);
     if (!(*s)) {
       scl_security_throw(EX_BAD_PTR, "malloc() failed!");
       *s = NULL;
     }
-  end_c
+  end_inline
   s return
 end
 
 function realloc(_size_: int, _ptr_: [any]): [any]
-  start_c
+  inline_c
     *_ptr_ = scl_realloc(*_ptr_, *_size_);
     if (!(*_ptr_)) {
       scl_security_throw(EX_BAD_PTR, "realloc() failed!");
       *_ptr_ = NULL;
     }
-  end_c
+  end_inline
   _ptr_ return
 end
 
 function free(_ptr_: [any]): none
-  start_c
+  inline_c
     scl_free(*_ptr_);
-  end_c
+  end_inline
 end
 
 function strlen(_str_: str): int
@@ -69,38 +69,38 @@ end
 
 function strsplit(_str_: str, _delim_: str): Array
   10 Array::new => decl arr: Array
-  start_c
+  inline_c
     scl_str string = strdup(*_str_);
     scl_str line = strtok(string, *_delim_);
     while (line != NULL) {
       Method_Array_push(*arr, line);
       line = strtok(NULL, *_delim_);
     }
-  end_c
+  end_inline
   arr return
 end
 
 function strcmp(_str1_: str, _str2_: str): int
   decl t: bool
-  start_c
+  inline_c
     *t = strcmp(*_str1_, *_str2_) == 0;
-  end_c
+  end_inline
   t return
 end
 
 function strdup(_str_: str): str
   decl s: str
-  start_c
+  inline_c
     *s = strdup(*_str_);
-  end_c
+  end_inline
   s return
 end
 
 function strncmp(_str1_: str, _str2_: str, _n_: int): int
   decl t: bool
-  start_c
+  inline_c
     *t = strncmp(*_str1_, *_str2_, *_n_) == 0;
-  end_c
+  end_inline
   t return
 end
 
@@ -112,23 +112,23 @@ function concat(_str1_: str, _str2_: str): str
   len len2 + 1 + malloc => out
 
   out _str1_ strcpy
-  start_c
+  inline_c
     strcat(*out, *_str2_);
-  end_c
+  end_inline
 
   out return
 end
 
 function strcpy(dest: str, src: str): none
-  start_c
+  inline_c
     strcpy(*dest, *src);
-  end_c
+  end_inline
   dest drop
 end
 
 function strrev(_str_: str): str
   decl out: str
-  start_c
+  inline_c
     scl_int i = 0;
     scl_int len = strlen(*_str_);
     *out = scl_alloc(len + 1);
@@ -136,49 +136,49 @@ function strrev(_str_: str): str
       (*out)[i] = (*_str_)[len - i - 1];
     }
     (*out)[len] = '\0';
-  end_c
+  end_inline
   out return
 end
 
 function time(): float
   decl secs: float
-  start_c
+  inline_c
     struct timeval tv;
     gettimeofday(&tv, NULL);
     *secs = (double)(tv.tv_usec) / 1000000 + (double)(tv.tv_sec);
-  end_c
+  end_inline
   secs return
 end
 
 function longToString(_long_: int): str
   decl out: str
-  start_c
+  inline_c
     *out = scl_alloc(25);
 	  sprintf(*out, "%lld", *_long_);
-  end_c
+  end_inline
   out return
 end
 
 function stringToLong(_str_: str): int
-  start_c
+  inline_c
     stack.data[stack.ptr++].i = atoll(*_str_);
-  end_c
+  end_inline
   return
 end
 
 function stringToDouble(_str_: str): float
-  start_c
+  inline_c
     stack.data[stack.ptr++].f = atof(*_str_);
-  end_c
+  end_inline
   return
 end
 
 function doubleToString(_double_: float): str
   decl out: str
-  start_c
+  inline_c
     *out = scl_alloc(100);
 	  sprintf(*out, "%f", *_double_);
-  end_c
+  end_inline
   out return
 end
 

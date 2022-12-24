@@ -1,4 +1,4 @@
-# Core Framework Documentation
+# Scale Framework Documentation
 ## Contents
 - [Core](#core)
 - [IO](#io)
