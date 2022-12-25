@@ -157,7 +157,7 @@ namespace sclc
             std::string pre = src.substr(0, index - 1);
             std::string post = src.substr(index + from.length() - 1);
             return pre + to + post;
-        } catch (std::out_of_range e) {
+        } catch (std::out_of_range const&) {
             return src;
         }
     }
