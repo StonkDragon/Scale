@@ -31,7 +31,6 @@ namespace sclc
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define function inside another function.";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -43,7 +42,6 @@ namespace sclc
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define function inside of a container.";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -80,7 +78,6 @@ namespace sclc
                                         if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
-                                            result.column = tokens[i].getColumn();
                                             result.value = tokens[i].getValue();
                                             result.line = tokens[i].getLine();
                                             result.in = tokens[i].getFile();
@@ -92,7 +89,6 @@ namespace sclc
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -106,7 +102,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -125,7 +120,6 @@ namespace sclc
                                 }
                                 FPResult result;
                                 result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -146,7 +140,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -159,7 +152,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -197,7 +189,6 @@ namespace sclc
                                     if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -209,7 +200,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -223,7 +213,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "Expected identifier for method name, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -242,7 +231,6 @@ namespace sclc
                             }
                             FPResult result;
                             result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -266,7 +254,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -279,7 +266,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -317,7 +303,6 @@ namespace sclc
                                     if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -329,7 +314,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -343,7 +327,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -362,7 +345,6 @@ namespace sclc
                             }
                             FPResult result;
                             result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -383,7 +365,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -396,7 +377,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -411,7 +391,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for function name keyword";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -449,7 +428,6 @@ namespace sclc
                                     if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -461,7 +439,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -475,7 +452,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -494,7 +470,6 @@ namespace sclc
                             }
                             FPResult result;
                             result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -517,7 +492,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -530,7 +504,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -566,7 +539,6 @@ namespace sclc
                                     if (type == "none") {
                                         FPResult result;
                                         result.message = "Type 'none' is only valid for function return types.";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -578,7 +550,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "A type is required!";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -592,7 +563,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -611,7 +581,6 @@ namespace sclc
                             }
                             FPResult result;
                             result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -632,7 +601,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "A type is required!";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -645,7 +613,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -669,7 +636,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "Function " + currentFunction->getName() + " already exists! Try renaming this function";
-                        result.column = currentFunction->getNameToken().getColumn();
                         result.value = currentFunction->getNameToken().getValue();
                         result.line = currentFunction->getNameToken().getLine();
                         result.in = currentFunction->getNameToken().getFile();
@@ -690,7 +656,6 @@ namespace sclc
                 } else {
                     FPResult result;
                     result.message = "Unexpected 'end' keyword outside of function, container, struct or interface body. Remove this:";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -703,7 +668,6 @@ namespace sclc
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -715,7 +679,6 @@ namespace sclc
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -727,7 +690,6 @@ namespace sclc
                 if (currentStruct != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -739,7 +701,6 @@ namespace sclc
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -751,7 +712,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for container name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -764,7 +724,6 @@ namespace sclc
                 if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -778,7 +737,6 @@ namespace sclc
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -790,7 +748,6 @@ namespace sclc
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -802,7 +759,6 @@ namespace sclc
                 if (currentStruct != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -814,7 +770,6 @@ namespace sclc
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -826,7 +781,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for struct name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -839,7 +793,6 @@ namespace sclc
                 if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
                     FPResult result;
                     result.message = "Invalid name for struct: '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -867,7 +820,6 @@ namespace sclc
                 if (!(currentStruct->heapAllocAllowed() || currentStruct->stackAllocAllowed()) && !currentStruct->isStatic()) {
                     FPResult result;
                     result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
-                    result.column = tokens[i].getColumn();
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -882,7 +834,6 @@ namespace sclc
                     if (tokens[i + 1].getType() != tok_identifier) {
                         FPResult result;
                         result.message = "Expected identifier for interface name, but got'" + tokens[i + 1].getValue() + "'";
-                        result.column = tokens[i + 1].getColumn();
                         result.value = tokens[i + 1].getValue();
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
@@ -903,7 +854,6 @@ namespace sclc
                         if (i >= tokens.size()) {
                             FPResult result;
                             result.message = "Unexpected end of file!";
-                            result.column = tokens[i - 1].getColumn();
                             result.value = tokens[i - 1].getValue();
                             result.line = tokens[i - 1].getLine();
                             result.in = tokens[i - 1].getFile();
@@ -918,7 +868,6 @@ namespace sclc
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -930,7 +879,6 @@ namespace sclc
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -942,7 +890,6 @@ namespace sclc
                 if (currentStruct != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -954,7 +901,6 @@ namespace sclc
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere?";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -966,7 +912,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for interface declaration, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -979,7 +924,6 @@ namespace sclc
                 if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
                     FPResult result;
                     result.message = "Invalid name for interface: '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -996,7 +940,6 @@ namespace sclc
                     } else {
                         FPResult result;
                         result.message = "" + tokens[i + 1].getValue() + " is not a valid modifier.";
-                        result.column = tokens[i + 1].getColumn();
                         result.value = tokens[i + 1].getValue();
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
@@ -1009,7 +952,6 @@ namespace sclc
                 } else {
                     FPResult result;
                     result.message = "Cannot use modifiers inside a function or container.";
-                    result.column = token.getColumn();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -1050,7 +992,6 @@ namespace sclc
                                         if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
-                                            result.column = tokens[i].getColumn();
                                             result.value = tokens[i].getValue();
                                             result.line = tokens[i].getLine();
                                             result.in = tokens[i].getFile();
@@ -1062,7 +1003,6 @@ namespace sclc
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -1076,7 +1016,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -1095,7 +1034,6 @@ namespace sclc
                                 }
                                 FPResult result;
                                 result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1118,7 +1056,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1132,7 +1069,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -1149,7 +1085,6 @@ namespace sclc
                         if (tokens[i].getType() != tok_column) {
                             FPResult result;
                             result.message = "Expected column, but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -1184,7 +1119,6 @@ namespace sclc
                                         if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
-                                            result.column = tokens[i].getColumn();
                                             result.value = tokens[i].getValue();
                                             result.line = tokens[i].getLine();
                                             result.in = tokens[i].getFile();
@@ -1196,7 +1130,6 @@ namespace sclc
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -1210,7 +1143,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -1229,7 +1161,6 @@ namespace sclc
                                 }
                                 FPResult result;
                                 result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1252,7 +1183,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1266,7 +1196,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -1298,7 +1227,6 @@ namespace sclc
                                         if (type == "none") {
                                             FPResult result;
                                             result.message = "Type 'none' is only valid for function return types.";
-                                            result.column = tokens[i].getColumn();
                                             result.value = tokens[i].getValue();
                                             result.line = tokens[i].getLine();
                                             result.in = tokens[i].getFile();
@@ -1310,7 +1238,6 @@ namespace sclc
                                     } else {
                                         FPResult result;
                                         result.message = "A type is required!";
-                                        result.column = tokens[i].getColumn();
                                         result.value = tokens[i].getValue();
                                         result.line = tokens[i].getLine();
                                         result.in = tokens[i].getFile();
@@ -1324,7 +1251,6 @@ namespace sclc
                                 } else {
                                     FPResult result;
                                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.column = tokens[i].getColumn();
                                     result.value = tokens[i].getValue();
                                     result.line = tokens[i].getLine();
                                     result.in = tokens[i].getFile();
@@ -1343,7 +1269,6 @@ namespace sclc
                                 }
                                 FPResult result;
                                 result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1364,7 +1289,6 @@ namespace sclc
                             } else {
                                 FPResult result;
                                 result.message = "A type is required!";
-                                result.column = tokens[i].getColumn();
                                 result.value = tokens[i].getValue();
                                 result.line = tokens[i].getLine();
                                 result.in = tokens[i].getFile();
@@ -1377,7 +1301,6 @@ namespace sclc
                         } else {
                             FPResult result;
                             result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -1393,7 +1316,6 @@ namespace sclc
                     if (tokens[i].getType() != tok_identifier) {
                         FPResult result;
                         result.message = "Expected itentifier for variable name, but got '" + tokens[i].getValue() + "'";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1414,7 +1336,6 @@ namespace sclc
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
@@ -1428,7 +1349,6 @@ namespace sclc
                 } else {
                     FPResult result;
                     result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
-                    result.column = tokens[i].getColumn();
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -1448,7 +1368,6 @@ namespace sclc
                 //         condition->addToken(tokens[i++]);
                 //     }
                 //     functions.push_back(condition);
-                //     currentFunction->addToken(Token(tok_identifier, "$__condition_" + std::to_string(conditionsCount), ifToken.getLine(), ifToken.getFile(), ifToken.getColumn()));
                 //     conditionsCount++;
                 // } else {
                     currentFunction->addToken(token);
@@ -1457,7 +1376,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1479,7 +1397,6 @@ namespace sclc
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1494,7 +1411,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1516,7 +1432,6 @@ namespace sclc
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1531,7 +1446,6 @@ namespace sclc
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
                     result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.column = tokens[i + 1].getColumn();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1553,7 +1467,6 @@ namespace sclc
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.column = tokens[i].getColumn();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1578,7 +1491,6 @@ namespace sclc
                         if (tokens[i].getType() != tok_string_literal) {
                             FPResult result;
                             result.message = "Expected string, but got '" + tokens[i].getValue() + "'";
-                            result.column = tokens[i].getColumn();
                             result.value = tokens[i].getValue();
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();

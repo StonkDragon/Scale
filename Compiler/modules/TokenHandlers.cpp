@@ -33,7 +33,6 @@ namespace sclc
                 result.message = "Unknown operator type: " + std::to_string(token.getType());
                 result.line = token.getLine();
                 result.in = token.getFile();
-                result.column = token.getColumn();
                 result.type = token.getType();
                 return result;
             }
@@ -56,7 +55,6 @@ namespace sclc
             result.line = token.getLine();
             result.in = token.getFile();
             result.value = token.getValue();
-            result.column = token.getColumn();
             result.type = token.getType();
             return result;
         }

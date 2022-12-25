@@ -426,25 +426,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -469,25 +455,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -515,25 +487,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ": " << importResult.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == importResult.line) {
-                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l;
-                        if (importResult.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + importResult.value + "\"", Color::BOLDRED + "\"" + importResult.value + "\"" + Color::RESET, importResult.column);
-                        } else if (importResult.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(importResult.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + "'" + c + "'" + Color::RESET, importResult.column);
-                        } else {
-                            l = replaceFirstAfter(line, importResult.value, Color::BOLDRED + importResult.value + Color::RESET, importResult.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
+                        std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
                     } else if (i == importResult.line - 1 || i == importResult.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -580,25 +538,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == error.line) {
-                        std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
-                        std::string l;
-                        if (error.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
-                        } else if (error.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
-                        } else {
-                            l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
+                        std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
                     } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -623,25 +567,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == error.line) {
-                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l;
-                        if (error.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                        } else if (error.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
-                        } else {
-                            l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
+                        std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
                     } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -676,25 +606,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDMAGENTA + std::string("'") + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -719,25 +635,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + std::string("'") + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;

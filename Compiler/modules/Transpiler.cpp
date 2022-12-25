@@ -3,7 +3,7 @@
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"
 
-#define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.column = body[i - 1].getColumn(); err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
+#define ITER_INC do { i++; if (i >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function!"; err.line = body[i - 1].getLine(); err.in = body[i - 1].getFile(); err.value = body[i - 1].getValue(); err.type =  body[i - 1].getType(); errors.push_back(err); return; } } while (0)
 
 namespace sclc {
     FILE* nomangled;
@@ -329,7 +329,6 @@ namespace sclc {
                     Token t = c.nameToken();
                     res.success = false;
                     res.message = "Struct '" + c.getName() + "' implements unknown interface '" + i + "'";
-                    res.column = t.getColumn();
                     res.line = t.getLine();
                     res.in = t.getFile();
                     res.value = t.getValue();
@@ -338,12 +337,11 @@ namespace sclc {
                     continue;
                 }
                 for (Function* f : interface->getImplements()) {
-                    if (!hasMethod(result, Token(tok_identifier, f->getName(), 0, "", 0), c.getName())) {
+                    if (!hasMethod(result, Token(tok_identifier, f->getName(), 0, ""), c.getName())) {
                         FPResult res;
                         Token t = c.nameToken();
                         res.success = false;
                         res.message = "No implementation for method '" + f->getName() + "' on struct '" + c.getName() + "'";
-                        res.column = t.getColumn();
                         res.line = t.getLine();
                         res.in = t.getFile();
                         res.value = t.getValue();
@@ -357,7 +355,6 @@ namespace sclc {
                         Token t = m->getNameToken();
                         res.success = false;
                         res.message = "Arguments of method '" + c.getName() + ":" + m->getName() + "' do not match implemented method '" + f->getName() + "'";
-                        res.column = t.getColumn();
                         res.line = t.getLine();
                         res.in = t.getFile();
                         res.value = t.getValue();
@@ -370,7 +367,6 @@ namespace sclc {
                         Token t = m->getNameToken();
                         res.success = false;
                         res.message = "Return type of method '" + c.getName() + ":" + m->getName() + "' does not match implemented method '" + f->getName() + "'. Return type should be: '" + f->getReturnType() + "'";
-                        res.column = t.getColumn();
                         res.line = t.getLine();
                         res.in = t.getFile();
                         res.value = t.getValue();
@@ -660,7 +656,7 @@ namespace sclc {
                     }
                     append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\");\n", struct_.c_str(), struct_.c_str());
                     debugPrintPush();
-                    if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+                    if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         append("{\n");
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
@@ -696,7 +692,7 @@ namespace sclc {
                     append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
                     append("stack.data[stack.ptr++].v = (scl_any*) &tmp;\n");
                     debugPrintPush();
-                    if (hasMethod(result, Token(tok_identifier, "init", 0, "", 0), struct_)) {
+                    if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         Method* f = getMethodByName(result, "init", struct_);
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
@@ -717,7 +713,7 @@ namespace sclc {
                     scopeDepth--;
                     append("}\n");
                 } else {
-                    if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+                    if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                         Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
                         if (f->isMethod) {
                             transpilerError("'" + f->getName() + "' is not static!", i);
@@ -739,7 +735,7 @@ namespace sclc {
                         lastPushedType = f->getReturnType();
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
-                        Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                        Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
                         if (v.getType() == "float") {
                             append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
                             debugPrintPush();
@@ -782,10 +778,10 @@ namespace sclc {
                     append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
                 lastPushedType = f->getReturnType();
-            } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+            } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                 std::string struct_ = s.getName();
                 ITER_INC;
-                if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+                if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                     Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
                     if (f->isMethod) {
                         transpilerError("'" + f->getName() + "' is not static!", i);
@@ -818,7 +814,7 @@ namespace sclc {
                 lastPushedType = mem.getType();
             } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                 std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
                 if (v.getType() == "float") {
                     append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
                     debugPrintPush();
@@ -889,7 +885,6 @@ namespace sclc {
             result.line = var.getLine();
             result.in = var.getFile();
             result.value = var.getValue();
-            result.column = var.getColumn();
             result.type = var.getType();
             errors.push_back(result);
         }
@@ -901,7 +896,6 @@ namespace sclc {
             result.line = body[i].getLine();
             result.in = body[i].getFile();
             result.value = body[i].getValue();
-            result.column = body[i].getColumn();
             result.type = body[i].getType();
             errors.push_back(result);
         }
@@ -1024,7 +1018,6 @@ namespace sclc {
             result.in = var.getFile();
             result.value = var.getValue();
             result.type =  var.getType();
-            result.column = var.getColumn();
             warns.push_back(result);
         }
         if (hasContainer(Main.parser->getResult(), var)) {
@@ -1035,7 +1028,6 @@ namespace sclc {
             result.in = var.getFile();
             result.value = var.getValue();
             result.type =  var.getType();
-            result.column = var.getColumn();
             warns.push_back(result);
         }
         if (hasVar(var)) {
@@ -1046,7 +1038,6 @@ namespace sclc {
             result.in = var.getFile();
             result.value = var.getValue();
             result.type =  var.getType();
-            result.column = var.getColumn();
             warns.push_back(result);
         }
 
@@ -1145,7 +1136,7 @@ namespace sclc {
             }
             std::string struct_ = body[i - 2].getValue();
             ITER_INC;
-            if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, "", 0))) {
+            if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                 Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
                 if (f->isMethod) {
                     transpilerError("'" + f->getName() + "' is not static!", i);
@@ -1156,7 +1147,7 @@ namespace sclc {
                 debugPrintPush();
             } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                 std::string loadFrom = struct_ + "$" + body[i].getValue();
-                Variable v = getVar(Token(tok_identifier, loadFrom, 0, "", 0));
+                Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
                 append("stack.data[stack.ptr++].v = (scl_any) &Var_%s;\n", loadFrom.c_str());
                 debugPrintPush();
             }
@@ -1270,12 +1261,12 @@ namespace sclc {
                         Struct s = getStructByName(result, body[i - 2].getValue());
                         ITER_INC;
                         if (s != Struct("")) {
-                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                                 transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             std::string loadFrom = s.getName() + "$" + body[i].getValue();
                             if (mem.getType() == "float")
                                 append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
@@ -1539,7 +1530,7 @@ namespace sclc {
                                 append("Var_self->%s = (%s) stack.data[--stack.ptr].v;\n", body[i].getValue().c_str(), sclReturnTypeToCReturnType(result, mem.getType()).c_str());
                             return;
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             if (mem.getType() == "float")
                                 append("Var_%s$%s = stack.data[--stack.ptr].f;\n", s.getName().c_str(), body[i].getValue().c_str());
                             else
@@ -1552,12 +1543,12 @@ namespace sclc {
                         Struct s = getStructByName(result, body[i - 2].getValue());
                         ITER_INC;
                         if (s != Struct("")) {
-                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0))) {
+                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                                 transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "", 0));
+                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             std::string loadFrom = s.getName() + "$" + body[i].getValue();
                             if (mem.getType() == "float")
                                 append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
@@ -2608,7 +2599,6 @@ namespace sclc {
                 FPResult err;
                 err.success = false;
                 err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
-                err.column = function->getNameToken().getColumn();
                 err.line = function->getNameToken().getLine();
                 err.in = function->getNameToken().getFile();
                 err.value = function->getNameToken().getValue();
@@ -2647,7 +2637,6 @@ namespace sclc {
                 FPResult err;
                 err.success = false;
                 err.message = "Methods don't support the @nomangle Modifier!";
-                err.column = function->getNameToken().getColumn();
                 err.line = function->getNameToken().getLine();
                 err.in = function->getNameToken().getFile();
                 err.value = function->getNameToken().getValue();
@@ -2680,7 +2669,6 @@ namespace sclc {
                 if (!((Method*)(function))->addAnyway() && getStructByName(result, ((Method*)(function))->getMemberType()).isSealed()) {
                     FPResult result;
                     result.message = "Struct '" + ((Method*)(function))->getMemberType() + "' is sealed!";
-                    result.column = function->getNameToken().getColumn();
                     result.value = function->getNameToken().getValue();
                     result.line = function->getNameToken().getLine();
                     result.in = function->getNameToken().getFile();

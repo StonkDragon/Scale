@@ -254,7 +254,6 @@ namespace sclc
                 r.value = type;
             } else {
                 r.message = "Expected ']', but got '" + body[*i].getValue() + "'";
-                r.column = body[*i].getColumn();
                 r.value = body[*i].getValue();
                 r.line = body[*i].getLine();
                 r.in = body[*i].getFile();
