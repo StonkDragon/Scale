@@ -1,4 +1,4 @@
-using "fmt" from "Core"
+import Scale.fmt
 
 extern function dumpstack(): none
 extern function trace(): none

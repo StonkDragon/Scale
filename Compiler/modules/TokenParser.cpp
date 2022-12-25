@@ -1437,7 +1437,22 @@ namespace sclc
                     continue;
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
-                currentFunction->addToken(token);
+                // if (token.getType() == tok_if || token.getType() == tok_elif) {
+                //     currentFunction->addToken(token);
+                //     Token ifToken = token;
+                //     Function* condition = new Function("$__condition_" + std::to_string(conditionsCount), Token(tok_identifier, "$__condition_" + std::to_string(conditionsCount), 0, "", 0));
+                //     condition->setReturnType("bool");
+                //     condition->setFile(token.getFile());
+                //     i++;
+                //     while (tokens[i].getType() != tok_then) {
+                //         condition->addToken(tokens[i++]);
+                //     }
+                //     functions.push_back(condition);
+                //     currentFunction->addToken(Token(tok_identifier, "$__condition_" + std::to_string(conditionsCount), ifToken.getLine(), ifToken.getFile(), ifToken.getColumn()));
+                //     conditionsCount++;
+                // } else {
+                    currentFunction->addToken(token);
+                // }
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;

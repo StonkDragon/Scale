@@ -410,6 +410,7 @@ namespace sclc {
 
     int scopeDepth = 0;
     size_t i = 0;
+    size_t condCount = 0;
     std::vector<bool> was_rep;
     char repeat_depth = 0;
     int iterator_count = 0;
@@ -544,11 +545,7 @@ namespace sclc {
             lastPushedType = "";
         } else if (body[i].getValue() == "&&") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "!") {
@@ -556,65 +553,37 @@ namespace sclc {
             lastPushedType = "bool";
         } else if (body[i].getValue() == "||") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "<") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == ">") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "==") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "<=") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == ">=") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "!=") {
             append("stack.ptr -= 2;\n");
-            if (i) {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
-            } else {
-                append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack-\n");
-            }
+            append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
             lastPushedType = "bool";
         } else if (body[i].getValue() == "++") {
@@ -1984,7 +1953,6 @@ namespace sclc {
         return tokens;
     }
 
-
     std::string ltrim(const std::string& s) {
         size_t start = s.find_first_not_of(" \t\r\n");
         return (start == std::string::npos) ? "" : s.substr(start);
@@ -2066,11 +2034,22 @@ namespace sclc {
 
     handler(If) {
         noUnused;
-        append("if (stack.data[--stack.ptr].v) {\n");
+        append("{\n");
         scopeDepth++;
-        varDepth++;
+        ITER_INC;
+        while (body[i].getType() != tok_then) {
+            handle(Token);
+            ITER_INC;
+        }
+        append("\n");
+        append("scl_int _passedCondition%zu = 0;\n", condCount++);
+        append("if (stack.data[--stack.ptr].i) {\n");
+        scopeDepth++;
+        append("_passedCondition%zu = 1;\n\n", condCount - 1);
+
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
+        varDepth++;
     }
 
     handler(Else) {
@@ -2083,6 +2062,39 @@ namespace sclc {
         varDepth++;
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
+    }
+
+    handler(Elif) {
+        noUnused;
+        scopeDepth--;
+        varDepth--;
+        vars.pop_back();
+        
+        append("}\n");
+        ITER_INC;
+        while (body[i].getType() != tok_then) {
+            handle(Token);
+            ITER_INC;
+        }
+        append("\n");
+        append("if (_passedCondition%zu) stack.ptr--;\n", condCount - 1);
+        append("else if (stack.data[--stack.ptr].i) {\n");
+        scopeDepth++;
+        append("_passedCondition%zu = 1;\n\n", condCount - 1);
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(Fi) {
+        noUnused;
+        scopeDepth--;
+        varDepth--;
+        append("}\n");
+        scopeDepth--;
+        append("}\n");
+        condCount--;
+        vars.pop_back();
     }
 
     handler(While) {
@@ -2110,7 +2122,6 @@ namespace sclc {
             repeat_depth--;
         }
         if (was_rep.size() > 0) was_rep.pop_back();
-    
     }
 
     handler(Return) {
@@ -2307,6 +2318,8 @@ namespace sclc {
 
         std::string file = body[i].getFile();
 
+        // std::cout << "Function: '" << function->getName() << "' Token: " << body[i].getValue() << std::endl;
+
         if (isOperator(body[i])) {
             FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
             if (!operatorsHandled.success) {
@@ -2391,6 +2404,11 @@ namespace sclc {
                     break;
                 }
 
+                case tok_elif: {
+                    handle(Elif);
+                    break;
+                }
+
                 case tok_while: {
                     handle(While);
                     break;
@@ -2416,8 +2434,12 @@ namespace sclc {
                     break;
                 }
 
+                case tok_fi: {
+                    handle(Fi);
+                    break;
+                }
+
                 case tok_done:
-                case tok_fi:
                 case tok_end: {
                     handle(DoneLike);
                     break;

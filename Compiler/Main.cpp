@@ -505,39 +505,39 @@ namespace sclc
                 return result.errors.size();
             }
 
-            FPResult usingResult = Main.tokenizer->tryFindUsings();
-            if (!usingResult.success) {
-                if (usingResult.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << usingResult.message << std::endl;
+            FPResult importResult = Main.tokenizer->tryImports();
+            if (!importResult.success) {
+                if (importResult.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << importResult.message << std::endl;
                     continue;
                 }
-                FILE* f = fopen(std::string(usingResult.in).c_str(), "r");
+                FILE* f = fopen(std::string(importResult.in).c_str(), "r");
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << usingResult.in << ":" << usingResult.line << ":" << usingResult.column << ": " << usingResult.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
-                    if (i == usingResult.line) {
+                    if (i == importResult.line) {
                         std::cerr << Color::BOLDRED << "> " << Color::RESET;
                         std::string l;
-                        if (usingResult.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + usingResult.value + "\"", Color::BOLDRED + "\"" + usingResult.value + "\"" + Color::RESET, usingResult.column);
-                        } else if (usingResult.type == tok_char_literal) {
+                        if (importResult.type == tok_string_literal) {
+                            l = replaceFirstAfter(line, "\"" + importResult.value + "\"", Color::BOLDRED + "\"" + importResult.value + "\"" + Color::RESET, importResult.column);
+                        } else if (importResult.type == tok_char_literal) {
                             char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(usingResult.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + "'" + c + "'" + Color::RESET, usingResult.column);
+                            snprintf(c, 4, "%c", (char) strtol(importResult.value.c_str(), NULL, 0));
+                            l = replaceFirstAfter(line, std::string("'") + c + "'", Color::BOLDRED + "'" + c + "'" + Color::RESET, importResult.column);
                         } else {
-                            l = replaceFirstAfter(line, usingResult.value, Color::BOLDRED + usingResult.value + Color::RESET, usingResult.column);
+                            l = replaceFirstAfter(line, importResult.value, Color::BOLDRED + importResult.value + Color::RESET, importResult.column);
                         }
                         if (l.at(l.size() - 1) != '\n') {
                             l += '\n';
                         }
                         std::cerr << l;
-                    } else if (i == usingResult.line - 1 || i == usingResult.line - 2) {
+                    } else if (i == importResult.line - 1 || i == importResult.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
-                    } else if (i == usingResult.line + 1 || i == usingResult.line + 2) {
+                    } else if (i == importResult.line + 1 || i == importResult.line + 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
                     }
@@ -557,11 +557,11 @@ namespace sclc
             remove(std::string(filename + ".c").c_str());
         }
 
-
         if (Main.options.preprocessOnly) {
             std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
             return 0;
         }
+
 
         TPResult result;
         if (!Main.options.printCflags) {

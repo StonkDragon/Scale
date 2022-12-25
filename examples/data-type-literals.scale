@@ -1,6 +1,6 @@
-using "util/map" from "Core"
-using "util/pair" from "Core"
-using "util/triple" from "Core"
+import Scale.util.map
+import Scale.util.pair
+import Scale.util.triple
 
 function main(): none
     decl fruits: Array

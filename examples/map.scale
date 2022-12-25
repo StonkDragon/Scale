@@ -1,4 +1,4 @@
-using "util/map" from "Core"
+import Scale.util.map
 
 function main(): none
     decl map: Map ["A": "Apple", "B": "Banana" " " concat "Pineapple" concat] => map

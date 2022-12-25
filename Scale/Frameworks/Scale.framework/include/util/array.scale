@@ -1,4 +1,4 @@
-using "util/iterable" from "Core"
+import Scale.util.iterable
 
 extern function trace(): none
 
@@ -12,7 +12,7 @@ struct Array is Iterable
   extern function sort(): none
 
   function get(index: int): any
-    index 0 <= if self.values @ return fi
+    if index 0 <= then self.values @ return fi
     self.values index 3 << + @ return
   end
 
@@ -27,7 +27,7 @@ struct Array is Iterable
   end
 
   function push(value: any): none
-    self.count self.capacity >= if
+    if self.count self.capacity >= then
       self.capacity 2 * => self.capacity
       self.capacity 8 * self.values realloc
       => self.values
@@ -45,7 +45,7 @@ struct Array is Iterable
 
   function contains(val: any): bool
     for i in 0 to self.count do
-      i self:get val == if
+      if i self:get val == then
         true return
       fi
     done
@@ -53,7 +53,7 @@ struct Array is Iterable
   end
 
   function init(size: int): none
-    size 1 < if
+    if size 1 < then
       "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
     fi
     size 8 * malloc

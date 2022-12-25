@@ -1,5 +1,3 @@
-using "util/array"
-
 function createList(len: int): Array
     decl arr:Array len Array::new => arr
     decl i: int 0 => i

@@ -1,5 +1,5 @@
-using "io" from "Core"
-using "util/array" from "Core"
+import Scale.io
+import Scale.util.array
 
 function sleep(_millis_: int): none
   inline_c
@@ -191,19 +191,19 @@ function strstarts(_s1_: str, _s2_: str): bool
 end
 
 function sizeof(_type_: str): int
-  _type_ "int" strcmp if
+  if _type_ "int" strcmp then
     8 return
   fi
-  _type_ "float" strcmp if
+  if _type_ "float" strcmp then
     8 return
   fi
-  _type_ "none" strcmp if
+  if _type_ "none" strcmp then
     0 return
   fi
-  _type_ "str" strcmp if
+  if _type_ "str" strcmp then
     8 return
   fi
-  _type_ "any" strcmp if
+  if _type_ "any" strcmp then
     8 return
   fi
   -1 return

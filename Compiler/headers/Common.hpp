@@ -133,6 +133,8 @@ namespace sclc
         tok_false,          // false
         tok_nil,            // nil
         tok_if,             // if
+        tok_then,           // then
+        tok_elif,           // elif
         tok_else,           // else
         tok_fi,             // fi
         tok_while,          // while
@@ -585,7 +587,7 @@ namespace sclc
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
-        FPResult tryFindUsings();
+        FPResult tryImports();
     };
     
     class ConvertC {

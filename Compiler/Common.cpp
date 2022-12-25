@@ -153,9 +153,13 @@ namespace sclc
     }
 
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index) {
-        std::string pre = src.substr(0, index - 1);
-        std::string post = src.substr(index + from.length() - 1);
-        return pre + to + post;
+        try {
+            std::string pre = src.substr(0, index - 1);
+            std::string post = src.substr(index + from.length() - 1);
+            return pre + to + post;
+        } catch (std::out_of_range e) {
+            return src;
+        }
     }
 
     int lastIndexOf(char* src, char c) {

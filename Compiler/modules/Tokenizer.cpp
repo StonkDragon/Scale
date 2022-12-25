@@ -295,10 +295,12 @@ namespace sclc
         TOKEN("end",        tok_end, line, filename, startColumn);
         TOKEN("extern",     tok_extern, line, filename, startColumn);
         TOKEN("while",      tok_while, line, filename, startColumn);
-        TOKEN("else",       tok_else, line, filename, startColumn);
         TOKEN("do",         tok_do, line, filename, startColumn);
         TOKEN("done",       tok_done, line, filename, startColumn);
         TOKEN("if",         tok_if, line, filename, startColumn);
+        TOKEN("then",       tok_then, line, filename, startColumn);
+        TOKEN("else",       tok_else, line, filename, startColumn);
+        TOKEN("elif",       tok_elif, line, filename, startColumn);
         TOKEN("fi",         tok_fi, line, filename, startColumn);
         TOKEN("return",     tok_return, line, filename, startColumn);
         TOKEN("break",      tok_break, line, filename, startColumn);
@@ -462,7 +464,7 @@ namespace sclc
     }
 
     FPResult findFileInIncludePath(std::string file);
-    FPResult Tokenizer::tryFindUsings() {
+    FPResult Tokenizer::tryImports() {
         bool inFunction = false;
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].getType() == tok_function) {
@@ -473,42 +475,19 @@ namespace sclc
 
             if (inFunction)
                 continue;
-            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "using" && tokens[i + 1].getType() == tok_string_literal) {
-                std::string file = tokens[i + 1].getValue() + ".scale";
-                std::string fullFile;
-                if (tokens[i + 2].getValue() == "from") {
-                    std::string framework = tokens[i + 3].getValue();
-                    fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
-                } else {
-                    FPResult r = findFileInIncludePath(file);
-                    if (r.success) {
-                        fullFile = r.in;
-                    } else {
-                        return r;
-                    }
-                }
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
-                    Main.options.files.push_back(fullFile);
-                }
-            } else if (tokens[i].getType() == tok_identifier &&
-                       tokens[i].getValue() == "import" &&
-                       tokens[i + 1].getType() == tok_identifier &&
-                       tokens[i + 2].getType() == tok_dot &&
-                       tokens[i + 3].getType() == tok_identifier
-                    ) {
+            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
                 std::string framework = tokens[i].getValue();
                 i += 2;
                 std::string file = tokens[i].getValue();
-                i++;
-                while (tokens[i].getType() == tok_dot) {
+                while (tokens[i + 1].getType() == tok_dot) {
                     i++;
-                    file += "/" + tokens[i].getValue();
-                    i++;
+                    file += "/" + tokens[i + 1].getValue();
                 }
 
                 std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file + ".scale";
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
+                    std::cout << "Importing: " << fullFile << std::endl;
                     Main.options.files.push_back(fullFile);
                 }
             }

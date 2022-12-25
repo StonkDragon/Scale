@@ -1,4 +1,4 @@
-using "util/iterable" from "Core"
+import Scale.util.iterable
 
 @sealed
 struct Range is Iterable
@@ -7,7 +7,7 @@ struct Range is Iterable
   decl _pos: int
 
   function init(_start: int, _end: int): none
-    _start _end > if
+    if _start _end > then
       "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
     fi
 
@@ -17,22 +17,22 @@ struct Range is Iterable
   end
 
   function containsRange(other: Range): int
-    other.lower self:contains other.upper self:contains && if
+    if other.lower self:contains other.upper self:contains && then
       true return
     fi
     false return
   end
 
   function overlaps(other: Range): int
-    other.lower self:contains other.upper self:contains || if
+    if other.lower self:contains other.upper self:contains || then
       true return
     fi
     false return
   end
 
   function contains(pos: int): int
-    pos self.lower >= if
-      pos self.upper <= if
+    if pos self.lower >= then
+      if pos self.upper <= then
         true return
       fi
     fi
@@ -65,7 +65,7 @@ struct ReverseRange is Iterable
   decl _pos: int
 
   function init(_start: int, _end: int): none
-    _start _end < if
+    if _start _end < then
       "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
     fi
       

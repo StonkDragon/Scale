@@ -1,5 +1,5 @@
-using "util/pair" from "Core"
-using "util/iterable" from "Core"
+import Scale.util.pair
+import Scale.util.iterable
 
 @sealed
 struct MapEntry
@@ -31,9 +31,9 @@ struct Map is Iterable
     decl data: Array self._data => data
     for i in 0 to data.count do
       decl entry: MapEntry i data:get => entry
-      entry nil == if continue fi
-      entry.key nil == if continue fi
-      key entry.key strcmp if
+      if entry nil == then continue fi
+      if entry.key nil == then continue fi
+      if key entry.key strcmp then
         entry.value return
       fi
     done
@@ -44,7 +44,7 @@ struct Map is Iterable
     decl data: Array self._data => data
     for i in 0 to data.count do
       decl entry: MapEntry i data:get => entry
-      entry nil == if
+      if entry nil == then
         i key value MapEntry::new data:set
         return
       fi

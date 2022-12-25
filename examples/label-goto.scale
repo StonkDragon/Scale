@@ -6,7 +6,7 @@ function main(): none
     
     i 1 + => i
     i putint
-    i 10 < if
+    if i 10 < then
         goto a
     fi
 end

@@ -29,21 +29,13 @@
 		],
 		"description": "Create a member function of a type"
 	},
-	"Using": {
+	"Import": {
 		"scope": "source.scale",
-		"prefix": "using",
+		"prefix": "import",
 		"body": [
-			"using \"${1:file}\""
+			"import ${1:framework}.${2:file}"
 		],
-		"description": "Using"
-	},
-	"Using-From": {
-		"scope": "source.scale",
-		"prefix": "from",
-		"body": [
-			"using \"${1:file}\" from \"${2:framework}\""
-		],
-		"description": "Using From"
+		"description": "Import"
 	},
 	"Init": {
 		"scope": "source.scale",
@@ -101,9 +93,7 @@
 		"scope": "source.scale",
 		"prefix": "if",
 		"body": [
-			"${1:condition} if",
-			"\t$0",
-			"fi"
+			"if ${1:condition} then"
 		],
 		"description": "If statement"
 	},
@@ -111,9 +101,7 @@
 		"scope": "source.scale",
 		"prefix": "else if",
 		"body": [
-			"else ${1:condition} if",
-			"\t$0",
-			"fi"
+			"elif ${1:condition} then"
 		],
 		"description": "Else If Statement"
 	},
@@ -121,11 +109,17 @@
 		"scope": "source.scale",
 		"prefix": "else",
 		"body": [
-			"else",
-			"\t$0",
-			"fi"
+			"else"
 		],
 		"description": "Else statement"
+	},
+	"Fi Statement": {
+		"scope": "source.scale",
+		"prefix": "fi",
+		"body": [
+			"fi"
+		],
+		"description": "Fi statement"
 	},
 	"Extern Function": {
 		"scope": "source.scale",
@@ -158,6 +152,14 @@
 			"decl ${1:name}: ${2:any}"
 		],
 		"description": "Declare a variable"
+	},
+	"Store New Var": {
+		"scope": "source.scale",
+		"prefix": "storenew",
+		"body": [
+			"=> decl ${1:name}: ${2:any}"
+		],
+		"description": "Declare a variable and store value"
 	},
 	"Address of": {
 		"scope": "source.scale",
