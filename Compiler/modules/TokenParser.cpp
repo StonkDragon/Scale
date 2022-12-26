@@ -961,6 +961,7 @@ namespace sclc
                     continue;
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
+                Token extToken = token;
                 i++;
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
@@ -969,6 +970,7 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(currentStruct->getName(), name, func);
                         function->setFile(func.getFile());
+                        function->isExternC = (extToken.getValue() == "extern_c");
                         static_cast<Method*>(function)->forceAdd(true);
                         for (std::string m : nextAttributes) {
                             function->addModifier(m);
@@ -1097,6 +1099,7 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(member_type, name, func);
                         function->setFile(func.getFile());
+                        function->isExternC = (extToken.getValue() == "extern_c");
                         for (std::string m : nextAttributes) {
                             function->addModifier(m);
                         }
@@ -1209,6 +1212,7 @@ namespace sclc
                         Token funcTok = tokens[i + 1];
                         Function* func = new Function(name, funcTok);
                         func->setFile(funcTok.getFile());
+                        func->isExternC = (extToken.getValue() == "extern_c");
                         i += 2;
                         if (tokens[i].getType() == tok_paren_open) {
                             i++;

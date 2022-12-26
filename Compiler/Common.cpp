@@ -154,8 +154,12 @@ namespace sclc
 
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index) {
         try {
-            std::string pre = src.substr(0, index - 1);
-            std::string post = src.substr(index + from.length() - 1);
+            size_t actual = src.find(from, index);
+            if (actual == std::string::npos) {
+                return src;
+            }
+            std::string pre = src.substr(0, actual);
+            std::string post = src.substr(actual + from.length());
             return pre + to + post;
         } catch (std::out_of_range const&) {
             return src;

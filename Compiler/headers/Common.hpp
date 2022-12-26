@@ -303,6 +303,7 @@ namespace sclc
         Token nameToken;
     public:
         bool isMethod;
+        bool isExternC;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}

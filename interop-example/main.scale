@@ -1,6 +1,6 @@
 
 # extern function imported from C
-extern function foo(): none
+extern_c function foo(): none
 
 # nomangle Modifier to export function to C
 @nomangle

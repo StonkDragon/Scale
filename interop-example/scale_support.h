@@ -2,7 +2,7 @@
 
 #define scl_export(func_name) \
     void func_name (void); \
-    void Function_ ## func_name (void) __asm("fnct_" #func_name "_sIargs__sItype_none"); \
+    void Function_ ## func_name (void) __asm("_Function_" #func_name); \
     void Function_ ## func_name () { func_name (); } \
     void func_name (void)
 

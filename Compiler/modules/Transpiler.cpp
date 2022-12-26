@@ -9,23 +9,6 @@ namespace sclc {
     FILE* nomangled;
     FILE* symbolTable;
 
-    void ConvertC::writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
-        int scopeDepth = 0;
-        append("#ifdef __cplusplus\n");
-        append("extern \"C\" {\n");
-        append("#endif\n");
-
-        append("\n");
-        append("/* HEADERS */\n");
-        append("#include <scale_internal.h>\n");
-        for (std::string header : Main.frameworkNativeHeaders) {
-            append("#include <%s>\n", header.c_str());
-        }
-        append("\n");
-    }
-
     bool hasTypealias(TPResult r, std::string t) {
         using spair = std::pair<std::string, std::string>;
         for (spair p : r.typealiases) {
@@ -101,18 +84,21 @@ namespace sclc {
 
     std::string typeToASCII(std::string v) {
         if (v.at(0) == '[') {
-            return "_sIptrType_" + typeToASCII(v.substr(1, v.length() - 2));
+            return "_sclPtrTo_" + typeToASCII(v.substr(1, v.length() - 2));
         }
         if (v == "?") {
-            return "_sIwildcard";
+            return "_sclWildcard";
         }
         return v;
     }
 
     std::string generateSymbolForFunction(Function* f) {
-        std::string symbol = "fnct_" + f->getName();
+        std::string symbol = "function_" + f->getName();
+        if (f->getName().find('$') != std::string::npos) {
+            symbol = "static_" + f->getName().substr(0, f->getName().find('$')) + "_function_" + f->getName().substr(f->getName().find('$') + 1);
+        }
         if (f->isMethod) {
-            symbol = "mthd_" + static_cast<Method*>(f)->getMemberType() + "_" + symbol;
+            symbol = "method_" + static_cast<Method*>(f)->getMemberType() + "_" + symbol;
         }
         std::string arguments = "";
         if (f->getArgs().size() > 0) {
@@ -128,17 +114,59 @@ namespace sclc {
                 arguments += typeToASCII(f->getArgs()[i].getType());
             }
         }
-        symbol += "_sIargs_" + arguments + "_sItype_" + typeToASCII(f->getReturnType());
+        symbol += "_sclArgs_" + arguments + "_sclType_" + typeToASCII(f->getReturnType());
+        if (f->isExternC) {
+            if (f->isMethod) {
+                symbol = "_Method_" + static_cast<Method*>(f)->getMemberType() + "_" + f->getName();
+            } else {
+                symbol = "_Function_" + f->getName();
+            }
+        }
 
         if (Main.options.transpileOnly && symbolTable) {
             if (f->isMethod) {
                 fprintf(symbolTable, "Symbol for Method %s:%s: '%s'\n", static_cast<Method*>(f)->getMemberType().c_str(), f->getName().c_str(), symbol.c_str());
             } else {
-                fprintf(symbolTable, "Symbol for Function %s: '%s'\n", f->getName().c_str(), symbol.c_str());
+                fprintf(symbolTable, "Symbol for Function %s: '%s'\n", replaceFirstAfter(f->getName(), "$", "::", 0).c_str(), symbol.c_str());
             }
         }
 
         return symbol;
+    }
+
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+        std::vector<std::string> tokens;
+        size_t start = 0;
+        size_t end = 0;
+        while ((end = str.find(delimiter, start)) != std::string::npos)
+        {
+            tokens.push_back(str.substr(start, end - start));
+            start = end + delimiter.length();
+        }
+        tokens.push_back(str.substr(start));
+        return tokens;
+    }
+
+    std::string ltrim(const std::string& s) {
+        size_t start = s.find_first_not_of(" \t\r\n");
+        return (start == std::string::npos) ? "" : s.substr(start);
+    }
+
+    void ConvertC::writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        (void) errors;
+        (void) warns;
+        int scopeDepth = 0;
+        append("#ifdef __cplusplus\n");
+        append("extern \"C\" {\n");
+        append("#endif\n");
+
+        append("\n");
+        append("/* HEADERS */\n");
+        append("#include <scale_internal.h>\n");
+        for (std::string header : Main.frameworkNativeHeaders) {
+            append("#include <%s>\n", header.c_str());
+        }
+        append("\n");
     }
 
     void ConvertC::writeFunctionHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -156,7 +184,7 @@ namespace sclc {
 
             fprintf(nomangled, "#define scl_export(func_name) \\\n");
             fprintf(nomangled, "    void func_name (void); \\\n");
-            fprintf(nomangled, "    void Function_ ## func_name (void) __asm(\"fnct_\" #func_name \"_sIargs__sItype_none\"); \\\n");
+            fprintf(nomangled, "    void Function_ ## func_name (void) __asm(\"_Function_\" #func_name); \\\n");
             fprintf(nomangled, "    void Function_ ## func_name () { func_name (); } \\\n");
             fprintf(nomangled, "    void func_name (void)\n\n");
             fprintf(nomangled, "#define ssize_t signed long\n");
@@ -1926,24 +1954,6 @@ namespace sclc {
         append("%s\n", s.c_str());
     }
 
-    std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
-        std::vector<std::string> tokens;
-        size_t start = 0;
-        size_t end = 0;
-        while ((end = str.find(delimiter, start)) != std::string::npos)
-        {
-            tokens.push_back(str.substr(start, end - start));
-            start = end + delimiter.length();
-        }
-        tokens.push_back(str.substr(start));
-        return tokens;
-    }
-
-    std::string ltrim(const std::string& s) {
-        size_t start = s.find_first_not_of(" \t\r\n");
-        return (start == std::string::npos) ? "" : s.substr(start);
-    }
-
     handler(ExternC) {
         noUnused;
         append("{// Start C\n");
@@ -2525,7 +2535,7 @@ namespace sclc {
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
         append("extern scl_stack_t stack;\n");
-        append("extern scl_stack_t  callstk;\n\n");
+        append("extern scl_stack_t callstk;\n\n");
 
         append("/* LOOP STRUCTS */\n");
         append("struct scltype_iterable {\n");
