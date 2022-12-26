@@ -1,6 +1,5 @@
 import Scale.util.iterable
-
-extern function trace(): none
+import Scale.debug
 
 @sealed
 struct Array is Iterable
@@ -9,7 +8,26 @@ struct Array is Iterable
   decl capacity: int
   decl _pos: int
   
-  extern function sort(): none
+  function sort(): none
+    inline_c
+      scl_int i = 0;
+      while (i < (scl_int) (*self)->capacity) {
+        scl_int speicher = (scl_int) Method_Array_get((*self), i);
+        scl_int j = i - 1;
+        while (j >= 0) {
+          if (speicher < (scl_int) Method_Array_get((*self), j)) {
+            Method_Array_set((*self), Method_Array_get((*self), j), j + 1);
+            Method_Array_set((*self), (scl_any) speicher, j);
+          } else {
+            Method_Array_set((*self), (scl_any) speicher, j + 1);
+            break;
+          }
+          j--;
+        }
+        i++;
+      }
+    end_inline
+  end
 
   function get(index: int): any
     if index 0 <= then self.values @ return fi

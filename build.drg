@@ -15,6 +15,7 @@ build: {
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
+    "modules/InfoDumper.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";

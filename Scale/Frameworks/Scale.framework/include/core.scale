@@ -53,6 +53,20 @@ function realloc(_size_: int, _ptr_: [any]): [any]
   _ptr_ return
 end
 
+function memset(ptr: [any], val: int, len: int): [any]
+  inline_c
+    stack.data[stack.ptr++].v = memset(*ptr, *val, *len);
+  end_inline
+  return
+end
+
+function memcpy(dst: [any], src: [any], n: int): [any]
+  inline_c
+    stack.data[stack.ptr++].v = memcpy(*dst, *src, *n);
+  end_inline
+  return
+end
+
 function free(_ptr_: [any]): none
   inline_c
     scl_free(*_ptr_);
