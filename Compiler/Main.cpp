@@ -195,6 +195,8 @@ namespace sclc
                     Main.options.debugBuild = true;
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
+                } else if (args[i] == "--dump-parsed-data") {
+                    Main.options.dumpInfo = true;
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
@@ -396,13 +398,13 @@ namespace sclc
             }
         }
 
-        if (!Main.options.doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+        if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
         std::vector<Token>  tokens;
 
         for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
             std::string filename = Main.options.files[i];
-            if (!Main.options.doRun) {
+            if (!Main.options.doRun && !Main.options.dumpInfo) {
                 std::cout << "Compiling ";
                 if (strncmp(filename.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
                     std::cout << std::string(filename.c_str() + scaleFolder.size() + 12);
@@ -426,11 +428,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -455,11 +457,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -487,11 +489,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ": " << importResult.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == importResult.line) {
-                        std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, importResult.value, Color::BOLDRED + importResult.value + Color::RESET, importResult.column) << Color::RESET;
                     } else if (i == importResult.line - 1 || i == importResult.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -520,7 +522,6 @@ namespace sclc
             return 0;
         }
 
-
         TPResult result;
         if (!Main.options.printCflags) {
             TokenParser lexer(tokens);
@@ -538,11 +539,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == error.line) {
-                        std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
+                        std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
                     } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -567,11 +568,11 @@ namespace sclc
                 char* line = (char*) malloc(sizeof(char) * 500);
                 int i = 1;
                 fseek(f, 0, SEEK_SET);
-                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == error.line) {
-                        std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                     } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -586,6 +587,11 @@ namespace sclc
                 free(line);
             }
             return result.errors.size();
+        }
+
+        if (Main.options.dumpInfo) {
+            InfoDumper::dump(result);
+            return 0;
         }
 
         std::string source = "out.c";
@@ -606,11 +612,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << line << Color::RESET;
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -635,11 +641,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ": " << error.value << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << line << Color::RESET;
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;

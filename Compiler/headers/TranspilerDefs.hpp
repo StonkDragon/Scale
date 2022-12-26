@@ -3,6 +3,7 @@
     err.success = false;                 \
     err.message = msg;                   \
     err.line = body[(at)].getLine();     \
+    err.column = body[(at)].getColumn(); \
     err.in = body[(at)].getFile();       \
     err.value = body[(at)].getValue();   \
     err.type = body[(at)].getType()

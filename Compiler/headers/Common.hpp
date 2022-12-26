@@ -8,7 +8,7 @@
 #include <regex>
 #include <unordered_map>
 
-#define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file)
+#define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 #define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
 
 #undef INT_MAX
@@ -214,6 +214,7 @@ namespace sclc
         int line;
         std::string file;
         std::string value;
+        int column;
     public:
         std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
@@ -222,6 +223,12 @@ namespace sclc
         Token(TokenType type, std::string value, int line, std::string file) : type(type), value(value) {
             this->line = line;
             this->file = file;
+            this->column = 0;
+        }
+        Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
+            this->line = line;
+            this->file = file;
+            this->column = column;
         }
         std::string getValue() {
             return value;
@@ -234,6 +241,9 @@ namespace sclc
         }
         std::string getFile() {
             return file;
+        }
+        int getColumn() {
+            return this->column;
         }
     };
 
@@ -568,6 +578,11 @@ namespace sclc
         TPResult getResult();
     };
 
+    class InfoDumper {
+    public:
+        static void dump(TPResult result);
+    };
+
     class Tokenizer
     {
         std::vector<Token> tokens;
@@ -613,6 +628,7 @@ namespace sclc
             bool dontSpecifyOutFile;
             bool preprocessOnly;
             bool Werror;
+            bool dumpInfo;
             std::string optimizer;
             std::vector<std::string> files;
             std::vector<std::string> includePaths;

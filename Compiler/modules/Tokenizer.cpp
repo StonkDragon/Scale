@@ -23,24 +23,31 @@ namespace sclc
     }
 
     static int line = 1;
+    static int column = 1;
+    static int begin = 1;
     static std::string filename;
     static bool inFunction = false;
     static bool isExtern = false;
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
-            return Token(tok_eof, "", line, filename);
+            return Token(tok_eof, "", line, filename, begin);
         }
         char c = source[current];
-        if (c == '\n') line++;
+        if (c == '\n') {
+            line++;
+            column = 0;
+        }
         std::string value = "";
+
+        begin = column;
 
         if (isCharacter(c)) {
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
                 value += c;
                 current++;
+                column++;
                 c = source[current];
-                if (c == '\n') line++;
             }
         } else if ((c == '-' && (isDigit(source[current + 1]) || isHexDigit(source[current + 1]) || isOctDigit(source[current + 1]) || isBinDigit(source[current + 1]) || (source[current + 1] == '.' && isDigit(source[current + 2])))) || isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || (c == '.' && isDigit(source[current + 1]))) {
             bool isFloat = false;
@@ -49,23 +56,23 @@ namespace sclc
             }
             value += c;
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
             while ((!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c))) || c == '.') {
                 value += c;
                 if (c == '.') {
                     isFloat = true;
                 }
                 c = source[++current];
-                if (c == '\n') line++;
+                column++;
             }
             if (isFloat) {
-                return Token(tok_number_float, value, line, filename);
+                return Token(tok_number_float, value, line, filename, begin);
             } else {
-                return Token(tok_number, value, line, filename);
+                return Token(tok_number, value, line, filename, begin);
             }
         } else if (c == '"') {
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
                     syntaxError("Unterminated string");
@@ -73,7 +80,7 @@ namespace sclc
                 
                 if (c == '\\') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     switch (c)
                     {
                         case '0':
@@ -85,7 +92,7 @@ namespace sclc
                             value += '\\';
                             value += c;
                             c = source[++current];
-                            if (c == '\n') line++;
+                            column++;
                             break;
                         
                         default:
@@ -95,52 +102,53 @@ namespace sclc
                 } else {
                     value += c;
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                 }
             }
             current++;
-            return Token(tok_string_literal, value, line, filename);
+            column++;
+            return Token(tok_string_literal, value, line, filename, begin);
         } else if (c == '\'') {
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
             if (c == '\\') {
                 c = source[++current];
-                if (c == '\n') line++;
+                column++;
                 if (c == 'n') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\n');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == 't') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\t');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == 'r') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\r');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == '\\') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\\');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == '\'') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\'');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == '\"') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\"');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else if (c == '0') {
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", '\0');
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else {
                     syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
                 }
@@ -149,7 +157,7 @@ namespace sclc
                     char* iStr = (char*) malloc(4);
                     snprintf(iStr, 23, "%d", c);
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename);
+                    return Token(tok_char_literal, iStr, line, filename, begin);
                 } else {
                     syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
                 }
@@ -159,18 +167,18 @@ namespace sclc
             if (c == '>') {
                 if (source[current + 1] == '>' || source[current + 1] == '=') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '<') {
                 if (source[current + 1] == '<' || source[current + 1] == '=') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '=') {
                 c = source[++current];
-                if (c == '\n') line++;
+                column++;
                 if (c == '=' || c == '>') {
                     value += c;
                 } else {
@@ -179,46 +187,46 @@ namespace sclc
             } else if (c == '*') {
                 if (source[current + 1] == '*') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '-') {
                 if (source[current + 1] == '-') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '+') {
                 if (source[current + 1] == '+') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '!') {
                 if (source[current + 1] == '=') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '&') {
                 if (source[current + 1] == '&') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             } else if (c == '|') {
                 if (source[current + 1] == '|') {
                     c = source[++current];
-                    if (c == '\n') line++;
+                    column++;
                     value += c;
                 }
             }
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
         } else if (c == '.') {
             value += c;
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
             switch (c)
             {
             case '+':
@@ -227,18 +235,19 @@ namespace sclc
             case '/':
                 value += c;
                 c = source[++current];
-                if (c == '\n') line++;
+                column++;
                 break;
             }
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
-            if (c == '\n') line++;
+            column++;
         }
 
         // Not a known token, so probably a space character
         if (value == "") {
             current++;
+            column++;
             return nextToken();
         }
 
@@ -259,13 +268,18 @@ namespace sclc
         if (value == "inline_c") {
             value = "";
             int startLine = line;
+            int startColumn = column;
             while (strncmp("end_inline", (source + current), strlen("end_inline")) != 0) {
                 value += c;
                 c = source[current++];
-                if (c == '\n') line++;
+                column++;
+                if (c == '\n') {
+                    line++;
+                    column = 0;
+                }
             }
             current += strlen("end_inline");
-            return Token(tok_extern_c, value, startLine, filename);
+            return Token(tok_extern_c, value, startLine, filename, startColumn);
         }
 
         TOKEN("function",   tok_function, line, filename);
@@ -354,9 +368,9 @@ namespace sclc
         TOKEN("--",         tok_identifier, line, filename);
 
         if (current >= strlen(source)) {
-            return Token(tok_eof, "", line, filename);
+            return Token(tok_eof, "", line, filename, begin);
         }
-        return Token(tok_identifier, value, line, filename);
+        return Token(tok_identifier, value, line, filename, begin);
     }
 
     FPResult Tokenizer::tokenize(std::string source) {
@@ -452,8 +466,20 @@ namespace sclc
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
                 std::string framework = tokens[i].getValue();
+                if (std::find(Main.frameworks.begin(), Main.frameworks.end(), framework) == Main.frameworks.end()) {
+                    FPResult r;
+                    r.message = "Could not find Framework '" + framework + "'";
+                    r.in = tokens[i].getFile();
+                    r.column = tokens[i].getColumn();
+                    r.line = tokens[i].getLine();
+                    r.type = tokens[i].getType();
+                    r.value = tokens[i].getValue();
+                    r.success = false;
+                    return r;
+                }
                 i += 2;
                 std::string file = tokens[i].getValue();
+                Token firstFileToken = tokens[i];
                 while (tokens[i + 1].getType() == tok_dot) {
                     i++;
                     file += "/" + tokens[i + 1].getValue();
@@ -461,7 +487,17 @@ namespace sclc
 
                 std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file + ".scale";
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
-                    std::cout << "Importing: " << fullFile << std::endl;
+                    if (!fileExists(fullFile)) {
+                        FPResult r;
+                        r.message = "Could not find File '" + file + "' in framework '" + framework + "'";
+                        r.in = firstFileToken.getFile();
+                        r.column = firstFileToken.getColumn();
+                        r.line = firstFileToken.getLine();
+                        r.type = firstFileToken.getType();
+                        r.value = firstFileToken.getValue();
+                        r.success = false;
+                        return r;
+                    }
                     Main.options.files.push_back(fullFile);
                 }
             }

@@ -331,6 +331,7 @@ namespace sclc {
                     res.message = "Struct '" + c.getName() + "' implements unknown interface '" + i + "'";
                     res.line = t.getLine();
                     res.in = t.getFile();
+                    res.column = t.getColumn();
                     res.value = t.getValue();
                     res.type = t.getType();
                     errors.push_back(res);
@@ -344,6 +345,7 @@ namespace sclc {
                         res.message = "No implementation for method '" + f->getName() + "' on struct '" + c.getName() + "'";
                         res.line = t.getLine();
                         res.in = t.getFile();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
@@ -357,6 +359,7 @@ namespace sclc {
                         res.message = "Arguments of method '" + c.getName() + ":" + m->getName() + "' do not match implemented method '" + f->getName() + "'";
                         res.line = t.getLine();
                         res.in = t.getFile();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
@@ -369,6 +372,7 @@ namespace sclc {
                         res.message = "Return type of method '" + c.getName() + ":" + m->getName() + "' does not match implemented method '" + f->getName() + "'. Return type should be: '" + f->getReturnType() + "'";
                         res.line = t.getLine();
                         res.in = t.getFile();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
@@ -879,25 +883,13 @@ namespace sclc {
         ITER_INC;
         Token var = body[i];
         if (var.getType() != tok_identifier) {
-            FPResult result;
-            result.message = "Expected identifier, but got: '" + var.getValue() + "'";
-            result.success = false;
-            result.line = var.getLine();
-            result.in = var.getFile();
-            result.value = var.getValue();
-            result.type = var.getType();
-            errors.push_back(result);
+            transpilerError("Expected identifier, but got: '" + var.getValue() + "'", i);
+            errors.push_back(err);
         }
         ITER_INC;
         if (body[i].getType() != tok_in) {
-            FPResult result;
-            result.message = "Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'";
-            result.success = false;
-            result.line = body[i].getLine();
-            result.in = body[i].getFile();
-            result.value = body[i].getValue();
-            result.type = body[i].getType();
-            errors.push_back(result);
+            transpilerError("Expected 'in' keyword in for loop header, but got: '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
         }
         ITER_INC;
         append("struct scltype_iterable __it%d = (struct scltype_iterable) {0, 0};\n", iterator_count);
@@ -1016,6 +1008,7 @@ namespace sclc {
             result.success = false;
             result.line = var.getLine();
             result.in = var.getFile();
+            result.column = var.getColumn();
             result.value = var.getValue();
             result.type =  var.getType();
             warns.push_back(result);
@@ -1026,6 +1019,7 @@ namespace sclc {
             result.success = false;
             result.line = var.getLine();
             result.in = var.getFile();
+            result.column = var.getColumn();
             result.value = var.getValue();
             result.type =  var.getType();
             warns.push_back(result);
@@ -1036,6 +1030,7 @@ namespace sclc {
             result.success = false;
             result.line = var.getLine();
             result.in = var.getFile();
+            result.column = var.getColumn();
             result.value = var.getValue();
             result.type =  var.getType();
             warns.push_back(result);
@@ -2601,6 +2596,7 @@ namespace sclc {
                 err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
                 err.line = function->getNameToken().getLine();
                 err.in = function->getNameToken().getFile();
+                err.column = function->getNameToken().getColumn();
                 err.value = function->getNameToken().getValue();
                 err.type = function->getNameToken().getType();
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
@@ -2639,6 +2635,7 @@ namespace sclc {
                 err.message = "Methods don't support the @nomangle Modifier!";
                 err.line = function->getNameToken().getLine();
                 err.in = function->getNameToken().getFile();
+                err.column = function->getNameToken().getColumn();
                 err.value = function->getNameToken().getValue();
                 err.type = function->getNameToken().getType();
                 errors.push_back(err);
@@ -2672,6 +2669,7 @@ namespace sclc {
                     result.value = function->getNameToken().getValue();
                     result.line = function->getNameToken().getLine();
                     result.in = function->getNameToken().getFile();
+                    result.column = function->getNameToken().getColumn();
                     result.type = function->getNameToken().getType();
                     result.success = false;
                     errors.push_back(result);
