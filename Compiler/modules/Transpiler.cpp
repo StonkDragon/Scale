@@ -942,10 +942,10 @@ namespace sclc {
                 iterator_direction = " -= ";
                 if (body[i].getType() == tok_number) {
                     iterator_direction += body[i].getValue();
-                } else if (body[i].getValue() == "+") {
+                } else if (body[i].getValue() == "-") {
                     iterator_direction = "--";
                 } else {
-                    transpilerError("Expected number, but got '" + body[i].getValue() + "'", i);
+                    transpilerError("Expected number or '-', but got '" + body[i].getValue() + "'", i);
                     errors.push_back(err);
                 }
             } else if (val == "*") {
