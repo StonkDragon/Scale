@@ -1,26 +1,22 @@
      266 Compiler/Common.cpp
-     736 Compiler/Main.cpp
-     670 Compiler/headers/Common.hpp
+     742 Compiler/Main.cpp
+     686 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
-      12 Compiler/headers/TranspilerDefs.hpp
+      13 Compiler/headers/TranspilerDefs.hpp
      345 Compiler/modules/DragonConfig.cpp
       67 Compiler/modules/Function.cpp
      228 Compiler/modules/FunctionParser.cpp
-      75 Compiler/modules/TokenHandlers.cpp
+      77 Compiler/modules/TokenHandlers.cpp
     1524 Compiler/modules/TokenParser.cpp
-     492 Compiler/modules/Tokenizer.cpp
-    2702 Compiler/modules/Transpiler.cpp
-      20 Scale/Frameworks/Scale.framework/impl/array.c
-      21 Scale/Frameworks/Scale.framework/impl/array.h
-      76 Scale/Frameworks/Scale.framework/impl/scale.c
-      51 Scale/Frameworks/Scale.framework/impl/scale.h
-     232 Scale/Frameworks/Scale.framework/include/core.scale
-       9 Scale/Frameworks/Scale.framework/include/debug.scale
+     528 Compiler/modules/Tokenizer.cpp
+    2700 Compiler/modules/Transpiler.cpp
+     246 Scale/Frameworks/Scale.framework/include/core.scale
+      50 Scale/Frameworks/Scale.framework/include/debug.scale
       73 Scale/Frameworks/Scale.framework/include/file.scale
       13 Scale/Frameworks/Scale.framework/include/fmt.scale
       41 Scale/Frameworks/Scale.framework/include/io.scale
      177 Scale/Frameworks/Scale.framework/include/math.scale
-      80 Scale/Frameworks/Scale.framework/include/util/array.scale
+      98 Scale/Frameworks/Scale.framework/include/util/array.scale
        5 Scale/Frameworks/Scale.framework/include/util/iterable.scale
       68 Scale/Frameworks/Scale.framework/include/util/map.scale
        9 Scale/Frameworks/Scale.framework/include/util/pair.scale
@@ -55,4 +51,4 @@
        9 interop-example/foo.c
       16 interop-example/main.scale
       17 interop-example/scale_support.h
-    8878 total
+    8842 total
