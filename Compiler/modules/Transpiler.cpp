@@ -644,6 +644,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
+                lastPushedType = "str";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -653,6 +654,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", body[i].getValue().c_str());
+                lastPushedType = "str";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -662,21 +664,27 @@ namespace sclc {
             ITER_INC;
             if (body[i].getValue() == "int") {
                 append("stack.data[stack.ptr++].i = 8;\n");
+                lastPushedType = "int";
                 return;
             } else if (body[i].getValue() == "int") {
                 append("stack.data[stack.ptr++].i = 8;\n");
+                lastPushedType = "int";
                 return;
             } else if (body[i].getValue() == "float") {
                 append("stack.data[stack.ptr++].i = 8;\n");
+                lastPushedType = "int";
                 return;
             } else if (body[i].getValue() == "str") {
                 append("stack.data[stack.ptr++].i = 8;\n");
+                lastPushedType = "int";
                 return;
             } else if (body[i].getValue() == "any") {
                 append("stack.data[stack.ptr++].i = 8;\n");
+                lastPushedType = "int";
                 return;
             } else if (body[i].getValue() == "none") {
                 append("stack.data[stack.ptr++].i = 0;\n");
+                lastPushedType = "int";
                 return;
             }
             if (hasVar(body[i])) {
@@ -690,6 +698,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
+            lastPushedType = "int";
     #ifdef __APPLE__
     #pragma endregion
     #endif
