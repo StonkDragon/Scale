@@ -47,5 +47,26 @@ build_command += "-o target/sclc -DVERSION=\\\"{VERSION}\\\""
 
 print(build_command)
 os.system(build_command)
+shutil.rmtree("Compiler")
 
-shutil.move("target/sclc", SCALE_INSTALL_DIR)
+print(f"Moving Executable to '{SCALE_INSTALL_DIR}'")
+try:
+    shutil.move("target/sclc", SCALE_INSTALL_DIR)
+except:
+    print(f"There was an error trying to move the exectuable to {SCALE_INSTALL_DIR}")
+    print(f"Please move the file in 'target' manually to {SCALE_INSTALL_DIR}")
+    input("Press enter once moved...")
+
+print(f"Moving Files to '{SCALE_DATA_DIR}'")
+shutil.move("Scale", SCALE_DATA_DIR)
+
+print("Checking for VSCode installation")
+if os.path.exists(f"{HOME}/.vscode"):
+    print(f"Found VSCode installation in {HOME}/.vscode")
+    shutil.move("scale.vscodeextension", f"{HOME}/.vscode")
+elif os.path.exists(f"{HOME}/.vscode-insiders"):
+    print(f"Found VSCode installation in {HOME}/.vscode-insiders")
+    shutil.move("scale.vscodeextension", f"{HOME}/.vscode-insiders")
+else:
+    print("VSCode not found.")
+    print("It is strongly suggested that you use VSCode for Scale Development.")
