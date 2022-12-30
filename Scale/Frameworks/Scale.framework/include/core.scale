@@ -244,3 +244,11 @@ function toChars(_str_: str): Array
   done
   _arr_ return 0
 end
+
+function isnil(x: any): bool
+  x nil == return
+end
+
+function isnotnil(x: any): bool
+  x nil != return
+end
