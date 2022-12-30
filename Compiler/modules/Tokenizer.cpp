@@ -3,8 +3,15 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <filesystem>
 
 #include "../headers/Common.hpp"
+
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
 
 #define syntaxError(msg) \
     do { \
@@ -21,13 +28,6 @@ namespace sclc
     std::vector<Token> Tokenizer::getTokens() {
         return this->tokens;
     }
-
-    static int line = 1;
-    static int column = 1;
-    static int begin = 1;
-    static std::string filename;
-    static bool inFunction = false;
-    static bool isExtern = false;
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -49,15 +49,12 @@ namespace sclc
                 column++;
                 c = source[current];
             }
-        } else if ((c == '-' && (isDigit(source[current + 1]) || isHexDigit(source[current + 1]) || isOctDigit(source[current + 1]) || isBinDigit(source[current + 1]) || (source[current + 1] == '.' && isDigit(source[current + 2])))) || isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c) || (c == '.' && isDigit(source[current + 1]))) {
+        } else if ((c == '-' && isHexDigit(source[current + 1])) || isHexDigit(c)) {
             bool isFloat = false;
-            if (c == '.') {
-                isFloat = true;
-            }
             value += c;
             c = source[++current];
             column++;
-            while ((!isSpace(c) && (isDigit(c) || isHexDigit(c) || isOctDigit(c) || isBinDigit(c))) || c == '.') {
+            while ((!isSpace(c) && isHexDigit(c)) || (c == '.' && !isFloat)) {
                 value += c;
                 if (c == '.') {
                     isFloat = true;
@@ -76,13 +73,13 @@ namespace sclc
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
                     syntaxError("Unterminated string");
+                    break;
                 }
                 
                 if (c == '\\') {
                     c = source[++current];
                     column++;
-                    switch (c)
-                    {
+                    switch (c) {
                         case '0':
                         case 't':
                         case 'r':
@@ -162,7 +159,7 @@ namespace sclc
                     syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
                 }
             }
-        } else if (isOperator(c) && value != "-") {
+        } else if (isOperator(c) /* && value != "-" */) {
             value += c;
             if (c == '>') {
                 if (source[current + 1] == '>' || source[current + 1] == '=') {
@@ -220,6 +217,12 @@ namespace sclc
                     column++;
                     value += c;
                 }
+            } else if (c == ':') {
+                if (source[current + 1] == ':') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
             }
             c = source[++current];
             column++;
@@ -250,11 +253,6 @@ namespace sclc
             column++;
             return nextToken();
         }
-
-        if (value == "function" && !isExtern) inFunction = true;
-        if (value == "end") inFunction = false;
-        if (value == "extern") isExtern = true;
-        else isExtern = false;
 
         if (value == "store") {
             FPResult result;
@@ -325,11 +323,7 @@ namespace sclc
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
         
-        if (inFunction) {
-            TOKEN("@",      tok_addr_of, line, filename);
-        } else {
-            TOKEN("@",      tok_hash, line, filename);
-        }
+        TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);
         TOKEN("(",          tok_paren_open, line, filename);
         TOKEN(")",          tok_paren_close, line, filename);
@@ -339,6 +333,7 @@ namespace sclc
         TOKEN("]",          tok_bracket_close, line, filename);
         TOKEN(",",          tok_comma, line, filename);
         TOKEN(":",          tok_column, line, filename);
+        TOKEN("::",         tok_double_column, line, filename);
         TOKEN("+",          tok_add, line, filename);
         TOKEN("-",          tok_sub, line, filename);
         TOKEN("*",          tok_mul, line, filename);
@@ -483,10 +478,10 @@ namespace sclc
                 Token firstFileToken = tokens[i];
                 while (tokens[i + 1].getType() == tok_dot) {
                     i++;
-                    file += "/" + tokens[i + 1].getValue();
+                    file += PATH_SEPARATOR + tokens[i + 1].getValue();
                 }
 
-                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file + ".scale";
+                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + PATH_SEPARATOR + file + ".scale";
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
                     if (!fileExists(fullFile)) {
                         FPResult r;
@@ -501,6 +496,23 @@ namespace sclc
                     }
                     Main.options.files.push_back(fullFile);
                 }
+            } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "include") {
+                i++;
+                std::string file = std::filesystem::path(tokens[i].getFile()).parent_path().string() + PATH_SEPARATOR + tokens[i].getValue();
+                if (!fileExists(file)) {
+                    FPResult r;
+                    r.message = "Could not find File '" + file + "'";
+                    r.in = tokens[i].getFile();
+                    r.column = tokens[i].getColumn();
+                    r.line = tokens[i].getLine();
+                    r.type = tokens[i].getType();
+                    r.value = tokens[i].getValue();
+                    r.success = false;
+                    return r;
+                }
+                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                    Main.options.files.push_back(file);
+                }
             }
         }
         FPResult r;
@@ -510,13 +522,13 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
-            if (fileExists(path + "/" + file)) {
+            if (fileExists(path + PATH_SEPARATOR + file)) {
                 FPResult r;
                 r.success = true;
                 if (path == "." || path == "./") {
                     r.in = file;
                 } else {
-                    r.in = path + "/" + file;
+                    r.in = path + PATH_SEPARATOR + file;
                 }
                 return r;
             }

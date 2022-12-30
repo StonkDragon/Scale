@@ -77,15 +77,21 @@ namespace sclc
     }
 
     int isCharacter(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+        return (c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') ||
+            c == '_';
     }
 
     int isDigit(char c) {
-        return c >= '0' && c <= '9';
+        return c >= '0' &&
+            c <= '9';
     }
 
     int isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+        return c == ' ' ||
+            c == '\t' ||
+            c == '\n' ||
+            c == '\r';
     }
 
     int isPrint(char c) {
@@ -93,23 +99,55 @@ namespace sclc
     }
 
     int isBracket(char c) {
-        return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
+        return c == '(' ||
+            c == ')' ||
+            c == '{' ||
+            c == '}' ||
+            c == '[' ||
+            c == ']';
     }
 
     int isHexDigit(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == 'x' || c == 'X';
+        return (c >= '0' && c <= '9') ||
+            (c >= 'a' && c <= 'f') ||
+            (c >= 'A' && c <= 'F') ||
+            c == 'x' ||
+            c == 'X';
     }
 
     int isOctDigit(char c) {
-        return (c >= '0' && c <= '7') || c == 'o' || c == 'O';
+        return (c >= '0' && c <= '7') ||
+            c == 'o' ||
+            c == 'O';
     }
 
     int isBinDigit(char c) {
-        return c == '0' || c == '1' || c == 'b' || c == 'B';
+        return c == '0' ||
+            c == '1' ||
+            c == 'b' ||
+            c == 'B';
     }
 
     int isOperator(char c) {
-        return c == '?' || c == '@' || c == '(' || c == ')' || c == ',' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '&' || c == '|' || c == '^' || c == '~' || c == '<' || c == '>' || c == ':' || c == '=' || c == '!';
+        return c == '?' ||
+            c == '@' ||
+            c == '(' ||
+            c == ')' ||
+            c == ',' ||
+            c == '+' ||
+            c == '-' ||
+            c == '*' ||
+            c == '/' ||
+            c == '%' ||
+            c == '&' ||
+            c == '|' ||
+            c == '^' ||
+            c == '~' ||
+            c == '<' ||
+            c == '>' ||
+            c == ':' ||
+            c == '=' ||
+            c == '!';
     }
 
     bool isOperator(Token token) {
@@ -154,7 +192,7 @@ namespace sclc
 
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index) {
         try {
-            size_t actual = src.find(from, index);
+            size_t actual = src.find(from, index - 1);
             if (actual == std::string::npos) {
                 return src;
             }
@@ -266,5 +304,119 @@ namespace sclc
             }
         }
         return r;
+    }
+
+    Function* getFunctionByName(TPResult result, std::string name) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
+                return func;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name) {
+                return func;
+            }
+        }
+        return nullptr;
+    }
+    
+    Interface* getInterfaceByName(TPResult result, std::string name) {
+        for (Interface* i : result.interfaces) {
+            if (i->getName() == name) {
+                return i;
+            }
+        }
+        return nullptr;
+    }
+    
+    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        return nullptr;
+    }
+
+    Container getContainerByName(TPResult result, std::string name) {
+        for (Container container : result.containers) {
+            if (container.getName() == name) {
+                return container;
+            }
+        }
+        return Container("");
+    }
+
+    Struct getStructByName(TPResult result, std::string name) {
+        for (Struct struct_ : result.structs) {
+            if (struct_.getName() == name) {
+                return struct_;
+            }
+        }
+        return Struct("");
+    }
+
+    bool hasFunction(TPResult result, Token name) {
+        for (Function* func : result.functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
+                return true;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (func->isMethod) continue;
+            if (func->getName() == name.getValue()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasMethod(TPResult result, Token name, std::string type) {
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
+                return true;
+            }
+        }
+        for (Function* func : result.extern_functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasContainer(TPResult result, Token name) {
+        for (Container container_ : result.containers) {
+            if (container_.getName() == name.getValue()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasGlobal(TPResult result, std::string name) {
+        for (Variable v : result.globals) {
+            if (v.getName() == name) {
+                return true;
+            }
+        }
+        for (Variable v : result.extern_globals) {
+            if (v.getName() == name) {
+                return true;
+            }
+        }
+        return false;
     }
 } // namespace sclc

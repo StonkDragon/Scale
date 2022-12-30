@@ -524,7 +524,7 @@ namespace sclc
 
         TPResult result;
         if (!Main.options.printCflags) {
-            TokenParser lexer(tokens);
+            SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
             result = Main.lexer->parse();
         }
@@ -596,7 +596,7 @@ namespace sclc
 
         std::string source = "out.c";
         if (!Main.options.printCflags) {
-            FunctionParser parser(result);
+            Parser parser(result);
             Main.parser = &parser;
             
             srand(time(NULL));

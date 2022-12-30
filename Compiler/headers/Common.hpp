@@ -141,6 +141,7 @@ namespace sclc
         tok_do,             // do
         tok_done,           // done
         tok_extern,         // extern
+        tok_extern_c,       // extern_c
         tok_break,          // break
         tok_continue,       // continue
         tok_for,            // for
@@ -169,7 +170,6 @@ namespace sclc
 
         // operators
         tok_question_mark,  // ?
-        tok_hash,           // @
         tok_addr_of,        // @
         tok_paren_open,     // (
         tok_paren_close,    // )
@@ -195,6 +195,7 @@ namespace sclc
         tok_dmul,           // .*
         tok_ddiv,           // ./
         tok_column,         // :
+        tok_double_column,  // ::
         tok_dot,            // .
 
         tok_identifier,     // foo
@@ -202,10 +203,6 @@ namespace sclc
         tok_number_float,   // 123.456
         tok_string_literal, // "foo"
         tok_char_literal,   // 'a'
-        tok_extern_c,
-        tok_illegal,
-        tok_ignore,
-        tok_newline,
     };
 
     class Token
@@ -217,9 +214,9 @@ namespace sclc
         int column;
     public:
         std::string tostring() {
-            return "Token(value=" + value + ", type=" + std::to_string(type) + ")";
+            return "Token(value=" + value + ", type=" + std::to_string(type) + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ", file=" + file + ")";
         }
-        Token() : Token(tok_ignore, "", 0, "") {}
+        Token() : Token(tok_eof, "", 0, "") {}
         Token(TokenType type, std::string value, int line, std::string file) : type(type), value(value) {
             this->line = line;
             this->file = file;
@@ -429,7 +426,7 @@ namespace sclc
         std::vector<Variable> members;
         std::vector<std::string> interfaces;
     public:
-        Struct(std::string name) : Struct(name, Token(tok_ignore, "", 0, "")) {
+        Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {
             
         }
         Struct(std::string name, Token t) {
@@ -548,7 +545,7 @@ namespace sclc
         std::unordered_map<std::string, std::string> typealiases;
     };
 
-    class TokenParser
+    class SyntaxTree
     {
     private:
         std::vector<Token> tokens;
@@ -556,25 +553,25 @@ namespace sclc
         std::vector<Function*> extern_functions;
         std::vector<Variable> extern_globals;
     public:
-        TokenParser(std::vector<Token> tokens) {
+        SyntaxTree(std::vector<Token> tokens) {
             this->tokens = tokens;
         }
-        ~TokenParser() {}
+        ~SyntaxTree() {}
         TPResult parse();
         static bool isOperator(Token token);
         static bool isType(Token token);
         static bool canAssign(Token token);
     };
 
-    class FunctionParser
+    class Parser
     {
         TPResult result;
 
     public:
-        FunctionParser(TPResult result) {
+        Parser(TPResult result) {
             this->result = result;
         }
-        ~FunctionParser() {}
+        ~Parser() {}
         FPResult parse(std::string filename);
         TPResult getResult();
     };
@@ -591,6 +588,11 @@ namespace sclc
         std::vector<FPResult> warns;
         char* source;
         size_t current;
+
+        int line = 1;
+        int column = 1;
+        int begin = 1;
+        std::string filename;
     public:
         Tokenizer() {current = 0;}
         ~Tokenizer() {}
@@ -609,13 +611,13 @@ namespace sclc
         static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeContainers(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeStructs(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result);        
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result);
     };
 
     struct _Main {
         Tokenizer* tokenizer;
-        TokenParser* lexer;
-        FunctionParser* parser;
+        SyntaxTree* lexer;
+        Parser* parser;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
         struct options {
