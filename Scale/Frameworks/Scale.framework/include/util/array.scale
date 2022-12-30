@@ -8,7 +8,7 @@ struct Array is Iterable
   decl capacity: int
   decl _pos: int
   
-  function sort(): none
+  export function sort(): none
     inline_c
       scl_int i = 0;
       while (i < (scl_int) (*self)->capacity) {
@@ -29,22 +29,22 @@ struct Array is Iterable
     end_inline
   end
 
-  function get(index: int): any
+  export function get(index: int): any
     if index 0 <= then self.values @ return fi
     self.values index 3 << + @ return
   end
 
-  function set(index: int, value: any): none
+  export function set(index: int, value: any): none
     decl tmp: [any]
     self.values index 3 << + => tmp
     value => @tmp
   end
 
-  function top(): any
+  export function top(): any
     self.values self.count 1 - 3 << + @ return
   end
 
-  function push(value: any): none
+  export function push(value: any): none
     if self.count self.capacity >= then
       self.capacity 2 * => self.capacity
       self.capacity 8 * self.values realloc
@@ -57,11 +57,11 @@ struct Array is Iterable
     self.count 1 + => self.count
   end
 
-  function pop(): none
+  export function pop(): none
     self.count 1 - => self.count
   end
 
-  function contains(val: any): bool
+  export function contains(val: any): bool
     for i in 0 to self.count do
       if i self:get val == then
         true return
@@ -70,7 +70,7 @@ struct Array is Iterable
     false return
   end
 
-  function init(size: int): none
+  export function init(size: int): none
     if size 1 < then
       "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
     fi
@@ -81,16 +81,16 @@ struct Array is Iterable
     size => self.capacity
   end
 
-  function has_next(): bool
+  export function has_next(): bool
     self._pos self.count < return
   end
 
-  function next(): any
+  export function next(): any
     self._pos 1 + => self._pos
     self._pos self:get return
   end
 
-  function begin(): any
+  export function begin(): any
     0 self:get
     0 => self._pos
     return

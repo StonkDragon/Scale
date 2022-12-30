@@ -6,7 +6,7 @@ struct MapEntry
   decl key: str
   decl value: any
 
-  function init(key: str, value: any): none
+  export function init(key: str, value: any): none
     key => self.key
     value => self.value
   end
@@ -17,7 +17,7 @@ struct Map is Iterable
   decl _data: Array
   decl _pos: int
 
-  function init(size: int): none
+  export function init(size: int): none
     decl data: Array
     size Array::new => data
     for i in 0 to size do
@@ -27,7 +27,7 @@ struct Map is Iterable
     0 => self._pos
   end
 
-  function get(key: str): any
+  export function get(key: str): any
     decl data: Array self._data => data
     for i in 0 to data.count do
       decl entry: MapEntry i data:get => entry
@@ -40,7 +40,7 @@ struct Map is Iterable
     nil return
   end
 
-  function set(key: str, value: any): none
+  export function set(key: str, value: any): none
     decl data: Array self._data => data
     for i in 0 to data.count do
       decl entry: MapEntry i data:get => entry
@@ -52,16 +52,16 @@ struct Map is Iterable
     key value MapEntry::new data:push
   end
 
-  function has_next(): bool
+  export function has_next(): bool
     self._pos self._data Array.count < return
   end
 
-  function next(): MapEntry
+  export function next(): MapEntry
     self._pos 1 + => self._pos
     self._pos self._data Array:get return
   end
 
-  function begin(): MapEntry
+  export function begin(): MapEntry
     0 => self._pos
     self._pos self._data Array:get return
   end

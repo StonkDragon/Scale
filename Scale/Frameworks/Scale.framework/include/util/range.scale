@@ -6,7 +6,7 @@ struct Range is Iterable
   decl upper: int
   decl _pos: int
 
-  function init(_start: int, _end: int): none
+  export function init(_start: int, _end: int): none
     if _start _end > then
       "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
     fi
@@ -16,21 +16,21 @@ struct Range is Iterable
     0 => self._pos
   end
 
-  function containsRange(other: Range): int
+  export function containsRange(other: Range): int
     if other.lower self:contains other.upper self:contains && then
       true return
     fi
     false return
   end
 
-  function overlaps(other: Range): int
+  export function overlaps(other: Range): int
     if other.lower self:contains other.upper self:contains || then
       true return
     fi
     false return
   end
 
-  function contains(pos: int): int
+  export function contains(pos: int): int
     if pos self.lower >= then
       if pos self.upper <= then
         true return
@@ -53,7 +53,7 @@ struct Range is Iterable
     self.lower return
   end
 
-  function toReverseRange(): ReverseRange
+  export function toReverseRange(): ReverseRange
     self.upper self.lower ReverseRange::new return
   end
 end
@@ -64,7 +64,7 @@ struct ReverseRange is Iterable
   decl upper: int
   decl _pos: int
 
-  function init(_start: int, _end: int): none
+  export function init(_start: int, _end: int): none
     if _start _end < then
       "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
     fi
@@ -88,7 +88,7 @@ struct ReverseRange is Iterable
     self.lower return
   end
 
-  function toRange(): Range
+  export function toRange(): Range
     self.upper self.lower Range::new return
   end
 end

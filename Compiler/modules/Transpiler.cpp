@@ -191,18 +191,9 @@ namespace sclc {
         append("/* FUNCTION HEADERS */\n");
 
         if (Main.options.transpileOnly) {
-            remove("scale_support.h");
             remove("scale-symbol-table.txt");
             if (Main.options.debugBuild)
                 symbolTable = fopen("scale-symbol-table.txt", "a");
-            support_header = fopen("scale_support.h", "a");
-            fprintf(support_header, "#include <scale_internal.h>\n\n");
-            fprintf(support_header, "#define ssize_t signed long\n");
-            fprintf(support_header, "typedef void* scl_any;\n");
-            fprintf(support_header, "typedef long long scl_int;\n");
-            fprintf(support_header, "typedef char* scl_str;\n");
-            fprintf(support_header, "typedef double scl_float;\n\n");
-            fprintf(support_header, "extern scl_stack_t stack;\n\n");
         }
 
         for (Function* function : result.functions) {
@@ -230,7 +221,6 @@ namespace sclc {
             } else {
                 append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
-            if (support_header == nullptr) continue;
             if (function->isExternC) {
                 if (!function->isMethod) {
                     fprintf(support_header, "expect %s %s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
@@ -291,7 +281,6 @@ namespace sclc {
                 } else {
                     append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
-                if (support_header == nullptr) continue;
                 if (function->isExternC) {
                     if (!function->isMethod) {
                         fprintf(support_header, "expect %s %s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
@@ -318,7 +307,7 @@ namespace sclc {
 
         for (Variable s : result.globals) {
             append("%s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
-            if (support_header && Main.options.transpileOnly) fprintf(support_header, "extern %s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+            fprintf(support_header, "extern %s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             vars[varDepth].push_back(s);
             globals.push_back(s);
         }
@@ -338,14 +327,12 @@ namespace sclc {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("} Container_%s = {0};\n", c.getName().c_str());
-            if (support_header && Main.options.transpileOnly) {
-                fprintf(support_header, "struct Container_%s {\n", c.getName().c_str());
-                for (Variable s : c.getMembers()) {
-                    fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
-                }
-                fprintf(support_header, "};\n");
-                fprintf(support_header, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
+            fprintf(support_header, "struct Container_%s {\n", c.getName().c_str());
+            for (Variable s : c.getMembers()) {
+                fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
+            fprintf(support_header, "};\n");
+            fprintf(support_header, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
     }
 
@@ -362,10 +349,11 @@ namespace sclc {
         (void) errors;
         (void) warns;
         int scopeDepth = 0;
-        if (result.structs.size() == 0) goto label_writeStructs_close_file;
+        if (result.structs.size() == 0) return;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
+            fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
         append("\n");
         append("/* STRUCT DEFINITIONS */\n");
@@ -437,23 +425,15 @@ namespace sclc {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("};\n");
-            if (support_header && Main.options.transpileOnly) {
-                fprintf(support_header, "struct %s {\n", c.getName().c_str());
-                fprintf(support_header, "  scl_int __type_identifier__;\n");
-                fprintf(support_header, "  scl_str __type_string__;\n");
-                for (Variable s : c.getMembers()) {
-                    fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
-                }
-                fprintf(support_header, "};\n");
+            fprintf(support_header, "struct %s {\n", c.getName().c_str());
+            fprintf(support_header, "  scl_int __type_identifier__;\n");
+            fprintf(support_header, "  scl_str __type_string__;\n");
+            for (Variable s : c.getMembers()) {
+                fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
+            fprintf(support_header, "};\n");
         }
         append("\n");
-    label_writeStructs_close_file:
-
-        if (support_header && Main.options.transpileOnly) {
-            fprintf(support_header, "#endif\n");
-            fclose(support_header);
-        }
     }
 
     int scopeDepth = 0;

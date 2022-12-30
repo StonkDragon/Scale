@@ -14,6 +14,8 @@ namespace sclc
         return result;
     }
 
+    extern FILE* support_header;
+
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
         std::vector<FPResult> errors;
@@ -40,6 +42,16 @@ namespace sclc
         vars.clear();
         vars.push_back(defaultScope);
 
+        remove("scale_support.h");
+        support_header = fopen("scale_support.h", "a");
+        fprintf(support_header, "#include <scale_internal.h>\n\n");
+        fprintf(support_header, "#define ssize_t signed long\n");
+        fprintf(support_header, "typedef void* scl_any;\n");
+        fprintf(support_header, "typedef long long scl_int;\n");
+        fprintf(support_header, "typedef char* scl_str;\n");
+        fprintf(support_header, "typedef double scl_float;\n\n");
+        fprintf(support_header, "extern scl_stack_t stack;\n\n");
+
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);
@@ -47,6 +59,8 @@ namespace sclc
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
         ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result);
+
+        fclose(support_header);
 
         std::string push_args = "";
         if (mainFunction->getArgs().size() > 0) {
