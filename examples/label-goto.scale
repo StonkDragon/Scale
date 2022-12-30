@@ -1,13 +1,12 @@
-using "core"
 # this is a way of looping without using proper loops
 function main(): none
     decl i: int
-    0 store i
+    0 => i
   label a
     
-    i 1 + store i
+    i 1 + => i
     i putint
-    i 10 < if
+    if i 10 < then
         goto a
     fi
 end

@@ -1,9 +1,11 @@
-using "core"
+typealias char "char"
+
 # prints the sizes of all Scale default types
 function main(): none
-  "int" sizeof putint
-  "float" sizeof putint
-  "str" sizeof putint
-  "any" sizeof putint
-  "none" sizeof putint
+  sizeof int   putint
+  sizeof float putint
+  sizeof str   putint
+  sizeof any   putint
+  sizeof none  putint
+  sizeof char  putint
 end

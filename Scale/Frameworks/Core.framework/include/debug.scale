@@ -1,9 +1,0 @@
-using "fmt" from "Core"
-
-extern function dumpstack(): none
-extern function trace(): none
-extern function crash(): none
-extern function raise(_sig_: int): none
-extern function breakpoint(): none
-
-function throw(_msg_: str): none Color_Reset _msg_ concat eputs trace 1 exit end

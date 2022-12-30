@@ -1,0 +1,98 @@
+import Scale.util.iterable
+import Scale.debug
+
+@sealed
+struct Array is Iterable
+  decl values: [any]
+  decl count: int
+  decl capacity: int
+  decl _pos: int
+  
+  function sort(): none
+    inline_c
+      scl_int i = 0;
+      while (i < (scl_int) (*self)->capacity) {
+        scl_int speicher = (scl_int) Method_Array_get((*self), i);
+        scl_int j = i - 1;
+        while (j >= 0) {
+          if (speicher < (scl_int) Method_Array_get((*self), j)) {
+            Method_Array_set((*self), Method_Array_get((*self), j), j + 1);
+            Method_Array_set((*self), (scl_any) speicher, j);
+          } else {
+            Method_Array_set((*self), (scl_any) speicher, j + 1);
+            break;
+          }
+          j--;
+        }
+        i++;
+      }
+    end_inline
+  end
+
+  function get(index: int): any
+    if index 0 <= then self.values @ return fi
+    self.values index 3 << + @ return
+  end
+
+  function set(index: int, value: any): none
+    decl tmp: [any]
+    self.values index 3 << + => tmp
+    value => @tmp
+  end
+
+  function top(): any
+    self.values self.count 1 - 3 << + @ return
+  end
+
+  function push(value: any): none
+    if self.count self.capacity >= then
+      self.capacity 2 * => self.capacity
+      self.capacity 8 * self.values realloc
+      => self.values
+    fi
+
+    decl tmp: [any]
+    self.values self.count 3 << + => tmp
+    value => @tmp
+    self.count 1 + => self.count
+  end
+
+  function pop(): none
+    self.count 1 - => self.count
+  end
+
+  function contains(val: any): bool
+    for i in 0 to self.count do
+      if i self:get val == then
+        true return
+      fi
+    done
+    false return
+  end
+
+  function init(size: int): none
+    if size 1 < then
+      "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
+    fi
+    size 8 * malloc
+    => self.values
+    0 => self.count
+    0 => self._pos
+    size => self.capacity
+  end
+
+  function has_next(): bool
+    self._pos self.count < return
+  end
+
+  function next(): any
+    self._pos 1 + => self._pos
+    self._pos self:get return
+  end
+
+  function begin(): any
+    0 self:get
+    0 => self._pos
+    return
+  end
+end

@@ -1,0 +1,68 @@
+import Scale.util.pair
+import Scale.util.iterable
+
+@sealed
+struct MapEntry
+  decl key: str
+  decl value: any
+
+  function init(key: str, value: any): none
+    key => self.key
+    value => self.value
+  end
+end
+
+@sealed
+struct Map is Iterable
+  decl _data: Array
+  decl _pos: int
+
+  function init(size: int): none
+    decl data: Array
+    size Array::new => data
+    for i in 0 to size do
+      nil data:push
+    done
+    data => self._data
+    0 => self._pos
+  end
+
+  function get(key: str): any
+    decl data: Array self._data => data
+    for i in 0 to data.count do
+      decl entry: MapEntry i data:get => entry
+      if entry nil == then continue fi
+      if entry.key nil == then continue fi
+      if key entry.key strcmp then
+        entry.value return
+      fi
+    done
+    nil return
+  end
+
+  function set(key: str, value: any): none
+    decl data: Array self._data => data
+    for i in 0 to data.count do
+      decl entry: MapEntry i data:get => entry
+      if entry nil == then
+        i key value MapEntry::new data:set
+        return
+      fi
+    done
+    key value MapEntry::new data:push
+  end
+
+  function has_next(): bool
+    self._pos self._data Array.count < return
+  end
+
+  function next(): MapEntry
+    self._pos 1 + => self._pos
+    self._pos self._data Array:get return
+  end
+
+  function begin(): MapEntry
+    0 => self._pos
+    self._pos self._data Array:get return
+  end
+end

@@ -164,7 +164,7 @@ void CompoundEntry::addList(const std::string& key, const std::vector<std::strin
     newEntry->addAll(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(const std::string& key, const std::string& value) {
+void CompoundEntry::addList(const std::string& key, std::string value) {
     if (this->hasMember(key)) {
         std::cerr << "List with key '" << key << "' already exists!" << std::endl;
         exit(1);
@@ -221,8 +221,7 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
 CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     FILE* fp = fopen(configFile.c_str(), "r");
     if (!fp) {
-        std::cerr << "[Dragon] " << "Failed to open buildConfig file: " << configFile << std::endl;
-        exit(1);
+        return nullptr;
     }
     fseek(fp, 0, SEEK_END);
     size_t size = ftell(fp);
@@ -265,7 +264,8 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
 }
 
 bool ConfigParser::isValidIdentifier(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+    return c != ':';
+    // return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
 }
 
 CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
@@ -273,13 +273,8 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
     char c = data.at(++(*i));
     while (c != '}') {
         std::string key = "";
-        while (c != ':') {
+        for (; isValidIdentifier(c); c = data.at(++(*i))) {
             key += c;
-            if (!isValidIdentifier(c)) {
-                std::cerr << "[Dragon] " << "Invalid identifier: " << key << std::endl;
-                exit(1);
-            }
-            c = data.at(++(*i));
         }
         c = data.at(++(*i));
         if (c == '[') {
@@ -287,25 +282,23 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
             c = data.at(++(*i));
             while (c != ']') {
                 std::string next;
-                if (c != '"') {
-                    std::cerr << "[Dragon] " << "Invalid std::string: " << key << std::endl;
-                    exit(1);
-                }
-                char prev = c;
-                c = data.at(++(*i));
-                while (true) {
-                    if (c == '"' && prev != '\\') break;
-                    prev = c;
-                    next += c;
+                if (c == '"') {
+                    char prev = c;
+                    c = data.at(++(*i));
+                    while (true) {
+                        if (c == '"' && prev != '\\') break;
+                        prev = c;
+                        next += c;
+                        c = data.at(++(*i));
+                    }
+                    c = data.at(++(*i));
+                    if (c != ';') {
+                        std::cerr << "[Dragon] " << "Missing semicolon: " << next << std::endl;
+                        exit(1);
+                    }
+                    values.push_back(next);
                     c = data.at(++(*i));
                 }
-                c = data.at(++(*i));
-                if (c != ';') {
-                    std::cerr << "[Dragon] " << "Missing semicolon: " << next << std::endl;
-                    exit(1);
-                }
-                values.push_back(next);
-                c = data.at(++(*i));
             }
             c = data.at(++(*i));
             if (c != ';') {

@@ -66,7 +66,7 @@ namespace sclc
         std::cout << "  -h, --help       Show this help" << std::endl;
         std::cout << "  -o <filename>    Specify Output file" << std::endl;
         std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
-        std::cout << "  --no-core        Do not implicitly require Core Framework" << std::endl;
+        std::cout << "  --no-core        Do not implicitly require Scale Framework" << std::endl;
         std::cout << "  --no-main        Do not check for main Function" << std::endl;
         std::cout << "  -v, --version    Show version information" << std::endl;
         std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
@@ -86,6 +86,8 @@ namespace sclc
         return false;
     }
 
+    std::string findFileInIncludePath(std::string file);
+
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
@@ -100,6 +102,26 @@ namespace sclc
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
+
+        DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
+        if (scaleConfig) {
+            if (scaleConfig->hasMember("outfile"))
+                outfile = scaleConfig->getString("outfile")->getValue();
+
+            if (scaleConfig->hasMember("compiler"))
+                compiler = scaleConfig->getString("compiler")->getValue();
+
+            if (scaleConfig->hasMember("optimizer"))
+                optimizer = scaleConfig->getString("optimizer")->getValue();
+
+            if (scaleConfig->hasMember("frameworks"))
+                for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
+                    frameworks.push_back(scaleConfig->getList("frameworks")->get(i));
+
+            if (scaleConfig->hasMember("compilerFlags"))
+                for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
+                    tmpFlags.push_back(scaleConfig->getList("compilerFlags")->get(i));
+        }
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -148,12 +170,12 @@ namespace sclc
                     Main.options.dontSpecifyOutFile = true;
                     tmpFlags.push_back("-S");
                 } else if (args[i] == "--no-core") {
-                    Main.options.noCoreFramework = true;
+                    Main.options.noScaleFramework = true;
                 } else if (args[i] == "--no-main") {
                     Main.options.noMain = true;
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
-                    system(COMPILER" -v");
+                    system((compiler + " -v").c_str());
                     return 0;
                 } else if (args[i] == "--comp") {
                     if (i + 1 < args.size()) {
@@ -169,6 +191,8 @@ namespace sclc
                     Main.options.debugBuild = true;
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
+                } else if (args[i] == "--dump-parsed-data") {
+                    Main.options.dumpInfo = true;
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
@@ -207,12 +231,13 @@ namespace sclc
 
         bool alreadyIncluded = false;
         for (auto f : frameworks) {
-            if (f == "Core") {
+            if (f == "Scale") {
                 alreadyIncluded = true;
             }
         }
-        if (!Main.options.noCoreFramework && !alreadyIncluded)
-            frameworks.push_back("Core");
+        if (!Main.options.noScaleFramework && !alreadyIncluded) {
+            frameworks.push_back("Scale");
+        }
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
@@ -360,14 +385,22 @@ namespace sclc
             }
         }
         Main.options.includePaths.push_back("./");
+        if (!Main.options.noScaleFramework) {
+            std::string file = "core.scale";
+            std::string framework = "Scale";
+            std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
+            if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
+                Main.options.files.push_back(fullFile);
+            }
+        }
 
-        if (!Main.options.doRun) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+        if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
         
         std::vector<Token>  tokens;
 
         for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
             std::string filename = Main.options.files[i];
-            if (!Main.options.doRun) {
+            if (!Main.options.doRun && !Main.options.dumpInfo) {
                 std::cout << "Compiling ";
                 if (strncmp(filename.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
                     std::cout << std::string(filename.c_str() + scaleFolder.size() + 12);
@@ -381,6 +414,35 @@ namespace sclc
             Main.tokenizer = &tokenizer;
             FPResult result = Main.tokenizer->tokenize(filename);
 
+            if (result.warns.size() > 0) {
+                for (FPResult error : result.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
+            }
             if (result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
                     if (error.line == 0) {
@@ -395,21 +457,7 @@ namespace sclc
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -426,51 +474,37 @@ namespace sclc
                 remove(std::string(filename + ".scale-preproc").c_str());
                 return result.errors.size();
             }
-            if (result.warns.size() > 0) {
-                for (FPResult error : result.warns) {
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                    fclose(f);
-                    std::cerr << std::endl;
-                    free(line);
-                }
-            }
 
-            Main.tokenizer->tryFindUsings();
+            FPResult importResult = Main.tokenizer->tryImports();
+            if (!importResult.success) {
+                if (importResult.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << importResult.message << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(importResult.in).c_str(), "r");
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                fseek(f, 0, SEEK_SET);
+                std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
+                i = 1;
+                while (fgets(line, 500, f) != NULL) {
+                    if (i == importResult.line) {
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, importResult.value, Color::BOLDRED + importResult.value + Color::RESET, importResult.column) << Color::RESET;
+                    } else if (i == importResult.line - 1 || i == importResult.line - 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    } else if (i == importResult.line + 1 || i == importResult.line + 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    }
+                    i++;
+                }
+                fclose(f);
+                std::cerr << std::endl;
+                free(line);
+                remove(std::string(filename + ".scale-preproc").c_str());
+                return 1;
+            }
 
             std::vector<Token> theseTokens = Main.tokenizer->getTokens();
             
@@ -486,11 +520,40 @@ namespace sclc
 
         TPResult result;
         if (!Main.options.printCflags) {
-            TokenParser lexer(tokens);
+            SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
             result = Main.lexer->parse();
         }
 
+        if (!Main.options.printCflags && result.warns.size() > 0) {
+            for (FPResult error : result.warns) {
+                if (error.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(error.in).c_str(), "r");
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                fseek(f, 0, SEEK_SET);
+                std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                i = 1;
+                while (fgets(line, 500, f) != NULL) {
+                    if (i == error.line) {
+                        std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                    } else if (i == error.line - 1 || i == error.line - 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    } else if (i == error.line + 1 || i == error.line + 2) {
+                        if (strlen(line) > 0)
+                            std::cerr << "  " << line;
+                    }
+                    i++;
+                }
+                fclose(f);
+                std::cerr << std::endl;
+                free(line);
+            }
+        }
         if (!Main.options.printCflags && result.errors.size() > 0) {
             for (FPResult error : result.errors) {
                 if (error.line == 0) {
@@ -505,21 +568,7 @@ namespace sclc
                 i = 1;
                 while (fgets(line, 500, f) != NULL) {
                     if (i == error.line) {
-                        std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                        std::string l;
-                        if (error.type == tok_string_literal) {
-                            l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                        } else if (error.type == tok_char_literal) {
-                            char* c = new char[4];
-                            snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                            l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
-                        } else {
-                            l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                        }
-                        if (l.at(l.size() - 1) != '\n') {
-                            l += '\n';
-                        }
-                        std::cerr << l;
+                        std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                     } else if (i == error.line - 1 || i == error.line - 2) {
                         if (strlen(line) > 0)
                             std::cerr << "  " << line;
@@ -536,14 +585,48 @@ namespace sclc
             return result.errors.size();
         }
 
+        if (Main.options.dumpInfo) {
+            InfoDumper::dump(result);
+            return 0;
+        }
+
         std::string source = "out.c";
         if (!Main.options.printCflags) {
-            FunctionParser parser(result);
+            Parser parser(result);
             Main.parser = &parser;
             
             srand(time(NULL));
 
             FPResult parseResult = Main.parser->parse(source);
+            if (parseResult.warns.size() > 0) {
+                for (FPResult error : parseResult.warns) {
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    fseek(f, 0, SEEK_SET);
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        }
+                        i++;
+                    }
+                    fclose(f);
+                    std::cerr << std::endl;
+                    free(line);
+                }
+            }
             if (parseResult.errors.size() > 0) {
                 for (FPResult error : parseResult.errors) {
                     if (error.line == 0) {
@@ -558,21 +641,7 @@ namespace sclc
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDRED + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "\""s + c + "'", Color::BOLDRED + "'"s + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
+                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -589,50 +658,6 @@ namespace sclc
                 remove((source + ".c").c_str());
                 remove((source + ".h").c_str());
                 return parseResult.errors.size();
-            }
-
-            if (parseResult.warns.size() > 0) {
-                for (FPResult error : parseResult.warns) {
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << Color::BOLDMAGENTA << "> " << Color::RESET;
-                            std::string l;
-                            if (error.type == tok_string_literal) {
-                                l = replaceFirstAfter(line, "\"" + error.value + "\"", Color::BOLDMAGENTA + "\"" + error.value + "\"" + Color::RESET, error.column);
-                            } else if (error.type == tok_char_literal) {
-                                char* c = new char[4];
-                                snprintf(c, 4, "%c", (char) strtol(error.value.c_str(), NULL, 0));
-                                l = replaceFirstAfter(line, "'"s + c + "'", Color::BOLDMAGENTA + "'"s + c + "'" + Color::RESET, error.column);
-                            } else {
-                                l = replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column);
-                            }
-                            if (l.at(l.size() - 1) != '\n') {
-                                l += '\n';
-                            }
-                            std::cerr << l;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                    fclose(f);
-                    std::cerr << std::endl;
-                    free(line);
-                }
             }
         }
 

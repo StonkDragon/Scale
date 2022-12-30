@@ -75,7 +75,7 @@ namespace DragonConfig {
         void setString(const std::string& key, const std::string& value);
         void addString(const std::string& key, const std::string& value);
         void addList(const std::string& key, const std::vector<std::string>& value);
-        void addList(const std::string& key, const std::string& value);
+        void addList(const std::string& key, std::string value);
         void addList(ListEntry* value);
         void addCompound(CompoundEntry* value);
         void remove(const std::string& key);

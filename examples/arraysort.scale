@@ -1,25 +1,24 @@
-using "core"
-using "util/array"
-using "math"
 function createList(len: int): Array
-    decl arr:Array len Array:new store arr
-    decl i: int 0 store i
+    decl arr:Array len Array::new => arr
+    decl i: int 0 => i
     while i len < do
         i len i - arr:set
-        i 1 + store i
+        i 1 + => i
     done
     arr return
 end
-function Array:print(): none
-    decl i: int 0 store i
-    while i self.capacity < do
-        i self:get putint
-        i 1 + store i
+
+function printArray(arr: Array): none
+    decl i: int 0 => i
+    while i arr.capacity < do
+        i arr:get putint
+        i 1 + => i
     done
 end
+
 function main(): none
-    decl list: Array 1000 createList store list
-    list:print
+    decl list: Array 1000 createList => list
+    list printArray
     list:sort
-    list:print
+    list printArray
 end

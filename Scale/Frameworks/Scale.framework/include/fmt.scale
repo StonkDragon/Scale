@@ -1,0 +1,13 @@
+# Formatted IO
+static sealed struct ConsoleColor  
+  function reset(): str   "\033[0m"  return end
+  function black(): str   "\033[30m" return end
+  function red(): str     "\033[31m" return end
+  function green(): str   "\033[32m" return end
+  function yellow(): str  "\033[33m" return end
+  function blue(): str    "\033[34m" return end
+  function magenta(): str "\033[35m" return end
+  function cyan(): str    "\033[36m" return end
+  function white(): str   "\033[37m" return end
+  function bold(): str    "\033[1m"  return end
+end

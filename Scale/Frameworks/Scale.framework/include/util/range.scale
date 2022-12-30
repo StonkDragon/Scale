@@ -1,0 +1,94 @@
+import Scale.util.iterable
+
+@sealed
+struct Range is Iterable
+  decl lower: int
+  decl upper: int
+  decl _pos: int
+
+  function init(_start: int, _end: int): none
+    if _start _end > then
+      "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
+    fi
+
+    _start => self.lower
+    _end => self.upper
+    0 => self._pos
+  end
+
+  function containsRange(other: Range): int
+    if other.lower self:contains other.upper self:contains && then
+      true return
+    fi
+    false return
+  end
+
+  function overlaps(other: Range): int
+    if other.lower self:contains other.upper self:contains || then
+      true return
+    fi
+    false return
+  end
+
+  function contains(pos: int): int
+    if pos self.lower >= then
+      if pos self.upper <= then
+        true return
+      fi
+    fi
+    false return
+  end
+
+  function has_next(): bool
+    self._pos self.lower + self.upper <= return
+  end
+
+  function next(): int
+    self._pos 1 + => self._pos
+    self.lower self._pos + return
+  end
+
+  function begin(): int
+    0 => self._pos
+    self.lower return
+  end
+
+  function toReverseRange(): ReverseRange
+    self.upper self.lower ReverseRange::new return
+  end
+end
+
+@sealed
+struct ReverseRange is Iterable
+  decl lower: int
+  decl upper: int
+  decl _pos: int
+
+  function init(_start: int, _end: int): none
+    if _start _end < then
+      "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
+    fi
+      
+    _start => self.lower
+    _end => self.upper
+    0 => self._pos
+  end
+
+  function has_next(): bool
+    self.lower self._pos - self.upper >= return
+  end
+
+  function next(): int
+    self._pos 1 + => self._pos
+    self.lower self._pos - return
+  end
+
+  function begin(): int
+    0 => self._pos
+    self.lower return
+  end
+
+  function toRange(): Range
+    self.upper self.lower Range::new return
+  end
+end

@@ -8,13 +8,14 @@ build: {
   ];
   units: [
     "Main.cpp";
-    "modules/TokenParser.cpp";
-    "modules/FunctionParser.cpp";
+    "modules/SyntaxTree.cpp";
+    "modules/Parser.cpp";
     "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
+    "modules/InfoDumper.cpp";
     "Common.cpp";
   ];
   outFilePrefix: "-o";
@@ -25,7 +26,7 @@ build: {
   libraryPaths: [];
   libs: [];
   defines: [
-    "VERSION=\"3.3\"";
+    "VERSION=\"3.4\"";
     "C_VERSION=\"gnu17\"";
   ];
   std: "gnu++17";

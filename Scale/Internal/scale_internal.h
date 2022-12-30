@@ -29,10 +29,14 @@
 #endif
 
 /* Function header */
+#define sclDefFuncHeader(name, scl_name, returns, ...) \
+  returns Function_ ## name (__VA_ARGS__) __asm("fnct_" scl_name "")
+
 #define sclDefFunc(name, returns, ...) \
   returns Function_ ## name (__VA_ARGS__)
+
 #define sclDefMethod(name, type, returns, ...) \
-  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(", ") __VA_ARGS__)
+  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(,) __VA_ARGS__)
 
 /* Call a function with the given name. */
 #define sclCallFunc(name) \
@@ -61,7 +65,7 @@
 
 #define ssize_t signed long
 
-typedef void* scl_value;
+typedef void* scl_any;
 typedef long long scl_int;
 typedef char* scl_str;
 typedef double scl_float;
@@ -71,7 +75,7 @@ typedef union {
 	scl_int 	i;
 	scl_str		s;
 	scl_float 	f;
-	scl_value	v;
+	scl_any	v;
 } scl_frame_t;
 
 typedef struct {
@@ -89,17 +93,17 @@ void		ctrl_push_args(scl_int argc, scl_str argv[]);
 void		ctrl_push_string(scl_str c);
 void		ctrl_push_long(scl_int n);
 void		ctrl_push_double(scl_float d);
-void		ctrl_push(scl_value n);
+void		ctrl_push(scl_any n);
 scl_str		ctrl_pop_string(void);
 scl_float	ctrl_pop_double(void);
 scl_int		ctrl_pop_long(void);
-scl_value	ctrl_pop(void);
+scl_any	ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
 
-scl_value	scl_realloc(scl_value ptr, size_t size);
-scl_value	scl_alloc(size_t size);
-void		scl_free(scl_value ptr);
+scl_any	scl_realloc(scl_any ptr, size_t size);
+scl_any	scl_alloc(size_t size);
+void		scl_free(scl_any ptr);
 
-scl_value	scl_alloc_struct(size_t size, scl_str type_name);
+scl_any	scl_alloc_struct(size_t size, scl_str type_name);
 
 #endif

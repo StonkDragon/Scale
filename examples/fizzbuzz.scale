@@ -1,18 +1,15 @@
-using "core"
 function main(): none
   # FizzBuzz is a famous example of showing that
   # a programming language is turing complete
   1 while dup 100 < do
-    dup 15 % 0 == if
+    if dup 15 % 0 == then
       "FizzBuzz" puts
-    else dup 3 % 0 == if
+    elif dup 3 % 0 == then
       "Fizz" puts
-      else dup 5 % 0 == if
-        "Buzz" puts
-        else
-          dup putint
-        fi
-      fi
+    elif dup 5 % 0 == then
+      "Buzz" puts
+    else
+      dup putint
     fi
     1 +
   done drop

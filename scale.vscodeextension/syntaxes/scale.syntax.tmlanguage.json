@@ -3,11 +3,11 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
+		{"include": "#query"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#end_function"},
 		{"include": "#quoted_string"},
 		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
@@ -34,7 +34,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|using|from|end|extern|while|else|do|done|if|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|load|store|decl|addr|nil|true|false|container|repeat|struct|new|is|cdecl|goto|label|none|int|float|any|str|self)\\b"
+				"match": "\\b(function|import|include|end|extern|while|do|done|if|elif|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|store|decl|addr|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|interface|new|is|cdecl|goto|label|none|int|float|any|str|self|bool|sealed|nowarn|nomangle|static|(reference|value)type)\\b"
 			}]
 		},
 		"stack_operators": {
@@ -46,13 +46,7 @@
 		"function_declaration": {
 			"patterns": [{
 				"name": "variable.name",
-				"match": "[A-Za-z_]+([A-Za-z_0-9]+)?\\("
-			}]
-		},
-		"end_function": {
-			"patterns": [{
-				"name": "variable.name",
-				"match": "\\)"
+				"match": "[A-Za-z_]+([A-Za-z_0-9]+)?"
 			}]
 		},
 		"quoted_string": {
@@ -79,11 +73,23 @@
 		},
 		"default": {
 			"name": "variable.name",
-			"match": "."
+			"match": "[A-Za-z_]+([A-Za-z_0-9]+)?"
+		},
+		"query": {
+			"begin": "\\b(inline_c)\\b",
+			"end": "\\b(end_inline)\\b",
+			"beginCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"endCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"name": "meta.embedded.block.c",
+			"patterns": [{"include": "source.c"}]
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(:|\\.|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|==|!=?|<(<|=)?|>(>|=)?|~|\\[|\\])"
+			"match": "(:|\\.|,|(\\.?(\\+|-|\\*|/))|%|@|&|\\||\\^|=(=|>)|!=?|<(<|=)?|>(>|=)?|~|\\[|\\]|\\{|\\}|\\(|\\)|\\?)"
 		}
 	},
 	"scopeName": "source.scale"

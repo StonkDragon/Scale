@@ -29,21 +29,21 @@
 		],
 		"description": "Create a member function of a type"
 	},
-	"Using": {
+	"Import": {
 		"scope": "source.scale",
-		"prefix": "using",
+		"prefix": "import",
 		"body": [
-			"using \"${1:file}\""
+			"import ${1:framework}.${2:file}"
 		],
-		"description": "Using"
+		"description": "Import from Framework"
 	},
-	"Using-From": {
+	"Include": {
 		"scope": "source.scale",
-		"prefix": "from",
+		"prefix": "include",
 		"body": [
-			"using \"${1:file}\" from \"${2:framework}\""
+			"include \"${1:file}\""
 		],
-		"description": "Using From"
+		"description": "Include local file in build"
 	},
 	"Init": {
 		"scope": "source.scale",
@@ -101,9 +101,7 @@
 		"scope": "source.scale",
 		"prefix": "if",
 		"body": [
-			"${1:condition} if",
-			"\t$0",
-			"fi"
+			"if ${1:condition} then"
 		],
 		"description": "If statement"
 	},
@@ -111,9 +109,7 @@
 		"scope": "source.scale",
 		"prefix": "else if",
 		"body": [
-			"else ${1:condition} if",
-			"\t$0",
-			"fi"
+			"elif ${1:condition} then"
 		],
 		"description": "Else If Statement"
 	},
@@ -121,11 +117,17 @@
 		"scope": "source.scale",
 		"prefix": "else",
 		"body": [
-			"else",
-			"\t$0",
-			"fi"
+			"else"
 		],
 		"description": "Else statement"
+	},
+	"Fi Statement": {
+		"scope": "source.scale",
+		"prefix": "fi",
+		"body": [
+			"fi"
+		],
+		"description": "Fi statement"
 	},
 	"Extern Function": {
 		"scope": "source.scale",
@@ -147,7 +149,7 @@
 		"scope": "source.scale",
 		"prefix": "store",
 		"body": [
-			"store ${1:name}"
+			"=> ${1:name}"
 		],
 		"description": "Store top of stack in variable"
 	},
@@ -158,6 +160,14 @@
 			"decl ${1:name}: ${2:any}"
 		],
 		"description": "Declare a variable"
+	},
+	"Store New Var": {
+		"scope": "source.scale",
+		"prefix": "storenew",
+		"body": [
+			"=> decl ${1:name}: ${2:any}"
+		],
+		"description": "Declare a variable and store value"
 	},
 	"Address of": {
 		"scope": "source.scale",
@@ -205,14 +215,6 @@
 		],
 		"description": "Declare a prototype"
 	},
-	"Reference": {
-		"scope": "source.scale",
-		"prefix": "reference",
-		"body": [
-			"store @${1:name}"
-		],
-		"description": "Referenced write"
-	},
 	"Dereference": {
 		"scope": "source.scale",
 		"prefix": "dereference",
@@ -246,36 +248,80 @@
 		"prefix": "struct",
 		"body": [
 			"struct ${1:name}",
-			"\tdecl ${2:foo}: ${3:any}",
+			"\t$0",
 			"end"
 		],
 		"description": "Struct"
 	},
-	"Iterator": {
+	"Sealed Struct": {
 		"scope": "source.scale",
-		"prefix": "iterator",
+		"prefix": "sealed struct",
 		"body": [
-			"struct ${1:type}Iterator",
-			"\t# variables",
-			"\t$3",
-			"end",
-			"function ${1:type}Iterator:init(): none",
-			"\t# initialization",
-			"\t$4",
-			"end",
-			"function ${1:type}Iterator:has_next(): int",
-			"\t# return if continue",
-			"\t$5",
-			"end",
-			"function ${1:type}Iterator:next(): ${2:element_type}",
-			"\t# return next value",
-			"\t$6",
-			"end",
-			"function ${1:type}Iterator:begin(): ${2:element_type}",
-			"\t# return first value",
-			"\t$7",
+			"@sealed",
+			"struct ${1:name}",
+			"\t$0",
 			"end"
 		],
-		"description": "Define an iterator for a given type"
-	}
+		"description": "Struct"
+	},
+	"Interface": {
+		"scope": "source.scale",
+		"prefix": "interface",
+		"body": [
+			"interface ${1:name}",
+			"\t$0",
+			"end"
+		],
+		"description": "Interface"
+	},
+	"Array literal": {
+		"scope": "source.scale",
+		"prefix": "array",
+		"body": [
+			"{${0:element}}"
+		],
+		"description": "Array literal"
+	},
+	"Map literal": {
+		"scope": "source.scale",
+		"prefix": "map",
+		"body": [
+			"[\"${1:key}\": ${0:value}]",
+		],
+		"description": "Map literal"
+	},
+	"Map Entry literal": {
+		"scope": "source.scale",
+		"prefix": "mapentry",
+		"body": [
+			"(\"${1:key}\": ${0:value})",
+		],
+		"description": "Map Entry literal"
+	},
+	"Pair literal": {
+		"scope": "source.scale",
+		"prefix": "pair",
+		"body": [
+			"(${1:a}, ${0:b})",
+		],
+		"description": "Pair literal"
+	},
+	"Triple literal": {
+		"scope": "source.scale",
+		"prefix": "triple",
+		"body": [
+			"(${1:a}, ${2:b}, ${0:c})",
+		],
+		"description": "Triple literal"
+	},
+	"Inline C": {
+		"scope": "source.scale",
+		"prefix": "inline c",
+		"body": [
+			"inline_c",
+			"\t$0",
+			"end_inline",
+		],
+		"description": "Inline C"
+	},
 }

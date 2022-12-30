@@ -55,8 +55,8 @@ namespace sclc
             result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
             result.line = token.getLine();
             result.in = token.getFile();
-            result.value = token.getValue();
             result.column = token.getColumn();
+            result.value = token.getValue();
             result.type = token.getType();
             return result;
         }
@@ -67,21 +67,8 @@ namespace sclc
     }
 
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
-        try {
-            double num = parseDouble(token.getValue());
-            append("stack.data[stack.ptr++].f = %f;\n", num);
-            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
-        } catch (std::exception &e) {
-            FPResult result;
-            result.success = false;
-            result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.line = token.getLine();
-            result.in = token.getFile();
-            result.value = token.getValue();
-            result.column = token.getColumn();
-            result.type = token.getType();
-            return result;
-        }
+        append("stack.data[stack.ptr++].f = %s;\n", token.getValue().c_str());
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
         FPResult result;
         result.success = true;
         result.message = "";

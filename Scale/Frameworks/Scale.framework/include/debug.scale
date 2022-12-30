@@ -1,0 +1,50 @@
+import Scale.fmt
+
+function dumpstack(): none
+  inline_c
+    printf("Dump:\n");
+    for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+      long long v = (long long) stack.data[i].i;
+      printf("   %zd: 0x%016llx, %lld\n", i, v, v);
+    }
+	printf("\n");
+  end_inline
+end
+
+function trace(): none
+  inline_c
+    print_stacktrace();
+  end_inline
+end
+
+function crash(): none
+  inline_c
+    scl_security_safe_exit(1);
+  end_inline
+end
+
+function raise(_sig_: int): none
+  inline_c
+    if (*_sig_ != 2 && *_sig_ != 4 && *_sig_ != 6 && *_sig_ != 8 && *_sig_ != 11) {
+      int raised = raise(*_sig_);
+      if (raised != 0) {
+        process_signal(*_sig_);
+      }
+    } else {
+      process_signal(*_sig_);
+    }
+  end_inline
+end
+
+function breakpoint(): none
+  inline_c
+    printf("Hit breakpoint. Press enter to continue.\n");
+	  getchar();
+  end_inline
+end
+
+function throw(_msg_: str): none
+  ConsoleColor::reset _msg_ concat eputs
+  trace
+  1 exit
+end

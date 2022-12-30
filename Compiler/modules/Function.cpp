@@ -2,13 +2,13 @@
 
 using namespace sclc;
 
-Function::Function(std::string name, Token& nameToken) {
-    this->nameToken = &nameToken;
+Function::Function(std::string name, Token nameToken) {
+    this->nameToken = nameToken;
     this->name = name;
     this->isMethod = false;
 }
-Function::Function(std::string name, bool isMethod, Token& nameToken) {
-    this->nameToken = &nameToken;
+Function::Function(std::string name, bool isMethod, Token nameToken) {
+    this->nameToken = nameToken;
     this->name = name;
     this->isMethod = isMethod;
 }
@@ -21,10 +21,10 @@ std::vector<Token> Function::getBody() {
 void Function::addToken(Token token) {
     body.push_back(token);
 }
-void Function::addModifier(Modifier modifier) {
+void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 }
-std::vector<Modifier> Function::getModifiers() {
+std::vector<std::string> Function::getModifiers() {
     return modifiers;
 }
 void Function::addArgument(Variable arg) {
@@ -49,7 +49,10 @@ void Function::setReturnType(std::string type) {
     return_type = type;
 }
 Token Function::getNameToken() {
-    return *(this->nameToken);
+    return this->nameToken;
+}
+void Function::setNameToken(Token t) {
+    this->nameToken = t;
 }
 bool Function::operator==(const Function& other) const {
     if (other.isMethod && !this->isMethod) return false;

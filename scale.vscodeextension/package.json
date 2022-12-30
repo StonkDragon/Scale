@@ -23,6 +23,9 @@
         "grammars": [{
             "language": "scale",
             "scopeName": "source.scale",
+            "embeddedLanguages": {
+              "meta.embedded.block.c": "c"
+            },
             "path": "./syntaxes/scale.syntax.tmlanguage.json"
         }],
         "snippets": [{

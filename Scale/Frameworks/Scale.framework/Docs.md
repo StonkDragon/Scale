@@ -1,4 +1,4 @@
-# Core Framework Documentation
+# Scale Framework Documentation
 ## Contents
 - [Core](#core)
 - [IO](#io)
@@ -37,6 +37,14 @@ Returns the length of the string `_str_`. It is undefined behavior if `_str_` is
 
 ### `function strsplit(_str_: str, _delim_: str): Array`
 Splits the string `_str_` at every occurence of `_delim_` and returns an array containing the results. Returns an empty array if the string does not contain `_delim_`.
+
+Example:
+```scale
+"hello world!" " " strsplit
+```
+Will split the string 'hello world!' at every space character, returning an array with these elements:
+1. "hello"
+2. "world!"
 
 ### `function strcmp(_str1_: str, _str2_: str): int`
 Returns `true`, if `_str1_` and `_str2_` are equal, `false` otherwise.
@@ -119,6 +127,7 @@ Member types:
 - `pi: float`
 
 `e`: The math constant `e`. It is equal to `2.71828182845904523536028747135266250`
+
 `pi`: The math constant `pi`. It is equal to `3.14159265358979323846264338327950288`
 
 ### `function sqrt(_f_: float): float`
@@ -236,8 +245,12 @@ Member types:
 - `capacity: int`
 
 `values`: Contains the contents of the array.
+
 `count`: Contains the amount of elements in the array.
+
 `capacity`: Contains the maximum capacity of the array.
+
+__Modifying any of these values will result in undefined behaviour!__
 
 ### `function Array:sort(): Array`
 Sorts the array. If the array is empty, the function will do nothing.
@@ -257,22 +270,25 @@ Pushes `value` onto the array. If the array has no more free slots, it will be r
 ### `function Array:pop(): none`
 Pops the top value of the array by decrementing the `count` property on the array. Invoking `Array:pop` on an empty array is undefined behavior.
 
-### `function Array:new(size: int): none`
+### `function Array:contains(val: any): bool`
+Returns `true` if the array contains val.
+
+### `static function Array::new(size: int): none`
 Create an empty array with an initial capacity of `size` elements, where `size` is bigger than `0`.
 
 <div style="page-break-after: always;"></div>
 
 ## [Pair](./include/util/pair.scale) and [Triple](./include/util/triple.scale)
-### `function Pair:new(a: any, b: any): none`
+### `static function Pair::new(a: any, b: any): none`
 Create a new pair of `a` and `b`.
 
-### `function Triple:new(a: any, b: any, c: any): none`
+### `static function Triple::new(a: any, b: any, c: any): none`
 Create a new triple of `a`, `b` and `c`.
 
 <div style="page-break-after: always;"></div>
 
 ## [Ranges](./include/util/range.scale)
-### `function Range:new(_start: int, _end: int): none`
+### `static function Range::new(_start: int, _end: int): none`
 Create a new Range object from `_start` to `_end` counting up.
 
 ### `function Range:containsRange(other: Range): int`
@@ -287,7 +303,7 @@ Returns `true` if `pos` is contained within the range. For example, on a Range f
 ### `function Range:toReverseRange(): ReverseRange`
 Convert range to a `ReverseRange` object. For example, a range from 1 to 5 will return a `ReverseRange` object from 5 to 1.
 
-### `function ReverseRange:new(_start: int, _end: int): none`
+### `static function ReverseRange::new(_start: int, _end: int): none`
 Create a new ReverseRange object from `_start` to `_end` counting down.
 
 ### `function ReverseRange:toRange(): Range`
