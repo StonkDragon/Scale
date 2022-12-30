@@ -6,7 +6,7 @@
 
 namespace sclc
 {
-    TPResult TokenParser::parse() {
+    TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
@@ -933,8 +933,8 @@ namespace sclc
                     continue;
                 }
                 currentInterface = new Interface(tokens[i].getValue());
-            } else if (token.getType() == tok_hash) {
-                if (currentFunction == nullptr && currentContainer == nullptr) {
+            } else if (token.getType() == tok_addr_of) {
+                if (currentFunction == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
                         nextAttributes.push_back(tokens[i + 1].getValue());
                     } else {
@@ -950,15 +950,7 @@ namespace sclc
                     }
                     i++;
                 } else {
-                    FPResult result;
-                    result.message = "Cannot use modifiers inside a function or container.";
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = tokens[i].getType();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                    currentFunction->addToken(token);
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
                 Token extToken = token;
@@ -1361,21 +1353,7 @@ namespace sclc
                     continue;
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
-                // if (token.getType() == tok_if || token.getType() == tok_elif) {
-                //     currentFunction->addToken(token);
-                //     Token ifToken = token;
-                //     Function* condition = new Function("$__condition_" + std::to_string(conditionsCount), Token(tok_identifier, "$__condition_" + std::to_string(conditionsCount), 0, "", 0));
-                //     condition->setReturnType("bool");
-                //     condition->setFile(token.getFile());
-                //     i++;
-                //     while (tokens[i].getType() != tok_then) {
-                //         condition->addToken(tokens[i++]);
-                //     }
-                //     functions.push_back(condition);
-                //     conditionsCount++;
-                // } else {
-                    currentFunction->addToken(token);
-                // }
+                currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
