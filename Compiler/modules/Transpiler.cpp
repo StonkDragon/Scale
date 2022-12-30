@@ -2192,8 +2192,8 @@ namespace sclc {
                 append("return stack.data[--stack.ptr].f;\n");
             } else if (return_type == "scl_any") {
                 append("return stack.data[--stack.ptr].v;\n");
-            } else if (strncmp(return_type.c_str(), "scl_", 4) == 0) {
-                append("return (%s) stack.data[--stack.ptr].v;\n", sclTypeToCType(result, function->getReturnType()).c_str());
+            } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
+                append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
             }
         }
     }

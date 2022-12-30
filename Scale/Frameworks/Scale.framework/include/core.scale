@@ -242,7 +242,7 @@ function toChars(_str_: str): Array
   for _i_ in 0 to _str_ strlen do
     _str_ _i_ + @ toChar _arr_:push
   done
-  _arr_ return 0
+  _arr_ return
 end
 
 function isnil(x: any): bool
