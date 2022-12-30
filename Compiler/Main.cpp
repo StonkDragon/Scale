@@ -29,11 +29,7 @@
 #endif
 
 #ifndef COMPILER
-#ifdef __APPLE__
-#define COMPILER "gcc-12"
-#else
 #define COMPILER "gcc"
-#endif
 #endif
 
 #ifndef C_VERSION
