@@ -640,6 +640,56 @@ namespace sclc {
             append("fprintf(stderr, \"%%s\\n\", stack.data[--stack.ptr].s);\n");
         } else if (body[i].getValue() == "abort") {
             append("abort();\n");
+        } else if (body[i].getValue() == "typeof") {
+            ITER_INC;
+            if (hasVar(body[i])) {
+                append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
+            } else {
+                transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+        } else if (body[i].getValue() == "nameof") {
+            ITER_INC;
+            if (hasVar(body[i])) {
+                append("stack.data[stack.ptr++].s = \"%s\";\n", body[i].getValue().c_str());
+            } else {
+                transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+        } else if (body[i].getValue() == "sizeof") {
+            ITER_INC;
+            if (body[i].getValue() == "int") {
+                append("stack.data[stack.ptr++].i = 8;\n");
+                return;
+            } else if (body[i].getValue() == "int") {
+                append("stack.data[stack.ptr++].i = 8;\n");
+                return;
+            } else if (body[i].getValue() == "float") {
+                append("stack.data[stack.ptr++].i = 8;\n");
+                return;
+            } else if (body[i].getValue() == "str") {
+                append("stack.data[stack.ptr++].i = 8;\n");
+                return;
+            } else if (body[i].getValue() == "any") {
+                append("stack.data[stack.ptr++].i = 8;\n");
+                return;
+            } else if (body[i].getValue() == "none") {
+                append("stack.data[stack.ptr++].i = 0;\n");
+                return;
+            }
+            if (hasVar(body[i])) {
+                append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i]).getType()).c_str());
+            } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
+                append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+            } else if (hasTypealias(result, body[i].getValue())) {
+                append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+            } else {
+                transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
     #ifdef __APPLE__
     #pragma endregion
     #endif
