@@ -28,22 +28,14 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-/* Function header */
-#define sclDefFuncHeader(name, scl_name, returns, ...) \
-  returns Function_ ## name (__VA_ARGS__) __asm("fnct_" scl_name "")
-
-#define sclDefFunc(name, returns, ...) \
-  returns Function_ ## name (__VA_ARGS__)
-
-#define sclDefMethod(name, type, returns, ...) \
-  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(,) __VA_ARGS__)
-
-/* Call a function with the given name. */
-#define sclCallFunc(name) \
-  Function_ ## name ()
-
 #define nullable __nullable
 #define nonnull  __nonnull
+
+// Scale expects this function
+#define expect
+
+// This function was declared in Scale code
+#define export
 
 #if __SIZEOF_POINTER__ < 8
 #error "Scale is not supported on this platform"

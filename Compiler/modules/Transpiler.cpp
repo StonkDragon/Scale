@@ -3,6 +3,7 @@
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"
 
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 #define ITER_INC                                         \
     do {                                                 \
         i++;                                             \
@@ -20,7 +21,7 @@
     } while (0)
 
 namespace sclc {
-    FILE* nomangled;
+    FILE* support_header;
     FILE* symbolTable;
 
     bool hasTypealias(TPResult r, std::string t) {
@@ -192,21 +193,16 @@ namespace sclc {
         if (Main.options.transpileOnly) {
             remove("scale_support.h");
             remove("scale-symbol-table.txt");
-            symbolTable = fopen("scale-symbol-table.txt", "a");
-            nomangled = fopen("scale_support.h", "a");
-            fprintf(nomangled, "#include <scale_internal.h>\n\n");
-
-            fprintf(nomangled, "#define scl_export(func_name) \\\n");
-            fprintf(nomangled, "    void func_name (void); \\\n");
-            fprintf(nomangled, "    void Function_ ## func_name (void) __asm(\"_Function_\" #func_name); \\\n");
-            fprintf(nomangled, "    void Function_ ## func_name () { func_name (); } \\\n");
-            fprintf(nomangled, "    void func_name (void)\n\n");
-            fprintf(nomangled, "#define ssize_t signed long\n");
-            fprintf(nomangled, "typedef void* scl_any;\n");
-            fprintf(nomangled, "typedef long long scl_int;\n");
-            fprintf(nomangled, "typedef char* scl_str;\n");
-            fprintf(nomangled, "typedef double scl_float;\n\n");
-            fprintf(nomangled, "extern scl_stack_t stack;\n\n");
+            if (Main.options.debugBuild)
+                symbolTable = fopen("scale-symbol-table.txt", "a");
+            support_header = fopen("scale_support.h", "a");
+            fprintf(support_header, "#include <scale_internal.h>\n\n");
+            fprintf(support_header, "#define ssize_t signed long\n");
+            fprintf(support_header, "typedef void* scl_any;\n");
+            fprintf(support_header, "typedef long long scl_int;\n");
+            fprintf(support_header, "typedef char* scl_str;\n");
+            fprintf(support_header, "typedef double scl_float;\n\n");
+            fprintf(support_header, "extern scl_stack_t stack;\n\n");
         }
 
         for (Function* function : result.functions) {
@@ -234,20 +230,22 @@ namespace sclc {
             } else {
                 append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
-            if (!Main.options.transpileOnly) continue;
+            if (support_header == nullptr) continue;
+            if (function->isExternC) {
+                if (!function->isMethod) {
+                    fprintf(support_header, "expect %s %s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                } else {
+                    fprintf(support_header, "expect %s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                }
+                continue;
+            }
             for (std::string m : function->getModifiers()) {
-                if (m == "nomangle") {
-                    std::string args = "(";
-                    for (size_t i = 0; i < function->getArgs().size(); i++) {
-                        if (i != 0) {
-                            args += ", ";
-                        }
-                        args += sclTypeToCType(result, function->getArgs()[i].getType()) + " ";
-                        args += function->getArgs()[i].getName();
+                if (contains<std::string>(function->getModifiers(), "export")) {
+                    if (!function->isMethod) {
+                        fprintf(support_header, "export %s %s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    } else {
+                        fprintf(support_header, "export %s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                     }
-                    args += ")";
-                    
-                    fprintf(nomangled, "%s %s%s;\n", return_type.c_str(), function->getName().c_str(), args.c_str());
                 }
             }
         }
@@ -293,6 +291,14 @@ namespace sclc {
                 } else {
                     append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
+                if (support_header == nullptr) continue;
+                if (function->isExternC) {
+                    if (!function->isMethod) {
+                        fprintf(support_header, "expect %s %s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    } else {
+                        fprintf(support_header, "expect %s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    }
+                }
             }
         }
 
@@ -312,7 +318,7 @@ namespace sclc {
 
         for (Variable s : result.globals) {
             append("%s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
-            if (nomangled && Main.options.transpileOnly) fprintf(nomangled, "extern %s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+            if (support_header && Main.options.transpileOnly) fprintf(support_header, "extern %s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             vars[varDepth].push_back(s);
             globals.push_back(s);
         }
@@ -332,13 +338,13 @@ namespace sclc {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("} Container_%s = {0};\n", c.getName().c_str());
-            if (nomangled && Main.options.transpileOnly) {
-                fprintf(nomangled, "struct Container_%s {\n", c.getName().c_str());
+            if (support_header && Main.options.transpileOnly) {
+                fprintf(support_header, "struct Container_%s {\n", c.getName().c_str());
                 for (Variable s : c.getMembers()) {
-                    fprintf(nomangled, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+                    fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
                 }
-                fprintf(nomangled, "};\n");
-                fprintf(nomangled, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
+                fprintf(support_header, "};\n");
+                fprintf(support_header, "extern struct Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
             }
         }
     }
@@ -431,22 +437,22 @@ namespace sclc {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
             append("};\n");
-            if (nomangled && Main.options.transpileOnly) {
-                fprintf(nomangled, "struct %s {\n", c.getName().c_str());
-                fprintf(nomangled, "  scl_int __type_identifier__;\n");
-                fprintf(nomangled, "  scl_str __type_string__;\n");
+            if (support_header && Main.options.transpileOnly) {
+                fprintf(support_header, "struct %s {\n", c.getName().c_str());
+                fprintf(support_header, "  scl_int __type_identifier__;\n");
+                fprintf(support_header, "  scl_str __type_string__;\n");
                 for (Variable s : c.getMembers()) {
-                    fprintf(nomangled, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+                    fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
                 }
-                fprintf(nomangled, "};\n");
+                fprintf(support_header, "};\n");
             }
         }
         append("\n");
     label_writeStructs_close_file:
 
-        if (nomangled && Main.options.transpileOnly) {
-            fprintf(nomangled, "#endif\n");
-            fclose(nomangled);
+        if (support_header && Main.options.transpileOnly) {
+            fprintf(support_header, "#endif\n");
+            fclose(support_header);
         }
     }
 
@@ -457,13 +463,11 @@ namespace sclc {
     char repeat_depth = 0;
     int iterator_count = 0;
     bool noWarns;
-    bool noMangle;
     std::string lastPushedType = "";
     std::string return_type = "";
 
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl;
 #define noUnused \
         (void) body; \
         (void) function; \
@@ -2628,13 +2632,10 @@ namespace sclc {
 
             scopeDepth = 0;
             noWarns = false;
-            noMangle = false;
 
             for (std::string modifier : function->getModifiers()) {
                 if (modifier == "nowarn") {
                     noWarns = true;
-                } else if (modifier == "nomangle") {
-                    noMangle = true;
                 }
             }
 
@@ -2676,45 +2677,6 @@ namespace sclc {
                 err.type = function->getNameToken().getType();
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
-            }
-
-            if (noMangle && !function->isMethod) {
-                std::string args = "(";
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i != 0) {
-                        args += ", ";
-                    }
-                    args += sclTypeToCType(result, function->getArgs()[i].getType()) + " Var_";
-                    args += function->getArgs()[i].getName();
-                }
-                args += ")";
-
-                append("%s %s%s {\n", return_type.c_str(), function->getName().c_str(), args.c_str());
-                scopeDepth++;
-                args = "";
-                for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
-                    Variable arg = function->getArgs()[i];
-                    args += "Var_" + arg.getName();
-                    if (i) args += ", ";
-                }
-                if (return_type != "void") {
-                    append("return Function_%s(%s);\n", function->getName().c_str(), args.c_str());
-                } else {
-                    append("Function_%s(%s);\n", function->getName().c_str(), args.c_str());
-                }
-                scopeDepth--;
-                append("}\n");
-            } else if (noMangle && function->isMethod) {
-                FPResult err;
-                err.success = false;
-                err.message = "Methods don't support the @nomangle Modifier!";
-                err.line = function->getNameToken().getLine();
-                err.in = function->getNameToken().getFile();
-                err.column = function->getNameToken().getColumn();
-                err.value = function->getNameToken().getValue();
-                err.type = function->getNameToken().getType();
-                errors.push_back(err);
-                continue;
             }
 
             return_type = "void";

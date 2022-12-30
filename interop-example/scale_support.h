@@ -1,10 +1,8 @@
 #include <scale_internal.h>
 
-#define scl_export(func_name) \
-    void func_name (void); \
-    void Function_ ## func_name (void) __asm("_Function_" #func_name); \
-    void Function_ ## func_name () { func_name (); } \
-    void func_name (void)
+#define scl_export(func_name, ...) \
+    void func_name (__VA_ARGS__) __asm("_Function_" #func_name); \
+    void func_name (__VA_ARGS__)
 
 #define ssize_t signed long
 typedef void* scl_any;
