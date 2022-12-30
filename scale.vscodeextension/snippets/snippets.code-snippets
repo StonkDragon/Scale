@@ -35,7 +35,15 @@
 		"body": [
 			"import ${1:framework}.${2:file}"
 		],
-		"description": "Import"
+		"description": "Import from Framework"
+	},
+	"Include": {
+		"scope": "source.scale",
+		"prefix": "include",
+		"body": [
+			"include \"${1:file}\""
+		],
+		"description": "Include local file in build"
 	},
 	"Init": {
 		"scope": "source.scale",
