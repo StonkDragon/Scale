@@ -6,7 +6,7 @@
 
 /* Variables */
 scl_stack_t stack;
-scl_stack_t	 callstk = {0, {0}};
+scl_stack_t	callstk = {0, {0}};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
