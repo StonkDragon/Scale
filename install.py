@@ -1,28 +1,51 @@
 #!env python3
 import os
 import shutil
+from platform import system as osName
 
 HOME = os.path.expanduser("~")
 
 SCALE_INSTALL_DIR = os.path.join(HOME, "Scale")
 SCALE_DATA_DIR = os.path.join(os.path.curdir, "Scale")
+VERSION = "3.4"
 
-if os.geteuid() != 0:
-    print('This script must be run as root/Administrator')
-    exit(1)
+build_command = f"g++ -Wall -Werror -pedantic -std=gnu++17 "
+units = [
+    "Main.cpp",
+    "modules/SyntaxTree.cpp",
+    "modules/Parser.cpp",
+    "modules/TokenHandlers.cpp",
+    "modules/Tokenizer.cpp",
+    "modules/Transpiler.cpp",
+    "modules/DragonConfig.cpp",
+    "modules/Function.cpp",
+    "modules/InfoDumper.cpp",
+    "Common.cpp"
+]
 
+if osName() == 'Windows':
+    build_command += "-static-libgcc -static-libstdc++ -static -lpthread "
+    SCALE_INSTALL_DIR = "C:\\Windows\\sclc.exe"
+elif osName() == 'Darwin':
+    build_command += ""
+    SCALE_INSTALL_DIR = "/usr/local/bin/sclc"
+elif osName() == 'Linux':
+    build_command += ""
+    SCALE_INSTALL_DIR = "/usr/local/bin/sclc"
 else:
-    if os.name == 'nt':
-        shutil.rmtree(SCALE_INSTALL_DIR)
+    OSError(f"Unknown OS detected: {osName()}")
 
-        shutil.move(SCALE_DATA_DIR, HOME)
+for unit in units:
+    build_command += f"Compiler/{unit} "
 
-        os.remove("C:\\Windows\\sclc.exe")
-        shutil.move(os.path.join(SCALE_DATA_DIR, "\\sclc.exe"), "C:\\Windows\\sclc.exe")
-    else:
-        shutil.rmtree(SCALE_INSTALL_DIR)
-        
-        shutil.move(SCALE_DATA_DIR, HOME)
-        
-        os.remove("/usr/local/bin/sclc")
-        shutil.move("sclc", "/usr/local/bin/sclc")
+try:
+    os.mkdir("target")
+except OSError:
+    pass
+
+build_command += "-o target/sclc -DVERSION=\\\"{VERSION}\\\""
+
+print(build_command)
+os.system(build_command)
+
+shutil.move("target/sclc", SCALE_INSTALL_DIR)
