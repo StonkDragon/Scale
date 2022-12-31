@@ -8,9 +8,9 @@
 #include "../headers/Common.hpp"
 
 #ifdef _WIN32
-#define PATH_SEPARATOR '\\'
+#define PATH_SEPARATOR "\\"
 #else
-#define PATH_SEPARATOR '/'
+#define PATH_SEPARATOR "/"
 #endif
 
 #define syntaxError(msg) \
@@ -510,7 +510,7 @@ namespace sclc
             } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "include") {
                 i++;
                 std::string parentPath = std::filesystem::path(tokens[i].getFile()).parent_path().string();
-                std::string file = parentPath + (parentPath.size() != 0 ? std::to_string(PATH_SEPARATOR) : "") + tokens[i].getValue();
+                std::string file = parentPath + (parentPath.size() != 0 ? PATH_SEPARATOR : "") + tokens[i].getValue();
                 if (!fileExists(file)) {
                     FPResult r;
                     r.message = "Could not find File '" + file + "'";
