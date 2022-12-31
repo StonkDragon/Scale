@@ -57,11 +57,10 @@
 
 #define ssize_t signed long
 
-typedef void* scl_any;
-typedef long long scl_int;
-typedef char* scl_str;
-typedef double scl_float;
-typedef void (*scl_method)(void);
+typedef void* 		scl_any;
+typedef long long 	scl_int;
+typedef char* 		scl_str;
+typedef double 		scl_float;
 
 typedef union {
 	scl_int 	i;
@@ -89,11 +88,11 @@ void		ctrl_push(scl_any n);
 scl_str		ctrl_pop_string(void);
 scl_float	ctrl_pop_double(void);
 scl_int		ctrl_pop_long(void);
-scl_any	ctrl_pop(void);
+scl_any		ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
 
-scl_any	scl_realloc(scl_any ptr, size_t size);
-scl_any	scl_alloc(size_t size);
+scl_any		scl_realloc(scl_any ptr, size_t size);
+scl_any		scl_alloc(size_t size);
 void		scl_free(scl_any ptr);
 
 scl_any	scl_alloc_struct(size_t size, scl_str type_name);
