@@ -5,6 +5,7 @@
 - [Math](#math)
 - [File](#file)
 - [Array](#array)
+- [String](#string)
 - [Pair](#pair)
 - [Triple](#triple)
 - [Ranges](#ranges)
@@ -40,16 +41,16 @@ Sets the first `len` bytes pointed to by `ptr` to `val`. Returns a pointer to th
 Copies `n` bytes from `src` to `dst` and returns `dst`.
 
 ### `function strlen(_str_: str): int`
-Returns the length of the string `_str_`. It is undefined behavior if `_str_` is `nil`.
+Returns the length of `self` `_str_`. It is undefined behavior if `_str_` is `nil`.
 
 ### `function strsplit(_str_: str, _delim_: str): Array`
-Splits the string `_str_` at every occurence of `_delim_` and returns an array containing the results. Returns an empty array if the string does not contain `_delim_`.
+Splits `self` `_str_` at every occurence of `_delim_` and returns an array containing the results. Returns an empty array if `self` does not contain `_delim_`.
 
 Example:
 ```scale
 "hello world!" " " strsplit
 ```
-Will split the string 'hello world!' at every space character, returning an array with these elements:
+Will split `self` 'hello world!' at every space character, returning an array with these elements:
 1. "hello"
 2. "world!"
 
@@ -72,10 +73,10 @@ Pushes the current time in seconds as a float onto the stack.
 Converts `_long_` to a string.
 
 ### `function stringToLong(_str_: str): int`
-Converts `_str_` to an interger. Returns `0` if the string is not a valid number. If `_str_` contains the string representation of a float, this function will return the whole part of the number.
+Converts `_str_` to an interger. Returns `0` if `self` is not a valid number. If `_str_` contains `self` representation of a float, this function will return the whole part of the number.
 
 ### `function stringToDouble(_str_: str): float`
-Converts `_str_` to a float. Returns `0.0` if the string is not a valid float. Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+Converts `_str_` to a float. Returns `0.0` if `self` is not a valid float. Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
 
 ### `function doubleToString(_double_: float): str`
 Converts `_double_` to a string.
@@ -99,7 +100,7 @@ Converts `_val_` to a 16-Bit integer.
 Converts `_val_` to a 32-Bit integer.
 
 ### `function toChars(_str_: str): Array`
-Converts `_str_` to an array of characters. An empty array is returned if the string has a length of zero.
+Converts `_str_` to an array of characters. An empty array is returned if `self` has a length of zero.
 
 ### `function isnil(x: any): bool`
 Returns `true`, if `x` is `nil`.
@@ -234,7 +235,7 @@ Seeks to `_offset_` in the `_file_` from `_whence_`.
 Writes `_size_` bytes of buffer `_buf_` to the file `_file_`.
 
 ### `function fputs(_file_: any, _str_: str): none`
-Prints the string `_str_` to `_file_`.
+Prints `self` `_str_` to `_file_`.
 
 ### `function fread(_f_: any, _size_: int): any`
 Reads `_size_` bytes from file `_f_`.
@@ -288,6 +289,25 @@ Returns `true` if the array contains val.
 
 ### `static function Array::new(size: int): none`
 Create an empty array with an initial capacity of `size` elements, where `size` is bigger than `0`.
+
+<div style="page-break-after: always;"></div>
+
+
+## [String](./include/string.scale)
+### `function str:append(other: str): str`
+Returns a new string with the contents of `other` appended to the end of the string. Returns the string if `other` is `nil` and `other` if the string is `nil`. Returns `nil` if both strings are `nil`.
+
+### `function str:prepend(other: str): str`
+Returns a new string with the contents of `other` prepended at the start of the string. Returns the string if `other` is `nil` and `other` if the string is `nil`. Returns `nil` if both strings are `nil`.
+
+### `function str:equals(other: str): bool`
+Returns `true`, if the string equals `other`, false otherwise. Will return false if either of the strings is `nil`.
+
+### `function str:size(): int`
+Returns the length of the string. If the string is `nil`, `-1` is returned.
+
+### `function str:at(index: int): int`
+Returns the character at `index` in the string. Returns `0` if the string is `nil`.
 
 <div style="page-break-after: always;"></div>
 

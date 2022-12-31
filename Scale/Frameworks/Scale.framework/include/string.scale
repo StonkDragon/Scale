@@ -1,0 +1,51 @@
+sealed struct _String
+  function append(other: str): str
+    if self nil == then
+      other return
+    fi
+    if other nil == then
+      self return
+    fi
+
+    self other concat return
+  end
+
+  function prepend(other: str): str
+    if self nil == then
+      other return
+    fi
+    if other nil == then
+      self return
+    fi
+
+    other self concat return
+  end
+
+  function equals(other: str): bool
+    if self nil == other nil == || then
+      false return
+    fi
+
+    self other strcmp return
+  end
+
+  function size(): int
+    if self nil == then
+      -1 return
+    fi
+
+    self strlen return
+  end
+
+  function at(i: int): int
+    if self nil == then
+      0 return
+    fi
+
+    if i 0 < i self:size >= || then
+      nameof i " is out of bounds":prepend eputs
+      abort
+    fi
+    self i + @ toChar return
+  end
+end

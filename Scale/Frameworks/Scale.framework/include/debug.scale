@@ -44,7 +44,7 @@ function breakpoint(): none
 end
 
 function throw(_msg_: str): none
-  ConsoleColor::reset _msg_ concat eputs
+  ConsoleColor::reset _msg_:prepend eputs
   trace
   1 exit
 end

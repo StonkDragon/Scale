@@ -634,7 +634,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
-                lastPushedType = "str";
+                lastPushedType = "_String";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -644,7 +644,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", body[i].getValue().c_str());
-                lastPushedType = "str";
+                lastPushedType = "_String";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -742,6 +742,11 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
+                if (s.getName() == "_String" && (body[i].getValue() == "new" || body[i].getValue() == "default")) {
+                    transpilerError("Explicit instanciation of struct '_String' is not allowed!", i);
+                    errors.push_back(err);
+                    return;
+                }
                 if (body[i].getValue() == "new") {
                     if (!s.heapAllocAllowed()) {
                         transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::new'", i);
@@ -2007,7 +2012,7 @@ namespace sclc {
     handler(StringLiteral) {
         noUnused;
         append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
-        lastPushedType = "str";
+        lastPushedType = "_String";
         debugPrintPush();
     }
 
