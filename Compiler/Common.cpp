@@ -336,6 +336,7 @@ namespace sclc
     }
     
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        if (type == "str") type = "_String";
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
             if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
@@ -361,6 +362,7 @@ namespace sclc
     }
 
     Struct getStructByName(TPResult result, std::string name) {
+        if (name == "str") name = "_String";
         for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
@@ -386,6 +388,7 @@ namespace sclc
     }
 
     bool hasMethod(TPResult result, Token name, std::string type) {
+        if (type == "str") type = "_String";
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
             if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {

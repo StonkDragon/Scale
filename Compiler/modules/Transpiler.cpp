@@ -634,7 +634,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
-                lastPushedType = "_String";
+                lastPushedType = "str";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -644,7 +644,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", body[i].getValue().c_str());
-                lastPushedType = "_String";
+                lastPushedType = "str";
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -1437,10 +1437,14 @@ namespace sclc {
                                     Struct s = getStructByName(result, m->getMemberType());
                                     if (s.hasMember(body[i].getValue())) {
                                         append("*(scl_any*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                        ITER_INC;
+                                        destructureIndex++;
                                         continue;
                                     } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                                         append("*(scl_any*) Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
-                                        return;
+                                        ITER_INC;
+                                        destructureIndex++;
+                                        continue;
                                     }
                                 }
                                 transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
@@ -1449,12 +1453,13 @@ namespace sclc {
                             Variable v = getVar(body[i]);
                             std::string loadFrom = v.getName();
                             if (getStructByName(result, v.getType()) != Struct("")) {
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
+                                if (body[i + 1].getType() != tok_dot) {
                                     append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                    i--;
+                                    ITER_INC;
+                                    destructureIndex++;
                                     continue;
                                 }
+                                ITER_INC;
                                 ITER_INC;
                                 Struct s = getStructByName(result, v.getType());
                                 if (!s.hasMember(body[i].getValue())) {
@@ -1501,6 +1506,8 @@ namespace sclc {
                                     Struct s = getStructByName(result, m->getMemberType());
                                     if (s.hasMember(body[i].getValue())) {
                                         append("*(scl_any*) &Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                        ITER_INC;
+                                        destructureIndex++;
                                         continue;
                                     } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                                         append("*(scl_any*) &Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
@@ -1513,12 +1520,13 @@ namespace sclc {
                             Variable v = getVar(body[i]);
                             std::string loadFrom = v.getName();
                             if (getStructByName(result, v.getType()) != Struct("")) {
-                                ITER_INC;
-                                if (body[i].getType() != tok_dot) {
+                                if (body[i + 1].getType() != tok_dot) {
                                     append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                    i--;
+                                    ITER_INC;
+                                    destructureIndex++;
                                     continue;
                                 }
+                                ITER_INC;
                                 ITER_INC;
                                 Struct s = getStructByName(result, v.getType());
                                 if (!s.hasMember(body[i].getValue())) {
@@ -2012,7 +2020,7 @@ namespace sclc {
     handler(StringLiteral) {
         noUnused;
         append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
-        lastPushedType = "_String";
+        lastPushedType = "str";
         debugPrintPush();
     }
 
