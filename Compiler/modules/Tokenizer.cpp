@@ -19,8 +19,20 @@
     result.message = msg; \
     result.in = filename; \
     result.line = line; \
+    result.column = begin; \
     result.value = value; \
     errors.push_back(result); \
+    } while (0)
+
+#define syntaxWarn(msg) \
+    do { \
+    FPResult result; \
+    result.message = msg; \
+    result.in = filename; \
+    result.line = line; \
+    result.column = begin; \
+    result.value = value; \
+    warns.push_back(result); \
     } while (0)
 
 namespace sclc
@@ -255,12 +267,7 @@ namespace sclc
         }
 
         if (value == "store") {
-            FPResult result;
-            result.message = "The 'store' keyword is deprecated! Use '=>' instead.";
-            result.in = filename;
-            result.line = line;
-            result.value = value;
-            warns.push_back(result);
+            syntaxWarn("The 'store' keyword is deprecated! Use '=>' instead.");
         }
 
         if (value == "inline_c") {
@@ -278,6 +285,10 @@ namespace sclc
             }
             current += strlen("end_inline");
             return Token(tok_extern_c, value, startLine, filename, startColumn);
+        }
+
+        if (value == "extern") {
+            syntaxWarn("'extern' is deprecated! Use 'expect' instead!");
         }
 
         TOKEN("function",   tok_function, line, filename);

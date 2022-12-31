@@ -954,15 +954,7 @@ namespace sclc
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
                 Token extToken = token;
-                bool isExternC = false;
-                if (extToken.getValue() == "expect") {
-                    isExternC = true;
-                }
                 i++;
-                if (!isExternC && tokens[i].getType() == tok_string_literal && (tokens[i].getValue() == "c" || tokens[i].getValue() == "C")) {
-                    isExternC = true;
-                    i++;
-                }
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
                     if (currentStruct != nullptr) {
@@ -970,7 +962,7 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(currentStruct->getName(), name, func);
                         function->setFile(func.getFile());
-                        function->isExternC = isExternC;
+                        function->isExternC = true;
                         static_cast<Method*>(function)->forceAdd(true);
                         for (std::string m : nextAttributes) {
                             function->addModifier(m);
@@ -1099,7 +1091,7 @@ namespace sclc
                         std::string name = func.getValue();
                         Function* function = new Method(member_type, name, func);
                         function->setFile(func.getFile());
-                        function->isExternC = isExternC;
+                        function->isExternC = true;
                         for (std::string m : nextAttributes) {
                             function->addModifier(m);
                         }
@@ -1212,7 +1204,7 @@ namespace sclc
                         Token funcTok = tokens[i + 1];
                         Function* func = new Function(name, funcTok);
                         func->setFile(funcTok.getFile());
-                        func->isExternC = isExternC;
+                        func->isExternC = true;
                         i += 2;
                         if (tokens[i].getType() == tok_paren_open) {
                             i++;

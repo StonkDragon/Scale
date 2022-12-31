@@ -131,11 +131,29 @@
 	},
 	"Extern Function": {
 		"scope": "source.scale",
-		"prefix": "extern",
+		"prefix": "extern function",
 		"body": [
-			"extern"
+			"expect function ${1:name}($2): ${3:none}"
 		],
-		"description": "Declare an extern function or variable"
+		"description": "Declare an extern function"
+	},
+	"Export Function": {
+		"scope": "source.scale",
+		"prefix": "export",
+		"body": [
+			"export function ${1:name}($2): ${3:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Declare an extern function"
+	},
+	"Extern Method": {
+		"scope": "source.scale",
+		"prefix": "extern method",
+		"body": [
+			"expect function ${1:type}:${2:name}($3): ${4:none}"
+		],
+		"description": "Declare an extern method"
 	},
 	"Load Var": {
 		"scope": "source.scale",
