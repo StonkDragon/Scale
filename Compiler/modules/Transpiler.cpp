@@ -4,20 +4,25 @@
 #include "../headers/TranspilerDefs.hpp"
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
-#define ITER_INC                                         \
-    do {                                                 \
-        i++;                                             \
-        if (i >= body.size()) {                          \
-            FPResult err;                                \
-            err.success = false;                         \
-            err.message = "Unexpected end of function!"; \
-            err.line = body[i - 1].getLine();            \
-            err.in = body[i - 1].getFile();              \
-            err.value = body[i - 1].getValue();          \
-            err.type = body[i - 1].getType();            \
-            errors.push_back(err);                       \
-            return;                                      \
-        }                                                \
+#define ITER_INC                                             \
+    do {                                                     \
+        i++;                                                 \
+        if (i >= body.size()) {                              \
+            FPResult err;                                    \
+            err.success = false;                             \
+            err.message = "Unexpected end of function! "     \
+                + std::string("Error happened in function ") \
+                + std::string(__func__)                      \
+                + " in line "                                \
+                + std::to_string(__LINE__);                  \
+            err.line = body[i - 1].getLine();                \
+            err.in = body[i - 1].getFile();                  \
+            err.column = body[i - 1].getColumn();            \
+            err.value = body[i - 1].getValue();              \
+            err.type = body[i - 1].getType();                \
+            errors.push_back(err);                           \
+            return;                                          \
+        }                                                    \
     } while (0)
 
 namespace sclc {
@@ -932,25 +937,26 @@ namespace sclc {
 
     handler(Repeat) {
         noUnused;
-        if (body[i + 1].getType() != tok_number) {
-            transpilerError("Expected integer, but got '" + body[i + 1].getValue() + "'", i+1);
+        ITER_INC;
+        if (body[i].getType() != tok_number) {
+            transpilerError("Expected integer, but got '" + body[i].getValue() + "'", i);
             errors.push_back(err);
-            if (body[i + 2].getType() != tok_do)
+            if (i + 1 < body.size() && body[i + 1].getType() != tok_do)
                 goto lbl_repeat_do_tok_chk;
-            i += 2;
+            ITER_INC;
             return;
         }
-        if (body[i + 2].getType() != tok_do) {
+        if (i + 1 < body.size() && body[i + 1].getType() != tok_do) {
         lbl_repeat_do_tok_chk:
-            transpilerError("Expected 'do', but got '" + body[i + 2].getValue() + "'", i+2);
+            transpilerError("Expected 'do', but got '" + body[i + 1].getValue() + "'", i+1);
             errors.push_back(err);
-            i += 2;
+            ITER_INC;
             return;
         }
         append("for (scl_any %c = 0; %c < (scl_any) %s; %c++) {\n",
             'a' + repeat_depth,
             'a' + repeat_depth,
-            body[i + 1].getValue().c_str(),
+            body[i].getValue().c_str(),
             'a' + repeat_depth
         );
         repeat_depth++;
@@ -959,7 +965,7 @@ namespace sclc {
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
         was_rep.push_back(true);
-        i += 2;
+        ITER_INC;
     }
 
     handler(For) {
@@ -1228,7 +1234,7 @@ namespace sclc {
             Variable v = getVar(body[i]);
             std::string loadFrom = v.getName();
             if (getStructByName(result, v.getType()) != Struct("")) {
-                if (body[i + 1].getType() == tok_column) {
+                if (i + 1 < body.size() && body[i + 1].getType() == tok_column) {
                     if (!hasMethod(result, body[i], v.getType())) {
                         transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
                         errors.push_back(err);
@@ -1238,12 +1244,13 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) &Method_%s_%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
                     debugPrintPush();
                 } else {
-                    if (body[i + 1].getType() != tok_dot) {
+                    ITER_INC;
+                    if (body[i].getType() != tok_dot) {
                         append("stack.data[stack.ptr++].v = (scl_any) &Var_%s;\n", loadFrom.c_str());
                         debugPrintPush();
+                        i--;
                         return;
                     }
-                    ITER_INC;
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
@@ -1329,6 +1336,10 @@ namespace sclc {
                             return;
                         }
                     }
+                    ITER_INC;
+                    ITER_INC;
+                    i--;
+                    i--;
                     if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
                         i += 2;
                         Struct s = getStructByName(result, body[i - 2].getValue());
@@ -1355,11 +1366,12 @@ namespace sclc {
                 Variable v = getVar(body[i]);
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
-                    if (body[i + 1].getType() != tok_dot) {
+                    ITER_INC;
+                    if (body[i].getType() != tok_dot) {
                         append("*(scl_any*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        i--;
                         return;
                     }
-                    ITER_INC;
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
@@ -1431,11 +1443,12 @@ namespace sclc {
                             Variable v = getVar(body[i]);
                             std::string loadFrom = v.getName();
                             if (getStructByName(result, v.getType()) != Struct("")) {
-                                if (body[i + 1].getType() != tok_dot) {
+                                ITER_INC;
+                                if (body[i].getType() != tok_dot) {
                                     append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                    i--;
                                     continue;
                                 }
-                                ITER_INC;
                                 ITER_INC;
                                 Struct s = getStructByName(result, v.getType());
                                 if (!s.hasMember(body[i].getValue())) {
@@ -1494,11 +1507,12 @@ namespace sclc {
                             Variable v = getVar(body[i]);
                             std::string loadFrom = v.getName();
                             if (getStructByName(result, v.getType()) != Struct("")) {
-                                if (body[i + 1].getType() != tok_dot) {
+                                ITER_INC;
+                                if (body[i].getType() != tok_dot) {
                                     append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                    i--;
                                     continue;
                                 }
-                                ITER_INC;
                                 ITER_INC;
                                 Struct s = getStructByName(result, v.getType());
                                 if (!s.hasMember(body[i].getValue())) {
@@ -1528,30 +1542,30 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
         } else if (body[i].getType() == tok_declare) {
-            if (body[i + 1].getType() != tok_identifier) {
-                transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+            ITER_INC;
+            if (body[i].getType() != tok_identifier) {
+                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i+1);
                 errors.push_back(err);
                 return;
             }
-            if (hasFunction(result, body[i + 1])) {
-                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+            if (hasFunction(result, body[i])) {
+                transpilerError("Variable '" + body[i].getValue() + "' shadowed by function '" + body[i].getValue() + "'", i+1);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
-            if (hasContainer(result, body[i + 1])) {
-                transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+            if (hasContainer(result, body[i])) {
+                transpilerError("Variable '" + body[i].getValue() + "' shadowed by container '" + body[i].getValue() + "'", i+1);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
-            if (hasVar(body[i + 1])) {
-                transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+            if (hasVar(body[i])) {
+                transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i+1);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
-            std::string name = body[i + 1].getValue();
+            std::string name = body[i].getValue();
             std::string type = "any";
-            ITER_INC;
-            if (body[i+1].getType() == tok_column) {
+            if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
                 ITER_INC;
                 ITER_INC;
                 FPResult r = parseType(body, &i);
@@ -1611,6 +1625,10 @@ namespace sclc {
                             return;
                         }
                     }
+                    ITER_INC;
+                    ITER_INC;
+                    i--;
+                    i--;
                     if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
                         i += 2;
                         Struct s = getStructByName(result, body[i - 2].getValue());
@@ -1636,11 +1654,12 @@ namespace sclc {
                 Variable v = getVar(body[i]);
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
-                    if (body[i + 1].getType() != tok_dot) {
+                    ITER_INC;
+                    if (body[i].getType() != tok_dot) {
                         append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        i--;
                         return;
                     }
-                    ITER_INC;
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
@@ -1672,30 +1691,30 @@ namespace sclc {
 
     handler(Declare) {
         noUnused;
-        if (body[i + 1].getType() != tok_identifier) {
-            transpilerError("'" + body[i + 1].getValue() + "' is not an identifier!", i+1);
+        ITER_INC;
+        if (body[i].getType() != tok_identifier) {
+            transpilerError("'" + body[i].getValue() + "' is not an identifier!", i+1);
             errors.push_back(err);
             return;
         }
-        if (hasFunction(result, body[i + 1])) {
-            transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by function '" + body[i + 1].getValue() + "'", i+1);
+        if (hasFunction(result, body[i])) {
+            transpilerError("Variable '" + body[i].getValue() + "' shadowed by function '" + body[i].getValue() + "'", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
-        if (hasContainer(result, body[i + 1])) {
-            transpilerError("Variable '" + body[i + 1].getValue() + "' shadowed by container '" + body[i + 1].getValue() + "'", i+1);
+        if (hasContainer(result, body[i])) {
+            transpilerError("Variable '" + body[i].getValue() + "' shadowed by container '" + body[i].getValue() + "'", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
-        if (hasVar(body[i + 1])) {
-            transpilerError("Variable '" + body[i + 1].getValue() + "' is already declared and shadows it.", i+1);
+        if (hasVar(body[i])) {
+            transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
-        std::string name = body[i + 1].getValue();
+        std::string name = body[i].getValue();
         std::string type = "any";
-        ITER_INC;
-        if (body[i+1].getType() == tok_column) {
+        if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
             ITER_INC;
             ITER_INC;
             FPResult r = parseType(body, &i);
@@ -2310,11 +2329,11 @@ namespace sclc {
         else
             append("stack.data[stack.ptr - 1].v = (scl_any) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         lastPushedType = mem.getType();
-        if (body[i + 1].getType() == tok_dot) {
+        if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
             ITER_INC;
             handle(Dot);
         }
-        if (body[i + 1].getType() == tok_column) {
+        if (i + 2 < body.size() && body[i + 1].getType() == tok_column) {
             ITER_INC;
             handle(Column);
         }
@@ -2348,11 +2367,11 @@ namespace sclc {
             append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
         }
         lastPushedType = f->getReturnType();
-        if (body[i + 1].getType() == tok_dot) {
+        if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
             ITER_INC;
             handle(Dot);
         }
-        if (body[i + 1].getType() == tok_column) {
+        if (i + 2 < body.size() && body[i + 1].getType() == tok_column) {
             ITER_INC;
             handle(Column);
         }
