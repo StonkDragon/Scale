@@ -431,6 +431,10 @@ namespace sclc
                 if (contains(frameworks, Main.options.printDocFor)) {
                     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> docs;
                     std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+                    if (file.size() == 0 || !fileExists(file)) {
+                        std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+                        return 1;
+                    }
                     std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
                     FILE* fp = fopen(file.c_str(), "rb");
                     fseek(fp, 0, SEEK_END);
