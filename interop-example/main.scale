@@ -1,7 +1,5 @@
 # extern function imported from C
-# extern "c"
-expect
-function foo(): none
+expect function foo(): none
 
 # function exported to C
 export function bar(a: str): none
