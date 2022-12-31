@@ -1,7 +1,6 @@
 import Scale.util.iterable
 
-@sealed
-struct Range is Iterable
+sealed struct Range is Iterable
   decl lower: int
   decl upper: int
   decl _pos: int
@@ -58,8 +57,7 @@ struct Range is Iterable
   end
 end
 
-@sealed
-struct ReverseRange is Iterable
+sealed struct ReverseRange is Iterable
   decl lower: int
   decl upper: int
   decl _pos: int

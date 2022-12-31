@@ -1,8 +1,7 @@
 import Scale.util.iterable
 import Scale.debug
 
-@sealed
-struct Array is Iterable
+sealed struct Array is Iterable
   decl values: [any]
   decl count: int
   decl capacity: int

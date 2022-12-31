@@ -1,8 +1,7 @@
 import Scale.util.pair
 import Scale.util.iterable
 
-@sealed
-struct MapEntry
+sealed struct MapEntry
   decl key: str
   decl value: any
 
@@ -12,8 +11,7 @@ struct MapEntry
   end
 end
 
-@sealed
-struct Map is Iterable
+sealed struct Map is Iterable
   decl _data: Array
   decl _pos: int
 
