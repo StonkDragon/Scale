@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <stack>
 
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"
@@ -449,7 +450,8 @@ namespace sclc {
     char repeat_depth = 0;
     int iterator_count = 0;
     bool noWarns;
-    std::string lastPushedType = "";
+    std::stack<std::string> typeStack;
+#define typeStackTop (typeStack.size() ? typeStack.top() : "")
     std::string return_type = "";
 
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult result)
@@ -512,9 +514,11 @@ namespace sclc {
     #endif
         if (body[i].getValue() == "drop") {
             append("stack.ptr--;\n");
-            lastPushedType = "";
+            if (typeStack.size())
+                typeStack.pop();
         } else if (body[i].getValue() == "dup") {
             append("stack.data[stack.ptr++].v = stack.data[stack.ptr - 1].v;\n");
+            typeStack.push(typeStackTop);
             debugPrintPush();
         } else if (body[i].getValue() == "swap") {
             append("{\n");
@@ -527,7 +531,14 @@ namespace sclc {
             debugPrintPush();
             scopeDepth--;
             append("}\n");
-            lastPushedType = "any";
+            std::string b = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string a = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string(b));
+            typeStack.push(std::string(a));
         } else if (body[i].getValue() == "over") {
             append("{\n");
             scopeDepth++;
@@ -542,7 +553,18 @@ namespace sclc {
             debugPrintPush();
             scopeDepth--;
             append("}\n");
-            lastPushedType = "any";
+            std::string c = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string b = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string a = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string(c));
+            typeStack.push(std::string(b));
+            typeStack.push(std::string(a));
         } else if (body[i].getValue() == "sdup2") {
             append("{\n");
             scopeDepth++;
@@ -556,7 +578,15 @@ namespace sclc {
             debugPrintPush();
             scopeDepth--;
             append("}\n");
-            lastPushedType = "any";
+            std::string b = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string a = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string(a));
+            typeStack.push(std::string(b));
+            typeStack.push(std::string(a));
         } else if (body[i].getValue() == "swap2") {
             append("{\n");
             scopeDepth++;
@@ -571,70 +601,126 @@ namespace sclc {
             debugPrintPush();
             scopeDepth--;
             append("}\n");
-            lastPushedType = "any";
+            std::string c = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string b = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            std::string a = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string(b));
+            typeStack.push(std::string(a));
+            typeStack.push(std::string(c));
         } else if (body[i].getValue() == "clearstack") {
             append("stack.ptr = 0;\n");
-            lastPushedType = "";
+            for (size_t t = 0; t < typeStack.size(); t++) {
+                if (typeStack.size())
+                    typeStack.pop();
+            }
         } else if (body[i].getValue() == "&&") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "!") {
             append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "||") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "<") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == ">") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "==") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "<=") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == ">=") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "!=") {
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
-            lastPushedType = "bool";
+            if (typeStack.size())
+                typeStack.pop();
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(std::string("bool"));
         } else if (body[i].getValue() == "++") {
             append("stack.data[stack.ptr - 1].i++;\n");
         } else if (body[i].getValue() == "--") {
             append("stack.data[stack.ptr - 1].i--;\n");
         } else if (body[i].getValue() == "exit") {
             append("exit(stack.data[--stack.ptr].i);\n");
+            if (typeStack.size())
+                typeStack.pop();
         } else if (body[i].getValue() == "puts") {
             append("puts(stack.data[--stack.ptr].s);\n");
+            if (typeStack.size())
+                typeStack.pop();
         } else if (body[i].getValue() == "eputs") {
             append("fprintf(stderr, \"%%s\\n\", stack.data[--stack.ptr].s);\n");
+            if (typeStack.size())
+                typeStack.pop();
         } else if (body[i].getValue() == "abort") {
             append("abort();\n");
         } else if (body[i].getValue() == "typeof") {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
-                lastPushedType = "str";
+                typeStack.push(std::string("str"));
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -644,7 +730,7 @@ namespace sclc {
             ITER_INC;
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", body[i].getValue().c_str());
-                lastPushedType = "str";
+                typeStack.push(std::string("str"));
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -654,41 +740,43 @@ namespace sclc {
             ITER_INC;
             if (body[i].getValue() == "int") {
                 append("stack.data[stack.ptr++].i = 8;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             } else if (body[i].getValue() == "int") {
                 append("stack.data[stack.ptr++].i = 8;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             } else if (body[i].getValue() == "float") {
                 append("stack.data[stack.ptr++].i = 8;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             } else if (body[i].getValue() == "str") {
                 append("stack.data[stack.ptr++].i = 8;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             } else if (body[i].getValue() == "any") {
                 append("stack.data[stack.ptr++].i = 8;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             } else if (body[i].getValue() == "none") {
                 append("stack.data[stack.ptr++].i = 0;\n");
-                lastPushedType = "int";
+                typeStack.push(std::string("int"));
                 return;
             }
             if (hasVar(body[i])) {
                 append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i]).getType()).c_str());
+                typeStack.push(std::string("int"));
             } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
                 append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+                typeStack.push(std::string("int"));
             } else if (hasTypealias(result, body[i].getValue())) {
                 append("stack.data[stack.ptr++].i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+                typeStack.push(std::string("int"));
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
                 return;
             }
-            lastPushedType = "int";
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -700,6 +788,10 @@ namespace sclc {
                 return;
             }
             if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+            for (size_t m = 0; m < f->getArgs().size(); m++) {
+                if (typeStack.size())
+                    typeStack.pop();
+            }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
                     append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -708,10 +800,10 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                     debugPrintPush();
                 }
+                typeStack.push(std::string(f->getReturnType()));
             } else {
                 append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
             }
-            lastPushedType = f->getReturnType();
         } else if (hasContainer(result, body[i])) {
             std::string containerName = body[i].getValue();
             ITER_INC;
@@ -735,7 +827,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
                 debugPrintPush();
             }
-            lastPushedType = container.getMemberType(memberName);
+            typeStack.push(std::string(container.getMemberType(memberName)));
         } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
             if (body[i + 1].getType() == tok_double_column) {
                 std::string struct_ = body[i].getValue();
@@ -760,9 +852,16 @@ namespace sclc {
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
                         append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
+                        if (typeStack.size())
+                            typeStack.pop();
                         append("stack.data[stack.ptr++].v = tmp;\n");
+                        typeStack.push(std::string(struct_));
                         debugPrintPush();
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        for (size_t m = 0; m < f->getArgs().size(); m++) {
+                            if (typeStack.size())
+                                typeStack.pop();
+                        }
                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                             if (f->getReturnType() == "float") {
                                 append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -779,7 +878,7 @@ namespace sclc {
                         scopeDepth--;
                         append("}\n");
                     }
-                    lastPushedType = struct_;
+                    typeStack.push(std::string(struct_));
                 } else if (body[i].getValue() == "default") {
                     if (!s.stackAllocAllowed()) {
                         transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::default'", i);
@@ -794,6 +893,10 @@ namespace sclc {
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         Method* f = getMethodByName(result, "init", struct_);
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        for (size_t m = 0; m < f->getArgs().size(); m++) {
+                            if (typeStack.size())
+                                typeStack.pop();
+                        }
                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                             if (f->getReturnType() == "float") {
                                 append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -808,7 +911,7 @@ namespace sclc {
                         append("stack.data[stack.ptr++].v = (scl_any*) &tmp;\n");
                         debugPrintPush();
                     }
-                    lastPushedType = struct_;
+                    typeStack.push(std::string(struct_));
                     scopeDepth--;
                     append("}\n");
                 } else {
@@ -820,6 +923,10 @@ namespace sclc {
                             return;
                         }
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        for (size_t m = 0; m < f->getArgs().size(); m++) {
+                            if (typeStack.size())
+                                typeStack.pop();
+                        }
                         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                             if (f->getReturnType() == "float") {
                                 append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -828,10 +935,10 @@ namespace sclc {
                                 append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                                 debugPrintPush();
                             }
+                            typeStack.push(std::string(f->getReturnType()));
                         } else {
                             append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                         }
-                        lastPushedType = f->getReturnType();
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
@@ -842,7 +949,7 @@ namespace sclc {
                             append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                             debugPrintPush();
                         }
-                        lastPushedType = v.getType();
+                        typeStack.push(std::string(v.getType()));
                     }
                 }
             }
@@ -856,7 +963,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                 debugPrintPush();
             }
-            lastPushedType = v.getType();
+            typeStack.push(std::string(v.getType()));
         } else if (function->isMethod) {
             Method* m = static_cast<Method*>(function);
             Struct s = getStructByName(result, m->getMemberType());
@@ -864,6 +971,10 @@ namespace sclc {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
                 append("stack.data[stack.ptr++].v = (scl_any) Var_self;\n");
                 if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                for (size_t m = 0; m < f->getArgs().size(); m++) {
+                    if (typeStack.size())
+                        typeStack.pop();
+                }
                 debugPrintPush();
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
@@ -873,10 +984,10 @@ namespace sclc {
                         append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                         debugPrintPush();
                     }
+                    typeStack.push(std::string(f->getReturnType()));
                 } else {
                     append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
-                lastPushedType = f->getReturnType();
             } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                 std::string struct_ = s.getName();
                 ITER_INC;
@@ -888,6 +999,10 @@ namespace sclc {
                         return;
                     }
                     if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    for (size_t m = 0; m < f->getArgs().size(); m++) {
+                        if (typeStack.size())
+                            typeStack.pop();
+                    }
                     if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                         if (f->getReturnType() == "float") {
                             append("stack.data[stack.ptr++].f = Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -896,10 +1011,10 @@ namespace sclc {
                             append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                             debugPrintPush();
                         }
+                        typeStack.push(std::string(f->getReturnType()));
                     } else {
                         append("Function_%s(%s);\n", f->getName().c_str(), sclGenArgs(result, f).c_str());
                     }
-                    lastPushedType = f->getReturnType();
                 }
             } else if (s.hasMember(body[i].getValue())) {
                 Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
@@ -910,7 +1025,7 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Var_self->%s;\n", body[i].getValue().c_str());
                     debugPrintPush();
                 }
-                lastPushedType = mem.getType();
+                typeStack.push(std::string(mem.getType()));
             } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                 std::string loadFrom = s.getName() + "$" + body[i].getValue();
                 Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
@@ -921,7 +1036,7 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                     debugPrintPush();
                 }
-                lastPushedType = v.getType();
+                typeStack.push(std::string(v.getType()));
             } else {
                 transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -1000,11 +1115,15 @@ namespace sclc {
         }
         ITER_INC;
         append("__it%d.start = stack.data[--stack.ptr].i;\n", iterator_count);
+        if (typeStack.size())
+            typeStack.pop();
         while (body[i].getType() != tok_step && body[i].getType() != tok_do) {
             handle(Token);
             ITER_INC;
         }
         append("__it%d.end = stack.data[--stack.ptr].i;\n", iterator_count);
+        if (typeStack.size())
+            typeStack.pop();
         std::string iterator_direction = "++";
         if (body[i].getType() == tok_step) {
             ITER_INC;
@@ -1169,14 +1288,18 @@ namespace sclc {
             return;
         }
         
-        if (!getStructByName(result, lastPushedType).implements("Iterable")) {
-            transpilerError("Struct '" + lastPushedType + "' is not iterable!", i);
+        if (!getStructByName(result, typeStackTop).implements("Iterable")) {
+            transpilerError("Struct '" + typeStackTop + "' is not iterable!", i);
             errors.push_back(err);
             return;
         }
-        append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", lastPushedType.c_str(), iterator_name.c_str(), lastPushedType.c_str());
+        append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", typeStackTop.c_str(), iterator_name.c_str(), typeStackTop.c_str());
+        std::string type = typeStackTop;
+        if (typeStack.size()) {
+            typeStack.pop();
+        }
 
-        Method* nextMethod = getMethodByName(result, "next", lastPushedType);
+        Method* nextMethod = getMethodByName(result, "next", type);
         std::string var_prefix = "";
         if (!hasVar(iter_var_tok)) {
             var_prefix = sclTypeToCType(result, nextMethod->getReturnType()) + " ";
@@ -1191,13 +1314,13 @@ namespace sclc {
             var_prefix.c_str(),
             iter_var_tok.getValue().c_str(),
             cType.c_str(),
-            lastPushedType.c_str(),
+            type.c_str(),
             iterator_name.c_str(),
-            lastPushedType.c_str(),
+            type.c_str(),
             iterator_name.c_str(),
             iter_var_tok.getValue().c_str(),
             cType.c_str(),
-            lastPushedType.c_str(),
+            type.c_str(),
             iterator_name.c_str()
         );
         scopeDepth++;
@@ -1254,6 +1377,7 @@ namespace sclc {
                     if (body[i].getType() != tok_dot) {
                         append("stack.data[stack.ptr++].v = (scl_any) &Var_%s;\n", loadFrom.c_str());
                         debugPrintPush();
+                        typeStack.push(std::string("any"));
                         i--;
                         return;
                     }
@@ -1300,7 +1424,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        lastPushedType = "any";
+        typeStack.push(std::string("any"));
     }
 
     handler(Store) {
@@ -1325,6 +1449,8 @@ namespace sclc {
                     return;
                 }
                 append("*((scl_any*) Container_%s.%s) = stack.data[--stack.ptr].v;\n", containerName.c_str(), memberName.c_str());
+                if (typeStack.size())
+                    typeStack.pop();
             } else {
                 if (body[i].getType() != tok_identifier) {
                     transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -1336,9 +1462,13 @@ namespace sclc {
                         Struct s = getStructByName(result, m->getMemberType());
                         if (s.hasMember(body[i].getValue())) {
                             append("*(scl_any*) Var_self->%s = stack.data[--stack.ptr].v;\n", body[i].getValue().c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             append("*(scl_any*) Var_%s$%s = stack.data[--stack.ptr].v;\n", s.getName().c_str(), body[i].getValue().c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         }
                     }
@@ -1362,6 +1492,8 @@ namespace sclc {
                                 append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
                             else
                                 append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         }
                     }
@@ -1375,6 +1507,8 @@ namespace sclc {
                     ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         append("*(scl_any*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        if (typeStack.size())
+                            typeStack.pop();
                         i--;
                         return;
                     }
@@ -1394,11 +1528,15 @@ namespace sclc {
                 } else {
                     append("*(scl_any*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
                 }
+                if (typeStack.size())
+                    typeStack.pop();
             }
         } else if (body[i].getType() == tok_paren_open) {
             append("{\n");
             scopeDepth++;
             append("struct Struct_Array* tmp = (struct Struct_Array*) stack.data[--stack.ptr].v;\n");
+            if (typeStack.size())
+                typeStack.pop();
             ITER_INC;
             int destructureIndex = 0;
             while (body[i].getType() != tok_paren_close) {
@@ -1596,6 +1734,8 @@ namespace sclc {
             Variable v = Variable(name, type);
             vars[varDepth].push_back(v);
             append("%s Var_%s = (%s) stack.data[--stack.ptr].%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str(), sclTypeToCType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
+            if (typeStack.size())
+                typeStack.pop();
         } else {
             if (hasContainer(result, body[i])) {
                 std::string containerName = body[i].getValue();
@@ -1614,6 +1754,8 @@ namespace sclc {
                     return;
                 }
                 append("Container_%s.%s = (%s) stack.data[--stack.ptr].%s;\n", containerName.c_str(), memberName.c_str(), sclTypeToCType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
+                if (typeStack.size())
+                    typeStack.pop();
             } else {
                 if (body[i].getType() != tok_identifier) {
                     transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -1629,6 +1771,8 @@ namespace sclc {
                                 append("Var_self->%s = stack.data[--stack.ptr].f;\n", body[i].getValue().c_str());
                             else
                                 append("Var_self->%s = (%s) stack.data[--stack.ptr].v;\n", body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
@@ -1636,6 +1780,8 @@ namespace sclc {
                                 append("Var_%s$%s = stack.data[--stack.ptr].f;\n", s.getName().c_str(), body[i].getValue().c_str());
                             else
                                 append("Var_%s$%s = (%s) stack.data[--stack.ptr].v;\n", s.getName().c_str(), body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         }
                     }
@@ -1659,6 +1805,8 @@ namespace sclc {
                                 append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
                             else
                                 append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                            if (typeStack.size())
+                                typeStack.pop();
                             return;
                         }
                     }
@@ -1671,6 +1819,8 @@ namespace sclc {
                     ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
+                        if (typeStack.size())
+                            typeStack.pop();
                         i--;
                         return;
                     }
@@ -1691,16 +1841,21 @@ namespace sclc {
                         append("Var_%s->%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str(), body[i].getValue().c_str());
                     else
                         append("Var_%s->%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                    if (typeStack.size())
+                        typeStack.pop();
                 } else {
                     Variable v = getVar(body[i]);
                     if (v.getType() == "float")
                         append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
                     else
                         append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, v.getType()).c_str());
+                    if (typeStack.size())
+                        typeStack.pop();
                 }
             }
         }
-        lastPushedType = "";
+        // if (typeStack.size())
+        //     typeStack.pop();
     }
 
     handler(Declare) {
@@ -1768,6 +1923,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Method_Array_init(tmp, 1);\n");
                 debugPrintPush();
             }
+            typeStack.push(std::string(f->getReturnType()));
         } else {
             append("Method_Array_init(tmp, 1);\n");
         }
@@ -1783,11 +1939,14 @@ namespace sclc {
                 ITER_INC;
                 didPush = true;
             }
-            if (didPush)
+            if (didPush) {
                 append("Method_Array_push(tmp, stack.data[--stack.ptr].v);\n");
+                if (typeStack.size())
+                    typeStack.pop();
+            }
         }
         append("stack.data[stack.ptr++].v = tmp;\n");
-        lastPushedType = "Array";
+        typeStack.push(std::string("Array"));
         debugPrintPush();
         scopeDepth--;
         append("}\n");
@@ -1814,6 +1973,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Method_Map_init(tmp, 1);\n");
                 debugPrintPush();
             }
+            typeStack.push(std::string(f->getReturnType()));
         } else {
             append("Method_Map_init(tmp, 1);\n");
         }
@@ -1842,11 +2002,14 @@ namespace sclc {
                 ITER_INC;
                 didPush = true;
             }
-            if (didPush)
+            if (didPush) {
                 append("Method_Map_set(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
+                if (typeStack.size())
+                    typeStack.pop();
+            }
         }
         append("stack.data[stack.ptr++].v = tmp;\n");
-        lastPushedType = "Map";
+        typeStack.push(std::string("Map"));
         debugPrintPush();
         scopeDepth--;
         append("}\n");
@@ -1883,6 +2046,8 @@ namespace sclc {
             }
             Method* f = getMethodByName(result, "init", "MapEntry");
             append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\");\n");
+            if (typeStack.size())
+                typeStack.pop();
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
                     append("stack.data[stack.ptr++].f = Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
@@ -1891,11 +2056,12 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
                     debugPrintPush();
                 }
+                typeStack.push(std::string(f->getReturnType()));
             } else {
                 append("Method_MapEntry_init(tmp, stack.data[--stack.ptr].v, \"%s\");\n", key.c_str());
             }
             append("stack.data[stack.ptr++].v = tmp;\n");
-            lastPushedType = "MapEntry";
+            typeStack.push(std::string("MapEntry"));
             debugPrintPush();
             scopeDepth--;
             append("}\n");
@@ -1944,6 +2110,7 @@ namespace sclc {
                         }
                         debugPrintPush();
                     }
+                    typeStack.push(std::string(f->getReturnType()));
                 } else {
                     if (i) {
                         append("Method_Pair_init(tmp, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
@@ -1952,7 +2119,7 @@ namespace sclc {
                     }
                 }
                 append("stack.data[stack.ptr++].v = tmp;\n");
-                lastPushedType = "Pair";
+                typeStack.push(std::string("Pair"));
                 debugPrintPush();
                 scopeDepth--;
                 append("}\n");
@@ -1995,6 +2162,7 @@ namespace sclc {
                         }
                         debugPrintPush();
                     }
+                    typeStack.push(std::string(f->getReturnType()));
                 } else {
                     if (i) {
                         append("Method_Triple_init(tmp, stack.data[stack.ptr + 2].v, stack.data[stack.ptr + 1].v, stack.data[stack.ptr].v);\n");
@@ -2003,7 +2171,7 @@ namespace sclc {
                     }
                 }
                 append("stack.data[stack.ptr++].v = tmp;\n");
-                lastPushedType = "Triple";
+                typeStack.push(std::string("Triple"));
                 debugPrintPush();
                 scopeDepth--;
                 append("}\n");
@@ -2020,7 +2188,7 @@ namespace sclc {
     handler(StringLiteral) {
         noUnused;
         append("stack.data[stack.ptr++].v = \"%s\";\n", body[i].getValue().c_str());
-        lastPushedType = "str";
+        typeStack.push(std::string("str"));
         debugPrintPush();
     }
 
@@ -2035,6 +2203,10 @@ namespace sclc {
         std::string s = replaceAll(body[i].getValue(), R"(\\\\)", "\\");
         s = replaceAll(s, R"(\\\")", "\"");
         append("%s\n", s.c_str());
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
     }
 
     handler(ExternC) {
@@ -2059,6 +2231,10 @@ namespace sclc {
         append("}\n");
         scopeDepth--;
         append("}// End C\n");
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
     }
 
     handler(IntegerLiteral) {
@@ -2066,8 +2242,9 @@ namespace sclc {
         FPResult numberHandled = handleNumber(fp, body[i], scopeDepth);
         if (!numberHandled.success) {
             errors.push_back(numberHandled);
+            return;
         }
-        lastPushedType = "int";
+        typeStack.push(std::string("int"));
     }
 
     handler(FloatLiteral) {
@@ -2075,21 +2252,22 @@ namespace sclc {
         FPResult numberHandled = handleDouble(fp, body[i], scopeDepth);
         if (!numberHandled.success) {
             errors.push_back(numberHandled);
+            return;
         }
-        lastPushedType = "float";
+        typeStack.push(std::string("float"));
     }
 
     handler(FalsyType) {
         noUnused;
         append("stack.data[stack.ptr++].v = (scl_any) 0;\n");
-        lastPushedType = "bool";
+        typeStack.push(std::string("bool"));
         debugPrintPush();
     }
 
     handler(TruthyType) {
         noUnused;
         append("stack.data[stack.ptr++].v = (scl_any) 1;\n");
-        lastPushedType = "bool";
+        typeStack.push(std::string("bool"));
         debugPrintPush();
     }
 
@@ -2108,10 +2286,16 @@ namespace sclc {
             return;
         }
         append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->$__type__ == 0x%016llx;\n", struct_.c_str(), hash1((char*) struct_.c_str()));
-        lastPushedType = "bool";
+        if (typeStack.size())
+            typeStack.pop();
+        typeStack.push(std::string("bool"));
     }
 
     handler(If) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         noUnused;
         append("{\n");
         scopeDepth++;
@@ -2132,6 +2316,10 @@ namespace sclc {
     }
 
     handler(Else) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         noUnused;
         scopeDepth--;
         varDepth--;
@@ -2144,6 +2332,10 @@ namespace sclc {
     }
 
     handler(Elif) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         noUnused;
         scopeDepth--;
         varDepth--;
@@ -2166,6 +2358,10 @@ namespace sclc {
     }
 
     handler(Fi) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         noUnused;
         scopeDepth--;
         varDepth--;
@@ -2177,6 +2373,10 @@ namespace sclc {
     }
 
     handler(While) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         noUnused;
         append("while (1) {\n");
         scopeDepth++;
@@ -2188,6 +2388,8 @@ namespace sclc {
 
     handler(Do) {
         noUnused;
+        if (typeStack.size())
+            typeStack.pop();
         append("if (!stack.data[--stack.ptr].v) break;\n");
     }
 
@@ -2221,6 +2423,10 @@ namespace sclc {
             } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
                 append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
             }
+        }
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size())
+                typeStack.pop();
         }
     }
 
@@ -2279,6 +2485,8 @@ namespace sclc {
 
     handler(Switch) {
         noUnused;
+        if (typeStack.size())
+            typeStack.pop();
         append("switch (stack.data[--stack.ptr].i) {\n");
         scopeDepth++;
         varDepth++;
@@ -2290,7 +2498,9 @@ namespace sclc {
     handler(AddrOf) {
         noUnused;
         append("stack.data[stack.ptr - 1].v = (*(scl_any*) stack.data[stack.ptr - 1].v);\n");
-        lastPushedType = "any";
+        if (typeStack.size())
+            typeStack.pop();
+        typeStack.push(std::string("any"));
     }
 
     handler(Break) {
@@ -2307,7 +2517,7 @@ namespace sclc {
         noUnused;
         ITER_INC;
         if (body[i].getValue() == "int" || body[i].getValue() == "float" || body[i].getValue() == "str" || body[i].getValue() == "any") {
-            lastPushedType = body[i].getValue();
+            typeStack.push(std::string(body[i].getValue()));
             return;
         }
         if (getStructByName(result, body[i].getValue()) == Struct("")) {
@@ -2315,14 +2525,14 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        lastPushedType = body[i].getValue();
+        typeStack.push(std::string(body[i].getValue()));
     }
 
     handler(Dot) {
         noUnused;
-        Struct s = getStructByName(result, lastPushedType);
+        Struct s = getStructByName(result, typeStackTop);
         if (s == Struct("")) {
-            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + lastPushedType + "'", i);
+            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
         }
@@ -2342,7 +2552,7 @@ namespace sclc {
             append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         else
             append("stack.data[stack.ptr - 1].v = (scl_any) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
-        lastPushedType = mem.getType();
+        typeStack.push(std::string(mem.getType()));
         if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
             ITER_INC;
             handle(Dot);
@@ -2355,20 +2565,24 @@ namespace sclc {
 
     handler(Column) {
         noUnused;
-        Struct s = getStructByName(result, lastPushedType);
+        Struct s = getStructByName(result, typeStackTop);
         if (s == Struct("")) {
-            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + lastPushedType + "'", i);
+            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
         }
         ITER_INC;
-        if (!hasMethod(result, body[i], lastPushedType)) {
-            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + lastPushedType + "'", i);
+        if (!hasMethod(result, body[i], typeStackTop)) {
+            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
         }
-        Method* f = getMethodByName(result, body[i].getValue(), lastPushedType);
+        Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+        for (size_t m = 0; m < f->getArgs().size(); m++) {
+            if (typeStack.size())
+                typeStack.pop();
+        }
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
                 append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
@@ -2377,10 +2591,10 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 debugPrintPush();
             }
+            typeStack.push(std::string(f->getReturnType()));
         } else {
             append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
         }
-        lastPushedType = f->getReturnType();
         if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
             ITER_INC;
             handle(Dot);
@@ -2641,6 +2855,10 @@ namespace sclc {
             vars[varDepth].clear();
             for (Variable g : globals) {
                 vars[varDepth].push_back(g);
+            }
+            for (size_t t = 0; t < typeStack.size(); t++) {
+                if (typeStack.size())
+                    typeStack.pop();
             }
 
             scopeDepth = 0;

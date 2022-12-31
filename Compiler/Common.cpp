@@ -50,11 +50,11 @@ namespace sclc
 
     void print_trace(void) {
 #ifndef _WIN32
-        void* array[32];
+        void* array[64];
         char** strings;
         int size, i;
 
-        size = backtrace(array, 32);
+        size = backtrace(array, 64);
         strings = backtrace_symbols(array, size);
         if (strings != NULL) {
             for (i = 0; i < size; i++)
