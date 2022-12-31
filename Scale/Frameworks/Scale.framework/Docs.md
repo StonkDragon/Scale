@@ -33,6 +33,12 @@ Reallocates the memory pointed to by `_ptr_` with a new size of `_size_` bytes. 
 ### `function free(_ptr_: any): none`
 Frees the memory pointed to by `_ptr_`. If `_ptr_` was not allocated, a call to `free` will result in undefined behavior. If `_ptr_` is `nil`, the function will do nothing.
 
+### `function memset(ptr: [any], val: int, len: int): [any]`
+Sets the first `len` bytes pointed to by `ptr` to `val`. Returns a pointer to the changed memory.
+
+### `function memcpy(dst: [any], src: [any], n: int): [any]`
+Copies `n` bytes from `src` to `dst` and returns `dst`.
+
 ### `function strlen(_str_: str): int`
 Returns the length of the string `_str_`. It is undefined behavior if `_str_` is `nil`.
 
@@ -94,6 +100,12 @@ Converts `_val_` to a 32-Bit integer.
 
 ### `function toChars(_str_: str): Array`
 Converts `_str_` to an array of characters. An empty array is returned if the string has a length of zero.
+
+### `function isnil(x: any): bool`
+Returns `true`, if `x` is `nil`.
+
+### `function isnotnil(x: any): bool`
+Returns `true`, if `x` is not `nil`.
 
 <div style="page-break-after: always;"></div>
 
