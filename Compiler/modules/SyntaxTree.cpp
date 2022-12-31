@@ -954,9 +954,15 @@ namespace sclc
                 }
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
                 Token extToken = token;
+                bool isExternC = false;
+                if (extToken.getValue() == "expect") {
+                    isExternC = true;
+                }
                 i++;
-                bool isExternC = tokens[i].getType() == tok_string_literal && (tokens[i].getValue() == "c" || tokens[i].getValue() == "C");
-                if (isExternC) i++;
+                if (!isExternC && tokens[i].getType() == tok_string_literal && (tokens[i].getValue() == "c" || tokens[i].getValue() == "C")) {
+                    isExternC = true;
+                    i++;
+                }
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
                     if (currentStruct != nullptr) {
