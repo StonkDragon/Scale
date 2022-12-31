@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <regex>
 
 #include <signal.h>
 #include <errno.h>
@@ -73,6 +74,7 @@ namespace sclc
         std::cout << "  -run             Run the compiled program" << std::endl;
         std::cout << "  -cflags          Print c compiler flags and exit" << std::endl;
         std::cout << "  -debug           Run in debug mode" << std::endl;
+        std::cout << "  -doc <framework> Print documentation for Framework" << std::endl;
         std::cout << std::endl;
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
     }
@@ -87,6 +89,16 @@ namespace sclc
     }
 
     std::string findFileInIncludePath(std::string file);
+
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter);
+
+    int sys_execv(const char* argv0, const char** argv) {
+        #ifdef _WIN32
+            return execv(argv0, (const char* const*) argv);
+        #else
+            return execv(argv0, (char* const*) argv);
+        #endif
+    }
 
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
@@ -193,6 +205,16 @@ namespace sclc
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
+                } else if (args[i] == "-doc") {
+                    if (i + 1 < args.size()) {
+                        Main.options.printDocFor = args[i + 1];
+                        i++;
+                        Main.options.docPrinterArgsStart = i;
+                        break;
+                    } else {
+                        std::cerr << "Error: -doc requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
@@ -225,7 +247,7 @@ namespace sclc
         }
 
         std::string source;
-        if (Main.options.files.size() == 0) {
+        if (Main.options.files.size() == 0 && Main.options.printDocFor.size() == 0) {
             goto actAsCCompiler;
         }
         
@@ -265,12 +287,16 @@ namespace sclc
                     
                     DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
                     std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                    Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
                     
                     DragonConfig::StringEntry* implDirTag = root->getString("implDir");
                     std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
                     
                     DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
                     std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                    DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                    Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : scaleFolder + "/Frameworks/" + framework + ".framework/" + docfileTag->getValue();
 
                     Version ver = Version(version);
                     Version compilerVersion = Version(VERSION);
@@ -335,6 +361,7 @@ namespace sclc
                     
                     DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
                     std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                    Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
                     
                     DragonConfig::StringEntry* implDirTag = root->getString("implDir");
                     std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
@@ -342,6 +369,9 @@ namespace sclc
                     DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
                     std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
+                    DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                    Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : "./" + framework + ".framework/" + docfileTag->getValue();
+                    
                     Version ver = Version(version);
                     Version compilerVersion = Version(VERSION);
                     if (ver > compilerVersion) {
@@ -396,6 +426,144 @@ namespace sclc
             }
 
             if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+
+            if (Main.options.printDocFor.size() != 0) {
+                if (contains(frameworks, Main.options.printDocFor)) {
+                    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> docs;
+                    std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+                    std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
+                    FILE* fp = fopen(file.c_str(), "rb");
+                    fseek(fp, 0, SEEK_END);
+                    long sz = ftell(fp);
+                    fseek(fp, 0, SEEK_SET);
+                    char* data = new char[sz];
+                    fread(data, 1, sz, fp);
+                    fclose(fp);
+
+                    std::vector<std::string> lines = split(std::string(data), "\n");
+
+                    struct {
+                        std::vector<std::string> find;
+                    } DocOps;
+
+                    for (size_t i = Main.options.docPrinterArgsStart; i < args.size(); i++) {
+                        std::string arg = args[i];
+                        if (arg == "find") {
+                            if (i + 1 < args.size()) {
+                                DocOps.find.push_back(args[i + 1]);
+                                i++;
+                            } else {
+                                std::cerr << "Error: find requires an argument" << std::endl;
+                                return 1;
+                            }
+                        }
+                    }
+
+                    std::string current = "";
+                    for (size_t i = 0; i < lines.size(); i++) {
+                        std::string line = lines[i];
+
+                        try {
+                            line = replaceAll(line, "`", "");
+                        } catch (std::out_of_range& e) {}
+                        if (strstarts(line, "##") && !strstarts(line, "###")) {
+                            try {
+                                size_t start = line.find_first_of('(') + 1;
+                                size_t end = line.find_last_of(')');
+                                if (start == std::string::npos) {
+                                    current = "";
+                                    continue;
+                                }
+                                current = line.substr(start, end - start);
+                                current = replaceAll(current, "\\./", "");
+                                current = replaceAll(current, includeFolder + "/", "");
+                                current = replaceAll(current, "/", ".");
+                                current = replaceAll(current, "\\.scale$", "");
+                                current = Main.options.printDocFor + "." + current;
+                                
+                                std::unordered_map<std::string, std::string> key_value;
+                                docs[current] = key_value;
+                            } catch (std::out_of_range& e) {}
+                        } else if (strstarts(line, "###")) {
+                            std::string key = line.substr(4);
+                            docs[current][key] = "";
+                            line = lines[++i];
+                            while (i < lines.size() && !strstarts(line, "##")) {
+                                while (strstarts(line, "<div")) {
+                                    line = lines[++i];
+                                }
+                                docs[current][key] += "  " + line + "\n";
+                                line = lines[++i];
+                            }
+                            std::string prev = docs[current][key];
+                            std::string now = replaceAll(prev, "\n  \n", "\n");
+                            while (prev != now) {
+                                prev = now;
+                                now = replaceAll(prev, "\n  \n", "\n");
+                            }
+                            now = replaceAll(now, "<<RESET>>", Color::GREEN);
+                            now = replaceAll(now, "<<BLACK>>", Color::BLACK);
+                            now = replaceAll(now, "<<RED>>", Color::RED);
+                            now = replaceAll(now, "<<GREEN>>", Color::GREEN);
+                            now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
+                            now = replaceAll(now, "<<BLUE>>", Color::BLUE);
+                            now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
+                            now = replaceAll(now, "<<CYAN>>", Color::CYAN);
+                            now = replaceAll(now, "<<WHITE>>", Color::WHITE);
+                            now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
+                            now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
+                            now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
+                            now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
+                            now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
+                            now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
+                            now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
+                            now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
+
+                            docs[current][key] = now;
+                            i--;
+                        }
+                    }
+
+                    if (DocOps.find.size() == 0) {
+                        std::cout << "Documentation for Framework " << Main.options.printDocFor << std::endl;
+                        for (std::pair<std::string, std::unordered_map<std::string, std::string>> section : docs) {
+                            current = section.first;
+                            for (std::pair<std::string, std::string> kv : section.second) {
+                                std::cout << Color::BOLDBLUE << current + ": " << Color::RESET << Color::BLUE << kv.first << ":\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                            }
+                        }
+                    } else {
+                        for (std::string f : DocOps.find) {
+                            std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                            bool found = false;
+                            for (std::pair<std::string, std::unordered_map<std::string, std::string>> section : docs) {
+                                current = section.first;
+                                for (std::pair<std::string, std::string> kv : section.second) {
+                                    std::string matchCurrent = current;
+                                    size_t index = kv.first.find("function");
+                                    if (index == std::string::npos) {
+                                        index = 0;
+                                    } else {
+                                        index += 8;
+                                    }
+                                    std::string matchKey = kv.first.substr(index);
+                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f))) {
+                                        std::cout << Color::BOLDBLUE << current + ": " << Color::RESET << Color::BLUE << kv.first << ":\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                        found = true;
+                                    }
+                                }
+                            }
+                            if (!found) {
+                                std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
+                            }
+                        }
+                    }
+
+                    return 0;
+                }
+                std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' not found!" << Color::RESET << std::endl;
+                return 1;
+            }
             
             std::vector<Token>  tokens;
 
@@ -691,19 +859,16 @@ namespace sclc
         if (Main.options.printCflags) {
             std::cout << cmd << std::endl;
             return 0;
+        } else if (!Main.options.transpileOnly) {
+            int ret = system(cmd.c_str());
+            remove(source.c_str());
+            remove("scale_support.h");
+            if (ret) {
+                std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
+                return ret;
+            }
         }
 
-        int ret = system(cmd.c_str());
-
-        if (ret != 0) {
-            std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
-            remove(source.c_str());
-            return ret;
-        }
-        if (!Main.options.transpileOnly) {
-            remove(source.c_str());
-        }
-        
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
         auto end = chrono::high_resolution_clock::now();
@@ -713,11 +878,11 @@ namespace sclc
         if (Main.options.doRun) {
             const char** argv = new const char*[1];
             argv[0] = (const char*) outfile.c_str();
-        #ifdef _WIN32
-            execv(argv[0], (const char* const*) argv);
-        #else
-            execv(argv[0], (char* const*) argv);
-        #endif
+            #ifdef _WIN32
+                return execv(argv[0], (const char* const*) argv);
+            #else
+                return execv(argv[0], (char* const*) argv);
+            #endif
         }
 
         return 0;

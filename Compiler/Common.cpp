@@ -76,6 +76,10 @@ namespace sclc
         return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
     }
 
+    bool strstarts(const std::string& str, const std::string& prefix) {
+        return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
+    }
+
     int isCharacter(char c) {
         return (c >= 'a' && c <= 'z') ||
             (c >= 'A' && c <= 'Z') ||

@@ -5,4 +5,5 @@ framework: {
     implementers: [];
     implHeaderDir: "impl";
     implHeaders: [];
+    docfile: "Docs.md";
 };

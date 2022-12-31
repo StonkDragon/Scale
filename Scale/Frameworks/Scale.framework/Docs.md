@@ -5,7 +5,8 @@
 - [Math](#math)
 - [File](#file)
 - [Array](#array)
-- [Pair and Triple](#pair-and-triple)
+- [Pair](#pair)
+- [Triple](#triple)
 - [Ranges](#ranges)
 
 <div style="page-break-after: always;"></div>
@@ -250,9 +251,9 @@ Member types:
 
 `capacity`: Contains the maximum capacity of the array.
 
-__Modifying any of these values will result in undefined behaviour!__
+<<RED>>Modifying any of these values will result in undefined behaviour!<<RESET>>
 
-### `function Array:sort(): Array`
+### `function Array:sort(): none`
 Sorts the array. If the array is empty, the function will do nothing.
 
 ### `function Array:get(index: int): any`
@@ -278,9 +279,13 @@ Create an empty array with an initial capacity of `size` elements, where `size` 
 
 <div style="page-break-after: always;"></div>
 
-## [Pair](./include/util/pair.scale) and [Triple](./include/util/triple.scale)
+## [Pair](./include/util/pair.scale)
 ### `static function Pair::new(a: any, b: any): none`
 Create a new pair of `a` and `b`.
+
+<div style="page-break-after: always;"></div>
+
+## [Triple](./include/util/triple.scale)
 
 ### `static function Triple::new(a: any, b: any, c: any): none`
 Create a new triple of `a`, `b` and `c`.

@@ -633,9 +633,13 @@ namespace sclc
             bool Werror;
             bool dumpInfo;
             std::string optimizer;
+            std::string printDocFor;
+            size_t docPrinterArgsStart;
             std::vector<std::string> files;
             std::vector<std::string> includePaths;
             std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
+            std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
+            std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
         } options;
     };
 
@@ -648,6 +652,7 @@ namespace sclc
     double parseDouble(std::string str);
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
+    bool strstarts(const std::string& str, const std::string& prefix);
     int isCharacter(char c);
     int isDigit(char c);
     int isSpace(char c);
