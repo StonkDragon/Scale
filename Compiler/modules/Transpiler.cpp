@@ -433,6 +433,7 @@ namespace sclc {
             fprintf(support_header, "struct %s {\n", c.getName().c_str());
             fprintf(support_header, "  scl_int __type_identifier__;\n");
             fprintf(support_header, "  scl_str __type_string__;\n");
+            fprintf(support_header, "  scl_any __unused__;\n");
             for (Variable s : c.getMembers()) {
                 fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
