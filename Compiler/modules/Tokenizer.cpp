@@ -283,6 +283,7 @@ namespace sclc
         TOKEN("function",   tok_function, line, filename);
         TOKEN("end",        tok_end, line, filename);
         TOKEN("extern",     tok_extern, line, filename);
+        TOKEN("expect",     tok_extern, line, filename);
         TOKEN("while",      tok_while, line, filename);
         TOKEN("do",         tok_do, line, filename);
         TOKEN("done",       tok_done, line, filename);
