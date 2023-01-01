@@ -29,90 +29,17 @@ Optional:
 
 # Documentation
 
-## Operators
-
-  The following operators are supported:
-
-  - `+`: Addition (Prefix with `.` to operate on floats)
-  - `-`: Subtraction (Prefix with `.` to operate on floats)
-  - `*`: Multiplication (Prefix with `.` to operate on floats)
-  - `/`: Division (Prefix with `.` to operate on floats)
-  - `%`: Modulo
-  - `&`: Logical AND
-  - `|`: Logical OR
-  - `^`: Logical XOR
-  - `~`: Logical NOT
-  - `<<`: Left shift
-  - `>>`: Right shift
-  - `**`: Exponentiation
-  - `=>`: Into-Operator, stores the top of the stack in the following variable
-  - `=> @`: Into-Address-Operator, stores the top of the stack at address in variable
-  - `@` Push the value at the address on the stack onto the stack
-  - `.`: Container Access/Structure Dereference
-  - `:`: Call a member function of a type/Define type of variable in variable declaration
-
-## Keywords
-
-  - `function`: Define a function
-  - `end`: End a function
-  - `extern`: Declare an externally defined function or global variable
-  - `while`: Begin a while loop header
-  - `else`: Define an else block
-  - `do`: End a while loop header and begin the loop body
-  - `done`: End a loop body
-  - `if`: Begin an if statement
-  - `fi`: End an if statement
-  - `return`: Return from a function
-  - `break`: Break out of a loop
-  - `continue`: Continue to the next iteration of a loop
-  - `for`: Begin a for-loop header
-  - `in`: Define for-loop start value
-  - `to`: Define for-loop end value
-  - `step`: Define the step of the for-loop
-  - `decl`: Declare a variable
-  - `addr`: Get the address of the following identifier
-  - `container`: Declare a new Container to hold multiple values
-  - `repeat`: Define repeat iterator loop
-  - `struct`: Define a struct
-  - `new`: Create a new value of a Struct type
-  - `is`: Check if a value is of a specific type
-  - `cdecl`: Interprets the following string literal as C-code
-  - `label`: Declare a new label
-  - `goto`: Goto a label
-  - `self`: Reference to the current instance inside of a member function
-  - `switch`: Define a switch statement
-  - `case`: Define a case inside of a switch statement
-  - `esac`: End of a case statement
-  - `default`: Define a default statement inside of a switch statement
-
-## Argument Notation/Calling Convention
-
-Say we have following function:
-
-```
-function foo(a: int, b: int, c: int): int
-  a b +
-  c + return
-end
+Run:
+```console
+$ sclc -doc info
 ```
 
-To Call the function, the arguments must be passed in the following order:
+## Scale Framework Documentation
 
+Run:
+```console
+$ sclc -doc-for Scale
 ```
-  a b c foo
-```
-
-The last argument of the function must be on the top of the stack.
-
-Example:
-
-```
-  1 2 3 foo
-    => 6
-```
-
-## Core Framework
-- [Can be found here](./Scale/Frameworks/Core.framework/Docs.md)
 
 ## Examples
 

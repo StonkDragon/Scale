@@ -5,5 +5,6 @@ framework: {
     implementers: [];
     implHeaderDir: "impl";
     implHeaders: [];
-    docfile: "Docs.md";
+    docfile: "Docs.scldoc";
+    docfile-format: "scldoc";
 };
