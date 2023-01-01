@@ -254,7 +254,7 @@ namespace sclc
             false
         };
 
-        for (size_t i = Main.options.docPrinterArgsStart; i < args.size(); i++) {
+        for (size_t i = Main.options.docPrinterArgsStart + 1; i < args.size(); i++) {
             std::string arg = args[i];
             if (arg == "find") {
                 if (i + 1 < args.size()) {
@@ -278,6 +278,9 @@ namespace sclc
                 DocOps.info = true;
             } else if (arg == "categories") {
                 DocOps.categories = true;
+            } else {
+                std::cout << "Unknown argument: " << arg << std::endl;
+                DocOps.help = true;
             }
         }
         
