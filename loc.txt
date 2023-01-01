@@ -1,5 +1,5 @@
      429 Compiler/Common.cpp
-     912 Compiler/Main.cpp
+     914 Compiler/Main.cpp
      694 Compiler/headers/Common.hpp
       95 Compiler/headers/DragonConfig.hpp
       13 Compiler/headers/TranspilerDefs.hpp
@@ -9,8 +9,21 @@
      133 Compiler/modules/Parser.cpp
      872 Compiler/modules/SyntaxTree.cpp
       69 Compiler/modules/TokenHandlers.cpp
-     538 Compiler/modules/Tokenizer.cpp
+     526 Compiler/modules/Tokenizer.cpp
     2984 Compiler/modules/Transpiler.cpp
+     255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+      50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
+      73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
+      13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
+      41 Scale/Frameworks/Scale.framework/include/Scale/io.scale
+     177 Scale/Frameworks/Scale.framework/include/Scale/math.scale
+      51 Scale/Frameworks/Scale.framework/include/Scale/string.scale
+      97 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+       5 Scale/Frameworks/Scale.framework/include/Scale/util/iterable.scale
+      69 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
+       9 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
+      92 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
+      11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
      192 Scale/Internal/scale_internal.c
      100 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
@@ -39,4 +52,4 @@
        9 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-    7925 total
+    8858 total
