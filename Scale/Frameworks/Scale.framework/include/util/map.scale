@@ -45,6 +45,9 @@ sealed struct Map is Iterable
       if entry nil == then
         i key value MapEntry::new data:set
         return
+      elif entry.key key:equals then
+        value => entry.value
+        return
       fi
     done
     key value MapEntry::new data:push
