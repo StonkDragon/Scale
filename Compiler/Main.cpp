@@ -585,6 +585,11 @@ namespace sclc
             for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
                 std::string filename = Main.options.files[i];
 
+                if (!std::filesystem::exists(filename)) {
+                    std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << std::endl;
+                    return 1;
+                }
+
                 Tokenizer tokenizer;
                 Main.tokenizer = &tokenizer;
                 FPResult result = Main.tokenizer->tokenize(filename);
@@ -652,32 +657,7 @@ namespace sclc
 
                 FPResult importResult = Main.tokenizer->tryImports();
                 if (!importResult.success) {
-                    if (importResult.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << importResult.message << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(importResult.in).c_str(), "r");
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
-                    i = 1;
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == importResult.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, importResult.value, Color::BOLDRED + importResult.value + Color::RESET, importResult.column) << Color::RESET;
-                        } else if (i == importResult.line - 1 || i == importResult.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == importResult.line + 1 || i == importResult.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                    fclose(f);
-                    std::cerr << std::endl;
-                    free(line);
-                    remove(std::string(filename + ".scale-preproc").c_str());
+                    std::cerr << Color::BOLDRED << "Include Error: " << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
                     return 1;
                 }
 

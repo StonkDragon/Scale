@@ -477,6 +477,12 @@ namespace sclc
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
                 std::string file = "";
+                FPResult r;
+                r.column = tokens[i].getColumn();
+                r.value = tokens[i].getValue();
+                r.in = tokens[i].getFile();
+                r.line = tokens[i].getLine();
+                r.type = tokens[i].getType();
                 while (true) {
                     if (file.size() == 0)
                         file = tokens[i].getValue();
@@ -490,11 +496,13 @@ namespace sclc
                     i += 2;
                 }
                 file += ".scale";
-                FPResult r = findFileInIncludePath(file);
-                if (!r.success) {
+                FPResult find = findFileInIncludePath(file);
+                if (!find.success) {
+                    r.success = false;
+                    r.message = find.message;
                     return r;
                 }
-                file = r.in;
+                file = find.in;
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
                     Main.options.files.push_back(file);
                 }
@@ -507,7 +515,8 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
-            if (fileExists(path + PATH_SEPARATOR + file)) {
+            using namespace std::filesystem;
+            if (exists(path + PATH_SEPARATOR + file)) {
                 FPResult r;
                 r.success = true;
                 if (path == "." || path == "./") {
