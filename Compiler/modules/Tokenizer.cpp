@@ -407,6 +407,10 @@ namespace sclc
         size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
 
+        if (size == 0) {
+            goto fatal_error;
+        }
+
         buffer = new char[size + 1];
 
         while (fgets(buffer, size + 1, fp) != NULL) {
@@ -472,56 +476,25 @@ namespace sclc
                 continue;
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
-                std::string framework = tokens[i].getValue();
-                if (std::find(Main.frameworks.begin(), Main.frameworks.end(), framework) == Main.frameworks.end()) {
-                    FPResult r;
-                    r.message = "Could not find Framework '" + framework + "'";
-                    r.in = tokens[i].getFile();
-                    r.column = tokens[i].getColumn();
-                    r.line = tokens[i].getLine();
-                    r.type = tokens[i].getType();
-                    r.value = tokens[i].getValue();
-                    r.success = false;
-                    return r;
-                }
-                i += 2;
-                std::string file = tokens[i].getValue();
-                Token firstFileToken = tokens[i];
-                while (tokens[i + 1].getType() == tok_dot) {
-                    i++;
-                    file += PATH_SEPARATOR + tokens[i + 1].getValue();
-                }
-
-                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + PATH_SEPARATOR + file + ".scale";
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
-                    if (!fileExists(fullFile)) {
-                        FPResult r;
-                        r.message = "Could not find File '" + file + "' in framework '" + framework + "'";
-                        r.in = firstFileToken.getFile();
-                        r.column = firstFileToken.getColumn();
-                        r.line = firstFileToken.getLine();
-                        r.type = firstFileToken.getType();
-                        r.value = firstFileToken.getValue();
-                        r.success = false;
-                        return r;
+                std::string file = "";
+                while (true) {
+                    if (file.size() == 0)
+                        file = tokens[i].getValue();
+                    else
+                        file += PATH_SEPARATOR + tokens[i].getValue();
+                    
+                    if (tokens[i + 1].getType() != tok_dot) {
+                        i--;
+                        break;
                     }
-                    Main.options.files.push_back(fullFile);
+                    i += 2;
                 }
-            } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "include") {
-                i++;
-                std::string parentPath = std::filesystem::path(tokens[i].getFile()).parent_path().string();
-                std::string file = parentPath + (parentPath.size() != 0 ? PATH_SEPARATOR : "") + tokens[i].getValue();
-                if (!fileExists(file)) {
-                    FPResult r;
-                    r.message = "Could not find File '" + file + "'";
-                    r.in = tokens[i].getFile();
-                    r.column = tokens[i].getColumn();
-                    r.line = tokens[i].getLine();
-                    r.type = tokens[i].getType();
-                    r.value = tokens[i].getValue();
-                    r.success = false;
+                file += ".scale";
+                FPResult r = findFileInIncludePath(file);
+                if (!r.success) {
                     return r;
                 }
+                file = r.in;
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
                     Main.options.files.push_back(file);
                 }

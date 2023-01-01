@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <regex>
+#include <filesystem>
 
 #include <signal.h>
 #include <errno.h>
@@ -88,7 +89,7 @@ namespace sclc
         return false;
     }
 
-    std::string findFileInIncludePath(std::string file);
+    FPResult findFileInIncludePath(std::string file);
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
@@ -417,11 +418,14 @@ namespace sclc
             }
             Main.options.includePaths.push_back("./");
             if (!Main.options.noScaleFramework) {
-                std::string file = "core.scale";
-                std::string framework = "Scale";
-                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + "/" + file;
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
-                    Main.options.files.push_back(fullFile);
+                FPResult r = findFileInIncludePath("Scale/core.scale");
+                if (!r.success) {
+                    std::cerr << Color::BOLDRED << r.message << Color::RESET << std::endl;
+                    return 1;
+                }
+                std::string file = r.in;
+                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                    Main.options.files.push_back(file);
                 }
             }
 
@@ -572,16 +576,14 @@ namespace sclc
             std::vector<Token>  tokens;
 
             for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+                using path = std::filesystem::path;
+                path s = Main.options.files.at(i);
+                if (s.parent_path().string().size())
+                    Main.options.includePaths.push_back(s.parent_path().string());
+            }
+
+            for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
                 std::string filename = Main.options.files[i];
-                if (!Main.options.doRun && !Main.options.dumpInfo) {
-                    std::cout << "Compiling ";
-                    if (strncmp(filename.c_str(), (scaleFolder + "/Frameworks/").c_str(), (scaleFolder + "/Frameworks/").size()) == 0) {
-                        std::cout << std::string(filename.c_str() + scaleFolder.size() + 12);
-                    } else {
-                        std::cout << filename;
-                    }
-                    std::cout << "..." << std::endl;
-                }
 
                 Tokenizer tokenizer;
                 Main.tokenizer = &tokenizer;
