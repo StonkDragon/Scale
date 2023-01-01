@@ -119,8 +119,8 @@ Prints `_err_` to standard error output and exits with exit code 1.
 ## Math
 ### container MathConstants
 Member types:
-- <<WHITE>>e<<BLUE>>: float<<RESET>>
-- <<WHITE>>pi<<BLUE>>: float<<RESET>>
+- <<BLUE>>const <<WHITE>>e<<BLUE>>: float<<RESET>>
+- <<BLUE>>const <<WHITE>>pi<<BLUE>>: float<<RESET>>
 <<WHITE>>e<<RESET>>: The math constant <<WHITE>>e<<RESET>>. It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
 <<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>. It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
 
@@ -271,7 +271,7 @@ Returns a new string with the contents of `other` appended to the end of the str
 Returns a new string with the contents of `other` prepended at the start of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
 
 ### function str:equals(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals `other`,<<BLUE>>false<<RESET>>otherwise. Will <<BLUE>>returnfalse<<RESET>>if either of the strings is <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if the string equals `other`, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
 
 ### function str:size(): int
 Returns the length of the string. If the string is <<BLUE>>nil<<RESET>>, <<GREEN>>-1<<RESET>> is returned.
