@@ -128,6 +128,7 @@ namespace sclc
             bool noMain;
             bool Werror;
             bool dumpInfo;
+            bool printDocs;
             bool debugBuild;
             bool printCflags;
             bool assembleOnly;

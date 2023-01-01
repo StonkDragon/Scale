@@ -95,14 +95,6 @@ namespace sclc
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
-    int sys_execv(const char* argv0, const char** argv) {
-        #ifdef _WIN32
-            return execv(argv0, (const char* const*) argv);
-        #else
-            return execv(argv0, (char* const*) argv);
-        #endif
-    }
-
     auto parseMarkDown(std::string file) {
         std::cerr << Color::BOLDMAGENTA << "Markdown Docfiles are deprecated." << Color::RESET << std::endl;
 
@@ -245,6 +237,293 @@ namespace sclc
         return docs;
     }
 
+    auto docHandler(std::vector<std::string> args) {
+        std::map<std::string, std::map<std::string, std::string>> docs;
+        
+        struct {
+            std::vector<std::string> find;
+            std::vector<std::string> find_category;
+            bool help;
+            bool info;
+            bool categories;
+        } DocOps = {
+            std::vector<std::string>(),
+            std::vector<std::string>(),
+            false,
+            Main.options.printDocFor.size() == 0,
+            false
+        };
+
+        for (size_t i = Main.options.docPrinterArgsStart; i < args.size(); i++) {
+            std::string arg = args[i];
+            if (arg == "find") {
+                if (i + 1 < args.size()) {
+                    DocOps.find.push_back(args[i + 1]);
+                    i++;
+                } else {
+                    std::cerr << "Error: find requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (arg == "find-category") {
+                if (i + 1 < args.size()) {
+                    DocOps.find_category.push_back(args[i + 1]);
+                    i++;
+                } else {
+                    std::cerr << "Error: find requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (arg == "help" || arg == "-h" || arg == "--help") {
+                DocOps.help = true;
+            } else if (arg == "info") {
+                DocOps.info = true;
+            } else if (arg == "categories") {
+                DocOps.categories = true;
+            }
+        }
+        
+        if (DocOps.help) {
+            std::cout << "Scale Doc-Viewer help:" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "  find <regex>             Find <regex> in documentation." << std::endl;
+            std::cout << "  find-category <category> Find <category> in documentation." << std::endl;
+            std::cout << "  info                     Display Scale language documentation." << std::endl;
+            std::cout << "  help                     Display this help." << std::endl;
+            std::cout << "  categories               Display categories." << std::endl;
+            std::cout << "" << std::endl;
+            return 0;
+        }
+
+        if (DocOps.categories) {
+            if (Main.options.printDocFor.size()) {
+                std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+                std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
+                if (file.size() == 0 || !fileExists(file)) {
+                    std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+                    return 1;
+                }
+                std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
+                Main.options.docsIncludeFolder = includeFolder;
+                if (docFileFormat == "markdown") {
+                    docs = parseMarkDown(file);
+                } else if (docFileFormat == "scldoc") {
+                    docs = parseSclDoc(file);
+                } else {
+                    std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
+                    return 1;
+                }
+                std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+                std::cout << "Categories: " << std::endl;
+
+                std::string current = "";
+                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    current = section.first;
+                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
+                }
+                return 0;
+            } else {
+                docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
+                std::cout << "Scale Documentation" << std::endl;
+                std::cout << "Categories: " << std::endl;
+
+                std::string current;
+                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    current = section.first;
+                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
+                }
+                return 0;
+            }
+        }
+
+        if (DocOps.info) {
+            std::cout << "Scale Documentation" << std::endl;
+            docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
+
+            std::string current;
+            if (DocOps.find.size() == 0) {
+                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    current = section.first;
+                    std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                    for (std::pair<std::string, std::string> kv : section.second) {
+                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                    }
+                }
+            } else {
+                for (std::string f : DocOps.find) {
+                    bool found = false;
+                    std::string sec = "";
+                    bool hasSection = false;
+                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        current = section.first;
+                        for (std::pair<std::string, std::string> kv : section.second) {
+                            std::string matchCurrent = current;
+                            std::string matchKey = kv.first;
+                            std::string matchDescription = kv.second;
+                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                found = true;
+                                sec = current;
+                                hasSection = true;
+                            }
+                        }
+                        if (!found) {
+                            for (std::pair<std::string, std::string> kv : section.second) {
+                                std::string matchCurrent = current;
+                                std::string matchKey = kv.first;
+                                std::string matchDescription = kv.second;
+                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                    found = true;
+                                    sec = current;
+                                }
+                            }
+                        }
+                    }
+                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        current = section.first;
+                        if (found && current == sec)
+                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                        for (std::pair<std::string, std::string> kv : section.second) {
+                            std::string matchCurrent = current;
+                            std::string matchKey = kv.first;
+                            std::string matchDescription = kv.second;
+                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                std::string s = kv.second;
+                                std::smatch matches;
+                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
+                                for (auto match : matches) {
+                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
+                                }
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                            }
+                        }
+                    }
+                    if (!found) {
+                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        if (Main.options.printDocFor.size()) {
+            std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+            std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
+            if (file.size() == 0 || !fileExists(file)) {
+                std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+                return 1;
+            }
+            std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
+            Main.options.docsIncludeFolder = includeFolder;
+            if (docFileFormat == "markdown") {
+                docs = parseMarkDown(file);
+            } else if (docFileFormat == "scldoc") {
+                docs = parseSclDoc(file);
+            } else {
+                std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
+                return 1;
+            }
+            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+
+            std::string current = "";
+            if (DocOps.find.size() == 0) {
+                if (DocOps.find_category.size() == 0) {
+                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        current = section.first;
+                        std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                        for (std::pair<std::string, std::string> kv : section.second) {
+                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                        }
+                    }
+                } else {
+                    for (std::string f : DocOps.find_category) {
+                        bool found = false;
+                        std::string sec = "";
+                        std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                            current = section.first;
+                            std::string matchCurrent = current;
+                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase))) {
+                                found = true;
+                                sec = current;
+                            }
+                        }
+                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                            current = section.first;
+                            if (found && current == sec) {
+                                std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                                for (std::pair<std::string, std::string> kv : section.second) {
+                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                }
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            std::cout << Color::RED << "Could not find category '" << f << "'" << std::endl;
+                        }
+                    }
+                }
+            } else {
+                for (std::string f : DocOps.find) {
+                    bool found = false;
+                    std::string sec = "";
+                    bool hasSection = false;
+                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        current = section.first;
+                        for (std::pair<std::string, std::string> kv : section.second) {
+                            std::string matchCurrent = current;
+                            std::string matchKey = kv.first;
+                            std::string matchDescription = kv.second;
+                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                found = true;
+                                sec = current;
+                                hasSection = true;
+                            }
+                        }
+                        if (!found) {
+                            for (std::pair<std::string, std::string> kv : section.second) {
+                                std::string matchCurrent = current;
+                                std::string matchKey = kv.first;
+                                std::string matchDescription = kv.second;
+                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                    found = true;
+                                    sec = current;
+                                }
+                            }
+                        }
+                    }
+                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        current = section.first;
+                        if (found && current == sec)
+                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                        for (std::pair<std::string, std::string> kv : section.second) {
+                            std::string matchCurrent = current;
+                            std::string matchKey = kv.first;
+                            std::string matchDescription = kv.second;
+                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                std::string s = kv.second;
+                                std::smatch matches;
+                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
+                                for (auto match : matches) {
+                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
+                                }
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                            }
+                        }
+                    }
+                    if (!found) {
+                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
@@ -361,7 +640,9 @@ namespace sclc
                         return 1;
                     }
                 } else if (args[i] == "-doc") {
-                    Main.options.printDocFor = "Scale";
+                    Main.options.printDocs = true;
+                    Main.options.docPrinterArgsStart = i;
+                    break;
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
@@ -394,7 +675,7 @@ namespace sclc
         }
 
         std::string source;
-        if (Main.options.files.size() == 0 && Main.options.printDocFor.size() == 0) {
+        if (Main.options.files.size() == 0 && Main.options.printDocFor.size() == 0 && !Main.options.printDocs) {
             goto actAsCCompiler;
         }
         
@@ -579,200 +860,9 @@ namespace sclc
 
             if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
 
-            if (Main.options.printDocFor.size() != 0) {
-                if (contains(frameworks, Main.options.printDocFor)) {
-                    std::map<std::string, std::map<std::string, std::string>> docs;
-                    std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-                    std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-                    if (file.size() == 0 || !fileExists(file)) {
-                        std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-                        return 1;
-                    }
-                    std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-                    Main.options.docsIncludeFolder = includeFolder;
-                    
-                    struct {
-                        std::vector<std::string> find;
-                        bool help;
-                        bool info;
-                    } DocOps;
-
-                    for (size_t i = Main.options.docPrinterArgsStart; i < args.size(); i++) {
-                        std::string arg = args[i];
-                        if (arg == "find") {
-                            if (i + 1 < args.size()) {
-                                DocOps.find.push_back(args[i + 1]);
-                                i++;
-                            } else {
-                                std::cerr << "Error: find requires an argument" << std::endl;
-                                return 1;
-                            }
-                        } else if (arg == "help" || arg == "-h" || arg == "--help") {
-                            DocOps.help = true;
-                        } else if (arg == "info") {
-                            DocOps.info = true;
-                        }
-                    }
-                    
-                    if (DocOps.help) {
-                        std::cout << "Scale Documentation help:" << std::endl;
-                        std::cout << "" << std::endl;
-                        std::cout << "  find <regex>        Find <regex> in documentation for this framework." << std::endl;
-                        std::cout << "  help                Display this help." << std::endl;
-                        std::cout << "  info                Display Scale documentation." << std::endl;
-                        std::cout << "" << std::endl;
-                        return 0;
-                    }
-
-                    if (DocOps.info) {
-                        std::cout << "Scale Documentation" << std::endl;
-                        docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
-
-                        std::string current;
-                        if (DocOps.find.size() == 0) {
-                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                                current = section.first;
-                                std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (std::pair<std::string, std::string> kv : section.second) {
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                }
-                            }
-                        } else {
-                            for (std::string f : DocOps.find) {
-                                bool found = false;
-                                std::string sec = "";
-                                bool hasSection = false;
-                                std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                                    current = section.first;
-                                    for (std::pair<std::string, std::string> kv : section.second) {
-                                        std::string matchCurrent = current;
-                                        std::string matchKey = kv.first;
-                                        std::string matchDescription = kv.second;
-                                        if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                            found = true;
-                                            sec = current;
-                                            hasSection = true;
-                                        }
-                                    }
-                                    if (!found) {
-                                        for (std::pair<std::string, std::string> kv : section.second) {
-                                            std::string matchCurrent = current;
-                                            std::string matchKey = kv.first;
-                                            std::string matchDescription = kv.second;
-                                            if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                                found = true;
-                                                sec = current;
-                                            }
-                                        }
-                                    }
-                                }
-                                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                                    current = section.first;
-                                    if (found && current == sec)
-                                        std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                    for (std::pair<std::string, std::string> kv : section.second) {
-                                        std::string matchCurrent = current;
-                                        std::string matchKey = kv.first;
-                                        std::string matchDescription = kv.second;
-                                        if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                        } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                            std::string s = kv.second;
-                                            std::smatch matches;
-                                            std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                            for (auto match : matches) {
-                                                s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                            }
-                                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                        }
-                                    }
-                                }
-                                if (!found) {
-                                    std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                                }
-                            }
-                        }
-                        return 0;
-                    }
-
-                    // Doc for framework, defaults to Scale framework
-
-                    if (docFileFormat == "markdown") {
-                        docs = parseMarkDown(file);
-                    } else if (docFileFormat == "scldoc") {
-                        docs = parseSclDoc(file);
-                    } else {
-                        std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-                    }
-
-                    std::string current = "";
-                    if (DocOps.find.size() == 0) {
-                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                            current = section.first;
-                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                            for (std::pair<std::string, std::string> kv : section.second) {
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            }
-                        }
-                    } else {
-                        for (std::string f : DocOps.find) {
-                            bool found = false;
-                            std::string sec = "";
-                            bool hasSection = false;
-                            std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                                current = section.first;
-                                for (std::pair<std::string, std::string> kv : section.second) {
-                                    std::string matchCurrent = current;
-                                    std::string matchKey = kv.first;
-                                    std::string matchDescription = kv.second;
-                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                        found = true;
-                                        sec = current;
-                                        hasSection = true;
-                                    }
-                                }
-                                if (!found) {
-                                    for (std::pair<std::string, std::string> kv : section.second) {
-                                        std::string matchCurrent = current;
-                                        std::string matchKey = kv.first;
-                                        std::string matchDescription = kv.second;
-                                        if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                            found = true;
-                                            sec = current;
-                                        }
-                                    }
-                                }
-                            }
-                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
-                                current = section.first;
-                                if (found && current == sec)
-                                    std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (std::pair<std::string, std::string> kv : section.second) {
-                                    std::string matchCurrent = current;
-                                    std::string matchKey = kv.first;
-                                    std::string matchDescription = kv.second;
-                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                    } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                        std::string s = kv.second;
-                                        std::smatch matches;
-                                        std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                        for (auto match : matches) {
-                                            s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                        }
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                    }
-                                }
-                            }
-                            if (!found) {
-                                std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                            }
-                        }
-                    }
-
-                    return 0;
+            if (Main.options.printDocs ||  Main.options.printDocFor.size() != 0) {
+                if (Main.options.printDocs || (Main.options.printDocFor.size() && contains(frameworks, Main.options.printDocFor))) {
+                    return docHandler(args);
                 }
                 std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' not found!" << Color::RESET << std::endl;
                 return 1;
