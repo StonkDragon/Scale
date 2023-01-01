@@ -707,18 +707,10 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "puts") {
-            if (typeStackTop != "str" && typeStackTop != "_String") {
-                transpilerError("Type inference failed: expected 'str', but got '" + typeStackTop + "'", i);
-                warns.push_back(err);
-            }
             append("puts(stack.data[--stack.ptr].s);\n");
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "eputs") {
-            if (typeStackTop != "str" && typeStackTop != "_String") {
-                transpilerError("Type inference failed: expected 'str', but got '" + typeStackTop + "'", i);
-                warns.push_back(err);
-            }
             append("fprintf(stderr, \"%%s\\n\", stack.data[--stack.ptr].s);\n");
             if (typeStack.size())
                 typeStack.pop();
