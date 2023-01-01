@@ -34,7 +34,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|import|end|while|do|done|if|elif|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|store|decl|addr|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|interface|new|is|cdecl|goto|label|none|int|float|any|str|self|bool|sealed|nowarn|nomangle|static|export|expect|(reference|value)type)\\b"
+				"match": "\\b(function|import|end|while|do|done|if|elif|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|store|decl|addr|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|interface|new|is|cdecl|goto|label|none|int|float|any|str|self|bool|sealed|nowarn|nomangle|static|export|expect|(reference|value)type|const|readonly)\\b"
 			}]
 		},
 		"stack_operators": {

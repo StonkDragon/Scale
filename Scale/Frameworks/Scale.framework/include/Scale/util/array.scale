@@ -2,10 +2,10 @@ import Scale.util.iterable
 import Scale.debug
 
 sealed struct Array is Iterable
-  decl values: [any]
-  decl count: int
-  decl capacity: int
-  decl _pos: int
+  readonly decl values: [any]
+  readonly decl count: int
+  readonly decl capacity: int
+  readonly decl _pos: int
   
   export function sort(): none
     inline_c

@@ -1,6 +1,6 @@
 container MathConstants
-  decl e: float
-  decl pi: float
+  const decl e: float
+  const decl pi: float
 end
 
 function __init__math_scale(): none
