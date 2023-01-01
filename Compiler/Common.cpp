@@ -426,4 +426,45 @@ namespace sclc
         }
         return false;
     }
+
+    bool isInitFunction(Function* f) {
+        if (strstarts(f->getName(), "__init__")) {
+            return true;
+        }
+        if (f->isMethod) {
+            Method* m = static_cast<Method*>(f);
+            if (m->getName() == "init") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool Variable::isWritableFrom(Function* f)  {
+        if (!isWritable()) {
+            if (isInitFunction(f)) {
+                if (f->isMethod) {
+                    Method* m = static_cast<Method*>(f);
+                    if (m->getMemberType() == this->memberType) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (this->isInternalMut && this->memberType.size()) {
+            if (!f->isMethod) {
+                return false;
+            }
+            Method* m = static_cast<Method*>(f);
+            if (this->memberType.size() == 0 || m->getMemberType() == this->memberType) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
 } // namespace sclc

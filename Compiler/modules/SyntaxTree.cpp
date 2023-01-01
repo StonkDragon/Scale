@@ -18,6 +18,11 @@ namespace sclc
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
+                    bool isConst = false;
+                    if (tokens[i].getValue() == "const") {
+                        isConst = true;
+                        i++;
+                    }
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
                     if (tokens[i+1].getType() == tok_column) {
@@ -35,6 +40,7 @@ namespace sclc
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
                             result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -46,12 +52,13 @@ namespace sclc
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
                         result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         i++;
                         continue;
                     }
-                    func->addArgument(Variable(name, type));
+                    func->addArgument(Variable(name, type, isConst));
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
@@ -59,6 +66,7 @@ namespace sclc
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     i++;
@@ -77,6 +85,7 @@ namespace sclc
                 result.line = tokens[i].getLine();
                 result.in = tokens[i].getFile();
                 result.type = tokens[i].getType();
+                result.column = tokens[i].getColumn();
                 result.success = false;
                 errors.push_back(result);
                 continue;
@@ -97,6 +106,7 @@ namespace sclc
                 result.line = tokens[i].getLine();
                 result.in = tokens[i].getFile();
                 result.type = tokens[i].getType();
+                result.column = tokens[i].getColumn();
                 result.success = false;
                 errors.push_back(result);
                 i++;
@@ -109,6 +119,7 @@ namespace sclc
             result.line = tokens[i].getLine();
             result.in = tokens[i].getFile();
             result.type = tokens[i].getType();
+            result.column = tokens[i].getColumn();
             result.success = false;
             errors.push_back(result);
             return nullptr;
@@ -129,6 +140,11 @@ namespace sclc
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
+                    bool isConst = false;
+                    if (tokens[i].getValue() == "const") {
+                        isConst = true;
+                        i++;
+                    }
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
                     if (tokens[i+1].getType() == tok_column) {
@@ -146,6 +162,7 @@ namespace sclc
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
                             result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -157,12 +174,13 @@ namespace sclc
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
                         result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         i++;
                         continue;
                     }
-                    method->addArgument(Variable(name, type));
+                    method->addArgument(Variable(name, type, isConst));
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for method name, but got '" + tokens[i].getValue() + "'";
@@ -170,6 +188,7 @@ namespace sclc
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     i++;
@@ -188,6 +207,7 @@ namespace sclc
                 result.line = tokens[i].getLine();
                 result.in = tokens[i].getFile();
                 result.type = tokens[i].getType();
+                result.column = tokens[i].getColumn();
                 result.success = false;
                 errors.push_back(result);
                 continue;
@@ -211,6 +231,7 @@ namespace sclc
                 result.line = tokens[i].getLine();
                 result.in = tokens[i].getFile();
                 result.type = tokens[i].getType();
+                result.column = tokens[i].getColumn();
                 result.success = false;
                 errors.push_back(result);
                 i++;
@@ -223,6 +244,7 @@ namespace sclc
             result.line = tokens[i].getLine();
             result.in = tokens[i].getFile();
             result.type = tokens[i].getType();
+            result.column = tokens[i].getColumn();
             result.success = false;
             errors.push_back(result);
             return nullptr;
@@ -258,7 +280,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -269,7 +292,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -299,7 +323,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -333,6 +358,7 @@ namespace sclc
                         result.line = currentFunction->getNameToken().getLine();
                         result.in = currentFunction->getNameToken().getFile();
                         result.type = currentFunction->getNameToken().getType();
+                        result.column = currentFunction->getNameToken().getColumn();
                         result.success = false;
                         errors.push_back(result);
                     }
@@ -352,7 +378,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -364,7 +391,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -375,7 +403,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -386,7 +415,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -397,7 +427,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -408,7 +439,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -420,7 +452,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -433,7 +466,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -444,7 +478,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -455,7 +490,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -466,7 +502,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -477,7 +514,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -489,7 +527,8 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
+                    result.type = tokens[i + 1].getType();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -517,6 +556,7 @@ namespace sclc
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -530,17 +570,18 @@ namespace sclc
                         result.value = tokens[i + 1].getValue();
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i].getType();
+                        result.type = tokens[i + 1].getType();
+                        result.column = tokens[i + 1].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                     i++;
-                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end && tokens[i].getType() != tok_function && tokens[i].getType() != tok_extern && tokens[i].getValue() != "static") {
+                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end && tokens[i].getType() != tok_function && tokens[i].getType() != tok_extern && tokens[i].getValue() != "static" && tokens[i].getValue() != "const" && tokens[i].getValue() != "readonly") {
                         if (tokens[i].getType() == tok_identifier)
                             currentStruct->implement(tokens[i].getValue());
                         i++;
-                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end || tokens[i].getType() == tok_function || tokens[i].getType() == tok_extern || tokens[i].getValue() == "static") {
+                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end || tokens[i].getType() == tok_function || tokens[i].getType() == tok_extern || tokens[i].getValue() == "static" || tokens[i].getValue() == "const" || tokens[i].getValue() == "readonly") {
                             i--;
                             break;
                         }
@@ -551,6 +592,7 @@ namespace sclc
                             result.line = tokens[i - 1].getLine();
                             result.in = tokens[i - 1].getFile();
                             result.type = tokens[i - 1].getType();
+                            result.column = tokens[i - 1].getColumn();
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -564,7 +606,8 @@ namespace sclc
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
-                    result.type = tokens[i].getType();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -576,6 +619,7 @@ namespace sclc
                     result.line = token.getLine();
                     result.in = token.getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -587,6 +631,7 @@ namespace sclc
                     result.line = token.getLine();
                     result.in = token.getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -598,6 +643,7 @@ namespace sclc
                     result.line = token.getLine();
                     result.in = token.getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -609,6 +655,7 @@ namespace sclc
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -621,6 +668,7 @@ namespace sclc
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
                     result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -637,6 +685,7 @@ namespace sclc
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
                         result.type = tokens[i + 1].getType();
+                        result.column = tokens[i + 1].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -681,6 +730,8 @@ namespace sclc
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -702,6 +753,7 @@ namespace sclc
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
                             result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -733,6 +785,7 @@ namespace sclc
                 }
                 i++;
                 std::string name = tokens[i].getValue();
+                Token tok = tokens[i];
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
                     i += 2;
@@ -749,12 +802,27 @@ namespace sclc
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
                         result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                 }
-                globals.push_back(Variable(name, type));
+                bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
+                bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
+                if (isInternalMut) {
+                    FPResult r;
+                    r.message = "'readonly' Modifier ignored for global variable";
+                    r.value = tok.getValue();
+                    r.line = tok.getLine();
+                    r.in = tok.getFile();
+                    r.type = tok.getType();
+                    r.column = tok.getColumn();
+                    r.success = false;
+                    warns.push_back(r);
+                }
+                nextAttributes.clear();
+                globals.push_back(Variable(name, type, isConst));
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -768,6 +836,7 @@ namespace sclc
                 }
                 i++;
                 std::string name = tokens[i].getValue();
+                Token tok = tokens[i];
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
                     i += 2;
@@ -784,12 +853,28 @@ namespace sclc
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
                         result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                 }
-                currentContainer->addMember(Variable(name, type));
+                bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
+                bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
+                if (isInternalMut) {
+                    FPResult r;
+                    r.message = "'readonly' Modifier ignored for container member";
+                    r.value = tok.getValue();
+                    r.line = tok.getLine();
+                    r.in = tok.getFile();
+                    r.type = tok.getType();
+                    r.column = tok.getColumn();
+                    r.success = false;
+                    warns.push_back(r);
+                }
+                nextAttributes.clear();
+                currentContainer->addMember(Variable(name, type, isConst));
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -797,11 +882,13 @@ namespace sclc
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
+                    result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
+                Token nameToken = tokens[i];
                 std::string name = tokens[i].getValue();
                 std::string type = "any";
                 if (tokens[i+1].getType() == tok_column) {
@@ -819,16 +906,41 @@ namespace sclc
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
                         result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
+                    bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
                     nextAttributes.clear();
-                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type));
+                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type, isConst));
                 } else {
-                    currentStruct->addMember(Variable(name, type));
+                    bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
+                    bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
+                    nextAttributes.clear();
+                    if (isConst && isInternalMut) {
+                        FPResult result;
+                        result.message = "The 'const' and 'readonly' modifiers are mutually exclusive!";
+                        result.value = nameToken.getValue();
+                        result.line = nameToken.getLine();
+                        result.in = nameToken.getFile();
+                        result.column = nameToken.getColumn();
+                        result.type = nameToken.getType();
+                        result.column = nameToken.getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    if (isConst) {
+                        currentStruct->addMember(Variable(name, type, true, currentStruct->getName()));
+                    } else if (isInternalMut) {
+                        currentStruct->addMember(Variable(name, type, currentStruct->getName()));
+                    } else {
+                        currentStruct->addMember(Variable(name, type));
+                    }
                 }
             } else {
                 if (tokens[i].getType() == tok_identifier) {
@@ -843,6 +955,8 @@ namespace sclc
                             result.line = tokens[i].getLine();
                             result.in = tokens[i].getFile();
                             result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -870,3 +984,21 @@ namespace sclc
         return result;
     }
 }
+
+// std::string name = body[i].getValue();
+// std::string type = "any";
+// if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
+//     ITER_INC;
+//     ITER_INC;
+//     FPResult r = parseType(body, &i);
+//     if (!r.success) {
+//         errors.push_back(r);
+//         return;
+//     }
+//     type = r.value;
+// } else {
+//     transpilerError("A type is required!", i);
+//     errors.push_back(err);
+//     return;
+// }
+// Variable v = Variable(name, type);

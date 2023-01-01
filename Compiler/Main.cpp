@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <regex>
 #include <filesystem>
+#include <map>
 
 #include <signal.h>
 #include <errno.h>
@@ -64,18 +65,19 @@ namespace sclc
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << std::endl;
         std::cout << "Accepted Flags:" << std::endl;
-        std::cout << "  -t, --transpile  Transpile only" << std::endl;
-        std::cout << "  -h, --help       Show this help" << std::endl;
-        std::cout << "  -o <filename>    Specify Output file" << std::endl;
-        std::cout << "  -f <framework>   Use Scale Framework" << std::endl;
-        std::cout << "  --no-core        Do not implicitly require Scale Framework" << std::endl;
-        std::cout << "  --no-main        Do not check for main Function" << std::endl;
-        std::cout << "  -v, --version    Show version information" << std::endl;
-        std::cout << "  --comp <comp>    Use comp as the compiler instead of gcc" << std::endl;
-        std::cout << "  -run             Run the compiled program" << std::endl;
-        std::cout << "  -cflags          Print c compiler flags and exit" << std::endl;
-        std::cout << "  -debug           Run in debug mode" << std::endl;
-        std::cout << "  -doc <framework> Print documentation for Framework" << std::endl;
+        std::cout << "  -t, --transpile      Transpile only" << std::endl;
+        std::cout << "  -h, --help           Show this help" << std::endl;
+        std::cout << "  -o <filename>        Specify Output file" << std::endl;
+        std::cout << "  -f <framework>       Use Scale Framework" << std::endl;
+        std::cout << "  --no-core            Do not implicitly require Scale Framework" << std::endl;
+        std::cout << "  --no-main            Do not check for main Function" << std::endl;
+        std::cout << "  -v, --version        Show version information" << std::endl;
+        std::cout << "  --comp <comp>        Use comp as the compiler instead of gcc" << std::endl;
+        std::cout << "  -run                 Run the compiled program" << std::endl;
+        std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
+        std::cout << "  -debug               Run in debug mode" << std::endl;
+        std::cout << "  -doc                 Print documentation" << std::endl;
+        std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
         std::cout << std::endl;
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
     }
@@ -99,6 +101,148 @@ namespace sclc
         #else
             return execv(argv0, (char* const*) argv);
         #endif
+    }
+
+    auto parseMarkDown(std::string file) {
+        std::cerr << Color::BOLDMAGENTA << "Markdown Docfiles are deprecated." << Color::RESET << std::endl;
+
+        std::map<std::string, std::map<std::string, std::string>> docs;
+        FILE* fp = fopen(file.c_str(), "rb");
+        fseek(fp, 0, SEEK_END);
+        long sz = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        char* data = new char[sz];
+        fread(data, 1, sz, fp);
+        fclose(fp);
+
+        std::vector<std::string> lines = split(std::string(data), "\n");
+
+        std::string current = "";
+        for (size_t i = 0; i < lines.size(); i++) {
+            std::string line = lines[i];
+
+            try {
+                line = replaceAll(line, "`", "");
+            } catch (std::out_of_range& e) {}
+            if (strstarts(line, "##") && !strstarts(line, "###")) {
+                try {
+                    size_t start = line.find_first_of('(') + 1;
+                    size_t end = line.find_last_of(')');
+                    if (start == std::string::npos) {
+                        current = "";
+                        continue;
+                    }
+                    current = line.substr(start, end - start);
+                    current = replaceAll(current, "\\./", "");
+                    current = replaceAll(current, Main.options.docsIncludeFolder + "/", "");
+                    current = replaceAll(current, "/", ".");
+                    current = replaceAll(current, "\\.scale$", "");
+                    current = Main.options.printDocFor + "." + current;
+                    
+                    std::map<std::string, std::string> key_value;
+                    docs[current] = key_value;
+                } catch (std::out_of_range& e) {}
+            } else if (strstarts(line, "###")) {
+                std::string key = line.substr(4);
+                docs[current][key] = "";
+                line = lines[++i];
+                while (i < lines.size() && !strstarts(line, "##")) {
+                    while (strstarts(line, "<div")) {
+                        line = lines[++i];
+                    }
+                    docs[current][key] += "  " + line + "\n";
+                    line = lines[++i];
+                }
+                std::string prev = docs[current][key];
+                std::string now = replaceAll(prev, "\n  \n", "\n");
+                while (prev != now) {
+                    prev = now;
+                    now = replaceAll(prev, "\n  \n", "\n");
+                }
+                now = replaceAll(now, "<<RESET>>", Color::GREEN);
+                now = replaceAll(now, "<<BLACK>>", Color::BLACK);
+                now = replaceAll(now, "<<RED>>", Color::RED);
+                now = replaceAll(now, "<<GREEN>>", Color::GREEN);
+                now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
+                now = replaceAll(now, "<<BLUE>>", Color::BLUE);
+                now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
+                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
+                now = replaceAll(now, "<<WHITE>>", Color::WHITE);
+                now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
+                now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
+                now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
+                now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
+                now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
+                now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
+                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
+                now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
+
+                docs[current][key] = now;
+                i--;
+            }
+        }
+        return docs;
+    }
+
+    auto parseSclDoc(std::string file) {
+        std::map<std::string, std::map<std::string, std::string>> docs;
+        FILE* fp = fopen(file.c_str(), "rb");
+        fseek(fp, 0, SEEK_END);
+        long sz = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        char* data = new char[sz];
+        fread(data, 1, sz, fp);
+        fclose(fp);
+
+        std::vector<std::string> lines = split(std::string(data), "\n");
+        std::string current = "";
+        for (size_t i = 0; i < lines.size(); i++) {
+            std::string line = lines[i];
+            try {
+                line = replaceAll(line, "`", "");
+            } catch (std::out_of_range& e) {}
+            if (strstarts(line, "##") && !strstarts(line, "###")) {
+                try {
+                    current = line.substr(3);
+                    std::map<std::string, std::string> key_value;
+                    docs[current] = key_value;
+                } catch (std::out_of_range& e) {}
+            } else if (strstarts(line, "###")) {
+                std::string key = line.substr(4);
+                docs[current][key] = "";
+                line = lines[++i];
+                while (i < lines.size() && !strstarts(line, "##")) {
+                    while (strstarts(line, "<div")) {
+                        line = lines[++i];
+                    }
+                    docs[current][key] += "  " + line + "\n";
+                    line = lines[++i];
+                }
+                std::string prev = docs[current][key];
+                std::string now = replaceAll(prev, "\n  \n", "\n");
+                now = replaceAll(now, "<<RESET>>", Color::GREEN);
+                now = replaceAll(now, "<<BLACK>>", Color::BLACK);
+                now = replaceAll(now, "<<RED>>", Color::RED);
+                now = replaceAll(now, "<<GREEN>>", Color::GREEN);
+                now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
+                now = replaceAll(now, "<<BLUE>>", Color::BLUE);
+                now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
+                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
+                now = replaceAll(now, "<<WHITE>>", Color::WHITE);
+                now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
+                now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
+                now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
+                now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
+                now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
+                now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
+                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
+                now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
+
+                docs[current][key] = now;
+                i--;
+            }
+        }
+        return docs;
     }
 
     int main(std::vector<std::string> args) {
@@ -206,7 +350,7 @@ namespace sclc
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
-                } else if (args[i] == "-doc") {
+                } else if (args[i] == "-doc-for") {
                     if (i + 1 < args.size()) {
                         Main.options.printDocFor = args[i + 1];
                         i++;
@@ -216,6 +360,8 @@ namespace sclc
                         std::cerr << "Error: -doc requires an argument" << std::endl;
                         return 1;
                     }
+                } else if (args[i] == "-doc") {
+                    Main.options.printDocFor = "Scale";
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
@@ -274,6 +420,7 @@ namespace sclc
                         return 1;
                     }
                     root = root->getCompound("framework");
+                    Main.options.mapFrameworkConfigs[framework] = root;
                     DragonConfig::ListEntry* implementers = root->getList("implementers");
                     DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                     DragonConfig::ListEntry* depends = root->getList("depends");
@@ -348,6 +495,7 @@ namespace sclc
                         return 1;
                     }
                     root = root->getCompound("framework");
+                    Main.options.mapFrameworkConfigs[framework] = root;
                     DragonConfig::ListEntry* implementers = root->getList("implementers");
                     DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                     DragonConfig::ListEntry* depends = root->getList("depends");
@@ -433,25 +581,20 @@ namespace sclc
 
             if (Main.options.printDocFor.size() != 0) {
                 if (contains(frameworks, Main.options.printDocFor)) {
-                    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> docs;
+                    std::map<std::string, std::map<std::string, std::string>> docs;
                     std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+                    std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
                     if (file.size() == 0 || !fileExists(file)) {
                         std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
                         return 1;
                     }
                     std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-                    FILE* fp = fopen(file.c_str(), "rb");
-                    fseek(fp, 0, SEEK_END);
-                    long sz = ftell(fp);
-                    fseek(fp, 0, SEEK_SET);
-                    char* data = new char[sz];
-                    fread(data, 1, sz, fp);
-                    fclose(fp);
-
-                    std::vector<std::string> lines = split(std::string(data), "\n");
-
+                    Main.options.docsIncludeFolder = includeFolder;
+                    
                     struct {
                         std::vector<std::string> find;
+                        bool help;
+                        bool info;
                     } DocOps;
 
                     for (size_t i = Main.options.docPrinterArgsStart; i < args.size(); i++) {
@@ -464,100 +607,162 @@ namespace sclc
                                 std::cerr << "Error: find requires an argument" << std::endl;
                                 return 1;
                             }
+                        } else if (arg == "help" || arg == "-h" || arg == "--help") {
+                            DocOps.help = true;
+                        } else if (arg == "info") {
+                            DocOps.info = true;
                         }
+                    }
+                    
+                    if (DocOps.help) {
+                        std::cout << "Scale Documentation help:" << std::endl;
+                        std::cout << "" << std::endl;
+                        std::cout << "  find <regex>        Find <regex> in documentation for this framework." << std::endl;
+                        std::cout << "  help                Display this help." << std::endl;
+                        std::cout << "  info                Display Scale documentation." << std::endl;
+                        std::cout << "" << std::endl;
+                        return 0;
+                    }
+
+                    if (DocOps.info) {
+                        std::cout << "Scale Documentation" << std::endl;
+                        docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
+
+                        std::string current;
+                        if (DocOps.find.size() == 0) {
+                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                                current = section.first;
+                                std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                                for (std::pair<std::string, std::string> kv : section.second) {
+                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                }
+                            }
+                        } else {
+                            for (std::string f : DocOps.find) {
+                                bool found = false;
+                                std::string sec = "";
+                                bool hasSection = false;
+                                std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                                    current = section.first;
+                                    for (std::pair<std::string, std::string> kv : section.second) {
+                                        std::string matchCurrent = current;
+                                        std::string matchKey = kv.first;
+                                        std::string matchDescription = kv.second;
+                                        if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                            found = true;
+                                            sec = current;
+                                            hasSection = true;
+                                        }
+                                    }
+                                    if (!found) {
+                                        for (std::pair<std::string, std::string> kv : section.second) {
+                                            std::string matchCurrent = current;
+                                            std::string matchKey = kv.first;
+                                            std::string matchDescription = kv.second;
+                                            if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                                found = true;
+                                                sec = current;
+                                            }
+                                        }
+                                    }
+                                }
+                                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                                    current = section.first;
+                                    if (found && current == sec)
+                                        std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                                    for (std::pair<std::string, std::string> kv : section.second) {
+                                        std::string matchCurrent = current;
+                                        std::string matchKey = kv.first;
+                                        std::string matchDescription = kv.second;
+                                        if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                        } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                            std::string s = kv.second;
+                                            std::smatch matches;
+                                            std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
+                                            for (auto match : matches) {
+                                                s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
+                                            }
+                                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                        }
+                                    }
+                                }
+                                if (!found) {
+                                    std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
+                                }
+                            }
+                        }
+                        return 0;
+                    }
+
+                    // Doc for framework, defaults to Scale framework
+
+                    if (docFileFormat == "markdown") {
+                        docs = parseMarkDown(file);
+                    } else if (docFileFormat == "scldoc") {
+                        docs = parseSclDoc(file);
+                    } else {
+                        std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
                     }
 
                     std::string current = "";
-                    for (size_t i = 0; i < lines.size(); i++) {
-                        std::string line = lines[i];
-
-                        try {
-                            line = replaceAll(line, "`", "");
-                        } catch (std::out_of_range& e) {}
-                        if (strstarts(line, "##") && !strstarts(line, "###")) {
-                            try {
-                                size_t start = line.find_first_of('(') + 1;
-                                size_t end = line.find_last_of(')');
-                                if (start == std::string::npos) {
-                                    current = "";
-                                    continue;
-                                }
-                                current = line.substr(start, end - start);
-                                current = replaceAll(current, "\\./", "");
-                                current = replaceAll(current, includeFolder + "/", "");
-                                current = replaceAll(current, "/", ".");
-                                current = replaceAll(current, "\\.scale$", "");
-                                current = Main.options.printDocFor + "." + current;
-                                
-                                std::unordered_map<std::string, std::string> key_value;
-                                docs[current] = key_value;
-                            } catch (std::out_of_range& e) {}
-                        } else if (strstarts(line, "###")) {
-                            std::string key = line.substr(4);
-                            docs[current][key] = "";
-                            line = lines[++i];
-                            while (i < lines.size() && !strstarts(line, "##")) {
-                                while (strstarts(line, "<div")) {
-                                    line = lines[++i];
-                                }
-                                docs[current][key] += "  " + line + "\n";
-                                line = lines[++i];
-                            }
-                            std::string prev = docs[current][key];
-                            std::string now = replaceAll(prev, "\n  \n", "\n");
-                            while (prev != now) {
-                                prev = now;
-                                now = replaceAll(prev, "\n  \n", "\n");
-                            }
-                            now = replaceAll(now, "<<RESET>>", Color::GREEN);
-                            now = replaceAll(now, "<<BLACK>>", Color::BLACK);
-                            now = replaceAll(now, "<<RED>>", Color::RED);
-                            now = replaceAll(now, "<<GREEN>>", Color::GREEN);
-                            now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
-                            now = replaceAll(now, "<<BLUE>>", Color::BLUE);
-                            now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                            now = replaceAll(now, "<<CYAN>>", Color::CYAN);
-                            now = replaceAll(now, "<<WHITE>>", Color::WHITE);
-                            now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
-                            now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
-                            now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
-                            now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
-                            now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
-                            now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
-                            now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
-                            now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
-
-                            docs[current][key] = now;
-                            i--;
-                        }
-                    }
-
                     if (DocOps.find.size() == 0) {
-                        std::cout << "Documentation for Framework " << Main.options.printDocFor << std::endl;
-                        for (std::pair<std::string, std::unordered_map<std::string, std::string>> section : docs) {
+                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
                             current = section.first;
+                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
                             for (std::pair<std::string, std::string> kv : section.second) {
-                                std::cout << Color::BOLDBLUE << current + ": " << Color::RESET << Color::BLUE << kv.first << ":\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             }
                         }
                     } else {
                         for (std::string f : DocOps.find) {
-                            std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
                             bool found = false;
-                            for (std::pair<std::string, std::unordered_map<std::string, std::string>> section : docs) {
+                            std::string sec = "";
+                            bool hasSection = false;
+                            std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
+                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
                                 current = section.first;
                                 for (std::pair<std::string, std::string> kv : section.second) {
                                     std::string matchCurrent = current;
-                                    size_t index = kv.first.find("function");
-                                    if (index == std::string::npos) {
-                                        index = 0;
-                                    } else {
-                                        index += 8;
-                                    }
-                                    std::string matchKey = kv.first.substr(index);
-                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f))) {
-                                        std::cout << Color::BOLDBLUE << current + ": " << Color::RESET << Color::BLUE << kv.first << ":\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                    std::string matchKey = kv.first;
+                                    std::string matchDescription = kv.second;
+                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
                                         found = true;
+                                        sec = current;
+                                        hasSection = true;
+                                    }
+                                }
+                                if (!found) {
+                                    for (std::pair<std::string, std::string> kv : section.second) {
+                                        std::string matchCurrent = current;
+                                        std::string matchKey = kv.first;
+                                        std::string matchDescription = kv.second;
+                                        if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                            found = true;
+                                            sec = current;
+                                        }
+                                    }
+                                }
+                            }
+                            for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                                current = section.first;
+                                if (found && current == sec)
+                                    std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+                                for (std::pair<std::string, std::string> kv : section.second) {
+                                    std::string matchCurrent = current;
+                                    std::string matchKey = kv.first;
+                                    std::string matchDescription = kv.second;
+                                    if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
+                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                    } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
+                                        std::string s = kv.second;
+                                        std::smatch matches;
+                                        std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
+                                        for (auto match : matches) {
+                                            s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
+                                        }
+                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                     }
                                 }
                             }
