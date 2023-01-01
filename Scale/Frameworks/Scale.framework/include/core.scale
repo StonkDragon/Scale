@@ -75,10 +75,10 @@ function free(_ptr_: [any]): none
 end
 
 function strlen(_str_: str): int
-  0 => decl len: int
-  while _str_ len + @ 0 != do
-    len 1 + => len
-  done
+  decl len: int
+  inline_c
+    *len = strlen(*_str_);
+  end_inline
   len return
 end
 
@@ -95,10 +95,10 @@ function strsplit(_str_: str, _delim_: str): Array
   arr return
 end
 
-function strcmp(_str1_: str, _str2_: str): int
+function strcmp(_str1_: str, _str2_: str): bool
   decl t: bool
   inline_c
-    *t = strcmp(*_str1_, *_str2_) == 0;
+    *t = (strcmp(*_str1_, *_str2_) == 0);
   end_inline
   t return
 end
@@ -111,10 +111,10 @@ function strdup(_str_: str): str
   s return
 end
 
-function strncmp(_str1_: str, _str2_: str, _n_: int): int
+function strncmp(_str1_: str, _str2_: str, _n_: int): bool
   decl t: bool
   inline_c
-    *t = strncmp(*_str1_, *_str2_, *_n_) == 0;
+    *t = (strncmp(*_str1_, *_str2_, *_n_) == 0);
   end_inline
   t return
 end
@@ -202,7 +202,7 @@ function nop(): none
 end
 
 function strstarts(_s1_: str, _s2_: str): bool
-  _s2_ strlen _s2_ _s1_ strncmp return
+  _s1_ _s2_ _s2_ strlen strncmp return
 end
 
 function sizeof(_type_: str): int
@@ -241,7 +241,7 @@ function toChars(_str_: str): Array
   decl _arr_: Array _str_ strlen Array::new => _arr_
 
   for _i_ in 0 to _str_ strlen do
-    _str_ _i_ + @ toChar _arr_:push
+    _i_ _str_:at _arr_:push
   done
   _arr_ return
 end

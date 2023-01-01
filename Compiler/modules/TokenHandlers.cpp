@@ -2,32 +2,33 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <stack>
 #include <regex>
 
 #include "../headers/Common.hpp"
 
 namespace sclc
 {
-    extern std::vector<std::string> typeStack;
+    extern std::stack<std::string> typeStack;
 
     FPResult handleOperator(FILE* fp, Token token, int scopeDepth) {
         switch (token.getType()) {
-            case tok_add: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_sub: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_mul: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_div: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_mod: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_land: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_lor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_lxor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
+            case tok_add: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_sub: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_mul: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_div: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_mod: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_land: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_lor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_lxor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
             case tok_lnot: append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n"); break;
-            case tok_lsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_rsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_dadd: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f + stack.data[stack.ptr + 1].f;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_dsub: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f - stack.data[stack.ptr + 1].f;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_dmul: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f * stack.data[stack.ptr + 1].f;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
-            case tok_ddiv: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f / stack.data[stack.ptr + 1].f;\n"); /* typeStack.pop_back(); typeStack.pop_back(); typeStack.push_back("int"); */ break;
+            case tok_lsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_rsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
+            case tok_dadd: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f + stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
+            case tok_dsub: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f - stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
+            case tok_dmul: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f * stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
+            case tok_ddiv: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f / stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
             default:
             {
                 FPResult result;
@@ -47,21 +48,9 @@ namespace sclc
     }
 
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
-        try {
-            long long num = parseNumber(token.getValue());
-            append("stack.data[stack.ptr++].i = %lld;\n", num);
-            if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
-        } catch (std::exception &e) {
-            FPResult result;
-            result.success = false;
-            result.message = "Error parsing number: " + token.getValue() + ": " + e.what();
-            result.line = token.getLine();
-            result.in = token.getFile();
-            result.column = token.getColumn();
-            result.value = token.getValue();
-            result.type = token.getType();
-            return result;
-        }
+        append("stack.data[stack.ptr++].i = %s;\n", token.getValue().c_str());
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
+        typeStack.push("int");
         FPResult result;
         result.success = true;
         result.message = "";
@@ -70,6 +59,7 @@ namespace sclc
 
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         append("stack.data[stack.ptr++].f = %s;\n", token.getValue().c_str());
+        typeStack.push("float");
         if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
         FPResult result;
         result.success = true;

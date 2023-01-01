@@ -1,6 +1,6 @@
 # new struct named Foo
 struct Foo
-    decl foo: any
+    decl foo: str
 end
 
 # member function of Foo called bar

@@ -1,7 +1,7 @@
 # a container is a static structure
 container foo
-  decl bar: any
-  decl baz: any
+  decl bar: str
+  decl baz: [str]
 end
 
 function main(): none
