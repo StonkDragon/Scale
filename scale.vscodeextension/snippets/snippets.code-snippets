@@ -33,17 +33,9 @@
 		"scope": "source.scale",
 		"prefix": "import",
 		"body": [
-			"import ${1:framework}.${2:file}"
+			"import ${1:file}"
 		],
-		"description": "Import from Framework"
-	},
-	"Include": {
-		"scope": "source.scale",
-		"prefix": "include",
-		"body": [
-			"include \"${1:file}\""
-		],
-		"description": "Include local file in build"
+		"description": "Import file. Replace '/' in file path with '.'!"
 	},
 	"Init": {
 		"scope": "source.scale",
