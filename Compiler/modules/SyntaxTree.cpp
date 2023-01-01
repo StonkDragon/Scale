@@ -6,6 +6,230 @@
 
 namespace sclc
 {
+    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+        Function* func = new Function(name, nameToken);
+        func->setFile(nameToken.getFile());
+        for (std::string m : nextAttributes) {
+            func->addModifier(m);
+        }
+        nextAttributes.clear();
+        i += 2;
+        if (tokens[i].getType() == tok_paren_open) {
+            i++;
+            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                if (tokens[i].getType() == tok_identifier) {
+                    std::string name = tokens[i].getValue();
+                    std::string type = "any";
+                    if (tokens[i+1].getType() == tok_column) {
+                        i += 2;
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            FPResult result;
+                            result.message = "Type 'none' is only valid for function return types.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "A type is required!";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    func->addArgument(Variable(name, type));
+                } else {
+                    FPResult result;
+                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    i++;
+                    continue;
+                }
+                i++;
+                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
+                    if (tokens[i].getType() == tok_comma) {
+                        i++;
+                    }
+                    continue;
+                }
+                FPResult result;
+                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
+                result.value = tokens[i].getValue();
+                result.line = tokens[i].getLine();
+                result.in = tokens[i].getFile();
+                result.type = tokens[i].getType();
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            if (tokens[i+1].getType() == tok_column) {
+                i += 2;
+                FPResult r = parseType(tokens, &i);
+                if (!r.success) {
+                    errors.push_back(r);
+                    return nullptr;
+                }
+                std::string type = r.value;
+                func->setReturnType(type);
+            } else {
+                FPResult result;
+                result.message = "A type is required!";
+                result.value = tokens[i].getValue();
+                result.line = tokens[i].getLine();
+                result.in = tokens[i].getFile();
+                result.type = tokens[i].getType();
+                result.success = false;
+                errors.push_back(result);
+                i++;
+                return nullptr;
+            }
+        } else {
+            FPResult result;
+            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
+            result.value = tokens[i].getValue();
+            result.line = tokens[i].getLine();
+            result.in = tokens[i].getFile();
+            result.type = tokens[i].getType();
+            result.success = false;
+            errors.push_back(result);
+            return nullptr;
+        }
+        return func;
+    }
+
+    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+        Method* method = new Method(memberName, name, nameToken);
+        method->setFile(nameToken.getFile());
+        method->forceAdd(true);
+        for (std::string m : nextAttributes) {
+            method->addModifier(m);
+        }
+        nextAttributes.clear();
+        i += 2;
+        if (tokens[i].getType() == tok_paren_open) {
+            i++;
+            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                if (tokens[i].getType() == tok_identifier) {
+                    std::string name = tokens[i].getValue();
+                    std::string type = "any";
+                    if (tokens[i+1].getType() == tok_column) {
+                        i += 2;
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            FPResult result;
+                            result.message = "Type 'none' is only valid for function return types.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "A type is required!";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    method->addArgument(Variable(name, type));
+                } else {
+                    FPResult result;
+                    result.message = "Expected identifier for method name, but got '" + tokens[i].getValue() + "'";
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    i++;
+                    continue;
+                }
+                i++;
+                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
+                    if (tokens[i].getType() == tok_comma) {
+                        i++;
+                    }
+                    continue;
+                }
+                FPResult result;
+                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
+                result.value = tokens[i].getValue();
+                result.line = tokens[i].getLine();
+                result.in = tokens[i].getFile();
+                result.type = tokens[i].getType();
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            
+            method->addArgument(Variable("self", memberName));
+            if (tokens[i+1].getType() == tok_column) {
+                i += 2;
+                FPResult r = parseType(tokens, &i);
+                if (!r.success) {
+                    errors.push_back(r);
+                    return nullptr;
+                }
+                std::string type = r.value;
+                method->setReturnType(type);
+                method->setReturnType(type);
+            } else {
+                FPResult result;
+                result.message = "A type is required!";
+                result.value = tokens[i].getValue();
+                result.line = tokens[i].getLine();
+                result.in = tokens[i].getFile();
+                result.type = tokens[i].getType();
+                result.success = false;
+                errors.push_back(result);
+                i++;
+                return nullptr;
+            }
+        } else {
+            FPResult result;
+            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
+            result.value = tokens[i].getValue();
+            result.line = tokens[i].getLine();
+            result.in = tokens[i].getFile();
+            result.type = tokens[i].getType();
+            result.success = false;
+            errors.push_back(result);
+            return nullptr;
+        }
+        return method;
+    }
+
     TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
@@ -54,337 +278,18 @@ namespace sclc
                     if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
-                        currentFunction = new Function(currentStruct->getName() + "$" + name, func);
-                        currentFunction->setFile(func.getFile());
-                        for (std::string m : nextAttributes) {
-                            currentFunction->addModifier(m);
-                        }
-                        nextAttributes.clear();
-                        i += 2;
-                        if (tokens[i].getType() == tok_paren_open) {
-                            i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                                if (tokens[i].getType() == tok_identifier) {
-                                    std::string name = tokens[i].getValue();
-                                    std::string type = "any";
-                                    if (tokens[i+1].getType() == tok_column) {
-                                        i += 2;
-                                        FPResult r = parseType(tokens, &i);
-                                        if (!r.success) {
-                                            errors.push_back(r);
-                                            continue;
-                                        }
-                                        type = r.value;
-                                        if (type == "none") {
-                                            FPResult result;
-                                            result.message = "Type 'none' is only valid for function return types.";
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
-                                            continue;
-                                        }
-                                    } else {
-                                        FPResult result;
-                                        result.message = "A type is required!";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        i++;
-                                        continue;
-                                    }
-                                    currentFunction->addArgument(Variable(name, type));
-                                } else {
-                                    FPResult result;
-                                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                    if (tokens[i].getType() == tok_comma) {
-                                        i++;
-                                    }
-                                    continue;
-                                }
-                                FPResult result;
-                                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                continue;
-                            }
-                            if (tokens[i+1].getType() == tok_column) {
-                                i += 2;
-                                FPResult r = parseType(tokens, &i);
-                                if (!r.success) {
-                                    errors.push_back(r);
-                                    continue;
-                                }
-                                std::string type = r.value;
-                                currentFunction->setReturnType(type);
-                            } else {
-                                FPResult result;
-                                result.message = "A type is required!";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                        } else {
-                            FPResult result;
-                            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
+                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
                         continue;
                     }
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = new Method(currentStruct->getName(), name, func);
-                    currentFunction->setFile(func.getFile());
-                    static_cast<Method*>(currentFunction)->forceAdd(true);
-                    for (std::string m : nextAttributes) {
-                        currentFunction->addModifier(m);
-                    }
-                    nextAttributes.clear();
-                    i += 2;
-                    if (tokens[i].getType() == tok_paren_open) {
-                        i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                            if (tokens[i].getType() == tok_identifier) {
-                                std::string name = tokens[i].getValue();
-                                std::string type = "any";
-                                if (tokens[i+1].getType() == tok_column) {
-                                    i += 2;
-                                    FPResult r = parseType(tokens, &i);
-                                    if (!r.success) {
-                                        errors.push_back(r);
-                                        continue;
-                                    }
-                                    type = r.value;
-                                    if (type == "none") {
-                                        FPResult result;
-                                        result.message = "Type 'none' is only valid for function return types.";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                } else {
-                                    FPResult result;
-                                    result.message = "A type is required!";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                currentFunction->addArgument(Variable(name, type));
-                            } else {
-                                FPResult result;
-                                result.message = "Expected identifier for method name, but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                if (tokens[i].getType() == tok_comma) {
-                                    i++;
-                                }
-                                continue;
-                            }
-                            FPResult result;
-                            result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        
-                        currentFunction->addArgument(Variable("self", currentStruct->getName()));
-                        if (tokens[i+1].getType() == tok_column) {
-                            i += 2;
-                            FPResult r = parseType(tokens, &i);
-                            if (!r.success) {
-                                errors.push_back(r);
-                                continue;
-                            }
-                            std::string type = r.value;
-                            currentFunction->setReturnType(type);
-                            currentFunction->setReturnType(type);
-                        } else {
-                            FPResult result;
-                            result.message = "A type is required!";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            i++;
-                            continue;
-                        }
-                    } else {
-                        FPResult result;
-                        result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
+                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
-                    Function* functionToImplement = new Function(name, func);
-                    functionToImplement->setFile(func.getFile());
-                    for (std::string m : nextAttributes) {
-                        functionToImplement->addModifier(m);
-                    }
-                    nextAttributes.clear();
-                    i += 2;
-                    if (tokens[i].getType() == tok_paren_open) {
-                        i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                            if (tokens[i].getType() == tok_identifier) {
-                                std::string name = tokens[i].getValue();
-                                std::string type = "any";
-                                if (tokens[i+1].getType() == tok_column) {
-                                    i += 2;
-                                    FPResult r = parseType(tokens, &i);
-                                    if (!r.success) {
-                                        errors.push_back(r);
-                                        continue;
-                                    }
-                                    type = r.value;
-                                    if (type == "none") {
-                                        FPResult result;
-                                        result.message = "Type 'none' is only valid for function return types.";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                } else {
-                                    FPResult result;
-                                    result.message = "A type is required!";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                functionToImplement->addArgument(Variable(name, type));
-                            } else {
-                                FPResult result;
-                                result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                if (tokens[i].getType() == tok_comma) {
-                                    i++;
-                                }
-                                continue;
-                            }
-                            FPResult result;
-                            result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        if (tokens[i+1].getType() == tok_column) {
-                            i += 2;
-                            FPResult r = parseType(tokens, &i);
-                            if (!r.success) {
-                                errors.push_back(r);
-                                continue;
-                            }
-                            std::string type = r.value;
-                            functionToImplement->setReturnType(type);
-                        } else {
-                            FPResult result;
-                            result.message = "A type is required!";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            i++;
-                            continue;
-                        }
-                    } else {
-                        FPResult result;
-                        result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
+                    Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
                     currentInterface->addToImplement(functionToImplement);
                     continue;
                 }
@@ -404,223 +309,11 @@ namespace sclc
                     i += 2;
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = new Method(member_type, name, func);
-                    currentFunction->setFile(func.getFile());
-                    for (std::string m : nextAttributes) {
-                        currentFunction->addModifier(m);
-                    }
-                    nextAttributes.clear();
-                    i += 2;
-                    if (tokens[i].getType() == tok_paren_open) {
-                        i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                            if (tokens[i].getType() == tok_identifier) {
-                                std::string name = tokens[i].getValue();
-                                std::string type = "any";
-                                if (tokens[i+1].getType() == tok_column) {
-                                    i += 2;
-                                    FPResult r = parseType(tokens, &i);
-                                    if (!r.success) {
-                                        errors.push_back(r);
-                                        continue;
-                                    }
-                                    type = r.value;
-                                    if (type == "none") {
-                                        FPResult result;
-                                        result.message = "Type 'none' is only valid for function return types.";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                } else {
-                                    FPResult result;
-                                    result.message = "A type is required!";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                currentFunction->addArgument(Variable(name, type));
-                            } else {
-                                FPResult result;
-                                result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                if (tokens[i].getType() == tok_comma) {
-                                    i++;
-                                }
-                                continue;
-                            }
-                            FPResult result;
-                            result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        
-                        currentFunction->addArgument(Variable("self", member_type));
-                        if (tokens[i+1].getType() == tok_column) {
-                            i += 2;
-                            FPResult r = parseType(tokens, &i);
-                            if (!r.success) {
-                                errors.push_back(r);
-                                continue;
-                            }
-                            std::string type = r.value;
-                            currentFunction->setReturnType(type);
-                        } else {
-                            FPResult result;
-                            result.message = "A type is required!";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            i++;
-                            continue;
-                        }
-                    } else {
-                        FPResult result;
-                        result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
+                    currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
                 } else {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
-                    currentFunction = new Function(name, func);
-                    currentFunction->setFile(func.getFile());
-                    for (std::string m : nextAttributes) {
-                        currentFunction->addModifier(m);
-                    }
-                    nextAttributes.clear();
-                    i += 2;
-                    if (tokens[i].getType() == tok_paren_open) {
-                        i++;
-                        while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                            if (tokens[i].getType() == tok_identifier) {
-                                std::string name = tokens[i].getValue();
-                                std::string type = "any";
-                                if (tokens[i+1].getType() == tok_column) {
-                                    i += 2;
-                                    FPResult r = parseType(tokens, &i);
-                                    if (!r.success) {
-                                        errors.push_back(r);
-                                        continue;
-                                    }
-                                    type = r.value;
-                                    if (type == "none") {
-                                        FPResult result;
-                                        result.message = "Type 'none' is only valid for function return types.";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        continue;
-                                    }
-                                } else {
-                                    FPResult result;
-                                    result.message = "A type is required!";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                currentFunction->addArgument(Variable(name, type));
-                            } else {
-                                FPResult result;
-                                result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            i++;
-                            if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                if (tokens[i].getType() == tok_comma) {
-                                    i++;
-                                }
-                                continue;
-                            }
-                            FPResult result;
-                            result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        if (tokens[i+1].getType() == tok_column) {
-                            i += 2;
-                            FPResult r = parseType(tokens, &i);
-                            if (!r.success) {
-                                errors.push_back(r);
-                                continue;
-                            }
-                            std::string type = r.value;
-                            currentFunction->setReturnType(type);
-                        } else {
-                            FPResult result;
-                            result.message = "A type is required!";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            i++;
-                            continue;
-                        }
-                    } else {
-                        FPResult result;
-                        result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
+                    currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
                 }
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
@@ -939,7 +632,7 @@ namespace sclc
                         nextAttributes.push_back(tokens[i + 1].getValue());
                     } else {
                         FPResult result;
-                        result.message = "" + tokens[i + 1].getValue() + " is not a valid modifier.";
+                        result.message = "'" + tokens[i + 1].getValue() + "' is not a valid modifier.";
                         result.value = tokens[i + 1].getValue();
                         result.line = tokens[i + 1].getLine();
                         result.in = tokens[i + 1].getFile();
@@ -960,351 +653,24 @@ namespace sclc
                     if (currentStruct != nullptr) {
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        Function* function = new Method(currentStruct->getName(), name, func);
-                        function->setFile(func.getFile());
+                        Function* function = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
                         function->isExternC = true;
-                        static_cast<Method*>(function)->forceAdd(true);
-                        for (std::string m : nextAttributes) {
-                            function->addModifier(m);
-                        }
-                        nextAttributes.clear();
-                        i += 2;
-                        if (tokens[i].getType() == tok_paren_open) {
-                            i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                                if (tokens[i].getType() == tok_identifier) {
-                                    std::string name = tokens[i].getValue();
-                                    std::string type = "any";
-                                    if (tokens[i+1].getType() == tok_column) {
-                                        i += 2;
-                                        FPResult r = parseType(tokens, &i);
-                                        if (!r.success) {
-                                            errors.push_back(r);
-                                            continue;
-                                        }
-                                        type = r.value;
-                                        if (type == "none") {
-                                            FPResult result;
-                                            result.message = "Type 'none' is only valid for function return types.";
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
-                                            continue;
-                                        }
-                                    } else {
-                                        FPResult result;
-                                        result.message = "A type is required!";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        i++;
-                                        continue;
-                                    }
-                                    function->addArgument(Variable(name, type));
-                                } else {
-                                    FPResult result;
-                                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                    if (tokens[i].getType() == tok_comma) {
-                                        i++;
-                                    }
-                                    continue;
-                                }
-                                FPResult result;
-                                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                continue;
-                            }
-                            
-                            function->addArgument(Variable("self", currentStruct->getName()));
-                            if (tokens[i+1].getType() == tok_column) {
-                                i += 2;
-                                FPResult r = parseType(tokens, &i);
-                                if (!r.success) {
-                                    errors.push_back(r);
-                                    continue;
-                                }
-                                std::string type = r.value;
-                                function->setReturnType(type);
-                            } else {
-                                FPResult result;
-                                result.message = "A type is required!";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            extern_functions.push_back(function);
-                        } else {
-                            FPResult result;
-                            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
+                        extern_functions.push_back(function);
                         continue;
                     }
                     if (tokens[i + 2].getType() == tok_column) {
                         std::string member_type = tokens[i + 1].getValue();
                         i += 2;
-                        if (tokens[i].getType() != tok_column) {
-                            FPResult result;
-                            result.message = "Expected column, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        Function* function = new Method(member_type, name, func);
-                        function->setFile(func.getFile());
+                        Function* function = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
                         function->isExternC = true;
-                        for (std::string m : nextAttributes) {
-                            function->addModifier(m);
-                        }
-                        nextAttributes.clear();
-                        i += 2;
-                        if (tokens[i].getType() == tok_paren_open) {
-                            i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                                if (tokens[i].getType() == tok_identifier) {
-                                    std::string name = tokens[i].getValue();
-                                    std::string type = "any";
-                                    if (tokens[i+1].getType() == tok_column) {
-                                        i += 2;
-                                        FPResult r = parseType(tokens, &i);
-                                        if (!r.success) {
-                                            errors.push_back(r);
-                                            continue;
-                                        }
-                                        type = r.value;
-                                        if (type == "none") {
-                                            FPResult result;
-                                            result.message = "Type 'none' is only valid for function return types.";
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
-                                            continue;
-                                        }
-                                    } else {
-                                        FPResult result;
-                                        result.message = "A type is required!";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        i++;
-                                        continue;
-                                    }
-                                    function->addArgument(Variable(name, type));
-                                } else {
-                                    FPResult result;
-                                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                    if (tokens[i].getType() == tok_comma) {
-                                        i++;
-                                    }
-                                    continue;
-                                }
-                                FPResult result;
-                                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                continue;
-                            }
-                            
-                            function->addArgument(Variable("self", member_type));
-                            if (tokens[i+1].getType() == tok_column) {
-                                i += 2;
-                                FPResult r = parseType(tokens, &i);
-                                if (!r.success) {
-                                    errors.push_back(r);
-                                    continue;
-                                }
-                                std::string type = r.value;
-                                function->setReturnType(type);
-                            } else {
-                                FPResult result;
-                                result.message = "A type is required!";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                            extern_functions.push_back(function);
-                        } else {
-                            FPResult result;
-                            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
+                        extern_functions.push_back(function);
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token funcTok = tokens[i + 1];
-                        Function* func = new Function(name, funcTok);
-                        func->setFile(funcTok.getFile());
+                        Function* func = parseFunction(name, funcTok, errors, nextAttributes, i, tokens);
                         func->isExternC = true;
-                        i += 2;
-                        if (tokens[i].getType() == tok_paren_open) {
-                            i++;
-                            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                                if (tokens[i].getType() == tok_identifier) {
-                                    std::string name = tokens[i].getValue();
-                                    std::string type = "any";
-                                    if (tokens[i+1].getType() == tok_column) {
-                                        i += 2;
-                                        FPResult r = parseType(tokens, &i);
-                                        if (!r.success) {
-                                            errors.push_back(r);
-                                            continue;
-                                        }
-                                        type = r.value;
-                                        if (type == "none") {
-                                            FPResult result;
-                                            result.message = "Type 'none' is only valid for function return types.";
-                                            result.value = tokens[i].getValue();
-                                            result.line = tokens[i].getLine();
-                                            result.in = tokens[i].getFile();
-                                            result.type = tokens[i].getType();
-                                            result.success = false;
-                                            errors.push_back(result);
-                                            continue;
-                                        }
-                                    } else {
-                                        FPResult result;
-                                        result.message = "A type is required!";
-                                        result.value = tokens[i].getValue();
-                                        result.line = tokens[i].getLine();
-                                        result.in = tokens[i].getFile();
-                                        result.type = tokens[i].getType();
-                                        result.success = false;
-                                        errors.push_back(result);
-                                        i++;
-                                        continue;
-                                    }
-                                    func->addArgument(Variable(name, type));
-                                } else {
-                                    FPResult result;
-                                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                                    result.value = tokens[i].getValue();
-                                    result.line = tokens[i].getLine();
-                                    result.in = tokens[i].getFile();
-                                    result.type = tokens[i].getType();
-                                    result.success = false;
-                                    errors.push_back(result);
-                                    i++;
-                                    continue;
-                                }
-                                i++;
-                                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                                    if (tokens[i].getType() == tok_comma) {
-                                        i++;
-                                    }
-                                    continue;
-                                }
-                                FPResult result;
-                                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                continue;
-                            }
-                            if (tokens[i+1].getType() == tok_column) {
-                                i += 2;
-                                FPResult r = parseType(tokens, &i);
-                                if (!r.success) {
-                                    errors.push_back(r);
-                                    continue;
-                                }
-                                std::string type = r.value;
-                                func->setReturnType(type);
-                            } else {
-                                FPResult result;
-                                result.message = "A type is required!";
-                                result.value = tokens[i].getValue();
-                                result.line = tokens[i].getLine();
-                                result.in = tokens[i].getFile();
-                                result.type = tokens[i].getType();
-                                result.success = false;
-                                errors.push_back(result);
-                                i++;
-                                continue;
-                            }
-                        } else {
-                            FPResult result;
-                            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
                         extern_functions.push_back(func);
                     }
                 } else if (type.getType() == tok_declare) {
