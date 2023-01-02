@@ -26,7 +26,7 @@ Example:<<WHITE>>
 <<YELLOW>>1 <<BLUE>>=> @<<WHITE>>i<<RESET>>
 
 Strict constness is lifted in `init`-methods.
-That means writing to <<BLUE>>const<<RESET>> variables is possible in constructors for const struct members and `__init__` for global variables respectively
+That means writing to <<BLUE>>const<<RESET>> variables is possible in constructors for const struct members and <<WHITE>>__init__<<RESET>> for global variables respectively
 
 ## Keywords
 ### function
