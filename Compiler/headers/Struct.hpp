@@ -46,6 +46,14 @@ namespace sclc
             }
             return -1;
         }
+        Variable getMember(std::string name) {
+            for (size_t i = 0; i < members.size(); i++) {
+                if (members[i].getName() == name) {
+                    return members[i];
+                }
+            }
+            return Variable("", "");
+        }
         bool implements(std::string name) {
             return std::find(interfaces.begin(), interfaces.end(), name) != interfaces.end();
         }

@@ -60,7 +60,7 @@ namespace sclc {
         else if (t == "bool") return_type = "scl_int";
         else if (!(getStructByName(result, t) == Struct(""))) {
             return_type = "scl_" + getStructByName(result, t).getName();
-        } else if (t.at(0) == '[') {
+        } else if (t.size() > 2 && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
             return type + "*";
         } else if (hasTypealias(result, t)) {
@@ -1017,7 +1017,7 @@ namespace sclc {
                     }
                 }
             } else if (s.hasMember(body[i].getValue())) {
-                Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                Variable mem = s.getMember(body[i].getValue());
                 if (mem.getType() == "float") {
                     append("stack.data[stack.ptr++].f = Var_self->%s;\n", body[i].getValue().c_str());
                     debugPrintPush();
@@ -1471,7 +1471,7 @@ namespace sclc {
                         Method* m = static_cast<Method*>(function);
                         Struct s = getStructByName(result, m->getMemberType());
                         if (s.hasMember(body[i].getValue())) {
-                            Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                            Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
                                 transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
@@ -1554,17 +1554,17 @@ namespace sclc {
                     }
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
-                    Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Variable mem = s.getMember(body[i].getValue());
                     if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
                         transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                         errors.push_back(err);
                         ITER_INC;
                         ITER_INC;
-                        return;
-                    }
-                    if (!s.hasMember(body[i].getValue())) {
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                        errors.push_back(err);
                         return;
                     }
                     if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
@@ -1689,14 +1689,14 @@ namespace sclc {
                             }
                             ITER_INC;
                             Struct s = getStructByName(result, v.getType());
-                            Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
-                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                            if (!s.hasMember(body[i].getValue())) {
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            if (!s.hasMember(body[i].getValue())) {
-                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                            Variable mem = s.getMember(body[i].getValue());
+                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1749,7 +1749,7 @@ namespace sclc {
                                 Method* m = static_cast<Method*>(function);
                                 Struct s = getStructByName(result, m->getMemberType());
                                 if (s.hasMember(body[i].getValue())) {
-                                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                                    Variable mem = s.getMember(body[i].getValue());
                                     if (!mem.isWritableFrom(function, VarAccess::Write)) {
                                         transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                         errors.push_back(err);
@@ -1798,14 +1798,14 @@ namespace sclc {
                             }
                             ITER_INC;
                             Struct s = getStructByName(result, v.getType());
-                            Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
-                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            if (!s.hasMember(body[i].getValue())) {
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            if (!s.hasMember(body[i].getValue())) {
-                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                            Variable mem = s.getMember(body[i].getValue());
+                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1922,7 +1922,7 @@ namespace sclc {
                         Method* m = static_cast<Method*>(function);
                         Struct s = getStructByName(result, m->getMemberType());
                         if (s.hasMember(body[i].getValue())) {
-                            Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                            Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Write)) {
                                 transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
@@ -2011,17 +2011,17 @@ namespace sclc {
                     }
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
-                    Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                    if (!s.hasMember(body[i].getValue())) {
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Variable mem = s.getMember(body[i].getValue());
                     if (!mem.isWritableFrom(function, VarAccess::Write)) {
                         transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                         errors.push_back(err);
                         ITER_INC;
                         ITER_INC;
-                        return;
-                    }
-                    if (!s.hasMember(body[i].getValue())) {
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                        errors.push_back(err);
                         return;
                     }
                     if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
@@ -2763,7 +2763,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+        Variable mem = s.getMember(body[i].getValue());
         if (mem.getType() == "float")
             append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         else

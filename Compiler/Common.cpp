@@ -442,11 +442,6 @@ namespace sclc
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
     bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
-        debugDump(name);
-        debugDump(isConst);
-        debugDump(isMut);
-        debugDump(isInternalMut);
-        if (internalMutableFrom.size()) debugDump(internalMutableFrom);
 
         if (isConst && !isMut) {
             if (isInitFunction(f)) {
