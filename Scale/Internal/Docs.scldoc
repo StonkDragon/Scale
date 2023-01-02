@@ -20,9 +20,9 @@ Example:
 ### Strict Constness
 Strict constness means that if a variable is <<BLUE>>const<<RESET>> and it is a pointer, you are not allowed to write to either the variable or the address in the variable.
 Example:<<WHITE>>
-<<BLUE>>const decl<<WHITE>> i<<BLUE>>: [int]<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: const [int]<<WHITE>>
 <<CYAN>># Both do not compile: i is not writable in this scope, i.e. i is const
-<<YELLOW>>1 <<BLUE>>=><<WHITE>>i
+<<YELLOW>>1 <<BLUE>>=> <<WHITE>>i
 <<YELLOW>>1 <<BLUE>>=> @<<WHITE>>i<<RESET>>
 
 Strict constness is lifted in `init`-methods.
@@ -40,7 +40,7 @@ Example:<<WHITE>>
 This keyword marks the end of a `function`, `struct`, `container`, or `interface`.
 
 ### expect
-This keyword marks a `function` or global `variable` as externally defined.
+This keyword marks a `function` or global variable as externally defined.
 Example:<<WHITE>>
 <<BLUE>>expect function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
 <<BLUE>>expect decl<<WHITE>> bar<<BLUE>>: int<<WHITE>><<RESET>>
@@ -253,6 +253,9 @@ The `~` operator returns the logical NOT of the top value on the stack.
 
 ### !
 `a !`: Returns `true` if `a` is `false`, `false` otherwise.
+
+### !!
+Asserts that the top value on the stack is not `nil`. If it is `nil`, abort execution.
 
 ### !=
 `a b !=`: Returns `true` if `a` is not equal to `b`.
