@@ -18,10 +18,10 @@
       67 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      133 Compiler/modules/Parser.cpp
-    1036 Compiler/modules/SyntaxTree.cpp
+    1018 Compiler/modules/SyntaxTree.cpp
       69 Compiler/modules/TokenHandlers.cpp
      535 Compiler/modules/Tokenizer.cpp
-    3204 Compiler/modules/Transpiler.cpp
+    3186 Compiler/modules/Transpiler.cpp
      255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -63,4 +63,4 @@
        9 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-    9815 total
+    9779 total
