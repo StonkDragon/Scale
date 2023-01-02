@@ -2,10 +2,10 @@ import Scale.util.iterable
 import Scale.debug
 
 sealed struct Array is Iterable
-  readonly decl values: [any]
-  readonly decl count: int
-  readonly decl capacity: int
-  readonly decl _pos: int
+  decl values: mut readonly [any]
+  decl count:      readonly int
+  decl capacity:   readonly int
+  decl _pos:       readonly int
   
   export function sort(): none
     inline_c
@@ -34,7 +34,7 @@ sealed struct Array is Iterable
   end
 
   export function set(index: int, value: any): none
-    decl tmp: [any]
+    decl tmp: mut [any]
     self.values index 3 << + => tmp
     value => @tmp
   end
@@ -50,7 +50,7 @@ sealed struct Array is Iterable
       => self.values
     fi
 
-    decl tmp: [any]
+    decl tmp: mut [any]
     self.values self.count 3 << + => tmp
     value => @tmp
     self.count 1 + => self.count

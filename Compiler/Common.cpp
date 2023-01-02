@@ -440,12 +440,19 @@ namespace sclc
         return false;
     }
 
-    bool Variable::isWritableFrom(Function* f)  {
-        if (!isWritable()) {
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
+        debugDump(name);
+        debugDump(isConst);
+        debugDump(isMut);
+        debugDump(isInternalMut);
+        if (internalMutableFrom.size()) debugDump(internalMutableFrom);
+
+        if (isConst && !isMut) {
             if (isInitFunction(f)) {
                 if (f->isMethod) {
                     Method* m = static_cast<Method*>(f);
-                    if (m->getMemberType() == this->memberType) {
+                    if (m->getMemberType() == internalMutableFrom) {
                         return true;
                     }
                 } else {
@@ -454,17 +461,75 @@ namespace sclc
             }
             return false;
         }
-        if (this->isInternalMut && this->memberType.size()) {
-            if (!f->isMethod) {
+        if (isConst && isMut) {
+            if (accessType == VarAccess::Write) {
                 return false;
             }
-            Method* m = static_cast<Method*>(f);
-            if (this->memberType.size() == 0 || m->getMemberType() == this->memberType) {
-                return true;
-            } else {
-                return false;
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    if (isInitFunction(f)) {
+                        if (f->isMethod) {
+                            Method* m = static_cast<Method*>(f);
+                            if (m->getMemberType() == internalMutableFrom) {
+                                return true;
+                            }
+                        } else {
+                            return true;
+                        }
+                    }
+                    return false;
+                } else {
+                    return false;
+                }
             }
+            if (isInitFunction(f)) {
+                if (f->isMethod) {
+                    Method* m = static_cast<Method*>(f);
+                    if (m->getMemberType() == internalMutableFrom) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+            return true;
         }
-        return true;
+        if (!isConst && isMut) {
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (!isConst && !isMut) {
+            if (accessType == VarAccess::Dereference) {
+                return false;
+            }
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+        std::cerr << __func__ << ": Should not reach here" << std::endl;
+        exit(-1);
     }
 } // namespace sclc

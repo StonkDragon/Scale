@@ -156,16 +156,16 @@ namespace sclc {
     }
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
-        std::vector<std::string> tokens;
+        std::vector<std::string> body;
         size_t start = 0;
         size_t end = 0;
         while ((end = str.find(delimiter, start)) != std::string::npos)
         {
-            tokens.push_back(str.substr(start, end - start));
+            body.push_back(str.substr(start, end - start));
             start = end + delimiter.length();
         }
-        tokens.push_back(str.substr(start));
-        return tokens;
+        body.push_back(str.substr(start));
+        return body;
     }
 
     std::string ltrim(const std::string& s) {
@@ -1453,8 +1453,8 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                if (!container.getMember(memberName).isWritableFrom(function)) {
-                    transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Dereference)) {
+                    transpilerError("Container member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                     errors.push_back(err);
                     return;
                 }
@@ -1472,8 +1472,8 @@ namespace sclc {
                         Struct s = getStructByName(result, m->getMemberType());
                         if (s.hasMember(body[i].getValue())) {
                             Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                            if (!mem.isWritableFrom(function)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1483,8 +1483,8 @@ namespace sclc {
                             return;
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Static variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1509,16 +1509,16 @@ namespace sclc {
                                 return;
                             }
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
                             std::string loadFrom = s.getName() + "$" + body[i].getValue();
                             if (mem.getType() == "float")
-                                append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                                append("*((scl_any*) Var_%s) = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
                             else
-                                append("Var_%s = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                                append("*((scl_any*) Var_%s) = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
                             if (typeStack.size())
                                 typeStack.pop();
                             return;
@@ -1529,13 +1529,15 @@ namespace sclc {
                     return;
                 }
                 Variable v = getVar(body[i]);
-                if (!v.isWritableFrom(function)) {
-                    transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                    errors.push_back(err);
-                    return;
-                }
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
+                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        errors.push_back(err);
+                        ITER_INC;
+                        ITER_INC;
+                        return;
+                    }
                     ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         append("*(scl_any*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
@@ -1544,8 +1546,22 @@ namespace sclc {
                         i--;
                         return;
                     }
+                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                        errors.push_back(err);
+                        ITER_INC;
+                        return;
+                    }
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
+                    Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                    if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        errors.push_back(err);
+                        ITER_INC;
+                        ITER_INC;
+                        return;
+                    }
                     if (!s.hasMember(body[i].getValue())) {
                         transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                         errors.push_back(err);
@@ -1558,6 +1574,11 @@ namespace sclc {
                     }
                     append("*(scl_any*) Var_%s->%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str(), body[i].getValue().c_str());
                 } else {
+                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        errors.push_back(err);
+                        return;
+                    }
                     append("*(scl_any*) Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
                 }
                 if (typeStack.size())
@@ -1576,181 +1597,231 @@ namespace sclc {
                     ITER_INC;
                     continue;
                 }
-                if (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                    if (body[i].getType() == tok_addr_of) {
+                if (body[i].getType() == tok_paren_close)
+                    break;
+                
+                if (body[i].getType() == tok_addr_of) {
+                    ITER_INC;
+                    if (hasContainer(result, body[i])) {
+                        std::string containerName = body[i].getValue();
                         ITER_INC;
-                        if (hasContainer(result, body[i])) {
-                            std::string containerName = body[i].getValue();
+                        if (body[i].getType() != tok_dot) {
+                            transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        ITER_INC;
+                        std::string memberName = body[i].getValue();
+                        Container container = getContainerByName(result, containerName);
+                        if (!container.hasMember(memberName)) {
+                            transpilerError("Unknown container member: '" + memberName + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Dereference)) {
+                            transpilerError("Container member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                            errors.push_back(err);
                             ITER_INC;
-                            if (body[i].getType() != tok_dot) {
-                                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                return;
-                            }
                             ITER_INC;
-                            std::string memberName = body[i].getValue();
-                            Container container = getContainerByName(result, containerName);
-                            if (!container.hasMember(memberName)) {
-                                transpilerError("Unknown container member: '" + memberName + "'", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            if (!container.getMember(memberName).isWritableFrom(function)) {
-                                transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            append("*((scl_any*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
-                        } else {
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                errors.push_back(err);
-                            }
-                            if (!hasVar(body[i])) {
-                                if (function->isMethod) {
-                                    Method* m = static_cast<Method*>(function);
-                                    Struct s = getStructByName(result, m->getMemberType());
-                                    if (s.hasMember(body[i].getValue())) {
-                                        Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                                        if (!mem.isWritableFrom(function)) {
-                                            transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                                            errors.push_back(err);
-                                            return;
-                                        }
-                                        append("*(scl_any*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
-                                        ITER_INC;
-                                        destructureIndex++;
-                                        continue;
-                                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                                        Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                                        if (!mem.isWritableFrom(function)) {
-                                            transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                                            errors.push_back(err);
-                                            return;
-                                        }
-                                        append("*(scl_any*) Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
-                                        ITER_INC;
-                                        destructureIndex++;
-                                        continue;
+                            return;
+                        }
+                        append("*((scl_any*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                    } else {
+                        if (body[i].getType() != tok_identifier) {
+                            transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        if (!hasVar(body[i])) {
+                            if (function->isMethod) {
+                                Method* m = static_cast<Method*>(function);
+                                Struct s = getStructByName(result, m->getMemberType());
+                                if (s.hasMember(body[i].getValue())) {
+                                    Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                                    if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                        errors.push_back(err);
+                                        return;
                                     }
-                                }
-                                transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                            }
-                            Variable v = getVar(body[i]);
-                            std::string loadFrom = v.getName();
-                            if (getStructByName(result, v.getType()) != Struct("")) {
-                                if (body[i + 1].getType() != tok_dot) {
-                                    append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                    ITER_INC;
+                                    append("*(scl_any*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                    // ITER_INC;
+                                    destructureIndex++;
+                                    continue;
+                                } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                                    Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                                    if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                        errors.push_back(err);
+                                        return;
+                                    }
+                                    append("*(scl_any*) Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
+                                    // ITER_INC;
                                     destructureIndex++;
                                     continue;
                                 }
-                                ITER_INC;
-                                ITER_INC;
-                                Struct s = getStructByName(result, v.getType());
-                                if (!s.hasMember(body[i].getValue())) {
-                                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
-                                    return;
-                                }
-                                if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
-                                    transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                                    errors.push_back(err);
-                                    return;
-                                }
-                                append("*(scl_any*) Var_%s->%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
-                            } else {
-                                append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
                             }
+                            transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
+                            return;
                         }
-                    } else {
-                        if (hasContainer(result, body[i])) {
-                            std::string containerName = body[i].getValue();
+                        Variable v = getVar(body[i]);
+                        std::string loadFrom = v.getName();
+                        if (getStructByName(result, v.getType()) != Struct("")) {
+                            if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                errors.push_back(err);
+                                ITER_INC;
+                                ITER_INC;
+                                return;
+                            }
                             ITER_INC;
                             if (body[i].getType() != tok_dot) {
-                                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                                append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                // ITER_INC;
+                                destructureIndex++;
+                                continue;
+                            }
+                            if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
                                 errors.push_back(err);
+                                ITER_INC;
                                 return;
                             }
                             ITER_INC;
-                            std::string memberName = body[i].getValue();
-                            Container container = getContainerByName(result, containerName);
-                            if (!container.hasMember(memberName)) {
-                                transpilerError("Unknown container member: '" + memberName + "'", i);
+                            Struct s = getStructByName(result, v.getType());
+                            Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            if (!container.getMember(memberName).isWritableFrom(function)) {
-                                transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            if (!s.hasMember(body[i].getValue())) {
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            append("(*(scl_any*) &Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                            if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("*(scl_any*) Var_%s->%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
                         } else {
-                            if (body[i].getType() != tok_identifier) {
-                                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                                errors.push_back(err);
-                            }
-                            if (!hasVar(body[i])) {
-                                if (function->isMethod) {
-                                    Method* m = static_cast<Method*>(function);
-                                    Struct s = getStructByName(result, m->getMemberType());
-                                    if (s.hasMember(body[i].getValue())) {
-                                        Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                                        if (!mem.isWritableFrom(function)) {
-                                            transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                                            errors.push_back(err);
-                                            return;
-                                        }
-                                        append("*(scl_any*) &Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
-                                        ITER_INC;
-                                        destructureIndex++;
-                                        continue;
-                                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                                        if (!getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "")).isWritableFrom(function)) {
-                                            transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                                            errors.push_back(err);
-                                            return;
-                                        }
-                                        append("*(scl_any*) &Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
-                                        return;
-                                    }
-                                }
-                                transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                            }
-                            Variable v = getVar(body[i]);
-                            if (!v.isWritableFrom(function)) {
+                            if (!v.isWritableFrom(function, VarAccess::Dereference)) {
                                 transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            std::string loadFrom = v.getName();
-                            if (getStructByName(result, v.getType()) != Struct("")) {
-                                if (body[i + 1].getType() != tok_dot) {
-                                    append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                    ITER_INC;
+                            append("*(scl_any*) Var_%s = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                        }
+                    }
+                } else {
+                    if (hasContainer(result, body[i])) {
+                        std::string containerName = body[i].getValue();
+                        ITER_INC;
+                        if (body[i].getType() != tok_dot) {
+                            transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        ITER_INC;
+                        std::string memberName = body[i].getValue();
+                        Container container = getContainerByName(result, containerName);
+                        if (!container.hasMember(memberName)) {
+                            transpilerError("Unknown container member: '" + memberName + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Write)) {
+                            transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("(*(scl_any*) &Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                    } else {
+                        if (body[i].getType() != tok_identifier) {
+                            transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        if (!hasVar(body[i])) {
+                            if (function->isMethod) {
+                                Method* m = static_cast<Method*>(function);
+                                Struct s = getStructByName(result, m->getMemberType());
+                                if (s.hasMember(body[i].getValue())) {
+                                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
+                                    if (!mem.isWritableFrom(function, VarAccess::Write)) {
+                                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                        errors.push_back(err);
+                                        return;
+                                    }
+                                    append("*(scl_any*) &Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+                                    // ITER_INC;
                                     destructureIndex++;
                                     continue;
-                                }
-                                ITER_INC;
-                                ITER_INC;
-                                Struct s = getStructByName(result, v.getType());
-                                if (!s.hasMember(body[i].getValue())) {
-                                    transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
-                                    errors.push_back(err);
+                                } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                                    if (!getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "")).isWritableFrom(function, VarAccess::Write)) {
+                                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                        errors.push_back(err);
+                                        return;
+                                    }
+                                    append("*(scl_any*) &Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
                                     return;
                                 }
-                                if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
-                                    transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                                    errors.push_back(err);
-                                    return;
-                                }
-                                append("(*(scl_any*) &Var_%s->%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
-                            } else {
-                                append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
                             }
+                            transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        Variable v = getVar(body[i]);
+                        std::string loadFrom = v.getName();
+                        if (getStructByName(result, v.getType()) != Struct("")) {
+                            if (!v.isWritableFrom(function, VarAccess::Write)) {
+                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                errors.push_back(err);
+                                ITER_INC;
+                                ITER_INC;
+                                return;
+                            }
+                            ITER_INC;
+                            if (body[i].getType() != tok_dot) {
+                                append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
+                                // ITER_INC;
+                                destructureIndex++;
+                                continue;
+                            }
+                            if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                                errors.push_back(err);
+                                ITER_INC;
+                                return;
+                            }
+                            ITER_INC;
+                            Struct s = getStructByName(result, v.getType());
+                            Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            if (!s.hasMember(body[i].getValue())) {
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("(*(scl_any*) &Var_%s->%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                        } else {
+                            if (!v.isWritableFrom(function, VarAccess::Write)) {
+                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
                         }
                     }
                 }
@@ -1787,9 +1858,19 @@ namespace sclc {
             }
             std::string name = body[i].getValue();
             std::string type = "any";
-            if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
+            ITER_INC;
+            bool isConst = false;
+            bool isMut = false;
+            if (body[i].getType() == tok_column) {
                 ITER_INC;
-                ITER_INC;
+                while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
+                    if (body[i].getValue() == "const") {
+                        isConst = true;
+                    } else if (body[i].getValue() == "mut") {
+                        isMut = true;
+                    }
+                    ITER_INC;
+                }
                 FPResult r = parseType(body, &i);
                 if (!r.success) {
                     errors.push_back(r);
@@ -1801,7 +1882,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            Variable v = Variable(name, type);
+            Variable v = Variable(name, type, isConst, isMut);
             vars[varDepth].push_back(v);
             append("%s Var_%s = (%s) stack.data[--stack.ptr].%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str(), sclTypeToCType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
             if (typeStack.size())
@@ -1823,7 +1904,7 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                if (!container.getMember(memberName).isWritableFrom(function)) {
+                if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Write)) {
                     transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                     errors.push_back(err);
                     return;
@@ -1842,7 +1923,7 @@ namespace sclc {
                         Struct s = getStructByName(result, m->getMemberType());
                         if (s.hasMember(body[i].getValue())) {
                             Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
-                            if (!mem.isWritableFrom(function)) {
+                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
                                 transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
@@ -1856,7 +1937,7 @@ namespace sclc {
                             return;
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function)) {
+                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
                                 transpilerError("Static member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
@@ -1885,7 +1966,7 @@ namespace sclc {
                                 return;
                             }
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function)) {
+                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
                                 transpilerError("Static member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                                 errors.push_back(err);
                                 return;
@@ -1905,13 +1986,15 @@ namespace sclc {
                     return;
                 }
                 Variable v = getVar(body[i]);
-                if (!v.isWritableFrom(function)) {
-                    transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
-                    errors.push_back(err);
-                    return;
-                }
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
+                    if (!v.isWritableFrom(function, VarAccess::Write)) {
+                        transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        errors.push_back(err);
+                        ITER_INC;
+                        ITER_INC;
+                        return;
+                    }
                     ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
@@ -1920,8 +2003,22 @@ namespace sclc {
                         i--;
                         return;
                     }
+                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                        errors.push_back(err);
+                        ITER_INC;
+                        return;
+                    }
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
+                    Variable mem = s.getMembers()[s.indexOfMember(loadFrom) / 8];
+                    if (!mem.isWritableFrom(function, VarAccess::Write)) {
+                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        errors.push_back(err);
+                        ITER_INC;
+                        ITER_INC;
+                        return;
+                    }
                     if (!s.hasMember(body[i].getValue())) {
                         transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                         errors.push_back(err);
@@ -1932,7 +2029,6 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    Variable mem = s.getMembers()[s.indexOfMember(body[i].getValue()) / 8];
                     if (mem.getType() == "float")
                         append("Var_%s->%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str(), body[i].getValue().c_str());
                     else
@@ -1941,6 +2037,11 @@ namespace sclc {
                         typeStack.pop();
                 } else {
                     Variable v = getVar(body[i]);
+                    if (!v.isWritableFrom(function, VarAccess::Write)) {
+                        transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        errors.push_back(err);
+                        return;
+                    }
                     if (v.getType() == "float")
                         append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
                     else
@@ -1977,9 +2078,19 @@ namespace sclc {
         }
         std::string name = body[i].getValue();
         std::string type = "any";
-        if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
+        ITER_INC;
+        bool isConst = false;
+        bool isMut = false;
+        if (body[i].getType() == tok_column) {
             ITER_INC;
-            ITER_INC;
+            while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
+                if (body[i].getValue() == "const") {
+                    isConst = true;
+                } else if (body[i].getValue() == "mut") {
+                    isMut = true;
+                }
+                i++;
+            }
             FPResult r = parseType(body, &i);
             if (!r.success) {
                 errors.push_back(r);
@@ -1991,7 +2102,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        Variable v = Variable(name, type);
+        Variable v = Variable(name, type, isConst, isMut);
         vars[varDepth].push_back(v);
         append("%s Var_%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str());
     }

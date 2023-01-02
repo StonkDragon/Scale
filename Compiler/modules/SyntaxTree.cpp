@@ -18,15 +18,21 @@ namespace sclc
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
-                    bool isConst = false;
-                    if (tokens[i].getValue() == "const") {
-                        isConst = true;
-                        i++;
-                    }
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
-                    if (tokens[i+1].getType() == tok_column) {
-                        i += 2;
+                    i++;
+                    bool isConst = false;
+                    bool isMut = false;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
+                            if (tokens[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (tokens[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            i++;
+                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
@@ -58,7 +64,7 @@ namespace sclc
                         i++;
                         continue;
                     }
-                    func->addArgument(Variable(name, type, isConst));
+                    func->addArgument(Variable(name, type, isConst, isMut));
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
@@ -140,15 +146,21 @@ namespace sclc
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
-                    bool isConst = false;
-                    if (tokens[i].getValue() == "const") {
-                        isConst = true;
-                        i++;
-                    }
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
-                    if (tokens[i+1].getType() == tok_column) {
-                        i += 2;
+                    bool isConst = false;
+                    bool isMut = false;
+                    i++;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
+                            if (tokens[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (tokens[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            i++;
+                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
@@ -180,10 +192,10 @@ namespace sclc
                         i++;
                         continue;
                     }
-                    method->addArgument(Variable(name, type, isConst));
+                    method->addArgument(Variable(name, type, isConst, isMut));
                 } else {
                     FPResult result;
-                    result.message = "Expected identifier for method name, but got '" + tokens[i].getValue() + "'";
+                    result.message = "Expected identifier for method argument, but got '" + tokens[i].getValue() + "'";
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -738,8 +750,19 @@ namespace sclc
                     }
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
-                    if (tokens[i+1].getType() == tok_column) {
-                        i += 2;
+                    i++;
+                    bool isConst = false;
+                    bool isMut = false;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                            if (tokens[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (tokens[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            i++;
+                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
@@ -759,7 +782,7 @@ namespace sclc
                             continue;
                         }
                     }
-                    extern_globals.push_back(Variable(name, type));
+                    extern_globals.push_back(Variable(name, type, isMut, isConst));
                 } else {
                     FPResult result;
                     result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
@@ -787,8 +810,19 @@ namespace sclc
                 std::string name = tokens[i].getValue();
                 Token tok = tokens[i];
                 std::string type = "any";
-                if (tokens[i+1].getType() == tok_column) {
-                    i += 2;
+                i++;
+                bool isConst = false;
+                bool isMut = false;
+                if (tokens[i].getType() == tok_column) {
+                    i++;
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                        if (tokens[i].getValue() == "const") {
+                            isConst = true;
+                        } else if (tokens[i].getValue() == "mut") {
+                            isMut = true;
+                        }
+                        i++;
+                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
@@ -808,21 +842,8 @@ namespace sclc
                         continue;
                     }
                 }
-                bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
-                bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
-                if (isInternalMut) {
-                    FPResult r;
-                    r.message = "'readonly' Modifier ignored for global variable";
-                    r.value = tok.getValue();
-                    r.line = tok.getLine();
-                    r.in = tok.getFile();
-                    r.type = tok.getType();
-                    r.column = tok.getColumn();
-                    r.success = false;
-                    warns.push_back(r);
-                }
                 nextAttributes.clear();
-                globals.push_back(Variable(name, type, isConst));
+                globals.push_back(Variable(name, type, isConst, isMut));
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -838,8 +859,19 @@ namespace sclc
                 std::string name = tokens[i].getValue();
                 Token tok = tokens[i];
                 std::string type = "any";
-                if (tokens[i+1].getType() == tok_column) {
-                    i += 2;
+                i++;
+                bool isConst = false;
+                bool isMut = false;
+                if (tokens[i].getType() == tok_column) {
+                    i++;
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                        if (tokens[i].getValue() == "const") {
+                            isConst = true;
+                        } else if (tokens[i].getValue() == "mut") {
+                            isMut = true;
+                        }
+                        i++;
+                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
@@ -860,21 +892,8 @@ namespace sclc
                         continue;
                     }
                 }
-                bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
-                bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
-                if (isInternalMut) {
-                    FPResult r;
-                    r.message = "'readonly' Modifier ignored for container member";
-                    r.value = tok.getValue();
-                    r.line = tok.getLine();
-                    r.in = tok.getFile();
-                    r.type = tok.getType();
-                    r.column = tok.getColumn();
-                    r.success = false;
-                    warns.push_back(r);
-                }
                 nextAttributes.clear();
-                currentContainer->addMember(Variable(name, type, isConst));
+                currentContainer->addMember(Variable(name, type, isConst, isMut));
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -891,8 +910,22 @@ namespace sclc
                 Token nameToken = tokens[i];
                 std::string name = tokens[i].getValue();
                 std::string type = "any";
-                if (tokens[i+1].getType() == tok_column) {
-                    i += 2;
+                i++;
+                bool isConst = false;
+                bool isMut = false;
+                bool isInternalMut = false;
+                if (tokens[i].getType() == tok_column) {
+                    i++;
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                        if (tokens[i].getValue() == "const") {
+                            isConst = true;
+                        } else if (tokens[i].getValue() == "mut") {
+                            isMut = true;
+                        } else if (tokens[i].getValue() == "readonly") {
+                            isInternalMut = true;
+                        }
+                        i++;
+                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
@@ -914,12 +947,9 @@ namespace sclc
                     }
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
-                    bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
                     nextAttributes.clear();
-                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type, isConst));
+                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type, isConst, isMut));
                 } else {
-                    bool isConst = std::find(nextAttributes.begin(), nextAttributes.end(), "const") != nextAttributes.end();
-                    bool isInternalMut = std::find(nextAttributes.begin(), nextAttributes.end(), "readonly") != nextAttributes.end();
                     nextAttributes.clear();
                     if (isConst && isInternalMut) {
                         FPResult result;
@@ -935,11 +965,13 @@ namespace sclc
                         continue;
                     }
                     if (isConst) {
-                        currentStruct->addMember(Variable(name, type, true, currentStruct->getName()));
-                    } else if (isInternalMut) {
-                        currentStruct->addMember(Variable(name, type, currentStruct->getName()));
+                        currentStruct->addMember(Variable(name, type, isConst, isMut));
                     } else {
-                        currentStruct->addMember(Variable(name, type));
+                        if (isInternalMut) {
+                            currentStruct->addMember(Variable(name, type, isConst, isMut, currentStruct->getName()));
+                        } else {
+                            currentStruct->addMember(Variable(name, type, isConst, isMut));
+                        }
                     }
                 }
             } else {
@@ -984,21 +1016,3 @@ namespace sclc
         return result;
     }
 }
-
-// std::string name = body[i].getValue();
-// std::string type = "any";
-// if (i + 1 < body.size() && body[i+1].getType() == tok_column) {
-//     ITER_INC;
-//     ITER_INC;
-//     FPResult r = parseType(body, &i);
-//     if (!r.success) {
-//         errors.push_back(r);
-//         return;
-//     }
-//     type = r.value;
-// } else {
-//     transpilerError("A type is required!", i);
-//     errors.push_back(err);
-//     return;
-// }
-// Variable v = Variable(name, type);

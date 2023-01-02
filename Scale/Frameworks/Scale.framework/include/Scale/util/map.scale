@@ -41,7 +41,7 @@ sealed struct Map is Iterable
   export function set(key: str, value: any): none
     decl data: Array self._data => data
     for i in 0 to data.count do
-      decl entry: MapEntry i data:get => entry
+      i data:get => decl entry: mut MapEntry
       if entry nil == then
         i key value MapEntry::new data:set
         return

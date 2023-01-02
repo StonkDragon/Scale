@@ -13,21 +13,28 @@ namespace sclc
 {
     class Function;
 
+    enum VarAccess {
+        Dereference,
+        Write,
+    };
+
     class Variable {
         std::string name;
         std::string type;
-        std::string memberType;
+        std::string internalMutableFrom;
         bool isConst;
         bool isInternalMut;
+        bool isMut;
     public:
         Variable(std::string name, std::string type) : Variable(name, type, false, "") {}
-        Variable(std::string name, std::string type, bool isConst) : Variable(name, type, isConst, "") {}
-        Variable(std::string name, std::string type, std::string memberType) : Variable(name, type, false, memberType) {}
-        Variable(std::string name, std::string type, bool isConst, std::string memberType) {
+        Variable(std::string name, std::string type, bool isConst, bool isMut) : Variable(name, type, isConst, isMut, "") {}
+        Variable(std::string name, std::string type, std::string memberType) : Variable(name, type, false, false, memberType) {}
+        Variable(std::string name, std::string type, bool isConst, bool isMut, std::string memberType) {
             this->name = name;
             this->type = type;
+            this->isMut = isMut;
             this->isConst = isConst;
-            this->memberType = memberType;
+            this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
         }
         ~Variable() {}
@@ -46,7 +53,7 @@ namespace sclc
         bool isWritable() {
             return !isConst;
         }
-        bool isWritableFrom(Function* f);
+        bool isWritableFrom(Function* f, VarAccess accessType);
         inline bool operator==(const Variable& other) const {
             if (this->type == "?" || other.type == "?") {
                 return this->name == other.name;

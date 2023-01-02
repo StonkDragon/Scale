@@ -161,7 +161,7 @@ This keyword is used to reference the current instance inside of a non-static me
 ### switch
 This keyword is used to create a switch statement.
 <<WHITE>>
-<<BLUE>>switch<<WHITE>> foo
+foo <<BLUE>>switch<<WHITE>>
     <<BLUE>>case<<WHITE>> 1
         <<CYAN>># code<<WHITE>>
     <<BLUE>>esac<<WHITE>>
@@ -187,12 +187,17 @@ Example:
 ### const
 This keyword is used to make a variable immutable.
 Example:<<WHITE>>
-<<BLUE>>const decl<<WHITE>> i<<BLUE>>: int<<RESET>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: const int<<RESET>>
 
 ### readonly
 This keyword is used to make a member variable of a struct not writable from outside of member functions of the struct.
 Example:<<WHITE>>
-<<BLUE>>readonly decl<<WHITE>> i<<BLUE>>: int<<RESET>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: readonly int<<RESET>>
+
+### mut
+This keyword is used to signify that the memory a variable points to can be changed
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: mut int<<RESET>>
 
 ## Operators
 ### +
