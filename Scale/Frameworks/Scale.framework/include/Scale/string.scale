@@ -1,4 +1,20 @@
 sealed struct _String
+  function +(other: str): str
+    other self:prepend return
+  end
+
+  function ++(c: int): str
+    self:size 1 + malloc => decl newStr: mut str
+    newStr self strcpy
+
+    newStr self:size + => decl tmp: mut str
+    c => @ tmp
+    tmp 1 + => tmp
+    0 => @ tmp
+
+    newStr return
+  end
+
   function append(other: str): str
     if self nil == then
       other return

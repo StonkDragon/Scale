@@ -2,12 +2,36 @@
 
 using namespace sclc;
 
-Function::Function(std::string name, Token nameToken) {
-    this->nameToken = nameToken;
-    this->name = name;
-    this->isMethod = false;
-}
+Function::Function(std::string name, Token nameToken) : Function(name, false, nameToken) {}
 Function::Function(std::string name, bool isMethod, Token nameToken) {
+    if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
+    if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
+    if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
+    if (name == "/") name = "operator_" + Main.options.operatorRandomData + "_div";
+    if (name == "%") name = "operator_" + Main.options.operatorRandomData + "_mod";
+    if (name == "&") name = "operator_" + Main.options.operatorRandomData + "_logic_and";
+    if (name == "|") name = "operator_" + Main.options.operatorRandomData + "_logic_or";
+    if (name == "^") name = "operator_" + Main.options.operatorRandomData + "_logic_xor";
+    if (name == "~") name = "operator_" + Main.options.operatorRandomData + "_logic_not";
+    if (name == "<<") name = "operator_" + Main.options.operatorRandomData + "_logic_lsh";
+    if (name == ">>") name = "operator_" + Main.options.operatorRandomData + "_logic_rsh";
+    if (name == "**") name = "operator_" + Main.options.operatorRandomData + "_pow";
+    if (name == ".") name = "operator_" + Main.options.operatorRandomData + "_dot";
+    if (name == "<") name = "operator_" + Main.options.operatorRandomData + "_less";
+    if (name == "<=") name = "operator_" + Main.options.operatorRandomData + "_less_equal";
+    if (name == ">") name = "operator_" + Main.options.operatorRandomData + "_more";
+    if (name == ">=") name = "operator_" + Main.options.operatorRandomData + "_more_equal";
+    if (name == "==") name = "operator_" + Main.options.operatorRandomData + "_equal";
+    if (name == "!") name = "operator_" + Main.options.operatorRandomData + "_not";
+    if (name == "!!") name = "operator_" + Main.options.operatorRandomData + "_assert_not_nil";
+    if (name == "!=") name = "operator_" + Main.options.operatorRandomData + "_not_equal";
+    if (name == "&&") name = "operator_" + Main.options.operatorRandomData + "_bool_and";
+    if (name == "||") name = "operator_" + Main.options.operatorRandomData + "_bool_or";
+    if (name == "++") name = "operator_" + Main.options.operatorRandomData + "_inc";
+    if (name == "--") name = "operator_" + Main.options.operatorRandomData + "_dec";
+    if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
+    if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
+
     this->nameToken = nameToken;
     this->name = name;
     this->isMethod = isMethod;

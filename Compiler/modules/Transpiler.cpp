@@ -502,6 +502,8 @@ namespace sclc {
     handler(Column);
     handler(Token);
 
+    bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type);
+
     handler(Identifier) {
         noUnused;
         if (body[i].getValue() == "self" && !function->isMethod) {
@@ -620,6 +622,7 @@ namespace sclc {
                     typeStack.pop();
             }
         } else if (body[i].getValue() == "&&") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i && stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -629,13 +632,16 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "!") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "!", typeStackTop)) return;
             append("stack.data[stack.ptr - 1].i = !stack.data[stack.ptr - 1].i;\n");
             if (typeStack.size())
                 typeStack.pop();
-            if (typeStack.size())
-                typeStack.pop();
             typeStack.push("bool");
+        } else if (body[i].getValue() == "!!") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "!!", typeStackTop)) return;
+            append("if (stack.data[stack.ptr - 1].i == 0) scl_assert(0, \"%s:%d:%d: Not nil assertion failed!\");\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
         } else if (body[i].getValue() == "||") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i || stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -645,6 +651,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "<") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i < stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -654,6 +661,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == ">") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i > stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -663,6 +671,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "==") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i == stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -672,6 +681,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "<=") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i <= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -681,6 +691,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == ">=") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i >= stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -690,6 +701,7 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "!=") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
             append("stack.data[stack.ptr++].i = stack.data[stack.ptr].i != stack.data[stack.ptr + 1].i;\n");
             debugPrintPush();
@@ -699,8 +711,10 @@ namespace sclc {
                 typeStack.pop();
             typeStack.push("bool");
         } else if (body[i].getValue() == "++") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
             append("stack.data[stack.ptr - 1].i++;\n");
         } else if (body[i].getValue() == "--") {
+            if (handleOverriddenOperator(result, fp, scopeDepth, "--", typeStackTop)) return;
             append("stack.data[stack.ptr - 1].i--;\n");
         } else if (body[i].getValue() == "exit") {
             append("exit(stack.data[--stack.ptr].i);\n");
@@ -2020,8 +2034,6 @@ namespace sclc {
                     if (!mem.isWritableFrom(function, VarAccess::Write)) {
                         transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
                         errors.push_back(err);
-                        ITER_INC;
-                        ITER_INC;
                         return;
                     }
                     if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
@@ -2702,6 +2714,7 @@ namespace sclc {
 
     handler(AddrOf) {
         noUnused;
+        if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
         append("stack.data[stack.ptr - 1].v = (*(scl_any*) stack.data[stack.ptr - 1].v);\n");
         std::string ptr = typeStackTop;
         if (typeStack.size())
@@ -2746,6 +2759,7 @@ namespace sclc {
 
     handler(Dot) {
         noUnused;
+        if (handleOverriddenOperator(result, fp, scopeDepth, ".", typeStackTop)) return;
         Struct s = getStructByName(result, typeStackTop);
         if (s == Struct("")) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
@@ -2828,10 +2842,8 @@ namespace sclc {
 
         std::string file = body[i].getFile();
 
-        // std::cout << "Function: '" << function->getName() << "' Token: " << body[i].getValue() << std::endl;
-
         if (isOperator(body[i])) {
-            FPResult operatorsHandled = handleOperator(fp, body[i], scopeDepth);
+            FPResult operatorsHandled = handleOperator(result, fp, body[i], scopeDepth);
             if (!operatorsHandled.success) {
                 errors.push_back(operatorsHandled);
             }
@@ -3044,6 +3056,37 @@ namespace sclc {
         }
     }
 
+    std::string sclFunctionNameToFriendlyString(std::string name) {
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_add", "+");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_sub", "-");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_mul", "*");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_div", "/");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_mod", "%");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_and", "&");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_or", "|");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_xor", "^");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_not", "~");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_lsh", "<<");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_rsh", ">>");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_pow", "**");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_dot", ".");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_less", "<");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_less_equal", "<=");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_more", ">");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_more_equal", ">=");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_equal", "==");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_not", "!");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_assert_not_nil", "!!");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_not_equal", "!=");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_bool_and", "&&");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_bool_or", "||");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_inc", "++");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_dec", "--");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_at", "@");
+        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_wildcard", "?");
+        return name;
+    }
+
     extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result) {
         (void) warns;
         scopeDepth = 0;
@@ -3170,7 +3213,7 @@ namespace sclc {
             
             scopeDepth++;
 
-            append("callstk.data[callstk.ptr++].v = \"%s\";\n", functionDeclaration.c_str());
+            append("callstk.data[callstk.ptr++].v = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
 
             for (i = 0; i < body.size(); i++) {
                 handle(Token);

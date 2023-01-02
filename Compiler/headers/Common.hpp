@@ -140,6 +140,7 @@ namespace sclc
             std::string printDocFor;
             size_t docPrinterArgsStart;
             std::string docsIncludeFolder;
+            std::string operatorRandomData;
             std::vector<std::string> files;
             std::vector<std::string> includePaths;
             std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
@@ -177,7 +178,7 @@ namespace sclc
     bool hasVar(Token name);
     Variable getVar(Token name);
     hash hash1(char* data);
-    FPResult handleOperator(FILE* fp, Token token, int scopeDepth);
+    FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function* getFunctionByName(TPResult result, std::string name);
@@ -187,7 +188,7 @@ namespace sclc
     Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasMethod(TPResult result, Token name, std::string type);
-    bool hasExtern(TPResult result, Token name);
+    bool hasMethod(TPResult result, std::string name, std::string type);
     bool hasContainer(TPResult result, Token name);
     bool hasGlobal(TPResult result, std::string name);
     FPResult parseType(std::vector<Token> tokens, size_t* i);

@@ -264,6 +264,12 @@ Create an empty array with an initial capacity of `size` elements, where `size` 
 
 
 ## String
+### function str:+(other: str): str
+Returns a new string with the contents of `other` appended to the end of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
+
+### function str:++(c: int): str
+Returns a new string with the character stored in `c` appended to the end of the string.
+
 ### function str:append(other: str): str
 Returns a new string with the contents of `other` appended to the end of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
 

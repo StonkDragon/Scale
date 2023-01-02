@@ -38,6 +38,16 @@ void scl_free(scl_any ptr) {
 
 #pragma region Security
 
+void scl_assert(scl_int b, scl_str msg) {
+	if (!b) {
+		printf("\n");
+		printf("Assertion failed: %s\n", msg);
+		print_stacktrace();
+
+		scl_security_safe_exit(EX_ASSERTION_FAIL);
+	}
+}
+
 void scl_security_throw(int code, scl_str msg) {
 	printf("\n");
 	printf("Exception: %s\n", msg);

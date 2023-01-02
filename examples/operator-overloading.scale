@@ -1,0 +1,65 @@
+struct Foo
+    decl foo: const int
+
+    function +(): str  "+ operator"  return end
+    function -(): str  "- operator"  return end
+    function *(): str  "* operator"  return end
+    function /(): str  "/ operator"  return end
+    function %(): str  "% operator"  return end
+    function &(): str  "& operator"  return end
+    function |(): str  "| operator"  return end
+    function ^(): str  "^ operator"  return end
+    function ~(): str  "~ operator"  return end
+    function <<(): str "<< operator" return end
+    function >>(): str ">> operator" return end
+    function **(): str "** operator" return end
+    function .(): str  ". operator"  return end
+    function <(): str  "< operator"  return end
+    function <=(): str "<= operator" return end
+    function >(): str  "> operator"  return end
+    function >=(): str ">= operator" return end
+    function ==(): str "== operator" return end
+    function !(): str  "! operator"  return end
+    function !!(): str "!! operator" return end
+    function !=(): str "!= operator" return end
+    function &&(): str "&& operator" return end
+    function ||(): str "|| operator" return end
+    function ++(): str "++ operator" return end
+    function --(): str "-- operator" return end
+    function @(): str  "@ operator"  return end
+    function ?(): str  "? operator"  return end
+end
+
+function main(): none
+    Foo::new => decl f: mut Foo
+    
+    f +  puts
+    f -  puts
+    f *  puts
+    f /  puts
+    f %  puts
+    f &  puts
+    f |  puts
+    f ^  puts
+    f ~  puts
+    f << puts
+    f >> puts
+    f ** puts
+    f.   puts
+    f <  puts
+    f <= puts
+    f >  puts
+    f >= puts
+    f == puts
+    f !  puts
+    f !! puts
+    f != puts
+    f && puts
+    f || puts
+    f ++ puts
+    f -- puts
+    f @  puts
+    f ?  puts
+
+    # 0 => f.foo
+end

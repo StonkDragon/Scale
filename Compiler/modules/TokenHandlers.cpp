@@ -7,30 +7,229 @@
 
 #include "../headers/Common.hpp"
 
-namespace sclc
-{
+namespace sclc {
     extern std::stack<std::string> typeStack;
+#define typeStackTop (typeStack.size() ? typeStack.top() : "")
 
-    FPResult handleOperator(FILE* fp, Token token, int scopeDepth) {
+    std::string sclTypeToCType(TPResult result, std::string t);
+    std::string sclGenArgs(TPResult result, Function *func);
+
+    bool handlePrimitiveOperator(FILE* fp, int scopeDepth, std::string op, std::string typeA) {
+        if (typeA.size() == 0)
+            return false;
+        if (typeStack.size())
+            typeStack.pop();
+        std::string typeB = typeStackTop;
+        if (typeStack.size())
+            typeStack.pop();
+        if (op == "+" || op == "-" || op == "*" || op == "/") {
+            if (typeA == "int" || typeA == "any") {
+                if (typeB == "float") {
+                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s ((scl_float) stack.data[stack.ptr + 1].i);\n", op.c_str());
+                    typeStack.push("float");
+                } else {
+                    append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %s stack.data[stack.ptr + 1].i;\n", op.c_str());
+                    typeStack.push("int");
+                }
+            } else {
+                if (typeB == "float") {
+                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s stack.data[stack.ptr + 1].f;\n", op.c_str());
+                    typeStack.push("float");
+                } else {
+                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = ((scl_float) stack.data[stack.ptr].i) %s stack.data[stack.ptr + 1].f;\n", op.c_str());
+                    typeStack.push("float");
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+
+    bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
+        if (type.size() == 0)
+            return false;
+        if (type == "int" || type == "float" || type == "any") {
+            return handlePrimitiveOperator(fp, scopeDepth, op, type);
+        }
+        if (hasMethod(result, op, type)) {
+            Method* f = getMethodByName(result, op, type);
+            bool equals = true;
+            if (typeStack.size())
+                typeStack.pop();
+            for (ssize_t m = f->getArgs().size() - 2; m >= 0; m--) {
+                std::string typeA = f->getArgs()[m].getType();
+                std::string typeB = typeStackTop;
+                if (typeA == "str") typeA = "_String";
+                if (typeB == "str") typeB = "_String";
+                if (typeA != typeB) {
+                    equals = false;
+                }
+                if (typeStack.size())
+                    typeStack.pop();
+            }
+            if (!equals) {
+                return false;
+            }
+            if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                if (f->getReturnType() == "float") {
+                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                } else {
+                    append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                }
+                typeStack.push(f->getReturnType());
+            } else {
+                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth) {
         switch (token.getType()) {
-            case tok_add: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_sub: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_mul: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_div: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_mod: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_land: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_lor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_lxor: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_lnot: append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n"); break;
-            case tok_lsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_rsh: append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_pow: append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("int"); break;
-            case tok_dadd: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f + stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
-            case tok_dsub: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f - stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
-            case tok_dmul: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f * stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
-            case tok_ddiv: append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f / stack.data[stack.ptr + 1].f;\n"); if (typeStack.size()) {typeStack.pop();} if (typeStack.size()) {typeStack.pop();} typeStack.push("float"); break;
-            default:
-            {
+            case tok_add: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "+", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_sub: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "-", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_mul: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "*", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_div: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "/", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_mod: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "%", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_land: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "&", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_lor: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "|", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_lxor: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "^", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_lnot: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "~", typeStackTop)) break;
+                append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_lsh: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "<<", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_rsh: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, ">>", typeStackTop)) break;
+                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_pow: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "**", typeStackTop)) break;
+                append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("int");
+                break;
+            }
+
+            case tok_question_mark: {
+                if (handleOverriddenOperator(result, fp, scopeDepth, "?", typeStackTop)) break;
+                append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v == 0;\n");
+                if (typeStack.size())
+                    typeStack.pop();
+                typeStack.push("bool");
+                break;
+            }
+
+            default: {
                 FPResult result;
                 result.success = false;
                 result.message = "Unknown operator type: " + std::to_string(token.getType());
@@ -41,10 +240,10 @@ namespace sclc
                 return result;
             }
         }
-        FPResult result;
-        result.success = true;
-        result.message = "";
-        return result;
+        FPResult res;
+        res.success = true;
+        res.message = "";
+        return res;
     }
 
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {

@@ -91,6 +91,18 @@ namespace sclc
         return false;
     }
 
+    std::string gen_random(int len) {
+        char* alphanum = (char*) "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        std::string tmp_s;
+        tmp_s.reserve(len);
+
+        for (int i = 0; i < len; ++i) {
+            tmp_s += alphanum[rand() % strlen(alphanum)];
+        }
+        
+        return tmp_s;
+    }
+
     FPResult findFileInIncludePath(std::string file);
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
@@ -541,6 +553,8 @@ namespace sclc
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
+        srand(time(NULL));
+        Main.options.operatorRandomData = gen_random(69);
 
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {
@@ -1047,8 +1061,6 @@ namespace sclc
             if (!Main.options.printCflags) {
                 Parser parser(result);
                 Main.parser = &parser;
-                
-                srand(time(NULL));
 
                 FPResult parseResult = Main.parser->parse(source);
                 if (parseResult.warns.size() > 0) {

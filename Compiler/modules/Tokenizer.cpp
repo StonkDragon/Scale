@@ -212,7 +212,7 @@ namespace sclc
                     value += c;
                 }
             } else if (c == '!') {
-                if (source[current + 1] == '=') {
+                if (source[current + 1] == '=' || source[current + 1] == '!') {
                     c = source[++current];
                     column++;
                     value += c;
@@ -242,17 +242,6 @@ namespace sclc
             value += c;
             c = source[++current];
             column++;
-            switch (c)
-            {
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-                value += c;
-                c = source[++current];
-                column++;
-                break;
-            }
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
@@ -357,10 +346,6 @@ namespace sclc
         TOKEN("<<",         tok_lsh, line, filename);
         TOKEN(">>",         tok_rsh, line, filename);
         TOKEN("**",         tok_pow, line, filename);
-        TOKEN(".+",         tok_dadd, line, filename);
-        TOKEN(".-",         tok_dsub, line, filename);
-        TOKEN(".*",         tok_dmul, line, filename);
-        TOKEN("./",         tok_ddiv, line, filename);
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("<",          tok_identifier, line, filename);
         TOKEN("<=",         tok_identifier, line, filename);
@@ -368,6 +353,7 @@ namespace sclc
         TOKEN(">=",         tok_identifier, line, filename);
         TOKEN("==",         tok_identifier, line, filename);
         TOKEN("!",          tok_identifier, line, filename);
+        TOKEN("!!",         tok_identifier, line, filename);
         TOKEN("!=",         tok_identifier, line, filename);
         TOKEN("&&",         tok_identifier, line, filename);
         TOKEN("||",         tok_identifier, line, filename);

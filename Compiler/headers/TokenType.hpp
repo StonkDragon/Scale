@@ -77,10 +77,6 @@ namespace sclc
         tok_lsh,            // <<
         tok_rsh,            // >>
         tok_pow,            // **
-        tok_dadd,           // .+
-        tok_dsub,           // .-
-        tok_dmul,           // .*
-        tok_ddiv,           // ./
         tok_column,         // :
         tok_double_column,  // ::
         tok_dot,            // .

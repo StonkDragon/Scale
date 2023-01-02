@@ -156,7 +156,7 @@ namespace sclc
 
     bool isOperator(Token token) {
         TokenType type = token.getType();
-        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow || type == tok_dadd || type == tok_dsub || type == tok_dmul || type == tok_ddiv;
+        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow || type == tok_question_mark;
     }
 
     bool fileExists(const std::string& name) {
@@ -337,6 +337,34 @@ namespace sclc
     
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
         if (type == "str") type = "_String";
+        if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
+        if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
+        if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
+        if (name == "/") name = "operator_" + Main.options.operatorRandomData + "_div";
+        if (name == "%") name = "operator_" + Main.options.operatorRandomData + "_mod";
+        if (name == "&") name = "operator_" + Main.options.operatorRandomData + "_logic_and";
+        if (name == "|") name = "operator_" + Main.options.operatorRandomData + "_logic_or";
+        if (name == "^") name = "operator_" + Main.options.operatorRandomData + "_logic_xor";
+        if (name == "~") name = "operator_" + Main.options.operatorRandomData + "_logic_not";
+        if (name == "<<") name = "operator_" + Main.options.operatorRandomData + "_logic_lsh";
+        if (name == ">>") name = "operator_" + Main.options.operatorRandomData + "_logic_rsh";
+        if (name == "**") name = "operator_" + Main.options.operatorRandomData + "_pow";
+        if (name == ".") name = "operator_" + Main.options.operatorRandomData + "_dot";
+        if (name == "<") name = "operator_" + Main.options.operatorRandomData + "_less";
+        if (name == "<=") name = "operator_" + Main.options.operatorRandomData + "_less_equal";
+        if (name == ">") name = "operator_" + Main.options.operatorRandomData + "_more";
+        if (name == ">=") name = "operator_" + Main.options.operatorRandomData + "_more_equal";
+        if (name == "==") name = "operator_" + Main.options.operatorRandomData + "_equal";
+        if (name == "!") name = "operator_" + Main.options.operatorRandomData + "_not";
+        if (name == "!!") name = "operator_" + Main.options.operatorRandomData + "_assert_not_nil";
+        if (name == "!=") name = "operator_" + Main.options.operatorRandomData + "_not_equal";
+        if (name == "&&") name = "operator_" + Main.options.operatorRandomData + "_bool_and";
+        if (name == "||") name = "operator_" + Main.options.operatorRandomData + "_bool_or";
+        if (name == "++") name = "operator_" + Main.options.operatorRandomData + "_inc";
+        if (name == "--") name = "operator_" + Main.options.operatorRandomData + "_dec";
+        if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
+        if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
+
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
             if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
@@ -387,21 +415,12 @@ namespace sclc
         return false;
     }
 
+    bool hasMethod(TPResult result, std::string name, std::string type) {
+        return getMethodByName(result, name, type) != nullptr;
+    }
+
     bool hasMethod(TPResult result, Token name, std::string type) {
-        if (type == "str") type = "_String";
-        for (Function* func : result.functions) {
-            if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
-                return true;
-            }
-        }
-        for (Function* func : result.extern_functions) {
-            if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
-                return true;
-            }
-        }
-        return false;
+        return hasMethod(result, name.getValue(), type);
     }
 
     bool hasContainer(TPResult result, Token name) {

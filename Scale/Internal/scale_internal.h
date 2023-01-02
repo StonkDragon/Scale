@@ -54,6 +54,7 @@
 #define EX_INVALID_ARGUMENT	133
 #define EX_CAST_ERROR		134
 #define EX_THREAD_ERROR		136
+#define EX_ASSERTION_FAIL	137
 
 #define ssize_t signed long
 
@@ -94,7 +95,8 @@ ssize_t		ctrl_stack_size(void);
 scl_any		scl_realloc(scl_any ptr, size_t size);
 scl_any		scl_alloc(size_t size);
 void		scl_free(scl_any ptr);
+void		scl_assert(scl_int b, scl_str msg);
 
-scl_any	scl_alloc_struct(size_t size, scl_str type_name);
+scl_any		scl_alloc_struct(size_t size, scl_str type_name);
 
 #endif

@@ -201,16 +201,16 @@ Example:<<WHITE>>
 
 ## Operators
 ### +
-The `+` operator returns the result of an addition of the top two values on the stack as integers.
+The `+` operator returns the result of an addition of the top two values on the stack.
 
 ### -
-The `-` operator returns the result of a subtraction of the top two values on the stack as integers.
+The `-` operator returns the result of a subtraction of the top two values on the stack.
 
 ### *
-The `*` operator returns the result of a multiplication of the top two values on the stack as integers.
+The `*` operator returns the result of a multiplication of the top two values on the stack.
 
 ### /
-The `/` operator returns the result of a division of the top two values on the stack as integers.
+The `/` operator returns the result of a division of the top two values on the stack.
 
 ### %
 The `%` operator returns the remainder of a division of the top two values on the stack as integers.
@@ -236,6 +236,39 @@ The `~` operator returns the logical NOT of the top value on the stack.
 ### **
 `a b **`: Raises `a` to the power of `b`.
 
+### <
+`a b <`: Returns `true` if `a` is less than `b`.
+
+### <=
+`a b <=`: Returns `true` if `a` is less than or equal to `b`.
+
+### >
+`a b >`: Returns `true` if `a` is greater than `b`.
+
+### >=
+`a b >=`: Returns `true` if `a` is greater than or equal to `b`.
+
+### ==
+`a b ==`: Returns `true` if `a` is equal to `b`.
+
+### !
+`a !`: Returns `true` if `a` is `false`, `false` otherwise.
+
+### !=
+`a b !=`: Returns `true` if `a` is not equal to `b`.
+
+### &&
+`a b <`: Returns `true` if `a` and `b` are `true`.
+
+### ||
+`a b <`: Returns `true` if `a` or `b` is `true`.
+
+### ++
+Increments the top value on the stack by one.
+
+### --
+Decrements the top value on the stack by one.
+
 ### =>
 Stores the top value of the stack into a variable.
 Example:<<WHITE>>
@@ -250,6 +283,32 @@ Example:<<WHITE>>
 This operator returns the value at the address on the stack.
 Example:<<WHITE>>
 i<<BLUE>> @<<WHITE>><<RESET>>
+
+### Overriding Operators
+Operators can be overridden like this:<<WHITE>>
+<<BLUE>>struct <<WHITE>>Foo
+    <<BLUE>>function +(): Foo<<WHITE>>
+        <<CYAN>># do stuff to `self`<<WHITE>>
+        <<BLUE>>self return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+Operators don't have to return their member type:
+<<BLUE>>struct <<WHITE>>Bar
+    <<BLUE>>function <<(): <<WHITE>>Foo<<WHITE>>
+        <<WHITE>>Foo<<BLUE>>::new return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+They don't even have to return anything:
+<<BLUE>>struct <<WHITE>>Baz
+    <<BLUE>>function !(): none<<WHITE>>
+        <<BLUE>>if self nil == then<<WHITE>>
+            <<WHITE>>abort<<WHITE>>
+        <<BLUE>>fi<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
 
 ## Data types
 ### str
