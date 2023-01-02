@@ -8,7 +8,7 @@
       55 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       44 Compiler/headers/Results.hpp
-     104 Compiler/headers/Struct.hpp
+     112 Compiler/headers/Struct.hpp
       50 Compiler/headers/Token.hpp
       94 Compiler/headers/TokenType.hpp
       13 Compiler/headers/TranspilerDefs.hpp
@@ -21,7 +21,7 @@
     1018 Compiler/modules/SyntaxTree.cpp
       69 Compiler/modules/TokenHandlers.cpp
      535 Compiler/modules/Tokenizer.cpp
-    3186 Compiler/modules/Transpiler.cpp
+    3187 Compiler/modules/Transpiler.cpp
      255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -63,4 +63,4 @@
        9 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-    9779 total
+    9788 total
