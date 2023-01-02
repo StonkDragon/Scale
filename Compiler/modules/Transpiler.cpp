@@ -2625,20 +2625,23 @@ namespace sclc {
         if (i == (body.size() - 1) && (function->getReturnType().size() == 0 || function->getReturnType() == "none")) return;
         append("callstk.ptr--;\n");
 
-
         if (return_type == "void")
             append("return;\n");
         else {
-            if (return_type == "scl_str") {
-                append("return stack.data[--stack.ptr].s;\n");
-            } else if (return_type == "scl_int") {
-                append("return stack.data[--stack.ptr].i;\n");
-            } else if (return_type == "scl_float") {
-                append("return stack.data[--stack.ptr].f;\n");
-            } else if (return_type == "scl_any") {
-                append("return stack.data[--stack.ptr].v;\n");
-            } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
-                append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
+            if (function->hasNamedReturnValue) {
+                append("return (%s) Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
+            } else {
+                if (return_type == "scl_str") {
+                    append("return stack.data[--stack.ptr].s;\n");
+                } else if (return_type == "scl_int") {
+                    append("return stack.data[--stack.ptr].i;\n");
+                } else if (return_type == "scl_float") {
+                    append("return stack.data[--stack.ptr].f;\n");
+                } else if (return_type == "scl_any") {
+                    append("return stack.data[--stack.ptr].v;\n");
+                } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
+                    append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
+                }
             }
         }
         for (size_t t = 0; t < typeStack.size(); t++) {
@@ -3174,6 +3177,9 @@ namespace sclc {
             return_type = "void";
 
             std::string arguments = "";
+            if (function->hasNamedReturnValue) {
+                vars[varDepth].push_back(function->getNamedReturnValue());
+            }
             if (function->getArgs().size() > 0) {
                 for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
                     Variable var = function->getArgs()[i];
@@ -3214,6 +3220,9 @@ namespace sclc {
             scopeDepth++;
 
             append("callstk.data[callstk.ptr++].v = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            if (function->hasNamedReturnValue) {
+                append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
+            }
 
             for (i = 0; i < body.size(); i++) {
                 handle(Token);

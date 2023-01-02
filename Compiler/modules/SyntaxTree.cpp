@@ -4,8 +4,7 @@
 
 #include "../headers/Common.hpp"
 
-namespace sclc
-{
+namespace sclc {
     Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
         Function* func = new Function(name, nameToken);
         func->setFile(nameToken.getFile());
@@ -96,8 +95,14 @@ namespace sclc
                 errors.push_back(result);
                 continue;
             }
-            if (tokens[i+1].getType() == tok_column) {
-                i += 2;
+            i++;
+            std::string namedReturn = "";
+            if (tokens[i].getType() == tok_identifier) {
+                namedReturn = tokens[i].getValue();
+                i++;
+            }
+            if (tokens[i].getType() == tok_column) {
+                i++;
                 FPResult r = parseType(tokens, &i);
                 if (!r.success) {
                     errors.push_back(r);
@@ -105,6 +110,9 @@ namespace sclc
                 }
                 std::string type = r.value;
                 func->setReturnType(type);
+                if (namedReturn.size()) {
+                    func->setNamedReturnValue(Variable(namedReturn, type, false, true));
+                }
             } else {
                 FPResult result;
                 result.message = "A type is required!";
@@ -252,10 +260,17 @@ namespace sclc
                 errors.push_back(result);
                 continue;
             }
+            i++;
             
             method->addArgument(Variable("self", memberName));
-            if (tokens[i+1].getType() == tok_column) {
-                i += 2;
+
+            std::string namedReturn = "";
+            if (tokens[i].getType() == tok_identifier) {
+                namedReturn = tokens[i].getValue();
+                i++;
+            }
+            if (tokens[i].getType() == tok_column) {
+                i++;
                 FPResult r = parseType(tokens, &i);
                 if (!r.success) {
                     errors.push_back(r);
@@ -263,7 +278,9 @@ namespace sclc
                 }
                 std::string type = r.value;
                 method->setReturnType(type);
-                method->setReturnType(type);
+                if (namedReturn.size()) {
+                    method->setNamedReturnValue(Variable(namedReturn, type, false, true));
+                }
             } else {
                 FPResult result;
                 result.message = "A type is required!";
@@ -312,7 +329,6 @@ namespace sclc
         for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
-            // std::cout << "Token: " << token.getValue() << ": " << token.getType() << std::endl;
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
@@ -369,13 +385,15 @@ namespace sclc
                     errors.push_back(result);
                     continue;
                 }
-                if (tokens[i + 2].getType() == tok_column) {
-                    std::string member_type = tokens[i + 1].getValue();
-                    i += 2;
+                i++;
+                if (tokens[i + 1].getType() == tok_column) {
+                    std::string member_type = tokens[i].getValue();
+                    i++;
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
                 } else {
+                    i--;
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);

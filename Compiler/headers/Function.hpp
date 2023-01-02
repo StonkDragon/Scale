@@ -19,10 +19,12 @@ namespace sclc
         std::vector<Token> body;
         std::vector<std::string> modifiers;
         std::vector<Variable> args;
+        Variable namedReturnValue;
         Token nameToken;
     public:
         bool isMethod;
         bool isExternC;
+        bool hasNamedReturnValue;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
@@ -40,6 +42,8 @@ namespace sclc
         virtual void setReturnType(std::string type);
         virtual Token getNameToken();
         virtual void setNameToken(Token t);
+        virtual Variable getNamedReturnValue();
+        virtual void setNamedReturnValue(Variable v);
 
         virtual bool operator==(const Function& other) const;
     };

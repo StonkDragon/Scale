@@ -3,7 +3,7 @@
 using namespace sclc;
 
 Function::Function(std::string name, Token nameToken) : Function(name, false, nameToken) {}
-Function::Function(std::string name, bool isMethod, Token nameToken) {
+Function::Function(std::string name, bool isMethod, Token nameToken) : namedReturnValue("", "") {
     if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
     if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
     if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
@@ -35,6 +35,7 @@ Function::Function(std::string name, bool isMethod, Token nameToken) {
     this->nameToken = nameToken;
     this->name = name;
     this->isMethod = isMethod;
+    this->hasNamedReturnValue = false;
 }
 std::string Function::getName() {
     return name;
@@ -88,4 +89,14 @@ bool Function::operator==(const Function& other) const {
         return name == other.name && thisM->getMemberType() == otherM->getMemberType();
     }
     return name == other.name;
+}
+Variable Function::getNamedReturnValue() {
+    if (this->hasNamedReturnValue)
+        return this->namedReturnValue;
+    
+    return Variable("", "");
+}
+void Function::setNamedReturnValue(Variable v) {
+    this->namedReturnValue = v;
+    this->hasNamedReturnValue = true;
 }
