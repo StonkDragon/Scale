@@ -1323,7 +1323,7 @@ namespace sclc {
         vars[varDepth].push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok).getType());
         append(
-            "for (%sVar_%s = (%s) Method_%s_begin(%s); Method_%s_has_next(%s); Var_%s = (%s) Method_%s_next(%s)) {\n",
+            "for (%sVar_%s = (%s) Method_%s_begin(%s); Method_%s_hasNext(%s); Var_%s = (%s) Method_%s_next(%s)) {\n",
             var_prefix.c_str(),
             iter_var_tok.getValue().c_str(),
             cType.c_str(),
@@ -1381,7 +1381,12 @@ namespace sclc {
             if (getStructByName(result, v.getType()) != Struct("")) {
                 if (i + 1 < body.size() && body[i + 1].getType() == tok_column) {
                     if (!hasMethod(result, body[i], v.getType())) {
-                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'", i);
+                        std::string help = "";
+                        Struct s = getStructByName(result, v.getType());
+                        if (s.hasMember(body[i].getValue())) {
+                            help = ". Maybe you meant to use '.' instead of ':' here";
+                        }
+                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'" + help, i);
                         errors.push_back(err);
                         return;
                     }
@@ -1401,7 +1406,11 @@ namespace sclc {
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        std::string help = "";
+                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                            help = ". Maybe you meant to use ':' instead of '.' here";
+                        }
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
                         errors.push_back(err);
                         return;
                     }
@@ -1569,7 +1578,11 @@ namespace sclc {
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        std::string help = "";
+                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                            help = ". Maybe you meant to use ':' instead of '.' here";
+                        }
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
                         errors.push_back(err);
                         return;
                     }
@@ -1704,7 +1717,11 @@ namespace sclc {
                             ITER_INC;
                             Struct s = getStructByName(result, v.getType());
                             if (!s.hasMember(body[i].getValue())) {
-                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                std::string help = "";
+                                if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                                    help = ". Maybe you meant to use ':' instead of '.' here";
+                                }
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1813,7 +1830,11 @@ namespace sclc {
                             ITER_INC;
                             Struct s = getStructByName(result, v.getType());
                             if (!s.hasMember(body[i].getValue())) {
-                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                                std::string help = "";
+                                if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                                    help = ". Maybe you meant to use ':' instead of '.' here";
+                                }
+                                transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1871,6 +1892,11 @@ namespace sclc {
                 else errors.push_back(err);
             }
             std::string name = body[i].getValue();
+            if namingConvention("Variables", body[i], flatcase, camelCase)
+            else if namingConvention("Variables", body[i], UPPERCASE, camelCase)
+            else if namingConvention("Variables", body[i], PascalCase, camelCase)
+            else if namingConvention("Variables", body[i], snake_case, camelCase)
+            else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase)
             std::string type = "any";
             ITER_INC;
             bool isConst = false;
@@ -2026,7 +2052,11 @@ namespace sclc {
                     ITER_INC;
                     Struct s = getStructByName(result, v.getType());
                     if (!s.hasMember(body[i].getValue())) {
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+                        std::string help = "";
+                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                            help = ". Maybe you meant to use ':' instead of '.' here";
+                        }
+                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
                         errors.push_back(err);
                         return;
                     }
@@ -2089,6 +2119,11 @@ namespace sclc {
             else errors.push_back(err);
         }
         std::string name = body[i].getValue();
+        if namingConvention("Variables", body[i], flatcase, camelCase)
+        else if namingConvention("Variables", body[i], UPPERCASE, camelCase)
+        else if namingConvention("Variables", body[i], PascalCase, camelCase)
+        else if namingConvention("Variables", body[i], snake_case, camelCase)
+        else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase)
         std::string type = "any";
         ITER_INC;
         bool isConst = false;
@@ -2771,7 +2806,11 @@ namespace sclc {
         }
         ITER_INC;
         if (!s.hasMember(body[i].getValue())) {
-            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
+            std::string help = "";
+            if (getMethodByName(result, body[i].getValue(), s.getName())) {
+                help = ". Maybe you meant to use ':' instead of '.' here";
+            }
+            transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
             errors.push_back(err);
             return;
         }
@@ -2808,7 +2847,11 @@ namespace sclc {
         }
         ITER_INC;
         if (!hasMethod(result, body[i], typeStackTop)) {
-            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + typeStackTop + "'", i);
+            std::string help = "";
+            if (s.hasMember(body[i].getValue())) {
+                help = ". Maybe you meant to use '.' instead of ':' here";
+            }
+            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + typeStackTop + "'" + help, i);
             errors.push_back(err);
             return;
         }

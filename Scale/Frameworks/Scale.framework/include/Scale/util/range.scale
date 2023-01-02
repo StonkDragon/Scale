@@ -38,7 +38,7 @@ sealed struct Range is Iterable
     false return
   end
 
-  function has_next(): bool
+  function hasNext(): bool
     self._pos self.lower + self.upper <= return
   end
 
@@ -72,7 +72,7 @@ sealed struct ReverseRange is Iterable
     0 => self._pos
   end
 
-  function has_next(): bool
+  function hasNext(): bool
     self.lower self._pos - self.upper >= return
   end
 

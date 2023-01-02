@@ -1002,7 +1002,7 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDMAGENTA << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {

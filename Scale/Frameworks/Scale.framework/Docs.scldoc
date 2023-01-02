@@ -9,7 +9,7 @@ Executes the shell command `_cmd_` and returns the return value. If `_cmd_` is <
 ### function getenv(_key_: str): str
 Returns the value of the environment variable `_key_`. If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned. Modifying the returned string is undefined behavior.
 
-### function sizeof_stack(): int
+### function sizeofStack(): int
 Returns the current stack size.
 
 ### function malloc(_size_: int): any
@@ -70,7 +70,7 @@ Converts `_double_` to a string.
 ### function nop(): none
 Do nothing.
 
-### function strstarts(_s1_: str, _s2_: str): int
+### function strStarts(_s1_: str, _s2_: str): int
 Returns <<BLUE>>true<<RESET>>, if `_s1_` starts with `_s2_`
 
 ### function sizeof(_type_: str): int

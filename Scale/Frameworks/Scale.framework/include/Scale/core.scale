@@ -24,7 +24,7 @@ function getenv(_key_: str): str
   v return
 end
 
-function sizeof_stack(): int
+function sizeofStack(): int
   inline_c
     stack.data[stack.ptr++].i = stack.ptr;
   end_inline
@@ -201,7 +201,7 @@ function nop(): none
   0 sleep
 end
 
-function strstarts(_s1_: str, _s2_: str): bool
+function strStarts(_s1_: str, _s2_: str): bool
   _s1_ _s2_ _s2_ strlen strncmp return
 end
 

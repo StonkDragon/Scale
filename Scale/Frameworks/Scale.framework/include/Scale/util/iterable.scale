@@ -1,5 +1,5 @@
 interface Iterable
-  function has_next(): bool
+  function hasNext(): bool
   function next(): ?
   function begin(): ?
 end

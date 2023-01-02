@@ -1,6 +1,6 @@
 import Scale.fmt
 
-function dumpstack(): none
+function dumpStack(): none
   inline_c
     printf("Dump:\n");
     for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
@@ -36,9 +36,9 @@ function raise(_sig_: int): none
   end_inline
 end
 
-function breakpoint(): none
+function breakPoint(): none
   inline_c
-    printf("Hit breakpoint. Press enter to continue.\n");
+    printf("Hit breakPoint. Press enter to continue.\n");
 	  getchar();
   end_inline
 end

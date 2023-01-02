@@ -80,7 +80,7 @@ sealed struct Array is Iterable
     size => self.capacity
   end
 
-  export function has_next(): bool
+  export function hasNext(): bool
     self._pos self.count < return
   end
 
