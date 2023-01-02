@@ -31,6 +31,8 @@
 #endif
 #endif
 
+#define ssize_t signed long long
+
 #include "Color.hpp"
 #include "Version.hpp"
 #include "TokenType.hpp"
