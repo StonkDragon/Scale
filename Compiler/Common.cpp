@@ -11,6 +11,7 @@ namespace sclc
     std::regex UPPERCASE_regex("^[A-Z]+$");
     std::regex camelCase_regex("^[a-z]+([A-Z][a-z]*)*$");
     std::regex PascalCase_regex("^([A-Z][a-z]*)+$");
+    std::regex IPascalCase_regex("^I([A-Z][a-z]*)+$");
     std::regex snake_case_regex("^[a-z]+(_[a-z]+)*$");
     std::regex SCREAMING_SNAKE_CASE_regex("^[A-Z]+(_[A-Z]+)*$");
 

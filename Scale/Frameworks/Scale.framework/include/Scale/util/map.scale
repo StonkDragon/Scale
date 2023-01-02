@@ -11,7 +11,7 @@ sealed struct MapEntry
   end
 end
 
-sealed struct Map is Iterable
+sealed struct Map is IIterable
   decl _data: Array
   decl _pos: int
 

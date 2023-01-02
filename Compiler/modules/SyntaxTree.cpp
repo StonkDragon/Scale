@@ -8,11 +8,12 @@ namespace sclc {
     Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
         if (name.find(Main.options.operatorRandomData) == std::string::npos) {
 
-            if namingConvention("Functions", nameToken, flatcase, snakeCase)
-            else if namingConvention("Functions", nameToken, UPPERCASE, snakeCase)
-            else if namingConvention("Functions", nameToken, PascalCase, snakeCase)
-            else if namingConvention("Functions", nameToken, snake_case, snakeCase)
-            else if namingConvention("Functions", nameToken, SCREAMING_SNAKE_CASE, snakeCase)
+            if namingConvention("Functions", nameToken, flatcase, camelCase, false)
+            else if namingConvention("Functions", nameToken, UPPERCASE, camelCase, false)
+            else if namingConvention("Functions", nameToken, PascalCase, camelCase, false)
+            else if namingConvention("Functions", nameToken, snake_case, camelCase, false)
+            else if namingConvention("Functions", nameToken, SCREAMING_SNAKE_CASE, camelCase, false)
+            else if namingConvention("Functions", nameToken, IPascalCase, camelCase, false)
         }
 
         Function* func = new Function(name, nameToken);
@@ -27,11 +28,12 @@ namespace sclc {
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, snakeCase)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, snakeCase)
-                    else if namingConvention("Variables", tokens[i], PascalCase, snakeCase)
-                    else if namingConvention("Variables", tokens[i], snake_case, snakeCase)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, snakeCase)
+                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     i++;
                     bool isConst = false;
@@ -113,11 +115,12 @@ namespace sclc {
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
                 namedReturn = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, snakeCase)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, snakeCase)
-                else if namingConvention("Variables", tokens[i], PascalCase, snakeCase)
-                else if namingConvention("Variables", tokens[i], snake_case, snakeCase)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, snakeCase)
+                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 i++;
             }
             if (tokens[i].getType() == tok_column) {
@@ -190,11 +193,12 @@ namespace sclc {
         if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
 
         if (name.find(Main.options.operatorRandomData) == std::string::npos) {
-            if namingConvention("Methods", nameToken, flatcase, snakeCase)
-            else if namingConvention("Methods", nameToken, UPPERCASE, snakeCase)
-            else if namingConvention("Methods", nameToken, PascalCase, snakeCase)
-            else if namingConvention("Methods", nameToken, snake_case, snakeCase)
-            else if namingConvention("Methods", nameToken, SCREAMING_SNAKE_CASE, snakeCase)
+            if namingConvention("Methods", nameToken, flatcase, camelCase, false)
+            else if namingConvention("Methods", nameToken, UPPERCASE, camelCase, false)
+            else if namingConvention("Methods", nameToken, PascalCase, camelCase, false)
+            else if namingConvention("Methods", nameToken, snake_case, camelCase, false)
+            else if namingConvention("Methods", nameToken, SCREAMING_SNAKE_CASE, camelCase, false)
+            else if namingConvention("Methods", nameToken, IPascalCase, camelCase, false)
         }
 
         Method* method = new Method(memberName, name, nameToken);
@@ -210,11 +214,12 @@ namespace sclc {
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, snakeCase)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, snakeCase)
-                    else if namingConvention("Variables", tokens[i], PascalCase, snakeCase)
-                    else if namingConvention("Variables", tokens[i], snake_case, snakeCase)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, snakeCase)
+                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     bool isConst = false;
                     bool isMut = false;
@@ -299,11 +304,12 @@ namespace sclc {
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
                 namedReturn = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, snakeCase)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, snakeCase)
-                else if namingConvention("Variables", tokens[i], PascalCase, snakeCase)
-                else if namingConvention("Variables", tokens[i], snake_case, snakeCase)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, snakeCase)
+                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 i++;
             }
             if (tokens[i].getType() == tok_column) {
@@ -553,11 +559,12 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Containers", tokens[i], flatcase, PascalCase)
-                else if namingConvention("Containers", tokens[i], UPPERCASE, PascalCase)
-                else if namingConvention("Containers", tokens[i], camelCase, PascalCase)
-                else if namingConvention("Containers", tokens[i], snake_case, PascalCase)
-                else if namingConvention("Containers", tokens[i], SCREAMING_SNAKE_CASE, PascalCase)
+                if namingConvention("Containers", tokens[i], flatcase, PascalCase, true)
+                else if namingConvention("Containers", tokens[i], UPPERCASE, PascalCase, true)
+                else if namingConvention("Containers", tokens[i], camelCase, PascalCase, true)
+                else if namingConvention("Containers", tokens[i], snake_case, PascalCase, true)
+                else if namingConvention("Containers", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
+                else if namingConvention("Containers", tokens[i], IPascalCase, PascalCase, true)
                 currentContainer = new Container(tokens[i].getValue());
             } else if (token.getType() == tok_struct_def) {
                 if (currentContainer != nullptr) {
@@ -633,11 +640,12 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Structs", tokens[i], flatcase, PascalCase)
-                else if namingConvention("Structs", tokens[i], UPPERCASE, PascalCase)
-                else if namingConvention("Structs", tokens[i], camelCase, PascalCase)
-                else if namingConvention("Structs", tokens[i], snake_case, PascalCase)
-                else if namingConvention("Structs", tokens[i], SCREAMING_SNAKE_CASE, PascalCase)
+                if namingConvention("Structs", tokens[i], flatcase, PascalCase, true)
+                else if namingConvention("Structs", tokens[i], UPPERCASE, PascalCase, true)
+                else if namingConvention("Structs", tokens[i], camelCase, PascalCase, true)
+                else if namingConvention("Structs", tokens[i], snake_case, PascalCase, true)
+                else if namingConvention("Structs", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
+                else if namingConvention("Structs", tokens[i], IPascalCase, PascalCase, true)
                 currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
                 for (std::string m : nextAttributes) {
                     if (m == "sealed")
@@ -778,11 +786,12 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Interfaces", tokens[i], flatcase, PascalCase)
-                else if namingConvention("Interfaces", tokens[i], UPPERCASE, PascalCase)
-                else if namingConvention("Interfaces", tokens[i], camelCase, PascalCase)
-                else if namingConvention("Interfaces", tokens[i], snake_case, PascalCase)
-                else if namingConvention("Interfaces", tokens[i], SCREAMING_SNAKE_CASE, PascalCase)
+                if namingConvention("Interfaces", tokens[i], flatcase, IPascalCase, true)
+                else if namingConvention("Interfaces", tokens[i], UPPERCASE, IPascalCase, true)
+                else if namingConvention("Interfaces", tokens[i], camelCase, IPascalCase, true)
+                else if namingConvention("Interfaces", tokens[i], snake_case, IPascalCase, true)
+                else if namingConvention("Interfaces", tokens[i], SCREAMING_SNAKE_CASE, IPascalCase, true)
+                else if namingConvention("Interfaces", tokens[i], PascalCase, IPascalCase, true)
                 currentInterface = new Interface(tokens[i].getValue());
             } else if (token.getType() == tok_addr_of) {
                 if (currentFunction == nullptr) {
@@ -847,11 +856,12 @@ namespace sclc {
                         continue;
                     }
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, camelCase)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase)
-                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase)
-                    else if namingConvention("Variables", tokens[i], snake_case, camelCase)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase)
+                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     i++;
                     bool isConst = false;
@@ -911,11 +921,12 @@ namespace sclc {
                 }
                 i++;
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase)
+                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 Token tok = tokens[i];
                 std::string type = "any";
                 i++;
@@ -965,11 +976,12 @@ namespace sclc {
                 }
                 i++;
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase)
+                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 Token tok = tokens[i];
                 std::string type = "any";
                 i++;
@@ -1022,11 +1034,12 @@ namespace sclc {
                 i++;
                 Token nameToken = tokens[i];
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase)
+                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 std::string type = "any";
                 i++;
                 bool isConst = false;

@@ -1,4 +1,4 @@
-interface Iterable
+interface IIterable
   function hasNext(): bool
   function next(): ?
   function begin(): ?

@@ -46,18 +46,18 @@
 #include "Prototype.hpp"
 #include "DragonConfig.hpp"
 
-#define namingConvention(_str, _named, _rgx, _default)                                                        \
-    (std::string(_named.getValue()).size() > 12 && std::regex_match(_named.getValue(), _rgx##_regex))         \
-    {                                                                                                         \
-        FPResult r;                                                                                           \
-        r.message = std::string(_str) + " in Scale use " + std::string(#_default) + ", but this is " + #_rgx; \
-        r.in = _named.getFile();                                                                              \
-        r.line = _named.getLine();                                                                            \
-        r.column = _named.getColumn();                                                                        \
-        r.type = _named.getType();                                                                            \
-        r.value = _named.getValue();                                                                          \
-        r.success = false;                                                                                    \
-        warns.push_back(r);                                                                                   \
+#define namingConvention(_str, _named, _rgx, _default, _force)                                                                                                              \
+    ((_force || std::string(_named.getValue()).size() > 12) && !std::regex_match(_named.getValue(), _default##_regex) && std::regex_match(_named.getValue(), _rgx##_regex)) \
+    {                                                                                                                                                                       \
+        FPResult r;                                                                                                                                                         \
+        r.message = std::string(_str) + " in Scale use " + std::string(#_default) + ", but this is " + #_rgx;                                                               \
+        r.in = _named.getFile();                                                                                                                                            \
+        r.line = _named.getLine();                                                                                                                                          \
+        r.column = _named.getColumn();                                                                                                                                      \
+        r.type = _named.getType();                                                                                                                                          \
+        r.value = _named.getValue();                                                                                                                                        \
+        r.success = false;                                                                                                                                                  \
+        warns.push_back(r);                                                                                                                                                 \
     }
 
 namespace sclc {
@@ -65,6 +65,7 @@ namespace sclc {
     extern std::regex UPPERCASE_regex;
     extern std::regex camelCase_regex;
     extern std::regex PascalCase_regex;
+    extern std::regex IPascalCase_regex;
     extern std::regex snake_case_regex;
     extern std::regex SCREAMING_SNAKE_CASE_regex;
 

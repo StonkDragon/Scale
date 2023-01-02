@@ -1302,7 +1302,7 @@ namespace sclc {
             return;
         }
         
-        if (!getStructByName(result, typeStackTop).implements("Iterable")) {
+        if (!getStructByName(result, typeStackTop).implements("IIterable")) {
             transpilerError("Struct '" + typeStackTop + "' is not iterable!", i);
             errors.push_back(err);
             return;
@@ -1892,11 +1892,12 @@ namespace sclc {
                 else errors.push_back(err);
             }
             std::string name = body[i].getValue();
-            if namingConvention("Variables", body[i], flatcase, camelCase)
-            else if namingConvention("Variables", body[i], UPPERCASE, camelCase)
-            else if namingConvention("Variables", body[i], PascalCase, camelCase)
-            else if namingConvention("Variables", body[i], snake_case, camelCase)
-            else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase)
+            if namingConvention("Variables", body[i], flatcase, camelCase, false)
+            else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
+            else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
+            else if namingConvention("Variables", body[i], snake_case, camelCase, false)
+            else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
+            else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
             std::string type = "any";
             ITER_INC;
             bool isConst = false;
@@ -2119,11 +2120,12 @@ namespace sclc {
             else errors.push_back(err);
         }
         std::string name = body[i].getValue();
-        if namingConvention("Variables", body[i], flatcase, camelCase)
-        else if namingConvention("Variables", body[i], UPPERCASE, camelCase)
-        else if namingConvention("Variables", body[i], PascalCase, camelCase)
-        else if namingConvention("Variables", body[i], snake_case, camelCase)
-        else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase)
+        if namingConvention("Variables", body[i], flatcase, camelCase, false)
+        else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
+        else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
+        else if namingConvention("Variables", body[i], snake_case, camelCase, false)
+        else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
+        else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
         std::string type = "any";
         ITER_INC;
         bool isConst = false;
