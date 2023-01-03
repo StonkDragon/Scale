@@ -77,3 +77,21 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
     self return
   end
 end
+
+sealed struct _Integer is IStringifyable
+  function toString(): str
+    self longToString return
+  end
+end
+
+sealed struct _Any is IStringifyable
+  function toString(): str
+    self longToString return
+  end
+end
+
+sealed struct _Float is IStringifyable
+  function toString(): str
+    self doubleToString return
+  end
+end

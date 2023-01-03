@@ -1,6 +1,6 @@
 import Scale.sclobject
 import Scale.io
-import Scale.string
+import Scale.types
 import Scale.util.array
 
 function sleep(_millis_: int): none
