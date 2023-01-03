@@ -219,6 +219,7 @@ namespace sclc {
     bool hasContainer(TPResult result, Token name);
     bool hasGlobal(TPResult result, std::string name);
     FPResult parseType(std::vector<Token> tokens, size_t* i);
+    std::string sclConvertToStructType(std::string type);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

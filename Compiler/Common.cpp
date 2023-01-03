@@ -619,4 +619,13 @@ namespace sclc
         std::cerr << __func__ << ": Should not reach here" << std::endl;
         exit(-1);
     }
+
+    std::string sclConvertToStructType(std::string type) {
+        if (type == "str") return "_String";
+        if (type == "int") return "_Integer";
+        if (type == "float") return "_Float";
+        if (type == "any") return "_Any";
+
+        return type;
+    }
 } // namespace sclc
