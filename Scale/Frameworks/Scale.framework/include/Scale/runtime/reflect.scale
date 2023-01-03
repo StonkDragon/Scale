@@ -1,0 +1,13 @@
+sealed struct Reflect
+    static function callFunction(name: str): none
+        inline_c
+            scl_reflect_call(hash1(*name));
+        end_inline
+    end
+
+    static function callMethod(name: str): none
+        inline_c
+            scl_reflect_call_method(hash1(*name));
+        end_inline
+    end
+end

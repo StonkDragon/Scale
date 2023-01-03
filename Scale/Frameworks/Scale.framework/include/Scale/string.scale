@@ -1,4 +1,4 @@
-sealed struct _String is IEquatable, ICloneable
+sealed struct _String is IEquatable, ICloneable, IStringifyable
   function +(other: str): str
     other self:prepend return
   end

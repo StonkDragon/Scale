@@ -55,6 +55,7 @@
 #define EX_CAST_ERROR		134
 #define EX_THREAD_ERROR		136
 #define EX_ASSERTION_FAIL	137
+#define EX_REFLECT_ERROR	138
 
 #define ssize_t signed long
 
@@ -104,5 +105,9 @@ void		scl_free_struct(scl_any ptr);
 scl_any		scl_add_struct(scl_any ptr);
 scl_int		scl_struct_is_type(scl_any ptr, scl_int typeId);
 scl_any		scl_get_method_on_type(unsigned long long type, unsigned long long method);
+size_t		scl_find_index_of_struct(scl_any ptr);
+
+void		scl_reflect_call(scl_int func);
+void		scl_reflect_call_method(scl_int func);
 
 #endif

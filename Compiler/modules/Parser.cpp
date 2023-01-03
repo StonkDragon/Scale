@@ -34,6 +34,13 @@ namespace sclc
             result.in = filename;
             result.column = 0;
             errors.push_back(result);
+
+            FPResult parseResult;
+            parseResult.success = true;
+            parseResult.message = "";
+            parseResult.errors = errors;
+            parseResult.warns = warns;
+            return parseResult;
         }
 
         std::vector<Variable> defaultScope;

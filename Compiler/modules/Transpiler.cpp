@@ -223,8 +223,10 @@ namespace sclc {
             std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
+                append("void scl_reflect_call_function_%s();\n", function->getName().c_str());
                 append("%s Function_%s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
+                append("void scl_reflect_call_method_%s_function_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
                 append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
             if (function->isExternC) {
@@ -3190,6 +3192,68 @@ namespace sclc {
         append("struct scl_methodinfo* methods;\n");
         scopeDepth--;
         append("};\n\n");
+
+        append("/* FUNCTION REFLECT */\n");
+        append("struct scl_methodinfo scl_internal_functions[] = {\n");
+        scopeDepth++;
+        size_t fCount = 0;
+        for (Function* f : result.functions) {
+            if (f->isMethod) continue;
+            fCount++;
+            append("(struct scl_methodinfo) {\n");
+            scopeDepth++;
+            append(".name_hash = 0x%016llx,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
+            append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".ptr = (scl_any) scl_reflect_call_function_%s,\n", f->getName().c_str());
+            scopeDepth--;
+            append("},\n");
+        }
+        for (Function* f : result.extern_functions) {
+            if (f->isMethod) continue;
+            fCount++;
+            append("(struct scl_methodinfo) {\n");
+            scopeDepth++;
+            append(".name_hash = 0x%016llx,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
+            append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".ptr = (scl_any) scl_reflect_call_function_%s,\n", f->getName().c_str());
+            scopeDepth--;
+            append("},\n");
+        }
+        scopeDepth--;
+        append("};\n");
+        append("size_t scl_internal_functions_size = %zu;\n\n", fCount);
+
+        append("/* METHOD REFLECT */\n");
+        append("struct scl_methodinfo scl_internal_methods[] = {\n");
+        scopeDepth++;
+        fCount = 0;
+        for (Function* f : result.functions) {
+            if (!f->isMethod) continue;
+            Method* m = (Method*) f;
+            fCount++;
+            append("(struct scl_methodinfo) {\n");
+            scopeDepth++;
+            append(".name_hash = 0x%016llx,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
+            append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".ptr = (scl_any) scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
+            scopeDepth--;
+            append("},\n");
+        }
+        for (Function* f : result.extern_functions) {
+            if (!f->isMethod) continue;
+            Method* m = (Method*) f;
+            fCount++;
+            append("(struct scl_methodinfo) {\n");
+            scopeDepth++;
+            append(".name_hash = 0x%016llx,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
+            append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".ptr = (scl_any) scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
+            scopeDepth--;
+            append("},\n");
+        }
+        scopeDepth--;
+        append("};\n");
+        append("size_t scl_internal_methods_size = %zu;\n\n", fCount);
         
         append("/* TYPES */\n");
         append("struct scl_typeinfo scl_internal_types[] = {\n");
@@ -3320,6 +3384,20 @@ namespace sclc {
                 return_type = sclTypeToCType(result, t);
             }
             if (!function->isMethod) {
+                append("void scl_reflect_call_function_%s() {\n", function->getName().c_str());
+                scopeDepth++;
+                if (function->getArgs().size() > 0)
+                    append("stack.ptr -= %zu;\n", function->getArgs().size());
+                if (return_type == "void") {
+                    append("Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                } else {
+                    if (function->getReturnType() == "float")
+                        append("stack.data[stack.ptr++].f = Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                    else
+                        append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                }
+                scopeDepth--;
+                append("}\n");
                 append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             } else {
                 if (!((Method*)(function))->addAnyway() && getStructByName(result, ((Method*)(function))->getMemberType()).isSealed()) {
@@ -3334,6 +3412,21 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
+                Method* m = (Method*) function;
+                append("void scl_reflect_call_method_%s_function_%s() {\n", m->getMemberType().c_str(), function->getName().c_str());
+                scopeDepth++;
+                if (function->getArgs().size() > 0)
+                    append("stack.ptr -= %zu;\n", function->getArgs().size());
+                if (return_type == "void") {
+                    append("Method_%s_%s(%s);\n", m->getMemberType().c_str(), function->getName().c_str(), sclGenArgs(result, function).c_str());
+                } else {
+                    if (function->getReturnType() == "float")
+                        append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", m->getMemberType().c_str(), function->getName().c_str(), sclGenArgs(result, function).c_str());
+                    else
+                        append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", m->getMemberType().c_str(), function->getName().c_str(), sclGenArgs(result, function).c_str());
+                }
+                scopeDepth--;
+                append("}\n");
                 append("%s Method_%s_%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             }
 
@@ -3345,7 +3438,7 @@ namespace sclc {
 
             if (function->isMethod) {
                 Method* m = static_cast<Method*>(function);
-                append("if (!scl_do_method_check && Var_self && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
+                append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
                 append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
                 append("if (method != NULL) {\n");

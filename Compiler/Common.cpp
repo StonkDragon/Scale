@@ -321,12 +321,14 @@ namespace sclc
 
     Function* getFunctionByName(TPResult result, std::string name) {
         for (Function* func : result.functions) {
+            if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->getName() == name) {
                 return func;
             }
         }
         for (Function* func : result.extern_functions) {
+            if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->getName() == name) {
                 return func;

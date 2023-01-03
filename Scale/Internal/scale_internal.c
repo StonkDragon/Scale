@@ -275,7 +275,8 @@ static void scl_struct_map_remove(size_t index) {
     allocated_structs_count--;
 }
 
-static size_t scl_find_index_of(scl_any ptr) {
+size_t scl_find_index_of_struct(scl_any ptr) {
+	if (ptr == NULL) return -1;
 	for (size_t i = 0; i < allocated_structs_count; i++) {
         if (allocated_structs[i] == ptr) {
             return i;
@@ -286,10 +287,10 @@ static size_t scl_find_index_of(scl_any ptr) {
 }
 
 void scl_free_struct(scl_any ptr) {
-	size_t i = scl_find_index_of(ptr);
+	size_t i = scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		scl_struct_map_remove(i);
-		i = scl_find_index_of(ptr);
+		i = scl_find_index_of_struct(ptr);
 	}
 }
 
@@ -313,6 +314,37 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 		}
 	}
 	return 0;
+}
+
+#pragma endregion
+
+#pragma region Reflection
+
+extern struct scl_methodinfo scl_internal_functions[];
+extern size_t scl_internal_functions_size;
+
+void scl_reflect_call(scl_int func) {
+	for (size_t i = 0; i < scl_internal_functions_size; i++) {
+		if (scl_internal_functions[i].name_hash == func) {
+			((void(*)()) scl_internal_functions[i].ptr)();
+			return;
+		}
+	}
+	scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
+}
+
+
+extern struct scl_methodinfo scl_internal_methods[];
+extern size_t scl_internal_methods_size;
+
+void scl_reflect_call_method(scl_int func) {
+	for (size_t i = 0; i < scl_internal_functions_size; i++) {
+		if (scl_internal_methods[i].name_hash == func) {
+			((void(*)()) scl_internal_methods[i].ptr)();
+			return;
+		}
+	}
+	scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
 }
 
 #pragma endregion
