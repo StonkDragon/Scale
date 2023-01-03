@@ -1,4 +1,4 @@
-     621 Compiler/Common.cpp
+     622 Compiler/Common.cpp
     1222 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      228 Compiler/headers/Common.hpp
@@ -21,17 +21,17 @@
     1224 Compiler/modules/SyntaxTree.cpp
      268 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
-    3478 Compiler/modules/Transpiler.cpp
+    3577 Compiler/modules/Transpiler.cpp
      256 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
       41 Scale/Frameworks/Scale.framework/include/Scale/io.scale
      177 Scale/Frameworks/Scale.framework/include/Scale/math.scale
-      13 Scale/Frameworks/Scale.framework/include/Scale/runtime/reflect.scale
+      50 Scale/Frameworks/Scale.framework/include/Scale/runtime/reflect.scale
       44 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
       79 Scale/Frameworks/Scale.framework/include/Scale/string.scale
-     118 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+     126 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/equatable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/hashable.scale
@@ -41,8 +41,8 @@
       92 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-     350 Scale/Internal/scale_internal.c
-     113 Scale/Internal/scale_internal.h
+     387 Scale/Internal/scale_internal.c
+     116 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -70,4 +70,4 @@
        9 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   11043 total
+   11228 total

@@ -1,0 +1,28 @@
+sealed struct Method  
+    decl _nameHash:   const int
+    decl _name:       const str
+    decl _ptr:        const any
+    decl _memberType: const int
+    decl _argCount:   const int
+    decl _returnType: const int
+
+    function getName(): str
+        _name return
+    end
+
+    function getStruct(): str
+        _memberType Reflect::getStructByType:getName return
+    end
+
+    function invoke(): none
+        if _memberType 0 == then
+            _name Reflect::callFunction
+        else
+            _name Reflect::callMethod
+        fi
+    end
+
+    function getReturnType(): str
+        _returnType return
+    end
+end

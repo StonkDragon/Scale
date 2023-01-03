@@ -8,6 +8,10 @@
 scl_stack_t stack;
 scl_stack_t	callstk = {0, {0}};
 
+extern scl_str current_file;
+extern scl_int current_line;
+extern scl_int current_col;
+
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
 #pragma region Memory
@@ -106,7 +110,8 @@ void process_signal(int sig_num) {
 	else signalString = "Unknown signal";
 
 	printf("\n");
-	printf("Exception: %s\n", signalString);
+
+	printf("%s:%lld:%lld: Exception: %s\n", current_file, current_line, current_col, signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
@@ -135,7 +140,7 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 		scl_any count;
 		scl_any capacity;
 	};
-	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array", 1, (scl_int[]) {hash1("Array")});
+	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array", hash1("SclObject"));
 	array->capacity = (scl_any) argc;
 	array->count = 0;
 	array->values = scl_alloc(argc);
@@ -194,54 +199,78 @@ hash hash1(char* data) {
 }
 
 struct scl_methodinfo {
-  scl_int name_hash;
-  scl_str name;
-  scl_any ptr;
+  scl_int  __type__;
+  scl_str  __type_name__;
+  scl_int  __super__;
+  scl_int  __size__;
+  scl_int  name_hash;
+  scl_str  name;
+  scl_int  id;
+  scl_any  ptr;
+  scl_int  member_type;
+  scl_int  arg_count;
+  scl_str  return_type;
 };
 
 struct scl_typeinfo {
-  scl_int                type;
-  scl_str                name;
-  scl_int                supercount;
-  scl_int*               superlist;
-  scl_int                methodscount;
-  struct scl_methodinfo* methods;
+  scl_int    			   __type__;
+  scl_str    			   __type_name__;
+  scl_int   			   __super__;
+  scl_int    			   __size__;
+  scl_int                  type;
+  scl_str                  name;
+  scl_int                  super;
+  scl_int                  methodscount;
+  struct scl_methodinfo**  methods;
 };
 
-extern struct scl_typeinfo scl_internal_types[];
-extern size_t scl_internal_types_count;
+extern struct scl_typeinfo		scl_internal_types[];
+extern size_t 					scl_internal_types_count;
+extern struct scl_methodinfo*	scl_internal_functions[];
+extern size_t 					scl_internal_functions_size;
+extern struct scl_methodinfo*	scl_internal_methods[];
+extern size_t 					scl_internal_methods_size;
 
 struct sclstruct {
 	scl_int  type;
 	scl_str  type_name;
-	scl_int  super_list_len;
-	scl_int* super_list;
+	scl_int  super;
 	scl_int  size;
 };
 
 struct sclstruct* allocated_structs[STACK_SIZE];
 size_t allocated_structs_count = 0;
 
-struct scl_typeinfo scl_find_typeinfo_of(unsigned long long type) {
+scl_any scl_typeinfo_of(unsigned long long type) {
 	for (size_t i = 0; i < scl_internal_types_count; i++) {
 		if (scl_internal_types[i].type == type) {
-			return (scl_internal_types[i]);
+			return (scl_any) scl_internal_types + (i * sizeof(struct scl_typeinfo));
 		}
 	}
-	return (struct scl_typeinfo) {0};
+	return NULL;
+}
+
+struct scl_typeinfo* scl_find_typeinfo_of(unsigned long long type) {
+	for (size_t i = 0; i < scl_internal_types_count; i++) {
+		if (scl_internal_types[i].type == type) {
+			return (struct scl_typeinfo*) (&scl_internal_types) + (i * sizeof(struct scl_typeinfo));
+		}
+	}
+	return NULL;
 }
 
 scl_any scl_get_method_on_type(unsigned long long type, unsigned long long method) {
-	struct scl_typeinfo p = scl_find_typeinfo_of(type);
-	if (p.name == NULL) return NULL;
-
-	for (scl_int cls = 0; cls < p.supercount; cls++) {
-		struct scl_typeinfo typeinfo = scl_find_typeinfo_of(p.superlist[cls]);
-		for (scl_int m = 0; m < typeinfo.methodscount; m++) {
-			if (typeinfo.methods[m].name_hash == method) {
-				return typeinfo.methods[m].ptr;
+	struct scl_typeinfo* p = scl_find_typeinfo_of(type);
+	while (p) {
+		for (scl_int m = 0; m < scl_internal_methods_size; m++) {
+			if (scl_internal_methods[m]->member_type != p->type) {
+				continue;
+			}
+			if (scl_internal_methods[m]->id == method) {
+				return scl_internal_methods[m]->ptr;
 			}
 		}
+		p = scl_find_typeinfo_of(p->super);
 	}
 	return NULL;
 }
@@ -257,12 +286,11 @@ scl_any scl_add_struct(scl_any ptr) {
 	return ptr;
 }
 
-scl_any scl_alloc_struct(size_t size, scl_str type_name, scl_int supers_len, scl_int supers[supers_len]) {
+scl_any scl_alloc_struct(size_t size, scl_str type_name, scl_int super) {
 	scl_any ptr = scl_alloc(size);
 	((struct sclstruct*) ptr)->type = hash1(type_name);
     ((struct sclstruct*) ptr)->type_name = type_name;
-    ((struct sclstruct*) ptr)->super_list = supers;
-    ((struct sclstruct*) ptr)->super_list_len = supers_len;
+    ((struct sclstruct*) ptr)->super = super;
     ((struct sclstruct*) ptr)->size = size;
 
 	return scl_add_struct(ptr);
@@ -308,10 +336,8 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 
 	if (p->type == typeId) return 1;
 
-	for (scl_int i = 0; i < p->super_list_len; i++) {
-		if (p->super_list[i] == typeId) {
-			return 1;
-		}
+	if (p->super) {
+		return scl_struct_is_type(ptr, p->super);
 	}
 	return 0;
 }
@@ -320,27 +346,38 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 
 #pragma region Reflection
 
-extern struct scl_methodinfo scl_internal_functions[];
-extern size_t scl_internal_functions_size;
-
 void scl_reflect_call(scl_int func) {
 	for (size_t i = 0; i < scl_internal_functions_size; i++) {
-		if (scl_internal_functions[i].name_hash == func) {
-			((void(*)()) scl_internal_functions[i].ptr)();
+		if (scl_internal_functions[i]->name_hash == func) {
+			((void(*)()) scl_internal_functions[i]->ptr)();
 			return;
 		}
 	}
 	scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
 }
 
+scl_int scl_reflect_find(scl_int func) {
+	for (size_t i = 0; i < scl_internal_functions_size; i++) {
+		if (scl_internal_functions[i]->name_hash == func) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
-extern struct scl_methodinfo scl_internal_methods[];
-extern size_t scl_internal_methods_size;
+scl_int scl_reflect_find_method(scl_int func) {
+	for (size_t i = 0; i < scl_internal_methods_size; i++) {
+		if (scl_internal_methods[i]->name_hash == func) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 void scl_reflect_call_method(scl_int func) {
-	for (size_t i = 0; i < scl_internal_functions_size; i++) {
-		if (scl_internal_methods[i].name_hash == func) {
-			((void(*)()) scl_internal_methods[i].ptr)();
+	for (size_t i = 0; i < scl_internal_methods_size; i++) {
+		if (scl_internal_methods[i]->name_hash == func) {
+			((void(*)()) scl_internal_methods[i]->ptr)();
 			return;
 		}
 	}

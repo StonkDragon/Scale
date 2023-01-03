@@ -100,7 +100,7 @@ void		scl_free(scl_any ptr);
 void		scl_assert(scl_int b, scl_str msg);
 
 hash		hash1(char* data);
-scl_any		scl_alloc_struct(size_t size, scl_str type_name, scl_int supers_len, scl_int supers[supers_len]);
+scl_any		scl_alloc_struct(size_t size, scl_str type_name, scl_int super);
 void		scl_free_struct(scl_any ptr);
 scl_any		scl_add_struct(scl_any ptr);
 scl_int		scl_struct_is_type(scl_any ptr, scl_int typeId);
@@ -109,5 +109,8 @@ size_t		scl_find_index_of_struct(scl_any ptr);
 
 void		scl_reflect_call(scl_int func);
 void		scl_reflect_call_method(scl_int func);
+scl_any		scl_typeinfo_of(unsigned long long type);
+scl_int		scl_reflect_find(scl_int func);
+scl_int		scl_reflect_find_method(scl_int func);
 
 #endif

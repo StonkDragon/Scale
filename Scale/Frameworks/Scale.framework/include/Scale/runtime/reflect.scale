@@ -1,13 +1,50 @@
+import Scale.runtime.method
+import Scale.runtime.struct_
+
 sealed struct Reflect
     static function callFunction(name: str): none
         inline_c
-            scl_reflect_call(hash1(*name));
+            unsigned long long h = hash1(*name);
+            if (scl_reflect_find(h))
+                scl_reflect_call(h);
         end_inline
     end
 
     static function callMethod(name: str): none
         inline_c
-            scl_reflect_call_method(hash1(*name));
+            unsigned long long h = hash1(*name);
+            if (scl_reflect_find_method(h))
+                scl_reflect_call_method(h);
         end_inline
+    end
+
+    static function callFunctionById(id: int): none
+        inline_c
+            if (scl_reflect_find(*id))
+                scl_reflect_call(*id);
+        end_inline
+    end
+
+    static function callMethodById(id: int): none
+        inline_c
+            if (scl_reflect_find_method(*id))
+                scl_reflect_call_method(*id);
+        end_inline
+    end
+
+    static function getStruct(structName: str) s: Struct
+        inline_c
+            *s = scl_typeinfo_of(hash1(*structName));
+            scl_add_struct(*s);
+        end_inline
+        return
+    end
+
+    static function getStructByType(type: int) s: Struct
+        inline_c
+            *s = scl_typeinfo_of(*type);
+            scl_add_struct(*s);
+        end_inline
+        return
     end
 end

@@ -276,6 +276,7 @@ namespace sclc
     }
 
     hash hash1(char* data) {
+        if (strlen(data) == 0) return 0;
         hash h = 7;
         for (size_t i = 0; i < strlen(data); i++) {
             h = h * 31 + data[i];
