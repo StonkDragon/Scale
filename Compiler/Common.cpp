@@ -374,6 +374,8 @@ namespace sclc
         if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
         if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
 
+        if (type == "") return nullptr;
+
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
             if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
@@ -386,7 +388,28 @@ namespace sclc
                 return (Method*) func;
             }
         }
-        return nullptr;
+        Struct s = getStructByName(result, type);
+        return getMethodByName(result, name, s.extends());
+    }
+
+    std::vector<Method*> methodsOnType(TPResult res, std::string type) {
+        if (type == "str") type = "_String";
+
+        std::vector<Method*> methods;
+
+        for (Function* func : res.functions) {
+            if (!func->isMethod) continue;
+            if (((Method*) func)->getMemberType() == type) {
+                methods.push_back((Method*) func);
+            }
+        }
+        for (Function* func : res.extern_functions) {
+            if (!func->isMethod) continue;
+            if (((Method*) func)->getMemberType() == type) {
+                methods.push_back((Method*) func);
+            }
+        }
+        return methods;
     }
 
     Container getContainerByName(TPResult result, std::string name) {
@@ -422,6 +445,44 @@ namespace sclc
             }
         }
         return false;
+    }
+
+
+    std::vector<std::string> supersToVector(TPResult r, Struct s) {
+        std::vector<std::string> v;
+        v.push_back(s.getName());
+        Struct super = getStructByName(r, s.extends());
+        while (super.getName().size()) {
+            v.push_back(super.getName());
+            super = getStructByName(r, super.extends());
+        }
+        return v;
+    }
+    std::string supersToHashedCList(TPResult r, Struct s) {
+        std::string list = "(scl_int[]) {";
+        std::vector<std::string> v = supersToVector(r, s);
+        for (size_t i = 0; i < v.size(); i++) {
+            if (i) {
+                list += ", ";
+            }
+            std::string super = v[i];
+            list += std::to_string(hash1((char*) super.c_str()));
+        }
+        list += "}";
+        return list;
+    }
+    std::string supersToCList(TPResult r, Struct s) {
+        std::string list = "(scl_str*) {\"" + s.getName() + "\"";
+        Struct super = getStructByName(r, s.extends());
+        while (super.getName().size()) {
+            list += "\"" + super.getName() + "\"";
+            super = getStructByName(r, super.extends());
+            if (super.getName().size()) {
+                list += ", ";
+            }
+        }
+        list += "}";
+        return list;
     }
 
     bool hasMethod(TPResult result, std::string name, std::string type) {

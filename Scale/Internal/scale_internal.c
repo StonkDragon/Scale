@@ -22,7 +22,9 @@ scl_any scl_alloc(size_t size) {
 }
 
 scl_any scl_realloc(scl_any ptr, size_t size) {
+	scl_free_struct(ptr);
 	ptr = realloc(ptr, size);
+	scl_add_struct(ptr);
 	if (!ptr) {
 		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 		return NULL;
@@ -31,6 +33,7 @@ scl_any scl_realloc(scl_any ptr, size_t size) {
 }
 
 void scl_free(scl_any ptr) {
+	scl_free_struct(ptr);
 	free(ptr);
 }
 
@@ -126,12 +129,13 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 	struct Array {
 		scl_int $__type__;
 		scl_str $__type_name__;
-		scl_any $__lock__;
+		scl_any $__super_list__;
+		scl_any $__super_list_len__;
 		scl_any values;
 		scl_any count;
 		scl_any capacity;
 	};
-	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array");
+	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array", 1, (scl_int[]) {hash1("Array")});
 	array->capacity = (scl_any) argc;
 	array->count = 0;
 	array->values = scl_alloc(argc);
@@ -181,9 +185,7 @@ ssize_t ctrl_stack_size(void) {
 
 #pragma region Struct
 
-typedef unsigned long long hash;
-
-static hash hash1(char* data) {
+hash hash1(char* data) {
     hash h = 7;
     for (int i = 0; i < strlen(data); i++) {
         h = h * 31 + data[i];
@@ -191,12 +193,126 @@ static hash hash1(char* data) {
     return h;
 }
 
-scl_any scl_alloc_struct(size_t size, scl_str type_name) {
-	scl_any ptr = scl_alloc(size);
-	((struct {scl_int type; scl_str type_name; scl_any lock;}*) ptr)->type = hash1(type_name);
-    ((struct {scl_int type; scl_str type_name; scl_any lock;}*) ptr)->type_name = type_name;
-    ((struct {scl_int type; scl_str type_name; scl_any lock;}*) ptr)->lock = 0;
+struct scl_methodinfo {
+  scl_int name_hash;
+  scl_str name;
+  scl_any ptr;
+};
+
+struct scl_typeinfo {
+  scl_int                type;
+  scl_str                name;
+  scl_int                supercount;
+  scl_int*               superlist;
+  scl_int                methodscount;
+  struct scl_methodinfo* methods;
+};
+
+extern struct scl_typeinfo scl_internal_types[];
+extern size_t scl_internal_types_count;
+
+struct sclstruct {
+	scl_int  type;
+	scl_str  type_name;
+	scl_int  super_list_len;
+	scl_int* super_list;
+	scl_int  size;
+};
+
+struct sclstruct* allocated_structs[STACK_SIZE];
+size_t allocated_structs_count = 0;
+
+struct scl_typeinfo scl_find_typeinfo_of(unsigned long long type) {
+	for (size_t i = 0; i < scl_internal_types_count; i++) {
+		if (scl_internal_types[i].type == type) {
+			return (scl_internal_types[i]);
+		}
+	}
+	return (struct scl_typeinfo) {0};
+}
+
+scl_any scl_get_method_on_type(unsigned long long type, unsigned long long method) {
+	struct scl_typeinfo p = scl_find_typeinfo_of(type);
+	if (p.name == NULL) return NULL;
+
+	for (scl_int cls = 0; cls < p.supercount; cls++) {
+		struct scl_typeinfo typeinfo = scl_find_typeinfo_of(p.superlist[cls]);
+		for (scl_int m = 0; m < typeinfo.methodscount; m++) {
+			if (typeinfo.methods[m].name_hash == method) {
+				return typeinfo.methods[m].ptr;
+			}
+		}
+	}
+	return NULL;
+}
+
+scl_any scl_add_struct(scl_any ptr) {
+	for (size_t i = 0; i < allocated_structs_count; i++) {
+		if (allocated_structs[i] == 0) {
+			allocated_structs[i] = ptr;
+			return ptr;
+		}
+	}
+	allocated_structs[allocated_structs_count++] = ptr;
 	return ptr;
+}
+
+scl_any scl_alloc_struct(size_t size, scl_str type_name, scl_int supers_len, scl_int supers[supers_len]) {
+	scl_any ptr = scl_alloc(size);
+	((struct sclstruct*) ptr)->type = hash1(type_name);
+    ((struct sclstruct*) ptr)->type_name = type_name;
+    ((struct sclstruct*) ptr)->super_list = supers;
+    ((struct sclstruct*) ptr)->super_list_len = supers_len;
+    ((struct sclstruct*) ptr)->size = size;
+
+	return scl_add_struct(ptr);
+}
+
+static void scl_struct_map_remove(size_t index) {
+    for (size_t i = index; i < allocated_structs_count - 1; i++) {
+       allocated_structs[i] =allocated_structs[i + 1];
+    }
+    allocated_structs_count--;
+}
+
+static size_t scl_find_index_of(scl_any ptr) {
+	for (size_t i = 0; i < allocated_structs_count; i++) {
+        if (allocated_structs[i] == ptr) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+void scl_free_struct(scl_any ptr) {
+	size_t i = scl_find_index_of(ptr);
+	while (i != -1) {
+		scl_struct_map_remove(i);
+		i = scl_find_index_of(ptr);
+	}
+}
+
+scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
+	struct sclstruct* p = (struct sclstruct*) ptr;
+	
+	int isStruct = 0;
+	for (size_t i = 0; i < allocated_structs_count; i++) {
+		if (allocated_structs[i] == ptr) {
+			isStruct = 1;
+			break;
+		}
+	}
+	if (!isStruct) return 0;
+
+	if (p->type == typeId) return 1;
+
+	for (scl_int i = 0; i < p->super_list_len; i++) {
+		if (p->super_list[i] == typeId) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 #pragma endregion

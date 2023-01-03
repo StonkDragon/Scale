@@ -1,3 +1,4 @@
+import Scale.sclobject
 import Scale.io
 import Scale.string
 import Scale.util.array

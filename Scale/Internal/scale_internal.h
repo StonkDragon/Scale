@@ -42,7 +42,7 @@
 #endif
 
 #ifndef STACK_SIZE
-#define STACK_SIZE			4096
+#define STACK_SIZE			16384
 #endif
 
 // Define scale-specific signals
@@ -58,21 +58,22 @@
 
 #define ssize_t signed long
 
-typedef void* 		scl_any;
-typedef long long 	scl_int;
-typedef char* 		scl_str;
-typedef double 		scl_float;
+typedef void* 				scl_any;
+typedef long long 			scl_int;
+typedef char* 				scl_str;
+typedef double 				scl_float;
+typedef unsigned long long	hash;
 
 typedef union {
-	scl_int 	i;
+	scl_int		i;
 	scl_str		s;
-	scl_float 	f;
-	scl_any	v;
+	scl_float	f;
+	scl_any		v;
 } scl_frame_t;
 
 typedef struct {
-	ssize_t     ptr;
-	scl_frame_t data[STACK_SIZE];
+	ssize_t		ptr;
+	scl_frame_t	data[STACK_SIZE];
 } scl_stack_t;
 
 void		scl_security_throw(int code, scl_str msg);
@@ -97,6 +98,11 @@ scl_any		scl_alloc(size_t size);
 void		scl_free(scl_any ptr);
 void		scl_assert(scl_int b, scl_str msg);
 
-scl_any		scl_alloc_struct(size_t size, scl_str type_name);
+hash		hash1(char* data);
+scl_any		scl_alloc_struct(size_t size, scl_str type_name, scl_int supers_len, scl_int supers[supers_len]);
+void		scl_free_struct(scl_any ptr);
+scl_any		scl_add_struct(scl_any ptr);
+scl_int		scl_struct_is_type(scl_any ptr, scl_int typeId);
+scl_any		scl_get_method_on_type(unsigned long long type, unsigned long long method);
 
 #endif

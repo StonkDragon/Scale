@@ -1,6 +1,10 @@
-sealed struct _String
+sealed struct _String is IEquatable, ICloneable
   function +(other: str): str
     other self:prepend return
+  end
+
+  function clone(): str
+    self strdup return
   end
 
   function ++(c: int): str
@@ -45,6 +49,10 @@ sealed struct _String
     self other strcmp return
   end
 
+  function ==(other: str): bool
+    other self:equals return
+  end
+
   function size(): int
     if self nil == then
       -1 return
@@ -63,5 +71,9 @@ sealed struct _String
       abort
     fi
     self i + @ toChar return
+  end
+
+  function toString(): str
+    self return
   end
 end

@@ -94,4 +94,25 @@ sealed struct Array is IIterable
     0 => self._pos
     return
   end
+
+  export function toString() s: str
+    if self.count 0 == then
+      "{}" => s
+    else
+      "{" => s
+      for i in 0 to self.count do
+        i self:get => decl elem: any
+        if i then
+          s ", " + => s
+        fi
+        if elem is SclObject then
+          s elem as SclObject:toString + => s
+        else
+          s elem longToString + => s
+        fi
+      done
+      s "}" + => s
+    fi
+    return
+  end
 end

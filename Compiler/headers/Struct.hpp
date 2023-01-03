@@ -5,16 +5,22 @@
 #include <vector>
 #include <cstring>
 #include <regex>
-#include <unordered_map>
+#include <map>
+
+// #include "Results.hpp"
 
 namespace sclc
 {
+    unsigned long long hash1(char*);
+
     class Struct {
         std::string name;
         Token name_token;
         int flags;
         std::vector<Variable> members;
+        std::vector<bool> memberInherited;
         std::vector<std::string> interfaces;
+        std::string super;
     public:
         Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {
             
@@ -27,29 +33,36 @@ namespace sclc
             toggleValueType();
             toggleReferenceType();
         }
-        void addMember(Variable member) {
+        void addMember(Variable member, bool inherited = false) {
+            if (inherited) {
+                members.insert(members.begin(), member);
+                memberInherited.insert(memberInherited.begin(), true);
+                return;
+            }
             members.push_back(member);
+            memberInherited.push_back(false);
         }
         bool hasMember(std::string member) {
-            for (Variable m : members) {
-                if (m.getName() == member) {
+            for (Variable v : members) {
+                if (v.getName() == member) {
                     return true;
                 }
             }
             return false;
         }
-        int indexOfMember(std::string member) {
-            for (size_t i = 0; i < members.size(); i++) {
-                if (members[i].getName() == member) {
-                    return ((int) i) * 8;
-                }
-            }
-            return -1;
+        bool extends(std::string s) {
+            return this->super == s;
+        }
+        std::string extends() {
+            return this->super;
+        }
+        void setExtends(std::string s) {
+            this->super = s;
         }
         Variable getMember(std::string name) {
-            for (size_t i = 0; i < members.size(); i++) {
-                if (members[i].getName() == name) {
-                    return members[i];
+            for (Variable v : members) {
+                if (v.getName() == name) {
+                    return v;
                 }
             }
             return Variable("", "");
@@ -106,7 +119,17 @@ namespace sclc
             return other.name != this->name;
         }
         std::string getName() { return name; }
-        std::vector<Variable> getMembers() { return members; }
+        std::vector<Variable> getMembers() {
+            return members;
+        }
+        std::vector<Variable> getDefinedMembers() {
+            std::vector<Variable> mems;
+            for (size_t i = 0; i < members.size(); i++) {
+                if (!memberInherited[i])
+                    mems.push_back(members[i]);
+            }
+            return mems;
+        }
         void setName(const std::string& name) { this->name = name; }
     };
 } // namespace sclc

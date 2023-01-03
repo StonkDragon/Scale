@@ -210,6 +210,10 @@ namespace sclc {
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
+    std::vector<std::string> supersToVector(TPResult r, Struct s);
+    std::string supersToHashedCList(TPResult r, Struct s);
+    std::string supersToCList(TPResult r, Struct s);
+    std::vector<Method*> methodsOnType(TPResult res, std::string type);
     bool hasMethod(TPResult result, Token name, std::string type);
     bool hasMethod(TPResult result, std::string name, std::string type);
     bool hasContainer(TPResult result, Token name);

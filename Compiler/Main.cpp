@@ -170,7 +170,7 @@ namespace sclc
                 now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
                 now = replaceAll(now, "<<BLUE>>", Color::BLUE);
                 now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
+                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
                 now = replaceAll(now, "<<WHITE>>", Color::WHITE);
                 now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
                 now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
@@ -231,7 +231,7 @@ namespace sclc
                 now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
                 now = replaceAll(now, "<<BLUE>>", Color::BLUE);
                 now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
+                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
                 now = replaceAll(now, "<<WHITE>>", Color::WHITE);
                 now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
                 now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
@@ -937,6 +937,12 @@ namespace sclc
                 }
                 if (result.errors.size() > 0) {
                     for (FPResult error : result.errors) {
+                        std::string colorStr;
+                        if (error.isNote) {
+                            colorStr = Color::BOLDCYAN;
+                        } else {
+                            colorStr = Color::BOLDRED;
+                        }
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                             continue;
@@ -945,11 +951,11 @@ namespace sclc
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
                         fseek(f, 0, SEEK_SET);
-                        std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                        std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
                             if (i == error.line) {
-                                std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
+                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
                             } else if (i == error.line - 1 || i == error.line - 2) {
                                 if (strlen(line) > 0)
                                     std::cerr << "  " << line;
@@ -1023,6 +1029,12 @@ namespace sclc
             }
             if (!Main.options.printCflags && result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
+                    std::string colorStr;
+                    if (error.isNote) {
+                        colorStr = Color::BOLDCYAN;
+                    } else {
+                        colorStr = Color::BOLDRED;
+                    }
                     if (error.line == 0) {
                         std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                         continue;
@@ -1031,11 +1043,11 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     fseek(f, 0, SEEK_SET);
-                    std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
                         if (i == error.line) {
-                            std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
+                            std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
                         } else if (i == error.line - 1 || i == error.line - 2) {
                             if (strlen(line) > 0)
                                 std::cerr << "  " << line;
@@ -1094,6 +1106,12 @@ namespace sclc
                 }
                 if (parseResult.errors.size() > 0) {
                     for (FPResult error : parseResult.errors) {
+                        std::string colorStr;
+                        if (error.isNote) {
+                            colorStr = Color::BOLDCYAN;
+                        } else {
+                            colorStr = Color::BOLDRED;
+                        }
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
                             continue;
@@ -1102,11 +1120,11 @@ namespace sclc
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
                         fseek(f, 0, SEEK_SET);
-                        std::cerr << Color::BOLDRED << "Error: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                        std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
                             if (i == error.line) {
-                                std::cerr << Color::BOLDRED << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDRED + error.value + Color::RESET, error.column) << Color::RESET;
+                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
                             } else if (i == error.line - 1 || i == error.line - 2) {
                                 if (strlen(line) > 0)
                                     std::cerr << "  " << line;

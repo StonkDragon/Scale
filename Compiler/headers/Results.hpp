@@ -18,6 +18,7 @@ namespace sclc
     class FPResult {
     public:
         bool success;
+        bool isNote;
         std::string message;
         std::string in;
         std::vector<FPResult> errors;

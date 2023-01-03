@@ -675,6 +675,39 @@ namespace sclc {
                     continue;
                 }
                 nextAttributes.clear();
+                bool hasSuperSpecified = false;
+                if (tokens[i + 1].getType() == tok_column) {
+                    i += 2;
+                    if (currentStruct->getName() == tokens[i].getValue()) {
+                        FPResult result;
+                        result.message = "Structs cannot extend themselves. Defaulted to 'SclObject'!";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                    } else {
+                        if (tokens[i].getValue() == "SclObject") {
+                            FPResult result;
+                            result.message = "Explicit inherit of struct 'SclObject' not neccessary.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = true;
+                            warns.push_back(result);
+                        }
+                        currentStruct->setExtends(tokens[i].getValue());
+                        hasSuperSpecified = true;
+                    }
+                }
+                if (!hasSuperSpecified) {
+                    if (currentStruct->getName() != "SclObject")
+                        currentStruct->setExtends("SclObject");
+                }
                 if (tokens[i + 1].getType() == tok_is) {
                     i++;
                     if (tokens[i + 1].getType() != tok_identifier) {
@@ -1144,6 +1177,48 @@ namespace sclc {
         result.warns = warns;
         result.interfaces = interfaces;
         result.typealiases = typealiases;
+
+        std::vector<Struct> newStructs;
+        
+        for (Struct s : result.structs) {
+            Struct super = getStructByName(result, s.extends());
+            Struct oldSuper = s;
+            while (super.getName().size()) {
+                if (super.getName() == s.getName()) {
+                    FPResult r;
+                    r.message = "Struct '" + s.getName() + "' has Struct '" + oldSuper.getName() + "' in it's inheritance chain, which inherits from '" + super.getName() + "'";
+                    r.value = s.nameToken().getValue();
+                    r.line = s.nameToken().getLine();
+                    r.in = s.nameToken().getFile();
+                    r.type = s.nameToken().getType();
+                    r.column = s.nameToken().getColumn();
+                    r.column = s.nameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    FPResult r2;
+                    r2.message = "Struct '" + oldSuper.getName() + "' declared here:";
+                    r2.value = oldSuper.nameToken().getValue();
+                    r2.line = oldSuper.nameToken().getLine();
+                    r2.in = oldSuper.nameToken().getFile();
+                    r2.type = oldSuper.nameToken().getType();
+                    r2.column = oldSuper.nameToken().getColumn();
+                    r2.column = oldSuper.nameToken().getColumn();
+                    r2.success = false;
+                    r2.isNote = true;
+                    result.errors.push_back(r2);
+                    oldSuper = super;
+                    super = getStructByName(result, "SclObject");
+                }
+                std::vector<Variable> vars = super.getDefinedMembers();
+                for (ssize_t i = vars.size() - 1; i >= 0; i--) {
+                    s.addMember(vars[i], true);
+                }
+                oldSuper = super;
+                super = getStructByName(result, super.extends());
+            }
+            newStructs.push_back(s);
+        }
+        result.structs = newStructs;
         return result;
     }
 }
