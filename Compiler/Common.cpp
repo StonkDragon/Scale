@@ -635,7 +635,9 @@ namespace sclc
     }
 
     std::string sclConvertToStructType(std::string type) {
-        if (type.size() && type.at(type.size() - 1) == '!') type = type.substr(0, type.size() - 1);
+        while (type.size() && type.at(type.size() - 1) == '!')
+            type = type.substr(0, type.size() - 1);
+
         if (type == "str") return "_String";
 
         return type;

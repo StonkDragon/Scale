@@ -44,7 +44,7 @@ namespace sclc
             return name;
         }
         std::string getType() {
-            return type;
+            return type + (!canBeNil ? "!" : "");
         }
         void setName(std::string name) {
             this->name = name;

@@ -1,4 +1,4 @@
-     650 Compiler/Common.cpp
+     652 Compiler/Common.cpp
     1247 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      230 Compiler/headers/Common.hpp
@@ -18,11 +18,11 @@
      102 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      141 Compiler/modules/Parser.cpp
-    1281 Compiler/modules/SyntaxTree.cpp
+    1289 Compiler/modules/SyntaxTree.cpp
      257 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
-    3690 Compiler/modules/Transpiler.cpp
-     256 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+    3702 Compiler/modules/Transpiler.cpp
+     255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
@@ -36,6 +36,7 @@
      130 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/equatable.scale
+       3 Scale/Frameworks/Scale.framework/include/Scale/util/finalizable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/hashable.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/iterable.scale
       67 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
@@ -72,4 +73,4 @@
        9 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   11556 total
+   11580 total

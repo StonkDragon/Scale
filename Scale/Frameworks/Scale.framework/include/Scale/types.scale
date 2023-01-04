@@ -48,6 +48,6 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
   end
 
   function toString(): str!
-    self return
+    self as str return
   end
 end

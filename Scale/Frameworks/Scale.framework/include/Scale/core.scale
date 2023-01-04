@@ -104,8 +104,8 @@ function strcmp(_str1_: str!, _str2_: str!): bool
   t return
 end
 
-function strdup(_str_: str!): str
-  decl s: str
+function strdup(_str_: str!): str!
+  decl s: str!
   inline_c
     *s = strdup(*_str_);
   end_inline
@@ -120,8 +120,8 @@ function strncmp(_str1_: str!, _str2_: str!, _n_: int): bool
   t return
 end
 
-function concat(_str1_: str!, _str2_: str!): str
-  decl out: str
+function concat(_str1_: str!, _str2_: str!): str!
+  decl out: str!
   _str1_ strlen => decl len: int
   _str2_ strlen => decl len2: int
 
@@ -139,11 +139,10 @@ function strcpy(dest: str!, src: str!): none
   inline_c
     strcpy(*dest, *src);
   end_inline
-  dest drop
 end
 
-function strrev(_str_: str!): str
-  decl out: str
+function strrev(_str_: str!): str!
+  decl out: str!
   inline_c
     scl_int i = 0;
     scl_int len = strlen(*_str_);
@@ -166,8 +165,8 @@ function time(): float
   secs return
 end
 
-function longToString(_long_: int): str
-  decl out: str
+function longToString(_long_: int): str!
+  decl out: str!
   inline_c
     *out = scl_alloc(25);
 	  sprintf(*out, "%lld", *_long_);
@@ -189,8 +188,8 @@ function stringToDouble(_str_: str!): float
   return
 end
 
-function doubleToString(_double_: float): str
-  decl out: str
+function doubleToString(_double_: float): str!
+  decl out: str!
   inline_c
     *out = scl_alloc(100);
 	  sprintf(*out, "%f", *_double_);
@@ -237,7 +236,7 @@ function toShort(_val_: int): int
   _val_ 0xffff & return
 end
 
-function toChars(_str_: str!): Array
+function toChars(_str_: str!): Array!
   # decl _len_: int _str_ strlen => _len_
   decl _arr_: Array! _str_ strlen Array::new => _arr_
 

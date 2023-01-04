@@ -136,13 +136,17 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
+                bool canReturnNil = true;
                 if (tokens[i + 1].getValue() == "!") {
                     type += "!";
+                    canReturnNil = false;
                     i++;
                 }
                 func->setReturnType(type);
                 if (namedReturn.size()) {
-                    func->setNamedReturnValue(Variable(namedReturn, type, false, true));
+                    Variable v = Variable(namedReturn, type, false, true);
+                    v.canBeNil = canReturnNil;
+                    func->setNamedReturnValue(v);
                 }
             } else {
                 FPResult result;
@@ -335,13 +339,17 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
+                bool canReturnNil = true;
                 if (tokens[i + 1].getValue() == "!") {
                     type += "!";
+                    canReturnNil = false;
                     i++;
                 }
                 method->setReturnType(type);
                 if (namedReturn.size()) {
-                    method->setNamedReturnValue(Variable(namedReturn, type, false, true));
+                    Variable v = Variable(namedReturn, type, false, true);
+                    v.canBeNil = canReturnNil;
+                    method->setNamedReturnValue(v);
                 }
             } else {
                 FPResult result;

@@ -57,11 +57,11 @@ sealed struct Map is IIterable, IFinalizable
 
   export function next(): MapEntry!
     self._pos 1 + => self._pos
-    self._pos self._data Array:get return
+    self._pos self._data Array:get as MapEntry! return
   end
 
   export function begin(): MapEntry!
     0 => self._pos
-    self._pos self._data Array:get return
+    self._pos self._data Array:get as MapEntry! return
   end
 end

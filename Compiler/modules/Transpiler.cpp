@@ -656,7 +656,7 @@ namespace sclc {
                     typeStack.pop();
                 typeStack.push(type + "!");
             }
-            append("if (stack.data[stack.ptr - 1].i == 0) scl_assert(0, \"%s:%d:%d: Not nil assertion failed!\");\n", body[i].getFile().c_str(), body[i].getLine(), body[i].getColumn());
+            append("if (stack.data[stack.ptr - 1].i == 0) scl_assert(0, \"Not nil assertion failed!\");\n");
         } else if (body[i].getValue() == "?") {
             if (typeStackTop.size() && typeStackTop.at(typeStackTop.size() - 1) != '!') {
                 std::string type = typeStackTop;
@@ -667,23 +667,15 @@ namespace sclc {
             append("if (stack.data[stack.ptr - 1].i == 0) {\n");
             scopeDepth++;
             append("callstk.ptr--;\n");
-            if (return_type == "void")
-                append("return;\n");
-            else {
-                if (function->hasNamedReturnValue) {
-                    append("return (%s) Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
-                } else {
-                    if (return_type == "scl_str") {
-                        append("return stack.data[--stack.ptr].s;\n");
-                    } else if (return_type == "scl_int") {
-                        append("return stack.data[--stack.ptr].i;\n");
-                    } else if (return_type == "scl_float") {
-                        append("return stack.data[--stack.ptr].f;\n");
-                    } else if (return_type == "scl_any") {
-                        append("return stack.data[--stack.ptr].v;\n");
-                    } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
-                        append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
-                    }
+            if (function->getReturnType().at(function->getReturnType().size() - 1) == '!') {
+                transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
+                warns.push_back(err);
+                append("scl_assert(0, \"Not nil assertion failed!\");\n");
+            } else {
+                if (return_type == "void")
+                    append("return;\n");
+                else {
+                    append("return 0;\n");
                 }
             }
             scopeDepth--;
@@ -889,7 +881,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
                 debugPrintPush();
             }
-            typeStack.push(container.getMemberType(memberName) + (!container.getMember(memberName).canBeNil ? "!" : ""));
+            typeStack.push(container.getMemberType(memberName) + (!container.getMember(memberName).canBeNil ? "" : ""));
         } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
             if (body[i + 1].getType() == tok_double_column) {
                 std::string struct_ = body[i].getValue();
@@ -1011,7 +1003,7 @@ namespace sclc {
                             append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                             debugPrintPush();
                         }
-                        typeStack.push(v.getType() + (!v.canBeNil ? "!" : ""));
+                        typeStack.push(v.getType() + (!v.canBeNil ? "" : ""));
                     }
                 }
             }
@@ -1025,7 +1017,7 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                 debugPrintPush();
             }
-            typeStack.push(v.getType() + (!v.canBeNil ? "!" : ""));
+            typeStack.push(v.getType() + (!v.canBeNil ? "" : ""));
         } else if (function->isMethod) {
             Method* m = static_cast<Method*>(function);
             Struct s = getStructByName(result, m->getMemberType());
@@ -1087,7 +1079,7 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Var_self->%s;\n", body[i].getValue().c_str());
                     debugPrintPush();
                 }
-                typeStack.push(mem.getType() + (!mem.canBeNil ? "!" : ""));
+                typeStack.push(mem.getType() + (!mem.canBeNil ? "" : ""));
             } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                 std::string loadFrom = s.getName() + "$" + body[i].getValue();
                 Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
@@ -1098,7 +1090,7 @@ namespace sclc {
                     append("stack.data[stack.ptr++].v = (scl_any) Var_%s;\n", loadFrom.c_str());
                     debugPrintPush();
                 }
-                typeStack.push(v.getType() + (!v.canBeNil ? "!" : ""));
+                typeStack.push(v.getType() + (!v.canBeNil ? "" : ""));
             } else {
                 transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -2619,7 +2611,11 @@ namespace sclc {
     handler(FalsyType) {
         noUnused;
         append("stack.data[stack.ptr++].v = (scl_any) 0;\n");
-        typeStack.push("bool!");
+        if (body[i].getType() == tok_nil) {
+            typeStack.push("any");
+        } else {
+            typeStack.push("bool!");
+        }
         debugPrintPush();
     }
 
@@ -2775,13 +2771,32 @@ namespace sclc {
         noUnused;
         append("callstk.ptr--;\n");
 
+        if (function->getReturnType().at(function->getReturnType().size() - 1) == '!') {
+            if (function->hasNamedReturnValue) {
+                if (function->getNamedReturnValue().getType().size() && function->getNamedReturnValue().getType().at(function->getNamedReturnValue().getType().size() - 1) != '!') {
+                    transpilerError("Returning maybe-nil type '" + function->getNamedReturnValue().getType() + "' from function with not-nil return type '" + function->getReturnType() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+            } else {
+                if (typeStackTop.size() && typeStackTop.at(typeStackTop.size() - 1) != '!') {
+                    transpilerError("Returning maybe-nil type '" + typeStackTop + "' from function with not-nil return type '" + function->getReturnType() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+            }
+            append("scl_assert(stack.data[stack.ptr - 1].i, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getReturnType().c_str());
+        }
+
         if (return_type == "void")
             append("return;\n");
         else {
             if (function->hasNamedReturnValue) {
-                append("return (%s) Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
+                std::string type = sclTypeToCType(result, function->getNamedReturnValue().getType());
+                if (type == "scl__String") type = "scl_str";
+                append("return (%s) Var_%s;\n", type.c_str(), function->getNamedReturnValue().getName().c_str());
             } else {
-                if (return_type == "scl_str") {
+                if (return_type == "scl_str" || return_type == "scl__String") {
                     append("return stack.data[--stack.ptr].s;\n");
                 } else if (return_type == "scl_int") {
                     append("return stack.data[--stack.ptr].i;\n");
@@ -2790,7 +2805,8 @@ namespace sclc {
                 } else if (return_type == "scl_any") {
                     append("return stack.data[--stack.ptr].v;\n");
                 } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
-                    append("return (%s) stack.data[--stack.ptr].i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
+                    std::string type = sclTypeToCType(result, function->getReturnType());
+                    append("return (%s) stack.data[--stack.ptr].i;\n", type.c_str());
                 }
             }
         }
@@ -2905,9 +2921,17 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+        
+        if (typeStackTop.size() && typeStackTop.at(typeStackTop.size() - 1) == '!') {
+            if (i + 1 < body.size() && body[i + 1].getValue() != "!") {
+                transpilerError("Cannot cast not-nil type '" + typeStackTop + "' to maybe-nil type '" + body[i].getValue() + "'", i - 1);
+                return;
+            }
+        }
+
         if (typeStack.size())
             typeStack.pop();
-        
+
         if (i + 1 < body.size() && body[i + 1].getValue() == "!") {
             append("scl_assert(stack.data[stack.ptr - 1].i, \"Nil cannot be cast to non-nil type '%s!'\");\n", body[i].getValue().c_str());
             typeStack.push(body[i].getValue() + "!");
@@ -2941,7 +2965,7 @@ namespace sclc {
             return;
         }
         if (typeStackTop.size() && typeStackTop.at(typeStackTop.size() - 1) != '!') {
-            transpilerError("Member acces on maybe-nil type '" + typeStackTop + "'", i);
+            transpilerError("Member access on maybe-nil type '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
         }
@@ -2952,15 +2976,7 @@ namespace sclc {
             append("stack.data[stack.ptr - 1].v = (scl_any) ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         if (typeStack.size())
             typeStack.pop();
-        typeStack.push(mem.getType() + (!mem.canBeNil ? "!" : ""));
-        if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
-            ITER_INC;
-            handle(Dot);
-        }
-        if (i + 2 < body.size() && body[i + 1].getType() == tok_column) {
-            ITER_INC;
-            handle(Column);
-        }
+        typeStack.push(mem.getType() + (!mem.canBeNil ? "" : ""));
     }
 
     handler(Column) {
@@ -3004,14 +3020,6 @@ namespace sclc {
         } else {
             append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
         }
-        if (i + 2 < body.size() && body[i + 1].getType() == tok_dot) {
-            ITER_INC;
-            handle(Dot);
-        }
-        if (i + 2 < body.size() && body[i + 1].getType() == tok_column) {
-            ITER_INC;
-            handle(Column);
-        }
     }
 
     handler(Token) {
@@ -3030,6 +3038,7 @@ namespace sclc {
             }
         } else {
             switch (body[i].getType()) {
+                case tok_question_mark:
                 case tok_identifier: {
                     handle(Identifier);
                     break;
@@ -3573,7 +3582,9 @@ namespace sclc {
                 for (ssize_t i = (ssize_t) function->getArgs().size() - 1; i >= 0; i--) {
                     Variable var = function->getArgs()[i];
                     vars[varDepth].push_back(var);
-                    arguments += sclTypeToCType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                    std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                    if (type == "_String") type = "str";
+                    arguments += type + " Var_" + function->getArgs()[i].getName();
                     if (i) {
                         arguments += ", ";
                     }
@@ -3637,6 +3648,7 @@ namespace sclc {
                 Method* m = static_cast<Method*>(function);
                 append("callstk.data[callstk.ptr++].v = \"%s -> <runtime-checks>\";\n", sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str());
                 append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
+                scopeDepth++;
                 append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
                 append("if (method != NULL) {\n");
                 if (sclTypeToCType(result, m->getReturnType()) != "void") {
