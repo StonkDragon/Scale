@@ -348,7 +348,7 @@ namespace sclc
     }
     
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
-        if (type == "str") type = "_String";
+        type = sclConvertToStructType(type);
         if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
         if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
         if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
@@ -396,7 +396,7 @@ namespace sclc
     }
 
     std::vector<Method*> methodsOnType(TPResult res, std::string type) {
-        if (type == "str") type = "_String";
+        type = sclConvertToStructType(type);
 
         std::vector<Method*> methods;
 
@@ -425,7 +425,7 @@ namespace sclc
     }
 
     Struct getStructByName(TPResult result, std::string name) {
-        if (name == "str") name = "_String";
+        name = sclConvertToStructType(name);
         for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
@@ -627,5 +627,14 @@ namespace sclc
         if (type == "any") return "_Any";
 
         return type;
+    }
+
+    bool sclIsProhibitedInit(std::string s) {
+        if (s == "_String") return true;
+        if (s == "_Integer") return true;
+        if (s == "_Float") return true;
+        if (s == "_Any") return true;
+
+        return false;
     }
 } // namespace sclc

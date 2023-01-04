@@ -59,10 +59,8 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
             for (ssize_t m = f->getArgs().size() - 2; m >= 0; m--) {
-                std::string typeA = f->getArgs()[m].getType();
-                std::string typeB = typeStackTop;
-                if (typeA == "str") typeA = "_String";
-                if (typeB == "str") typeB = "_String";
+                std::string typeA = sclConvertToStructType(f->getArgs()[m].getType());
+                std::string typeB = sclConvertToStructType(ypeStackTop);
                 if (typeA != typeB) {
                     equals = false;
                 }

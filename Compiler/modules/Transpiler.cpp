@@ -852,7 +852,7 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
-                if (s.getName() == "_String" && (body[i].getValue() == "new" || body[i].getValue() == "default")) {
+                if (scIsProhibitedInit(.getName()) && (body[i].getValue() == "new" || body[i].getValue() == "default")) {
                     transpilerError("Explicit instanciation of struct '_String' is not allowed!", i);
                     errors.push_back(err);
                     return;

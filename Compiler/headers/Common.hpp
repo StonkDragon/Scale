@@ -220,6 +220,7 @@ namespace sclc {
     bool hasGlobal(TPResult result, std::string name);
     FPResult parseType(std::vector<Token> tokens, size_t* i);
     std::string sclConvertToStructType(std::string type);
+    bool sclIsProhibitedInit(std::string s);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {
