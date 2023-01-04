@@ -4,7 +4,7 @@ struct Foo
 end
 
 function main(): none
-  decl f: mut Foo!
+  decl f: mut Foo
   
   # instanciate Foo
   # Foo::new and new Foo are functionally equivalent

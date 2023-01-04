@@ -37,14 +37,14 @@ namespace sclc
             this->isConst = isConst;
             this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
-            this->canBeNil = true;
+            this->canBeNil = false;
         }
         ~Variable() {}
         std::string getName() {
             return name;
         }
-        std::string getType() {
-            return type + (!canBeNil ? "!" : "");
+        std::string getType() const {
+            return type + (!canBeNil ? "" : "?");
         }
         void setName(std::string name) {
             this->name = name;
@@ -57,10 +57,10 @@ namespace sclc
         }
         bool isWritableFrom(Function* f, VarAccess accessType);
         inline bool operator==(const Variable& other) const {
-            if (this->type == "?" || other.type == "?") {
+            if (this->getType() == "?" || other.getType() == "?") {
                 return this->name == other.name;
             }
-            return this->name == other.name && this->type == other.type;
+            return this->name == other.name && this->getType() == other.getType();
         }
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);

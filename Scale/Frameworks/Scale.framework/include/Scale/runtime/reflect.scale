@@ -32,7 +32,7 @@ sealed struct Reflect
         end_inline
     end
 
-    static function getStruct(structName: str) s: Struct
+    static function getStruct(structName: str) s: Struct?
         inline_c
             *s = scl_typeinfo_of(hash1(*structName));
             scl_add_struct(*s);
@@ -40,7 +40,7 @@ sealed struct Reflect
         return
     end
 
-    static function getStructByType(type: int) s: Struct
+    static function getStructByType(type: int) s: Struct?
         inline_c
             *s = scl_typeinfo_of(*type);
             scl_add_struct(*s);

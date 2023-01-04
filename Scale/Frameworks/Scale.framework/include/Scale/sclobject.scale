@@ -5,9 +5,9 @@ import Scale.util.hashable
 import Scale.util.finalizable
 
 struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable, IFinalizable
-    function toString(): str!
-        decl typename: mut str!
-        decl address: mut str!
+    function toString(): str
+        decl typename: mut str
+        decl address: mut str
         inline_c
             *typename = (*self)->$__type_name__;
             *address = scl_alloc(19);
@@ -17,15 +17,15 @@ struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable, IFinaliza
         typename "@" + address + return
     end
 
-    function ==(other: SclObject!): bool
+    function ==(other: SclObject): bool
         self as any other as any == return
     end
 
-    function equals(other: SclObject!): bool
+    function equals(other: SclObject): bool
         self other == return
     end
 
-    function clone() instance: SclObject!
+    function clone() instance: SclObject
         decl sz: mut int
         inline_c
             *sz = (*self)->$__size__;

@@ -391,7 +391,9 @@ namespace sclc
         if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
         if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
 
-        if (type == "") return nullptr;
+        if (type == "") {
+            return nullptr;
+        }
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
@@ -635,7 +637,7 @@ namespace sclc
     }
 
     std::string sclConvertToStructType(std::string type) {
-        while (type.size() && type.at(type.size() - 1) == '!')
+        while (typeCanBeNil(type))
             type = type.substr(0, type.size() - 1);
 
         if (type == "str") return "_String";
@@ -644,9 +646,17 @@ namespace sclc
     }
 
     bool sclIsProhibitedInit(std::string s) {
-        if (s.size() && s.at(s.size() - 1) == '!') s = s.substr(0, s.size() - 1);
+        if (s.size() > 1 && s.back() == '?') s = s.substr(0, s.size() - 1);
         if (s == "_String") return true;
 
         return false;
+    }
+
+    bool typeCanBeNil(std::string s) {
+        return isPrimitiveType(s) || (s.size() > 1 && s.back() == '?');
+    }
+
+    bool isPrimitiveType(std::string s) {
+        return s == "int" || s == "float" || s == "any" || s == "bool";
     }
 } // namespace sclc

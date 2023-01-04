@@ -80,8 +80,8 @@ namespace sclc {
                         continue;
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "!") {
-                        v.canBeNil = false;
+                    if (tokens[i + 1].getValue() == "?") {
+                        v.canBeNil = true;
                         i++;
                     }
                     func->addArgument(v);
@@ -136,10 +136,10 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
-                bool canReturnNil = true;
-                if (tokens[i + 1].getValue() == "!") {
-                    type += "!";
-                    canReturnNil = false;
+                bool canReturnNil = false;
+                if (tokens[i + 1].getValue() == "?") {
+                    canReturnNil = true;
+                    type += "?";
                     i++;
                 }
                 func->setReturnType(type);
@@ -279,8 +279,8 @@ namespace sclc {
                         continue;
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "!") {
-                        v.canBeNil = false;
+                    if (tokens[i + 1].getValue() == "?") {
+                        v.canBeNil = true;
                         i++;
                     }
                     method->addArgument(v);
@@ -339,10 +339,10 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
-                bool canReturnNil = true;
-                if (tokens[i + 1].getValue() == "!") {
-                    type += "!";
-                    canReturnNil = false;
+                bool canReturnNil = false;
+                if (tokens[i + 1].getValue() == "?") {
+                    canReturnNil = true;
+                    type += "?";
                     i++;
                 }
                 method->setReturnType(type);
@@ -471,6 +471,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
                 }
+
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     bool containsB = false;
@@ -480,7 +481,8 @@ namespace sclc {
                             break;
                         }
                     }
-                    if (!containsB) {
+                    
+                    if (currentFunction->isMethod || !containsB) {
                         functions.push_back(currentFunction);
                     } else {
                         FPResult result;
@@ -959,8 +961,8 @@ namespace sclc {
                         }
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "!") {
-                        v.canBeNil = false;
+                    if (tokens[i + 1].getValue() == "?") {
+                        v.canBeNil = true;
                         i++;
                     }
                     extern_globals.push_back(v);
@@ -1031,8 +1033,8 @@ namespace sclc {
                 }
                 nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
-                if (tokens[i + 1].getValue() == "!") {
-                    v.canBeNil = false;
+                if (tokens[i + 1].getValue() == "?") {
+                    v.canBeNil = true;
                     i++;
                 }
                 globals.push_back(v);
@@ -1092,8 +1094,8 @@ namespace sclc {
                 }
                 nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
-                if (tokens[i + 1].getValue() == "!") {
-                    v.canBeNil = false;
+                if (tokens[i + 1].getValue() == "?") {
+                    v.canBeNil = true;
                     i++;
                 }
                 currentContainer->addMember(v);
@@ -1158,8 +1160,8 @@ namespace sclc {
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
                     nextAttributes.clear();
                     Variable v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "!") {
-                        v.canBeNil = false;
+                    if (tokens[i + 1].getValue() == "?") {
+                        v.canBeNil = true;
                         i++;
                     }
                     globals.push_back(v);
@@ -1180,23 +1182,23 @@ namespace sclc {
                     }
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
-                        if (tokens[i + 1].getValue() == "!") {
-                            v.canBeNil = false;
+                        if (tokens[i + 1].getValue() == "?") {
+                            v.canBeNil = true;
                             i++;
                         }
                         currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
-                            if (tokens[i + 1].getValue() == "!") {
-                                v.canBeNil = false;
+                            if (tokens[i + 1].getValue() == "?") {
+                                v.canBeNil = true;
                                 i++;
                             }
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
-                            if (tokens[i + 1].getValue() == "!") {
-                                v.canBeNil = false;
+                            if (tokens[i + 1].getValue() == "?") {
+                                v.canBeNil = true;
                                 i++;
                             }
                             currentStruct->addMember(v);

@@ -12,7 +12,7 @@ sealed struct MapEntry
 end
 
 sealed struct Map is IIterable, IFinalizable
-  decl _data: Array!
+  decl _data: Array
   decl _pos: int
 
   export function init(size: int): none
@@ -23,12 +23,12 @@ sealed struct Map is IIterable, IFinalizable
     0 => self._pos
   end
 
-  export function get(key: str!): any
+  export function get(key: str): any?
     for i in 0 to self._data.count do
       decl entry: MapEntry i self._data:get => entry
       if entry nil == then continue fi
 
-      entry => decl notNilEntry: MapEntry!
+      entry => decl notNilEntry: MapEntry
       if notNilEntry.key nil == then continue fi
       if key notNilEntry.key == then
         notNilEntry.value return
@@ -37,13 +37,13 @@ sealed struct Map is IIterable, IFinalizable
     nil return
   end
 
-  export function set(key: str!, value: any): none
+  export function set(key: str, value: any): none
     for i in 0 to self._data.count do
-      i self._data:get => decl entry: mut MapEntry
+      i self._data:get => decl entry: mut MapEntry?
       if entry nil == then
         i key value MapEntry::new self._data:set
         return
-      elif entry as MapEntry!.key key:equals then
+      elif entry as MapEntry.key key:equals then
         value => entry.value
         return
       fi
@@ -55,13 +55,13 @@ sealed struct Map is IIterable, IFinalizable
     self._pos self._data Array.count < return
   end
 
-  export function next(): MapEntry!
+  export function next(): MapEntry?
     self._pos 1 + => self._pos
-    self._pos self._data Array:get as MapEntry! return
+    self._pos self._data Array:get as MapEntry? return
   end
 
-  export function begin(): MapEntry!
+  export function begin(): MapEntry?
     0 => self._pos
-    self._pos self._data Array:get as MapEntry! return
+    self._pos self._data Array:get as MapEntry? return
   end
 end

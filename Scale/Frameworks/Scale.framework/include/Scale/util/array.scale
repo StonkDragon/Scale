@@ -28,7 +28,7 @@ sealed struct Array is IIterable, IFinalizable
     end_inline
   end
 
-  export function get(index: int): any
+  export function get(index: int): any?
     if index 0 <= then self.values @ return fi
     self.values index 3 << + @ return
   end
@@ -39,7 +39,7 @@ sealed struct Array is IIterable, IFinalizable
     value => @tmp
   end
 
-  export function top(): any
+  export function top(): any?
     self.values self.count 1 - 3 << + @ return
   end
 
@@ -84,18 +84,18 @@ sealed struct Array is IIterable, IFinalizable
     self._pos self.count < return
   end
 
-  export function next(): any
+  export function next(): any?
     self._pos 1 + => self._pos
     self._pos self:get return
   end
 
-  export function begin(): any
+  export function begin(): any?
     0 self:get
     0 => self._pos
     return
   end
 
-  export function toString() s: str!
+  export function toString() s: str
     if self.count 0 == then
       "{}" => s
     else
@@ -106,7 +106,7 @@ sealed struct Array is IIterable, IFinalizable
           s ", " + => s
         fi
         if elem is SclObject then
-          s elem as SclObject!:toString + => s
+          s elem as SclObject:toString + => s
         else
           s elem longToString + => s
         fi
@@ -120,7 +120,7 @@ sealed struct Array is IIterable, IFinalizable
     self.values free
   end
 
-  static function fromPointerCollection(count: int, values: [any]) arr: Array!
+  static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do
       values i 8 * + @ arr:push

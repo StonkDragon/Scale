@@ -1,5 +1,5 @@
-function createList(len: int): Array!
-    len Array::new => decl arr: Array!
+function createList(len: int): Array
+    len Array::new => decl arr: Array
     decl i: int 0 => i
     while i len < do
         i len i - arr:set
@@ -8,7 +8,7 @@ function createList(len: int): Array!
     arr return
 end
 
-function printArray(arr: Array!): none
+function printArray(arr: Array): none
     decl i: int 0 => i
     while i arr.capacity < do
         i arr:get putint
@@ -17,7 +17,7 @@ function printArray(arr: Array!): none
 end
 
 function main(): none
-    decl list: Array! 1000 createList => list
+    decl list: Array 1000 createList => list
     list printArray
     list:sort
     list printArray

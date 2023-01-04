@@ -1,73 +1,73 @@
 
-function fopen(_filename_: str!, _mode_: str!): any
-  decl _f_: any
+function fopen(_filename_: str!, _mode_: str!): any?
+  decl _f_: any?
   inline_c
-  _f_ = fopen(*_filename_, *_mode_);
+  *_f_ = fopen(*_filename_, *_mode_);
   end_inline
   _f_ return
 end
 
-function fclose(_file_: any!): none
+function fclose(_file_: any): none
   inline_c
   fclose(*_file_);
   end_inline
 end
 
-function ftell(_file_: any!): int
+function ftell(_file_: any): int
   inline_c
   stack.data[stack.ptr++].i = ftell(*_file_);
   end_inline
   return
 end
 
-function fileno(_file_: any!): int
+function fileno(_file_: any): int
   inline_c
   stack.data[stack.ptr++].i = fileno(*_file_);
   end_inline
   return
 end
 
-function fseek(_file_: any!, _whence_: int, _offset_: int): none
+function fseek(_file_: any, _whence_: int, _offset_: int): none
   inline_c
   fseek(*_file_, *_offset_, *_whence_);
   end_inline
 end
 
-function fwrite(_buf_: any!, _size_: int, _file_: any!): none
+function fwrite(_buf_: any, _size_: int, _file_: any): none
   inline_c
   int _ignored = fwrite(*_buf_, 1, *_size_, *_file_); (void) _ignored;
   end_inline
 end
 
-function fputs(_file_: any!, _str_: str!): none
+function fputs(_file_: any, _str_: str): none
   _str_ _str_ strlen _file_ fwrite
   "\n" 1 _file_ fwrite
 end
 
-function fputint(_file_: any!, _int_: int): none
+function fputint(_file_: any, _int_: int): none
   _file_ _int_ longToString fputs
 end
 
-function fputfloat(_file_: any!, _float_: float): none
+function fputfloat(_file_: any, _float_: float): none
   _file_ _float_ doubleToString fputs
 end
 
-function fread(_f_: any!, _size_: int): [any]
-  decl _buf_: [any] _size_ malloc => _buf_
+function fread(_f_: any, _size_: int): [any]?
+  decl _buf_: [any]? _size_ malloc => _buf_
   inline_c
   int _ignored = fread(*_buf_, 1, *_size_, *_f_); (void) _ignored;
   end_inline
   _buf_ return
 end
 
-function fseekstart(_f_: any!, _offset_: int): none
+function fseekstart(_f_: any, _offset_: int): none
   _f_ 0 _offset_ fseek
 end
 
-function fseekend(_f_: any!, _offset_: int): none
+function fseekend(_f_: any, _offset_: int): none
   _f_ 2 _offset_ fseek
 end
 
-function fseekcur(_f_: any!, _offset_: int): none
+function fseekcur(_f_: any, _offset_: int): none
   _f_ 1 _offset_ fseek
 end

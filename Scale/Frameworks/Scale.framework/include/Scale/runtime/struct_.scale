@@ -15,7 +15,7 @@ sealed struct Struct
         _methodsCount _methods Array::fromPointerCollection return
     end
 
-    function getMethod(name: str): Method
+    function getMethod(name: str): Method?
         getMethods => decl methods: Array
         foreach method in methods do
             inline_c
@@ -36,7 +36,7 @@ sealed struct Struct
         _type return
     end
 
-    function getSuperStruct(): Struct
+    function getSuperStruct(): Struct?
         if "SclObject" _name == then
             nil return
         fi

@@ -1,17 +1,17 @@
 sealed struct _String is IEquatable, ICloneable, IStringifyable
-  function +(other: str!): str!
+  function +(other: str): str
     other self:prepend return
   end
 
-  function clone(): str!
+  function clone(): str
     self strdup return
   end
 
-  function ++(c: int): str!
-    self:size 1 + malloc => decl newStr: mut str!
+  function ++(c: int): str
+    self:size 1 + malloc => decl newStr: mut str
     newStr self strcpy
 
-    newStr self:size + => decl tmp: mut str!
+    newStr self:size + => decl tmp: mut str
     c => @ tmp
     tmp 1 + => tmp
     0 => @ tmp
@@ -19,20 +19,20 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
     newStr return
   end
 
-  function append(other: str!): str!
+  function append(other: str): str
     self other concat return
   end
 
-  function prepend(other: str!): str!
+  function prepend(other: str): str
     other self concat return
   end
 
-  function equals(other: str!): bool
+  function equals(other: str): bool
     self other strcmp return
   end
 
-  function ==(other: str!): bool
-    other self!!:equals return
+  function ==(other: str): bool
+    other self:equals return
   end
 
   function size(): int
@@ -47,7 +47,7 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
     self i + @ toChar return
   end
 
-  function toString(): str!
+  function toString(): str
     self as str return
   end
 end

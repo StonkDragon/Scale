@@ -221,6 +221,8 @@ namespace sclc {
     FPResult parseType(std::vector<Token> tokens, size_t* i);
     std::string sclConvertToStructType(std::string type);
     bool sclIsProhibitedInit(std::string s);
+    bool typeCanBeNil(std::string s);
+    bool isPrimitiveType(std::string s);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {
