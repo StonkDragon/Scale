@@ -98,6 +98,7 @@ scl_any		scl_realloc(scl_any ptr, size_t size);
 scl_any		scl_alloc(size_t size);
 void		scl_free(scl_any ptr);
 void		scl_assert(scl_int b, scl_str msg);
+void		scl_finalize();
 
 hash		hash1(char* data);
 scl_any		scl_alloc_struct(size_t size, scl_str type_name, scl_int super);
@@ -106,6 +107,7 @@ scl_any		scl_add_struct(scl_any ptr);
 scl_int		scl_struct_is_type(scl_any ptr, scl_int typeId);
 scl_any		scl_get_method_on_type(unsigned long long type, unsigned long long method);
 size_t		scl_find_index_of_struct(scl_any ptr);
+void		scl_free_struct_no_finalize(scl_any ptr);
 
 void		scl_reflect_call(scl_int func);
 void		scl_reflect_call_method(scl_int func);

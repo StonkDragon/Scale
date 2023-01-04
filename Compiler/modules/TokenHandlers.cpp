@@ -23,21 +23,21 @@ namespace sclc {
         if (typeStack.size())
             typeStack.pop();
         if (op == "+" || op == "-" || op == "*" || op == "/") {
-            if (typeA == "int" || typeA == "any") {
-                if (typeB == "float") {
+            if (strstarts(typeA, "int") || strstarts(typeA, "any")) {
+                if (strstarts(typeB, "float")) {
                     append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s ((scl_float) stack.data[stack.ptr + 1].i);\n", op.c_str());
-                    typeStack.push("float");
+                    typeStack.push("float!");
                 } else {
                     append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %s stack.data[stack.ptr + 1].i;\n", op.c_str());
-                    typeStack.push("int");
+                    typeStack.push("int!");
                 }
             } else {
-                if (typeB == "float") {
+                if (strstarts(typeB, "float")) {
                     append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s stack.data[stack.ptr + 1].f;\n", op.c_str());
-                    typeStack.push("float");
+                    typeStack.push("float!");
                 } else {
                     append("stack.ptr -= 2; stack.data[stack.ptr++].f = ((scl_float) stack.data[stack.ptr].i) %s stack.data[stack.ptr + 1].f;\n", op.c_str());
-                    typeStack.push("float");
+                    typeStack.push("float!");
                 }
             }
             return true;
@@ -50,7 +50,7 @@ namespace sclc {
     bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
         if (type.size() == 0)
             return false;
-        if (type == "int" || type == "float" || type == "any") {
+        if (strstarts(type, "int") || strstarts(type, "float") || strstarts(type, "any")) {
             return handlePrimitiveOperator(fp, scopeDepth, op, type);
         }
         if (hasMethod(result, op, type)) {
@@ -60,7 +60,7 @@ namespace sclc {
                 typeStack.pop();
             for (ssize_t m = f->getArgs().size() - 2; m >= 0; m--) {
                 std::string typeA = sclConvertToStructType(f->getArgs()[m].getType());
-                std::string typeB = sclConvertToStructType(ypeStackTop);
+                std::string typeB = sclConvertToStructType(typeStackTop);
                 if (typeA != typeB) {
                     equals = false;
                 }
@@ -95,7 +95,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -106,7 +106,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -117,7 +117,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -128,7 +128,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -139,7 +139,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -150,7 +150,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -161,7 +161,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -172,7 +172,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -181,7 +181,7 @@ namespace sclc {
                 append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -192,7 +192,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -203,7 +203,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
+                typeStack.push("int!");
                 break;
             }
 
@@ -214,16 +214,7 @@ namespace sclc {
                     typeStack.pop();
                 if (typeStack.size())
                     typeStack.pop();
-                typeStack.push("int");
-                break;
-            }
-
-            case tok_question_mark: {
-                if (handleOverriddenOperator(result, fp, scopeDepth, "?", typeStackTop)) break;
-                append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v == 0;\n");
-                if (typeStack.size())
-                    typeStack.pop();
-                typeStack.push("bool");
+                typeStack.push("int!");
                 break;
             }
 
@@ -247,7 +238,7 @@ namespace sclc {
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         append("stack.data[stack.ptr++].i = %s;\n", token.getValue().c_str());
         if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
-        typeStack.push("int");
+        typeStack.push("int!");
         FPResult result;
         result.success = true;
         result.message = "";
@@ -256,7 +247,7 @@ namespace sclc {
 
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         append("stack.data[stack.ptr++].f = %s;\n", token.getValue().c_str());
-        typeStack.push("float");
+        typeStack.push("float!");
         if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
         FPResult result;
         result.success = true;

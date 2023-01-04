@@ -26,7 +26,7 @@ scl_any scl_alloc(size_t size) {
 }
 
 scl_any scl_realloc(scl_any ptr, size_t size) {
-	scl_free_struct(ptr);
+	scl_free_struct_no_finalize(ptr);
 	ptr = realloc(ptr, size);
 	scl_add_struct(ptr);
 	if (!ptr) {
@@ -37,8 +37,10 @@ scl_any scl_realloc(scl_any ptr, size_t size) {
 }
 
 void scl_free(scl_any ptr) {
-	scl_free_struct(ptr);
-	free(ptr);
+	if (ptr) {
+		scl_free_struct(ptr);
+		free(ptr);
+	}
 }
 
 #pragma endregion
@@ -48,6 +50,7 @@ void scl_free(scl_any ptr) {
 void scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
+		printf("%s:%lld:%lld: ", current_file, current_line, current_col);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -219,6 +222,7 @@ struct scl_typeinfo {
   scl_int    			   __size__;
   scl_int                  type;
   scl_str                  name;
+  scl_int                  size;
   scl_int                  super;
   scl_int                  methodscount;
   struct scl_methodinfo**  methods;
@@ -240,6 +244,17 @@ struct sclstruct {
 
 struct sclstruct* allocated_structs[STACK_SIZE];
 size_t allocated_structs_count = 0;
+struct sclstruct* mallocced_structs[STACK_SIZE];
+size_t mallocced_structs_count = 0;
+
+void scl_finalize() {
+	for (size_t i = 0; i < mallocced_structs_count; i++) {
+		if (mallocced_structs[i]) {
+			scl_free(mallocced_structs[i]);
+		}
+		mallocced_structs[i] = 0;
+	}
+}
 
 scl_any scl_typeinfo_of(unsigned long long type) {
 	for (size_t i = 0; i < scl_internal_types_count; i++) {
@@ -251,23 +266,15 @@ scl_any scl_typeinfo_of(unsigned long long type) {
 }
 
 struct scl_typeinfo* scl_find_typeinfo_of(unsigned long long type) {
-	for (size_t i = 0; i < scl_internal_types_count; i++) {
-		if (scl_internal_types[i].type == type) {
-			return (struct scl_typeinfo*) (&scl_internal_types) + (i * sizeof(struct scl_typeinfo));
-		}
-	}
-	return NULL;
+	return (struct scl_typeinfo*) scl_typeinfo_of(type);
 }
 
 scl_any scl_get_method_on_type(unsigned long long type, unsigned long long method) {
 	struct scl_typeinfo* p = scl_find_typeinfo_of(type);
 	while (p) {
-		for (scl_int m = 0; m < scl_internal_methods_size; m++) {
-			if (scl_internal_methods[m]->member_type != p->type) {
-				continue;
-			}
-			if (scl_internal_methods[m]->id == method) {
-				return scl_internal_methods[m]->ptr;
+		for (scl_int m = 0; m < p->methodscount; m++) {
+			if (p->methods[m]->id == method) {
+				return p->methods[m]->ptr;
 			}
 		}
 		p = scl_find_typeinfo_of(p->super);
@@ -277,7 +284,7 @@ scl_any scl_get_method_on_type(unsigned long long type, unsigned long long metho
 
 scl_any scl_add_struct(scl_any ptr) {
 	for (size_t i = 0; i < allocated_structs_count; i++) {
-		if (allocated_structs[i] == 0) {
+		if (allocated_structs[i] == 0 || allocated_structs[i] == ptr) {
 			allocated_structs[i] = ptr;
 			return ptr;
 		}
@@ -292,6 +299,14 @@ scl_any scl_alloc_struct(size_t size, scl_str type_name, scl_int super) {
     ((struct sclstruct*) ptr)->type_name = type_name;
     ((struct sclstruct*) ptr)->super = super;
     ((struct sclstruct*) ptr)->size = size;
+
+	for (size_t i = 0; i < mallocced_structs_count; i++) {
+		if (mallocced_structs[i] == 0 || mallocced_structs[i] == ptr) {
+			mallocced_structs[i] = ptr;
+			return scl_add_struct(ptr);
+		}
+	}
+	mallocced_structs[mallocced_structs_count++] = ptr;
 
 	return scl_add_struct(ptr);
 }
@@ -314,7 +329,25 @@ size_t scl_find_index_of_struct(scl_any ptr) {
     return -1;
 }
 
+void scl_reflect_call_method_SclObject_function_finalize();
+
+void scl_free_struct_no_finalize(scl_any ptr) {
+	size_t i = scl_find_index_of_struct(ptr);
+	while (i != -1) {
+		scl_struct_map_remove(i);
+		i = scl_find_index_of_struct(ptr);
+	}
+}
+
 void scl_free_struct(scl_any ptr) {
+	// scl_reflect_call_method_SclObject_function_finalize();
+	if (scl_find_index_of_struct(ptr) != -1) {
+		scl_any method = scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
+		if (method) {
+			stack.data[stack.ptr++].v = ptr;
+			((void(*)()) method)();
+		}
+	}
 	size_t i = scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		scl_struct_map_remove(i);

@@ -112,9 +112,9 @@ namespace sclc
 
         std::map<std::string, std::map<std::string, std::string>> docs;
         FILE* fp = fopen(file.c_str(), "rb");
-        fseek(fp, 0, SEEK_END);
+        if (fp) fseek(fp, 0, SEEK_END);
         long sz = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
+        if (fp) fseek(fp, 0, SEEK_SET);
         char* data = new char[sz];
         fread(data, 1, sz, fp);
         fclose(fp);
@@ -191,9 +191,9 @@ namespace sclc
     auto parseSclDoc(std::string file) {
         std::map<std::string, std::map<std::string, std::string>> docs;
         FILE* fp = fopen(file.c_str(), "rb");
-        fseek(fp, 0, SEEK_END);
+        if (fp) fseek(fp, 0, SEEK_END);
         long sz = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
+        if (fp) fseek(fp, 0, SEEK_SET);
         char* data = new char[sz];
         fread(data, 1, sz, fp);
         fclose(fp);
@@ -898,9 +898,10 @@ namespace sclc
                 std::string filename = Main.options.files[i];
 
                 if (!std::filesystem::exists(filename)) {
-                    std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << std::endl;
+                    std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
                     return 1;
                 }
+
 
                 Tokenizer tokenizer;
                 Main.tokenizer = &tokenizer;
@@ -909,13 +910,17 @@ namespace sclc
                 if (result.warns.size() > 0) {
                     for (FPResult error : result.warns) {
                         if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
                         }
                         FILE* f = fopen(std::string(error.in).c_str(), "r");
+                        if (!f) {
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                            continue;
+                        }
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
-                        fseek(f, 0, SEEK_SET);
+                        if (f) fseek(f, 0, SEEK_SET);
                         std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
@@ -944,13 +949,17 @@ namespace sclc
                             colorStr = Color::BOLDRED;
                         }
                         if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
                         }
                         FILE* f = fopen(std::string(error.in).c_str(), "r");
+                        if (!f) {
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                            continue;
+                        }
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
-                        fseek(f, 0, SEEK_SET);
+                        if (f) fseek(f, 0, SEEK_SET);
                         std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
@@ -1001,13 +1010,17 @@ namespace sclc
             if (!Main.options.printCflags && result.warns.size() > 0) {
                 for (FPResult error : result.warns) {
                     if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                         continue;
                     }
                     FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
-                    fseek(f, 0, SEEK_SET);
+                    if (f) fseek(f, 0, SEEK_SET);
                     std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
@@ -1036,13 +1049,17 @@ namespace sclc
                         colorStr = Color::BOLDRED;
                     }
                     if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                         continue;
                     }
                     FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
-                    fseek(f, 0, SEEK_SET);
+                    if (f) fseek(f, 0, SEEK_SET);
                     std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     while (fgets(line, 500, f) != NULL) {
@@ -1078,13 +1095,17 @@ namespace sclc
                 if (parseResult.warns.size() > 0) {
                     for (FPResult error : parseResult.warns) {
                         if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
                         }
                         FILE* f = fopen(std::string(error.in).c_str(), "r");
+                        if (!f) {
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                            continue;
+                        }
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
-                        fseek(f, 0, SEEK_SET);
+                        if (f) fseek(f, 0, SEEK_SET);
                         std::cerr << Color::BOLDMAGENTA << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
@@ -1113,13 +1134,17 @@ namespace sclc
                             colorStr = Color::BOLDRED;
                         }
                         if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.message << std::endl;
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
                         }
                         FILE* f = fopen(std::string(error.in).c_str(), "r");
+                        if (!f) {
+                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                            continue;
+                        }
                         char* line = (char*) malloc(sizeof(char) * 500);
                         int i = 1;
-                        fseek(f, 0, SEEK_SET);
+                        if (f) fseek(f, 0, SEEK_SET);
                         std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {

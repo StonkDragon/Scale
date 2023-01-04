@@ -1,7 +1,7 @@
 import Scale.util.iterable
 import Scale.debug
 
-sealed struct Array is IIterable
+sealed struct Array is IIterable, IFinalizable
   decl values: mut readonly [any]
   decl count:      readonly int
   decl capacity:   readonly int
@@ -95,7 +95,7 @@ sealed struct Array is IIterable
     return
   end
 
-  export function toString() s: str
+  export function toString() s: str!
     if self.count 0 == then
       "{}" => s
     else
@@ -106,7 +106,7 @@ sealed struct Array is IIterable
           s ", " + => s
         fi
         if elem is SclObject then
-          s elem as SclObject:toString + => s
+          s elem as SclObject!:toString + => s
         else
           s elem longToString + => s
         fi
@@ -116,7 +116,11 @@ sealed struct Array is IIterable
     return
   end
 
-  static function fromPointerCollection(count: int, values: [any]) arr: Array
+  export function finalize(): none
+    self.values free
+  end
+
+  static function fromPointerCollection(count: int, values: [any]) arr: Array!
     count Array::new => arr
     for i in 0 to count do
       values i 8 * + @ arr:push

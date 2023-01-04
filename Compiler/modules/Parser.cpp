@@ -118,6 +118,7 @@ namespace sclc
                 append("  Function_%s();\n", f->getName().c_str());
             }
         }
+        append("  scl_finalize();\n");
         append("  return return_value;\n");
         append("}\n");
 

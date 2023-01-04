@@ -165,7 +165,7 @@ namespace sclc
 
     bool isOperator(Token token) {
         TokenType type = token.getType();
-        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow || type == tok_question_mark;
+        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow;
     }
 
     bool fileExists(const std::string& name) {
@@ -289,10 +289,16 @@ namespace sclc
         FPResult r;
         r.success = false;
         r.value = "";
+        r.line = body[*i].getLine();
+        r.in = body[*i].getFile();
+        r.column = body[*i].getColumn();
+        r.value = body[*i].getValue();
+        r.type = body[*i].getType();
+        r.message = "Failed to parse type! Token for type: " + body[*i].tostring();
         if (body[*i].getType() == tok_identifier) {
             r.value = body[*i].getValue();
             r.success = true;
-        } else if (body[*i].getType() == tok_question_mark) {
+        } else if (body[*i].getType() == tok_question_mark || body[*i].getValue() == "?") {
             r.value = "?";
             r.success = true;
         } else if (body[*i].getType() == tok_bracket_open) {
@@ -316,6 +322,14 @@ namespace sclc
                 r.type = body[*i].getType();
                 r.success = false;
             }
+        } else {
+            r.success = false;
+            r.line = body[*i].getLine();
+            r.in = body[*i].getFile();
+            r.column = body[*i].getColumn();
+            r.value = body[*i].getValue();
+            r.type = body[*i].getType();
+            r.message = "Unexpected token: '" + body[*i].tostring() + "'";
         }
         return r;
     }
@@ -621,19 +635,15 @@ namespace sclc
     }
 
     std::string sclConvertToStructType(std::string type) {
+        if (type.size() && type.at(type.size() - 1) == '!') type = type.substr(0, type.size() - 1);
         if (type == "str") return "_String";
-        if (type == "int") return "_Integer";
-        if (type == "float") return "_Float";
-        if (type == "any") return "_Any";
 
         return type;
     }
 
     bool sclIsProhibitedInit(std::string s) {
+        if (s.size() && s.at(s.size() - 1) == '!') s = s.substr(0, s.size() - 1);
         if (s == "_String") return true;
-        if (s == "_Integer") return true;
-        if (s == "_Float") return true;
-        if (s == "_Any") return true;
 
         return false;
     }

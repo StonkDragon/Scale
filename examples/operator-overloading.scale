@@ -13,21 +13,18 @@ struct Foo
     function <<(): str "<< operator" return end
     function >>(): str ">> operator" return end
     function **(): str "** operator" return end
-    function .(): str  ". operator"  return end
     function <(): str  "< operator"  return end
     function <=(): str "<= operator" return end
     function >(): str  "> operator"  return end
     function >=(): str ">= operator" return end
     function ==(): str "== operator" return end
     function !(): str  "! operator"  return end
-    function !!(): str "!! operator" return end
     function !=(): str "!= operator" return end
     function &&(): str "&& operator" return end
     function ||(): str "|| operator" return end
     function ++(): str "++ operator" return end
     function --(): str "-- operator" return end
     function @(): str  "@ operator"  return end
-    function ?(): str  "? operator"  return end
 end
 
 function main(): none
@@ -45,21 +42,18 @@ function main(): none
     f << puts
     f >> puts
     f ** puts
-    f.   puts
     f <  puts
     f <= puts
     f >  puts
     f >= puts
     f == puts
     f !  puts
-    f !! puts
     f != puts
     f && puts
     f || puts
     f ++ puts
     f -- puts
     f @  puts
-    f ?  puts
 
     # 0 => f.foo
 end

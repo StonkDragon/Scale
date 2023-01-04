@@ -43,7 +43,7 @@ function breakPoint(): none
   end_inline
 end
 
-function throw(_msg_: str): none
+function throw(_msg_: str!): none
   ConsoleColor::reset _msg_:prepend eputs
   trace
   1 exit

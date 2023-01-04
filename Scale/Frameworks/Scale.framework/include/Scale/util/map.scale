@@ -11,58 +11,56 @@ sealed struct MapEntry
   end
 end
 
-sealed struct Map is IIterable
-  decl _data: Array
+sealed struct Map is IIterable, IFinalizable
+  decl _data: Array!
   decl _pos: int
 
   export function init(size: int): none
-    decl data: Array
-    size Array::new => data
+    size Array::new => self._data
     for i in 0 to size do
-      nil data:push
+      nil self._data:push
     done
-    data => self._data
     0 => self._pos
   end
 
-  export function get(key: str): any
-    decl data: Array self._data => data
-    for i in 0 to data.count do
-      decl entry: MapEntry i data:get => entry
+  export function get(key: str!): any
+    for i in 0 to self._data.count do
+      decl entry: MapEntry i self._data:get => entry
       if entry nil == then continue fi
-      if entry.key nil == then continue fi
-      if key entry.key strcmp then
-        entry.value return
+
+      entry => decl notNilEntry: MapEntry!
+      if notNilEntry.key nil == then continue fi
+      if key notNilEntry.key == then
+        notNilEntry.value return
       fi
     done
     nil return
   end
 
-  export function set(key: str, value: any): none
-    decl data: Array self._data => data
-    for i in 0 to data.count do
-      i data:get => decl entry: mut MapEntry
+  export function set(key: str!, value: any): none
+    for i in 0 to self._data.count do
+      i self._data:get => decl entry: mut MapEntry
       if entry nil == then
-        i key value MapEntry::new data:set
+        i key value MapEntry::new self._data:set
         return
-      elif entry.key key:equals then
+      elif entry as MapEntry!.key key:equals then
         value => entry.value
         return
       fi
     done
-    key value MapEntry::new data:push
+    key value MapEntry::new self._data:push
   end
 
   export function hasNext(): bool
     self._pos self._data Array.count < return
   end
 
-  export function next(): MapEntry
+  export function next(): MapEntry!
     self._pos 1 + => self._pos
     self._pos self._data Array:get return
   end
 
-  export function begin(): MapEntry
+  export function begin(): MapEntry!
     0 => self._pos
     self._pos self._data Array:get return
   end

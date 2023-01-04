@@ -27,6 +27,14 @@ namespace sclc
         int column;
         int line;
         TokenType type;
+
+        FPResult() {
+            success = false;
+            isNote = false;
+            column = 0;
+            line = 0;
+            in = "";
+        }
     };
 
     class TPResult {

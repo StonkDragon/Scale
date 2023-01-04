@@ -79,7 +79,12 @@ namespace sclc {
                         i++;
                         continue;
                     }
-                    func->addArgument(Variable(name, type, isConst, isMut));
+                    Variable v = Variable(name, type, isConst, isMut);
+                    if (tokens[i + 1].getValue() == "!") {
+                        v.canBeNil = false;
+                        i++;
+                    }
+                    func->addArgument(v);
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
@@ -131,6 +136,10 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
+                if (tokens[i + 1].getValue() == "!") {
+                    type += "!";
+                    i++;
+                }
                 func->setReturnType(type);
                 if (namedReturn.size()) {
                     func->setNamedReturnValue(Variable(namedReturn, type, false, true));
@@ -265,7 +274,12 @@ namespace sclc {
                         i++;
                         continue;
                     }
-                    method->addArgument(Variable(name, type, isConst, isMut));
+                    Variable v = Variable(name, type, isConst, isMut);
+                    if (tokens[i + 1].getValue() == "!") {
+                        v.canBeNil = false;
+                        i++;
+                    }
+                    method->addArgument(v);
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for method argument, but got '" + tokens[i].getValue() + "'";
@@ -298,8 +312,9 @@ namespace sclc {
                 continue;
             }
             i++;
-            
-            method->addArgument(Variable("self", memberName));
+            Variable self = Variable("self", memberName);
+            self.canBeNil = false;
+            method->addArgument(self);
 
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
@@ -320,6 +335,10 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
+                if (tokens[i + 1].getValue() == "!") {
+                    type += "!";
+                    i++;
+                }
                 method->setReturnType(type);
                 if (namedReturn.size()) {
                     method->setNamedReturnValue(Variable(namedReturn, type, false, true));
@@ -372,10 +391,13 @@ namespace sclc {
         for (size_t i = 0; i < tokens.size(); i++)
         {
             Token token = tokens[i];
+
+            // std::cout << token.tostring() << std::endl;
+
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define function inside another function.";
+                    result.message = "Cannot define function inside another function. Current function: " + currentFunction->getName();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -387,7 +409,7 @@ namespace sclc {
                 }
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define function inside of a container.";
+                    result.message = "Cannot define function inside of a container. Current container: " + currentContainer->getName();
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -488,7 +510,7 @@ namespace sclc {
             } else if (token.getType() == tok_container_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -500,7 +522,7 @@ namespace sclc {
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -512,7 +534,7 @@ namespace sclc {
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -524,7 +546,7 @@ namespace sclc {
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -569,7 +591,7 @@ namespace sclc {
             } else if (token.getType() == tok_struct_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -581,7 +603,7 @@ namespace sclc {
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -593,7 +615,7 @@ namespace sclc {
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -605,7 +627,7 @@ namespace sclc {
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -748,7 +770,7 @@ namespace sclc {
             } else if (token.getType() == tok_interface_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -760,7 +782,7 @@ namespace sclc {
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -772,7 +794,7 @@ namespace sclc {
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -784,7 +806,7 @@ namespace sclc {
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere?";
+                    result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
                     result.value = token.getValue();
                     result.line = token.getLine();
                     result.in = token.getFile();
@@ -928,7 +950,12 @@ namespace sclc {
                             continue;
                         }
                     }
-                    extern_globals.push_back(Variable(name, type, isMut, isConst));
+                    Variable v = Variable(name, type, isConst, isMut);
+                    if (tokens[i + 1].getValue() == "!") {
+                        v.canBeNil = false;
+                        i++;
+                    }
+                    extern_globals.push_back(v);
                 } else {
                     FPResult result;
                     result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
@@ -995,7 +1022,12 @@ namespace sclc {
                     }
                 }
                 nextAttributes.clear();
-                globals.push_back(Variable(name, type, isConst, isMut));
+                Variable v = Variable(name, type, isConst, isMut);
+                if (tokens[i + 1].getValue() == "!") {
+                    v.canBeNil = false;
+                    i++;
+                }
+                globals.push_back(v);
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -1051,7 +1083,12 @@ namespace sclc {
                     }
                 }
                 nextAttributes.clear();
-                currentContainer->addMember(Variable(name, type, isConst, isMut));
+                Variable v = Variable(name, type, isConst, isMut);
+                if (tokens[i + 1].getValue() == "!") {
+                    v.canBeNil = false;
+                    i++;
+                }
+                currentContainer->addMember(v);
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -1112,7 +1149,12 @@ namespace sclc {
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
                     nextAttributes.clear();
-                    globals.push_back(Variable(currentStruct->getName() + "$" + name, type, isConst, isMut));
+                    Variable v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
+                    if (tokens[i + 1].getValue() == "!") {
+                        v.canBeNil = false;
+                        i++;
+                    }
+                    globals.push_back(v);
                 } else {
                     nextAttributes.clear();
                     if (isConst && isInternalMut) {
@@ -1129,12 +1171,27 @@ namespace sclc {
                         continue;
                     }
                     if (isConst) {
-                        currentStruct->addMember(Variable(name, type, isConst, isMut));
+                        Variable v = Variable(name, type, isConst, isMut);
+                        if (tokens[i + 1].getValue() == "!") {
+                            v.canBeNil = false;
+                            i++;
+                        }
+                        currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
-                            currentStruct->addMember(Variable(name, type, isConst, isMut, currentStruct->getName()));
+                            Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
+                            if (tokens[i + 1].getValue() == "!") {
+                                v.canBeNil = false;
+                                i++;
+                            }
+                            currentStruct->addMember(v);
                         } else {
-                            currentStruct->addMember(Variable(name, type, isConst, isMut));
+                            Variable v = Variable(name, type, isConst, isMut);
+                            if (tokens[i + 1].getValue() == "!") {
+                                v.canBeNil = false;
+                                i++;
+                            }
+                            currentStruct->addMember(v);
                         }
                     }
                 }
