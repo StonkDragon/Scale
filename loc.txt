@@ -1,5 +1,5 @@
      662 Compiler/Common.cpp
-    1247 Compiler/Main.cpp
+    1251 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      232 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -17,11 +17,11 @@
      345 Compiler/modules/DragonConfig.cpp
      102 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     141 Compiler/modules/Parser.cpp
+     143 Compiler/modules/Parser.cpp
     1291 Compiler/modules/SyntaxTree.cpp
      257 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
-    3880 Compiler/modules/Transpiler.cpp
+    3912 Compiler/modules/Transpiler.cpp
      255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -73,4 +73,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   11777 total
+   11815 total
