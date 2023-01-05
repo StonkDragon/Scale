@@ -1129,8 +1129,21 @@ namespace sclc
                 if (parseResult.errors.size() > 0) {
                     for (FPResult error : parseResult.errors) {
                         std::string colorStr;
+                        ssize_t addAtCol = -1;
+                        std::string strToAdd = "";
                         if (error.isNote) {
                             colorStr = Color::BOLDCYAN;
+                            size_t i = error.message.find('\\');
+                            if (i != std::string::npos) {
+                                std::string cmd = error.message.substr(i + 1);
+                                auto data = split(cmd, ";");
+                                error.message = error.message.substr(0, i);
+                                if (data[0] == "insertText") {
+                                    strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
+                                    auto pos = split(data[2], ":");
+                                    addAtCol = std::atoi(pos[1].c_str()) - 1;
+                                }
+                            }
                         } else {
                             colorStr = Color::BOLDRED;
                         }
@@ -1150,7 +1163,10 @@ namespace sclc
                         i = 1;
                         while (fgets(line, 500, f) != NULL) {
                             if (i == error.line) {
-                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                                if (strToAdd.size())
+                                    std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                                else
+                                    std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
                             } else if (i == error.line - 1 || i == error.line - 2) {
                                 if (strlen(line) > 0)
                                     std::cerr << "  " << line;
