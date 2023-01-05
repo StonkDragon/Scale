@@ -4,14 +4,14 @@ sealed struct Method
     decl _ptr:        const any
     decl _memberType: const int
     decl _argCount:   const int
-    decl _returnType: const int
+    decl _returnType: const str
 
     function getName(): str
         _name return
     end
 
-    function getStruct(): str
-        _memberType Reflect::getStructByType:getName return
+    function getStruct(): str?
+        _memberType Reflect::getStructByType?:getName return
     end
 
     function invoke(): none

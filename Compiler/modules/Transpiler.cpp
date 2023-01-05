@@ -760,7 +760,7 @@ namespace sclc {
                     typeStack.pop();
                 typeStack.push(type.substr(0, type.size() - 1));
             }
-            if (!typeCanBeNil(function->getReturnType())) {
+            if (!typeCanBeNil(function->getReturnType()) && return_type != "void") {
                 transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
@@ -850,9 +850,13 @@ namespace sclc {
         } else if (body[i].getValue() == "++") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
             append("stack.data[stack.ptr - 1].i++;\n");
+            if (typeStack.size() == 0)
+                typeStack.push("int");
         } else if (body[i].getValue() == "--") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "--", typeStackTop)) return;
             append("stack.data[stack.ptr - 1].i--;\n");
+            if (typeStack.size() == 0)
+                typeStack.push("int");
         } else if (body[i].getValue() == "exit") {
             append("exit(stack.data[--stack.ptr].i);\n");
             if (typeStack.size())
@@ -1166,6 +1170,7 @@ namespace sclc {
             if (hasMethod(result, body[i], s.getName())) {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
                 append("stack.data[stack.ptr++].v = (scl_any) Var_self;\n");
+                typeStack.push(f->getMemberType());
                 if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
                 bool argsCorrect = checkStackType(result, f->getArgs());
                 if (!argsCorrect) {
@@ -2953,7 +2958,10 @@ namespace sclc {
                         return;
                     }
                 }
-                append("scl_assert(stack.data[stack.ptr - 1].i, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getReturnType().c_str());
+                if (function->hasNamedReturnValue)
+                    append("scl_assert(*(scl_int*) &Var_%s, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getNamedReturnValue().getName().c_str(), function->getReturnType().c_str());
+                else
+                    append("scl_assert(stack.data[stack.ptr - 1].i, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getReturnType().c_str());
             }
         }
 
