@@ -1111,6 +1111,11 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
+                        if (f->isPrivate && ((!function->isMethod && !strstarts(function->getName(), struct_ + "$")) || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
@@ -3202,6 +3207,11 @@ namespace sclc {
             return;
         }
         Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
+        if (f->isPrivate && (!function->isMethod || static_cast<Method*>(function)->getMemberType() != s.getName())) {
+            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+            errors.push_back(err);
+            return;
+        }
         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
         bool argsCorrect = checkStackType(result, f->getArgs());
         if (!argsCorrect) {
