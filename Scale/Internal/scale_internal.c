@@ -70,6 +70,7 @@ void scl_security_throw(int code, scl_str msg) {
 }
 
 void scl_security_safe_exit(int code) {
+	scl_finalize();
 	exit(code);
 }
 
