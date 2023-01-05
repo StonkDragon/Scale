@@ -23,7 +23,9 @@ namespace sclc
         std::vector<Variable> globals;
 
         remove(filename.c_str());
-        FILE* fp = fopen(filename.c_str(), "a");
+        remove((filename.substr(0, filename.size() - 2) + ".h").c_str());
+        remove((filename.substr(0, filename.size() - 2) + ".typeinfo.h").c_str());
+        FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
 
         Function* mainFunction = getFunctionByName(result, "main");
         if (mainFunction == nullptr && !Main.options.noMain) {
@@ -65,7 +67,7 @@ namespace sclc
         ConvertC::writeStructs(fp, result, errors, warns);
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
         ConvertC::writeExternHeaders(fp, result, errors, warns);
-        ConvertC::writeFunctions(fp, errors, warns, globals, result);
+        ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
         fclose(support_header);
 

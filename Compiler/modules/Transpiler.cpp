@@ -185,6 +185,10 @@ namespace sclc {
         (void) errors;
         (void) warns;
         int scopeDepth = 0;
+
+        append("#ifndef SCALE_COMMON_HEADER\n");
+        append("#define SCALE_COMMON_HEADER\n\n");
+        
         append("#ifdef __cplusplus\n");
         append("extern \"C\" {\n");
         append("#endif\n");
@@ -745,7 +749,8 @@ namespace sclc {
                 append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
             } else {
                 transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
-                warns.push_back(err);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
                 append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
         } else if (body[i].getValue() == "?") {
@@ -757,7 +762,8 @@ namespace sclc {
             }
             if (!typeCanBeNil(function->getReturnType())) {
                 transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
-                warns.push_back(err);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
                 append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
             } else {
                 append("if (stack.data[stack.ptr - 1].i == 0) {\n");
@@ -2083,7 +2089,8 @@ namespace sclc {
             }
             if (destructureIndex == 0) {
                 transpilerError("Empty Array destructure", i);
-                warns.push_back(err);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
             }
             scopeDepth--;
             append("}\n");
@@ -3094,7 +3101,8 @@ namespace sclc {
         if (i + 1 < body.size() && body[i + 1].getValue() == "?") {
             if (!typeCanBeNil(typeStackTop)) {
                 transpilerError("Unneccessary cast to maybe-nil type '" + type.value + "?' from not-nil type '" + typeStackTop + "'", i - 1);
-                warns.push_back(err);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
             }
             if (typeStack.size())
                 typeStack.pop();
@@ -3471,7 +3479,7 @@ namespace sclc {
         return return_type + "(*)(" + arguments + ")";
     }
 
-    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result) {
+    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result, std::string filename) {
         (void) warns;
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
@@ -3514,6 +3522,18 @@ namespace sclc {
         append("struct scl_methodinfo** methods;\n");
         scopeDepth--;
         append("};\n\n");
+
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "}\n");
+        fprintf(fp, "#endif\n");
+        fprintf(fp, "#endif\n");
+
+        fclose(fp);
+        fp = fopen((filename.substr(0, filename.size() - 2) + ".typeinfo.h").c_str(), "a");
+        fprintf(fp, "#include \"%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "extern \"c\" {\n");
+        fprintf(fp, "#endif\n\n");
 
         append("/* FUNCTION REFLECT */\n");
         scopeDepth++;
@@ -3676,6 +3696,18 @@ namespace sclc {
         append("int scl_do_method_check = 0;\n\n");
 
         append("extern unsigned long long hash1(char*);\n\n");
+
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "}\n");
+        fprintf(fp, "#endif\n");
+
+        fclose(fp);
+        fp = fopen(filename.c_str(), "a");
+        fprintf(fp, "#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
+        fprintf(fp, "#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+        fprintf(fp, "#ifdef __cplusplus\n");
+        fprintf(fp, "extern \"c\" {\n");
+        fprintf(fp, "#endif\n\n");
 
         append("scl_str current_file = \"<init>\";\n");
         append("scl_int current_line = 0;\n");

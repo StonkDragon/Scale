@@ -978,7 +978,6 @@ namespace sclc
                         std::cerr << std::endl;
                         free(line);
                     }
-                    remove(std::string(filename + ".scale-preproc").c_str());
                     return result.errors.size();
                 }
 
@@ -992,7 +991,9 @@ namespace sclc
                 
                 tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
 
-                remove(std::string(filename + ".c").c_str());
+                remove((filename + ".c").c_str());
+                remove((filename + ".h").c_str());
+                remove((filename + ".typeinfo.h").c_str());
             }
 
             if (Main.options.preprocessOnly) {
@@ -1163,8 +1164,9 @@ namespace sclc
                         std::cerr << std::endl;
                         free(line);
                     }
-                    remove((source + ".c").c_str());
-                    remove((source + ".h").c_str());
+                    remove(source.c_str());
+                    remove((source.substr(0, source.size() - 2) + ".h").c_str());
+                    remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
                     return parseResult.errors.size();
                 }
             }
@@ -1201,6 +1203,8 @@ namespace sclc
         } else if (!Main.options.transpileOnly) {
             int ret = system(cmd.c_str());
             remove(source.c_str());
+            remove((source.substr(0, source.size() - 2) + ".h").c_str());
+            remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
             remove("scale_support.h");
             if (ret) {
                 std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
