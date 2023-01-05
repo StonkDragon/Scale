@@ -21,7 +21,7 @@
     1291 Compiler/modules/SyntaxTree.cpp
      257 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
-    3707 Compiler/modules/Transpiler.cpp
+    3880 Compiler/modules/Transpiler.cpp
      255 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -44,7 +44,7 @@
       92 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-     420 Scale/Internal/scale_internal.c
+     421 Scale/Internal/scale_internal.c
      118 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -54,7 +54,7 @@
       29 examples/data-type-literals.scale
        4 examples/deref.scale
       17 examples/fib.scale
-      16 examples/fizzbuzz.scale
+      18 examples/fizzbuzz.scale
        9 examples/for-step.scale
       10 examples/for.scale
       12 examples/foreach.scale
@@ -70,7 +70,7 @@
       19 examples/struct.scale
       27 examples/switch.scale
        7 examples/variables.scale
-       9 examples/while.scale
+      11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   11599 total
+   11777 total
