@@ -8,6 +8,8 @@
 *.elf
 *.scale.c
 out.c
+out.h
+out.typeinfo.h
 
 # Linker output
 *.ilk
