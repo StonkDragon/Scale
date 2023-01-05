@@ -24,6 +24,7 @@ namespace sclc
     public:
         bool isMethod;
         bool isExternC;
+        bool isPrivate;
         bool hasNamedReturnValue;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);

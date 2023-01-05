@@ -21,7 +21,6 @@ namespace sclc {
         for (std::string m : nextAttributes) {
             func->addModifier(m);
         }
-        nextAttributes.clear();
         i += 2;
         if (tokens[i].getType() == tok_paren_open) {
             i++;
@@ -220,7 +219,6 @@ namespace sclc {
         for (std::string m : nextAttributes) {
             method->addModifier(m);
         }
-        nextAttributes.clear();
         i += 2;
         if (tokens[i].getType() == tok_paren_open) {
             i++;
@@ -432,11 +430,15 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
+                        currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                        nextAttributes.clear();
                         continue;
                     }
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);
+                    currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    nextAttributes.clear();
                     continue;
                 }
                 if (currentInterface != nullptr) {
@@ -444,6 +446,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     Function* functionToImplement = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
                     currentInterface->addToImplement(functionToImplement);
+                    nextAttributes.clear();
                     continue;
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -456,6 +459,7 @@ namespace sclc {
                     result.column = tokens[i + 1].getColumn();
                     result.success = false;
                     errors.push_back(result);
+                    nextAttributes.clear();
                     continue;
                 }
                 i++;
@@ -465,12 +469,26 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, warns, nextAttributes, i, tokens);
+                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
+                        FPResult result;
+                        result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
+                        result.value = tokens[i + 1].getValue();
+                        result.line = tokens[i + 1].getLine();
+                        result.in = tokens[i + 1].getFile();
+                        result.type = tokens[i + 1].getType();
+                        result.column = tokens[i + 1].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        nextAttributes.clear();
+                        continue;
+                    }
                 } else {
                     i--;
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
                 }
+                nextAttributes.clear();
 
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
@@ -755,11 +773,11 @@ namespace sclc {
                         continue;
                     }
                     i++;
-                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end && tokens[i].getType() != tok_function && tokens[i].getType() != tok_extern && tokens[i].getValue() != "static" && tokens[i].getValue() != "const" && tokens[i].getValue() != "readonly") {
+                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end && tokens[i].getType() != tok_function && tokens[i].getType() != tok_extern && tokens[i].getValue() != "static" && tokens[i].getValue() != "private") {
                         if (tokens[i].getType() == tok_identifier)
                             currentStruct->implement(tokens[i].getValue());
                         i++;
-                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end || tokens[i].getType() == tok_function || tokens[i].getType() == tok_extern || tokens[i].getValue() == "static" || tokens[i].getValue() == "const" || tokens[i].getValue() == "readonly") {
+                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end || tokens[i].getType() == tok_function || tokens[i].getType() == tok_extern || tokens[i].getValue() == "static" || tokens[i].getValue() == "private") {
                             i--;
                             break;
                         }

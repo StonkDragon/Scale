@@ -36,6 +36,7 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     this->name = name;
     this->isMethod = isMethod;
     this->hasNamedReturnValue = false;
+    this->isPrivate = false;
 }
 std::string Function::getName() {
     return name;

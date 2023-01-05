@@ -39,6 +39,7 @@ namespace sclc
             this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
             this->canBeNil = false;
+            this->isPrivate = false;
         }
         ~Variable() {}
         std::string getName() {
