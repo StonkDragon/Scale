@@ -4,15 +4,15 @@ import Scale.util.array
 import Scale.debug
 
 sealed struct Struct
-    decl _type:         const int
-    decl _name:         const str
-    decl _size:         const int
-    decl _super:        const int
-    decl _methodsCount: const int
-    decl _methods:      const [Method]
+    private decl type:         const int
+    private decl name:         const str
+    private decl size:         const int
+    private decl super:        const int
+    private decl methodsCount: const int
+    private decl methods:      const [Method]
 
     function getMethods(): Array
-        _methodsCount _methods Array::fromPointerCollection return
+        methodsCount methods Array::fromPointerCollection return
     end
 
     function getMethod(name: str): Method?
@@ -29,34 +29,34 @@ sealed struct Struct
     end
 
     function getName(): str
-        _name return
+        name return
     end
 
     function getType(): int
-        _type return
+        type return
     end
 
     function getSuperStruct(): Struct?
-        if "SclObject" _name == then
+        if "SclObject" name == then
             nil return
         fi
-        _super Reflect::getStructByType return
+        super Reflect::getStructByType return
     end
 
     function getRealSize(): int
-        _size return
+        size return
     end
 
     function getSize(): int
-        _size sizeof int 4 * - return
+        size sizeof int 4 * - return
     end
 
     function newInstance() instance: SclObject
         inline_c
-            *instance = scl_alloc_struct((*self)->_size, (*self)->_name, (*self)->_super);
+            *instance = scl_alloc_struct((*self)->size, (*self)->name, (*self)->super);
         end_inline
 
-        _name ":init" + self:getMethod => decl initializer: Method
+        name ":init" + self:getMethod => decl initializer: Method
         if initializer then
             instance initializer:invoke
         fi

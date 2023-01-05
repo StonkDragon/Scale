@@ -1142,6 +1142,11 @@ namespace sclc {
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
+                        if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != struct_))) {
+                            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + struct_ + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
                         if (v.getType() == "float") {
                             append("stack.data[stack.ptr++].f = Var_%s;\n", loadFrom.c_str());
                             debugPrintPush();
@@ -1625,7 +1630,8 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                    Variable mem = s.getMember(body[i].getValue());
+                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
                         transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                         errors.push_back(err);
                         return;
@@ -1805,7 +1811,7 @@ namespace sclc {
                         ITER_INC;
                         return;
                     }
-                    if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
                         transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                         errors.push_back(err);
                         return;
@@ -1942,7 +1948,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2067,7 +2073,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2323,7 +2329,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
                         transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                         errors.push_back(err);
                         return;
@@ -3142,17 +3148,22 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        if (body[i].getValue().at(0) == '_' && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+        Variable mem = s.getMember(body[i].getValue());
+        if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || static_cast<Method*>(function)->getMemberType() != s.getName())) {
             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
             errors.push_back(err);
             return;
         }
         if (typeCanBeNil(typeStackTop)) {
-            transpilerError("Member access on maybe-nil type '" + typeStackTop + "'", i);
+            {
+                transpilerError("Member access on maybe-nil type '" + typeStackTop + "'", i);
+                errors.push_back(err);
+            }
+            transpilerError("If you know '" + typeStackTop + "' can't be nil at this location, add '!!' before this '.'", i);
+            err.isNote = true;
             errors.push_back(err);
             return;
         }
-        Variable mem = s.getMember(body[i].getValue());
         if (mem.getType() == "float")
             append("stack.data[stack.ptr - 1].f = ((struct Struct_%s*) stack.data[stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         else
@@ -3181,7 +3192,12 @@ namespace sclc {
             return;
         }
         if (typeCanBeNil(typeStackTop)) {
-            transpilerError("Calling method on maybe-nil type '" + typeStackTop + "'", i);
+            {
+                transpilerError("Calling method on maybe-nil type '" + typeStackTop + "'", i);
+                errors.push_back(err);
+            }
+            transpilerError("If you know '" + typeStackTop + "' can't be nil at this location, add '!!' before this ':'\\insertText;!!;" + std::to_string(err.line) + ":" + std::to_string(err.column), i - 1);
+            err.isNote = true;
             errors.push_back(err);
             return;
         }

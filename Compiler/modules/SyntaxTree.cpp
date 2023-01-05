@@ -1158,15 +1158,15 @@ namespace sclc {
                     }
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
-                    nextAttributes.clear();
                     Variable v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
+                    v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    nextAttributes.clear();
                     if (tokens[i + 1].getValue() == "?") {
                         v.canBeNil = true;
                         i++;
                     }
                     globals.push_back(v);
                 } else {
-                    nextAttributes.clear();
                     if (isConst && isInternalMut) {
                         FPResult result;
                         result.message = "The 'const' and 'readonly' modifiers are mutually exclusive!";
@@ -1182,6 +1182,7 @@ namespace sclc {
                     }
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
+                        v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                         if (tokens[i + 1].getValue() == "?") {
                             v.canBeNil = true;
                             i++;
@@ -1190,6 +1191,7 @@ namespace sclc {
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
+                            v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                             if (tokens[i + 1].getValue() == "?") {
                                 v.canBeNil = true;
                                 i++;
@@ -1197,6 +1199,7 @@ namespace sclc {
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
+                            v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                             if (tokens[i + 1].getValue() == "?") {
                                 v.canBeNil = true;
                                 i++;
@@ -1204,6 +1207,7 @@ namespace sclc {
                             currentStruct->addMember(v);
                         }
                     }
+                    nextAttributes.clear();
                 }
             } else {
                 if (tokens[i].getType() == tok_identifier) {

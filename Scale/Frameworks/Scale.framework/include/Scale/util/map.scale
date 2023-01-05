@@ -12,20 +12,20 @@ sealed struct MapEntry
 end
 
 sealed struct Map is IIterable, IFinalizable
-  decl _data: Array
-  decl _pos: int
+  private decl data: Array
+  private decl pos: int
 
   export function init(size: int): none
-    size Array::new => self._data
+    size Array::new => self.data
     for i in 0 to size do
-      nil self._data:push
+      nil self.data:push
     done
-    0 => self._pos
+    0 => self.pos
   end
 
   export function get(key: str): any?
-    for i in 0 to self._data.count do
-      decl entry: MapEntry i self._data:get => entry
+    for i in 0 to self.data.count do
+      decl entry: MapEntry i self.data:get => entry
       if entry nil == then continue fi
 
       entry => decl notNilEntry: MapEntry
@@ -38,30 +38,30 @@ sealed struct Map is IIterable, IFinalizable
   end
 
   export function set(key: str, value: any): none
-    for i in 0 to self._data.count do
-      i self._data:get => decl entry: mut MapEntry?
+    for i in 0 to self.data.count do
+      i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
-        i key value MapEntry::new self._data:set
+        i key value MapEntry::new self.data:set
         return
       elif entry as MapEntry.key key:equals then
         value => entry.value
         return
       fi
     done
-    key value MapEntry::new self._data:push
+    key value MapEntry::new self.data:push
   end
 
   export function hasNext(): bool
-    self._pos self._data Array.count < return
+    self.pos self.data Array.count < return
   end
 
   export function next(): MapEntry?
-    self._pos 1 + => self._pos
-    self._pos self._data Array:get as MapEntry? return
+    self.pos 1 + => self.pos
+    self.pos self.data Array:get as MapEntry? return
   end
 
   export function begin(): MapEntry?
-    0 => self._pos
-    self._pos self._data Array:get as MapEntry? return
+    0 => self.pos
+    self.pos self.data Array:get as MapEntry? return
   end
 end

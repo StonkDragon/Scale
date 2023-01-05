@@ -3,7 +3,8 @@ import Scale.util.iterable
 sealed struct Range is IIterable
   decl lower: int
   decl upper: int
-  decl _pos: int
+  
+  private decl pos: int
 
   export function init(_start: int, _end: int): none
     if _start _end > then
@@ -12,7 +13,7 @@ sealed struct Range is IIterable
 
     _start => self.lower
     _end => self.upper
-    0 => self._pos
+    0 => self.pos
   end
 
   export function containsRange(other: Range): int
@@ -39,16 +40,16 @@ sealed struct Range is IIterable
   end
 
   function hasNext(): bool
-    self._pos self.lower + self.upper <= return
+    self.pos self.lower + self.upper <= return
   end
 
   function next(): int
-    self._pos 1 + => self._pos
-    self.lower self._pos + return
+    self.pos 1 + => self.pos
+    self.lower self.pos + return
   end
 
   function begin(): int
-    0 => self._pos
+    0 => self.pos
     self.lower return
   end
 
@@ -60,7 +61,7 @@ end
 sealed struct ReverseRange is IIterable
   decl lower: int
   decl upper: int
-  decl _pos: int
+  decl pos: int
 
   export function init(_start: int, _end: int): none
     if _start _end < then
@@ -69,20 +70,20 @@ sealed struct ReverseRange is IIterable
       
     _start => self.lower
     _end => self.upper
-    0 => self._pos
+    0 => self.pos
   end
 
   function hasNext(): bool
-    self.lower self._pos - self.upper >= return
+    self.lower self.pos - self.upper >= return
   end
 
   function next(): int
-    self._pos 1 + => self._pos
-    self.lower self._pos - return
+    self.pos 1 + => self.pos
+    self.lower self.pos - return
   end
 
   function begin(): int
-    0 => self._pos
+    0 => self.pos
     self.lower return
   end
 

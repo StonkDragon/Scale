@@ -5,7 +5,8 @@ sealed struct Array is IIterable, IFinalizable
   decl values: mut readonly [any]
   decl count:      readonly int
   decl capacity:   readonly int
-  decl _pos:       readonly int
+
+  private decl pos:       readonly int
   
   export function sort(): none
     inline_c
@@ -76,22 +77,22 @@ sealed struct Array is IIterable, IFinalizable
     size 8 * malloc
     => self.values
     0 => self.count
-    0 => self._pos
+    0 => self.pos
     size => self.capacity
   end
 
   export function hasNext(): bool
-    self._pos self.count < return
+    self.pos self.count < return
   end
 
   export function next(): any?
-    self._pos 1 + => self._pos
-    self._pos self:get return
+    self.pos 1 + => self.pos
+    self.pos self:get return
   end
 
   export function begin(): any?
     0 self:get
-    0 => self._pos
+    0 => self.pos
     return
   end
 

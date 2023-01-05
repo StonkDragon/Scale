@@ -26,6 +26,7 @@ namespace sclc
         bool isInternalMut;
         bool isMut;
     public:
+        bool isPrivate;
         bool canBeNil;
         Variable(std::string name, std::string type) : Variable(name, type, false, "") {}
         Variable(std::string name, std::string type, bool isConst, bool isMut) : Variable(name, type, isConst, isMut, "") {}
