@@ -241,7 +241,7 @@ function toChars(_str_: str): Array
   decl _arr_: Array _str_ strlen Array::new => _arr_
 
   for _i_ in 0 to _str_ strlen do
-    _i_ _str_!!:at _arr_:push
+    _i_ _str_:at _arr_:push
   done
   _arr_ return
 end

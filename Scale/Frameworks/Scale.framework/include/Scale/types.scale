@@ -44,7 +44,7 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
       nameof i " is out of bounds":prepend eputs
       abort
     fi
-    self i + @ toChar return
+    self i + @ as int toChar return
   end
 
   function toString(): str

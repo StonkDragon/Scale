@@ -108,7 +108,7 @@ sealed struct Array is IIterable, IFinalizable
         if elem is SclObject then
           s elem as SclObject:toString + => s
         else
-          s elem longToString + => s
+          s elem as int longToString + => s
         fi
       done
       s "}" + => s

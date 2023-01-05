@@ -30,6 +30,8 @@ namespace sclc {
     FILE* support_header;
     FILE* symbolTable;
 
+    std::string sclFunctionNameToFriendlyString(std::string name);
+
     bool hasTypealias(TPResult r, std::string t) {
         using spair = std::pair<std::string, std::string>;
         for (spair p : r.typealiases) {
@@ -359,6 +361,17 @@ namespace sclc {
         return true;
     }
 
+    std::string argVectorToString(std::vector<Variable> args) {
+        std::string arg = "";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i) 
+                arg += ", ";
+            Variable v = args[i];
+            arg += v.getType();
+        }
+        return arg;
+    }
+
     void ConvertC::writeStructs(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
         (void) errors;
         (void) warns;
@@ -464,6 +477,81 @@ namespace sclc {
     std::stack<std::string> typeStack;
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
     std::string return_type = "";
+
+    bool canBeCastTo(TPResult r, Struct& one, Struct& other) {
+        if (one == other || other.getName() == "SclObject") {
+            return true;
+        }
+        Struct super = getStructByName(r, one.extends());
+        bool extend = false;
+        while (!extend) {
+            if (super == other || super.getName() == "SclObject") {
+                extend = true;
+            }
+            super = getStructByName(r, super.extends());
+        }
+        return extend;
+    }
+
+    bool checkStackType(TPResult result, std::vector<Variable> args) {
+        if (typeStack.size() == 0 && typeStack.size() == args.size()) {
+            return true;
+        }
+        if (typeStack.size() < args.size()) {
+            return false;
+        }
+        auto end = &typeStack.top() + 1;
+        auto begin = end - args.size();
+        std::vector<std::string> tmp(begin, end);
+
+        bool typesMatch = true;
+        for (ssize_t i = args.size() - 1; i >= 0; i--) {
+            std::string typeA = tmp.at(i);
+            if (typeA == "_String") typeA = "str";
+            std::string typeB = args.at(i).getType();
+            if (typeB == "_String") typeB = "str";
+
+            if (args.at(i).getType() == "any" || args.at(i).getType() == "[any]") {
+                continue;
+            }
+
+            if (typeA != typeB) {
+                Struct a = getStructByName(result, typeA);
+                Struct b = getStructByName(result, typeB);
+                if (a.getName() != "" && b.getName() != "") {
+                    if (!canBeCastTo(result, a, b)) {
+                        typesMatch = false;
+                    }
+                } else {
+                    typesMatch = false;
+                }
+            }
+        }
+        return typesMatch;
+    }
+
+    std::string stackSliceToString(size_t amount) {
+        if (typeStack.size() < amount) amount = typeStack.size();
+
+        if (amount == 0)
+            return "";
+        auto end = &typeStack.top() + 1;
+        auto begin = end - amount;
+        std::vector<std::string> tmp(begin, end);
+
+        std::string arg = "";
+        for (size_t i = 0; i < amount; i++) {
+            std::string typeA = tmp.at(i);
+            if (typeA == "_String") typeA = "str";
+            
+            if (i) {
+                arg += ", ";
+            }
+
+            arg += typeA;
+        }
+        return arg;
+    }
 
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
@@ -654,8 +742,12 @@ namespace sclc {
                 if (typeStack.size())
                     typeStack.pop();
                 typeStack.push(type.substr(0, type.size() - 1));
+                append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
+            } else {
+                transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
+                warns.push_back(err);
+                append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
-            append("scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
         } else if (body[i].getValue() == "?") {
             if (typeCanBeNil(typeStackTop)) {
                 std::string type = typeStackTop;
@@ -841,6 +933,17 @@ namespace sclc {
                 return;
             }
             if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+            bool argsCorrect = checkStackType(result, f->getArgs());
+            if (!argsCorrect) {
+                {
+                    transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                    errors.push_back(err);
+                }
+                transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                err.isNote = true;
+                errors.push_back(err);
+                return;
+            }
             for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                 if (typeStack.size())
                     typeStack.pop();
@@ -887,7 +990,7 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
-                if (sclIsProhibitedInit(s.getName()) && (body[i].getValue() == "new" || body[i].getValue() == "default")) {
+                if ((body[i].getValue() == "new" || body[i].getValue() == "default") && sclIsProhibitedInit(s.getName())) {
                     transpilerError("Explicit instanciation of struct '_String' is not allowed!", i);
                     errors.push_back(err);
                     return;
@@ -899,20 +1002,27 @@ namespace sclc {
                         return;
                     }
                     append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %llu);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
+                    append("scl_assert(stack.data[stack.ptr - 1].i, \"Failed to allocate memory for struct '%s'\");\n", struct_.c_str());
+                    typeStack.push(struct_);
                     debugPrintPush();
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         append("{\n");
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
-                        append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", ((Method*)(f))->getMemberType().c_str(), ((Method*)(f))->getMemberType().c_str());
-                        if (typeStack.size())
-                            typeStack.pop();
-                        append("if (tmp) {\n");
-                        scopeDepth++;
-                        append("stack.data[stack.ptr++].v = tmp;\n");
-                        typeStack.push(struct_);
+                        append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[stack.ptr - 1].v;\n", struct_.c_str(), struct_.c_str());
                         debugPrintPush();
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        bool argsCorrect = checkStackType(result, f->getArgs());
+                        if (!argsCorrect) {
+                            {
+                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                errors.push_back(err);
+                            }
+                            transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                            err.isNote = true;
+                            errors.push_back(err);
+                            return;
+                        }
                         for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                             if (typeStack.size())
                                 typeStack.pop();
@@ -925,17 +1035,16 @@ namespace sclc {
                                 append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                                 debugPrintPush();
                             }
+                            typeStack.push(f->getReturnType());
                         } else {
                             append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                         }
-                        scopeDepth--;
-                        append("}\n");
                         append("stack.data[stack.ptr++].v = tmp;\n");
+                        typeStack.push(struct_);
                         debugPrintPush();
                         scopeDepth--;
                         append("}\n");
                     }
-                    typeStack.push(struct_ + "?");
                 } else if (body[i].getValue() == "default") {
                     if (!s.stackAllocAllowed()) {
                         transpilerError("Struct '" + struct_ + "' may not be instanciated using '" + struct_ + "::default'", i);
@@ -946,11 +1055,22 @@ namespace sclc {
                     scopeDepth++;
                     append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
                     append("stack.data[stack.ptr++].v = (scl_any*) &tmp;\n");
+                    typeStack.push(struct_);
                     debugPrintPush();
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         Method* f = getMethodByName(result, "init", struct_);
-                        typeStack.push(struct_);
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        bool argsCorrect = checkStackType(result, f->getArgs());
+                        if (!argsCorrect) {
+                            {
+                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                errors.push_back(err);
+                            }
+                            transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                            err.isNote = true;
+                            errors.push_back(err);
+                            return;
+                        }
                         for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                             if (typeStack.size())
                                 typeStack.pop();
@@ -963,13 +1083,14 @@ namespace sclc {
                                 append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                                 debugPrintPush();
                             }
+                            typeStack.push(f->getReturnType());
                         } else {
                             append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                         }
                         append("stack.data[stack.ptr++].v = (scl_any*) &tmp;\n");
+                        typeStack.push(struct_);
                         debugPrintPush();
                     }
-                    typeStack.push(struct_);
                     scopeDepth--;
                     append("}\n");
                 } else {
@@ -981,6 +1102,17 @@ namespace sclc {
                             return;
                         }
                         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        bool argsCorrect = checkStackType(result, f->getArgs());
+                        if (!argsCorrect) {
+                            {
+                                transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                errors.push_back(err);
+                            }
+                            transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                            err.isNote = true;
+                            errors.push_back(err);
+                            return;
+                        }
                         for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                             if (typeStack.size())
                                 typeStack.pop();
@@ -1029,6 +1161,17 @@ namespace sclc {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
                 append("stack.data[stack.ptr++].v = (scl_any) Var_self;\n");
                 if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                bool argsCorrect = checkStackType(result, f->getArgs());
+                if (!argsCorrect) {
+                    {
+                        transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                        errors.push_back(err);
+                    }
+                    transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                    err.isNote = true;
+                    errors.push_back(err);
+                    return;
+                }
                 for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                     if (typeStack.size())
                         typeStack.pop();
@@ -1057,6 +1200,17 @@ namespace sclc {
                         return;
                     }
                     if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    bool argsCorrect = checkStackType(result, f->getArgs());
+                    if (!argsCorrect) {
+                        {
+                            transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                            errors.push_back(err);
+                        }
+                        transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                        err.isNote = true;
+                        errors.push_back(err);
+                        return;
+                    }
                     for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
                         if (typeStack.size())
                             typeStack.pop();
@@ -2900,6 +3054,9 @@ namespace sclc {
             if (ptr.at(0) == '[' && ptr.at(ptr.size() - 1) == ']') {
                 typeStack.push(ptr.substr(1, ptr.size() - 2));
                 return;
+            } else if (ptr == "str") {
+                typeStack.push("int");
+                return;
             }
         }
         typeStack.push("any");
@@ -2918,31 +3075,36 @@ namespace sclc {
     handler(As) {
         noUnused;
         ITER_INC;
-        if (body[i].getValue() == "int" || body[i].getValue() == "float" || body[i].getValue() == "str" || body[i].getValue() == "any") {
-            if (typeStack.size())
-                typeStack.pop();
-            typeStack.push(body[i].getValue());
+        FPResult type = parseType(body, &i);
+        if (!type.success) {
+            errors.push_back(type);
             return;
         }
-        if (getStructByName(result, body[i].getValue()) == Struct("")) {
-            transpilerError("Use of undeclared Struct '" + body[i].getValue() + "'", i);
+        if (type.value == "int" || type.value == "float" || type.value == "str" || type.value == "any") {
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(type.value);
+            return;
+        }
+        if (getStructByName(result, type.value) == Struct("")) {
+            transpilerError("Use of undeclared Struct '" + type.value + "'", i);
             errors.push_back(err);
             return;
         }
         if (i + 1 < body.size() && body[i + 1].getValue() == "?") {
             if (!typeCanBeNil(typeStackTop)) {
-                transpilerError("Unneccessary cast to maybe-nil type '" + body[i].getValue() + "?' from not-nil type '" + typeStackTop + "'", i - 1);
+                transpilerError("Unneccessary cast to maybe-nil type '" + type.value + "?' from not-nil type '" + typeStackTop + "'", i - 1);
                 warns.push_back(err);
             }
             if (typeStack.size())
                 typeStack.pop();
-            typeStack.push(body[i].getValue() + "?");
+            typeStack.push(type.value + "?");
             ITER_INC;
         } else {
             if (typeCanBeNil(typeStackTop)) {
-                append("scl_assert(stack.data[stack.ptr - 1].i, \"Nil cannot be cast to non-nil type '%s!'\");\n", body[i].getValue().c_str());
+                append("scl_assert(stack.data[stack.ptr - 1].i, \"Nil cannot be cast to non-nil type '%s!'\");\n", type.value.c_str());
             }
-            typeStack.push(body[i].getValue());
+            typeStack.push(type.value);
         }
     }
 
@@ -3009,6 +3171,17 @@ namespace sclc {
         }
         Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
         if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+        bool argsCorrect = checkStackType(result, f->getArgs());
+        if (!argsCorrect) {
+            {
+                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                errors.push_back(err);
+            }
+            transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+            err.isNote = true;
+            errors.push_back(err);
+            return;
+        }
         for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
             if (typeStack.size())
                 typeStack.pop();

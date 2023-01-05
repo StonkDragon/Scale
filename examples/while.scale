@@ -3,7 +3,9 @@ function main(): none
   # this code prints all numbers from 1 to 10 (both including)
   # without using variables
   while dup 10 < do
-    ++ dup putint
+    # we have to cast to int here because the typechecker
+    # can't infer types from different scopes
+    ++ as int dup putint
   done
   drop
 end
