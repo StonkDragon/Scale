@@ -476,6 +476,9 @@ namespace sclc {
     char repeat_depth = 0;
     int iterator_count = 0;
     bool noWarns;
+    std::string currentFile = "";
+    int currentLine = -1;
+    int currentCol = -1;
     std::stack<std::string> typeStack;
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
     std::string return_type = "";
@@ -1873,6 +1876,7 @@ namespace sclc {
                             return;
                         }
                         append("*((scl_any*) Container_%s.%s) = Method_Array_get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -1891,6 +1895,7 @@ namespace sclc {
                                         return;
                                     }
                                     append("*(scl_any*) Var_self->%s = Method_Array_get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
+
                                     // ITER_INC;
                                     destructureIndex++;
                                     continue;
@@ -1902,6 +1907,7 @@ namespace sclc {
                                         return;
                                     }
                                     append("*(scl_any*) Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
+
                                     // ITER_INC;
                                     destructureIndex++;
                                     continue;
@@ -2026,7 +2032,7 @@ namespace sclc {
                                         append("scl_assert((scl_int) Method_Array_get(tmp, %d), \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", destructureIndex, s.getName().c_str(), body[i].getValue().c_str());
                                     }
                                     append("*(scl_any*) &Var_%s$%s = Method_Array_get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
-                                    return;
+                                    continue;
                                 }
                             }
                             transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
@@ -2049,7 +2055,6 @@ namespace sclc {
                                     append("scl_assert((scl_int) Method_Array_get(tmp, %d), \"Nil cannot be stored in non-nil variable '%s'\");\n", destructureIndex, v.getName().c_str());
                                 }
                                 append("(*(scl_any*) &Var_%s) = Method_Array_get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
-                                // ITER_INC;
                                 destructureIndex++;
                                 continue;
                             }
@@ -2298,17 +2303,16 @@ namespace sclc {
                         ITER_INC;
                         return;
                     }
-                    ITER_INC;
-                    if (body[i].getType() != tok_dot) {
+                    if (i + 1 >= body.size() || body[i + 1].getType() != tok_dot) {
                         if (!typeCanBeNil(v.getType())) {
                             append("scl_assert(stack.data[stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s'\");\n", loadFrom.c_str());
                         }
                         append("Var_%s = stack.data[--stack.ptr].v;\n", loadFrom.c_str());
                         if (typeStack.size())
                             typeStack.pop();
-                        i--;
                         return;
                     }
+                    ITER_INC;
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
                         transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
                         errors.push_back(err);
@@ -3245,9 +3249,24 @@ namespace sclc {
 
         std::string file = body[i].getFile();
 
-        append("current_file = \"%s\";\n", std::filesystem::path(body[i].getFile()).filename().c_str());
-        append("current_line = %d;\n", body[i].getLine());
-        append("current_col = %d;\n", body[i].getColumn());
+        if (strstarts(file, scaleFolder)) {
+            file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+        } else {
+            file = std::filesystem::path(file).relative_path();
+        }
+
+        if (currentFile != file) {
+            append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
+            currentFile = file;
+        }
+        if (currentLine != body[i].getLine()) {
+            append("current_line[callstk.ptr - 1] = %d;\n", body[i].getLine());
+            currentLine = body[i].getLine();
+        }
+        if (currentCol != body[i].getColumn()) {
+            append("current_col[callstk.ptr - 1] = %d;\n", body[i].getColumn());
+            currentCol = body[i].getColumn();
+        }
 
         if (isOperator(body[i])) {
             FPResult operatorsHandled = handleOperator(result, fp, body[i], scopeDepth);
@@ -3749,9 +3768,9 @@ namespace sclc {
         fprintf(fp, "extern \"c\" {\n");
         fprintf(fp, "#endif\n\n");
 
-        append("scl_str current_file = \"<init>\";\n");
-        append("scl_int current_line = 0;\n");
-        append("scl_int current_col  = 0;\n");
+        append("scl_str current_file[STACK_SIZE] = {0};\n");
+        append("scl_int current_line[STACK_SIZE] = {0};\n");
+        append("scl_int current_col[STACK_SIZE]  = {0};\n");
 
         append("/* FUNCTIONS */\n");
 
@@ -3900,15 +3919,25 @@ namespace sclc {
                 append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
                 append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
+                append("if (method == NULL) method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
                 append("if (method != NULL) {\n");
+                for (ssize_t k = function->getArgs().size() - 1; k >= 0; k--) {
+                    Variable arg = function->getArgs()[k];
+                    append("  stack.data[stack.ptr++].i = *(scl_int*) &Var_%s;\n", arg.getName().c_str());
+                }
                 if (sclTypeToCType(result, m->getReturnType()) != "void") {
                     append("  scl_do_method_check = 1;\n");
-                    append("  %s ret = ((%s) method)(%s);\n", sclTypeToCType(result, m->getReturnType()).c_str(), sclGenCastForMethod(result, m).c_str(), sclGenArgs(result, m).c_str());
+                    append("  callstk.ptr--;\n");
+                    append("  ((void(*)()) method)();\n");
                     append("  scl_do_method_check = 0;\n");
-                    append("  return ret;\n");
+                    if (function->getReturnType() == "float")
+                        append("return stack.data[--stack.ptr].f;\n");
+                    else
+                        append("return (%s) stack.data[--stack.ptr].v;\n", sclTypeToCType(result, m->getReturnType()).c_str());
                 } else {
                     append("  scl_do_method_check = 1;\n");
-                    append("  ((%s) method)(%s);\n", sclGenCastForMethod(result, m).c_str(), sclGenArgs(result, m).c_str());
+                    append("  callstk.ptr--;\n");
+                    append("  ((void(*)()) method)();\n");
                     append("  scl_do_method_check = 0;\n");
                     append("  return;\n");
                 }
@@ -3929,11 +3958,17 @@ namespace sclc {
             }
 
             for (Variable arg : function->getArgs()) {
-                if (!typeCanBeNil(arg.getType())) {
-                    append("current_file = \"%s\";\n", std::filesystem::path(function->getNameToken().getFile()).filename().c_str());
-                    append("current_line = %d;\n", function->getNameToken().getLine());
-                    append("current_col = %d;\n", function->getNameToken().getColumn());
-                    append("scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");", arg.getName().c_str(), arg.getName().c_str());
+                if (!typeCanBeNil(arg.getType()) || arg.getType() == "str") {
+                    std::string file = function->getNameToken().getFile();
+                    if (strstarts(file, scaleFolder)) {
+                        file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+                    } else {
+                        file = std::filesystem::path(file).relative_path();
+                    }
+                    append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
+                    append("current_line[callstk.ptr - 1] = %d;\n", function->getNameToken().getLine());
+                    append("current_col[callstk.ptr - 1] = %d;\n", function->getNameToken().getColumn());
+                    append("scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }
             }
 

@@ -11,6 +11,8 @@ sealed struct Struct
     private decl methodsCount: const int
     private decl methods:      const [Method]
 
+    # TODO: this method should realistically return ImmutableArray
+    #       as the backing pointer collection is immutable
     function getMethods(): Array
         methodsCount methods Array::fromPointerCollection return
     end

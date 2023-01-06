@@ -1,0 +1,72 @@
+import Scale.util.iterable
+import Scale.debug
+
+sealed struct ImmutableArray is IIterable
+  decl values:     readonly [any]
+  decl count:      readonly int
+  decl capacity:   readonly int
+
+  private decl pos:       readonly int
+
+  export function get(index: int): any?
+    if index 0 <= then self.values @ return fi
+    self.values index 3 << + @ return
+  end
+
+  export function top(): any?
+    self.values self.count 1 - 3 << + @ return
+  end
+
+  export function contains(val: any): bool
+    for i in 0 to self.count do
+      if i self:get val == then
+        true return
+      fi
+    done
+    false return
+  end
+
+  export function init(count: int, values: [any]): none
+    count => self.count
+    count => self.capacity
+    values => self.values
+    0 => self.pos
+  end
+
+  export function hasNext(): bool
+    self.pos self.count < return
+  end
+
+  export function next(): any?
+    self.pos 1 + => self.pos
+    self.pos self:get return
+  end
+
+  export function begin(): any?
+    0 self:get
+    0 => self.pos
+    return
+  end
+
+  export function toString() s: str
+    if self.count 0 == then
+      "{}" => s
+    else
+      "{" => s
+      for i in 0 to self.count do
+        i self:get => decl elem: any
+        if i then
+          s ", " + => s
+        fi
+        if elem is SclObject then
+          elem as SclObject :toString => decl asStr
+          s asStr + => s
+        else
+          s elem as int longToString + => s
+        fi
+      done
+      s "}" + => s
+    fi
+    return
+  end
+end

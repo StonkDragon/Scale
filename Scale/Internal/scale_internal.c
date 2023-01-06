@@ -6,11 +6,11 @@
 
 /* Variables */
 scl_stack_t stack;
-scl_stack_t	callstk = {0, {0}};
+scl_stack_t	callstk;
 
-extern scl_str current_file;
-extern scl_int current_line;
-extern scl_int current_col;
+extern scl_str current_file[STACK_SIZE];
+extern scl_int current_line[STACK_SIZE];
+extern scl_int current_col[STACK_SIZE];
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
@@ -50,7 +50,7 @@ void scl_free(scl_any ptr) {
 void scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
-		printf("%s:%lld:%lld: ", current_file, current_line, current_col);
+		printf("%s:%lld:%lld: ", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1]);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -81,7 +81,11 @@ void scl_security_safe_exit(int code) {
 void print_stacktrace() {
 	printf("Stacktrace:\n");
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		printf("  %s\n", (scl_str) callstk.data[i].i);
+		char* f = strrchr(current_file[i], '/');
+		if (!f) f = current_file[i];
+		else f++;
+
+		printf("  %s -> %s:%lld:%lld\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
 	}
 	printf("\n");
 }
@@ -115,7 +119,7 @@ void process_signal(int sig_num) {
 
 	printf("\n");
 
-	printf("%s:%lld:%lld: Exception: %s\n", current_file, current_line, current_col, signalString);
+	printf("%s:%lld:%lld: Exception: %s\n", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1], signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
@@ -356,9 +360,17 @@ void scl_free_struct(scl_any ptr) {
 	}
 }
 
+scl_int scl_type_extends_type(struct scl_typeinfo* type, struct scl_typeinfo* extends) {
+	do {
+		if (type->type == extends->type) {
+			return 1;
+		}
+		type = scl_find_typeinfo_of(type->super);
+	} while (type);
+	return 0;
+}
+
 scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
-	struct sclstruct* p = (struct sclstruct*) ptr;
-	
 	int isStruct = 0;
 	for (size_t i = 0; i < allocated_structs_count; i++) {
 		if (allocated_structs[i] == ptr) {
@@ -368,12 +380,12 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 	}
 	if (!isStruct) return 0;
 
-	if (p->type == typeId) return 1;
+	struct sclstruct* ptrStruct = (struct sclstruct*) ptr;
 
-	if (p->super) {
-		return scl_struct_is_type(ptr, p->super);
-	}
-	return 0;
+	struct scl_typeinfo* ptrType = scl_typeinfo_of(ptrStruct->type);
+	struct scl_typeinfo* typeIdType = scl_typeinfo_of(typeId);
+
+	return scl_type_extends_type(ptrType, typeIdType);
 }
 
 #pragma endregion

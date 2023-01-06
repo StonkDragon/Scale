@@ -75,12 +75,11 @@ function free(_ptr_: [any]): none
   end_inline
 end
 
-function strlen(_str_: str): int
-  decl len: int
+function strlen(_str_: str) len: int
   inline_c
     *len = strlen(*_str_);
   end_inline
-  len return
+  return
 end
 
 function strsplit(_str_: str, _delim_: str): Array

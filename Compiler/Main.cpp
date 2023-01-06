@@ -552,7 +552,7 @@ namespace sclc
         scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR);
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O2";
+        std::string optimizer   = "Oz";
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random(69);
 
@@ -1211,6 +1211,9 @@ namespace sclc
         std::string cmd = "";
         for (std::string s : cflags) {
             cmd += s + " ";
+        }
+        if (Main.options.debugBuild) {
+            cmd += "-DSCL_DEBUG";
         }
 
         if (Main.options.printCflags) {
