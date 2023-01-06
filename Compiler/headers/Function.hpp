@@ -45,6 +45,7 @@ namespace sclc
         virtual void setNameToken(Token t);
         virtual Variable getNamedReturnValue();
         virtual void setNamedReturnValue(Variable v);
+        virtual bool belongsToType(std::string typeName);
 
         virtual bool operator==(const Function& other) const;
     };

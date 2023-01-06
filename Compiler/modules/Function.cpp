@@ -101,3 +101,6 @@ void Function::setNamedReturnValue(Variable v) {
     this->namedReturnValue = v;
     this->hasNamedReturnValue = true;
 }
+bool Function::belongsToType(std::string typeName) {
+    return (!this->isMethod && !strstarts(this->getName(), typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->getMemberType() != typeName);
+}

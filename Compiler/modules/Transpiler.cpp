@@ -235,10 +235,8 @@ namespace sclc {
             std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
-                append("void scl_reflect_call_function_%s();\n", function->getName().c_str());
                 append("%s Function_%s(%s) __asm(\"%s\");\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
-                append("void scl_reflect_call_method_%s_function_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
                 append("%s Method_%s_%s(%s) __asm(\"%s\");\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
             if (function->isExternC) {
@@ -1111,7 +1109,7 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        if (f->isPrivate && ((!function->isMethod && !strstarts(function->getName(), struct_ + "$")) || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                        if (f->isPrivate && function->belongsToType(struct_)) {
                             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                             errors.push_back(err);
                             return;
@@ -3568,6 +3566,14 @@ namespace sclc {
         fprintf(fp, "#ifdef __cplusplus\n");
         fprintf(fp, "extern \"c\" {\n");
         fprintf(fp, "#endif\n\n");
+
+        for (Function* function : result.functions) {
+            if (function->isMethod) {
+                append("void scl_reflect_call_method_%s_function_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+            } else {
+                append("void scl_reflect_call_function_%s();\n", function->getName().c_str());
+            }
+        }
 
         append("/* FUNCTION REFLECT */\n");
         scopeDepth++;
