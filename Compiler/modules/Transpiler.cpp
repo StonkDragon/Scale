@@ -3915,19 +3915,17 @@ namespace sclc {
 
             if (function->isMethod) {
                 Method* m = static_cast<Method*>(function);
-                append("callstk.data[callstk.ptr++].v = \"%s -> <runtime-checks>\";\n", sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str());
                 append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
-                append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
-                append("if (method == NULL) method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
+                append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
+                append("if (method == NULL) method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
                 append("if (method != NULL) {\n");
                 for (ssize_t k = function->getArgs().size() - 1; k >= 0; k--) {
                     Variable arg = function->getArgs()[k];
                     append("  stack.data[stack.ptr++].i = *(scl_int*) &Var_%s;\n", arg.getName().c_str());
                 }
+                append("  scl_do_method_check = 1;\n");
                 if (sclTypeToCType(result, m->getReturnType()) != "void") {
-                    append("  scl_do_method_check = 1;\n");
-                    append("  callstk.ptr--;\n");
                     append("  ((void(*)()) method)();\n");
                     append("  scl_do_method_check = 0;\n");
                     if (function->getReturnType() == "float")
@@ -3935,8 +3933,6 @@ namespace sclc {
                     else
                         append("return (%s) stack.data[--stack.ptr].v;\n", sclTypeToCType(result, m->getReturnType()).c_str());
                 } else {
-                    append("  scl_do_method_check = 1;\n");
-                    append("  callstk.ptr--;\n");
                     append("  ((void(*)()) method)();\n");
                     append("  scl_do_method_check = 0;\n");
                     append("  return;\n");
@@ -3944,7 +3940,6 @@ namespace sclc {
                 append("}\n");
                 scopeDepth--;
                 append("}\n");
-                append("callstk.ptr--;\n");
                 append("scl_do_method_check = 0;\n");
             }
 
@@ -3952,22 +3947,24 @@ namespace sclc {
             if (body.size() == 0)
                 goto emptyFunction;
 
-            append("callstk.data[callstk.ptr++].v = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("callstk.data[callstk.ptr++].s = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
             if (function->hasNamedReturnValue) {
                 append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
             }
 
+            {
+                std::string file = function->getNameToken().getFile();
+                if (strstarts(file, scaleFolder)) {
+                    file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+                } else {
+                    file = std::filesystem::path(file).relative_path();
+                }
+                append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
+                append("current_line[callstk.ptr - 1] = %d;\n", function->getNameToken().getLine());
+                append("current_col[callstk.ptr - 1] = %d;\n", function->getNameToken().getColumn());
+            }
             for (Variable arg : function->getArgs()) {
                 if (!typeCanBeNil(arg.getType()) || arg.getType() == "str") {
-                    std::string file = function->getNameToken().getFile();
-                    if (strstarts(file, scaleFolder)) {
-                        file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-                    } else {
-                        file = std::filesystem::path(file).relative_path();
-                    }
-                    append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
-                    append("current_line[callstk.ptr - 1] = %d;\n", function->getNameToken().getLine());
-                    append("current_col[callstk.ptr - 1] = %d;\n", function->getNameToken().getColumn());
                     append("scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }
             }

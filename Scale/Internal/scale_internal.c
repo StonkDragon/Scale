@@ -78,15 +78,23 @@ void scl_security_safe_exit(int code) {
 
 #pragma region Exceptions
 
+int printingStacktrace = 0;
+
 void print_stacktrace() {
 	printf("Stacktrace:\n");
+	printingStacktrace = 1;
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		char* f = strrchr(current_file[i], '/');
-		if (!f) f = current_file[i];
-		else f++;
+		if (current_file[i]) {
+			char* f = strrchr(current_file[i], '/');
+			if (!f) f = current_file[i];
+			else f++;
+			printf("  %s -> %s:%lld:%lld\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
+		} else {
+			printf("  %s -> (nil):%lld:%lld\n", (scl_str) callstk.data[i].i, current_line[i], current_col[i]);
+		}
 
-		printf("  %s -> %s:%lld:%lld\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
 	}
+	printingStacktrace = 0;
 	printf("\n");
 }
 
@@ -123,7 +131,8 @@ void process_signal(int sig_num) {
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
-	print_stacktrace();
+	if (!printingStacktrace)
+		print_stacktrace();
 	printf("Stack:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
 		long long v = (long long) stack.data[i].i;
