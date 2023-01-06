@@ -2,11 +2,11 @@ import Scale.util.iterable
 import Scale.debug
 
 sealed struct Array is IIterable, IFinalizable
-  decl values: mut readonly [any]
-  decl count:      readonly int
-  decl capacity:   readonly int
+  decl values:  mut readonly [any]
+  decl count:       readonly int
+  decl capacity:    readonly int
 
-  private decl pos:       readonly int
+  private decl pos: readonly int
   
   export function sort(): none
     inline_c

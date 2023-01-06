@@ -2,11 +2,11 @@ import Scale.util.iterable
 import Scale.debug
 
 sealed struct ImmutableArray is IIterable
-  decl values:     readonly [any]
-  decl count:      readonly int
-  decl capacity:   readonly int
+  decl values:      readonly [any]
+  decl count:       readonly int
+  decl capacity:    readonly int
 
-  private decl pos:       readonly int
+  private decl pos: readonly int
 
   export function get(index: int): any?
     if index 0 <= then self.values @ return fi
