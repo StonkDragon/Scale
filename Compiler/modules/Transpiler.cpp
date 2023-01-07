@@ -1741,12 +1741,10 @@ namespace sclc {
                         }
                     }
                     ITER_INC;
-                    ITER_INC;
                     i--;
-                    i--;
-                    if (body[i + 1].getType() == tok_column && body[i + 2].getType() == tok_column) {
-                        i += 2;
-                        Struct s = getStructByName(result, body[i - 2].getValue());
+                    if (body[i + 1].getType() == tok_double_column) {
+                        ITER_INC;
+                        Struct s = getStructByName(result, body[i - 1].getValue());
                         ITER_INC;
                         if (s != Struct("")) {
                             if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
@@ -1780,8 +1778,10 @@ namespace sclc {
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
                         transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                         errors.push_back(err);
-                        ITER_INC;
-                        ITER_INC;
+                        if (body[i + 1].getType() == tok_dot) {
+                            ITER_INC;
+                            ITER_INC;
+                        }
                         return;
                     }
                     ITER_INC;
@@ -1813,8 +1813,6 @@ namespace sclc {
                     if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
                         transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
                         errors.push_back(err);
-                        ITER_INC;
-                        ITER_INC;
                         return;
                     }
                     if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
