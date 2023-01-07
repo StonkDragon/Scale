@@ -167,45 +167,45 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 	stack.data[stack.ptr++].v = array;
 }
 
-void ctrl_push_string(scl_str c) {
+inline void ctrl_push_string(scl_str c) {
 	stack.data[stack.ptr++].s = c;
 }
 
-void ctrl_push_double(scl_float d) {
+inline void ctrl_push_double(scl_float d) {
 	stack.data[stack.ptr++].f = d;
 }
 
-void ctrl_push_long(scl_int n) {
+inline void ctrl_push_long(scl_int n) {
 	stack.data[stack.ptr++].i = n;
 }
 
-void ctrl_push(scl_any n) {
+inline void ctrl_push(scl_any n) {
 	stack.data[stack.ptr++].v = n;
 }
 
-scl_int ctrl_pop_long() {
+inline scl_int ctrl_pop_long() {
 	return stack.data[--stack.ptr].i;
 }
 
-scl_float ctrl_pop_double() {
+inline scl_float ctrl_pop_double() {
 	return stack.data[--stack.ptr].f;
 }
 
-scl_str ctrl_pop_string() {
+inline scl_str ctrl_pop_string() {
 	return stack.data[--stack.ptr].s;
 }
 
-scl_any ctrl_pop() {
+inline scl_any ctrl_pop() {
 	return stack.data[--stack.ptr].v;
 }
 
-ssize_t ctrl_stack_size(void) {
+inline ssize_t ctrl_stack_size(void) {
 	return stack.ptr;
 }
 
 #pragma endregion
 
-#pragma region Struct
+#pragma region Struct and Reflection
 
 hash hash1(char* data) {
     hash h = 7;
@@ -256,10 +256,10 @@ struct sclstruct {
 	scl_int  size;
 };
 
-struct sclstruct* allocated_structs[STACK_SIZE];
-size_t allocated_structs_count = 0;
-struct sclstruct* mallocced_structs[STACK_SIZE];
-size_t mallocced_structs_count = 0;
+static struct sclstruct* allocated_structs[STACK_SIZE];
+static size_t allocated_structs_count = 0;
+static struct sclstruct* mallocced_structs[STACK_SIZE];
+static size_t mallocced_structs_count = 0;
 
 void scl_finalize() {
 	for (size_t i = 0; i < mallocced_structs_count; i++) {
@@ -396,10 +396,6 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 
 	return scl_type_extends_type(ptrType, typeIdType);
 }
-
-#pragma endregion
-
-#pragma region Reflection
 
 void scl_reflect_call(scl_int func) {
 	for (size_t i = 0; i < scl_internal_functions_size; i++) {
