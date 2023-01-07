@@ -42,7 +42,7 @@
 #endif
 
 #ifndef STACK_SIZE
-#define STACK_SIZE			16384
+#define STACK_SIZE			131072
 #endif
 
 // Define scale-specific signals
