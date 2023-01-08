@@ -10,6 +10,8 @@
 out.c
 out.h
 out.typeinfo.h
+*.wasm
+*.js
 
 # Linker output
 *.ilk

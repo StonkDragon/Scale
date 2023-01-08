@@ -37,10 +37,6 @@
 // This function was declared in Scale code
 #define export
 
-#if __SIZEOF_POINTER__ < 8
-#error "Scale is not supported on this platform"
-#endif
-
 #ifndef STACK_SIZE
 #define STACK_SIZE			131072
 #endif
@@ -59,11 +55,23 @@
 
 #define ssize_t signed long
 
-typedef void* 				scl_any;
+#if __SIZEOF_POINTER__ < 8
+#define SCL_INT_HEX_FMT 	"%x"
+#define SCL_INT_FMT		 	"%d"
+typedef void*				scl_any;
+typedef int		 			scl_int;
+typedef char* 				scl_str;
+typedef float 				scl_float;
+#else
+#define SCL_INT_HEX_FMT 	"%llx"
+#define SCL_INT_FMT		 	"%lld"
+typedef void*				scl_any;
 typedef long long 			scl_int;
 typedef char* 				scl_str;
 typedef double 				scl_float;
-typedef unsigned long long	hash;
+#endif
+
+typedef unsigned int		hash;
 
 typedef union {
 	scl_int		i;
@@ -101,18 +109,18 @@ void		scl_assert(scl_int b, scl_str msg);
 void		scl_finalize();
 
 hash		hash1(char* data);
-scl_any		scl_alloc_struct(size_t size, scl_str type_name, scl_int super);
+scl_any		scl_alloc_struct(size_t size, scl_str type_name, hash super);
 void		scl_free_struct(scl_any ptr);
 scl_any		scl_add_struct(scl_any ptr);
-scl_int		scl_struct_is_type(scl_any ptr, scl_int typeId);
-scl_any		scl_get_method_on_type(unsigned long long type, unsigned long long method);
+scl_int		scl_struct_is_type(scl_any ptr, hash typeId);
+scl_any		scl_get_method_on_type(hash type, hash method);
 size_t		scl_find_index_of_struct(scl_any ptr);
 void		scl_free_struct_no_finalize(scl_any ptr);
 
-void		scl_reflect_call(scl_int func);
-void		scl_reflect_call_method(scl_int func);
-scl_any		scl_typeinfo_of(unsigned long long type);
-scl_int		scl_reflect_find(scl_int func);
-scl_int		scl_reflect_find_method(scl_int func);
+void		scl_reflect_call(hash func);
+void		scl_reflect_call_method(hash func);
+scl_any		scl_typeinfo_of(hash type);
+scl_int		scl_reflect_find(hash func);
+scl_int		scl_reflect_find_method(hash func);
 
 #endif

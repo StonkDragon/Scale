@@ -4,6 +4,16 @@
 #error C++ is not supported by Scale
 #endif
 
+// WASM/Emscripten warn: Emscripten only supports 32-bit
+#ifdef __wasm__
+#warning Compiling to WASM/Emscripten may not work as expected!
+#endif
+
+// 32-Bit warn: Due to Scale's stack layout, 
+#if __SIZEOF_POINTER__ < 8
+#warning Compiling on a 32-bit architecture may result in non-working code!
+#endif
+
 /* Variables */
 scl_stack_t stack;
 scl_stack_t	callstk;
@@ -17,7 +27,7 @@ extern scl_int current_col[STACK_SIZE];
 #pragma region Memory
 
 scl_any scl_alloc(size_t size) {
-	scl_any ptr = malloc(size);
+	scl_any ptr = (scl_any) malloc(size);
 	if (!ptr) {
 		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
 		return NULL;
@@ -50,7 +60,7 @@ void scl_free(scl_any ptr) {
 void scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
-		printf("%s:%lld:%lld: ", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1]);
+		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1]);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -88,9 +98,9 @@ void print_stacktrace() {
 			char* f = strrchr(current_file[i], '/');
 			if (!f) f = current_file[i];
 			else f++;
-			printf("  %s -> %s:%lld:%lld\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
+			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
 		} else {
-			printf("  %s -> (nil):%lld:%lld\n", (scl_str) callstk.data[i].i, current_line[i], current_col[i]);
+			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].i, current_line[i], current_col[i]);
 		}
 
 	}
@@ -127,7 +137,7 @@ void process_signal(int sig_num) {
 
 	printf("\n");
 
-	printf("%s:%lld:%lld: Exception: %s\n", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1], signalString);
+	printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1], signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
@@ -135,8 +145,8 @@ void process_signal(int sig_num) {
 		print_stacktrace();
 	printf("Stack:\n");
 	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
-		long long v = (long long) stack.data[i].i;
-		printf("   %zd: 0x%016llx, %lld\n", i, v, v);
+		scl_int v = stack.data[i].i;
+		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
 	}
 	printf("\n");
 
@@ -270,20 +280,20 @@ void scl_finalize() {
 	}
 }
 
-scl_any scl_typeinfo_of(unsigned long long type) {
+void* scl_typeinfo_of(hash type) {
 	for (size_t i = 0; i < scl_internal_types_count; i++) {
 		if (scl_internal_types[i].type == type) {
-			return (scl_any) scl_internal_types + (i * sizeof(struct scl_typeinfo));
+			return (void*) scl_internal_types + (i * sizeof(struct scl_typeinfo));
 		}
 	}
 	return NULL;
 }
 
-struct scl_typeinfo* scl_find_typeinfo_of(unsigned long long type) {
+struct scl_typeinfo* scl_find_typeinfo_of(hash type) {
 	return (struct scl_typeinfo*) scl_typeinfo_of(type);
 }
 
-scl_any scl_get_method_on_type(unsigned long long type, unsigned long long method) {
+void* scl_get_method_on_type(hash type, hash method) {
 	struct scl_typeinfo* p = scl_find_typeinfo_of(type);
 	while (p) {
 		for (scl_int m = 0; m < p->methodscount; m++) {
@@ -307,7 +317,7 @@ scl_any scl_add_struct(scl_any ptr) {
 	return ptr;
 }
 
-scl_any scl_alloc_struct(size_t size, scl_str type_name, scl_int super) {
+scl_any scl_alloc_struct(size_t size, scl_str type_name, hash super) {
 	scl_any ptr = scl_alloc(size);
 	((struct sclstruct*) ptr)->type = hash1(type_name);
     ((struct sclstruct*) ptr)->type_name = type_name;
@@ -379,7 +389,7 @@ scl_int scl_type_extends_type(struct scl_typeinfo* type, struct scl_typeinfo* ex
 	return 0;
 }
 
-scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
+scl_int scl_struct_is_type(scl_any ptr, hash typeId) {
 	int isStruct = 0;
 	for (size_t i = 0; i < allocated_structs_count; i++) {
 		if (allocated_structs[i] == ptr) {
@@ -397,7 +407,7 @@ scl_int scl_struct_is_type(scl_any ptr, scl_int typeId) {
 	return scl_type_extends_type(ptrType, typeIdType);
 }
 
-void scl_reflect_call(scl_int func) {
+void scl_reflect_call(hash func) {
 	for (size_t i = 0; i < scl_internal_functions_size; i++) {
 		if (scl_internal_functions[i]->name_hash == func) {
 			((void(*)()) scl_internal_functions[i]->ptr)();
@@ -407,7 +417,7 @@ void scl_reflect_call(scl_int func) {
 	scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
 }
 
-scl_int scl_reflect_find(scl_int func) {
+scl_int scl_reflect_find(hash func) {
 	for (size_t i = 0; i < scl_internal_functions_size; i++) {
 		if (scl_internal_functions[i]->name_hash == func) {
 			return 1;
@@ -416,7 +426,7 @@ scl_int scl_reflect_find(scl_int func) {
 	return 0;
 }
 
-scl_int scl_reflect_find_method(scl_int func) {
+scl_int scl_reflect_find_method(hash func) {
 	for (size_t i = 0; i < scl_internal_methods_size; i++) {
 		if (scl_internal_methods[i]->name_hash == func) {
 			return 1;
@@ -425,7 +435,7 @@ scl_int scl_reflect_find_method(scl_int func) {
 	return 0;
 }
 
-void scl_reflect_call_method(scl_int func) {
+void scl_reflect_call_method(hash func) {
 	for (size_t i = 0; i < scl_internal_methods_size; i++) {
 		if (scl_internal_methods[i]->name_hash == func) {
 			((void(*)()) scl_internal_methods[i]->ptr)();

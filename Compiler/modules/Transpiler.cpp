@@ -1012,7 +1012,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %llu);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
+                    append("stack.data[stack.ptr++].v = scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("scl_assert(stack.data[stack.ptr - 1].i, \"Failed to allocate memory for struct '%s'\");\n", struct_.c_str());
                     typeStack.push(struct_);
                     debugPrintPush();
@@ -1064,7 +1064,7 @@ namespace sclc {
                     }
                     append("{\n");
                     scopeDepth++;
-                    append("struct Struct_%s tmp = {0x%016llx, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
+                    append("struct Struct_%s tmp = {0x%xU, \"%s\"};\n", struct_.c_str(), hash1((char*) struct_.c_str()), struct_.c_str());
                     append("stack.data[stack.ptr++].v = (scl_any*) &tmp;\n");
                     typeStack.push(struct_);
                     debugPrintPush();
@@ -2446,7 +2446,7 @@ namespace sclc {
         scopeDepth++;
         Method* f = getMethodByName(result, "init", struct_);
         Struct arr = getStructByName(result, "Array");
-        append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", %llu);\n", hash1((char*) arr.getName().c_str()));
+        append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", %uU);\n", hash1((char*) arr.getName().c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
                 append("stack.data[stack.ptr++].f = Method_Array_init(tmp, 1);\n");
@@ -2497,7 +2497,7 @@ namespace sclc {
         scopeDepth++;
         Method* f = getMethodByName(result, "init", struct_);
         Struct map = getStructByName(result, "Map");
-        append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", %llu);\n", hash1((char*) map.getName().c_str()));
+        append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", %uU);\n", hash1((char*) map.getName().c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
                 append("stack.data[stack.ptr++].f = Method_Map_init(tmp, 1);\n");
@@ -2579,7 +2579,7 @@ namespace sclc {
             }
             Method* f = getMethodByName(result, "init", "MapEntry");
             Struct entry = getStructByName(result, "MapEntry");
-            append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %llu);\n", hash1((char*) entry.getName().c_str()));
+            append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %uU);\n", hash1((char*) entry.getName().c_str()));
             if (typeStack.size())
                 typeStack.pop();
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
@@ -2627,7 +2627,7 @@ namespace sclc {
                 }
                 Method* f = getMethodByName(result, "init", "Pair");
                 Struct pair = getStructByName(result, "Pair");
-                append("struct Struct_Pair* tmp = scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\", %llu);\n", hash1((char*) pair.getName().c_str()));
+                append("struct Struct_Pair* tmp = scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\", %uU);\n", hash1((char*) pair.getName().c_str()));
                 append("stack.ptr -= 2;\n");
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
@@ -2680,7 +2680,7 @@ namespace sclc {
                 }
                 Method* f = getMethodByName(result, "init", "Triple");
                 Struct triple = getStructByName(result, "Triple");
-                append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %llu);\n", hash1((char*) triple.getName().c_str()));
+                append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %uU);\n", hash1((char*) triple.getName().c_str()));
                 append("stack.ptr -= 3;\n");
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
@@ -2830,7 +2830,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && scl_struct_is_type(stack.data[stack.ptr - 1].v, 0x%016llx);\n", hash1((char*) struct_.c_str()));
+        append("stack.data[stack.ptr - 1].i = stack.data[stack.ptr - 1].v && scl_struct_is_type(stack.data[stack.ptr - 1].v, 0x%xU);\n", hash1((char*) struct_.c_str()));
         if (typeStack.size())
             typeStack.pop();
         typeStack.push("bool");
@@ -3598,14 +3598,14 @@ namespace sclc {
             if (f->isMethod) continue;
             append("struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
-            append(".$__type__ = 0x%016llx,\n", hash1((char*) std::string("Method").c_str()));
+            append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
-            append(".$__super__ = 258689265892916,\n");
+            append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct scl_methodinfo),\n");
-            append(".name_hash = 0x%016llx,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
+            append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
             append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) scl_reflect_call_function_%s,\n", f->getName().c_str());
-            append(".id = 0x%016llx,\n", hash1((char*) f->getName().c_str()));
+            append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
             append(".member_type = 0,\n");
             append(".arg_count = %zu,\n", f->getArgs().size());
             append(".return_type = \"%s\",\n", f->getReturnType().c_str());
@@ -3616,14 +3616,14 @@ namespace sclc {
             if (f->isMethod) continue;
             append("struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
-            append(".$__type__ = 0x%016llx,\n", hash1((char*) std::string("Method").c_str()));
+            append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
-            append(".$__super__ = 258689265892916,\n");
+            append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct scl_methodinfo),\n");
-            append(".name_hash = 0x%016llx,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
+            append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
             append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) scl_reflect_call_function_%s,\n", f->getName().c_str());
-            append(".id = 0x%016llx,\n", hash1((char*) f->getName().c_str()));
+            append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
             append(".member_type = 0,\n");
             append(".arg_count = %zu,\n", f->getArgs().size());
             append(".return_type = \"%s\",\n", f->getReturnType().c_str());
@@ -3654,15 +3654,15 @@ namespace sclc {
             Method* m = (Method*) f;
             append("struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
-            append(".$__type__ = 0x%016llx,\n", hash1((char*) std::string("Method").c_str()));
+            append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
-            append(".$__super__ = 258689265892916,\n");
+            append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct scl_methodinfo),\n");
-            append(".name_hash = 0x%016llx,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
+            append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
             append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
-            append(".id = 0x%016llx,\n", hash1((char*) f->getName().c_str()));
-            append(".member_type = 0x%016llx,\n", hash1((char*) m->getMemberType().c_str()));
+            append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+            append(".member_type = 0x%xU,\n", hash1((char*) m->getMemberType().c_str()));
             append(".arg_count = %zu,\n", f->getArgs().size());
             append(".return_type = \"%s\",\n", f->getReturnType().c_str());
             scopeDepth--;
@@ -3673,15 +3673,15 @@ namespace sclc {
             Method* m = (Method*) f;
             append("struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
-            append(".$__type__ = 0x%016llx,\n", hash1((char*) std::string("Method").c_str()));
+            append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
-            append(".$__super__ = 258689265892916,\n");
+            append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct scl_methodinfo),\n");
-            append(".name_hash = 0x%016llx,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
+            append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
             append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
-            append(".id = 0x%016llx,\n", hash1((char*) f->getName().c_str()));
-            append(".member_type = 0x%016llx,\n", hash1((char*) m->getMemberType().c_str()));
+            append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+            append(".member_type = 0x%xU,\n", hash1((char*) m->getMemberType().c_str()));
             append(".arg_count = %zu,\n", f->getArgs().size());
             append(".return_type = \"%s\",\n", f->getReturnType().c_str());
             scopeDepth--;
@@ -3727,14 +3727,14 @@ namespace sclc {
             append("/* %s */\n", s.getName().c_str());
             append("(struct scl_typeinfo) {\n");
             scopeDepth++;
-            append(".$__type__ = 0x%016llx,\n", hash1((char*) std::string("Struct").c_str()));
+            append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Struct").c_str()));
             append(".$__type_name__ = \"Struct\",\n");
-            append(".$__super__ = 258689265892916,\n");
+            append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct scl_typeinfo),\n");
-            append(".type = 0x%016llx,\n", hash1((char*) s.getName().c_str()));
+            append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
             append(".name = \"%s\",\n", s.getName().c_str());
             append(".size = sizeof(struct Struct_%s),\n", s.getName().c_str());
-            append(".super = %llu,\n", hash1((char*) s.extends().c_str()));
+            append(".super = %uU,\n", hash1((char*) s.extends().c_str()));
 
             std::vector<Method*> methods = methodsOnType(result, s.getName());
 
@@ -3752,7 +3752,7 @@ namespace sclc {
         append("size_t scl_internal_types_count = %zu;\n\n", result.structs.size());
         append("int scl_do_method_check = 0;\n\n");
 
-        append("extern unsigned long long hash1(char*);\n\n");
+        append("extern hash hash1(char*);\n\n");
 
         fprintf(fp, "#ifdef __cplusplus\n");
         fprintf(fp, "}\n");
@@ -3913,10 +3913,10 @@ namespace sclc {
 
             if (function->isMethod) {
                 Method* m = static_cast<Method*>(function);
-                append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%016llx) {\n", hash1((char*) m->getMemberType().c_str()));
+                append("if (!scl_do_method_check && scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%xU) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
-                append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
-                append("if (method == NULL) method = scl_get_method_on_type(Var_self->$__type__, 0x%016llx);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
+                append("scl_any method = scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
+                append("if (method == NULL) method = scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
                 append("if (method != NULL) {\n");
                 for (ssize_t k = function->getArgs().size() - 1; k >= 0; k--) {
                     Variable arg = function->getArgs()[k];

@@ -69,7 +69,7 @@ namespace sclc {
     extern std::regex snake_case_regex;
     extern std::regex SCREAMING_SNAKE_CASE_regex;
 
-    typedef unsigned long long hash;
+    typedef unsigned int hash;
 
     class SyntaxTree
     {

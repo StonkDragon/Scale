@@ -11,8 +11,6 @@
 
 namespace sclc
 {
-    unsigned long long hash1(char*);
-
     class Struct {
         std::string name;
         Token name_token;
