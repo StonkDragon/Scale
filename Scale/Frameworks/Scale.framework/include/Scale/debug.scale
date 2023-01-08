@@ -48,3 +48,11 @@ function throw(_msg_: str): none
   trace
   1 exit
 end
+
+function sysPrettyString() s: str
+  40 malloc => s
+  inline_c
+    snprintf(*s, 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+  end_inline
+  return
+end

@@ -56,6 +56,20 @@
 #define ssize_t signed long
 
 #if __SIZEOF_POINTER__ < 8
+// WASM or 32-bit system
+#ifdef __wasm__
+#define SCL_SYSTEM "WASM32"
+#define SCL_WASM32 1
+#elif __arm__
+#define SCL_SYSTEM "aarch32"
+#define SCL_ARM32  1
+#elif __i386__
+#define SCL_SYSTEM "x86"
+#define SCL_X86    1
+#else
+#define SCL_SYSTEM  "unknown 32-bit"
+#define SCL_UNKNOWN_ARCH 1
+#endif
 #define SCL_INT_HEX_FMT 	"%x"
 #define SCL_INT_FMT		 	"%d"
 typedef void*				scl_any;
@@ -63,12 +77,67 @@ typedef int		 			scl_int;
 typedef char* 				scl_str;
 typedef float 				scl_float;
 #else
+// 64-bit system
+#ifdef __wasm__
+#define SCL_SYSTEM  "WASM64"
+#define SCL_WASM64  1
+#elif __aarch64__
+#define SCL_SYSTEM  "aarch64"
+#define SCL_AARCH64 1
+#define SCL_ARM64   1
+#elif __x86_64__
+#define SCL_SYSTEM  "x86_64"
+#define SCL_X64     1
+#define SCL_X86_64  1
+#else
+#define SCL_SYSTEM  "unknown 64-bit"
+#define SCL_UNKNOWN_ARCH 1
+#endif
 #define SCL_INT_HEX_FMT 	"%llx"
 #define SCL_INT_FMT		 	"%lld"
 typedef void*				scl_any;
 typedef long long 			scl_int;
 typedef char* 				scl_str;
 typedef double 				scl_float;
+#endif
+
+#ifdef __ANDROID__
+#define SCL_OS_NAME "Android"
+#elif __amigaos__
+#define SCL_OS_NAME "AmigaOS"
+#elif __bsdi__
+#define SCL_OS_NAME "BSD-like"
+#elif __CYGWIN__
+#define SCL_OS_NAME "Windows (Cygwin)"
+#define SCL_CYGWIN
+#elif __DragonFly__
+#define SCL_OS_NAME "DragonFly"
+#elif __FreeBSD__
+#define SCL_OS_NAME "FreeBSD"
+#elif __gnu_linux__
+#define SCL_OS_NAME "GNU/Linux"
+#elif __GNU__
+#define SCL_OS_NAME "GNU"
+#elif macintosh
+#define SCL_OS_NAME "Classic Mac OS"
+#elif __APPLE__ && __MACH__
+#define SCL_OS_NAME "macOS"
+#elif __minix
+#define SCL_OS_NAME "MINIX"
+#elif __MSDOS__
+#define SCL_OS_NAME "MS-DOS"
+#elif __NetBSD__
+#define SCL_OS_NAME "NetBSD"
+#elif __OpenBSD__
+#define SCL_OS_NAME "OpenBSD"
+#elif __OS2__
+#define SCL_OS_NAME "IBM OS/2"
+#elif __unix__
+#define SCL_OS_NAME "UNIX"
+#elif _WIN32 || _WIN32_WCE
+#define SCL_OS_NAME "Windows"
+#else
+#define SCL_OS_NAME "Unknown OS"
 #endif
 
 typedef unsigned int		hash;

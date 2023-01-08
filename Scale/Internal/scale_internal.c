@@ -4,16 +4,6 @@
 #error C++ is not supported by Scale
 #endif
 
-// WASM/Emscripten warn: Emscripten only supports 32-bit
-#ifdef __wasm__
-#warning Compiling to WASM/Emscripten may not work as expected!
-#endif
-
-// 32-Bit warn: Due to Scale's stack layout, 
-#if __SIZEOF_POINTER__ < 8
-#warning Compiling on a 32-bit architecture may result in non-working code!
-#endif
-
 /* Variables */
 scl_stack_t stack;
 scl_stack_t	callstk;
