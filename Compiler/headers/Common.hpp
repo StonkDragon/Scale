@@ -157,6 +157,7 @@ namespace sclc {
             bool assembleOnly;
             bool transpileOnly;
             bool preprocessOnly;
+            bool noErrorLocation;
             bool noScaleFramework;
             std::string optimizer;
             bool dontSpecifyOutFile;
