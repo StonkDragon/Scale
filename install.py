@@ -7,7 +7,7 @@ HOME = os.path.expanduser("~")
 
 SCALE_INSTALL_DIR = os.path.join(HOME, "Scale")
 SCALE_DATA_DIR = os.path.join(os.path.curdir, "Scale")
-VERSION = "3.4"
+VERSION = "2023.0"
 
 build_command = f"g++ -Wall -Werror -pedantic -std=gnu++17 "
 units = [
@@ -24,7 +24,7 @@ units = [
 ]
 
 if osName() == 'Windows':
-    build_command += "-static-libgcc -static-libstdc++ -static -lpthread "
+    build_command += "-static -lpthread "
     SCALE_INSTALL_DIR = "C:\\Windows\\sclc.exe"
 elif osName() == 'Darwin':
     build_command += ""

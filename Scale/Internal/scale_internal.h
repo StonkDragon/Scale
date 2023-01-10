@@ -67,7 +67,7 @@
 #define SCL_SYSTEM "x86"
 #define SCL_X86    1
 #else
-#define SCL_SYSTEM  "unknown 32-bit"
+#define SCL_SYSTEM "unknown 32-bit"
 #define SCL_UNKNOWN_ARCH 1
 #endif
 #define SCL_INT_HEX_FMT 	"%x"
@@ -192,4 +192,4 @@ scl_any		scl_typeinfo_of(hash type);
 scl_int		scl_reflect_find(hash func);
 scl_int		scl_reflect_find_method(hash func);
 
-#endif
+#endif // __SCALE_INTERNAL_H__

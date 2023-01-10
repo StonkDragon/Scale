@@ -951,7 +951,7 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
                             if (tokens[i].getValue() == "const") {
                                 isConst = true;
                             } else if (tokens[i].getValue() == "mut") {
@@ -1022,7 +1022,7 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
                         if (tokens[i].getValue() == "const") {
                             isConst = true;
                         } else if (tokens[i].getValue() == "mut") {
@@ -1082,7 +1082,7 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
                         if (tokens[i].getValue() == "const") {
                             isConst = true;
                         } else if (tokens[i].getValue() == "mut") {
@@ -1143,15 +1143,18 @@ namespace sclc {
                 bool isConst = false;
                 bool isMut = false;
                 bool isInternalMut = false;
+                bool isPrivate = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly") {
+                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
                         if (tokens[i].getValue() == "const") {
                             isConst = true;
                         } else if (tokens[i].getValue() == "mut") {
                             isMut = true;
                         } else if (tokens[i].getValue() == "readonly") {
                             isInternalMut = true;
+                        } else if (tokens[i].getValue() == "private") {
+                            isPrivate = true;
                         }
                         i++;
                     }
@@ -1177,7 +1180,7 @@ namespace sclc {
                 }
                 if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
                     Variable v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
-                    v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
                     nextAttributes.clear();
                     if (tokens[i + 1].getValue() == "?") {
                         v.canBeNil = true;
@@ -1200,7 +1203,7 @@ namespace sclc {
                     }
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
-                        v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                        v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
                         if (tokens[i + 1].getValue() == "?") {
                             v.canBeNil = true;
                             i++;
@@ -1209,7 +1212,7 @@ namespace sclc {
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
-                            v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
                             if (tokens[i + 1].getValue() == "?") {
                                 v.canBeNil = true;
                                 i++;
@@ -1217,7 +1220,7 @@ namespace sclc {
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
-                            v.isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
                             if (tokens[i + 1].getValue() == "?") {
                                 v.canBeNil = true;
                                 i++;
