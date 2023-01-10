@@ -3249,17 +3249,19 @@ namespace sclc {
             file = std::filesystem::path(file).relative_path();
         }
 
-        if (currentFile != file) {
-            append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
-            currentFile = file;
-        }
-        if (currentLine != body[i].getLine()) {
-            append("current_line[callstk.ptr - 1] = %d;\n", body[i].getLine());
-            currentLine = body[i].getLine();
-        }
-        if (currentCol != body[i].getColumn()) {
-            append("current_col[callstk.ptr - 1] = %d;\n", body[i].getColumn());
-            currentCol = body[i].getColumn();
+        if (body[i].getType() != tok_case) {
+            if (currentFile != file) {
+                append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
+                currentFile = file;
+            }
+            if (currentLine != body[i].getLine()) {
+                append("current_line[callstk.ptr - 1] = %d;\n", body[i].getLine());
+                currentLine = body[i].getLine();
+            }
+            if (currentCol != body[i].getColumn()) {
+                append("current_col[callstk.ptr - 1] = %d;\n", body[i].getColumn());
+                currentCol = body[i].getColumn();
+            }
         }
 
         if (isOperator(body[i])) {
@@ -3592,7 +3594,6 @@ namespace sclc {
         scopeDepth++;
         for (Function* f : result.functions) {
             if (f->isMethod) continue;
-            if (f->isExternC) continue;
             append("static struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
@@ -3611,7 +3612,6 @@ namespace sclc {
         }
         for (Function* f : result.extern_functions) {
             if (f->isMethod) continue;
-            if (f->isExternC) continue;
             append("static struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
@@ -3634,13 +3634,11 @@ namespace sclc {
         append("struct scl_methodinfo* scl_internal_functions[] = {\n");
         for (Function* f : result.functions) {
             if (f->isMethod) continue;
-            if (f->isExternC) continue;
             fCount++;
             append("  &methodinfo_function_%s,\n", f->getName().c_str());
         }
         for (Function* f : result.extern_functions) {
             if (f->isMethod) continue;
-            if (f->isExternC) continue;
             fCount++;
             append("  &methodinfo_function_%s,\n", f->getName().c_str());
         }
@@ -3651,7 +3649,6 @@ namespace sclc {
         scopeDepth++;
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
-            if (f->isExternC) continue;
             Method* m = (Method*) f;
             append("static struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
@@ -3671,7 +3668,6 @@ namespace sclc {
         }
         for (Function* f : result.extern_functions) {
             if (!f->isMethod) continue;
-            if (f->isExternC) continue;
             Method* m = (Method*) f;
             append("static struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
@@ -3694,14 +3690,12 @@ namespace sclc {
         fCount = 0;
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
-            if (f->isExternC) continue;
             Method* m = (Method*) f;
             fCount++;
             append("  &methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
         }
         for (Function* f : result.extern_functions) {
             if (!f->isMethod) continue;
-            if (f->isExternC) continue;
             Method* m = (Method*) f;
             fCount++;
             append("  &methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());

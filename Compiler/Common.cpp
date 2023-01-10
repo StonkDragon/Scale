@@ -418,14 +418,12 @@ namespace sclc
 
         for (Function* func : res.functions) {
             if (!func->isMethod) continue;
-            if (func->isExternC) continue;
             if (((Method*) func)->getMemberType() == type) {
                 methods.push_back((Method*) func);
             }
         }
         for (Function* func : res.extern_functions) {
             if (!func->isMethod) continue;
-            if (func->isExternC) continue;
             if (((Method*) func)->getMemberType() == type) {
                 methods.push_back((Method*) func);
             }
