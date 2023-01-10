@@ -71,60 +71,58 @@ namespace sclc
 
         fclose(support_header);
 
-        std::string push_args = "";
-        if (mainFunction->getArgs().size() > 0) {
-            push_args = "ctrl_push_args(argc, argv);\n";
-        }
-
-        std::string sclTypeToCType(TPResult result, std::string t);
-
-        std::string main = "";
-        if (mainFunction->getReturnType() == "none") {
-            if (mainFunction->getArgs().size() != 0)
-                main = "Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
-            else
-                main = "Function_main();\n";
-        } else {
-            if (mainFunction->getArgs().size() != 0)
-                main = "return_value = Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
-            else
-                main = "return_value = Function_main();\n";
-        }
-
-        if (Main.options.noMain)
-            goto after_main;
-        append("int main(int argc, char** argv) {\n");
-        append("#ifdef SIGINT\n");
-        append("  signal(SIGINT, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGABRT\n");
-        append("  signal(SIGABRT, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGSEGV\n");
-        append("  signal(SIGSEGV, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGBUS\n");
-        append("  signal(SIGBUS, process_signal);\n");
-        append("#endif\n\n");
-        append("  int return_value = 0;\n");
-        if (push_args.size() > 0)
-            append("  %s", push_args.c_str());
-        for (Function* f : result.functions) {
-            if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
-                append("  Function_%s();\n", f->getName().c_str());
+        if (mainFunction && !Main.options.noMain) {
+            std::string push_args = "";
+            if (mainFunction->getArgs().size() > 0) {
+                push_args = "ctrl_push_args(argc, argv);\n";
             }
-        }
-        append("  %s", main.c_str());
-        for (Function* f : result.functions) {
-            if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
-                append("  Function_%s();\n", f->getName().c_str());
-            }
-        }
-        append("  scl_finalize();\n");
-        append("  return return_value;\n");
-        append("}\n");
 
-    after_main:
+            std::string sclTypeToCType(TPResult result, std::string t);
+
+            std::string main = "";
+            if (mainFunction->getReturnType() == "none") {
+                if (mainFunction->getArgs().size() != 0)
+                    main = "Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
+                else
+                    main = "Function_main();\n";
+            } else {
+                if (mainFunction->getArgs().size() != 0)
+                    main = "return_value = Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
+                else
+                    main = "return_value = Function_main();\n";
+            }
+
+            append("int main(int argc, char** argv) {\n");
+            append("#ifdef SIGINT\n");
+            append("  signal(SIGINT, process_signal);\n");
+            append("#endif\n");
+            append("#ifdef SIGABRT\n");
+            append("  signal(SIGABRT, process_signal);\n");
+            append("#endif\n");
+            append("#ifdef SIGSEGV\n");
+            append("  signal(SIGSEGV, process_signal);\n");
+            append("#endif\n");
+            append("#ifdef SIGBUS\n");
+            append("  signal(SIGBUS, process_signal);\n");
+            append("#endif\n\n");
+            append("  int return_value = 0;\n");
+            if (push_args.size() > 0)
+                append("  %s", push_args.c_str());
+            for (Function* f : result.functions) {
+                if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
+                    append("  Function_%s();\n", f->getName().c_str());
+                }
+            }
+            append("  %s", main.c_str());
+            for (Function* f : result.functions) {
+                if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
+                    append("  Function_%s();\n", f->getName().c_str());
+                }
+            }
+            append("  scl_finalize();\n");
+            append("  return return_value;\n");
+            append("}\n");
+        }
 
         append("#ifdef __cplusplus\n");
         append("}\n");

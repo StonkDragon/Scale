@@ -899,9 +899,22 @@ namespace sclc {
             } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
                 Token extToken = token;
                 i++;
+                if (tokens[i].getValue() == "static") {
+                    nextAttributes.push_back("static");
+                    i++;
+                }
                 Token type = tokens[i];
                 if (type.getType() == tok_function) {
                     if (currentStruct != nullptr) {
+                        if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
+                            std::string name = tokens[i + 1].getValue();
+                            Token func = tokens[i + 1];
+                            Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
+                            function->isExternC = true;
+                            extern_functions.push_back(function);
+                            nextAttributes.clear();
+                            continue;
+                        }
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
                         Function* function = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);

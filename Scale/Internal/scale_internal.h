@@ -81,14 +81,17 @@ typedef float 				scl_float;
 #ifdef __wasm__
 #define SCL_SYSTEM  "WASM64"
 #define SCL_WASM64  1
+#define SCL_WASM32	1
 #elif __aarch64__
 #define SCL_SYSTEM  "aarch64"
 #define SCL_AARCH64 1
 #define SCL_ARM64   1
+#define SCL_ARM32	1
 #elif __x86_64__
 #define SCL_SYSTEM  "x86_64"
 #define SCL_X64     1
 #define SCL_X86_64  1
+#define SCL_X86		1
 #else
 #define SCL_SYSTEM  "unknown 64-bit"
 #define SCL_UNKNOWN_ARCH 1
