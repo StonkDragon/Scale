@@ -911,8 +911,8 @@ namespace sclc {
                             Token func = tokens[i + 1];
                             Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
                             function->isExternC = true;
-                            extern_functions.push_back(function);
                             nextAttributes.clear();
+                            extern_functions.push_back(function);
                             continue;
                         }
                         Token func = tokens[i + 1];
@@ -920,6 +920,7 @@ namespace sclc {
                         Function* function = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);
                         function->isExternC = true;
                         extern_functions.push_back(function);
+                        nextAttributes.clear();
                         continue;
                     }
                     if (tokens[i + 2].getType() == tok_column) {
@@ -937,6 +938,7 @@ namespace sclc {
                         func->isExternC = true;
                         extern_functions.push_back(func);
                     }
+                    nextAttributes.clear();
                 } else if (type.getType() == tok_declare) {
                     i++;
                     if (tokens[i].getType() != tok_identifier) {
