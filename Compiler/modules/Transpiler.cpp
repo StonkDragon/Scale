@@ -113,21 +113,21 @@ namespace sclc {
             canBeNil = true;
         }
         if (v.size() && v.at(0) == '[') {
-            return "_sclPtrTo_" + typeToASCII(v.substr(1, v.length() - 2)) + (canBeNil ? "_sclMaybeNil" : "");
+            return ".sclPtrTo." + typeToASCII(v.substr(1, v.length() - 2)) + (canBeNil ? ".sclMaybeNil" : "");
         }
         if (v == "?") {
-            return std::string("_sclWildcard") + (canBeNil ? "_sclMaybeNil" : "");
+            return std::string(".sclWildcard") + (canBeNil ? ".sclMaybeNil" : "");
         }
         return v;
     }
 
     std::string generateSymbolForFunction(Function* f) {
-        std::string symbol = "function_" + f->getName();
+        std::string symbol = "f." + f->getName();
         if (f->getName().find('$') != std::string::npos) {
-            symbol = "static_" + f->getName().substr(0, f->getName().find('$')) + "_function_" + f->getName().substr(f->getName().find('$') + 1);
+            symbol = "s." + f->getName().substr(0, f->getName().find('$')) + ".f." + f->getName().substr(f->getName().find('$') + 1);
         }
         if (f->isMethod) {
-            symbol = "method_" + static_cast<Method*>(f)->getMemberType() + "_" + symbol;
+            symbol = "m." + static_cast<Method*>(f)->getMemberType() + "." + replaceAll(replaceAll(symbol, "f\\.operator", "op"), "_?" + Main.options.operatorRandomData + "_?", ".");
         }
         std::string arguments = "";
         if (f->getArgs().size() > 0) {
@@ -138,12 +138,12 @@ namespace sclc {
                     }
                 }
                 if (i) {
-                    arguments += "_";
+                    arguments += ".";
                 }
                 arguments += typeToASCII(f->getArgs()[i].getType());
             }
         }
-        symbol += "_sclArgs_" + arguments + "_sclType_" + typeToASCII(f->getReturnType());
+        symbol += ".sclArgs." + arguments + ".sclType." + typeToASCII(f->getReturnType());
         if (f->isExternC) {
             if (f->isMethod) {
                 symbol = "_Method_" + static_cast<Method*>(f)->getMemberType() + "_" + f->getName();
@@ -895,23 +895,19 @@ namespace sclc {
         } else if (body[i].getValue() == "sizeof") {
             ITER_INC;
             if (body[i].getValue() == "int") {
-                append("stack.data[stack.ptr++].i = 8;\n");
-                typeStack.push("int");
-                return;
-            } else if (body[i].getValue() == "int") {
-                append("stack.data[stack.ptr++].i = 8;\n");
+                append("stack.data[stack.ptr++].i = sizeof(scl_int);\n");
                 typeStack.push("int");
                 return;
             } else if (body[i].getValue() == "float") {
-                append("stack.data[stack.ptr++].i = 8;\n");
+                append("stack.data[stack.ptr++].i = sizeof(scl_float);\n");
                 typeStack.push("int");
                 return;
             } else if (body[i].getValue() == "str") {
-                append("stack.data[stack.ptr++].i = 8;\n");
+                append("stack.data[stack.ptr++].i = sizeof(scl_str);\n");
                 typeStack.push("int");
                 return;
             } else if (body[i].getValue() == "any") {
-                append("stack.data[stack.ptr++].i = 8;\n");
+                append("stack.data[stack.ptr++].i = sizeof(scl_any);\n");
                 typeStack.push("int");
                 return;
             } else if (body[i].getValue() == "none") {
@@ -3586,9 +3582,9 @@ namespace sclc {
 
         for (Function* function : result.functions) {
             if (function->isMethod) {
-                append("void scl_reflect_call_method_%s_function_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+                append("static void scl_reflect_call_method_%s_function_%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
             } else {
-                append("void scl_reflect_call_function_%s();\n", function->getName().c_str());
+                append("static void scl_reflect_call_function_%s();\n", function->getName().c_str());
             }
         }
 
@@ -3596,7 +3592,8 @@ namespace sclc {
         scopeDepth++;
         for (Function* f : result.functions) {
             if (f->isMethod) continue;
-            append("struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
+            if (f->isExternC) continue;
+            append("static struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
@@ -3614,7 +3611,8 @@ namespace sclc {
         }
         for (Function* f : result.extern_functions) {
             if (f->isMethod) continue;
-            append("struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
+            if (f->isExternC) continue;
+            append("static struct scl_methodinfo methodinfo_function_%s = (struct scl_methodinfo) {\n", f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
@@ -3636,11 +3634,13 @@ namespace sclc {
         append("struct scl_methodinfo* scl_internal_functions[] = {\n");
         for (Function* f : result.functions) {
             if (f->isMethod) continue;
+            if (f->isExternC) continue;
             fCount++;
             append("  &methodinfo_function_%s,\n", f->getName().c_str());
         }
         for (Function* f : result.extern_functions) {
             if (f->isMethod) continue;
+            if (f->isExternC) continue;
             fCount++;
             append("  &methodinfo_function_%s,\n", f->getName().c_str());
         }
@@ -3651,8 +3651,9 @@ namespace sclc {
         scopeDepth++;
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
+            if (f->isExternC) continue;
             Method* m = (Method*) f;
-            append("struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
+            append("static struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
@@ -3670,8 +3671,9 @@ namespace sclc {
         }
         for (Function* f : result.extern_functions) {
             if (!f->isMethod) continue;
+            if (f->isExternC) continue;
             Method* m = (Method*) f;
-            append("struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
+            append("static struct scl_methodinfo methodinfo_method_%s_function_%s = (struct scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
             append(".$__type__ = 0x%xU,\n", hash1((char*) std::string("Method").c_str()));
             append(".$__type_name__ = \"Method\",\n");
@@ -3692,12 +3694,14 @@ namespace sclc {
         fCount = 0;
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
+            if (f->isExternC) continue;
             Method* m = (Method*) f;
             fCount++;
             append("  &methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
         }
         for (Function* f : result.extern_functions) {
             if (!f->isMethod) continue;
+            if (f->isExternC) continue;
             Method* m = (Method*) f;
             fCount++;
             append("  &methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
@@ -3717,8 +3721,6 @@ namespace sclc {
                 }
                 scopeDepth--;
                 append("};\n");
-            // } else {
-            //     append("struct scl_methodinfo*[] methodinfo_ptrs_%s = {0};\n", s.getName().c_str());
             }
         }
         append("struct scl_typeinfo scl_internal_types[] = {\n");
@@ -3750,7 +3752,7 @@ namespace sclc {
         scopeDepth--;
         append("};\n");
         append("size_t scl_internal_types_count = %zu;\n\n", result.structs.size());
-        append("int scl_do_method_check = 0;\n\n");
+        append("static int scl_do_method_check = 0;\n\n");
 
         append("extern hash hash1(char*);\n\n");
 
@@ -3892,7 +3894,7 @@ namespace sclc {
                     continue;
                 }
                 Method* m = (Method*) function;
-                append("void scl_reflect_call_method_%s_function_%s() {\n", m->getMemberType().c_str(), function->getName().c_str());
+                append("static void scl_reflect_call_method_%s_function_%s() {\n", m->getMemberType().c_str(), function->getName().c_str());
                 scopeDepth++;
                 if (function->getArgs().size() > 0)
                     append("stack.ptr -= %zu;\n", function->getArgs().size());

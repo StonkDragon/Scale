@@ -1,4 +1,4 @@
-     662 Compiler/Common.cpp
+     664 Compiler/Common.cpp
     1310 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      233 Compiler/headers/Common.hpp
@@ -17,11 +17,11 @@
      345 Compiler/modules/DragonConfig.cpp
      106 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     143 Compiler/modules/Parser.cpp
-    1313 Compiler/modules/SyntaxTree.cpp
+     141 Compiler/modules/Parser.cpp
+    1329 Compiler/modules/SyntaxTree.cpp
      257 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
-    3982 Compiler/modules/Transpiler.cpp
+    3984 Compiler/modules/Transpiler.cpp
      254 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       58 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -46,7 +46,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
      438 Scale/Internal/scale_internal.c
-     195 Scale/Internal/scale_internal.h
+     197 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -67,6 +67,7 @@
       59 examples/operator-overloading.scale
       46 examples/operators.scale
        6 examples/repeat.scale
+      49 examples/runtime.scale
       11 examples/sizeof.scale
       19 examples/struct.scale
       27 examples/switch.scale
@@ -74,4 +75,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12174 total
+   12243 total
