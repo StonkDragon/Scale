@@ -106,13 +106,13 @@ namespace sclc
             append("  signal(SIGBUS, process_signal);\n");
             append("#endif\n\n");
             append("  int return_value = 0;\n");
-            if (push_args.size() > 0)
-                append("  %s", push_args.c_str());
             for (Function* f : result.functions) {
                 if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
                     append("  Function_%s();\n", f->getName().c_str());
                 }
             }
+            if (push_args.size() > 0)
+                append("  %s", push_args.c_str());
             append("  %s", main.c_str());
             for (Function* f : result.functions) {
                 if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
