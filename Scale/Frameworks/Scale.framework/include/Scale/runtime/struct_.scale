@@ -58,9 +58,9 @@ sealed struct Struct
             *instance = scl_alloc_struct((*self)->size, (*self)->name, (*self)->super);
         end_inline
 
-        name ":init" + self:getMethod => decl initializer: Method
+        name ":init" + self:getMethod => decl initializer: Method?
         if initializer then
-            instance initializer:invoke
+            instance initializer!!:invoke
         fi
         instance return
     end
