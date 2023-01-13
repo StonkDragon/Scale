@@ -3,40 +3,40 @@ typealias file "FILE*"
 function fopen(_filename_: str, _mode_: str): file?
   decl _f_: file?
   inline_c
-  *_f_ = fopen(*_filename_, *_mode_);
+    *_f_ = fopen(*_filename_, *_mode_);
   end_inline
   _f_ return
 end
 
 function fclose(_file_: file): none
   inline_c
-  fclose(*_file_);
+    fclose(*_file_);
   end_inline
 end
 
 function ftell(_file_: file): int
   inline_c
-  stack.data[stack.ptr++].i = ftell(*_file_);
+    stack.data[stack.ptr++].i = ftell(*_file_);
   end_inline
   return
 end
 
 function fileno(_file_: file): int
   inline_c
-  stack.data[stack.ptr++].i = fileno(*_file_);
+    stack.data[stack.ptr++].i = fileno(*_file_);
   end_inline
   return
 end
 
 function fseek(_file_: file, _whence_: int, _offset_: int): none
   inline_c
-  fseek(*_file_, *_offset_, *_whence_);
+    fseek(*_file_, *_offset_, *_whence_);
   end_inline
 end
 
 function fwrite(_buf_: any, _size_: int, _file_: file): none
   inline_c
-  int _ignored = fwrite(*_buf_, 1, *_size_, *_file_); (void) _ignored;
+    int _ignored = fwrite(*_buf_, 1, *_size_, *_file_); (void) _ignored;
   end_inline
 end
 
@@ -56,7 +56,7 @@ end
 function fread(_f_: file, _size_: int): [any]?
   decl _buf_: [any]? _size_ malloc => _buf_
   inline_c
-  int _ignored = fread(*_buf_, 1, *_size_, *_f_); (void) _ignored;
+    int _ignored = fread(*_buf_, 1, *_size_, *_f_); (void) _ignored;
   end_inline
   _buf_ return
 end

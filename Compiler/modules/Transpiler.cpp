@@ -33,6 +33,7 @@ namespace sclc {
     std::string sclFunctionNameToFriendlyString(std::string name);
 
     bool hasTypealias(TPResult r, std::string t) {
+        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         using spair = std::pair<std::string, std::string>;
         for (spair p : r.typealiases) {
             if (p.first == t) {
@@ -43,6 +44,7 @@ namespace sclc {
     }
 
     std::string getTypealias(TPResult r, std::string t) {
+        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         using spair = std::pair<std::string, std::string>;
         for (spair p : r.typealiases) {
             if (p.first == t) {
@@ -2988,7 +2990,7 @@ namespace sclc {
                     append("return stack.data[--stack.ptr].f;\n");
                 } else if (return_type == "scl_any") {
                     append("return stack.data[--stack.ptr].v;\n");
-                } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, return_type)) {
+                } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, function->getReturnType())) {
                     std::string type = sclTypeToCType(result, function->getReturnType());
                     append("return (%s) stack.data[--stack.ptr].i;\n", type.c_str());
                 }
