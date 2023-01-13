@@ -582,7 +582,8 @@ namespace sclc
                 if (!fileExists(args[i])) {
                     continue;
                 }
-                Main.options.files.push_back(args[i]);
+                if (std::find(Main.options.files.begin(), Main.options.files.end(), args[i]) == Main.options.files.end())
+                    Main.options.files.push_back(args[i]);
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
                     Main.options.transpileOnly = true;
