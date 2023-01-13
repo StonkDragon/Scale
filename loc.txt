@@ -24,7 +24,7 @@
     3980 Compiler/modules/Transpiler.cpp
      254 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       58 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
-      77 Scale/Frameworks/Scale.framework/include/Scale/file.scale
+      74 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
       41 Scale/Frameworks/Scale.framework/include/Scale/io.scale
      177 Scale/Frameworks/Scale.framework/include/Scale/math.scale
@@ -75,4 +75,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12307 total
+   12304 total
