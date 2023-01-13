@@ -232,7 +232,7 @@ namespace sclc
                 now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
                 now = replaceAll(now, "<<BLUE>>", Color::BLUE);
                 now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
+                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
                 now = replaceAll(now, "<<WHITE>>", Color::WHITE);
                 now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
                 now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
