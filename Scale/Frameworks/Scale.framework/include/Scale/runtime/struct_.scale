@@ -1,5 +1,5 @@
 import Scale.runtime.method
-import Scale.util.array
+import Scale.util.immutablearray
 
 import Scale.debug
 
@@ -11,14 +11,12 @@ sealed struct Struct
     private decl methodsCount: const int
     private decl methods:      const [Method]
 
-    # TODO: this method should realistically return ImmutableArray
-    #       as the backing pointer collection is immutable
-    function getMethods(): Array
-        methodsCount methods Array::fromPointerCollection return
+    function getMethods(): ImmutableArray
+        methodsCount methods ImmutableArray::new return
     end
 
     function getMethod(name: str): Method?
-        getMethods => decl methods: Array
+        getMethods => decl methods: ImmutableArray
         foreach method in methods do
             inline_c
                 scl_add_struct(*method);
