@@ -28,6 +28,12 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
+#if __has_attribute(__noreturn__)
+#define scl_no_return __attribute__((__noreturn__))
+#else
+#define scl_no_return
+#endif
+
 #define nullable __nullable
 #define nonnull  __nonnull
 
@@ -39,6 +45,10 @@
 
 #ifndef STACK_SIZE
 #define STACK_SIZE			131072
+#endif
+
+#ifndef SIGABRT
+#define SIGABRT 6
 #endif
 
 // Define scale-specific signals
@@ -143,7 +153,7 @@ typedef double 				scl_float;
 #define SCL_OS_NAME "Unknown OS"
 #endif
 
-typedef unsigned int		hash;
+typedef unsigned int hash;
 
 typedef union {
 	scl_int		i;
@@ -157,7 +167,10 @@ typedef struct {
 	scl_frame_t	data[STACK_SIZE];
 } scl_stack_t;
 
+scl_no_return
 void		scl_security_throw(int code, scl_str msg);
+
+scl_no_return
 void		scl_security_safe_exit(int code);
 void		process_signal(int sig_num);
 
@@ -174,11 +187,16 @@ scl_int		ctrl_pop_long(void);
 scl_any		ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
 
+void		scl_remove_ptr(scl_any ptr);
+size_t		scl_get_index_of_ptr(scl_any ptr);
+void		scl_remove_ptr_at_index(size_t index);
+void		scl_add_ptr(scl_any ptr);
+scl_int		scl_check_allocated(scl_any ptr);
 scl_any		scl_realloc(scl_any ptr, size_t size);
 scl_any		scl_alloc(size_t size);
 void		scl_free(scl_any ptr);
 void		scl_assert(scl_int b, scl_str msg);
-void		scl_finalize();
+void		scl_finalize(void);
 
 hash		hash1(char* data);
 scl_any		scl_alloc_struct(size_t size, scl_str type_name, hash super);

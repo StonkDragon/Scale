@@ -16,29 +16,73 @@ extern scl_int current_col[STACK_SIZE];
 
 #pragma region Memory
 
+static scl_any alloced_ptrs[STACK_SIZE];
+static size_t alloced_ptrs_count = 0;
+
+void scl_remove_ptr(scl_any ptr) {
+	size_t index;
+	while ((index = scl_get_index_of_ptr(ptr)) != -1) {
+		scl_remove_ptr_at_index(index);
+	}
+}
+
+size_t scl_get_index_of_ptr(scl_any ptr) {
+	for (size_t i = 0; i < alloced_ptrs_count; i++) {
+		if (alloced_ptrs[i] == ptr) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void scl_remove_ptr_at_index(size_t index) {
+	for (size_t i = index; i < alloced_ptrs_count - 1; i++) {
+    	alloced_ptrs[i] = alloced_ptrs[i + 1];
+    }
+    alloced_ptrs_count--;
+}
+
+void scl_add_ptr(scl_any ptr) {
+	for (size_t i = 0; i < alloced_ptrs_count; i++) {
+		if (alloced_ptrs[i] == 0 || alloced_ptrs[i] == ptr) {
+			alloced_ptrs[i] = ptr;
+			return;
+		}
+	}
+	alloced_ptrs[alloced_ptrs_count++] = ptr;
+}
+
+scl_int scl_check_allocated(scl_any ptr) {
+	return scl_get_index_of_ptr(ptr) != -1;
+}
+
 scl_any scl_alloc(size_t size) {
 	scl_any ptr = (scl_any) malloc(size);
 	if (!ptr) {
 		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
 		return NULL;
 	}
+	scl_add_ptr(ptr);
 	return ptr;
 }
 
 scl_any scl_realloc(scl_any ptr, size_t size) {
 	scl_free_struct_no_finalize(ptr);
+	scl_remove_ptr(ptr);
 	ptr = realloc(ptr, size);
-	scl_add_struct(ptr);
 	if (!ptr) {
 		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 		return NULL;
 	}
+	scl_add_ptr(ptr);
+	scl_add_struct(ptr);
 	return ptr;
 }
 
 void scl_free(scl_any ptr) {
-	if (ptr) {
+	if (ptr && scl_check_allocated(ptr)) {
 		scl_free_struct(ptr);
+		scl_remove_ptr(ptr);
 		free(ptr);
 	}
 }
@@ -58,6 +102,7 @@ void scl_assert(scl_int b, scl_str msg) {
 	}
 }
 
+scl_no_return
 void scl_security_throw(int code, scl_str msg) {
 	printf("\n");
 	printf("Exception: %s\n", msg);
@@ -69,6 +114,7 @@ void scl_security_throw(int code, scl_str msg) {
 	scl_security_safe_exit(code);
 }
 
+scl_no_return
 void scl_security_safe_exit(int code) {
 	scl_finalize();
 	exit(code);
