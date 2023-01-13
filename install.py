@@ -1,15 +1,60 @@
 #!env python3
 import os
+import sys
 import shutil
 from platform import system as osName
 
+if osName() == 'Windows':
+    print("Scale can currently only be installed in WSL.")
+    print("If this is already in WSL, follow manual build instructions.")
+    exit(1)
+
+if os.getuid() != 0:
+    print("The install script must be run as root!")
+    exit(1)
+
 HOME = os.path.expanduser("~")
+if HOME == "/root":
+    print("Please specify your home directory with the '-home' flag!")
+    exit(1)
+
+compiler = "gcc"
+cxxcompiler = "g++"
+for i in range(1, len(sys.argv)):
+    arg = sys.argv[i]
+    if arg == "-with-compiler":
+        i = i + 1
+        if i < len(sys.argv):
+            compiler = sys.argv[i]
+        else:
+            print("Expected argument for flag '-with-compiler'")
+            exit(1)
+    elif arg == "-home":
+        i = i + 1
+        if i < len(sys.argv):
+            HOME = sys.argv[i]
+        else:
+            print("Expected argument for flag '-home'")
+            exit(1)
+    elif arg == "-cxx-compiler":
+        i = i + 1
+        if i < len(sys.argv):
+            cxxcompiler = sys.argv[i]
+        else:
+            print("Expected argument for flag '-cxx-compiler'")
+            exit(1)
+    elif arg == "-help":
+        print("Valid arguments are:")
+        print("  -help                  Show this")
+        print("  -with-compiler <comp>  Sets the compiler that 'sclc' will use to compile")
+        print("  -home <path>           Overrides the install directory. This should always be your 'home' directory")
+        print("  -cxx-compiler <comp>   Sets the compiler that this script will use to compile 'sclc'. Should be a C++ compiler")
 
 SCALE_INSTALL_DIR = os.path.join(HOME, "Scale")
 SCALE_DATA_DIR = os.path.join(os.path.curdir, "Scale")
-VERSION = "2023.0"
+VERSION = "23.0"
 
-build_command = f"g++ -Wall -Werror -pedantic -std=gnu++17 "
+build_command = f"{cxxcompiler} -Wall -Werror -pedantic -std=gnu++17 "
 units = [
     "Main.cpp",
     "modules/SyntaxTree.cpp",
@@ -23,17 +68,8 @@ units = [
     "Common.cpp"
 ]
 
-if osName() == 'Windows':
-    build_command += "-static -lpthread "
-    SCALE_INSTALL_DIR = "C:\\Windows\\sclc.exe"
-elif osName() == 'Darwin':
-    build_command += ""
-    SCALE_INSTALL_DIR = "/usr/local/bin/sclc"
-elif osName() == 'Linux':
-    build_command += ""
-    SCALE_INSTALL_DIR = "/usr/local/bin/sclc"
-else:
-    OSError(f"Unknown OS detected: {osName()}")
+build_command += ""
+SCALE_INSTALL_DIR = "/usr/local/bin/sclc"
 
 for unit in units:
     build_command += f"Compiler/{unit} "
@@ -43,7 +79,7 @@ try:
 except OSError:
     pass
 
-build_command += "-o target/sclc -DVERSION=\\\"{VERSION}\\\""
+build_command += "-o target/sclc -DVERSION=\\\"{VERSION}\\\" -DC_VERSION=\\\"gnu17\\\" -DCOMPILER=\\\"{compiler}\\\""
 
 print(build_command)
 os.system(build_command)
