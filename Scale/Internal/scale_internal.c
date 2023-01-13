@@ -78,7 +78,7 @@ void scl_security_safe_exit(int code) {
 
 #pragma region Exceptions
 
-int printingStacktrace = 0;
+static int printingStacktrace = 0;
 
 void print_stacktrace() {
 	printf("Stacktrace:\n");
