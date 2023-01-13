@@ -1,5 +1,5 @@
      662 Compiler/Common.cpp
-    1310 Compiler/Main.cpp
+    1311 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      233 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -24,13 +24,13 @@
     3978 Compiler/modules/Transpiler.cpp
      254 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       58 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
-      73 Scale/Frameworks/Scale.framework/include/Scale/file.scale
+      74 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
       41 Scale/Frameworks/Scale.framework/include/Scale/io.scale
      177 Scale/Frameworks/Scale.framework/include/Scale/math.scale
       28 Scale/Frameworks/Scale.framework/include/Scale/runtime/method.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/runtime/reflect.scale
-      67 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
+      65 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
       53 Scale/Frameworks/Scale.framework/include/Scale/types.scale
      132 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
