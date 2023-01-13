@@ -2,27 +2,36 @@
 
 ## Introduction
 
-  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
+  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) and [object oriented](https://en.wikipedia.org/wiki/Object-oriented_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Lua](https://www.lua.org/) and [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. This file contains C-declarations for all important Scale internal functions and data types. If you have any scale functions marked with the `nomangle` modifier, C-declarations for those functions will also appear in the file. The `scl_export`-Macro defined in said file allows you to declare functions that can be called from scale.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. If you have any scale functions marked with the `export` modifier, C-declarations for those functions will appear in the file. Functions marked with the `expect` keyword are expected to be implemented in a different translation unit, i.e. your C-code.
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
+  Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
+
 ## Installation
 
-  To install Scale, download the zip file for your operating system from the Release page.
+### Linux & macOS
+Run:
+```shell
+$ python install.py
+```
 
-  Then, unzip the file and execute the install.py script. On Windows, you have to run it with Administrator permissions. On macOS and Linux, the script will ask for permissions once it needs them.
+Or add the `-with-compiler` flag to specify a different C compiler:
+Run:
+```shell
+$ python install.py -with-compiler clang
+```
 
-  Reason: `runas` requires name of an Administrator account and the Hostname on Windows
+### Windows
+Windows is not supported directly. To use Scale, follow the [Linux](#linux--macos) install instructions inside of WSL.
 
 ## Dependencies
-
   Scale has the following dependencies:
 
 Required:
-- `gcc`
-- `python3` ([install.py](./install.py))
+- `gcc` (or similar C compiler)
 
 Optional:
 - [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
@@ -31,6 +40,7 @@ Optional:
 
 Run:
 ```console
+$ sclc -doc categories
 $ sclc -doc info
 ```
 
@@ -73,7 +83,7 @@ $ sclc -doc-for Scale
 
   To build the compiler, execute the following command from the root directory of the repository:
 
-```bash
+```shell
 $ dragon build
 ```
 
