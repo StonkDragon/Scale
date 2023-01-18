@@ -6,6 +6,8 @@
 
 #ifdef _WIN32
 typedef unsigned long u_long;
+#else
+#define u_long unsigned long
 #endif
 
 using namespace std;
