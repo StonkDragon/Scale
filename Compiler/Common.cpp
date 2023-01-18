@@ -1,6 +1,6 @@
 #include "headers/Common.hpp"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
 #endif
 
@@ -58,7 +58,7 @@ namespace sclc
     _Main Main = _Main();
 
     void print_trace(void) {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasm__)
         void* array[64];
         char** strings;
         int size, i;
