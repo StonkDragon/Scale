@@ -30,34 +30,50 @@ sealed struct Array is IIterable, IFinalizable
   end
 
   export function get(index: int): any?
+    if index 0 < index self.count >= || then
+      nameof index " is out of bounds":prepend eputs
+      abort
+    fi
     if index 0 <= then self.values @ return fi
-    self.values index 3 << + @ return
+    self.values index sizeof int * + @ return
   end
 
   export function set(index: int, value: any): none
+    if index 0 < index self.count >= || then
+      nameof index " is out of bounds":prepend eputs
+      abort
+    fi
     decl tmp: mut [any]
-    self.values index 3 << + => tmp
+    self.values index sizeof int * + => tmp
     value => @tmp
   end
 
   export function top(): any?
-    self.values self.count 1 - 3 << + @ return
+    if self.count 0 <= then
+      "Array is empty!" eputs
+      abort
+    fi
+    self.values self.count 1 - sizeof int * + @ return
   end
 
   export function push(value: any): none
     if self.count self.capacity >= then
       self.capacity 2 * => self.capacity
-      self.capacity 8 * self.values realloc
+      self.capacity sizeof int * self.values realloc
       => self.values
     fi
 
     decl tmp: mut [any]
-    self.values self.count 3 << + => tmp
+    self.values self.count sizeof int * + => tmp
     value => @tmp
     self.count 1 + => self.count
   end
 
   export function pop(): none
+    if self.count 0 <= then
+      "Array is empty!" eputs
+      abort
+    fi
     self.count 1 - => self.count
   end
 
@@ -74,7 +90,7 @@ sealed struct Array is IIterable, IFinalizable
     if size 1 < then
       "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
     fi
-    size 8 * malloc
+    size sizeof int * malloc
     => self.values
     0 => self.count
     0 => self.pos
@@ -120,12 +136,21 @@ sealed struct Array is IIterable, IFinalizable
 
   export function finalize(): none
     self.values free
+    -1 => self.count
+  end
+
+  export function immutableCopy(): ImmutableArray
+    self.count sizeof int * malloc => decl newVals: [any]
+    newVals self.values self.count sizeof int * memcpy => newVals
+    self.count => decl newCount: int
+
+    newCount newVals ImmutableArray::new return
   end
 
   static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do
-      values i 8 * + @ arr:push
+      values i sizeof int * + @ arr:push
     done
     return
   end
