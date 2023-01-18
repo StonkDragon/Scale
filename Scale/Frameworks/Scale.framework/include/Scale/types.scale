@@ -50,4 +50,8 @@ sealed struct _String is IEquatable, ICloneable, IStringifyable
   function toString(): str
     self as str return
   end
+
+  function @(i: int): int
+    i self:at return
+  end
 end
