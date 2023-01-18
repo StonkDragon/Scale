@@ -1,8 +1,6 @@
 import Scale.runtime.method
 import Scale.util.immutablearray
 
-import Scale.debug
-
 sealed struct Struct
     private decl type:         const int
     private decl name:         const str
