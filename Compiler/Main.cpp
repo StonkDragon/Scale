@@ -1,7 +1,3 @@
-#if __SIZEOF_POINTER__ < 8
-#error "Scale is not supported on this platform"
-#endif
-
 #include <iostream>
 #include <string>
 #include <chrono>
