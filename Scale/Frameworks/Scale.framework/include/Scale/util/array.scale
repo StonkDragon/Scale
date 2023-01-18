@@ -1,4 +1,5 @@
 import Scale.util.iterable
+import Scale.util.immutablearray
 import Scale.debug
 
 sealed struct Array is IIterable, IFinalizable
