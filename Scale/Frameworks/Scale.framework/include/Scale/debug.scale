@@ -44,9 +44,9 @@ function breakPoint(): none
 end
 
 function throw(_msg_: str): none
-  ConsoleColor::reset _msg_:prepend eputs
-  trace
-  1 exit
+  inline_c
+    scl_security_throw(EX_THROWN, *_msg_);
+  end_inline
 end
 
 function sysPrettyString() s: str
