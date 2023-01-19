@@ -1,9 +1,9 @@
      662 Compiler/Common.cpp
-    1311 Compiler/Main.cpp
+    1307 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      233 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
-      95 Compiler/headers/DragonConfig.hpp
+      97 Compiler/headers/DragonConfig.hpp
       75 Compiler/headers/Function.hpp
       55 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
@@ -30,10 +30,11 @@
      177 Scale/Frameworks/Scale.framework/include/Scale/math.scale
       28 Scale/Frameworks/Scale.framework/include/Scale/runtime/method.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/runtime/reflect.scale
-      65 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
+      63 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
-      53 Scale/Frameworks/Scale.framework/include/Scale/types.scale
-     132 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+      57 Scale/Frameworks/Scale.framework/include/Scale/types.scale
+     166 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+       4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/equatable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/finalizable.scale
@@ -46,7 +47,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
      484 Scale/Internal/scale_internal.c
-     215 Scale/Internal/scale_internal.h
+     216 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -75,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12304 total
+   12343 total
