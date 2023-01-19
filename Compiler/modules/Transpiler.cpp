@@ -3104,7 +3104,7 @@ namespace sclc {
             errors.push_back(type);
             return;
         }
-        if (type.value == "int" || type.value == "float" || type.value == "str" || type.value == "any") {
+        if (type.value == "int" || type.value == "float" || type.value == "any") {
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push(type.value);
