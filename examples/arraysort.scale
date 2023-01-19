@@ -9,8 +9,8 @@ function createList(len: int): Array
 end
 
 function printArray(arr: Array): none
-    decl i: int 0 => i
-    while i arr.capacity < do
+    0 => decl i
+    while i arr.count < do
         i arr:get as int putint
         i 1 + => i
     done

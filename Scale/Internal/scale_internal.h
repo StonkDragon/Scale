@@ -62,6 +62,7 @@
 #define EX_THREAD_ERROR		136
 #define EX_ASSERTION_FAIL	137
 #define EX_REFLECT_ERROR	138
+#define EX_THROWN			139
 
 #define ssize_t signed long
 

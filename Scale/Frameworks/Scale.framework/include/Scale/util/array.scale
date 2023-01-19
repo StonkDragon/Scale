@@ -12,7 +12,7 @@ sealed struct Array is IIterable, IFinalizable
   export function sort(): none
     inline_c
       scl_int i = 0;
-      while (i < (scl_int) (*self)->capacity) {
+      while (i < (scl_int) (*self)->count) {
         scl_int speicher = (scl_int) Method_Array_get((*self), i);
         scl_int j = i - 1;
         while (j >= 0) {
@@ -32,17 +32,23 @@ sealed struct Array is IIterable, IFinalizable
 
   export function get(index: int): any?
     if index 0 < index self.count >= || then
-      nameof index " is out of bounds":prepend eputs
-      abort
+      "Index " index longToString +
+      " is out of bounds for Array of length " self.count longToString +
+      "!" +
+      + throw
     fi
-    if index 0 <= then self.values @ return fi
     self.values index sizeof int * + @ return
   end
 
   export function set(index: int, value: any): none
-    if index 0 < index self.count >= || then
-      nameof index " is out of bounds":prepend eputs
-      abort
+    if index 0 < index self.capacity >= || then
+      "Index " index longToString +
+      " is out of bounds for Array of capacity " self.capacity longToString +
+      "!" +
+      + throw
+    fi
+    if index self.count >= then
+      index 1 + => self.count
     fi
     decl tmp: mut [any]
     self.values index sizeof int * + => tmp
@@ -51,8 +57,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function top(): any?
     if self.count 0 <= then
-      "Array is empty!" eputs
-      abort
+      "Cannot invoke Array:top on an empty Array!" throw
     fi
     self.values self.count 1 - sizeof int * + @ return
   end
@@ -72,8 +77,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function pop(): none
     if self.count 0 <= then
-      "Array is empty!" eputs
-      abort
+      "Cannot invoke Array:pop on an empty Array!" throw
     fi
     self.count 1 - => self.count
   end
@@ -89,7 +93,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function init(size: int): none
     if size 1 < then
-      "Invalid Argument: size must not be 0 or less\n" eputs trace 1 exit
+      "Invalid Argument: size must not be 0 or less" throw
     fi
     size sizeof int * malloc
     => self.values
@@ -104,6 +108,10 @@ sealed struct Array is IIterable, IFinalizable
 
   export function next(): any?
     self.pos 1 + => self.pos
+    if self:hasNext ! then
+      nil return
+    fi
+
     self.pos self:get return
   end
 
