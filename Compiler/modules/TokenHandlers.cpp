@@ -70,7 +70,9 @@ namespace sclc {
             if (!equals) {
                 return false;
             }
-            if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+            if (f->getArgs().size() > 0) {
+                append("stack.ptr -= %zu;\n", f->getArgs().size());
+            }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
                     append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
