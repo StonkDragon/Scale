@@ -13,19 +13,17 @@ end
 
 sealed struct Map is IIterable, IFinalizable
   private decl data: Array
-  private decl pos: int
 
   export function init(size: int): none
     size Array::new => self.data
     for i in 0 to size do
       nil self.data:push
     done
-    0 => self.pos
   end
 
   export function get(key: str): any?
     for i in 0 to self.data.count do
-      decl entry: MapEntry i self.data:get => entry
+      decl entry: MapEntry? i self.data:get => entry
       if entry nil == then continue fi
 
       entry => decl notNilEntry: MapEntry
@@ -52,16 +50,14 @@ sealed struct Map is IIterable, IFinalizable
   end
 
   export function hasNext(): bool
-    self.pos self.data Array.count < return
+    self.data:hasNext return
   end
 
   export function next(): MapEntry?
-    self.pos 1 + => self.pos
-    self.pos self.data Array:get as MapEntry? return
+    self.data:next as MapEntry? return
   end
 
   export function begin(): MapEntry?
-    0 => self.pos
-    self.pos self.data Array:get as MapEntry? return
+    self.data:begin as MapEntry? return
   end
 end

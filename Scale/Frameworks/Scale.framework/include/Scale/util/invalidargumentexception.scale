@@ -1,0 +1,5 @@
+sealed struct InvalidArgumentException : Exception
+    function init(s: str): none
+        s => self.msg
+    end
+end

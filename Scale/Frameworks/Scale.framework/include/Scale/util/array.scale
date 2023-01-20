@@ -1,6 +1,8 @@
 import Scale.util.iterable
 import Scale.util.immutablearray
 import Scale.debug
+import Scale.util.invalidargumentexception
+import Scale.util.indexoutofboundsexception
 
 sealed struct Array is IIterable, IFinalizable
   decl values:  mut readonly [any]
@@ -32,20 +34,24 @@ sealed struct Array is IIterable, IFinalizable
 
   export function get(index: int): any?
     if index 0 < index self.count >= || then
-      "Index " index longToString +
-      " is out of bounds for Array of length " self.count longToString +
+      "Index "
+      index longToString +
+      " is out of bounds for Array of length " +
+      self.count longToString +
       "!" +
-      + throw
+      IndexOutOfBoundsException::new throw
     fi
     self.values index sizeof int * + @ return
   end
 
   export function set(index: int, value: any): none
     if index 0 < index self.capacity >= || then
-      "Index " index longToString +
-      " is out of bounds for Array of capacity " self.capacity longToString +
+      "Index "
+      index longToString +
+      " is out of bounds for Array of capacity " +
+      self.capacity longToString +
       "!" +
-      + throw
+      IndexOutOfBoundsException::new throw
     fi
     if index self.count >= then
       index 1 + => self.count
@@ -57,7 +63,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function top(): any?
     if self.count 0 <= then
-      "Cannot invoke Array:top on an empty Array!" throw
+      "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
     fi
     self.values self.count 1 - sizeof int * + @ return
   end
@@ -77,7 +83,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function pop(): none
     if self.count 0 <= then
-      "Cannot invoke Array:pop on an empty Array!" throw
+      "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new throw
     fi
     self.count 1 - => self.count
   end
@@ -93,7 +99,7 @@ sealed struct Array is IIterable, IFinalizable
 
   export function init(size: int): none
     if size 1 < then
-      "Invalid Argument: size must not be 0 or less" throw
+      "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
     size sizeof int * malloc
     => self.values

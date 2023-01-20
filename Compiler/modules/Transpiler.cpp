@@ -772,6 +772,7 @@ namespace sclc {
                 append("if (stack.data[stack.ptr - 1].i == 0) {\n");
                 scopeDepth++;
                 append("callstk.ptr--;\n");
+                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("scl_cleanup_post_func(callstk.ptr);\n");
                 if (return_type == "void")
                     append("return;\n");
                 else {
@@ -876,8 +877,11 @@ namespace sclc {
             append("abort();\n");
         } else if (body[i].getValue() == "typeof") {
             ITER_INC;
-            if (hasVar(body[i])) {
+            if (hasVar(body[i]) && getStructByName(result, getVar(body[i]).getType()) == Struct("")) {
                 append("stack.data[stack.ptr++].s = \"%s\";\n", getVar(body[i]).getType().c_str());
+                typeStack.push("str");
+            } else if (getStructByName(result, getVar(body[i]).getType()) != Struct("")) {
+                append("stack.data[stack.ptr++].s = Var_%s->$__type_name__;\n", body[i].getValue().c_str());
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
@@ -931,6 +935,24 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
+        } else if (body[i].getValue() == "try") {
+            append("if (!setjmp(exceptions.jmptable[exceptions.ptr++])) {\n");
+            scopeDepth++;
+            append("exceptions.callstk_ptr[exceptions.ptr - 1] = callstk.ptr;\n");
+            varDepth++;
+            std::vector<Variable> defaultScope;
+            vars.push_back(defaultScope);
+        } else if (body[i].getValue() == "catch") {
+            std::vector<Variable> defaultScope;
+            vars.pop_back();
+            vars.push_back(defaultScope);
+            was_rep.push_back(false);
+            scopeDepth--;
+            append("} else {\n");
+            scopeDepth++;
+            Variable v = Variable("exception", "Exception");
+            vars[varDepth].push_back(v);
+            append("scl_Exception Var_exception = exceptions.extable[exceptions.ptr];\n");
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -941,7 +963,9 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+            if (f->getArgs().size() > 0) {
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());
+                }
             bool argsCorrect = checkStackType(result, f->getArgs());
             if (!argsCorrect) {
                 {
@@ -1020,7 +1044,9 @@ namespace sclc {
                         Method* f = getMethodByName(result, "init", struct_);
                         append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[stack.ptr - 1].v;\n", struct_.c_str(), struct_.c_str());
                         debugPrintPush();
-                        if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        if (f->getArgs().size() > 0) {
+                                append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1068,7 +1094,9 @@ namespace sclc {
                     debugPrintPush();
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         Method* f = getMethodByName(result, "init", struct_);
-                        if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        if (f->getArgs().size() > 0) {
+                                append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1115,7 +1143,9 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        if (f->getArgs().size() > 0) {
+                                append("stack.ptr -= %zu;\n", f->getArgs().size());
+                            }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1180,7 +1210,9 @@ namespace sclc {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
                 append("stack.data[stack.ptr++].v = (scl_any) Var_self;\n");
                 typeStack.push(f->getMemberType());
-                if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                if (f->getArgs().size() > 0) {
+                        append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    }
                 bool argsCorrect = checkStackType(result, f->getArgs());
                 if (!argsCorrect) {
                     {
@@ -1219,7 +1251,9 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    if (f->getArgs().size() > 0) {
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        }
                     bool argsCorrect = checkStackType(result, f->getArgs());
                     if (!argsCorrect) {
                         {
@@ -2444,7 +2478,7 @@ namespace sclc {
         scopeDepth++;
         Method* f = getMethodByName(result, "init", struct_);
         Struct arr = getStructByName(result, "Array");
-        append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", %uU);\n", hash1((char*) arr.getName().c_str()));
+        append("struct Struct_Array* tmp = scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
                 append("stack.data[stack.ptr++].f = Method_Array_init(tmp, 1);\n");
@@ -2495,7 +2529,7 @@ namespace sclc {
         scopeDepth++;
         Method* f = getMethodByName(result, "init", struct_);
         Struct map = getStructByName(result, "Map");
-        append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", %uU);\n", hash1((char*) map.getName().c_str()));
+        append("struct Struct_Map* tmp = scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
                 append("stack.data[stack.ptr++].f = Method_Map_init(tmp, 1);\n");
@@ -2577,7 +2611,7 @@ namespace sclc {
             }
             Method* f = getMethodByName(result, "init", "MapEntry");
             Struct entry = getStructByName(result, "MapEntry");
-            append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %uU);\n", hash1((char*) entry.getName().c_str()));
+            append("struct Struct_MapEntry* tmp = scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
             if (typeStack.size())
                 typeStack.pop();
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
@@ -2678,7 +2712,7 @@ namespace sclc {
                 }
                 Method* f = getMethodByName(result, "init", "Triple");
                 Struct triple = getStructByName(result, "Triple");
-                append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %uU);\n", hash1((char*) triple.getName().c_str()));
+                append("struct Struct_Triple* tmp = scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
                 append("stack.ptr -= 3;\n");
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
@@ -2950,7 +2984,12 @@ namespace sclc {
 
     handler(Return) {
         noUnused;
+        append("{\n");
+        scopeDepth++;
+        if (return_type != "void" && !function->hasNamedReturnValue)
+            append("scl_frame_t returnFrame = stack.data[--stack.ptr];\n");
         append("callstk.ptr--;\n");
+        if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("scl_cleanup_post_func(callstk.ptr);\n");
 
         if (return_type != "void") {
             if (!typeCanBeNil(function->getReturnType())) {
@@ -2970,7 +3009,7 @@ namespace sclc {
                 if (function->hasNamedReturnValue)
                     append("scl_assert(*(scl_int*) &Var_%s, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getNamedReturnValue().getName().c_str(), function->getReturnType().c_str());
                 else
-                    append("scl_assert(stack.data[stack.ptr - 1].i, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getReturnType().c_str());
+                    append("scl_assert(returnFrame.i, \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->getReturnType().c_str());
             }
         }
 
@@ -2983,19 +3022,21 @@ namespace sclc {
                 append("return (%s) Var_%s;\n", type.c_str(), function->getNamedReturnValue().getName().c_str());
             } else {
                 if (return_type == "scl_str" || return_type == "scl__String") {
-                    append("return stack.data[--stack.ptr].s;\n");
+                    append("return returnFrame.s;\n");
                 } else if (return_type == "scl_int") {
-                    append("return stack.data[--stack.ptr].i;\n");
+                    append("return returnFrame.i;\n");
                 } else if (return_type == "scl_float") {
-                    append("return stack.data[--stack.ptr].f;\n");
+                    append("return returnFrame.f;\n");
                 } else if (return_type == "scl_any") {
-                    append("return stack.data[--stack.ptr].v;\n");
+                    append("return returnFrame.v;\n");
                 } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, function->getReturnType())) {
                     std::string type = sclTypeToCType(result, function->getReturnType());
-                    append("return (%s) stack.data[--stack.ptr].i;\n", type.c_str());
+                    append("return (%s) returnFrame.v;\n", type.c_str());
                 }
             }
         }
+        scopeDepth--;
+        append("}\n");
         for (size_t t = 0; t < typeStack.size(); t++) {
             if (typeStack.size())
                 typeStack.pop();
@@ -3210,7 +3251,9 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        if (f->getArgs().size() > 0) append("stack.ptr -= %zu;\n", f->getArgs().size());
+        if (f->getArgs().size() > 0) {
+            append("stack.ptr -= %zu;\n", f->getArgs().size());
+        }
         bool argsCorrect = checkStackType(result, f->getArgs());
         if (!argsCorrect) {
             {
@@ -3253,15 +3296,15 @@ namespace sclc {
 
         if (body[i].getType() != tok_case) {
             if (currentFile != file) {
-                append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
+                append("callstk.data[callstk.ptr - 1].file = \"%s\";\n", file.c_str());
                 currentFile = file;
             }
             if (currentLine != body[i].getLine()) {
-                append("current_line[callstk.ptr - 1] = %d;\n", body[i].getLine());
+                append("callstk.data[callstk.ptr - 1].line = %d;\n", body[i].getLine());
                 currentLine = body[i].getLine();
             }
             if (currentCol != body[i].getColumn()) {
-                append("current_col[callstk.ptr - 1] = %d;\n", body[i].getColumn());
+                append("callstk.data[callstk.ptr - 1].col = %d;\n", body[i].getColumn());
                 currentCol = body[i].getColumn();
             }
         }
@@ -3533,7 +3576,13 @@ namespace sclc {
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
         append("extern scl_stack_t stack;\n");
-        append("extern scl_stack_t callstk;\n\n");
+        append("extern scl_callstack_t callstk;\n");
+        append("extern struct _exception_handling {\n");
+	    append("  scl_Exception extable[STACK_SIZE];\n");
+	    append("  jmp_buf       jmptable[STACK_SIZE];\n");
+	    append("  scl_int       ptr;\n");
+        append("  scl_int       callstk_ptr[STACK_SIZE];\n");
+        append("} exceptions;\n\n");
 
         append("/* STRUCTS */\n");
         append("struct scltype_iterable {\n");
@@ -3764,10 +3813,6 @@ namespace sclc {
         fprintf(fp, "extern \"c\" {\n");
         fprintf(fp, "#endif\n\n");
 
-        append("scl_str current_file[STACK_SIZE] = {0};\n");
-        append("scl_int current_line[STACK_SIZE] = {0};\n");
-        append("scl_int current_col[STACK_SIZE]  = {0};\n");
-
         append("/* FUNCTIONS */\n");
 
         int funcsSize = result.functions.size();
@@ -3943,7 +3988,7 @@ namespace sclc {
             if (body.size() == 0)
                 goto emptyFunction;
 
-            append("callstk.data[callstk.ptr++].s = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("callstk.data[callstk.ptr++].func = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
             if (function->hasNamedReturnValue) {
                 append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
             }
@@ -3955,9 +4000,10 @@ namespace sclc {
                 } else {
                     file = std::filesystem::path(file).relative_path();
                 }
-                append("current_file[callstk.ptr - 1] = \"%s\";\n", file.c_str());
-                append("current_line[callstk.ptr - 1] = %d;\n", function->getNameToken().getLine());
-                append("current_col[callstk.ptr - 1] = %d;\n", function->getNameToken().getColumn());
+                append("callstk.data[callstk.ptr - 1].file = \"%s\";\n", file.c_str());
+                append("callstk.data[callstk.ptr - 1].line = %d;\n", function->getNameToken().getLine());
+                append("callstk.data[callstk.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                append("callstk.data[callstk.ptr - 1].begin_stack_size = stack.ptr;\n");
             }
             for (Variable arg : function->getArgs()) {
                 if (!typeCanBeNil(arg.getType()) || arg.getType() == "str") {
@@ -3969,8 +4015,10 @@ namespace sclc {
                 handle(Token);
             }
             scopeDepth = 1;
-            if (body.size() == 0 || body[body.size() - 1].getType() != tok_return)
+            if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
                 append("callstk.ptr--;\n");
+                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("scl_cleanup_post_func(callstk.ptr);\n");
+            }
 
         emptyFunction:
             scopeDepth = 0;

@@ -58,6 +58,6 @@ sealed struct Struct
         if initializer then
             instance initializer!!:invoke
         fi
-        instance return
+        return
     end
 end

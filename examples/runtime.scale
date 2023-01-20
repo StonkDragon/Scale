@@ -26,24 +26,16 @@ function main(): none
     decl f: mut Foo
 
     100 => decl totalIterations: int
-    0.0 => decl totalDirect: float
-    0.0 => decl totalRuntime: float
 
     for i in 0 to totalIterations do
         "start " i longToString + puts
         # direct initialization
-        time => decl startDirect
         "a" "b" Foo::new => f
         1 "Foo" f:foo
-        time => decl endDirect
-        endDirect startDirect - totalDirect + => totalDirect
 
         # calling runtime for struct and creating new instance with it
-        time => decl startRuntime
         "a" "b" "Foo" Reflect::getStruct!!:newInstance => f
         1 "Foo" f:foo
-        time => decl endRuntime
-        endRuntime startRuntime - totalRuntime + => totalRuntime
         "end " i longToString + puts
     done
 end

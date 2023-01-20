@@ -37,5 +37,7 @@ function putfloat(_f_: float): none
 end
 
 function throwerr(_err_: str): none
-  _err_ eputs 1 exit
+  Exception::new => decl e: mut Exception
+  _err_ => e.msg
+  e throw
 end

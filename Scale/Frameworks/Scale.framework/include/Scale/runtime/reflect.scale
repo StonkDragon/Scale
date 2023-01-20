@@ -2,7 +2,7 @@ import Scale.runtime.method
 import Scale.runtime.struct_
 
 sealed struct Reflect
-    static function callFunction(name: str): none
+    no_cleanup static function callFunction(name: str): none
         inline_c
             unsigned long long h = hash1(*name);
             if (scl_reflect_find(h))
@@ -10,7 +10,7 @@ sealed struct Reflect
         end_inline
     end
 
-    static function callMethod(name: str): none
+    no_cleanup static function callMethod(name: str): none
         inline_c
             unsigned long long h = hash1(*name);
             if (scl_reflect_find_method(h))
@@ -18,14 +18,14 @@ sealed struct Reflect
         end_inline
     end
 
-    static function callFunctionById(id: int): none
+    no_cleanup static function callFunctionById(id: int): none
         inline_c
             if (scl_reflect_find(*id))
                 scl_reflect_call(*id);
         end_inline
     end
 
-    static function callMethodById(id: int): none
+    no_cleanup static function callMethodById(id: int): none
         inline_c
             if (scl_reflect_find_method(*id))
                 scl_reflect_call_method(*id);

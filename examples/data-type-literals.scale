@@ -15,15 +15,15 @@ function main(): none
     apple puts
     banana puts
     pineapple puts
+    
+    "B" ["A": apple, "B": banana " " + pineapple +]:get puts
+    ("A": apple).value puts
+    ("a", "b").b puts
+    ("a", "b", "c").c puts
 
-    "B" ["A": apple, "B": banana " " concat pineapple concat] Map:get puts
-    ("A": apple)    MapEntry.value puts
-    ("a", "b")      Pair.b puts
-    ("a", "b", "c") Triple.c puts
-
-    0 {"element"}          Array:get puts
-    "key" ["key": "value"] Map:get puts
-    ("key": "value")       MapEntry.value puts
-    ("a", "b")             Pair.b puts
-    ("a", "b", "c")        Triple.c puts
+    0 {"element"}:get puts
+    "key" ["key": "value"]:get puts
+    ("key": "value").value puts
+    ("a", "b").b puts
+    ("a", "b", "c").c puts
 end

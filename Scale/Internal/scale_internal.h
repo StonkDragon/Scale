@@ -28,6 +28,12 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
+#if __has_include(<setjmp.h>)
+#include <setjmp.h>
+#else
+#error <setjmp.h> not found, which is required for Scale!
+#endif
+
 #if __has_attribute(__noreturn__)
 #define scl_no_return __attribute__((__noreturn__))
 #else
@@ -164,9 +170,23 @@ typedef union {
 } scl_frame_t;
 
 typedef struct {
-	ssize_t		ptr;
+	scl_int		ptr;
 	scl_frame_t	data[STACK_SIZE];
 } scl_stack_t;
+
+typedef struct {
+	scl_str file;
+	scl_str func;
+	scl_int line;
+	scl_int col;
+	scl_int begin_stack_size;
+	scl_int sp;
+} scl_callframe_t;
+
+typedef struct {
+	ssize_t			ptr;
+	scl_callframe_t	data[STACK_SIZE];
+} scl_callstack_t;
 
 scl_no_return
 void		scl_security_throw(int code, scl_str msg);
@@ -177,6 +197,8 @@ void		process_signal(int sig_num);
 
 void		print_stacktrace(void);
 
+scl_frame_t	scl_push_frame();
+scl_frame_t	scl_pop_frame();
 void		ctrl_push_args(scl_int argc, scl_str argv[]);
 void		ctrl_push_string(scl_str c);
 void		ctrl_push_long(scl_int n);
@@ -200,6 +222,7 @@ void		scl_assert(scl_int b, scl_str msg);
 void		scl_finalize(void);
 
 hash		hash1(char* data);
+void		scl_cleanup_post_func(scl_int depth);
 scl_any		scl_alloc_struct(size_t size, scl_str type_name, hash super);
 void		scl_free_struct(scl_any ptr);
 scl_any		scl_add_struct(scl_any ptr);

@@ -14,7 +14,7 @@ sealed struct Method
         memberType Reflect::getStructByType?:getName return
     end
 
-    function invoke(): none
+    no_cleanup function invoke(): none
         if memberType 0 == then
             name Reflect::callFunction
         else

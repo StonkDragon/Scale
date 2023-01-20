@@ -43,9 +43,20 @@ function breakPoint(): none
   end_inline
 end
 
-function throw(_msg_: str): none
+sealed struct Exception
+  decl msg: str
+end
+
+function throw(ex: Exception): none
   inline_c
-    scl_security_throw(EX_THROWN, *_msg_);
+    if (exceptions.ptr > 0) {
+      exceptions.extable[exceptions.ptr - 1] = *ex;
+      callstk.ptr = exceptions.callstk_ptr[exceptions.ptr - 1];
+      longjmp(exceptions.jmptable[--exceptions.ptr], 0);
+    } else {
+      callstk.ptr--;
+      scl_security_throw(EX_THROWN, (*ex)->msg);
+    }
   end_inline
 end
 

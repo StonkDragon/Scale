@@ -5,12 +5,14 @@
 #endif
 
 /* Variables */
-scl_stack_t stack;
-scl_stack_t	callstk;
-
-extern scl_str current_file[STACK_SIZE];
-extern scl_int current_line[STACK_SIZE];
-extern scl_int current_col[STACK_SIZE];
+scl_stack_t 	stack;
+scl_callstack_t	callstk;
+struct _exception_handling {
+	void*	scl_exception_table[STACK_SIZE];
+	jmp_buf	scl_jmp_buf[STACK_SIZE];
+	scl_int	scl_jmp_buf_ptr;
+	scl_int	scl_cs_ptr[STACK_SIZE];
+} exceptions = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
@@ -57,6 +59,9 @@ scl_int scl_check_allocated(scl_any ptr) {
 }
 
 scl_any scl_alloc(size_t size) {
+	if (size % sizeof(scl_any) != 0) {
+		size += size % sizeof(scl_any);
+	}
 	scl_any ptr = (scl_any) malloc(size);
 	if (!ptr) {
 		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
@@ -67,6 +72,9 @@ scl_any scl_alloc(size_t size) {
 }
 
 scl_any scl_realloc(scl_any ptr, size_t size) {
+	if (size % sizeof(scl_any) != 0) {
+		size += size % sizeof(scl_any);
+	}
 	scl_free_struct_no_finalize(ptr);
 	scl_remove_ptr(ptr);
 	ptr = realloc(ptr, size);
@@ -94,7 +102,7 @@ void scl_free(scl_any ptr) {
 void scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
-		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1]);
+		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -120,6 +128,26 @@ void scl_security_safe_exit(int code) {
 	exit(code);
 }
 
+int find_below(scl_any ptr, scl_int index) {
+	for (scl_int i = index; i >= 0; i--) {
+		if (stack.data[i].v == ptr) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void scl_cleanup_post_func(scl_int depth) {
+	scl_int diff = stack.ptr - callstk.data[depth].begin_stack_size;
+	scl_int begin = callstk.data[depth].begin_stack_size;
+	for (scl_int i = diff; diff > 0; i--) {
+		if (!find_below(stack.data[i].v, begin)) {
+			scl_free(stack.data[i].v);
+		}
+		stack.ptr--;
+	}
+}
+
 #pragma endregion
 
 #pragma region Exceptions
@@ -130,13 +158,13 @@ void print_stacktrace() {
 	printf("Stacktrace:\n");
 	printingStacktrace = 1;
 	for (int i = callstk.ptr - 1; i >= 0; i--) {
-		if (current_file[i]) {
-			char* f = strrchr(current_file[i], '/');
-			if (!f) f = current_file[i];
+		if (callstk.data[i].file) {
+			char* f = strrchr(callstk.data[i].file, '/');
+			if (!f) f = callstk.data[i].file;
 			else f++;
-			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].i, f, current_line[i], current_col[i]);
+			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
 		} else {
-			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].i, current_line[i], current_col[i]);
+			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
 		}
 
 	}
@@ -173,7 +201,7 @@ void process_signal(int sig_num) {
 
 	printf("\n");
 
-	printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", current_file[callstk.ptr - 1], current_line[callstk.ptr - 1], current_col[callstk.ptr - 1], signalString);
+	printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
@@ -211,6 +239,14 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 		((scl_any*) array->values)[(scl_int) array->count++] = argv[i];
 	}
 	stack.data[stack.ptr++].v = array;
+}
+
+inline scl_frame_t scl_push_frame() {
+	return stack.data[stack.ptr++];
+}
+
+inline scl_frame_t scl_pop_frame() {
+	return stack.data[--stack.ptr];
 }
 
 inline void ctrl_push_string(scl_str c) {
@@ -400,7 +436,6 @@ void scl_free_struct_no_finalize(scl_any ptr) {
 }
 
 void scl_free_struct(scl_any ptr) {
-	// scl_reflect_call_method_SclObject_function_finalize();
 	if (scl_find_index_of_struct(ptr) != -1) {
 		scl_any method = scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
 		if (method) {
