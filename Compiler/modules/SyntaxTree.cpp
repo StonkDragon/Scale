@@ -431,6 +431,9 @@ namespace sclc {
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
                         currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                        for (std::string s : nextAttributes) {
+                            currentFunction->addModifier(s);
+                        }
                         nextAttributes.clear();
                         continue;
                     }
@@ -438,6 +441,9 @@ namespace sclc {
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);
                     currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    for (std::string s : nextAttributes) {
+                        currentFunction->addModifier(s);
+                    }
                     nextAttributes.clear();
                     continue;
                 }
@@ -487,6 +493,9 @@ namespace sclc {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
+                }
+                for (std::string s : nextAttributes) {
+                    currentFunction->addModifier(s);
                 }
                 nextAttributes.clear();
 
