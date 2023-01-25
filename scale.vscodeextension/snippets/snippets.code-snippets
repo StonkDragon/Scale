@@ -225,6 +225,19 @@
 		],
 		"description": "Declare a prototype"
 	},
+	"Try Catch": {
+		"scope": "source.scale",
+		"prefix": "try-catch",
+		"body": [
+			"try",
+			"\t$0",
+			"catch typeof ${1:Exception}",
+			"\t# Handle exceptions of type '${1:Exception}' here",
+			"\t",
+			"done"
+		],
+		"description": "Try-Catch Statement"
+	},
 	"Dereference": {
 		"scope": "source.scale",
 		"prefix": "dereference",
