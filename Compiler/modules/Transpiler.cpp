@@ -943,16 +943,39 @@ namespace sclc {
             std::vector<Variable> defaultScope;
             vars.push_back(defaultScope);
         } else if (body[i].getValue() == "catch") {
-            std::vector<Variable> defaultScope;
-            vars.pop_back();
-            vars.push_back(defaultScope);
-            was_rep.push_back(false);
-            scopeDepth--;
-            append("} else {\n");
-            scopeDepth++;
-            Variable v = Variable("exception", "Exception");
-            vars[varDepth].push_back(v);
-            append("scl_Exception Var_exception = exceptions.extable[exceptions.ptr];\n");
+            if (body[i + 1].getValue() == "typeof") {
+                ITER_INC;
+                ITER_INC;
+                std::vector<Variable> defaultScope;
+                vars.pop_back();
+                vars.push_back(defaultScope);
+                was_rep.push_back(false);
+                scopeDepth--;
+                // TODO: Check for children of 'Exception'
+                if (getStructByName(result, body[i].getValue()) == Struct("")) {
+                    transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("} else if (strcmp(exceptions.extable[exceptions.ptr]->$__type_name__, \"%s\") == 0) {\n", body[i].getValue().c_str());
+                scopeDepth++;
+                Variable v = Variable("exception", body[i].getValue());
+                vars[varDepth].push_back(v);
+                append("scl_%s Var_exception = (scl_%s) exceptions.extable[exceptions.ptr];\n", body[i].getValue().c_str(), body[i].getValue().c_str());
+            } else {
+                transpilerError("Generic Exception caught here:", i);
+                warns.push_back(err);
+                std::vector<Variable> defaultScope;
+                vars.pop_back();
+                vars.push_back(defaultScope);
+                was_rep.push_back(false);
+                scopeDepth--;
+                append("} else {\n");
+                scopeDepth++;
+                Variable v = Variable("exception", "Exception");
+                vars[varDepth].push_back(v);
+                append("scl_Exception Var_exception = exceptions.extable[exceptions.ptr];\n");
+            }
     #ifdef __APPLE__
     #pragma endregion
     #endif
