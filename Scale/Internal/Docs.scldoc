@@ -116,7 +116,7 @@ Example:<<WHITE>>
 <<BLUE>>addr<<WHITE>> i<<RESET>>
 
 ### container
-This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the `MathConstants` container in Scales math library.
+This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the `MathConstants` container in Scale's math library.
 <<WHITE>>
 <<BLUE>>container<<WHITE>> Foo
     <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
@@ -147,7 +147,7 @@ Example:<<WHITE>>
 <<BLUE>>end<<WHITE>><<RESET>>
 
 ### is
-This keyword is used to check, if the value on the stack is of a certain struct type.
+This keyword is used to check if the value on the stack is of a certain struct type.
 
 ### label
 This keyword is used to declare a new label that you can `goto` to.
@@ -174,10 +174,10 @@ foo <<BLUE>>switch<<WHITE>>
 <<BLUE>>done<<WHITE>><<RESET>>
 
 ### case
-This keyword is used to create a new branch inside of a switch statement. A case branch ends, when the `esac` keyword is encountered.
+This keyword is used to create a new branch inside of a switch statement. A case branch ends when the `esac` keyword is encountered.
 
 ### default
-This keyword is used to create a branch inside of a switch statement that gets used, if the value of the switch is not matched by any `case` statements.
+This keyword is used to create a branch inside of a switch statement that gets used if the value of the switch is not matched by any `case` statements.
 
 ### import
 This keyword is used to import the contents of other files into the current file.
@@ -198,6 +198,18 @@ Example:<<WHITE>>
 This keyword is used to signify that the memory a variable points to can be changed
 Example:<<WHITE>>
 <<BLUE>>decl<<WHITE>> i<<BLUE>>: mut int<<RESET>>
+
+### try
+This keyword is used to denote the start of a try-catch block of code.
+Example:<<WHITE>>
+<<BLUE>>try
+<<CYAN>>  # code that might throw
+<<BLUE>>catch typeof <<WHITE>>Exception <<BLUE>>as <<WHITE>>ex
+<<CYAN>>  # handle exception here
+<<BLUE>>done
+
+### catch
+This keyword is used to denote the start of the catch part of a try-catch block. See <<BLUE>>try<<RESET>>.
 
 ## Operators
 ### +
