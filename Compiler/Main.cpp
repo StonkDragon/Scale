@@ -1244,6 +1244,10 @@ namespace sclc
 #ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
+        if (compiler == "emcc") {
+            cflags.push_back("-s");
+            cflags.push_back("TOTAL_MEMORY=67108864");
+        }
 
         std::string cmd = "";
         for (std::string s : cflags) {
