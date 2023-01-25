@@ -19,16 +19,16 @@ struct _exception_handling {
 #pragma region Memory
 
 static scl_any alloced_ptrs[STACK_SIZE];
-static size_t alloced_ptrs_count = 0;
+static scl_int alloced_ptrs_count = 0;
 
 void scl_remove_ptr(scl_any ptr) {
-	size_t index;
+	scl_int index;
 	while ((index = scl_get_index_of_ptr(ptr)) != -1) {
 		scl_remove_ptr_at_index(index);
 	}
 }
 
-size_t scl_get_index_of_ptr(scl_any ptr) {
+scl_int scl_get_index_of_ptr(scl_any ptr) {
 	for (size_t i = 0; i < alloced_ptrs_count; i++) {
 		if (alloced_ptrs[i] == ptr) {
 			return i;
@@ -37,15 +37,15 @@ size_t scl_get_index_of_ptr(scl_any ptr) {
 	return -1;
 }
 
-void scl_remove_ptr_at_index(size_t index) {
-	for (size_t i = index; i < alloced_ptrs_count - 1; i++) {
+void scl_remove_ptr_at_index(scl_int index) {
+	for (scl_int i = index; i < alloced_ptrs_count - 1; i++) {
     	alloced_ptrs[i] = alloced_ptrs[i + 1];
     }
     alloced_ptrs_count--;
 }
 
 void scl_add_ptr(scl_any ptr) {
-	for (size_t i = 0; i < alloced_ptrs_count; i++) {
+	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
 		if (alloced_ptrs[i] == 0 || alloced_ptrs[i] == ptr) {
 			alloced_ptrs[i] = ptr;
 			return;
@@ -140,12 +140,14 @@ int find_below(scl_any ptr, scl_int index) {
 void scl_cleanup_post_func(scl_int depth) {
 	scl_int diff = stack.ptr - callstk.data[depth].begin_stack_size;
 	scl_int begin = callstk.data[depth].begin_stack_size;
-	for (scl_int i = diff; diff > 0; i--) {
+	for (scl_int i = diff; diff > 0 && i >= 0; i--) {
 		if (!find_below(stack.data[i].v, begin)) {
 			scl_free(stack.data[i].v);
 		}
 		stack.ptr--;
 	}
+	if (stack.ptr < 0)
+		stack.ptr = 0;
 }
 
 #pragma endregion
@@ -157,7 +159,7 @@ static int printingStacktrace = 0;
 void print_stacktrace() {
 	printf("Stacktrace:\n");
 	printingStacktrace = 1;
-	for (int i = callstk.ptr - 1; i >= 0; i--) {
+	for (signed long i = callstk.ptr - 1; i >= 0; i--) {
 		if (callstk.data[i].file) {
 			char* f = strrchr(callstk.data[i].file, '/');
 			if (!f) f = callstk.data[i].file;
@@ -208,9 +210,9 @@ void process_signal(int sig_num) {
 	if (!printingStacktrace)
 		print_stacktrace();
 	printf("Stack:\n");
-	for (ssize_t i = stack.ptr - 1; i >= 0; i--) {
+	for (scl_int i = stack.ptr - 1; i >= 0; i--) {
 		scl_int v = stack.data[i].i;
-		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+		printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
 	}
 	printf("\n");
 

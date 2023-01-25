@@ -211,8 +211,8 @@ scl_any		ctrl_pop(void);
 ssize_t		ctrl_stack_size(void);
 
 void		scl_remove_ptr(scl_any ptr);
-size_t		scl_get_index_of_ptr(scl_any ptr);
-void		scl_remove_ptr_at_index(size_t index);
+scl_int		scl_get_index_of_ptr(scl_any ptr);
+void		scl_remove_ptr_at_index(scl_int index);
 void		scl_add_ptr(scl_any ptr);
 scl_int		scl_check_allocated(scl_any ptr);
 scl_any		scl_realloc(scl_any ptr, size_t size);
