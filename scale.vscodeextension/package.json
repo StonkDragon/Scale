@@ -16,12 +16,12 @@
     "contributes": {
         "languages": [{
             "id": "scale",
-            "aliases": ["scale", "Scale"],
+            "aliases": ["Scale", "scale"],
             "extensions": [".scale"],
             "configuration": "./language-configuration.json"
         },{
             "id": "scldoc",
-            "aliases": ["scldoc", "ScaleDoc", "Scale Documentation"],
+            "aliases": ["ScaleDoc", "scldoc", "Scale Documentation"],
             "extensions": [".scldoc"],
             "configuration": "./scldoc/language-configuration.json"
         }],
