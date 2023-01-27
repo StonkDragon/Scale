@@ -35,9 +35,9 @@ end
 function malloc(_size_: int): [any]?
   decl s: [any]
   inline_c
-    *s = scl_alloc(*_size_);
+    *s = _scl_alloc(*_size_);
     if (!(*s)) {
-      scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+      _scl_security_throw(EX_BAD_PTR, "malloc() failed!");
       *s = NULL;
     }
   end_inline
@@ -46,9 +46,9 @@ end
 
 function realloc(_size_: int, _ptr_: [any]): [any]?
   inline_c
-    *_ptr_ = scl_realloc(*_ptr_, *_size_);
+    *_ptr_ = _scl_realloc(*_ptr_, *_size_);
     if (!(*_ptr_)) {
-      scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+      _scl_security_throw(EX_BAD_PTR, "realloc() failed!");
       *_ptr_ = NULL;
     }
   end_inline
@@ -71,7 +71,7 @@ end
 
 function free(_ptr_: [any]): none
   inline_c
-    scl_free(*_ptr_);
+    _scl_free(*_ptr_);
   end_inline
 end
 
@@ -145,7 +145,7 @@ function strrev(_str_: str): str
   inline_c
     scl_int i = 0;
     scl_int len = strlen(*_str_);
-    *out = scl_alloc(len + 1);
+    *out = _scl_alloc(len + 1);
     for (i = len - 1; i >= 0; i--) {
       (*out)[i] = (*_str_)[len - i - 1];
     }
@@ -167,7 +167,7 @@ end
 function longToString(_long_: int): str
   decl out: str
   inline_c
-    *out = scl_alloc(25);
+    *out = _scl_alloc(25);
 	  sprintf(*out, SCL_INT_FMT, *_long_);
   end_inline
   out return
@@ -190,7 +190,7 @@ end
 function doubleToString(_double_: float): str
   decl out: str
   inline_c
-    *out = scl_alloc(100);
+    *out = _scl_alloc(100);
 	  sprintf(*out, "%f", *_double_);
   end_inline
   out return
