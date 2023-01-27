@@ -475,6 +475,7 @@ namespace sclc {
     size_t i = 0;
     size_t condCount = 0;
     std::vector<bool> was_rep;
+    std::vector<bool> was_catch;
     char repeat_depth = 0;
     int iterator_count = 0;
     bool noWarns;
@@ -951,6 +952,7 @@ namespace sclc {
                 vars.pop_back();
                 vars.push_back(defaultScope);
                 was_rep.push_back(false);
+                was_catch.push_back(true);
                 scopeDepth--;
                 // TODO: Check for children of 'Exception'
                 if (getStructByName(result, body[i].getValue()) == Struct("")) {
@@ -958,16 +960,11 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("} else if (strcmp(exceptions.extable[exceptions.ptr]->$__type_name__, \"%s\") == 0) {\n", body[i].getValue().c_str());
+                append("} else if (scl_struct_is_type(exceptions.extable[exceptions.ptr - 1], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
             } else {
                 transpilerError("Generic Exception caught here:", i);
-                warns.push_back(err);
-                std::vector<Variable> defaultScope;
-                vars.pop_back();
-                vars.push_back(defaultScope);
-                was_rep.push_back(false);
-                scopeDepth--;
-                append("} else {\n");
+                errors.push_back(err);
+                return;
             }
             std::string exName = "exception";
             if (body[i + 1].getValue() == "as") {
@@ -978,7 +975,7 @@ namespace sclc {
             scopeDepth++;
             Variable v = Variable(exName, ex);
             vars[varDepth].push_back(v);
-            append("scl_%s Var_%s = (scl_%s) exceptions.extable[exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+            append("scl_%s Var_%s = (scl_%s) exceptions.extable[--exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -1378,6 +1375,7 @@ namespace sclc {
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
         was_rep.push_back(true);
+        was_catch.push_back(false);
         ITER_INC;
     }
 
@@ -1546,6 +1544,7 @@ namespace sclc {
         if (!hasVar(var))
             vars[varDepth].push_back(Variable(var.getValue(), "int"));
         was_rep.push_back(false);
+        was_catch.push_back(false);
     }
 
     handler(Foreach) {
@@ -2984,6 +2983,7 @@ namespace sclc {
         append("while (1) {\n");
         scopeDepth++;
         was_rep.push_back(false);
+        was_catch.push_back(false);
         varDepth++;
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
@@ -3001,10 +3001,15 @@ namespace sclc {
         scopeDepth--;
         varDepth--;
         vars.pop_back();
+        if (was_catch.size() > 0 && was_catch.back()) {
+            append("} else {\n");
+            append("  Function_throw(exceptions.extable[--exceptions.ptr]);\n");
+        }
         append("}\n");
-        if (repeat_depth > 0 && was_rep[was_rep.size() - 1]) {
+        if (repeat_depth > 0 && was_rep.back()) {
             repeat_depth--;
         }
+        if (was_catch.size() > 0) was_catch.pop_back();
         if (was_rep.size() > 0) was_rep.pop_back();
     }
 
@@ -3132,6 +3137,7 @@ namespace sclc {
         std::vector<Variable> defaultScope;
         vars.push_back(defaultScope);
         was_rep.push_back(false);
+        was_catch.push_back(false);
     }
 
     handler(AddrOf) {

@@ -52,7 +52,7 @@ function throw(ex: Exception): none
     if (exceptions.ptr > 0) {
       exceptions.extable[exceptions.ptr - 1] = *ex;
       callstk.ptr = exceptions.callstk_ptr[exceptions.ptr - 1];
-      longjmp(exceptions.jmptable[--exceptions.ptr], 0);
+      longjmp(exceptions.jmptable[exceptions.ptr - 1], 0);
     } else {
       callstk.ptr--;
       scl_security_throw(EX_THROWN, (*ex)->msg);
