@@ -7,7 +7,7 @@ function dumpStack(): none
       scl_int v = stack.data[i].i;
       printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
     }
-	printf("\n");
+	  printf("\n");
   end_inline
 end
 
@@ -19,7 +19,7 @@ end
 
 function crash(): none
   inline_c
-    scl_security_safe_exit(1);
+    _scl_security_safe_exit(1);
   end_inline
 end
 
@@ -55,7 +55,7 @@ function throw(ex: Exception): none
       longjmp(exceptions.jmptable[exceptions.ptr - 1], 0);
     } else {
       callstk.ptr--;
-      scl_security_throw(EX_THROWN, (*ex)->msg);
+      _scl_security_throw(EX_THROWN, (*ex)->msg);
     }
   end_inline
 end

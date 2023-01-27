@@ -1,0 +1,22 @@
+struct TestException : Exception
+    function init(m: str): none
+        m => self.msg
+    end
+end
+
+function foo(): none
+    try
+        "Hello!" TestException::new throw
+    catch typeof TestException as e
+        "Caught TestException: " e.msg + puts
+        e throw
+    done
+end
+
+function main(): none
+    try
+        foo
+    catch typeof Exception
+        "exception fell through to main()" puts
+    done
+end

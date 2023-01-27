@@ -10,7 +10,7 @@ struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable, IFinaliza
         decl address: mut str
         inline_c
             *typename = (*self)->$__type_name__;
-            *address = scl_alloc(19);
+            *address = _scl_alloc(19);
             snprintf(*address, 18, "%p", *self);
         end_inline
 
@@ -29,8 +29,8 @@ struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable, IFinaliza
         decl sz: mut int
         inline_c
             *sz = (*self)->$__size__;
-            *instance = scl_alloc(*sz);
-            scl_add_struct(*instance);
+            *instance = _scl_alloc(*sz);
+            _scl_add_struct(*instance);
         end_inline
         instance self sz memcpy
         return

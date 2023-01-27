@@ -17,7 +17,7 @@ sealed struct Struct
         getMethods => decl methods: ImmutableArray
         foreach method in methods do
             inline_c
-                scl_add_struct(*method);
+                _scl_add_struct(*method);
             end_inline
             if method as Method :getName name == then
                 method return
@@ -51,7 +51,7 @@ sealed struct Struct
 
     function newInstance() instance: SclObject
         inline_c
-            *instance = scl_alloc_struct((*self)->size, (*self)->name, (*self)->super);
+            *instance = _scl_alloc_struct((*self)->size, (*self)->name, (*self)->super);
         end_inline
 
         name ":init" + self:getMethod => decl initializer: Method?

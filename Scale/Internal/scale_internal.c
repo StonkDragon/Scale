@@ -5,13 +5,13 @@
 #endif
 
 /* Variables */
-scl_stack_t 	stack;
-scl_callstack_t	callstk;
+_scl_stack_t 		stack;
+_scl_callstack_t	callstk;
 struct _exception_handling {
-	void*	scl_exception_table[STACK_SIZE];
-	jmp_buf	scl_jmp_buf[STACK_SIZE];
-	scl_int	scl_jmp_buf_ptr;
-	scl_int	scl_cs_ptr[STACK_SIZE];
+	void*	_scl_exception_table[STACK_SIZE];
+	jmp_buf	_scl_jmp_buf[STACK_SIZE];
+	scl_int	_scl_jmp_buf_ptr;
+	scl_int	_scl_cs_ptr[STACK_SIZE];
 } exceptions = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
@@ -21,14 +21,14 @@ struct _exception_handling {
 static scl_any alloced_ptrs[STACK_SIZE];
 static scl_int alloced_ptrs_count = 0;
 
-void scl_remove_ptr(scl_any ptr) {
+void _scl_remove_ptr(scl_any ptr) {
 	scl_int index;
-	while ((index = scl_get_index_of_ptr(ptr)) != -1) {
-		scl_remove_ptr_at_index(index);
+	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
+		_scl_remove_ptr_at_index(index);
 	}
 }
 
-scl_int scl_get_index_of_ptr(scl_any ptr) {
+scl_int _scl_get_index_of_ptr(scl_any ptr) {
 	for (size_t i = 0; i < alloced_ptrs_count; i++) {
 		if (alloced_ptrs[i] == ptr) {
 			return i;
@@ -37,14 +37,14 @@ scl_int scl_get_index_of_ptr(scl_any ptr) {
 	return -1;
 }
 
-void scl_remove_ptr_at_index(scl_int index) {
+void _scl_remove_ptr_at_index(scl_int index) {
 	for (scl_int i = index; i < alloced_ptrs_count - 1; i++) {
     	alloced_ptrs[i] = alloced_ptrs[i + 1];
     }
     alloced_ptrs_count--;
 }
 
-void scl_add_ptr(scl_any ptr) {
+void _scl_add_ptr(scl_any ptr) {
 	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
 		if (alloced_ptrs[i] == 0 || alloced_ptrs[i] == ptr) {
 			alloced_ptrs[i] = ptr;
@@ -54,43 +54,43 @@ void scl_add_ptr(scl_any ptr) {
 	alloced_ptrs[alloced_ptrs_count++] = ptr;
 }
 
-scl_int scl_check_allocated(scl_any ptr) {
-	return scl_get_index_of_ptr(ptr) != -1;
+scl_int _scl_check_allocated(scl_any ptr) {
+	return _scl_get_index_of_ptr(ptr) != -1;
 }
 
-scl_any scl_alloc(size_t size) {
+scl_any _scl_alloc(size_t size) {
 	if (size % sizeof(scl_any) != 0) {
 		size += size % sizeof(scl_any);
 	}
 	scl_any ptr = (scl_any) malloc(size);
 	if (!ptr) {
-		scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+		_scl_security_throw(EX_BAD_PTR, "malloc() failed!");
 		return NULL;
 	}
-	scl_add_ptr(ptr);
+	_scl_add_ptr(ptr);
 	return ptr;
 }
 
-scl_any scl_realloc(scl_any ptr, size_t size) {
+scl_any _scl_realloc(scl_any ptr, size_t size) {
 	if (size % sizeof(scl_any) != 0) {
 		size += size % sizeof(scl_any);
 	}
-	scl_free_struct_no_finalize(ptr);
-	scl_remove_ptr(ptr);
+	_scl_free_struct_no_finalize(ptr);
+	_scl_remove_ptr(ptr);
 	ptr = realloc(ptr, size);
 	if (!ptr) {
-		scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 		return NULL;
 	}
-	scl_add_ptr(ptr);
-	scl_add_struct(ptr);
+	_scl_add_ptr(ptr);
+	_scl_add_struct(ptr);
 	return ptr;
 }
 
-void scl_free(scl_any ptr) {
-	if (ptr && scl_check_allocated(ptr)) {
-		scl_free_struct(ptr);
-		scl_remove_ptr(ptr);
+void _scl_free(scl_any ptr) {
+	if (ptr && _scl_check_allocated(ptr)) {
+		_scl_free_struct(ptr);
+		_scl_remove_ptr(ptr);
 		free(ptr);
 	}
 }
@@ -99,19 +99,19 @@ void scl_free(scl_any ptr) {
 
 #pragma region Security
 
-void scl_assert(scl_int b, scl_str msg) {
+void _scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
 		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
-		scl_security_safe_exit(EX_ASSERTION_FAIL);
+		_scl_security_safe_exit(EX_ASSERTION_FAIL);
 	}
 }
 
-scl_no_return
-void scl_security_throw(int code, scl_str msg) {
+_scl_no_return
+void _scl_security_throw(int code, scl_str msg) {
 	printf("\n");
 	printf("Exception: %s\n", msg);
 	if (errno) {
@@ -119,12 +119,12 @@ void scl_security_throw(int code, scl_str msg) {
 	}
 	print_stacktrace();
 
-	scl_security_safe_exit(code);
+	_scl_security_safe_exit(code);
 }
 
-scl_no_return
-void scl_security_safe_exit(int code) {
-	scl_finalize();
+_scl_no_return
+void _scl_security_safe_exit(int code) {
+	_scl_finalize();
 	exit(code);
 }
 
@@ -137,12 +137,12 @@ int find_below(scl_any ptr, scl_int index) {
 	return 0;
 }
 
-void scl_cleanup_post_func(scl_int depth) {
+void _scl_cleanup_post_func(scl_int depth) {
 	scl_int diff = stack.ptr - callstk.data[depth].begin_stack_size;
 	scl_int begin = callstk.data[depth].begin_stack_size;
 	for (scl_int i = diff; diff > 0 && i >= 0; i--) {
 		if (!find_below(stack.data[i].v, begin)) {
-			scl_free(stack.data[i].v);
+			_scl_free(stack.data[i].v);
 		}
 		stack.ptr--;
 	}
@@ -216,7 +216,7 @@ void process_signal(int sig_num) {
 	}
 	printf("\n");
 
-	scl_security_safe_exit(sig_num);
+	_scl_security_safe_exit(sig_num);
 }
 
 #pragma endregion
@@ -233,21 +233,21 @@ void ctrl_push_args(scl_int argc, scl_str argv[]) {
 		scl_any count;
 		scl_any capacity;
 	};
-	struct Array* array = scl_alloc_struct(sizeof(struct Array), "Array", hash1("SclObject"));
+	struct Array* array = _scl_alloc_struct(sizeof(struct Array), "Array", hash1("SclObject"));
 	array->capacity = (scl_any) argc;
 	array->count = 0;
-	array->values = scl_alloc(argc);
+	array->values = _scl_alloc(argc);
 	for (scl_int i = 0; i < argc; i++) {
 		((scl_any*) array->values)[(scl_int) array->count++] = argv[i];
 	}
 	stack.data[stack.ptr++].v = array;
 }
 
-inline scl_frame_t scl_push_frame() {
+inline _scl_frame_t _scl_push_frame() {
 	return stack.data[stack.ptr++];
 }
 
-inline scl_frame_t scl_pop_frame() {
+inline _scl_frame_t _scl_pop_frame() {
 	return stack.data[--stack.ptr];
 }
 
@@ -299,7 +299,7 @@ hash hash1(char* data) {
     return h;
 }
 
-struct scl_methodinfo {
+struct _scl_methodinfo {
   scl_int  __type__;
   scl_str  __type_name__;
   scl_int  __super__;
@@ -313,7 +313,7 @@ struct scl_methodinfo {
   scl_str  return_type;
 };
 
-struct scl_typeinfo {
+struct _scl_typeinfo {
   scl_int    			   __type__;
   scl_str    			   __type_name__;
   scl_int   			   __super__;
@@ -323,15 +323,15 @@ struct scl_typeinfo {
   scl_int                  size;
   scl_int                  super;
   scl_int                  methodscount;
-  struct scl_methodinfo**  methods;
+  struct _scl_methodinfo**  methods;
 };
 
-extern struct scl_typeinfo		scl_internal_types[];
-extern size_t 					scl_internal_types_count;
-extern struct scl_methodinfo*	scl_internal_functions[];
-extern size_t 					scl_internal_functions_size;
-extern struct scl_methodinfo*	scl_internal_methods[];
-extern size_t 					scl_internal_methods_size;
+extern struct _scl_typeinfo		_scl_internal_types[];
+extern size_t 					_scl_internal_types_count;
+extern struct _scl_methodinfo*	_scl_internal_functions[];
+extern size_t 					_scl_internal_functions_size;
+extern struct _scl_methodinfo*	_scl_internal_methods[];
+extern size_t 					_scl_internal_methods_size;
 
 struct sclstruct {
 	scl_int  type;
@@ -345,42 +345,42 @@ static size_t allocated_structs_count = 0;
 static struct sclstruct* mallocced_structs[STACK_SIZE];
 static size_t mallocced_structs_count = 0;
 
-void scl_finalize() {
+void _scl_finalize() {
 	for (size_t i = 0; i < mallocced_structs_count; i++) {
 		if (mallocced_structs[i]) {
-			scl_free(mallocced_structs[i]);
+			_scl_free(mallocced_structs[i]);
 		}
 		mallocced_structs[i] = 0;
 	}
 }
 
-void* scl_typeinfo_of(hash type) {
-	for (size_t i = 0; i < scl_internal_types_count; i++) {
-		if (scl_internal_types[i].type == type) {
-			return (void*) scl_internal_types + (i * sizeof(struct scl_typeinfo));
+void* _scl_typeinfo_of(hash type) {
+	for (size_t i = 0; i < _scl_internal_types_count; i++) {
+		if (_scl_internal_types[i].type == type) {
+			return (void*) _scl_internal_types + (i * sizeof(struct _scl_typeinfo));
 		}
 	}
 	return NULL;
 }
 
-struct scl_typeinfo* scl_find_typeinfo_of(hash type) {
-	return (struct scl_typeinfo*) scl_typeinfo_of(type);
+struct _scl_typeinfo* _scl_find_typeinfo_of(hash type) {
+	return (struct _scl_typeinfo*) _scl_typeinfo_of(type);
 }
 
-void* scl_get_method_on_type(hash type, hash method) {
-	struct scl_typeinfo* p = scl_find_typeinfo_of(type);
+void* _scl_get_method_on_type(hash type, hash method) {
+	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
 	while (p) {
 		for (scl_int m = 0; m < p->methodscount; m++) {
 			if (p->methods[m]->id == method) {
 				return p->methods[m]->ptr;
 			}
 		}
-		p = scl_find_typeinfo_of(p->super);
+		p = _scl_find_typeinfo_of(p->super);
 	}
 	return NULL;
 }
 
-scl_any scl_add_struct(scl_any ptr) {
+scl_any _scl_add_struct(scl_any ptr) {
 	for (size_t i = 0; i < allocated_structs_count; i++) {
 		if (allocated_structs[i] == 0 || allocated_structs[i] == ptr) {
 			allocated_structs[i] = ptr;
@@ -391,8 +391,8 @@ scl_any scl_add_struct(scl_any ptr) {
 	return ptr;
 }
 
-scl_any scl_alloc_struct(size_t size, scl_str type_name, hash super) {
-	scl_any ptr = scl_alloc(size);
+scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
+	scl_any ptr = _scl_alloc(size);
 	((struct sclstruct*) ptr)->type = hash1(type_name);
     ((struct sclstruct*) ptr)->type_name = type_name;
     ((struct sclstruct*) ptr)->super = super;
@@ -401,22 +401,22 @@ scl_any scl_alloc_struct(size_t size, scl_str type_name, hash super) {
 	for (size_t i = 0; i < mallocced_structs_count; i++) {
 		if (mallocced_structs[i] == 0 || mallocced_structs[i] == ptr) {
 			mallocced_structs[i] = ptr;
-			return scl_add_struct(ptr);
+			return _scl_add_struct(ptr);
 		}
 	}
 	mallocced_structs[mallocced_structs_count++] = ptr;
 
-	return scl_add_struct(ptr);
+	return _scl_add_struct(ptr);
 }
 
-static void scl_struct_map_remove(size_t index) {
+static void _scl_struct_map_remove(size_t index) {
     for (size_t i = index; i < allocated_structs_count - 1; i++) {
        allocated_structs[i] =allocated_structs[i + 1];
     }
     allocated_structs_count--;
 }
 
-size_t scl_find_index_of_struct(scl_any ptr) {
+size_t _scl_find_index_of_struct(scl_any ptr) {
 	if (ptr == NULL) return -1;
 	for (size_t i = 0; i < allocated_structs_count; i++) {
         if (allocated_structs[i] == ptr) {
@@ -427,42 +427,42 @@ size_t scl_find_index_of_struct(scl_any ptr) {
     return -1;
 }
 
-void scl_reflect_call_method_SclObject_function_finalize();
+void _scl_reflect_call_method_SclObject_function_finalize();
 
-void scl_free_struct_no_finalize(scl_any ptr) {
-	size_t i = scl_find_index_of_struct(ptr);
+void _scl_free_struct_no_finalize(scl_any ptr) {
+	size_t i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
-		scl_struct_map_remove(i);
-		i = scl_find_index_of_struct(ptr);
+		_scl_struct_map_remove(i);
+		i = _scl_find_index_of_struct(ptr);
 	}
 }
 
-void scl_free_struct(scl_any ptr) {
-	if (scl_find_index_of_struct(ptr) != -1) {
-		scl_any method = scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
+void _scl_free_struct(scl_any ptr) {
+	if (_scl_find_index_of_struct(ptr) != -1) {
+		scl_any method = _scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
 		if (method) {
 			stack.data[stack.ptr++].v = ptr;
 			((void(*)()) method)();
 		}
 	}
-	size_t i = scl_find_index_of_struct(ptr);
+	size_t i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
-		scl_struct_map_remove(i);
-		i = scl_find_index_of_struct(ptr);
+		_scl_struct_map_remove(i);
+		i = _scl_find_index_of_struct(ptr);
 	}
 }
 
-scl_int scl_type_extends_type(struct scl_typeinfo* type, struct scl_typeinfo* extends) {
+scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo* extends) {
 	do {
 		if (type->type == extends->type) {
 			return 1;
 		}
-		type = scl_find_typeinfo_of(type->super);
+		type = _scl_find_typeinfo_of(type->super);
 	} while (type);
 	return 0;
 }
 
-scl_int scl_struct_is_type(scl_any ptr, hash typeId) {
+scl_int _scl_struct_is_type(scl_any ptr, hash typeId) {
 	int isStruct = 0;
 	for (size_t i = 0; i < allocated_structs_count; i++) {
 		if (allocated_structs[i] == ptr) {
@@ -474,48 +474,48 @@ scl_int scl_struct_is_type(scl_any ptr, hash typeId) {
 
 	struct sclstruct* ptrStruct = (struct sclstruct*) ptr;
 
-	struct scl_typeinfo* ptrType = scl_typeinfo_of(ptrStruct->type);
-	struct scl_typeinfo* typeIdType = scl_typeinfo_of(typeId);
+	struct _scl_typeinfo* ptrType = _scl_typeinfo_of(ptrStruct->type);
+	struct _scl_typeinfo* typeIdType = _scl_typeinfo_of(typeId);
 
-	return scl_type_extends_type(ptrType, typeIdType);
+	return _scl_type_extends_type(ptrType, typeIdType);
 }
 
-void scl_reflect_call(hash func) {
-	for (size_t i = 0; i < scl_internal_functions_size; i++) {
-		if (scl_internal_functions[i]->name_hash == func) {
-			((void(*)()) scl_internal_functions[i]->ptr)();
+void _scl_reflect_call(hash func) {
+	for (size_t i = 0; i < _scl_internal_functions_size; i++) {
+		if (_scl_internal_functions[i]->name_hash == func) {
+			((void(*)()) _scl_internal_functions[i]->ptr)();
 			return;
 		}
 	}
-	scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
+	_scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
 }
 
-scl_int scl_reflect_find(hash func) {
-	for (size_t i = 0; i < scl_internal_functions_size; i++) {
-		if (scl_internal_functions[i]->name_hash == func) {
+scl_int _scl_reflect_find(hash func) {
+	for (size_t i = 0; i < _scl_internal_functions_size; i++) {
+		if (_scl_internal_functions[i]->name_hash == func) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-scl_int scl_reflect_find_method(hash func) {
-	for (size_t i = 0; i < scl_internal_methods_size; i++) {
-		if (scl_internal_methods[i]->name_hash == func) {
+scl_int _scl_reflect_find_method(hash func) {
+	for (size_t i = 0; i < _scl_internal_methods_size; i++) {
+		if (_scl_internal_methods[i]->name_hash == func) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-void scl_reflect_call_method(hash func) {
-	for (size_t i = 0; i < scl_internal_methods_size; i++) {
-		if (scl_internal_methods[i]->name_hash == func) {
-			((void(*)()) scl_internal_methods[i]->ptr)();
+void _scl_reflect_call_method(hash func) {
+	for (size_t i = 0; i < _scl_internal_methods_size; i++) {
+		if (_scl_internal_methods[i]->name_hash == func) {
+			((void(*)()) _scl_internal_methods[i]->ptr)();
 			return;
 		}
 	}
-	scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
+	_scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
 }
 
 #pragma endregion

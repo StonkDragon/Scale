@@ -5,45 +5,45 @@ sealed struct Reflect
     no_cleanup static function callFunction(name: str): none
         inline_c
             unsigned long long h = hash1(*name);
-            if (scl_reflect_find(h))
-                scl_reflect_call(h);
+            if (_scl_reflect_find(h))
+                _scl_reflect_call(h);
         end_inline
     end
 
     no_cleanup static function callMethod(name: str): none
         inline_c
             unsigned long long h = hash1(*name);
-            if (scl_reflect_find_method(h))
-                scl_reflect_call_method(h);
+            if (_scl_reflect_find_method(h))
+                _scl_reflect_call_method(h);
         end_inline
     end
 
     no_cleanup static function callFunctionById(id: int): none
         inline_c
-            if (scl_reflect_find(*id))
-                scl_reflect_call(*id);
+            if (_scl_reflect_find(*id))
+                _scl_reflect_call(*id);
         end_inline
     end
 
     no_cleanup static function callMethodById(id: int): none
         inline_c
-            if (scl_reflect_find_method(*id))
-                scl_reflect_call_method(*id);
+            if (_scl_reflect_find_method(*id))
+                _scl_reflect_call_method(*id);
         end_inline
     end
 
     static function getStruct(structName: str) s: Struct?
         inline_c
-            *s = scl_typeinfo_of(hash1(*structName));
-            scl_add_struct(*s);
+            *s = _scl_typeinfo_of(hash1(*structName));
+            _scl_add_struct(*s);
         end_inline
         return
     end
 
     static function getStructByType(type: int) s: Struct?
         inline_c
-            *s = scl_typeinfo_of(*type);
-            scl_add_struct(*s);
+            *s = _scl_typeinfo_of(*type);
+            _scl_add_struct(*s);
         end_inline
         return
     end

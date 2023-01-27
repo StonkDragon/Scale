@@ -59,7 +59,7 @@ namespace sclc
         fprintf(support_header, "typedef long long scl_int;\n");
         fprintf(support_header, "typedef char* scl_str;\n");
         fprintf(support_header, "typedef double scl_float;\n\n");
-        fprintf(support_header, "extern scl_stack_t stack;\n\n");
+        fprintf(support_header, "extern _scl_stack_t stack;\n\n");
 
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
@@ -119,7 +119,7 @@ namespace sclc
                     append("  Function_%s();\n", f->getName().c_str());
                 }
             }
-            append("  scl_finalize();\n");
+            append("  _scl_finalize();\n");
             append("  return return_value;\n");
             append("}\n");
         }

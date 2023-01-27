@@ -88,16 +88,11 @@ namespace sclc
         return false;
     }
 
-    std::string gen_random(int len) {
-        char* alphanum = (char*) "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        std::string tmp_s;
-        tmp_s.reserve(len);
-
-        for (int i = 0; i < len; ++i) {
-            tmp_s += alphanum[rand() % strlen(alphanum)];
-        }
-        
-        return tmp_s;
+    std::string gen_random() {
+        char* s = (char*) malloc(256);
+        hash h = hash1((char*) std::string(VERSION).c_str());
+        snprintf(s, 256, "%x%x%x%x", h, h, h, h);
+        return std::string(s);
     }
 
     FPResult findFileInIncludePath(std::string file);
@@ -551,7 +546,7 @@ namespace sclc
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "Os";
         srand(time(NULL));
-        Main.options.operatorRandomData = gen_random(69);
+        Main.options.operatorRandomData = gen_random();
 
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {

@@ -1,0 +1,2 @@
+Caught TestException: Hello!
+exception fell through to main()
