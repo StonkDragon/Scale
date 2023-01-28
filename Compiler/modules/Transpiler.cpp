@@ -951,8 +951,8 @@ namespace sclc {
             vars.push_back(defaultScope);
         } else if (body[i].getValue() == "catch") {
             std::string ex = "Exception";
-            if (body[i + 1].getValue() == "typeof") {
-                ITER_INC;
+            ITER_INC;
+            if (body[i].getValue() == "typeof") {
                 ITER_INC;
                 std::vector<Variable> defaultScope;
                 vars.pop_back();
@@ -966,8 +966,9 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("} else if (_scl_struct_is_type(exceptions.extable[exceptions.ptr - 1], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
+                append("} else if (_scl_struct_is_type(exceptions.extable[exceptions.ptr], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
             } else {
+                i--;
                 {
                     transpilerError("Generic Exception caught here:", i);
                     errors.push_back(err);
@@ -978,7 +979,7 @@ namespace sclc {
                 return;
             }
             std::string exName = "exception";
-            if (body[i + 1].getValue() == "as") {
+            if (body.size() > i + 1 && body[i + 1].getValue() == "as") {
                 ITER_INC;
                 ITER_INC;
                 exName = body[i].getValue();
@@ -986,7 +987,7 @@ namespace sclc {
             scopeDepth++;
             Variable v = Variable(exName, ex);
             vars[varDepth].push_back(v);
-            append("scl_%s Var_%s = (scl_%s) exceptions.extable[--exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+            append("scl_%s Var_%s = (scl_%s) exceptions.extable[exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -3034,7 +3035,7 @@ namespace sclc {
         vars.pop_back();
         if (was_catch.size() > 0 && was_catch.back()) {
             append("} else {\n");
-            append("  Function_throw(exceptions.extable[--exceptions.ptr]);\n");
+            append("  Function_throw(exceptions.extable[exceptions.ptr]);\n");
         }
         append("}\n");
         if (repeat_depth > 0 && was_rep.back()) {
