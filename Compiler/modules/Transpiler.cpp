@@ -508,7 +508,7 @@ namespace sclc {
     }
 
     bool checkStackType(TPResult result, std::vector<Variable> args) {
-        if (typeStack.size() == 0 && typeStack.size() == args.size()) {
+        if (typeStack.size() == 0 || args.size() == 0) {
             return true;
         }
         if (typeStack.size() < args.size()) {
@@ -999,15 +999,15 @@ namespace sclc {
                 return;
             }
             if (f->getArgs().size() > 0) {
-                    append("stack.ptr -= %zu;\n", f->getArgs().size());
-                }
+                append("stack.ptr -= %zu;\n", f->getArgs().size());
+            }
             bool argsCorrect = checkStackType(result, f->getArgs());
             if (!argsCorrect) {
                 {
                     transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
                     errors.push_back(err);
                 }
-                transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                transpilerError("Expected: [ " + argVectorToString(f->getArgs()) + " ], but got: [ " + stackSliceToString(f->getArgs().size()) + " ]", i);
                 err.isNote = true;
                 errors.push_back(err);
                 return;
