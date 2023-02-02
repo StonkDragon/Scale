@@ -119,10 +119,10 @@ namespace sclc {
             canBeNil = true;
         }
         if (v.size() && v.at(0) == '[') {
-            return ".sclPtrTo." + typeToASCII(v.substr(1, v.length() - 2)) + (canBeNil ? ".sclMaybeNil" : "");
+            return ".ptrType" + typeToASCII(v.substr(1, v.length() - 2)) + (canBeNil ? ".nilable" : "");
         }
         if (v == "?") {
-            return std::string(".sclWildcard") + (canBeNil ? ".sclMaybeNil" : "");
+            return std::string(".sclWildcard") + (canBeNil ? ".nilable" : "");
         }
         return v;
     }
@@ -149,7 +149,7 @@ namespace sclc {
                 arguments += typeToASCII(f->getArgs()[i].getType());
             }
         }
-        symbol += ".sclArgs." + arguments + ".sclType." + typeToASCII(f->getReturnType());
+        symbol += (arguments.size() ? ".." + arguments : "") + ".." + typeToASCII(f->getReturnType());
         if (f->isExternC) {
             if (f->isMethod) {
                 symbol = "_Method_" + static_cast<Method*>(f)->getMemberType() + "_" + f->getName();
@@ -943,7 +943,8 @@ namespace sclc {
                 return;
             }
         } else if (body[i].getValue() == "try") {
-            append("if (!setjmp(exceptions.jmptable[exceptions.ptr++])) {\n");
+            append("exceptions.ptr++;\n");
+            append("if (setjmp(exceptions.jmptable[exceptions.ptr - 1]) != 666) {\n");
             scopeDepth++;
             append("exceptions.callstk_ptr[exceptions.ptr - 1] = callstk.ptr;\n");
             varDepth++;
