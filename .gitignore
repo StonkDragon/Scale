@@ -72,3 +72,4 @@ dkms.conf
 *DS_Store*
 scale.vscodeextension/.DS_Store
 ErrorMessages.txt
+msg.md
