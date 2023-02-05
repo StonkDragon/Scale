@@ -3,6 +3,9 @@
 using namespace std;
 using namespace DragonConfig;
 
+#define DRAGON_LOG std::cout << "[Dragon] "
+#define DRAGON_ERR std::cerr << "[Dragon] "
+
 std::string ConfigEntry::getKey() const { return key; }
 EntryType ConfigEntry::getType() const { return type; }
 void ConfigEntry::setKey(const std::string& key) { this->key = key; }
@@ -28,33 +31,58 @@ bool StringEntry::operator!=(const StringEntry& other) {
     return !operator==(other);
 }
 void StringEntry::print(std::ostream& stream, int indent) {
-    stream << std::string(indent, ' ') << this->getKey() << ": \"" << this->value << "\";" << std::endl;
+    stream << std::string(indent, ' ');
+    if (this->getKey().size()) {
+        stream << this->getKey() << ": ";
+    }
+    stream << "\"" << this->value << "\";" << std::endl;
 }
 
 ListEntry::ListEntry() {
     this->setType(EntryType::List);
-    this->value = std::vector<std::string>();
+    this->value = std::vector<ConfigEntry*>();
 }
-std::string ListEntry::get(unsigned long index) {
+ConfigEntry* ListEntry::get(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
-        exit(1);
+        return nullptr;
     }
     return this->value[index];
+}
+StringEntry* ListEntry::getString(unsigned long index) {
+    if (index >= this->value.size()) {
+        std::cerr << "Index out of bounds" << std::endl;
+        return nullptr;
+    }
+    return (this->value[index]->getType() == EntryType::String ? reinterpret_cast<StringEntry*>(this->value[index]) : nullptr);
+}
+CompoundEntry* ListEntry::getCompound(unsigned long index) {
+    if (index >= this->value.size()) {
+        std::cerr << "Index out of bounds" << std::endl;
+        return nullptr;
+    }
+    return (this->value[index]->getType() == EntryType::Compound ? reinterpret_cast<CompoundEntry*>(this->value[index]) : nullptr);
+}
+ListEntry* ListEntry::getList(unsigned long index) {
+    if (index >= this->value.size()) {
+        std::cerr << "Index out of bounds" << std::endl;
+        return nullptr;
+    }
+    return (this->value[index]->getType() == EntryType::List ? reinterpret_cast<ListEntry*>(this->value[index]) : nullptr);
 }
 unsigned long ListEntry::size() {
     return this->value.size();
 }
-void ListEntry::add(std::string value) {
+void ListEntry::add(ConfigEntry* value) {
     this->value.push_back(value);
 }
-void ListEntry::addAll(std::vector<std::string> values) {
+void ListEntry::addAll(std::vector<ConfigEntry*> values) {
     this->value.insert(this->value.end(), values.begin(), values.end());
 }
 void ListEntry::remove(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
-        exit(1);
+        return;
     }
     this->value.erase(this->value.begin() + index);
 }
@@ -76,10 +104,14 @@ bool ListEntry::operator!=(const ListEntry& other) {
     return !operator==(other);
 }
 void ListEntry::print(std::ostream& stream, int indent) {
-    stream << std::string(indent, ' ') << this->getKey() << ": [" << std::endl;
+    stream << std::string(indent, ' ');
+    if (this->getKey().size()) {
+        stream << this->getKey() << ": ";
+    }
+    stream << "[" << std::endl;
     indent += 2;
     for (unsigned long i = 0; i < this->value.size(); i++) {
-        stream << std::string(indent, ' ') << "\"" << this->value[i] << "\";" << std::endl;
+        this->value[i]->print(stream, indent);
     }
     indent -= 2;
     stream << std::string(indent, ' ') << "];" << std::endl;
@@ -147,27 +179,27 @@ void CompoundEntry::setString(const std::string& key, const std::string& value) 
 void CompoundEntry::addString(const std::string& key, const std::string& value) {
     if (this->hasMember(key)) {
         std::cerr << "std::string with key '" << key << "' already exists" << std::endl;
-        exit(1);
+        return;
     }
     StringEntry* newEntry = new StringEntry();
     newEntry->setKey(key);
     newEntry->setValue(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(const std::string& key, const std::vector<std::string>& value) {
+void CompoundEntry::addList(const std::string& key, const std::vector<ConfigEntry*>& value) {
     if (this->hasMember(key)) {
         std::cerr << "List with key '" << key << "' already exists!" << std::endl;
-        exit(1);
+        return;
     }
     ListEntry* newEntry = new ListEntry();
     newEntry->setKey(key);
     newEntry->addAll(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(const std::string& key, std::string value) {
+void CompoundEntry::addList(const std::string& key, ConfigEntry* value) {
     if (this->hasMember(key)) {
         std::cerr << "List with key '" << key << "' already exists!" << std::endl;
-        exit(1);
+        return;
     }
     ListEntry* newEntry = new ListEntry();
     newEntry->setKey(key);
@@ -177,14 +209,14 @@ void CompoundEntry::addList(const std::string& key, std::string value) {
 void CompoundEntry::addList(ListEntry* value) {
     if (this->hasMember(value->getKey())) {
         std::cerr << "List with key '" << value->getKey() << "' already exists!" << std::endl;
-        exit(1);
+        return;
     }
     this->entries.push_back(reinterpret_cast<ConfigEntry*>(value));
 }
 void CompoundEntry::addCompound(CompoundEntry* value) {
     if (this->hasMember(value->getKey())) {
         std::cerr << "Compound with key '" << value->getKey() << "' already exists!" << std::endl;
-        exit(1);
+        return;
     }
     this->entries.push_back(reinterpret_cast<ConfigEntry*>(value));
 }
@@ -208,7 +240,11 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
             this->entries[i]->print(stream, indent);
         }
     } else {
-        stream << std::string(indent, ' ') << this->getKey() << ": {" << std::endl;
+        stream << std::string(indent, ' ');
+        if (this->getKey().size()) {
+            stream << this->getKey() << ": ";
+        } 
+        stream << "{" << std::endl;
         indent += 2;
         for (u_long i = 0; i < this->entries.size(); i++) {
             this->entries[i]->print(stream, indent);
@@ -231,7 +267,15 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     fread(buf, 1, size, fp);
     buf[size] = '\0';
     fclose(fp);
-    std::string config(buf);
+    std::string config;
+    for (size_t i = 0; i < strlen(buf); i++) {
+        if (buf[i] == '#') {
+            while (buf[i] != '\n' && buf[i] != '\0') {
+                i++;
+            }
+        }
+        config += buf[i];
+    }
     delete[] buf;
 
     int configSize = config.size();
@@ -264,8 +308,53 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
 }
 
 bool ConfigParser::isValidIdentifier(char c) {
-    return c != ':';
-    // return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+}
+
+ListEntry* ConfigParser::parseList(std::string& data, int* i) {
+    ListEntry* list = new ListEntry();
+    char c = data.at(++(*i));
+    while (c != ']') {
+        c = data.at((*i));
+        if (c == '[') {
+            list->add(this->parseList(data, i));
+        } else if (c == '{') {
+            list->add(this->parseCompound(data, i));
+        } else {
+            list->add(this->parseString(data, i));
+        }
+        c = data.at(++(*i));
+    }
+    c = data.at(++(*i));
+    if (c != ';') {
+        DRAGON_ERR << "Missing semicolon" << std::endl;
+        return nullptr;
+    }
+    return list;
+}
+
+StringEntry* ConfigParser::parseString(std::string& data, int* i) {
+    std::string value = "";
+    char c = data.at(++(*i));
+    bool escaped = false;
+    while (true) {
+        if (c == '"' && !escaped) break;
+        if (c == '\\') {
+            escaped = !escaped;
+        } else {
+            escaped = false;
+        }
+        value += c;
+        c = data.at(++(*i));
+    }
+    c = data.at(++(*i));
+    if (c != ';') {
+        DRAGON_ERR << "Invalid value: '" << value << "'" << std::endl;
+        return nullptr;
+    }
+    StringEntry* entry = new StringEntry();
+    entry->setValue(value);
+    return entry;
 }
 
 CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
@@ -278,68 +367,27 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
         }
         c = data.at(++(*i));
         if (c == '[') {
-            std::vector<std::string> values;
-            c = data.at(++(*i));
-            while (c != ']') {
-                std::string next;
-                if (c == '"') {
-                    char prev = c;
-                    c = data.at(++(*i));
-                    while (true) {
-                        if (c == '"' && prev != '\\') break;
-                        prev = c;
-                        next += c;
-                        c = data.at(++(*i));
-                    }
-                    c = data.at(++(*i));
-                    if (c != ';') {
-                        std::cerr << "[Dragon] " << "Missing semicolon: " << next << std::endl;
-                        exit(1);
-                    }
-                    values.push_back(next);
-                    c = data.at(++(*i));
-                }
-            }
-            c = data.at(++(*i));
-            if (c != ';') {
-                std::cerr << "[Dragon] " << "Missing semicolon: " << key << std::endl;
-                exit(1);
-            }
-            ListEntry* entry = new ListEntry();
+            ListEntry* entry = this->parseList(data, i);
+            if (!entry) return nullptr;
             entry->setKey(key);
-            entry->addAll(values);
             compound->entries.push_back(entry);
         } else if (c == '{') {
             CompoundEntry* entry = parseCompound(data, i);
+            if (!entry) return nullptr;
             entry->setKey(key);
             compound->entries.push_back(entry);
         } else {
-            std::string value = "";
-            if (c != '"') {
-                std::cerr << "[Dragon] " << "Invalid std::string: " << key << std::endl;
-                exit(1);
-            }
-            c = data.at(++(*i));
-            while (c != '"') {
-                value += c;
-                c = data.at(++(*i));
-            }
-            c = data.at(++(*i));
-            if (c != ';') {
-                std::cerr << "[Dragon] " << "Invalid value: " << value << std::endl;
-                exit(1);
-            }
-            StringEntry* entry = new StringEntry();
+            StringEntry* entry = this->parseString(data, i);
+            if (!entry) return nullptr;
             entry->setKey(key);
-            entry->setValue(value);
             compound->entries.push_back(entry);
         }
         c = data.at(++(*i));
     }
     c = data.at(++(*i));
     if (c != ';') {
-        std::cerr << "[Dragon] " << "Invalid compound entry!" << std::endl;
-        exit(1);
+        DRAGON_ERR << "Invalid compound entry!" << std::endl;
+        return nullptr;
     }
     return compound;
 }

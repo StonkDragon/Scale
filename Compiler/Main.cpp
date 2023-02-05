@@ -561,11 +561,15 @@ namespace sclc
 
             if (scaleConfig->hasMember("frameworks"))
                 for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
-                    frameworks.push_back(scaleConfig->getList("frameworks")->get(i));
+                    frameworks.push_back(scaleConfig->getList("frameworks")->getString(i)->getValue());
 
             if (scaleConfig->hasMember("compilerFlags"))
                 for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
-                    tmpFlags.push_back(scaleConfig->getList("compilerFlags")->get(i));
+                    tmpFlags.push_back(scaleConfig->getList("compilerFlags")->getString(i)->getValue());
+
+            if (scaleConfig->hasMember("includeFiles"))
+                for (size_t i = 0; i < scaleConfig->getList("includeFiles")->size(); i++)
+                    Main.frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
         }
 
         for (size_t i = 1; i < args.size(); i++) {
@@ -751,7 +755,7 @@ namespace sclc
                     }
 
                     for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                        std::string depend = depends->get(i);
+                        std::string depend = depends->getString(i)->getValue();
                         if (!contains(frameworks, depend)) {
                             std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                             return 1;
@@ -759,7 +763,7 @@ namespace sclc
                     }
 
                     for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                        std::string flag = compilerFlags->get(i);
+                        std::string flag = compilerFlags->getString(i)->getValue();
                         cflags.push_back(flag);
                     }
 
@@ -771,13 +775,13 @@ namespace sclc
                     }
                     unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                     for (unsigned long i = 0; i < implementersSize; i++) {
-                        std::string implementer = implementers->get(i);
+                        std::string implementer = implementers->getString(i)->getValue();
                         if (!Main.options.assembleOnly) {
                             cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
                         }
                     }
                     for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
+                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
                         Main.frameworkNativeHeaders.push_back(header);
                     }
                 } else if (fileExists("./" + framework + ".framework/index.drg")) {
@@ -826,7 +830,7 @@ namespace sclc
                     }
 
                     for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                        std::string depend = depends->get(i);
+                        std::string depend = depends->getString(i)->getValue();
                         if (!contains(frameworks, depend)) {
                             std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                             return 1;
@@ -834,7 +838,7 @@ namespace sclc
                     }
 
                     for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                        std::string flag = compilerFlags->get(i);
+                        std::string flag = compilerFlags->getString(i)->getValue();
                         cflags.push_back(flag);
                     }
 
@@ -846,13 +850,13 @@ namespace sclc
                     }
                     unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                     for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
-                        std::string implementer = implementers->get(i);
+                        std::string implementer = implementers->getString(i)->getValue();
                         if (!Main.options.assembleOnly) {
                             cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
                         }
                     }
                     for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->get(i);
+                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
                         Main.frameworkNativeHeaders.push_back(header);
                     }
                 }
@@ -896,7 +900,8 @@ namespace sclc
                     std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
                     return 1;
                 }
-
+                if (Main.options.debugBuild)
+                    std::cout << "Tokenizing file '" << filename << "'" << std::endl;
 
                 Tokenizer tokenizer;
                 Main.tokenizer = &tokenizer;
@@ -1220,8 +1225,8 @@ namespace sclc
             }
 
             if (Main.options.transpileOnly) {
-                auto end = chrono::high_resolution_clock::now();
-                double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
+                auto end = std::chrono::high_resolution_clock::now();
+                double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
                 std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
                 return 0;
             }
@@ -1269,8 +1274,8 @@ namespace sclc
 
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
-        auto end = chrono::high_resolution_clock::now();
-        double duration = (double) chrono::duration_cast<chrono::nanoseconds>(end - start).count() / 1000000000.0;
+        auto end = std::chrono::high_resolution_clock::now();
+        double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
         if (!Main.options.doRun) std::cout << "Took " << duration << " seconds." << std::endl;
 
         if (Main.options.doRun) {
