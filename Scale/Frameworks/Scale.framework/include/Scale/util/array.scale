@@ -15,14 +15,14 @@ sealed struct Array is IIterable, IFinalizable
     inline_c
       scl_int i = 0;
       while (i < (scl_int) (*self)->count) {
-        scl_int speicher = (scl_int) Method_Array_get((*self), i);
+        scl_int speicher = (scl_int) Method_Array_get(i, (*self));
         scl_int j = i - 1;
         while (j >= 0) {
-          if (speicher < (scl_int) Method_Array_get((*self), j)) {
-            Method_Array_set((*self), Method_Array_get((*self), j), j + 1);
-            Method_Array_set((*self), (scl_any) speicher, j);
+          if (speicher < (scl_int) Method_Array_get(j, (*self))) {
+            Method_Array_set(j + 1, Method_Array_get(j, (*self)), (*self));
+            Method_Array_set(j, (scl_any) speicher, (*self));
           } else {
-            Method_Array_set((*self), (scl_any) speicher, j + 1);
+            Method_Array_set(j + 1, (scl_any) speicher, (*self));
             break;
           }
           j--;
