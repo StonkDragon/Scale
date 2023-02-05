@@ -452,7 +452,7 @@ namespace sclc
     FPResult Tokenizer::tryImports() {
         bool inFunction = false;
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].getType() == tok_function) {
+            if (tokens[i].getType() == tok_function && (i - 1 >= 0 ? tokens[i - 1].getValue() != "expect" : true)) {
                 inFunction = true;
             } else if (tokens[i].getType() == tok_end) {
                 inFunction = false;
