@@ -28,10 +28,10 @@ function raise(_sig_: int): none
     if (*_sig_ != 2 && *_sig_ != 4 && *_sig_ != 6 && *_sig_ != 8 && *_sig_ != 11) {
       int raised = raise(*_sig_);
       if (raised != 0) {
-        process_signal(*_sig_);
+        _scl_catch_final(*_sig_);
       }
     } else {
-      process_signal(*_sig_);
+      _scl_catch_final(*_sig_);
     }
   end_inline
 end

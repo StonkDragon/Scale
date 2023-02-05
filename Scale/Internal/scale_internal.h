@@ -43,6 +43,9 @@
 #define nullable __nullable
 #define nonnull  __nonnull
 
+#define _scl_macro_to_string_(x) # x
+#define _scl_macro_to_string(x) _scl_macro_to_string_(x)
+
 // Scale expects this function
 #define expect
 
@@ -193,13 +196,13 @@ void		_scl_security_throw(int code, scl_str msg);
 
 _scl_no_return
 void		_scl_security_safe_exit(int code);
-void		process_signal(int sig_num);
+void		_scl_catch_final(int sig_num);
 
 void		print_stacktrace(void);
 
 _scl_frame_t	_scl_push_frame();
 _scl_frame_t	_scl_pop_frame();
-void		ctrl_push_args(scl_int argc, scl_str argv[]);
+scl_any		_scl_c_args_to_scl_args(scl_int argc, scl_str argv[]);
 void		ctrl_push_string(scl_str c);
 void		ctrl_push_long(scl_int n);
 void		ctrl_push_double(scl_float d);
