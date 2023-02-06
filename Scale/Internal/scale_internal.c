@@ -336,11 +336,11 @@ scl_any _scl_c_envp_to_scl_env(scl_str envp[]) {
 	return array;
 }
 
-inline _scl_frame_t _scl_push_frame() {
+inline _scl_frame_t ctrl_push_frame() {
 	return stack.data[stack.ptr++];
 }
 
-inline _scl_frame_t _scl_pop_frame() {
+inline _scl_frame_t ctrl_pop_frame() {
 	return stack.data[--stack.ptr];
 }
 
@@ -769,36 +769,55 @@ extern genericFunc init_functions[];
 // last element is always NULL
 extern genericFunc destroy_functions[];
 
+#ifndef SCL_COMPILER_NO_MAIN
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
+
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
+
 	callstk.data[0].file = "_scl_native_main";
 
 	// Convert argv and envp from native arrays to Scale arrays
 	struct scl_Array* args = (struct scl_Array*) _scl_c_args_to_scl_args(argc, argv);
 	struct scl_Array* env = (struct scl_Array*) _scl_c_envp_to_scl_env(envp);
-	
+
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
+#else
 
+/* Initialize as library */
+_scl_constructor void _scl_load() {
+#endif
+	
 	// Run __init__ functions
 	for (int i = 0; init_functions[i]; i++) {
 		init_functions[i]();
 	}
 
-	// Run main()
+#ifndef SCL_COMPILER_NO_MAIN
+
+	// _scl_get_main_addr() returns NULL if compiled with --no-main
 	int ret = (_scl_main ? _scl_main(args, env) : 0);
+
+#else
+}
+
+/* Uninitialize library */
+_scl_destructor void _scl_destroy() {
+#endif
 
 	// Run __destroy__ functions
 	for (int i = 0; destroy_functions[i]; i++) {
 		destroy_functions[i]();
 	}
 
+#ifndef SCL_COMPILER_NO_MAIN
 	// Run finalization:
 	// call finalizers on instances and free all allocated memory
 	_scl_finalize();
 
 	// We don't return
 	exit(ret);
+#endif
 }
