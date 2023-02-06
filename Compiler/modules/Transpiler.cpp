@@ -3605,14 +3605,14 @@ namespace sclc {
         (void) warns;
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("extern _scl_stack_t stack;\n");
-        append("extern _scl_callstack_t callstk;\n");
-        append("extern struct _exception_handling {\n");
+        append("__thread extern _scl_stack_t stack;\n");
+        append("__thread extern _scl_callstack_t callstk;\n");
+        append("__thread extern struct _exception_handling {\n");
 	    append("  scl_Exception extable[STACK_SIZE];\n");
 	    append("  jmp_buf       jmptable[STACK_SIZE];\n");
 	    append("  scl_int       ptr;\n");
         append("  scl_int       callstk_ptr[STACK_SIZE];\n");
-        append("} exceptions;\n\n");
+        append("} exceptions;\n");
 
         append("/* STRUCTS */\n");
         append("struct scltype_iterable {\n");

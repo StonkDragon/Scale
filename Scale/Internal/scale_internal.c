@@ -7,13 +7,13 @@
 /* Variables */
 
 /* The Stack */
-_scl_stack_t 		stack;
+__thread _scl_stack_t 		stack;
 
 /* Scale Callstack */
-_scl_callstack_t	callstk;
+__thread _scl_callstack_t	callstk;
 
 /* this is used by try-catch */
-struct _exception_handling {
+__thread struct _exception_handling {
 	void*	_scl_exception_table[STACK_SIZE];	/* The exception */
 	jmp_buf	_scl_jmp_buf[STACK_SIZE];			/* jump buffer used by longjmp() */
 	scl_int	_scl_jmp_buf_ptr;					/* number specifying the current depth */
@@ -249,26 +249,62 @@ void _scl_catch_final(int sig_num) {
 	scl_str signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
-#ifdef SIGABRT
-	else if (sig_num == SIGABRT) signalString = "abort() called";
+#if defined(SIGHUP)
+	else if (sig_num == SIGHUP) signalString = "hangup";
 #endif
-#ifdef SIGFPE
-	else if (sig_num == SIGFPE) signalString = "Floating point exception";
+#if defined(SIGINT)
+	else if (sig_num == SIGINT) signalString = "interrupt";
 #endif
-#ifdef SIGILL
-	else if (sig_num == SIGILL) signalString = "Illegal instruction";
+#if defined(SIGQUIT)
+	else if (sig_num == SIGQUIT) signalString = "quit";
 #endif
-#ifdef SIGINT
-	else if (sig_num == SIGINT) signalString = "Software Interrupt (^C)";
+#if defined(SIGILL)
+	else if (sig_num == SIGILL) signalString = "illegal instruction";
 #endif
-#ifdef SIGSEGV
-	else if (sig_num == SIGSEGV) signalString = "Invalid/Illegal Memory Access (Segmentation violation)";
+#if defined(SIGTRAP)
+	else if (sig_num == SIGTRAP) signalString = "trace trap";
 #endif
-#ifdef SIGBUS
-	else if (sig_num == SIGBUS) signalString = "Unaccessible Memory Access (Bus error)";
+#if defined(SIGABRT)
+	else if (sig_num == SIGABRT) signalString = "abort()";
 #endif
-#ifdef SIGTERM
-	else if (sig_num == SIGTERM) signalString = "Software Termination";
+#if defined(SIGPOLL)
+	else if (sig_num == SIGPOLL) signalString = "pollable event ([XSR] generated, not supported)";
+#endif
+#if defined(SIGIOT)
+	else if (sig_num == SIGIOT) signalString = "compatibility";
+#endif
+#if defined(SIGFPE)
+	else if (sig_num == SIGFPE) signalString = "floating point exception";
+#endif
+#if defined(SIGKILL)
+	else if (sig_num == SIGKILL) signalString = "kill";
+#endif
+#if defined(SIGBUS)
+	else if (sig_num == SIGBUS) signalString = "bus error";
+#endif
+#if defined(SIGSEGV)
+	else if (sig_num == SIGSEGV) signalString = "segmentation violation";
+#endif
+#if defined(SIGSYS)
+	else if (sig_num == SIGSYS) signalString = "bad argument to system call";
+#endif
+#if defined(SIGPIPE)
+	else if (sig_num == SIGPIPE) signalString = "write on a pipe with no one to read it";
+#endif
+#if defined(SIGTERM)
+	else if (sig_num == SIGTERM) signalString = "software termination signal from kill";
+#endif
+#if defined(SIGSTOP)
+	else if (sig_num == SIGSTOP) signalString = "sendable stop signal not from tty";
+#endif
+#if defined(SIGTSTP)
+	else if (sig_num == SIGTSTP) signalString = "stop signal from tty";
+#endif
+#if defined(SIGUSR1)
+	else if (sig_num == SIGUSR1) signalString = "user defined signal 1";
+#endif
+#if defined(SIGUSR2)
+	else if (sig_num == SIGUSR2) signalString = "user defined signal 2";
 #endif
 	else signalString = "Unknown signal";
 
@@ -697,53 +733,14 @@ void _scl_set_up_signal_handler() {
 #if defined(SIGPIPE)
 	signal(SIGPIPE, _scl_catch_final);
 #endif
-#if defined(SIGALRM)
-	signal(SIGALRM, _scl_catch_final);
-#endif
 #if defined(SIGTERM)
 	signal(SIGTERM, _scl_catch_final);
-#endif
-#if defined(SIGURG)
-	signal(SIGURG, _scl_catch_final);
 #endif
 #if defined(SIGSTOP)
 	signal(SIGSTOP, _scl_catch_final);
 #endif
 #if defined(SIGTSTP)
 	signal(SIGTSTP, _scl_catch_final);
-#endif
-#if defined(SIGCONT)
-	signal(SIGCONT, _scl_catch_final);
-#endif
-#if defined(SIGCHLD)
-	signal(SIGCHLD, _scl_catch_final);
-#endif
-#if defined(SIGTTIN)
-	signal(SIGTTIN, _scl_catch_final);
-#endif
-#if defined(SIGTTOU)
-	signal(SIGTTOU, _scl_catch_final);
-#endif
-#if defined(SIGIO)
-	signal(SIGIO, _scl_catch_final);
-#endif
-#if defined(SIGXCPU)
-	signal(SIGXCPU, _scl_catch_final);
-#endif
-#if defined(SIGXFSZ)
-	signal(SIGXFSZ, _scl_catch_final);
-#endif
-#if defined(SIGVTALRM)
-	signal(SIGVTALRM, _scl_catch_final);
-#endif
-#if defined(SIGPROF)
-	signal(SIGPROF, _scl_catch_final);
-#endif
-#if defined(SIGWINCH)
-	signal(SIGWINCH, _scl_catch_final);
-#endif
-#if defined(SIGINFO)
-	signal(SIGINFO, _scl_catch_final);
 #endif
 #if defined(SIGUSR1)
 	signal(SIGUSR1, _scl_catch_final);
@@ -812,11 +809,11 @@ _scl_destructor void _scl_destroy() {
 		destroy_functions[i]();
 	}
 
-#ifndef SCL_COMPILER_NO_MAIN
 	// Run finalization:
 	// call finalizers on instances and free all allocated memory
 	_scl_finalize();
 
+#ifndef SCL_COMPILER_NO_MAIN
 	// We don't return
 	exit(ret);
 #endif
