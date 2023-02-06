@@ -65,7 +65,6 @@ namespace sclc
         std::cout << "  -h, --help           Show this help" << std::endl;
         std::cout << "  -o <filename>        Specify Output file" << std::endl;
         std::cout << "  -f <framework>       Use Scale Framework" << std::endl;
-        std::cout << "  --no-core            Do not implicitly require Scale Framework" << std::endl;
         std::cout << "  --no-main            Do not check for main Function" << std::endl;
         std::cout << "  -v, --version        Show version information" << std::endl;
         std::cout << "  --comp <comp>        Use comp as the compiler instead of gcc" << std::endl;
@@ -619,10 +618,9 @@ namespace sclc
                     Main.options.assembleOnly = true;
                     Main.options.dontSpecifyOutFile = true;
                     tmpFlags.push_back("-S");
-                } else if (args[i] == "--no-core") {
-                    Main.options.noScaleFramework = true;
                 } else if (args[i] == "--no-main") {
                     Main.options.noMain = true;
+                    tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system((compiler + " -v").c_str());
