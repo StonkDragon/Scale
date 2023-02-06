@@ -135,28 +135,13 @@ namespace sclc {
         if (f->isMethod) {
             symbol = "m." + static_cast<Method*>(f)->getMemberType() + "." + replaceAll(replaceAll(symbol, "f\\.operator", "op"), "_?" + Main.options.operatorRandomData + "_?", ".");
         }
-        std::string arguments = "";
-        if (f->getArgs().size() > 0) {
-            for (size_t i = 0; i < f->getArgs().size(); i++) {
-                if (f->isMethod) {
-                    if (f->getArgs()[i].getName() == "self") {
-                        continue;
-                    }
-                }
-                if (i) {
-                    arguments += ".";
-                }
-                arguments += typeToASCII(f->getArgs()[i].getType());
-            }
-        }
-        symbol += (arguments.size() ? ".." + arguments : "") + ".." + typeToASCII(f->getReturnType());
         bool prependPlatformPrefix = false;
-        if (f->isExternC) {
+        if (f->isExternC || contains<std::string>(f->getModifiers(), "export")) {
+            prependPlatformPrefix = true;
             if (f->isMethod) {
-                symbol = "_Method_" + static_cast<Method*>(f)->getMemberType() + "_" + f->getName();
+                symbol = "Method_" + static_cast<Method*>(f)->getMemberType() + "_" + f->getName();
             } else {
                 symbol = f->getName();
-                prependPlatformPrefix = true;
             }
         }
 
@@ -257,13 +242,11 @@ namespace sclc {
                 }
                 continue;
             }
-            for (std::string m : function->getModifiers()) {
-                if (contains<std::string>(function->getModifiers(), "export")) {
-                    if (!function->isMethod) {
-                        fprintf(support_header, "export %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
-                    } else {
-                        fprintf(support_header, "export %s Method_%s_%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
-                    }
+            if (contains<std::string>(function->getModifiers(), "export")) {
+                if (!function->isMethod) {
+                    fprintf(support_header, "export %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                } else {
+                    fprintf(support_header, "export %s Method_%s_%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
@@ -3905,7 +3888,7 @@ namespace sclc {
                 return_type = sclTypeToCType(result, t);
             }
             if (!function->isMethod) {
-                append("void _scl_reflect_call_function_%s() {\n", function->getName().c_str());
+                append("static void _scl_reflect_call_function_%s() {\n", function->getName().c_str());
                 scopeDepth++;
                 if (function->getArgs().size() > 0)
                     append("stack.ptr -= %zu;\n", function->getArgs().size());
