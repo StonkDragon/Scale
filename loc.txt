@@ -1,5 +1,5 @@
      662 Compiler/Common.cpp
-    1308 Compiler/Main.cpp
+    1309 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      233 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -48,7 +48,7 @@
       93 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-     823 Scale/Internal/scale_internal.c
+     820 Scale/Internal/scale_internal.c
      253 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -79,4 +79,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12824 total
+   12822 total
