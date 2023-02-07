@@ -1,4 +1,4 @@
-#ifndef _SCALE_INTERNAL_H_
+#if !defined(_SCALE_INTERNAL_H_)
 #define _SCALE_INTERNAL_H_
 
 #include <stdio.h>
@@ -13,13 +13,13 @@
 #include <time.h>
 #include <sys/time.h>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <Windows.h>
 #include <io.h>
 #define sleep(s) Sleep(s)
 #define read(fd, buf, n) _read(fd, buf, n)
 #define write(fd, buf, n) _write(fd, buf, n)
-#ifndef WINDOWS
+#if !defined(WINDOWS)
 #define WINDOWS
 #endif
 #else
@@ -43,12 +43,18 @@
 #if __has_attribute(constructor)
 #define _scl_constructor __attribute__((constructor))
 #else
+#if defined(SCL_COMPILER_NO_MAIN)
+#error Can't compile with --no-main
+#endif
 #define _scl_constructor
 #endif
 
 #if __has_attribute(destructor)
 #define _scl_destructor __attribute__((destructor))
 #else
+#if defined(SCL_COMPILER_NO_MAIN)
+#error Can't compile with --no-main
+#endif
 #define _scl_destructor
 #endif
 
@@ -64,38 +70,39 @@
 // This function was declared in Scale code
 #define export
 
-#ifndef STACK_SIZE
+#if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
 #endif
 
-#ifndef SIGABRT
+#if !defined(SIGABRT)
 #define SIGABRT 6
 #endif
 
 // Define scale-specific signals
-#define EX_BAD_PTR			128
-#define EX_STACK_OVERFLOW	129
-#define EX_STACK_UNDERFLOW	130
-#define EX_UNHANDLED_DATA	131
-#define EX_IO_ERROR			132
-#define EX_INVALID_ARGUMENT	133
-#define EX_CAST_ERROR		134
-#define EX_THREAD_ERROR		136
-#define EX_ASSERTION_FAIL	137
-#define EX_REFLECT_ERROR	138
-#define EX_THROWN			139
+#define EX_BAD_PTR				128
+#define EX_STACK_OVERFLOW		129
+#define EX_STACK_UNDERFLOW		130
+#define EX_UNHANDLED_DATA		131
+#define EX_IO_ERROR				132
+#define EX_INVALID_ARGUMENT		133
+#define EX_CAST_ERROR			134
+#define EX_THREAD_ERROR			136
+#define EX_ASSERTION_FAIL		137
+#define EX_REFLECT_ERROR		138
+#define EX_THROWN				139
+#define EX_INVALID_BYTE_ORDER	140
 
 #define ssize_t signed long
 
 #if __SIZEOF_POINTER__ < 8
 // WASM or 32-bit system
-#ifdef __wasm__
+#if defined(__wasm__)
 #define SCL_SYSTEM "WASM32"
 #define SCL_WASM32 1
-#elif __arm__
+#elif defined(__arm__)
 #define SCL_SYSTEM "aarch32"
 #define SCL_ARM32  1
-#elif __i386__
+#elif defined(__i386__)
 #define SCL_SYSTEM "x86"
 #define SCL_X86    1
 #else
@@ -106,20 +113,21 @@
 #define SCL_INT_FMT		 	"%d"
 typedef void*				scl_any;
 typedef int		 			scl_int;
+typedef unsigned int		scl_uint;
 typedef char* 				scl_str;
 typedef float 				scl_float;
 #else
 // 64-bit system
-#ifdef __wasm__
+#if defined(__wasm__)
 #define SCL_SYSTEM  "WASM64"
 #define SCL_WASM64  1
 #define SCL_WASM32	1
-#elif __aarch64__
+#elif defined(__aarch64__)
 #define SCL_SYSTEM  "aarch64"
 #define SCL_AARCH64 1
 #define SCL_ARM64   1
 #define SCL_ARM32	1
-#elif __x86_64__
+#elif defined(__x86_64__)
 #define SCL_SYSTEM  "x86_64"
 #define SCL_X64     1
 #define SCL_X86_64  1
@@ -132,44 +140,53 @@ typedef float 				scl_float;
 #define SCL_INT_FMT		 	"%lld"
 typedef void*				scl_any;
 typedef long long 			scl_int;
+typedef unsigned long long	scl_uint;
 typedef char* 				scl_str;
 typedef double 				scl_float;
 #endif
 
-#ifdef __ANDROID__
+typedef int		 			scl_int32;
+typedef float 				scl_float32;
+typedef short		 		scl_int16;
+typedef char		 		scl_int8;
+typedef unsigned int 		scl_uint32;
+typedef unsigned short 		scl_uint16;
+typedef unsigned char 		scl_uint8;
+
+#if defined(__ANDROID__)
 #define SCL_OS_NAME "Android"
-#elif __amigaos__
+#elif defined(__amigaos__)
 #define SCL_OS_NAME "AmigaOS"
-#elif __bsdi__
+#elif defined(__bsdi__)
 #define SCL_OS_NAME "BSD-like"
-#elif __CYGWIN__
+#elif defined(__CYGWIN__)
 #define SCL_OS_NAME "Windows (Cygwin)"
 #define SCL_CYGWIN
-#elif __DragonFly__
+#elif defined(__DragonFly__)
 #define SCL_OS_NAME "DragonFly"
-#elif __FreeBSD__
+#elif defined(__FreeBSD__)
 #define SCL_OS_NAME "FreeBSD"
-#elif __gnu_linux__
+#elif defined(__gnu_linux__)
 #define SCL_OS_NAME "GNU/Linux"
-#elif __GNU__
+#elif defined(__GNU__)
 #define SCL_OS_NAME "GNU"
-#elif macintosh
+#elif defined(macintosh)
 #define SCL_OS_NAME "Classic Mac OS"
-#elif __APPLE__ && __MACH__
+#elif defined(__APPLE__) && defined(__MACH__)
 #define SCL_OS_NAME "macOS"
-#elif __minix
+#elif defined(__minix)
 #define SCL_OS_NAME "MINIX"
-#elif __MSDOS__
+#elif defined(__MSDOS__)
 #define SCL_OS_NAME "MS-DOS"
-#elif __NetBSD__
+#elif defined(__NetBSD__)
 #define SCL_OS_NAME "NetBSD"
-#elif __OpenBSD__
+#elif defined(__OpenBSD__)
 #define SCL_OS_NAME "OpenBSD"
-#elif __OS2__
+#elif defined(__OS2__)
 #define SCL_OS_NAME "IBM OS/2"
-#elif __unix__
+#elif defined(__unix__)
 #define SCL_OS_NAME "UNIX"
-#elif _WIN32 || _WIN32_WCE
+#elif defined(_WIN32) || defined(_WIN32_WCE)
 #define SCL_OS_NAME "Windows"
 #else
 #define SCL_OS_NAME "Unknown OS"
@@ -182,6 +199,14 @@ typedef union {
 	scl_str		s;
 	scl_float	f;
 	scl_any		v;
+
+	scl_int32	i32;
+	scl_float32	f32;
+	scl_int16	i16;
+	scl_int8	i8;
+	scl_uint32	u32;
+	scl_uint16	u16;
+	scl_uint8	u8;
 } _scl_frame_t;
 
 typedef struct {
@@ -249,5 +274,7 @@ void			_scl_reflect_call_method(hash func);
 scl_any			_scl_typeinfo_of(hash type);
 scl_int			_scl_reflect_find(hash func);
 scl_int			_scl_reflect_find_method(hash func);
+scl_int			_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
+scl_int			_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 
 #endif // __SCALE_INTERNAL_H__
