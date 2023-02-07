@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <algorithm>
+#include <type_traits>
 
 #include <stdio.h>
 
@@ -15,6 +17,15 @@ namespace sclc
     }
 
     extern FILE* support_header;
+
+    template<typename T>
+    bool compare(T& a, T& b) {
+        if constexpr(std::is_pointer<T>::value) {
+            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
+        } else {
+            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
+        }
+    }
 
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
@@ -60,6 +71,14 @@ namespace sclc
         fprintf(support_header, "typedef char* scl_str;\n");
         fprintf(support_header, "typedef double scl_float;\n\n");
         fprintf(support_header, "extern _scl_stack_t stack;\n\n");
+
+        std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
+        std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);
+        std::sort(result.containers.begin(), result.containers.end(), compare<Container>);
+        std::sort(result.structs.begin(), result.structs.end(), compare<Struct>);
+        std::sort(result.globals.begin(), result.globals.end(), compare<Variable>);
+        std::sort(result.extern_globals.begin(), result.extern_globals.end(), compare<Variable>);
+        std::sort(result.interfaces.begin(), result.interfaces.end(), compare<Interface*>);
 
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
