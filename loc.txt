@@ -33,7 +33,7 @@
       63 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
       65 Scale/Frameworks/Scale.framework/include/Scale/types.scale
-       0 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
+       5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
      172 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/bounds.scale
@@ -80,4 +80,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12956 total
+   12961 total
