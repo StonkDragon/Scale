@@ -38,12 +38,7 @@ void _scl_remove_ptr(scl_any ptr) {
 /* Returns the next index of a given pointer in the allocated-pointers array */
 /* Returns -1, if the pointer is not in the table */
 scl_int _scl_get_index_of_ptr(scl_any ptr) {
-	for (size_t i = 0; i < alloced_ptrs_count; i++) {
-		if (alloced_ptrs[i] == ptr) {
-			return i;
-		}
-	}
-	return -1;
+	return _scl_binary_search((void**) alloced_ptrs, alloced_ptrs_count, ptr);
 }
 
 /* Removes the pointer at the given index and shift everything after left */
@@ -186,6 +181,7 @@ _scl_no_return void _scl_security_safe_exit(int code) {
 }
 
 /* Returns true, if the pointer is still accessible on the stack */
+/* This can't use binary search, because the stack is not sorted */
 int find_below(scl_any ptr, scl_int index) {
 	for (scl_int i = index; i >= 0; i--) {
 		if (stack.data[i].v == ptr) {
@@ -493,13 +489,30 @@ void _scl_finalize() {
 	}
 }
 
+scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
+	scl_int left = 0;
+	scl_int right = count - 1;
+
+	while (left <= right) {
+		scl_int mid = (left + right) / 2;
+		if (types[mid].type == type) {
+			return mid;
+		} else if (types[mid].type < type) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
+		}
+	}
+
+	return -1;
+}
+
 /* Returns a pointer to the typeinfo of the given struct */
 /* NULL if the struct does not exist */
 void* _scl_typeinfo_of(hash type) {
-	for (size_t i = 0; i < _scl_internal_types_count; i++) {
-		if (_scl_internal_types[i].type == type) {
-			return (void*) _scl_internal_types + (i * sizeof(struct _scl_typeinfo));
-		}
+	scl_int index = _scl_binary_search_typeinfo_index(_scl_internal_types, _scl_internal_types_count, type);
+	if (index >= 0) {
+		return (void*) _scl_internal_types + (index * sizeof(struct _scl_typeinfo));
 	}
 	return NULL;
 }
@@ -512,10 +525,9 @@ struct _scl_typeinfo* _scl_find_typeinfo_of(hash type) {
 void* _scl_get_method_on_type(hash type, hash method) {
 	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
 	while (p) {
-		for (scl_int m = 0; m < p->methodscount; m++) {
-			if (p->methods[m]->id == method) {
-				return p->methods[m]->ptr;
-			}
+		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);
+		if (index >= 0) {
+			return p->methods[index]->ptr;
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
@@ -567,7 +579,7 @@ scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
 /* Removes an instance from the allocated table by index */
 static void _scl_struct_map_remove(size_t index) {
     for (size_t i = index; i < allocated_structs_count - 1; i++) {
-       allocated_structs[i] =allocated_structs[i + 1];
+       allocated_structs[i] = allocated_structs[i + 1];
     }
     allocated_structs_count--;
 }
@@ -576,13 +588,7 @@ static void _scl_struct_map_remove(size_t index) {
 /* Returns -1, if not in table */
 size_t _scl_find_index_of_struct(scl_any ptr) {
 	if (ptr == NULL) return -1;
-	for (size_t i = 0; i < allocated_structs_count; i++) {
-        if (allocated_structs[i] == ptr) {
-            return i;
-        }
-    }
-
-    return -1;
+	return _scl_binary_search((void**) allocated_structs, allocated_structs_count, ptr);
 }
 
 // SclObject:finalize()
@@ -626,13 +632,7 @@ scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo*
 
 /* Returns true, if the instance is of a given struct type */
 scl_int _scl_struct_is_type(scl_any ptr, hash typeId) {
-	int isStruct = 0;
-	for (size_t i = 0; i < allocated_structs_count; i++) {
-		if (allocated_structs[i] == ptr) {
-			isStruct = 1;
-			break;
-		}
-	}
+	int isStruct = _scl_binary_search((void**) allocated_structs, allocated_structs_count, ptr) >= 0;
 	if (!isStruct) return 0;
 
 	struct sclstruct* ptrStruct = (struct sclstruct*) ptr;
@@ -643,46 +643,72 @@ scl_int _scl_struct_is_type(scl_any ptr, hash typeId) {
 	return _scl_type_extends_type(ptrType, typeIdType);
 }
 
-/* Reflectively calls a function */
-void _scl_reflect_call(hash func) {
-	for (size_t i = 0; i < _scl_internal_functions_size; i++) {
-		if (_scl_internal_functions[i]->name_hash == func) {
-			((void(*)()) _scl_internal_functions[i]->ptr)();
-			return;
+scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
+	scl_int left = 0;
+	scl_int right = count - 1;
+
+	while (left <= right) {
+		scl_int mid = (left + right) / 2;
+		if (arr[mid] == val) {
+			return mid;
+		} else if (arr[mid] < val) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
 		}
 	}
-	_scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
+
+	return -1;
+}
+
+scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id) {
+	scl_int left = 0;
+	scl_int right = count - 1;
+
+	struct _scl_methodinfo** methods_ = (struct _scl_methodinfo**) methods;
+
+	while (left <= right) {
+		scl_int mid = (left + right) / 2;
+		if (methods_[mid]->id == id) {
+			return mid;
+		} else if (methods_[mid]->id < id) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
+		}
+	}
+
+	return -1;
+}
+
+/* Reflectively calls a function */
+void _scl_reflect_call(hash func) {
+	scl_int i = _scl_binary_search_method_index((void**) _scl_internal_functions, _scl_internal_functions_size, func);
+	if (i >= 0) {
+		((void(*)()) _scl_internal_functions[i]->ptr)();
+	} else {
+		_scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
+	}
 }
 
 /* Returns true, if the given function exists */
 scl_int _scl_reflect_find(hash func) {
-	for (size_t i = 0; i < _scl_internal_functions_size; i++) {
-		if (_scl_internal_functions[i]->name_hash == func) {
-			return 1;
-		}
-	}
-	return 0;
+	return _scl_binary_search_method_index((void**) _scl_internal_functions, _scl_internal_functions_size, func) >= 0;
 }
 
 /* Returns true, if the given method exists */
 scl_int _scl_reflect_find_method(hash func) {
-	for (size_t i = 0; i < _scl_internal_methods_size; i++) {
-		if (_scl_internal_methods[i]->name_hash == func) {
-			return 1;
-		}
-	}
-	return 0;
+	return _scl_binary_search_method_index((void**) _scl_internal_methods, _scl_internal_methods_size, func) >= 0;
 }
 
 /* Reflectively calls a method */
 void _scl_reflect_call_method(hash func) {
-	for (size_t i = 0; i < _scl_internal_methods_size; i++) {
-		if (_scl_internal_methods[i]->name_hash == func) {
-			((void(*)()) _scl_internal_methods[i]->ptr)();
-			return;
-		}
+	scl_int i = _scl_binary_search_method_index((void**) _scl_internal_methods, _scl_internal_methods_size, func);
+	if (i >= 0) {
+		((void(*)()) _scl_internal_methods[i]->ptr)();
+	} else {
+		_scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
 	}
-	_scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
 }
 
 #pragma endregion
@@ -772,6 +798,11 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
+
+	// Endian-ness detection
+	short word = 0x0001;
+	char *byte = (char*) &word;
+	_scl_assert(byte[0], "Invalid byte order detected!");
 
 	callstk.data[0].file = "_scl_native_main";
 
