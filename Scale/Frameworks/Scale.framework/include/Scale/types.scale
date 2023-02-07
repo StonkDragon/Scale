@@ -1,3 +1,11 @@
+typealias int32 "scl_int32"
+typealias float32 "scl_float32"
+typealias int16 "scl_int16"
+typealias int8 "scl_int8"
+typealias uint32 "scl_uint32"
+typealias uint16 "scl_uint16"
+typealias uint8 "scl_uint8"
+
 sealed struct _String is IEquatable, ICloneable, IStringifyable
   function +(other: str): str
     other self:prepend return
