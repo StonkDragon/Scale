@@ -3161,6 +3161,16 @@ namespace sclc {
         append("continue;\n");
     }
 
+    bool isPrimitiveIntegerType(std::string s) {
+        return s == "int" ||
+               s == "int32" ||
+               s == "int16" ||
+               s == "int8" ||
+               s == "uint32" ||
+               s == "uint16" ||
+               s == "uint8";
+    }
+
     handler(As) {
         noUnused;
         ITER_INC;
@@ -3173,6 +3183,14 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push(type.value);
+            return;
+        }
+        if (isPrimitiveIntegerType(type.value)) {
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(type.value);
+            append("stack.data[stack.ptr - 1].i &= ((1UL << (sizeof(scl_%s) * 8)) - 1);\n", type.value.c_str());
+            append("stack.data[stack.ptr - 1].i = (scl_%s) stack.data[stack.ptr - 1].i;\n", type.value.c_str());
             return;
         }
         if (hasTypealias(result, type.value)) {
