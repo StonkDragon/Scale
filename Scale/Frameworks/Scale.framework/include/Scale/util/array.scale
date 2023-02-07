@@ -1,8 +1,8 @@
 import Scale.util.iterable
 import Scale.util.immutablearray
 import Scale.debug
-import Scale.util.invalidargumentexception
-import Scale.util.indexoutofboundsexception
+import Scale.util.arg
+import Scale.util.bounds
 
 sealed struct Array is IIterable, IFinalizable
   decl values:  mut readonly [any]
