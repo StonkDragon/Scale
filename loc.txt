@@ -17,7 +17,7 @@
      393 Compiler/modules/DragonConfig.cpp
      107 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     153 Compiler/modules/Parser.cpp
+     132 Compiler/modules/Parser.cpp
     1340 Compiler/modules/SyntaxTree.cpp
      260 Compiler/modules/TokenHandlers.cpp
      521 Compiler/modules/Tokenizer.cpp
@@ -33,20 +33,21 @@
       63 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
       65 Scale/Frameworks/Scale.framework/include/Scale/types.scale
+       0 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
      172 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
+       5 Scale/Frameworks/Scale.framework/include/Scale/util/bounds.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/equatable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/finalizable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/hashable.scale
       72 Scale/Frameworks/Scale.framework/include/Scale/util/immutablearray.scale
-       5 Scale/Frameworks/Scale.framework/include/Scale/util/indexoutofboundsexception.scale
-       5 Scale/Frameworks/Scale.framework/include/Scale/util/invalidargumentexception.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/iterable.scale
       63 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
        9 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
       93 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
+      35 Scale/Frameworks/Scale.framework/include/Scale/util/thread.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
      851 Scale/Internal/scale_internal.c
      280 Scale/Internal/scale_internal.h
@@ -79,4 +80,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   12947 total
+   12956 total
