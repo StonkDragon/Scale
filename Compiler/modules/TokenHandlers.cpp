@@ -13,6 +13,7 @@ namespace sclc {
 
     std::string sclTypeToCType(TPResult result, std::string t);
     std::string sclGenArgs(TPResult result, Function *func);
+    bool isPrimitiveIntegerType(std::string s);
 
     bool handlePrimitiveOperator(FILE* fp, int scopeDepth, std::string op, std::string typeA) {
         if (typeA.size() == 0)
@@ -23,7 +24,7 @@ namespace sclc {
         if (typeStack.size())
             typeStack.pop();
         if (op == "+" || op == "-" || op == "*" || op == "/") {
-            if (typeA == "int" || typeA == "any") {
+            if (isPrimitiveIntegerType(typeA) || typeA == "any") {
                 if (typeB == "float") {
                     append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s ((scl_float) stack.data[stack.ptr + 1].i);\n", op.c_str());
                     typeStack.push("float");
