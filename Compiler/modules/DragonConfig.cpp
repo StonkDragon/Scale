@@ -1,5 +1,7 @@
 #include "../headers/DragonConfig.hpp"
 
+size_t strlen(char*);
+
 using namespace std;
 using namespace DragonConfig;
 
@@ -268,8 +270,6 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     buf[size] = '\0';
     fclose(fp);
     std::string config;
-    
-    size_t strlen(char*);
     for (size_t i = 0; i < strlen(buf); i++) {
         if (buf[i] == '#') {
             while (buf[i] != '\n' && buf[i] != '\0') {
