@@ -1,6 +1,5 @@
 #include "../headers/DragonConfig.hpp"
-
-extern "C" long unsigned int strlen(const char*);
+#include <cstring>
 
 using namespace std;
 using namespace DragonConfig;
@@ -270,7 +269,7 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     buf[size] = '\0';
     fclose(fp);
     std::string config;
-    for (size_t i = 0; i < strlen(buf); i++) {
+    for (size_t i = 0; i < std::strlen(buf); i++) {
         if (buf[i] == '#') {
             while (buf[i] != '\n' && buf[i] != '\0') {
                 i++;
