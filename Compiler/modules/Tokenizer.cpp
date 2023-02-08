@@ -451,7 +451,7 @@ namespace sclc
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         bool inFunction = false;
-        for (size_t i = 0; i < tokens.size(); i++) {
+        for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
             if (tokens[i].getType() == tok_function && (i - 1 >= 0 ? tokens[i - 1].getValue() != "expect" : true)) {
                 inFunction = true;
             } else if (tokens[i].getType() == tok_end) {
