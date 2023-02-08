@@ -52,11 +52,12 @@ void _scl_remove_ptr_at_index(scl_int index) {
 /* Adds a new pointer to the table */
 /* Returns the next index of a given pointer in the allocated-pointers array */
 void _scl_add_ptr(scl_any ptr) {
-	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
-		if (alloced_ptrs[i] == 0 || alloced_ptrs[i] == ptr) {
-			alloced_ptrs[i] = ptr;
-			return;
-		}
+	scl_int index = _scl_binary_search(alloced_ptrs, alloced_ptrs_count, ptr);
+	if (index >= 0) return;
+	index = _scl_binary_search(alloced_ptrs, alloced_ptrs_count, 0);
+	if (index >= 0) {
+		alloced_ptrs[index] = ptr;
+		return;
 	}
 	alloced_ptrs[alloced_ptrs_count++] = ptr;
 }
@@ -341,7 +342,7 @@ scl_any _scl_c_args_to_scl_args(scl_int argc, scl_str argv[]) {
 	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", hash1("SclObject"));
 	array->capacity = (scl_any) argc;
 	array->count = 0;
-	array->values = _scl_alloc(argc);
+	array->values = _scl_alloc(argc * sizeof(scl_str));
 	for (scl_int i = 0; i < argc; i++) {
 		((scl_any*) array->values)[(scl_int) array->count++] = argv[i];
 	}
@@ -361,7 +362,7 @@ scl_any _scl_c_envp_to_scl_env(scl_str envp[]) {
 
 	array->capacity = (scl_any) cap;
 	array->count = 0;
-	array->values = _scl_alloc(cap);
+	array->values = _scl_alloc(cap * sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
 		((scl_any*) array->values)[(scl_int) array->count++] = envp[i];
 	}
@@ -536,14 +537,13 @@ void* _scl_get_method_on_type(hash type, hash method) {
 
 /* adds an instance to the table of tracked instances */
 scl_any _scl_add_struct(scl_any ptr) {
-	for (size_t i = 0; i < allocated_structs_count; i++) {
-		if (allocated_structs[i] == 0 || allocated_structs[i] == ptr) {
-			allocated_structs[i] = ptr;
-			return ptr;
-		}
+	scl_int index = _scl_binary_search((void**) allocated_structs, allocated_structs_count, ptr);
+	if (index >= 0) return ptr;
+	index = _scl_binary_search((void**) allocated_structs, allocated_structs_count, 0);
+	if (index >= 0) {
+		return allocated_structs[index] = ptr;
 	}
-	allocated_structs[allocated_structs_count++] = ptr;
-	return ptr;
+	return allocated_structs[allocated_structs_count++] = ptr;
 }
 
 /* creates a new instance with a size of 'size' */
