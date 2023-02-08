@@ -1,0 +1,11 @@
+enum Enum
+    zero
+    one
+    two
+end
+
+function main(): none
+    Enum::zero putint
+    Enum::two  putint
+    Enum::one  putint
+end

@@ -12,6 +12,7 @@
 #include "Variable.hpp"
 #include "Container.hpp"
 #include "Struct.hpp"
+#include "Enum.hpp"
 
 namespace sclc
 {
@@ -48,6 +49,7 @@ namespace sclc
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Struct> structs;
+        std::vector<Enum> enums;
         std::unordered_map<std::string, std::string> typealiases;
     };
 } // namespace sclc

@@ -322,6 +322,7 @@ namespace sclc
         TOKEN("step",       tok_step, line, filename);
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
+        TOKEN("enum",       tok_enum, line, filename);
         
         TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);

@@ -45,6 +45,7 @@
 #include "Struct.hpp"
 #include "Prototype.hpp"
 #include "DragonConfig.hpp"
+#include "Enum.hpp"
 
 #define namingConvention(_str, _named, _rgx, _default, _force)                                                                                                              \
     ((_force || std::string(_named.getValue()).size() > 12) && !std::regex_match(_named.getValue(), _default##_regex) && std::regex_match(_named.getValue(), _rgx##_regex)) \
@@ -211,6 +212,8 @@ namespace sclc {
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
+    bool hasEnum(TPResult result, std::string name);
+    Enum getEnumByName(TPResult result, std::string name);
     std::vector<std::string> supersToVector(TPResult r, Struct s);
     std::string supersToHashedCList(TPResult r, Struct s);
     std::string supersToCList(TPResult r, Struct s);

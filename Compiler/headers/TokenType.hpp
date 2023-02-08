@@ -54,6 +54,7 @@ namespace sclc
         tok_default,        // default
         tok_interface_def,  // interface
         tok_as,             // as
+        tok_enum,           // enum
 
         // operators
         tok_question_mark,  // ?

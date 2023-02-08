@@ -389,13 +389,13 @@ namespace sclc {
         std::vector<Container> containers;
         std::vector<Struct> structs;
         std::vector<Interface*> interfaces;
+        std::vector<Enum> enums;
         std::unordered_map<std::string, std::string> typealiases;
 
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
 
-        for (size_t i = 0; i < tokens.size(); i++)
-        {
+        for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 
             // std::cout << token.tostring() << std::endl;
@@ -804,6 +804,115 @@ namespace sclc {
                         }
                     }
                 }
+            } else if (token.getType() == tok_enum) {
+                if (currentContainer != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an enum inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an enum inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentStruct != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an enum inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define an enum inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                if (tokens[i].getType() != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected itentifier for enum name, but got '" + tokens[i].getValue() + "'";
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                std::string name = tokens[i].getValue();
+                i++;
+                if namingConvention("Enums", tokens[i], flatcase, PascalCase, false)
+                else if namingConvention("Enums", tokens[i], UPPERCASE, PascalCase, false)
+                else if namingConvention("Enums", tokens[i], camelCase, PascalCase, false)
+                else if namingConvention("Enums", tokens[i], snake_case, PascalCase, false)
+                else if namingConvention("Enums", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, false)
+                else if namingConvention("Enums", tokens[i], IPascalCase, PascalCase, false)
+                Enum e = Enum(name);
+                while (tokens[i].getType() != tok_end) {
+                    if namingConvention("Enum members", tokens[i], flatcase, camelCase, false)
+                    else if namingConvention("Enum members", tokens[i], UPPERCASE, camelCase, false)
+                    else if namingConvention("Enum members", tokens[i], PascalCase, camelCase, false)
+                    else if namingConvention("Enum members", tokens[i], snake_case, camelCase, false)
+                    else if namingConvention("Enum members", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                    else if namingConvention("Enum members", tokens[i], IPascalCase, camelCase, false)
+
+                    if (tokens[i].getType() != tok_identifier) {
+                        FPResult result;
+                        result.message = "Expected itentifier for enum member, but got '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    if (e.indexOf(tokens[i].getValue()) != Enum::npos) {
+                        FPResult result;
+                        result.message = "Duplicate member of enum '" + e.getName() + "': '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    e.addMember(tokens[i].getValue());
+                    i++;
+                }
+                enums.push_back(e);
             } else if (token.getType() == tok_interface_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -1293,6 +1402,7 @@ namespace sclc {
         result.warns = warns;
         result.interfaces = interfaces;
         result.typealiases = typealiases;
+        result.enums = enums;
 
         std::vector<Struct> newStructs;
         

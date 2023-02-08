@@ -978,6 +978,22 @@ namespace sclc {
     #ifdef __APPLE__
     #pragma endregion
     #endif
+        } else if (hasEnum(result, body[i].getValue())) {
+            Enum e = getEnumByName(result, body[i].getValue());
+            ITER_INC;
+            if (body[i].getType() != tok_double_column) {
+                transpilerError("Expected '::', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            ITER_INC;
+            if (e.indexOf(body[i].getValue()) == Enum::npos) {
+                transpilerError("Unknown member of enum '" + e.getName() + "': '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("stack.data[stack.ptr++].i = %zu;\n", e.indexOf(body[i].getValue()));
+            typeStack.push("int");
         } else if (hasFunction(result, body[i])) {
             Function* f = getFunctionByName(result, body[i].getValue());
             if (f->isMethod) {

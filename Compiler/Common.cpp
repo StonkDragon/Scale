@@ -351,6 +351,19 @@ namespace sclc
         }
         return nullptr;
     }
+
+    bool hasEnum(TPResult result, std::string name) {
+        return getEnumByName(result, name).getName().size() != 0;
+    }
+
+    Enum getEnumByName(TPResult result, std::string name) {
+        for (Enum e : result.enums) {
+            if (e.getName() == name) {
+                return e;
+            }
+        }
+        return Enum("");
+    }
     
     Interface* getInterfaceByName(TPResult result, std::string name) {
         for (Interface* i : result.interfaces) {
