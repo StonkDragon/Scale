@@ -1,6 +1,6 @@
 #include "../headers/DragonConfig.hpp"
 
-size_t strlen(char*);
+extern "C" size_t strlen(char*);
 
 using namespace std;
 using namespace DragonConfig;
