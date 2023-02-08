@@ -44,7 +44,7 @@
 #define _scl_constructor __attribute__((constructor))
 #else
 #if defined(SCL_COMPILER_NO_MAIN)
-#error Can't compile with --no-main
+#error "Can't compile with --no-main"
 #endif
 #define _scl_constructor
 #endif
@@ -53,7 +53,7 @@
 #define _scl_destructor __attribute__((destructor))
 #else
 #if defined(SCL_COMPILER_NO_MAIN)
-#error Can't compile with --no-main
+#error "Can't compile with --no-main"
 #endif
 #define _scl_destructor
 #endif

@@ -3623,9 +3623,9 @@ namespace sclc {
         (void) warns;
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("__thread extern _scl_stack_t stack;\n");
-        append("__thread extern _scl_callstack_t callstk;\n");
-        append("__thread extern struct _exception_handling {\n");
+        append("extern __thread _scl_stack_t stack;\n");
+        append("extern __thread _scl_callstack_t callstk;\n");
+        append("extern __thread struct _exception_handling {\n");
 	    append("  scl_Exception extable[STACK_SIZE];\n");
 	    append("  jmp_buf       jmptable[STACK_SIZE];\n");
 	    append("  scl_int       ptr;\n");
