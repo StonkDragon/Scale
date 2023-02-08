@@ -1,6 +1,7 @@
 sealed struct Method  
     private decl nameHash:   const int
     private decl name:       const str
+    private decl id:         const int
     private decl ptr:        const any
     private decl memberType: const int
     private decl argCount:   const int
