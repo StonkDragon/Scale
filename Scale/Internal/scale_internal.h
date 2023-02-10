@@ -95,6 +95,7 @@
 #define EX_REFLECT_ERROR		138
 #define EX_THROWN				139
 #define EX_INVALID_BYTE_ORDER	140
+#define EX_UNREACHABLE			141
 
 #define ssize_t signed long
 
@@ -261,6 +262,7 @@ scl_any			_scl_alloc(size_t size);
 void			_scl_free(scl_any ptr);
 void			_scl_assert(scl_int b, scl_str msg);
 void			_scl_finalize(void);
+void			_scl_unreachable(char* msg);
 
 hash			hash1(char* data);
 void			_scl_cleanup_post_func(scl_int depth);
