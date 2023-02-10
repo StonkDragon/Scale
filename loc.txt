@@ -4,6 +4,7 @@
      236 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      100 Compiler/headers/DragonConfig.hpp
+      39 Compiler/headers/Enum.hpp
       75 Compiler/headers/Function.hpp
       55 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
@@ -17,11 +18,11 @@
      394 Compiler/modules/DragonConfig.cpp
      107 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     132 Compiler/modules/Parser.cpp
+     143 Compiler/modules/Parser.cpp
     1450 Compiler/modules/SyntaxTree.cpp
      260 Compiler/modules/TokenHandlers.cpp
      522 Compiler/modules/Tokenizer.cpp
-    4044 Compiler/modules/Transpiler.cpp
+    4053 Compiler/modules/Transpiler.cpp
      254 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       70 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       74 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -31,7 +32,7 @@
       29 Scale/Frameworks/Scale.framework/include/Scale/runtime/method.scale
       50 Scale/Frameworks/Scale.framework/include/Scale/runtime/reflect.scale
       63 Scale/Frameworks/Scale.framework/include/Scale/runtime/struct_.scale
-      49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
+      50 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
       65 Scale/Frameworks/Scale.framework/include/Scale/types.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
      172 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
@@ -49,8 +50,8 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       35 Scale/Frameworks/Scale.framework/include/Scale/util/thread.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-     851 Scale/Internal/scale_internal.c
-     280 Scale/Internal/scale_internal.h
+     874 Scale/Internal/scale_internal.c
+     286 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -58,6 +59,7 @@
       14 examples/container.scale
       29 examples/data-type-literals.scale
        4 examples/deref.scale
+      11 examples/enum.scale
       17 examples/fib.scale
       18 examples/fizzbuzz.scale
        9 examples/for-step.scale
@@ -80,4 +82,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13109 total
+   13209 total
