@@ -22,13 +22,36 @@ __thread struct _exception_handling {
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
-#pragma region Memory
 
 static scl_any	alloced_ptrs[STACK_SIZE];	// List of allocated pointers
 static scl_int	alloced_ptrs_count = 0;		// Length of the list
 
 static size_t	ptrs_size[STACK_SIZE];		// List of pointer sizes
 static scl_int	ptrs_size_count = 0;		// Length of the list
+
+// Inserts value into array at it's sorted position
+// returns the index at which the value was inserted
+// will not insert value, if it is already present in the array
+scl_int _scl_sorted_insert(scl_any array[], scl_int* size, scl_any value) {
+    scl_int i = 0;
+	if (*size) {
+		for (i = 0; i < *size; i++) {
+			if (array[i] > value) {
+				break;
+			}
+		}
+	}
+	if (array[i] == value) return i;
+
+    scl_int j;
+    for (j = *size; j > i; j--) {
+        array[j] = array[j-1];
+    }
+    array[i] = value;
+
+    (*size)++;
+	return i;
+}
 
 void _scl_remove_ptr(scl_any ptr) {
 	scl_int index;
@@ -42,12 +65,7 @@ void _scl_remove_ptr(scl_any ptr) {
 // Returns the next index of a given pointer in the allocated-pointers array
 // Returns -1, if the pointer is not in the table
 scl_int _scl_get_index_of_ptr(scl_any ptr) {
-	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
-		if (alloced_ptrs[i] == ptr) {
-			return i;
-		}
-	}
-	return -1;
+	return _scl_binary_search(alloced_ptrs, alloced_ptrs_count, ptr);
 }
 
 // Removes the pointer at the given index and shift everything after left
@@ -60,15 +78,9 @@ void _scl_remove_ptr_at_index(scl_int index) {
 
 // Adds a new pointer to the table
 void _scl_add_ptr(scl_any ptr, size_t size) {
-	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
-		if (alloced_ptrs[i] == 0 || alloced_ptrs[i] == ptr) {
-			ptrs_size[i] = size;
-			alloced_ptrs[i] = ptr;
-			return;
-		}
-	}
-	ptrs_size[ptrs_size_count++] = size;
-	alloced_ptrs[alloced_ptrs_count++] = ptr;
+	scl_int index = _scl_sorted_insert((scl_any*) alloced_ptrs, &alloced_ptrs_count, ptr);
+	ptrs_size[index] = size;
+	ptrs_size_count++;
 }
 
 // Returns true if the pointer was allocated using _scl_alloc()
@@ -152,9 +164,6 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
-#pragma endregion
-
-#pragma region Security
 
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_str msg) {
@@ -195,9 +204,6 @@ void _scl_cleanup_post_func(scl_int depth) {
 	stack.ptr = callstk.data[depth].begin_stack_size;
 }
 
-#pragma endregion
-
-#pragma region Exceptions
 
 static int printingStacktrace = 0;
 
@@ -335,9 +341,6 @@ void _scl_catch_final(int sig_num) {
 	exit(sig_num);
 }
 
-#pragma endregion
-
-#pragma region Stack Operations
 struct scl_Array {
 	scl_int $__type__;
 	scl_str $__type_name__;
@@ -414,9 +417,6 @@ inline ssize_t ctrl_stack_size(void) {
 	return stack.ptr;
 }
 
-#pragma endregion
-
-#pragma region Struct and Reflection
 
 hash hash1(char* data) {
     hash h = 7;
@@ -478,11 +478,11 @@ struct sclstruct {
 
 // table of instances
 static struct sclstruct* allocated_structs[STACK_SIZE];
-static size_t allocated_structs_count = 0;
+static scl_int allocated_structs_count = 0;
 
 // table of instances allocated with _scl_alloc_struct()
 static struct sclstruct* mallocced_structs[STACK_SIZE];
-static size_t mallocced_structs_count = 0;
+static scl_int mallocced_structs_count = 0;
 
 // Free all allocated instances
 void _scl_finalize() {
@@ -553,12 +553,8 @@ void* _scl_get_method_on_type(hash type, hash method) {
 
 // adds an instance to the table of tracked instances
 scl_any _scl_add_struct(scl_any ptr) {
-	for (scl_int i = 0; i < allocated_structs_count; i++) {
-		if (allocated_structs[i] == 0 || allocated_structs[i] == ptr) {
-			return allocated_structs[i] = ptr;
-		}
-	}
-	return allocated_structs[allocated_structs_count++] = ptr;
+	_scl_sorted_insert((scl_any*) allocated_structs, &allocated_structs_count, ptr);
+	return ptr;
 }
 
 // SclObject:finalize()
@@ -586,14 +582,9 @@ scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
     ((struct sclstruct*) ptr)->count = 1;
 
 	// Add struct to allocated table
-	for (scl_int i = 0; i < mallocced_structs_count; i++) {
-		if (mallocced_structs[i] == 0 || mallocced_structs[i] == ptr) {
-			allocated_structs[i] = ptr;
-			return mallocced_structs[i] = ptr;
-		}
-	}
-	allocated_structs[allocated_structs_count++] = ptr;
-	return mallocced_structs[mallocced_structs_count++] = ptr;
+	scl_int index = _scl_sorted_insert((scl_any*) mallocced_structs, &mallocced_structs_count, ptr);
+	allocated_structs_count++;
+	return allocated_structs[index] = ptr;
 }
 
 // Removes an instance from the allocated table by index
@@ -651,13 +642,7 @@ scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo*
 
 // Returns true, if the instance is of a given struct type
 scl_int _scl_struct_is_type(scl_any ptr, hash typeId) {
-	int isStruct = 0;
-	for (scl_int i = 0; i < allocated_structs_count; i++) {
-		if (allocated_structs[i] == ptr) {
-			isStruct = 1;
-			break;
-		}
-	}
+	int isStruct = _scl_binary_search((scl_any*) allocated_structs, allocated_structs_count, ptr);
 	if (!isStruct) return 0;
 
 	struct sclstruct* ptrStruct = (struct sclstruct*) ptr;
@@ -737,8 +722,6 @@ void _scl_reflect_call_method(hash func) {
 		_scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
 	}
 }
-
-#pragma endregion
 
 void _scl_set_up_signal_handler() {
 #if defined(SIGHUP)
