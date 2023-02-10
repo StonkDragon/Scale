@@ -24,14 +24,18 @@ __thread struct _exception_handling {
 
 #pragma region Memory
 
-static scl_any alloced_ptrs[STACK_SIZE];	/* List of allocated pointers */
-static scl_int alloced_ptrs_count = 0;		/* Length of the list */
+static scl_any	alloced_ptrs[STACK_SIZE];	/* List of allocated pointers */
+static scl_int	alloced_ptrs_count = 0;		/* Length of the list */
+
+static size_t	ptrs_size[STACK_SIZE];		/* List of pointer sizes */
+static scl_int	ptrs_size_count = 0;		/* Length of the list */
 
 void _scl_remove_ptr(scl_any ptr) {
 	scl_int index;
 	/* Finds all indices of the pointer in the table and removes them */
 	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
 		_scl_remove_ptr_at_index(index);
+		ptrs_size[index] = 0;
 	}
 }
 
@@ -50,16 +54,17 @@ void _scl_remove_ptr_at_index(scl_int index) {
 }
 
 /* Adds a new pointer to the table */
-/* Returns the next index of a given pointer in the allocated-pointers array */
-void _scl_add_ptr(scl_any ptr) {
+void _scl_add_ptr(scl_any ptr, size_t size) {
 	scl_int index = _scl_binary_search(alloced_ptrs, alloced_ptrs_count, ptr);
 	if (index >= 0) return;
 	index = _scl_binary_search(alloced_ptrs, alloced_ptrs_count, 0);
 	if (index >= 0) {
 		alloced_ptrs[index] = ptr;
+		ptrs_size[index] = size;
 		return;
 	}
 	alloced_ptrs[alloced_ptrs_count++] = ptr;
+	ptrs_size[ptrs_size_count++] = size;
 }
 
 /* Returns true if the pointer was allocated using _scl_alloc() */
@@ -77,7 +82,7 @@ scl_any _scl_alloc(size_t size) {
 	}
 
 	// Allocate the memory
-	scl_any ptr = (scl_any) malloc(size);
+	scl_any ptr = malloc(size);
 
 	// Hard-throw if memory allocation failed
 	if (!ptr) {
@@ -86,7 +91,7 @@ scl_any _scl_alloc(size_t size) {
 	}
 
 	// Add the pointer to the table
-	_scl_add_ptr(ptr);
+	_scl_add_ptr(ptr, size);
 	return ptr;
 }
 
@@ -119,7 +124,7 @@ scl_any _scl_realloc(scl_any ptr, size_t size) {
 	}
 
 	// Add the pointer to the table
-	_scl_add_ptr(ptr);
+	_scl_add_ptr(ptr, size);
 
 	// Add the pointer back to our struct table, if it was a struct
 	if (wasStruct)
@@ -181,39 +186,9 @@ _scl_no_return void _scl_security_safe_exit(int code) {
 	exit(code);
 }
 
-/* Returns true, if the pointer is still accessible on the stack */
-/* This can't use binary search, because the stack is not sorted */
-int find_below(scl_any ptr, scl_int index) {
-	for (scl_int i = index; i >= 0; i--) {
-		if (stack.data[i].v == ptr) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 /* Collect left-over garbage after a function is finished */
 void _scl_cleanup_post_func(scl_int depth) {
-
-	// Get the difference in stack sizes
-	scl_int diff = stack.ptr - callstk.data[depth].begin_stack_size;
-
-	// Get the stack size at the beginning of the function
-	scl_int begin = callstk.data[depth].begin_stack_size;
-
-	// BAD:
-	// We assume that any pointers are inaccessible
-	for (scl_int i = diff; diff > 0 && i >= 0; i--) {
-		if (!find_below(stack.data[i].v, begin)) {
-
-			// No need to check for proper allocation
-			// _scl_free() does that already
-			_scl_free(stack.data[i].v);
-		}
-		stack.ptr--;
-	}
-	if (stack.ptr < 0)
-		stack.ptr = 0;
+	stack.ptr = callstk.data[depth].begin_stack_size;
 }
 
 #pragma endregion
@@ -223,8 +198,34 @@ void _scl_cleanup_post_func(scl_int depth) {
 static int printingStacktrace = 0;
 
 void print_stacktrace() {
-	printf("Stacktrace:\n");
 	printingStacktrace = 1;
+
+#if !defined(_WIN32) && !defined(__wasm__)
+	if (callstk.ptr)
+#endif
+	printf("Stacktrace:\n");
+	if (callstk.ptr == 0) {
+#if !defined(_WIN32) && !defined(__wasm__)
+		printf("Native trace:\n");
+
+        void* array[64];
+        char** strings;
+        int size, i;
+
+        size = backtrace(array, 64);
+        strings = backtrace_symbols(array, size);
+        if (strings != NULL) {
+            for (i = 3; i < size; i++)
+                printf("  %s\n", strings[i]);
+        }
+
+        free(strings);
+#else
+		printf("  <empty>\n");
+#endif
+		return;
+	}
+
 	for (signed long i = callstk.ptr - 1; i >= 0; i--) {
 		if (callstk.data[i].file) {
 			char* f = strrchr(callstk.data[i].file, '/');
@@ -307,20 +308,27 @@ void _scl_catch_final(int sig_num) {
 
 	printf("\n");
 
-	printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
+	if (callstk.ptr == 0) {
+		printf("<native code>: Exception: %s\n", signalString);
+	} else {
+		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
+	}
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
 	if (!printingStacktrace)
 		print_stacktrace();
-	printf("Stack:\n");
-	for (scl_int i = stack.ptr - 1; i >= 0; i--) {
-		scl_int v = stack.data[i].i;
-		printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+	if (stack.ptr && stack.ptr < STACK_SIZE) {
+		printf("Stack:\n");
+		printf("SP: " SCL_INT_FMT "\n", stack.ptr);
+		for (scl_int i = stack.ptr - 1; i >= 0; i--) {
+			scl_int v = stack.data[i].i;
+			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+		}
+		printf("\n");
 	}
-	printf("\n");
 
-	_scl_security_safe_exit(sig_num);
+	exit(sig_num);
 }
 
 #pragma endregion
@@ -369,12 +377,12 @@ scl_any _scl_c_envp_to_scl_env(scl_str envp[]) {
 	return array;
 }
 
-inline _scl_frame_t ctrl_push_frame() {
-	return stack.data[stack.ptr++];
+inline _scl_frame_t* ctrl_push_frame() {
+	return &stack.data[stack.ptr++];
 }
 
-inline _scl_frame_t ctrl_pop_frame() {
-	return stack.data[--stack.ptr];
+inline _scl_frame_t* ctrl_pop_frame() {
+	return &stack.data[--stack.ptr];
 }
 
 inline void ctrl_push_string(scl_str c) {
@@ -466,10 +474,11 @@ extern size_t 					_scl_internal_methods_size;
 
 // generic struct
 struct sclstruct {
-	scl_int  type;
-	scl_str  type_name;
-	scl_int  super;
-	scl_int  size;
+	scl_int	type;
+	scl_str	type_name;
+	scl_int	super;
+	scl_int	size;
+	scl_int	count;
 };
 
 // table of instances
@@ -546,6 +555,9 @@ scl_any _scl_add_struct(scl_any ptr) {
 	return allocated_structs[allocated_structs_count++] = ptr;
 }
 
+// SclObject:finalize()
+void Method_SclObject_finalize(scl_any) __asm("m.SclObject.f.finalize");
+
 /* creates a new instance with a size of 'size' */
 scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
 
@@ -564,16 +576,17 @@ scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
 	// Size (Currently only used by SclObject:clone())
     ((struct sclstruct*) ptr)->size = size;
 
-	// Add struct to allocated table
-	for (size_t i = 0; i < mallocced_structs_count; i++) {
-		if (mallocced_structs[i] == 0 || mallocced_structs[i] == ptr) {
-			mallocced_structs[i] = ptr;
-			return _scl_add_struct(ptr);
-		}
-	}
-	mallocced_structs[mallocced_structs_count++] = ptr;
+	// Reference count
+    ((struct sclstruct*) ptr)->count = 1;
 
-	return _scl_add_struct(ptr);
+	// Add struct to allocated table
+	scl_int index = _scl_binary_search((void**) mallocced_structs, mallocced_structs_count, ptr);
+	if (index >= 0) return ptr;
+	index = _scl_binary_search((void**) mallocced_structs, mallocced_structs_count, 0);
+	if (index >= 0) {
+		return mallocced_structs[index] = ptr;
+	}
+	return mallocced_structs[mallocced_structs_count++] = ptr;
 }
 
 /* Removes an instance from the allocated table by index */
@@ -591,9 +604,6 @@ size_t _scl_find_index_of_struct(scl_any ptr) {
 	return _scl_binary_search((void**) allocated_structs, allocated_structs_count, ptr);
 }
 
-// SclObject:finalize()
-void _scl_reflect_call_method_SclObject_function_finalize();
-
 /* Removes an instance from the allocated table without calling its finalizer */
 void _scl_free_struct_no_finalize(scl_any ptr) {
 	size_t i = _scl_find_index_of_struct(ptr);
@@ -605,12 +615,15 @@ void _scl_free_struct_no_finalize(scl_any ptr) {
 
 /* Removes an instance from the allocated table and call the finalzer */
 void _scl_free_struct(scl_any ptr) {
-	if (_scl_find_index_of_struct(ptr) != -1) {
-		scl_any method = _scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
-		if (method) {
-			stack.data[stack.ptr++].v = ptr;
-			((void(*)()) method)();
-		}
+	if (_scl_find_index_of_struct(ptr) == -1)
+		return;
+
+	scl_any method = _scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
+	if (method) {
+		stack.data[stack.ptr++].v = ptr;
+		// printf("before finalizer\n");
+		// ((void(*)()) method)();
+		// printf("after finalizer\n");
 	}
 	size_t i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
@@ -792,9 +805,21 @@ extern genericFunc init_functions[];
 // last element is always NULL
 extern genericFunc destroy_functions[];
 
+// Global variable pointers
+extern scl_any* global_variables[];
+
 #ifndef SCL_COMPILER_NO_MAIN
+// const char __TGC_LICENSE[] = "Licensed Under BSD\n\nCopyright (c) 2013, Daniel Holden All rights reserved.\n\n";
+const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
+
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
+	char* scl_print_licence;
+	if ((scl_print_licence = getenv("SCL_PRINT_LICENSE_AND_EXIT"))) {
+		printf("Scale License:\n%s", __SCL_LICENSE);
+		// printf("TGC License:\n%s", __TGC_LICENSE);
+		exit(0);
+	}
 
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
@@ -817,7 +842,7 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 /* Initialize as library */
 _scl_constructor void _scl_load() {
 #endif
-	
+
 	// Run __init__ functions
 	for (int i = 0; init_functions[i]; i++) {
 		init_functions[i]();
@@ -835,14 +860,14 @@ _scl_constructor void _scl_load() {
 _scl_destructor void _scl_destroy() {
 #endif
 
+	// Run finalization:
+	// call finalizers on instances and free all allocated memory
+	_scl_finalize();
+
 	// Run __destroy__ functions
 	for (int i = 0; destroy_functions[i]; i++) {
 		destroy_functions[i]();
 	}
-
-	// Run finalization:
-	// call finalizers on instances and free all allocated memory
-	_scl_finalize();
 
 #ifndef SCL_COMPILER_NO_MAIN
 	// We don't return

@@ -81,9 +81,9 @@ namespace sclc
         std::sort(result.interfaces.begin(), result.interfaces.end(), compare<Interface*>);
 
         ConvertC::writeHeader(fp, errors, warns);
-        ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);
         ConvertC::writeStructs(fp, result, errors, warns);
+        ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
         ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
@@ -102,6 +102,17 @@ namespace sclc
         for (Function* f : result.functions) {
             if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
                 append("  (scl_any) Function_%s,\n", f->getName().c_str());
+            }
+        }
+        append("  0\n");
+        append("};\n");
+        append("scl_any* global_variables[] = {\n");
+        for (Variable s : result.globals) {
+            append("  (scl_any*) &Var_%s,\n", s.getName().c_str());
+        }
+        for (Container c : result.containers) {
+            for (Variable v : c.getMembers()) {
+                append("  (scl_any*) &Container_%s.%s,\n", c.getName().c_str(), v.getName().c_str());
             }
         }
         append("  0\n");

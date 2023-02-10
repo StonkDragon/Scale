@@ -444,6 +444,7 @@ namespace sclc {
             append("  scl_str $__type_name__;\n");
             append("  scl_int $__super__;\n");
             append("  scl_int $__size__;\n");
+            append("  scl_int $__count__;\n");
             for (Variable s : c.getMembers()) {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
@@ -715,6 +716,7 @@ namespace sclc {
             typeStack.push(a);
             typeStack.push(c);
         } else if (body[i].getValue() == "clearstack") {
+            append("_scl_bulk_decr(0, stack.ptr);\n");
             append("stack.ptr = 0;\n");
             for (size_t t = 0; t < typeStack.size(); t++) {
                 if (typeStack.size())
@@ -1083,8 +1085,8 @@ namespace sclc {
                         append("struct Struct_%s* tmp = (struct Struct_%s*) stack.data[stack.ptr - 1].v;\n", struct_.c_str(), struct_.c_str());
                         debugPrintPush();
                         if (f->getArgs().size() > 0) {
-                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                            }
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1133,8 +1135,8 @@ namespace sclc {
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         Method* f = getMethodByName(result, "init", struct_);
                         if (f->getArgs().size() > 0) {
-                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                            }
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1182,8 +1184,8 @@ namespace sclc {
                             return;
                         }
                         if (f->getArgs().size() > 0) {
-                                append("stack.ptr -= %zu;\n", f->getArgs().size());
-                            }
+                            append("stack.ptr -= %zu;\n", f->getArgs().size());
+                        }
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
@@ -1249,8 +1251,8 @@ namespace sclc {
                 append("stack.data[stack.ptr++].v = (scl_any) Var_self;\n");
                 typeStack.push(f->getMemberType());
                 if (f->getArgs().size() > 0) {
-                        append("stack.ptr -= %zu;\n", f->getArgs().size());
-                    }
+                    append("stack.ptr -= %zu;\n", f->getArgs().size());
+                }
                 bool argsCorrect = checkStackType(result, f->getArgs());
                 if (!argsCorrect) {
                     {
@@ -1290,8 +1292,8 @@ namespace sclc {
                         return;
                     }
                     if (f->getArgs().size() > 0) {
-                            append("stack.ptr -= %zu;\n", f->getArgs().size());
-                        }
+                        append("stack.ptr -= %zu;\n", f->getArgs().size());
+                    }
                     bool argsCorrect = checkStackType(result, f->getArgs());
                     if (!argsCorrect) {
                         {
@@ -1601,7 +1603,8 @@ namespace sclc {
         }
         append("struct Struct_%s* %s = (struct Struct_%s*) stack.data[--stack.ptr].v;\n", typeStackTop.c_str(), iterator_name.c_str(), typeStackTop.c_str());
         std::string type = typeStackTop;
-        if (typeStack.size()) {typeStack.pop();
+        if (typeStack.size()) {
+            typeStack.pop();
         }
 
         Method* beginMethod = getMethodByName(result, "begin", type);
@@ -1830,10 +1833,11 @@ namespace sclc {
                                 return;
                             }
                             std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                            if (mem.getType() == "float")
-                                append("*((scl_any*) Var_%s) = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
-                            else
+                            if (mem.getType() == "float") {
+                                append("*((scl_float*) Var_%s) = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
+                            } else {
                                 append("*((scl_any*) Var_%s) = (%s) stack.data[--stack.ptr].v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
+                            }
                             if (typeStack.size())
                                 typeStack.pop();
                             return;
@@ -2814,6 +2818,10 @@ namespace sclc {
         noUnused;
         append("{// Start C\n");
         scopeDepth++;
+        append("callstk.data[callstk.ptr++].func = \"<%s:native code>\";\n", function->getName().c_str());
+        append("callstk.data[callstk.ptr - 1].line = %d;\n", body[i].getLine());
+        append("callstk.data[callstk.ptr - 1].col = %d;\n", body[i].getColumn());
+        append("callstk.data[callstk.ptr - 1].file = \"%s\";\n", body[i].getFile().c_str());
         std::string ext = body[i].getValue();
         for (std::vector<Variable> lvl : vars) {
             for (Variable v : lvl) {
@@ -2830,6 +2838,7 @@ namespace sclc {
         }
         scopeDepth--;
         append("}\n");
+        append("callstk.ptr--;\n");
         scopeDepth--;
         append("}// End C\n");
         for (size_t t = 0; t < typeStack.size(); t++) {
@@ -3647,6 +3656,7 @@ namespace sclc {
 	    append("  scl_int       ptr;\n");
         append("  scl_int       callstk_ptr[STACK_SIZE];\n");
         append("} exceptions;\n");
+        append("\n");
 
         append("/* STRUCTS */\n");
         append("struct scltype_iterable {\n");
@@ -3661,6 +3671,7 @@ namespace sclc {
         append("scl_str  $__type_name__;\n");
         append("scl_int  $__super__;\n");
         append("scl_int  $__size__;\n");
+        append("scl_int  $__count__;\n");
         append("scl_int  name_hash;\n");
         append("scl_str  name;\n");
         append("scl_int  id;\n");
@@ -3676,6 +3687,7 @@ namespace sclc {
         append("scl_str    $__type_name__;\n");
         append("scl_int    $__super__;\n");
         append("scl_int    $__size__;\n");
+        append("scl_int    $__count__;\n");
         append("scl_int    type;\n");
         append("scl_str    name;\n");
         append("scl_int    size;\n");
@@ -3715,6 +3727,7 @@ namespace sclc {
             append(".$__type_name__ = \"Method\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
+            append(".$__count__ = 0,\n");
             append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
             append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_function_%s,\n", f->getName().c_str());
@@ -3748,6 +3761,7 @@ namespace sclc {
             append(".$__type_name__ = \"Method\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
+            append(".$__count__ = 0,\n");
             append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
             append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
@@ -3794,6 +3808,7 @@ namespace sclc {
             append(".$__type_name__ = \"Struct\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_typeinfo),\n");
+            append(".$__count__ = 0,\n");
             append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
             append(".name = \"%s\",\n", s.getName().c_str());
             append(".size = sizeof(struct Struct_%s),\n", s.getName().c_str());
@@ -4033,7 +4048,9 @@ namespace sclc {
             scopeDepth = 1;
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
                 append("callstk.ptr--;\n");
-                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(callstk.ptr);\n");
+                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
+                    append("_scl_cleanup_post_func(callstk.ptr);\n");
+                }
             }
 
         emptyFunction:

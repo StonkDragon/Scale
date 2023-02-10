@@ -28,6 +28,10 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
+#if !defined(_WIN32) && !defined(__wasm__)
+#include <execinfo.h>
+#endif
+
 #if __has_include(<setjmp.h>)
 #include <setjmp.h>
 #else
@@ -220,6 +224,7 @@ typedef struct {
 	scl_int line;
 	scl_int col;
 	scl_int begin_stack_size;
+	scl_int begin_var_count;
 	scl_int sp;
 } _scl_callframe_t;
 
@@ -236,8 +241,6 @@ void			_scl_security_safe_exit(int code);
 void			_scl_catch_final(int sig_num);
 void			print_stacktrace(void);
 
-_scl_frame_t	ctrl_push_frame();
-_scl_frame_t	ctrl_pop_frame();
 void			ctrl_push_string(scl_str c);
 void			ctrl_push_long(scl_int n);
 void			ctrl_push_double(scl_float d);
@@ -251,7 +254,7 @@ ssize_t			ctrl_stack_size(void);
 void			_scl_remove_ptr(scl_any ptr);
 scl_int			_scl_get_index_of_ptr(scl_any ptr);
 void			_scl_remove_ptr_at_index(scl_int index);
-void			_scl_add_ptr(scl_any ptr);
+void			_scl_add_ptr(scl_any ptr, size_t size);
 scl_int			_scl_check_allocated(scl_any ptr);
 scl_any			_scl_realloc(scl_any ptr, size_t size);
 scl_any			_scl_alloc(size_t size);
