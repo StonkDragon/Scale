@@ -2821,7 +2821,13 @@ namespace sclc {
         append("callstk.data[callstk.ptr++].func = \"<%s:native code>\";\n", function->getName().c_str());
         append("callstk.data[callstk.ptr - 1].line = %d;\n", body[i].getLine());
         append("callstk.data[callstk.ptr - 1].col = %d;\n", body[i].getColumn());
-        append("callstk.data[callstk.ptr - 1].file = \"%s\";\n", body[i].getFile().c_str());
+        std::string file = body[i].getFile();
+        if (strstarts(file, scaleFolder)) {
+            file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+        } else {
+            file = std::filesystem::path(file).relative_path();
+        }
+        append("callstk.data[callstk.ptr - 1].file = \"%s\";\n", file.c_str());
         std::string ext = body[i].getValue();
         for (std::vector<Variable> lvl : vars) {
             for (Variable v : lvl) {
