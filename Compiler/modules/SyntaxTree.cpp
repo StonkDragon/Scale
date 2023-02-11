@@ -383,6 +383,8 @@ namespace sclc {
         Struct* currentStruct = nullptr;
         Interface* currentInterface = nullptr;
 
+        bool isInLambda = false;
+
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
         std::vector<Variable> globals;
@@ -501,6 +503,11 @@ namespace sclc {
 
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
+                    if (isInLambda) {
+                        isInLambda = false;
+                        currentFunction->addToken(token);
+                        continue;
+                    }
                     bool containsB = false;
                     for (size_t i = 0; i < functions.size(); i++) {
                         if (*(functions.at(i)) == *currentFunction) {
@@ -1128,6 +1135,7 @@ namespace sclc {
                     continue;
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
+                if (token.getValue() == "lambda" && (i - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {

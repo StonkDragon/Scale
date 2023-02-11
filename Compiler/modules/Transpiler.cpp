@@ -61,6 +61,7 @@ namespace sclc {
     std::string sclTypeToCType(TPResult result, std::string t) {
         if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         std::string return_type = "scl_any";
+        if (strstarts(t, "lambda(")) return "_scl_lambda";
         if (t == "any") return_type = "scl_any";
         else if (t == "none") return_type = "void";
         else if (t == "int") return_type = "scl_int";
@@ -128,6 +129,9 @@ namespace sclc {
     }
 
     std::string generateSymbolForFunction(Function* f) {
+        if (contains<std::string>(f->getModifiers(), "<lambda>")) {
+            return "l." + std::string(f->getName().c_str() + 7);
+        }
         std::string symbol = "f." + f->getName();
         if (f->getName().find('$') != std::string::npos) {
             symbol = "s." + f->getName().substr(0, f->getName().find('$')) + ".f." + f->getName().substr(f->getName().find('$') + 1);
@@ -508,9 +512,11 @@ namespace sclc {
             std::string typeA = tmp.at(i);
             if (typeA == "_String") typeA = "str";
             if (typeA == "bool") typeA = "int";
+            if (strstarts(typeA, "lambda(")) typeA = "lambda";
             std::string typeB = args.at(i).getType();
             if (typeB == "_String") typeB = "str";
             if (typeB == "bool") typeB = "int";
+            if (strstarts(typeB, "lambda(")) typeB = "lambda";
 
             if (typeB == "any" || typeB == "[any]" || (typeCanBeNil(typeB) && (typeA == "any" || typeA == "[any]"))) {
                 continue;
@@ -554,7 +560,7 @@ namespace sclc {
         return arg;
     }
 
-#define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult result)
+#define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult& result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
 #define noUnused \
         (void) body; \
@@ -601,8 +607,194 @@ namespace sclc {
     handler(Dot);
     handler(Column);
     handler(Token);
+    handler(Lambda);
 
     bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type);
+
+    int lambdaCount = 0;
+
+    handler(Lambda) {
+        noUnused;
+        Function* f = new Function("$lambda" + std::to_string(lambdaCount++), body[i]);
+        f->addModifier("<lambda>");
+        f->addModifier("no_cleanup");
+        f->setReturnType("none");
+        ITER_INC;
+        if (body[i].getType() == tok_paren_open) {
+            ITER_INC;
+            while (i < body.size() && body[i].getType() != tok_paren_close) {
+                if (body[i].getType() == tok_identifier) {
+                    std::string name = body[i].getValue();
+                    if namingConvention("Variables", body[i], flatcase, camelCase, false)
+                    else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
+                    else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
+                    else if namingConvention("Variables", body[i], snake_case, camelCase, false)
+                    else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                    else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
+                    std::string type = "any";
+                    ITER_INC;
+                    bool isConst = false;
+                    bool isMut = false;
+                    if (body[i].getType() == tok_column) {
+                        i++;
+                        while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
+                            if (body[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (body[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            ITER_INC;
+                        }
+                        FPResult r = parseType(body, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            transpilerError("Type 'none' is only valid for function return types.", i);
+                            errors.push_back(err);
+                            continue;
+                        }
+                    } else {
+                        transpilerError("A type is required!", i);
+                        errors.push_back(err);
+                        ITER_INC;
+                        continue;
+                    }
+                    Variable v = Variable(name, type, isConst, isMut);
+                    if (body[i + 1].getValue() == "?") {
+                        v.canBeNil = true;
+                        ITER_INC;
+                    }
+                    f->addArgument(v);
+                } else {
+                    transpilerError("Expected identifier for argument name, but got '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    i++;
+                    continue;
+                }
+                ITER_INC;
+                if (body[i].getType() == tok_comma || body[i].getType() == tok_paren_close) {
+                    if (body[i].getType() == tok_comma) {
+                        ITER_INC;
+                    }
+                    continue;
+                }
+                transpilerError("Expected ',' or ')', but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                continue;
+            }
+            ITER_INC;
+        }
+        if (body[i].getType() == tok_column) {
+            ITER_INC;
+            FPResult r = parseType(body, &i);
+            if (!r.success) {
+                errors.push_back(r);
+                return;
+            }
+            std::string type = r.value;
+            if (body[i + 1].getValue() == "?") {
+                type += "?";
+                ITER_INC;
+            }
+            f->setReturnType(type);
+            ITER_INC;
+        }
+        while (body[i].getType() != tok_end) {
+            f->addToken(body[i]);
+            ITER_INC;
+        }
+
+        std::string arguments = "";
+        if (f->getArgs().size() > 0) {
+            for (size_t i = 0; i < f->getArgs().size(); i++) {
+                std::string type = sclTypeToCType(result, f->getArgs()[i].getType());
+                if (i) {
+                    arguments += ", ";
+                }
+                arguments += type + " Var_" + f->getArgs()[i].getName();
+            }
+        }
+
+        std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+
+        append("%s Function_$lambda%d() __asm(\"l.%d\");\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, lambdaCount - 1);
+        append("stack.data[stack.ptr++].v = Function_$lambda%d;\n", lambdaCount - 1);
+        typeStack.push(lambdaType);
+        result.functions.push_back(f);
+    }
+
+    handler(ReturnOnNil) {
+        noUnused;
+        if (typeCanBeNil(typeStackTop)) {
+            std::string type = typeStackTop;
+            if (typeStack.size())
+                typeStack.pop();
+            typeStack.push(type.substr(0, type.size() - 1));
+        }
+        if (!typeCanBeNil(function->getReturnType()) && return_type != "void") {
+            transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
+            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+            else errors.push_back(err);
+            append("_scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
+        } else {
+            append("if (stack.data[stack.ptr - 1].i == 0) {\n");
+            scopeDepth++;
+            append("callstk.ptr--;\n");
+            if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(callstk.ptr);\n");
+            if (return_type == "void")
+                append("return;\n");
+            else {
+                append("return 0;\n");
+            }
+            scopeDepth--;
+            append("}\n");
+        }
+    }
+
+    handler(Catch) {
+        noUnused;
+        std::string ex = "Exception";
+        ITER_INC;
+        if (body[i].getValue() == "typeof") {
+            ITER_INC;
+            std::vector<Variable> defaultScope;
+            vars.pop_back();
+            vars.push_back(defaultScope);
+            was_rep.push_back(false);
+            was_catch.push_back(true);
+            scopeDepth--;
+            // TODO: Check for children of 'Exception'
+            if (getStructByName(result, body[i].getValue()) == Struct("")) {
+                transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("} else if (_scl_struct_is_type(exceptions.extable[exceptions.ptr], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
+        } else {
+            i--;
+            {
+                transpilerError("Generic Exception caught here:", i);
+                errors.push_back(err);
+            }
+            transpilerError("Add 'typeof Exception' here to fix this:\\insertText; typeof Exception;" + std::to_string(err.line) + ":" + std::to_string(err.column + body[i].getValue().length()), i);
+            err.isNote = true;
+            errors.push_back(err);
+            return;
+        }
+        std::string exName = "exception";
+        if (body.size() > i + 1 && body[i + 1].getValue() == "as") {
+            ITER_INC;
+            ITER_INC;
+            exName = body[i].getValue();
+        }
+        scopeDepth++;
+        Variable v = Variable(exName, ex);
+        vars[varDepth].push_back(v);
+        append("scl_%s Var_%s = (scl_%s) exceptions.extable[exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+    }
 
     handler(Identifier) {
         noUnused;
@@ -752,30 +944,7 @@ namespace sclc {
                 append("_scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
         } else if (body[i].getValue() == "?") {
-            if (typeCanBeNil(typeStackTop)) {
-                std::string type = typeStackTop;
-                if (typeStack.size())
-                    typeStack.pop();
-                typeStack.push(type.substr(0, type.size() - 1));
-            }
-            if (!typeCanBeNil(function->getReturnType()) && return_type != "void") {
-                transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
-                append("_scl_assert(stack.data[stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
-            } else {
-                append("if (stack.data[stack.ptr - 1].i == 0) {\n");
-                scopeDepth++;
-                append("callstk.ptr--;\n");
-                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(callstk.ptr);\n");
-                if (return_type == "void")
-                    append("return;\n");
-                else {
-                    append("return 0;\n");
-                }
-                scopeDepth--;
-                append("}\n");
-            }
+            handle(ReturnOnNil);
         } else if (body[i].getValue() == "||") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
             append("stack.ptr -= 2;\n");
@@ -939,44 +1108,9 @@ namespace sclc {
             std::vector<Variable> defaultScope;
             vars.push_back(defaultScope);
         } else if (body[i].getValue() == "catch") {
-            std::string ex = "Exception";
-            ITER_INC;
-            if (body[i].getValue() == "typeof") {
-                ITER_INC;
-                std::vector<Variable> defaultScope;
-                vars.pop_back();
-                vars.push_back(defaultScope);
-                was_rep.push_back(false);
-                was_catch.push_back(true);
-                scopeDepth--;
-                // TODO: Check for children of 'Exception'
-                if (getStructByName(result, body[i].getValue()) == Struct("")) {
-                    transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("} else if (_scl_struct_is_type(exceptions.extable[exceptions.ptr], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
-            } else {
-                i--;
-                {
-                    transpilerError("Generic Exception caught here:", i);
-                    errors.push_back(err);
-                }
-                transpilerError("Add 'typeof Exception' here to fix this:\\insertText; typeof Exception;" + std::to_string(err.line) + ":" + std::to_string(err.column + body[i].getValue().length()), i);
-                err.isNote = true;
-                errors.push_back(err);
-                return;
-            }
-            std::string exName = "exception";
-            if (body.size() > i + 1 && body[i + 1].getValue() == "as") {
-                ITER_INC;
-                ITER_INC;
-                exName = body[i].getValue();
-            }
-            scopeDepth++;
-            Variable v = Variable(exName, ex);
-            vars[varDepth].push_back(v);
-            append("scl_%s Var_%s = (scl_%s) exceptions.extable[exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+            handle(Catch);
+        } else if (body[i].getValue() == "lambda") {
+            handle(Lambda);
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -2259,6 +2393,9 @@ namespace sclc {
                     return;
                 }
                 type = r.value;
+                if (type == "lambda" && strstarts(typeStackTop, "lambda(")) {
+                    type = typeStackTop;
+                }
             } else {
                 type = typeStackTop;
                 typeWasInferred = true;
@@ -2450,6 +2587,9 @@ namespace sclc {
                     }
                     if (!typeCanBeNil(v.getType())) {
                         append("_scl_assert(stack.data[stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
+                    }
+                    if (v.getType() == "lambda" && strstarts(typeStackTop, "lambda(")) {
+                        v.setType(typeStackTop);
                     }
                     if (v.getType() == "float")
                         append("Var_%s = stack.data[--stack.ptr].f;\n", loadFrom.c_str());
@@ -3298,6 +3438,62 @@ namespace sclc {
 
     handler(Column) {
         noUnused;
+        if (strstarts(typeStackTop, "lambda(") || typeStackTop == "lambda") {
+            ITER_INC;
+            if (typeStackTop == "lambda") {
+                std::string op = body[i].getValue();
+                if (op == "accept") {
+                    append("((void(*)(void)) stack.data[--stack.ptr].v)();\n");
+                } else if (op == "acceptWithIntResult") {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].i = ((scl_int(*)(void)) stack.data[stack.ptr].v)();\n");
+                } else if (op == "acceptWithFloatResult") {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].f = ((scl_float(*)(void)) stack.data[stack.ptr].v)();\n");
+                } else if (op == "acceptWithStringResult") {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].s = ((scl_str(*)(void)) stack.data[stack.ptr].v)();\n");
+                } else if (op == "acceptWithResult") {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].v = ((scl_any(*)(void)) stack.data[stack.ptr].v)();\n");
+                } else {
+                    transpilerError("Unknown method '" + body[i].getValue() + "' on type 'untyped-lambda'", i);
+                    errors.push_back(err);
+                }
+                typeStack.pop();
+                return;
+            }
+            std::string returnType = typeStackTop.substr(typeStackTop.find_last_of("):") + 1);
+            std::string op = body[i].getValue();
+
+            std::string args = typeStackTop.substr(typeStackTop.find_first_of("(") + 1, typeStackTop.find_last_of("):") - typeStackTop.find_first_of("(") - 1);
+            size_t argAmount = std::stoi(args);
+            
+            for (size_t argc = argAmount; argc; argc--) {
+                if (typeStack.size())
+                    typeStack.pop();
+            }
+
+            if (typeStack.size())
+                typeStack.pop();
+            if (op == "accept") {
+                if (returnType == "none") {
+                    append("((void(*)(void)) stack.data[--stack.ptr].v)();\n");
+                } else if (returnType == "float") {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].f = ((scl_float(*)(void)) stack.data[stack.ptr].v)();\n");
+                    typeStack.push(returnType);
+                } else {
+                    append("stack.ptr--;\n");
+                    append("stack.data[stack.ptr++].v = ((scl_any(*)(void)) stack.data[stack.ptr].v)();\n");
+                    typeStack.push(returnType);
+                }
+            } else {
+                transpilerError("Unknown method '" + body[i].getValue() + "' on type 'lambda'", i);
+                errors.push_back(err);
+            }
+            return;
+        }
         Struct s = getStructByName(result, typeStackTop);
         if (s == Struct("")) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
@@ -3852,8 +4048,7 @@ namespace sclc {
 
         append("/* FUNCTIONS */\n");
 
-        int funcsSize = result.functions.size();
-        for (int f = 0; f < funcsSize; f++)
+        for (size_t f = 0; f < result.functions.size(); f++)
         {
             Function* function = result.functions[f];
             while (vars.size() < 2) {
@@ -3943,20 +4138,26 @@ namespace sclc {
                 return_type = sclTypeToCType(result, t);
             }
             if (!function->isMethod) {
-                append("static void _scl_reflect_call_function_%s() {\n", function->getName().c_str());
-                scopeDepth++;
-                if (function->getArgs().size() > 0)
-                    append("stack.ptr -= %zu;\n", function->getArgs().size());
-                if (return_type == "void") {
-                    append("Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                if (contains<std::string>(function->getModifiers(), "<lambda>")) {
+                    append("%s Function_%s() __asm(\"%s\");\n", sclTypeToCType(result, function->getReturnType()).c_str(), function->getName().c_str(), generateSymbolForFunction(function).c_str());
+                    arguments = "";
                 } else {
-                    if (function->getReturnType() == "float")
-                        append("stack.data[stack.ptr++].f = Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
-                    else
-                        append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                    append("static void _scl_reflect_call_function_%s() {\n", function->getName().c_str());
+                    scopeDepth++;
+                    if (function->getArgs().size() > 0)
+                        append("stack.ptr -= %zu;\n", function->getArgs().size());
+                    if (return_type == "void") {
+                        append("Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                    } else {
+                        if (function->getReturnType() == "float")
+                            append("stack.data[stack.ptr++].f = Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                        else
+                            append("stack.data[stack.ptr++].v = (scl_any) Function_%s(%s);\n", function->getName().c_str(), sclGenArgs(result, function).c_str());
+                    }
+                    scopeDepth--;
+                    append("}\n");
                 }
-                scopeDepth--;
-                append("}\n");
+
                 append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             } else {
                 if (!((Method*)(function))->addAnyway() && getStructByName(result, ((Method*)(function))->getMemberType()).isSealed()) {
@@ -4042,7 +4243,18 @@ namespace sclc {
                 append("callstk.data[callstk.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
                 append("callstk.data[callstk.ptr - 1].begin_stack_size = stack.ptr;\n");
             }
-            for (Variable arg : function->getArgs()) {
+            if (contains<std::string>(function->getModifiers(), "<lambda>")) {
+                append("_scl_assert(stack.ptr >= %zu, \"Not enough arguments for lambda\");\n", function->getArgs().size());
+            }
+
+            for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
+                Variable arg = function->getArgs()[a];
+                if (contains<std::string>(function->getModifiers(), "<lambda>")) {
+                    if (arg.getType() == "float")
+                        append("%s Var_%s = stack.data[--stack.ptr].f;\n", sclTypeToCType(result, arg.getType()).c_str(), arg.getName().c_str());
+                    else
+                        append("%s Var_%s = (%s) stack.data[--stack.ptr].v;\n", sclTypeToCType(result, arg.getType()).c_str(), arg.getName().c_str(), sclTypeToCType(result, arg.getType()).c_str());
+                }
                 if (!typeCanBeNil(arg.getType()) || arg.getType() == "str") {
                     append("_scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }

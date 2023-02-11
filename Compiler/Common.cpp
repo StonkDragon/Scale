@@ -298,6 +298,38 @@ namespace sclc
         if (body[*i].getType() == tok_identifier) {
             r.value = body[*i].getValue();
             r.success = true;
+            if (r.value == "lambda") {
+                (*i)++;
+                if (body[*i].getType() != tok_paren_open) {
+                    (*i)--;
+                } else {
+                    (*i)++;
+                    r.value += "(";
+                    int count = 0;
+                    while (body[*i].getType() != tok_paren_close) {
+                        FPResult tmp = parseType(body, i);
+                        if (!tmp.success) return tmp;
+                        (*i)++;
+                        if (body[*i].getType() == tok_comma) {
+                            (*i)++;
+                        }
+                        count++;
+                    }
+                    (*i)++;
+                    r.value += std::to_string(count) + ")";
+                    if (body[*i].getType() == tok_column) {
+                        (*i)++;
+                        FPResult tmp = parseType(body, i);
+                        if (!tmp.success) return tmp;
+                        r.value += ":" + tmp.value;
+                    } else {
+                        (*i)--;
+                        r.value += ":none";
+                    }
+                    std::cout << body[*i].tostring() << std::endl;
+                    std::cout << r.value << std::endl;
+                }
+            }
         } else if (body[*i].getType() == tok_question_mark || body[*i].getValue() == "?") {
             r.value = "?";
             r.success = true;

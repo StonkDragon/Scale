@@ -19,6 +19,16 @@
 		],
 		"description": "Create a function"
 	},
+	"Lambda": {
+		"scope": "source.scale",
+		"prefix": "lambda",
+		"body": [
+			"lambda($2)",
+			"\t$0",
+			"end"
+		],
+		"description": "Create an anonymous function"
+	},
 	"Method": {
 		"scope": "source.scale",
 		"prefix": "method",

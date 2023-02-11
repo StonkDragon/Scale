@@ -234,6 +234,8 @@ typedef struct {
 	_scl_callframe_t	data[STACK_SIZE];
 } _scl_callstack_t;
 
+typedef void(*_scl_lambda)(void);
+
 _scl_no_return
 void			_scl_security_throw(int code, scl_str msg);
 

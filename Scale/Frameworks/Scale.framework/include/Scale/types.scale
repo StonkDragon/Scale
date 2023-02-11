@@ -5,6 +5,7 @@ typealias int8 "scl_int8"
 typealias uint32 "scl_uint32"
 typealias uint16 "scl_uint16"
 typealias uint8 "scl_uint8"
+typealias lambda "_scl_lambda"
 
 sealed struct _String is IEquatable, ICloneable, IStringifyable
   function +(other: str): str
