@@ -27,7 +27,7 @@ end
 
 function sizeofStack(): int
   inline_c
-    stack.data[stack.ptr++].i = stack.ptr;
+    _scl_push()->i = _scl_internal_stack.ptr;
   end_inline
   return
 end
@@ -57,14 +57,14 @@ end
 
 function memset(ptr: [any], val: int, len: int): [any]
   inline_c
-    stack.data[stack.ptr++].v = memset(*ptr, *val, *len);
+    _scl_push()->v = memset(*ptr, *val, *len);
   end_inline
   return
 end
 
 function memcpy(dst: [any], src: [any], n: int): [any]
   inline_c
-    stack.data[stack.ptr++].v = memcpy(*dst, *src, *n);
+    _scl_push()->v = memcpy(*dst, *src, *n);
   end_inline
   return
 end
@@ -175,14 +175,14 @@ end
 
 function stringToLong(_str_: str): int
   inline_c
-    stack.data[stack.ptr++].i = atoll(*_str_);
+    _scl_push()->i = atoll(*_str_);
   end_inline
   return
 end
 
 function stringToDouble(_str_: str): float
   inline_c
-    stack.data[stack.ptr++].f = atof(*_str_);
+    _scl_push()->f = atof(*_str_);
   end_inline
   return
 end

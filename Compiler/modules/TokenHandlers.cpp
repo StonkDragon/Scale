@@ -26,18 +26,18 @@ namespace sclc {
         if (op == "+" || op == "-" || op == "*" || op == "/") {
             if (isPrimitiveIntegerType(typeA) || typeA == "any") {
                 if (typeB == "float") {
-                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s ((scl_float) stack.data[stack.ptr + 1].i);\n", op.c_str());
+                    append("_scl_internal_stack.ptr -= 2; _scl_push()->f = _scl_internal_stack.data[_scl_internal_stack.ptr].f %s ((scl_float) _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i);\n", op.c_str());
                     typeStack.push("float");
                 } else {
-                    append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %s stack.data[stack.ptr + 1].i;\n", op.c_str());
+                    append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i %s _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n", op.c_str());
                     typeStack.push("int");
                 }
             } else {
                 if (typeB == "float") {
-                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = stack.data[stack.ptr].f %s stack.data[stack.ptr + 1].f;\n", op.c_str());
+                    append("_scl_internal_stack.ptr -= 2; _scl_push()->f = _scl_internal_stack.data[_scl_internal_stack.ptr].f %s _scl_internal_stack.data[_scl_internal_stack.ptr + 1].f;\n", op.c_str());
                     typeStack.push("float");
                 } else {
-                    append("stack.ptr -= 2; stack.data[stack.ptr++].f = ((scl_float) stack.data[stack.ptr].i) %s stack.data[stack.ptr + 1].f;\n", op.c_str());
+                    append("_scl_internal_stack.ptr -= 2; _scl_push()->f = ((scl_float) _scl_internal_stack.data[_scl_internal_stack.ptr].i) %s _scl_internal_stack.data[_scl_internal_stack.ptr + 1].f;\n", op.c_str());
                     typeStack.push("float");
                 }
             }
@@ -72,13 +72,13 @@ namespace sclc {
                 return false;
             }
             if (f->getArgs().size() > 0) {
-                append("stack.ptr -= %zu;\n", f->getArgs().size());
+                append("_scl_internal_stack.ptr -= %zu;\n", f->getArgs().size());
             }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("stack.data[stack.ptr++].f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 } else {
-                    append("stack.data[stack.ptr++].v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
@@ -93,7 +93,7 @@ namespace sclc {
         switch (token.getType()) {
             case tok_add: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "+", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i + stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i + _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -104,7 +104,7 @@ namespace sclc {
 
             case tok_sub: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "-", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i - stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i - _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -115,7 +115,7 @@ namespace sclc {
 
             case tok_mul: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "*", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i * stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i * _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -126,7 +126,7 @@ namespace sclc {
 
             case tok_div: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "/", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i / stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i / _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -137,7 +137,7 @@ namespace sclc {
 
             case tok_mod: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "%", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i %% stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i %% _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -148,7 +148,7 @@ namespace sclc {
 
             case tok_land: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "&", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i & stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i & _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -159,7 +159,7 @@ namespace sclc {
 
             case tok_lor: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "|", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i | stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i | _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -170,7 +170,7 @@ namespace sclc {
 
             case tok_lxor: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "^", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i ^ stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i ^ _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -181,7 +181,7 @@ namespace sclc {
 
             case tok_lnot: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "~", typeStackTop)) break;
-                append("stack.data[stack.ptr - 1].i = ~stack.data[stack.ptr - 1].i;\n");
+                append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = ~_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 typeStack.push("int");
@@ -190,7 +190,7 @@ namespace sclc {
 
             case tok_lsh: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "<<", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i << stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i << _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -201,7 +201,7 @@ namespace sclc {
 
             case tok_rsh: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, ">>", typeStackTop)) break;
-                append("stack.ptr -= 2; stack.data[stack.ptr++].i = stack.data[stack.ptr].i >> stack.data[stack.ptr + 1].i;\n");
+                append("_scl_internal_stack.ptr -= 2; _scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i >> _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -212,7 +212,7 @@ namespace sclc {
 
             case tok_pow: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "**", typeStackTop)) break;
-                append("{ scl_int exp = stack.data[--stack.ptr].i; scl_int base = stack.data[--stack.ptr].i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } stack.data[stack.ptr++].i = intResult; }\n");
+                append("{ scl_int exp = _scl_pop()->i; scl_int base = _scl_pop()->i; scl_int intResult = (scl_int) base; scl_int i = 1; while (i < exp) { intResult *= (scl_int) base; i++; } _scl_push()->i = intResult; }\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -239,8 +239,8 @@ namespace sclc {
     }
 
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
-        append("stack.data[stack.ptr++].i = %s;\n", token.getValue().c_str());
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
+        append("_scl_push()->i = %s;\n", token.getValue().c_str());
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_internal_stack.data[_scl_internal_stack.ptr - 1].i);\n");
         typeStack.push("int");
         FPResult result;
         result.success = true;
@@ -249,9 +249,9 @@ namespace sclc {
     }
 
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
-        append("stack.data[stack.ptr++].f = %s;\n", token.getValue().c_str());
+        append("_scl_push()->f = %s;\n", token.getValue().c_str());
         typeStack.push("float");
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", stack.data[stack.ptr - 1].f);\n");
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", _scl_internal_stack.data[_scl_internal_stack.ptr - 1].f);\n");
         FPResult result;
         result.success = true;
         result.message = "";

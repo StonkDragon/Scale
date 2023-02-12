@@ -151,6 +151,7 @@ namespace sclc {
             bool doRun;
             bool noMain;
             bool Werror;
+            bool minify;
             bool dumpInfo;
             bool printDocs;
             bool debugBuild;

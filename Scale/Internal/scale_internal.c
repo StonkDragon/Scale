@@ -7,47 +7,53 @@
 // Variables
 
 // The Stack
-__thread _scl_stack_t 		stack;
+__thread _scl_stack_t 		_scl_internal_stack;
 
 // Scale Callstack
-__thread _scl_callstack_t	callstk;
+__thread _scl_callstack_t	_scl_internal_callstack;
 
 // this is used by try-catch
 __thread struct _exception_handling {
-	void*	_scl_exception_table[STACK_SIZE];	// The exception
-	jmp_buf	_scl_jmp_buf[STACK_SIZE];			// jump buffer used by longjmp()
-	scl_int	_scl_jmp_buf_ptr;					// number specifying the current depth
-	scl_int	_scl_cs_ptr[STACK_SIZE];			// callstack-pointer of this catch level
-} exceptions = {0};
+	void*	_scl_exception_table[EXCEPTION_DEPTH];	// The exception
+	jmp_buf	_scl_jmp_buf[EXCEPTION_DEPTH];			// jump buffer used by longjmp()
+	scl_int	_scl_jmp_buf_ptr;						// number specifying the current depth
+	scl_int	_scl_cs_ptr[EXCEPTION_DEPTH];			// callstack-pointer of this catch level
+} _scl_internal_exceptions = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
-
-static scl_any	alloced_ptrs[STACK_SIZE];	// List of allocated pointers
+static scl_any*	alloced_ptrs;				// List of allocated pointers
 static scl_int	alloced_ptrs_count = 0;		// Length of the list
+static scl_int	alloced_ptrs_cap = 64;		// Length of the list
 
-static size_t	ptrs_size[STACK_SIZE];		// List of pointer sizes
+static size_t*	ptrs_size;					// List of pointer sizes
 static scl_int	ptrs_size_count = 0;		// Length of the list
+static scl_int	ptrs_size_cap = 64;			// Length of the list
 
 // Inserts value into array at it's sorted position
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
-scl_int _scl_sorted_insert(scl_any array[], scl_int* size, scl_any value) {
+scl_int _scl_sorted_insert(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
     scl_int i = 0;
 	if (*size) {
 		for (i = 0; i < *size; i++) {
-			if (array[i] > value) {
+			if ((*array)[i] > value) {
 				break;
 			}
 		}
 	}
-	if (array[i] == value) return i;
+	if ((*array)[i] == value) return i;
+
+	if ((*size) + 1 >= (*cap)) {
+		(*cap) *= 2;
+		(*array) = realloc((*array), *(cap) * sizeof((*array)[0]));
+	}
 
     scl_int j;
     for (j = *size; j > i; j--) {
-        array[j] = array[j-1];
+        (*array)[j] = (*array)[j-1];
     }
-    array[i] = value;
+    (*array)[i] = value;
 
     (*size)++;
 	return i;
@@ -78,9 +84,16 @@ void _scl_remove_ptr_at_index(scl_int index) {
 
 // Adds a new pointer to the table
 void _scl_add_ptr(scl_any ptr, size_t size) {
-	scl_int index = _scl_sorted_insert((scl_any*) alloced_ptrs, &alloced_ptrs_count, ptr);
-	ptrs_size[index] = size;
+	scl_int index = _scl_sorted_insert((scl_any**) &alloced_ptrs, &alloced_ptrs_count, ptr, &alloced_ptrs_cap);
 	ptrs_size_count++;
+	if (index >= ptrs_size_cap) {
+		ptrs_size_cap = index;
+		ptrs_size = realloc(ptrs_size, ptrs_size_cap * sizeof(scl_any));
+	} else if (ptrs_size_count >= ptrs_size_cap) {
+		ptrs_size_cap *= 2;
+		ptrs_size = realloc(ptrs_size, ptrs_size_cap * sizeof(scl_any));
+	}
+	ptrs_size[index] = size;
 }
 
 // Returns true if the pointer was allocated using _scl_alloc()
@@ -169,7 +182,7 @@ void _scl_free(scl_any ptr) {
 void _scl_assert(scl_int b, scl_str msg) {
 	if (!b) {
 		printf("\n");
-		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col);
+		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col);
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -206,7 +219,7 @@ _scl_no_return void _scl_security_safe_exit(int code) {
 
 // Collect left-over garbage after a function is finished
 void _scl_cleanup_post_func(scl_int depth) {
-	stack.ptr = callstk.data[depth].begin_stack_size;
+	_scl_internal_stack.ptr = _scl_internal_callstack.data[depth].begin_stack_size;
 }
 
 
@@ -216,10 +229,10 @@ void print_stacktrace() {
 	printingStacktrace = 1;
 
 #if !defined(_WIN32) && !defined(__wasm__)
-	if (callstk.ptr)
+	if (_scl_internal_callstack.ptr)
 #endif
 	printf("Stacktrace:\n");
-	if (callstk.ptr == 0) {
+	if (_scl_internal_callstack.ptr == 0) {
 #if !defined(_WIN32) && !defined(__wasm__)
 		printf("Native trace:\n");
 
@@ -241,14 +254,22 @@ void print_stacktrace() {
 		return;
 	}
 
-	for (signed long i = callstk.ptr - 1; i >= 0; i--) {
-		if (callstk.data[i].file) {
-			char* f = strrchr(callstk.data[i].file, '/');
-			if (!f) f = callstk.data[i].file;
+	for (signed long i = _scl_internal_callstack.ptr - 1; i >= 0; i--) {
+		if (_scl_internal_callstack.data[i].file) {
+			char* f = strrchr(_scl_internal_callstack.data[i].file, '/');
+			if (!f) f = _scl_internal_callstack.data[i].file;
 			else f++;
-			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
+			if (_scl_internal_callstack.data[i].line) {
+				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+			} else {
+				printf("  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
+			}
 		} else {
-			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
+			if (_scl_internal_callstack.data[i].line) {
+				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+			} else {
+				printf("  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
+			}
 		}
 
 	}
@@ -261,11 +282,11 @@ void print_stacktrace_with_file(FILE* trace) {
 	printingStacktrace = 1;
 
 #if !defined(_WIN32) && !defined(__wasm__)
-	if (callstk.ptr)
+	if (_scl_internal_callstack.ptr)
 #endif
 	printf("Stacktrace:\n");
 	fprintf(trace, "Stacktrace:\n");
-	if (callstk.ptr == 0) {
+	// if (callstk.ptr == 0) {
 #if !defined(_WIN32) && !defined(__wasm__)
 		printf("Native trace:\n");
 		fprintf(trace, "Native trace:\n");
@@ -288,22 +309,32 @@ void print_stacktrace_with_file(FILE* trace) {
 		printf("  <empty>\n");
 		fprintf(trace, "  <empty>\n");
 #endif
-		return;
-	}
+		// return;
+	// }
 
-	for (signed long i = callstk.ptr - 1; i >= 0; i--) {
-		if (callstk.data[i].file) {
-			char* f = strrchr(callstk.data[i].file, '/');
-			if (!f) f = callstk.data[i].file;
+	for (signed long i = _scl_internal_callstack.ptr - 1; i >= 0; i--) {
+		if (_scl_internal_callstack.data[i].file) {
+			char* f = strrchr(_scl_internal_callstack.data[i].file, '/');
+			if (!f) f = _scl_internal_callstack.data[i].file;
 			else f++;
-			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
-			fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
+			if (_scl_internal_callstack.data[i].line) {
+				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+			} else {
+				printf("  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
+				fprintf(trace, "  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
+			}
 		} else {
-			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
-			fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
+			if (_scl_internal_callstack.data[i].line) {
+				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+			} else {
+				printf("  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
+				fprintf(trace, "  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
+			}
 		}
-
 	}
+
 	printingStacktrace = 0;
 	printf("\n");
 	fprintf(trace, "\n");
@@ -379,12 +410,12 @@ void _scl_catch_final(int sig_num) {
 	remove("scl_trace.log");
 	FILE* trace = fopen("scl_trace.log", "a");
 
-	if (callstk.ptr == 0) {
+	if (_scl_internal_callstack.ptr == 0) {
 		printf("<native code>: Exception: %s\n", signalString);
 		fprintf(trace, "<native code>: Exception: %s\n", signalString);
 	} else {
-		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
-		fprintf(trace, "%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
+		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col, signalString);
+		fprintf(trace, "%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col, signalString);
 	}
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
@@ -392,13 +423,13 @@ void _scl_catch_final(int sig_num) {
 	}
 	if (!printingStacktrace)
 		print_stacktrace_with_file(trace);
-	if (stack.ptr && stack.ptr < STACK_SIZE) {
+	if (_scl_internal_stack.ptr && _scl_internal_stack.ptr < _scl_internal_stack.cap) {
 		printf("Stack:\n");
 		fprintf(trace, "Stack:\n");
-		printf("SP: " SCL_INT_FMT "\n", stack.ptr);
-		fprintf(trace, "SP: " SCL_INT_FMT "\n", stack.ptr);
-		for (scl_int i = stack.ptr - 1; i >= 0; i--) {
-			scl_int v = stack.data[i].i;
+		printf("SP: " SCL_INT_FMT "\n", _scl_internal_stack.ptr);
+		fprintf(trace, "SP: " SCL_INT_FMT "\n", _scl_internal_stack.ptr);
+		for (scl_int i = _scl_internal_stack.ptr - 1; i >= 0; i--) {
+			scl_int v = _scl_internal_stack.data[i].i;
 			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
 			fprintf(trace, "   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
 		}
@@ -443,47 +474,47 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 }
 
 inline _scl_frame_t* ctrl_push_frame() {
-	return &stack.data[stack.ptr++];
+	return &_scl_internal_stack.data[_scl_internal_stack.ptr++];
 }
 
 inline _scl_frame_t* ctrl_pop_frame() {
-	return &stack.data[--stack.ptr];
+	return &_scl_internal_stack.data[--_scl_internal_stack.ptr];
 }
 
 inline void ctrl_push_string(scl_str c) {
-	stack.data[stack.ptr++].s = c;
+	_scl_push()->s = c;
 }
 
 inline void ctrl_push_double(scl_float d) {
-	stack.data[stack.ptr++].f = d;
+	_scl_push()->f = d;
 }
 
 inline void ctrl_push_long(scl_int n) {
-	stack.data[stack.ptr++].i = n;
+	_scl_push()->i = n;
 }
 
 inline void ctrl_push(scl_any n) {
-	stack.data[stack.ptr++].v = n;
+	_scl_push()->v = n;
 }
 
 inline scl_int ctrl_pop_long() {
-	return stack.data[--stack.ptr].i;
+	return _scl_pop()->i;
 }
 
 inline scl_float ctrl_pop_double() {
-	return stack.data[--stack.ptr].f;
+	return _scl_pop()->f;
 }
 
 inline scl_str ctrl_pop_string() {
-	return stack.data[--stack.ptr].s;
+	return _scl_pop()->s;
 }
 
 inline scl_any ctrl_pop() {
-	return stack.data[--stack.ptr].v;
+	return _scl_pop()->v;
 }
 
 inline ssize_t ctrl_stack_size(void) {
-	return stack.ptr;
+	return _scl_internal_stack.ptr;
 }
 
 
@@ -546,12 +577,14 @@ struct sclstruct {
 };
 
 // table of instances
-static struct sclstruct* allocated_structs[STACK_SIZE];
+static struct sclstruct** allocated_structs;
 static scl_int allocated_structs_count = 0;
+static scl_int allocated_structs_cap = 64;
 
 // table of instances allocated with _scl_alloc_struct()
-static struct sclstruct* mallocced_structs[STACK_SIZE];
+static struct sclstruct** mallocced_structs;
 static scl_int mallocced_structs_count = 0;
+static scl_int mallocced_structs_cap = 64;
 
 // Free all allocated instances
 void _scl_finalize() {
@@ -622,7 +655,7 @@ void* _scl_get_method_on_type(hash type, hash method) {
 
 // adds an instance to the table of tracked instances
 scl_any _scl_add_struct(scl_any ptr) {
-	_scl_sorted_insert((scl_any*) allocated_structs, &allocated_structs_count, ptr);
+	_scl_sorted_insert((scl_any**) &allocated_structs, &allocated_structs_count, ptr, &allocated_structs_cap);
 	return ptr;
 }
 
@@ -651,7 +684,7 @@ scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
     ((struct sclstruct*) ptr)->count = 1;
 
 	// Add struct to allocated table
-	scl_int index = _scl_sorted_insert((scl_any*) mallocced_structs, &mallocced_structs_count, ptr);
+	scl_int index = _scl_sorted_insert((scl_any**) &mallocced_structs, &mallocced_structs_count, ptr, &mallocced_structs_cap);
 	allocated_structs_count++;
 	return allocated_structs[index] = ptr;
 }
@@ -687,7 +720,7 @@ void _scl_free_struct(scl_any ptr) {
 
 	scl_any method = _scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
 	if (method) {
-		stack.data[stack.ptr++].v = ptr;
+		_scl_push()->v = ptr;
 		((void(*)()) method)();
 	}
 	size_t i = _scl_find_index_of_struct(ptr);
@@ -855,6 +888,28 @@ void _scl_set_up_signal_handler() {
 #endif
 }
 
+_scl_frame_t* _scl_push() {
+	_scl_internal_stack.ptr++;
+	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
+		_scl_internal_stack.cap *= 2;
+		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
+	}
+	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
+}
+
+static scl_int max(scl_int a, scl_int b) {
+	return (a > b ? a : b);
+}
+
+_scl_frame_t* _scl_pop() {
+	_scl_internal_stack.ptr--;
+	if (_scl_internal_stack.ptr < (_scl_internal_stack.cap / 2)) {
+		_scl_internal_stack.cap = max((scl_int) pow(2, ceil(log2((double) _scl_internal_stack.ptr))), 16);
+		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
+	}
+	return &_scl_internal_stack.data[_scl_internal_stack.ptr];
+}
+
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
@@ -890,8 +945,20 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
 
-	callstk.data[0].file = __FILE__;
-	callstk.data[0].func = (scl_str) __FUNCTION__;
+	_scl_internal_callstack.data[0].file = __FILE__;
+	_scl_internal_callstack.data[0].func = (scl_str) __FUNCTION__;
+
+	// These use C's malloc, keep it that way
+	// They should NOT be affected by any future
+	// stuff we might do with _scl_alloc()
+	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * 2);
+	_scl_internal_stack.cap = 16;
+	_scl_internal_stack.ptr = 0;
+
+	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
+	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
+	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
+	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
 
 	// Convert argv and envp from native arrays to Scale arrays
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
@@ -903,6 +970,19 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 
 // Initialize as library
 _scl_constructor void _scl_load() {
+
+	// These use C's malloc, keep it that way
+	// They should NOT be affected by any future
+	// stuff we might do with _scl_alloc()
+	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * 2);
+	_scl_internal_stack.cap = 16;
+	_scl_internal_stack.ptr = 0;
+
+	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
+	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
+	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
+	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
+	
 #endif
 
 	// Run __init__ functions
@@ -913,7 +993,7 @@ _scl_constructor void _scl_load() {
 #ifndef SCL_COMPILER_NO_MAIN
 
 	int ret;
-	if (setjmp(exceptions._scl_jmp_buf[exceptions._scl_jmp_buf_ptr++]) != 666) {
+	if (setjmp(_scl_internal_exceptions._scl_jmp_buf[_scl_internal_exceptions._scl_jmp_buf_ptr++]) != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
 		ret = (_scl_main ? _scl_main(args, env) : 0);

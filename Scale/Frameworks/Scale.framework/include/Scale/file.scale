@@ -16,14 +16,14 @@ end
 
 function ftell(_file_: file): int
   inline_c
-    stack.data[stack.ptr++].i = ftell(*_file_);
+    _scl_push()->i = ftell(*_file_);
   end_inline
   return
 end
 
 function fileno(_file_: file): int
   inline_c
-    stack.data[stack.ptr++].i = fileno(*_file_);
+    _scl_push()->i = fileno(*_file_);
   end_inline
   return
 end

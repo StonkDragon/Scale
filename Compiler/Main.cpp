@@ -63,19 +63,20 @@ namespace sclc
         std::cout << "Accepted Flags:" << std::endl;
         std::cout << "  -t, --transpile      Transpile only" << std::endl;
         std::cout << "  -h, --help           Show this help" << std::endl;
+        std::cout << "  -v, --version        Show version information" << std::endl;
         std::cout << "  -o <filename>        Specify Output file" << std::endl;
         std::cout << "  -f <framework>       Use Scale Framework" << std::endl;
-        std::cout << "  --no-main            Do not check for main Function" << std::endl;
-        std::cout << "  -v, --version        Show version information" << std::endl;
-        std::cout << "  --comp <comp>        Use comp as the compiler instead of gcc" << std::endl;
+        std::cout << "  -no-main             Do not check for main Function" << std::endl;
+        std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
         std::cout << "  -run                 Run the compiled program" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
-        std::cout << "  -debug               Run in debug mode" << std::endl;
+        std::cout << "  -debug               Run in debug mode. This option implies the -no-minify option" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
+        std::cout << "  -no-minify           Generate more useful debugging information" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
         std::cout << std::endl;
-        std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by --comp)" << std::endl;
+        std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by -compiler)" << std::endl;
     }
 
     bool contains(std::vector<std::string>& vec, std::string& item) {
@@ -571,6 +572,8 @@ namespace sclc
                     Main.frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
         }
 
+        Main.options.minify = true;
+
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
                 if (!fileExists(args[i])) {
@@ -618,25 +621,28 @@ namespace sclc
                     Main.options.assembleOnly = true;
                     Main.options.dontSpecifyOutFile = true;
                     tmpFlags.push_back("-S");
-                } else if (args[i] == "--no-main") {
+                } else if (args[i] == "--no-main" || args[i] == "-no-main") {
                     Main.options.noMain = true;
                     tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
+                } else if (args[i] == "-no-minify") {
+                    Main.options.minify = false;
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system((compiler + " -v").c_str());
                     return 0;
-                } else if (args[i] == "--comp") {
+                } else if (args[i] == "--comp" || args[i] == "-compiler") {
                     if (i + 1 < args.size()) {
                         compiler = args[i + 1];
                         i++;
                     } else {
-                        std::cerr << "Error: --comp requires an argument" << std::endl;
+                        std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                         return 1;
                     }
                 } else if (args[i] == "-run") {
                     Main.options.doRun = true;
                 } else if (args[i] == "-debug") {
                     Main.options.debugBuild = true;
+                    Main.options.minify = false;
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
@@ -648,7 +654,7 @@ namespace sclc
                         Main.options.docPrinterArgsStart = i;
                         break;
                     } else {
-                        std::cerr << "Error: -doc requires an argument" << std::endl;
+                        std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
                     }
                 } else if (args[i] == "-doc") {
@@ -660,9 +666,9 @@ namespace sclc
                 } else {
                     if (args[i] == "-c")
                         Main.options.dontSpecifyOutFile = true;
-                    if (args[i][0] == '-' && args[i][1] == 'O')
+                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O')
                         optimizer = std::string(args[i].c_str() + 1);
-                    if (args[i][0] == '-' && args[i][1] == 'I')
+                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I')
                         Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
                     if (args[i] == "-Werror")
                         Main.options.Werror = true;

@@ -10,7 +10,7 @@
 
 #define debugPrintPush()         \
     if (Main.options.debugBuild) \
-        append("fprintf(stderr, \"Pushed: %%lld\\n\", stack.data[stack.ptr - 1].i);\n");
+        append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_internal_stack.data[_scl_internal_stack.ptr - 1].i);\n");
 
 #define resetFile()                                                                          \
     do                                                                                       \

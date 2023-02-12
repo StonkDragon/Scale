@@ -78,6 +78,10 @@
 #define STACK_SIZE			131072
 #endif
 
+#if !defined(EXCEPTION_DEPTH)
+#define EXCEPTION_DEPTH		1024
+#endif
+
 #if !defined(SIGABRT)
 #define SIGABRT 6
 #endif
@@ -216,7 +220,8 @@ typedef union {
 
 typedef struct {
 	scl_int			ptr;
-	_scl_frame_t	data[STACK_SIZE];
+	scl_int			cap;
+	_scl_frame_t*	data;
 } _scl_stack_t;
 
 typedef struct {
@@ -254,6 +259,8 @@ scl_float		ctrl_pop_double(void);
 scl_int			ctrl_pop_long(void);
 scl_any			ctrl_pop(void);
 ssize_t			ctrl_stack_size(void);
+_scl_frame_t*	_scl_push();
+_scl_frame_t*	_scl_pop();
 
 void			_scl_remove_ptr(scl_any ptr);
 scl_int			_scl_get_index_of_ptr(scl_any ptr);
