@@ -179,12 +179,17 @@ void _scl_assert(scl_int b, scl_str msg) {
 
 // Hard-throw an exception
 _scl_no_return void _scl_security_throw(int code, scl_str msg) {
+	remove("scl_trace.log");
+	FILE* trace = fopen("scl_trace.log", "a");
 	printf("\n");
+	fprintf(trace, "\n");
 	printf("Exception: %s\n", msg);
+	fprintf(trace, "Exception: %s\n", msg);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
+		fprintf(trace, "errno: %s\n", strerror(errno));
 	}
-	print_stacktrace();
+	print_stacktrace_with_file(trace);
 
 	_scl_security_safe_exit(code);
 }
@@ -249,6 +254,59 @@ void print_stacktrace() {
 	}
 	printingStacktrace = 0;
 	printf("\n");
+}
+
+
+void print_stacktrace_with_file(FILE* trace) {
+	printingStacktrace = 1;
+
+#if !defined(_WIN32) && !defined(__wasm__)
+	if (callstk.ptr)
+#endif
+	printf("Stacktrace:\n");
+	fprintf(trace, "Stacktrace:\n");
+	if (callstk.ptr == 0) {
+#if !defined(_WIN32) && !defined(__wasm__)
+		printf("Native trace:\n");
+		fprintf(trace, "Native trace:\n");
+
+        void* array[64];
+        char** strings;
+        int size, i;
+
+        size = backtrace(array, 64);
+        strings = backtrace_symbols(array, size);
+        if (strings != NULL) {
+            for (i = 1; i < size; i++) {
+                printf("  %s\n", strings[i]);
+                fprintf(trace, "  %s\n", strings[i]);
+			}
+        }
+
+        free(strings);
+#else
+		printf("  <empty>\n");
+		fprintf(trace, "  <empty>\n");
+#endif
+		return;
+	}
+
+	for (signed long i = callstk.ptr - 1; i >= 0; i--) {
+		if (callstk.data[i].file) {
+			char* f = strrchr(callstk.data[i].file, '/');
+			if (!f) f = callstk.data[i].file;
+			else f++;
+			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
+			fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, f, callstk.data[i].line, callstk.data[i].col);
+		} else {
+			printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
+			fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) callstk.data[i].func, callstk.data[i].line, callstk.data[i].col);
+		}
+
+	}
+	printingStacktrace = 0;
+	printf("\n");
+	fprintf(trace, "\n");
 }
 
 // final signal handler
@@ -318,26 +376,37 @@ void _scl_catch_final(int sig_num) {
 
 	printf("\n");
 
+	remove("scl_trace.log");
+	FILE* trace = fopen("scl_trace.log", "a");
+
 	if (callstk.ptr == 0) {
 		printf("<native code>: Exception: %s\n", signalString);
+		fprintf(trace, "<native code>: Exception: %s\n", signalString);
 	} else {
 		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
+		fprintf(trace, "%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", callstk.data[callstk.ptr - 1].file, callstk.data[callstk.ptr - 1].line, callstk.data[callstk.ptr - 1].col, signalString);
 	}
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
+		fprintf(trace, "errno: %s\n", strerror(errno));
 	}
 	if (!printingStacktrace)
-		print_stacktrace();
+		print_stacktrace_with_file(trace);
 	if (stack.ptr && stack.ptr < STACK_SIZE) {
 		printf("Stack:\n");
+		fprintf(trace, "Stack:\n");
 		printf("SP: " SCL_INT_FMT "\n", stack.ptr);
+		fprintf(trace, "SP: " SCL_INT_FMT "\n", stack.ptr);
 		for (scl_int i = stack.ptr - 1; i >= 0; i--) {
 			scl_int v = stack.data[i].i;
 			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+			fprintf(trace, "   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
 		}
 		printf("\n");
+		fprintf(trace, "\n");
 	}
 
+	fclose(trace);
 	exit(sig_num);
 }
 
@@ -796,14 +865,11 @@ typedef void(*genericFunc)();
 
 // __init__
 // last element is always NULL
-extern genericFunc init_functions[];
+extern genericFunc _scl_internal_init_functions[];
 
 // __destroy__
 // last element is always NULL
-extern genericFunc destroy_functions[];
-
-// Global variable pointers
-extern scl_any* global_variables[];
+extern genericFunc _scl_internal_destroy_functions[];
 
 #ifndef SCL_COMPILER_NO_MAIN
 const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
@@ -840,8 +906,8 @@ _scl_constructor void _scl_load() {
 #endif
 
 	// Run __init__ functions
-	for (int i = 0; init_functions[i]; i++) {
-		init_functions[i]();
+	for (int i = 0; _scl_internal_init_functions[i]; i++) {
+		_scl_internal_init_functions[i]();
 	}
 
 #ifndef SCL_COMPILER_NO_MAIN
@@ -869,8 +935,8 @@ _scl_destructor void _scl_destroy() {
 	_scl_finalize();
 
 	// Run __destroy__ functions
-	for (int i = 0; destroy_functions[i]; i++) {
-		destroy_functions[i]();
+	for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
+		_scl_internal_destroy_functions[i]();
 	}
 
 #ifndef SCL_COMPILER_NO_MAIN

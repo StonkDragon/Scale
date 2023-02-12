@@ -243,6 +243,7 @@ _scl_no_return
 void			_scl_security_safe_exit(int code);
 void			_scl_catch_final(int sig_num);
 void			print_stacktrace(void);
+void			print_stacktrace_with_file(FILE* trace);
 
 void			ctrl_push_string(scl_str c);
 void			ctrl_push_long(scl_int n);
