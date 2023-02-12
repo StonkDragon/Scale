@@ -892,7 +892,11 @@ _scl_frame_t* _scl_push() {
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
 		_scl_internal_stack.cap *= 2;
-		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
+		_scl_frame_t* tmp = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
+		if (!tmp) {
+			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		}
+		_scl_internal_stack.data = tmp;
 	}
 	
 	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
