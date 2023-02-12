@@ -34,7 +34,7 @@ namespace sclc {
     FILE* support_header;
     FILE* symbolTable;
 
-    std::string sclFunctionNameToFriendlyString(std::string name);
+    std::string sclFunctionNameToFriendlyString(Function* f);
 
     bool hasTypealias(TPResult r, std::string t) {
         if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
@@ -1143,7 +1143,7 @@ namespace sclc {
             bool argsCorrect = checkStackType(result, f->getArgs());
             if (!argsCorrect) {
                 {
-                    transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                    transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                     errors.push_back(err);
                 }
                 transpilerError("Expected: [ " + argVectorToString(f->getArgs()) + " ], but got: [ " + stackSliceToString(f->getArgs().size()) + " ]", i);
@@ -1224,7 +1224,7 @@ namespace sclc {
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
-                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                                 errors.push_back(err);
                             }
                             transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -1274,7 +1274,7 @@ namespace sclc {
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
-                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                                 errors.push_back(err);
                             }
                             transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -1323,7 +1323,7 @@ namespace sclc {
                         bool argsCorrect = checkStackType(result, f->getArgs());
                         if (!argsCorrect) {
                             {
-                                transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                                transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                                 errors.push_back(err);
                             }
                             transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -1390,7 +1390,7 @@ namespace sclc {
                 bool argsCorrect = checkStackType(result, f->getArgs());
                 if (!argsCorrect) {
                     {
-                        transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                        transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                         errors.push_back(err);
                     }
                     transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -1431,7 +1431,7 @@ namespace sclc {
                     bool argsCorrect = checkStackType(result, f->getArgs());
                     if (!argsCorrect) {
                         {
-                            transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                            transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                             errors.push_back(err);
                         }
                         transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -3532,7 +3532,7 @@ namespace sclc {
         bool argsCorrect = checkStackType(result, f->getArgs());
         if (!argsCorrect) {
             {
-                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName()) + "' do not equal inferred stack!", i);
+                transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
             }
             transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
@@ -3828,6 +3828,17 @@ namespace sclc {
         name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_at", "@");
         name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_wildcard", "?");
         name = replaceAll(name, "\\$", "::");
+
+        if (strstarts(name, "::lambda")) {
+            name = "<lambda" + name.substr(8, name.find_first_of("(") - 8) + ">";
+        }
+
+        return name;
+    }
+
+    std::string sclFunctionNameToFriendlyString(Function* f) {
+        std::string name = f->getName();
+        name = sclFunctionNameToFriendlyString(name);
         return name;
     }
 
@@ -3930,8 +3941,8 @@ namespace sclc {
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
             append(".$__count__ = 0,\n");
-            append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f->getName()).c_str()));
-            append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f).c_str()));
+            append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_function_%s,\n", f->getName().c_str());
             append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
             append(".member_type = 0,\n");
@@ -3964,8 +3975,8 @@ namespace sclc {
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
             append(".$__count__ = 0,\n");
-            append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f->getName())).c_str()));
-            append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f->getName()).c_str());
+            append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f)).c_str()));
+            append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
             append(".id = 0x%xU,\n", hash1((char*) f->getName().c_str()));
             append(".member_type = 0x%xU,\n", hash1((char*) m->getMemberType().c_str()));
@@ -4048,8 +4059,7 @@ namespace sclc {
 
         append("/* FUNCTIONS */\n");
 
-        for (size_t f = 0; f < result.functions.size(); f++)
-        {
+        for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = result.functions[f];
             while (vars.size() < 2) {
                 std::vector<Variable> def;
@@ -4067,6 +4077,7 @@ namespace sclc {
 
             scopeDepth = 0;
             noWarns = false;
+            lambdaCount = 0;
 
             for (std::string modifier : function->getModifiers()) {
                 if (modifier == "nowarn") {
@@ -4196,8 +4207,8 @@ namespace sclc {
                 Method* m = static_cast<Method*>(function);
                 append("if (!_scl_do_method_check && _scl_find_index_of_struct(Var_self) != -1 && Var_self->$__type__ != 0x%xU) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
-                append("scl_any method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getName()).c_str()));
-                append("if (method == NULL) method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m->getMemberType() + ":" + m->getName()).c_str()));
+                append("scl_any method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
+                append("if (method == NULL) method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(m)).c_str()));
                 append("if (method != NULL) {\n");
                 for (size_t k = 0; k < function->getArgs().size(); k++) {
                     Variable arg = function->getArgs()[k];
