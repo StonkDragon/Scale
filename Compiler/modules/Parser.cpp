@@ -90,33 +90,22 @@ namespace sclc
 
         fclose(support_header);
 
-        append("scl_any init_functions[] = {\n");
+        append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {
             if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
                 append("  (scl_any) Function_%s,\n", f->getName().c_str());
             }
         }
         append("  0\n");
-        append("};\n");
-        append("scl_any destroy_functions[] = {\n");
+        append("};\n\n");
+        append("scl_any _scl_internal_destroy_functions[] = {\n");
         for (Function* f : result.functions) {
             if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
                 append("  (scl_any) Function_%s,\n", f->getName().c_str());
             }
         }
         append("  0\n");
-        append("};\n");
-        append("scl_any* global_variables[] = {\n");
-        for (Variable s : result.globals) {
-            append("  (scl_any*) &Var_%s,\n", s.getName().c_str());
-        }
-        for (Container c : result.containers) {
-            for (Variable v : c.getMembers()) {
-                append("  (scl_any*) &Container_%s.%s,\n", c.getName().c_str(), v.getName().c_str());
-            }
-        }
-        append("  0\n");
-        append("};\n");
+        append("};\n\n");
 
         append("scl_any _scl_get_main_addr() {\n");
         if (mainFunction && !Main.options.noMain) {
