@@ -84,6 +84,89 @@ namespace sclc {
                         i++;
                     }
                     func->addArgument(v);
+                } else if (tokens[i].getType() == tok_curly_open) {
+                    std::vector<std::string> multi;
+                    i++;
+                    while (tokens[i].getType() != tok_curly_close) {
+                        if (tokens[i].getType() == tok_comma) {
+                            i++;
+                        }
+                        if (tokens[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
+                        }
+                        std::string name = tokens[i].getValue();
+                        if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
+                        multi.push_back(name);
+                        i++;
+                    }
+                    i++;
+                    std::string type;
+                    bool isConst = false;
+                    bool isMut = false;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
+                            if (tokens[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (tokens[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            i++;
+                        }
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            FPResult result;
+                            result.message = "Type 'none' is only valid for function return types.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "A type is required!";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    for (std::string s : multi) {
+                        Variable v = Variable(s, type, isConst, isMut);
+                        if (tokens[i + 1].getValue() == "?") {
+                            v.canBeNil = true;
+                            i++;
+                        }
+                        func->addArgument(v);
+                    }
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
@@ -282,6 +365,89 @@ namespace sclc {
                         i++;
                     }
                     method->addArgument(v);
+                } else if (tokens[i].getType() == tok_curly_open) {
+                    std::vector<std::string> multi;
+                    i++;
+                    while (tokens[i].getType() != tok_curly_close) {
+                        if (tokens[i].getType() == tok_comma) {
+                            i++;
+                        }
+                        if (tokens[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            i++;
+                            continue;
+                        }
+                        std::string name = tokens[i].getValue();
+                        if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
+                        else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
+                        multi.push_back(name);
+                        i++;
+                    }
+                    i++;
+                    std::string type;
+                    bool isConst = false;
+                    bool isMut = false;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
+                            if (tokens[i].getValue() == "const") {
+                                isConst = true;
+                            } else if (tokens[i].getValue() == "mut") {
+                                isMut = true;
+                            }
+                            i++;
+                        }
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            FPResult result;
+                            result.message = "Type 'none' is only valid for function return types.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else {
+                        FPResult result;
+                        result.message = "A type is required!";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    for (std::string s : multi) {
+                        Variable v = Variable(s, type, isConst, isMut);
+                        if (tokens[i + 1].getValue() == "?") {
+                            v.canBeNil = true;
+                            i++;
+                        }
+                        method->addArgument(v);
+                    }
                 } else {
                     FPResult result;
                     result.message = "Expected identifier for method argument, but got '" + tokens[i].getValue() + "'";
