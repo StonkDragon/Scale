@@ -894,6 +894,7 @@ _scl_frame_t* _scl_push() {
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
 		_scl_internal_stack.cap *= 2;
+		printf("Resizing stack to " SCL_INT_FMT " slots\n", _scl_internal_stack.cap);
 		_scl_frame_t* tmp = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 		if (!tmp) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
