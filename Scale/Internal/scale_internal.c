@@ -460,13 +460,10 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 #endif
 	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", hash1("SclObject"));
 	scl_int cap = 0;
-	while (arr[cap]) {
-		arr += sizeof(scl_str*);
+	while (arr[cap] != NULL) {
 		cap++;
 		printf("cap: %d\n", cap);
 	}
-
-	arr -= cap * sizeof(scl_str*);
 
 	array->capacity = (scl_any) cap;
 	array->count = 0;
@@ -965,7 +962,9 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	}
 
 	// Register signal handler for all available signals
+#if !defined(SCL_DEBUG)
 	_scl_set_up_signal_handler();
+#endif
 
 	_scl_internal_callstack.data[0].file = __FILE__;
 	_scl_internal_callstack.data[0].func = (scl_str) __FUNCTION__;
