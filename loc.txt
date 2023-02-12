@@ -50,7 +50,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       35 Scale/Frameworks/Scale.framework/include/Scale/util/thread.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-    1047 Scale/Internal/scale_internal.c
+    1053 Scale/Internal/scale_internal.c
      296 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -82,4 +82,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13663 total
+   13669 total
