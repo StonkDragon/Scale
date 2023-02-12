@@ -156,6 +156,7 @@ namespace sclc {
             bool printDocs;
             bool debugBuild;
             bool printCflags;
+            size_t stackSize;
             bool assembleOnly;
             bool transpileOnly;
             bool preprocessOnly;

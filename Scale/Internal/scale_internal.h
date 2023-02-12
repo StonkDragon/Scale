@@ -241,56 +241,54 @@ typedef struct {
 
 typedef void(*_scl_lambda)(void);
 
-_scl_no_return
-void			_scl_security_throw(int code, scl_str msg);
+_scl_no_return void	_scl_security_throw(int code, scl_str msg);
+_scl_no_return void	_scl_security_safe_exit(int code);
 
-_scl_no_return
-void			_scl_security_safe_exit(int code);
-void			_scl_catch_final(int sig_num);
-void			print_stacktrace(void);
-void			print_stacktrace_with_file(FILE* trace);
+void				_scl_catch_final(int sig_num);
+void				print_stacktrace(void);
+void				print_stacktrace_with_file(FILE* trace);
 
-void			ctrl_push_string(scl_str c);
-void			ctrl_push_long(scl_int n);
-void			ctrl_push_double(scl_float d);
-void			ctrl_push(scl_any n);
-scl_str			ctrl_pop_string(void);
-scl_float		ctrl_pop_double(void);
-scl_int			ctrl_pop_long(void);
-scl_any			ctrl_pop(void);
-ssize_t			ctrl_stack_size(void);
-_scl_frame_t*	_scl_push();
-_scl_frame_t*	_scl_pop();
-_scl_frame_t*	_scl_top();
+void				ctrl_push_string(scl_str c);
+void				ctrl_push_long(scl_int n);
+void				ctrl_push_double(scl_float d);
+void				ctrl_push(scl_any n);
+scl_str				ctrl_pop_string(void);
+scl_float			ctrl_pop_double(void);
+scl_int				ctrl_pop_long(void);
+scl_any				ctrl_pop(void);
+ssize_t				ctrl_stack_size(void);
+_scl_frame_t*		_scl_push();
+_scl_frame_t*		_scl_pop();
+_scl_frame_t*		_scl_top();
 
-void			_scl_remove_ptr(scl_any ptr);
-scl_int			_scl_get_index_of_ptr(scl_any ptr);
-void			_scl_remove_ptr_at_index(scl_int index);
-void			_scl_add_ptr(scl_any ptr, size_t size);
-scl_int			_scl_check_allocated(scl_any ptr);
-scl_any			_scl_realloc(scl_any ptr, size_t size);
-scl_any			_scl_alloc(size_t size);
-void			_scl_free(scl_any ptr);
-void			_scl_assert(scl_int b, scl_str msg);
-void			_scl_finalize(void);
-void			_scl_unreachable(char* msg);
+void				_scl_remove_ptr(scl_any ptr);
+scl_int				_scl_get_index_of_ptr(scl_any ptr);
+void				_scl_remove_ptr_at_index(scl_int index);
+void				_scl_add_ptr(scl_any ptr, size_t size);
+scl_int				_scl_check_allocated(scl_any ptr);
+scl_any				_scl_realloc(scl_any ptr, size_t size);
+scl_any				_scl_alloc(size_t size);
+void				_scl_free(scl_any ptr);
+void				_scl_assert(scl_int b, scl_str msg);
+void				_scl_finalize(void);
+void				_scl_unreachable(char* msg);
 
-hash			hash1(char* data);
-void			_scl_cleanup_post_func(scl_int depth);
-scl_any			_scl_alloc_struct(size_t size, scl_str type_name, hash super);
-void			_scl_free_struct(scl_any ptr);
-scl_any			_scl_add_struct(scl_any ptr);
-scl_int			_scl_struct_is_type(scl_any ptr, hash typeId);
-scl_any			_scl_get_method_on_type(hash type, hash method);
-size_t			_scl_find_index_of_struct(scl_any ptr);
-void			_scl_free_struct_no_finalize(scl_any ptr);
+hash				hash1(char* data);
+void				_scl_cleanup_post_func(scl_int depth);
+scl_any				_scl_alloc_struct(size_t size, scl_str type_name, hash super);
+void				_scl_free_struct(scl_any ptr);
+scl_any				_scl_add_struct(scl_any ptr);
+scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);
+scl_any				_scl_get_method_on_type(hash type, hash method);
+size_t				_scl_find_index_of_struct(scl_any ptr);
+void				_scl_free_struct_no_finalize(scl_any ptr);
 
-void			_scl_reflect_call(hash func);
-void			_scl_reflect_call_method(hash func);
-scl_any			_scl_typeinfo_of(hash type);
-scl_int			_scl_reflect_find(hash func);
-scl_int			_scl_reflect_find_method(hash func);
-scl_int			_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int			_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+void				_scl_reflect_call(hash func);
+void				_scl_reflect_call_method(hash func);
+scl_any				_scl_typeinfo_of(hash type);
+scl_int				_scl_reflect_find(hash func);
+scl_int				_scl_reflect_find_method(hash func);
+scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
+scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 
 #endif // __SCALE_INTERNAL_H__

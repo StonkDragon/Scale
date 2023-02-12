@@ -70,11 +70,12 @@ namespace sclc
         std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
         std::cout << "  -run                 Run the compiled program" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
-        std::cout << "  -debug               Run in debug mode. This option implies the -no-minify option" << std::endl;
+        std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
-        std::cout << "  -no-minify           Generate more useful debugging information" << std::endl;
+        std::cout << "  -minify              Omit extra data for stack traces" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
+        std::cout << "  -stack-size <sz>     Sets the starting stack size. Must be a multiple of 2" << std::endl;
         std::cout << std::endl;
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by -compiler)" << std::endl;
     }
@@ -572,7 +573,8 @@ namespace sclc
                     Main.frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
         }
 
-        Main.options.minify = true;
+        Main.options.minify = false;
+        Main.options.stackSize = 16;
 
         for (size_t i = 1; i < args.size(); i++) {
             if (strends(std::string(args[i]), ".scale")) {
@@ -624,8 +626,8 @@ namespace sclc
                 } else if (args[i] == "--no-main" || args[i] == "-no-main") {
                     Main.options.noMain = true;
                     tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
-                } else if (args[i] == "-no-minify") {
-                    Main.options.minify = false;
+                } else if (args[i] == "-minify") {
+                    Main.options.minify = true;
                 } else if (args[i] == "-v" || args[i] == "--version") {
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system((compiler + " -v").c_str());
@@ -647,12 +649,19 @@ namespace sclc
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
+                } else if (args[i] == "-stack-size") {
+                    if (i + 1 < args.size()) {
+                        Main.options.stackSize = std::stoull(args[i + 1]);
+                        i++;
+                    } else {
+                        std::cerr << "Error: -stack-size requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else if (args[i] == "-doc-for") {
                     if (i + 1 < args.size()) {
                         Main.options.printDocFor = args[i + 1];
                         i++;
                         Main.options.docPrinterArgsStart = i;
-                        break;
                     } else {
                         std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
@@ -688,6 +697,7 @@ namespace sclc
         cflags.push_back("-std=" + std::string(C_VERSION));
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+        cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
 
         if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
             cflags.push_back("-o");
