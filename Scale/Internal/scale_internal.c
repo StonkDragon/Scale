@@ -423,6 +423,8 @@ void _scl_catch_final(int sig_num) {
 	}
 	if (!printingStacktrace)
 		print_stacktrace_with_file(trace);
+	printf("Stack address: %p\n", _scl_internal_stack.data);
+	fprintf(trace, "Stack address: %p\n", _scl_internal_stack.data);
 	if (_scl_internal_stack.ptr && _scl_internal_stack.ptr < _scl_internal_stack.cap) {
 		printf("Stack:\n");
 		fprintf(trace, "Stack:\n");
