@@ -18,7 +18,7 @@
      394 Compiler/modules/DragonConfig.cpp
      107 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     143 Compiler/modules/Parser.cpp
+     132 Compiler/modules/Parser.cpp
     1458 Compiler/modules/SyntaxTree.cpp
      260 Compiler/modules/TokenHandlers.cpp
      522 Compiler/modules/Tokenizer.cpp
@@ -50,7 +50,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       35 Scale/Frameworks/Scale.framework/include/Scale/util/thread.scale
       11 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
-     949 Scale/Internal/scale_internal.c
+     946 Scale/Internal/scale_internal.c
      288 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -82,4 +82,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13561 total
+   13547 total

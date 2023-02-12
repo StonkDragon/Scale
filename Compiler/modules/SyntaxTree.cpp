@@ -1135,7 +1135,7 @@ namespace sclc {
                     continue;
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
-                if (token.getValue() == "lambda" && (i - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
+                if (token.getValue() == "lambda" && (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
