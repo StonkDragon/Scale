@@ -899,15 +899,15 @@ _scl_frame_t* _scl_push() {
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
 		_scl_internal_stack.cap *= 2;
-		printf("Resizing stack to " SCL_INT_FMT " slots\n", _scl_internal_stack.cap);
 		_scl_frame_t* tmp = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 		if (!tmp) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		} else {
+			_scl_internal_stack.data = tmp;
 		}
-		_scl_internal_stack.data = tmp;
 	}
-	
-	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
+
+	_scl_frame_t* res = &(_scl_internal_stack.data[_scl_internal_stack.ptr - 1]);
 	_scl_internal_callstack.ptr--;
 	return res;
 }
@@ -915,7 +915,7 @@ _scl_frame_t* _scl_push() {
 _scl_frame_t* _scl_pop() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
 	_scl_internal_stack.ptr--;
-	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr];
+	_scl_frame_t* res = &(_scl_internal_stack.data[_scl_internal_stack.ptr]);
 	_scl_internal_callstack.ptr--;
 	return res;
 }
@@ -977,9 +977,9 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
 	// stuff we might do with _scl_alloc()
-	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * 2);
-	_scl_internal_stack.cap = 16;
 	_scl_internal_stack.ptr = 0;
+	_scl_internal_stack.cap = 16;
+	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 
 	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
 	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
@@ -1006,9 +1006,9 @@ _scl_constructor void _scl_load() {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
 	// stuff we might do with _scl_alloc()
-	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * 2);
-	_scl_internal_stack.cap = 16;
 	_scl_internal_stack.ptr = 0;
+	_scl_internal_stack.cap = 16;
+	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 
 	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
 	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
