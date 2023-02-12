@@ -284,9 +284,15 @@ void print_stacktrace_with_file(FILE* trace) {
 #if !defined(_WIN32) && !defined(__wasm__)
 	if (_scl_internal_callstack.ptr)
 #endif
-	printf("Stacktrace:\n");
-	fprintf(trace, "Stacktrace:\n");
-	// if (callstk.ptr == 0) {
+	{
+		printf("Stacktrace:\n");
+		fprintf(trace, "Stacktrace:\n");
+	}
+#if defined(SCL_DEBUG) && !defined(_WIN32) && !defined(__wasm__)
+	if (true) {
+#else
+	if (_scl_internal_callstack.ptr == 0) {
+#endif
 #if !defined(_WIN32) && !defined(__wasm__)
 		printf("Native trace:\n");
 		fprintf(trace, "Native trace:\n");
@@ -309,8 +315,8 @@ void print_stacktrace_with_file(FILE* trace) {
 		printf("  <empty>\n");
 		fprintf(trace, "  <empty>\n");
 #endif
-		// return;
-	// }
+		return;
+	}
 
 	for (signed long i = _scl_internal_callstack.ptr - 1; i >= 0; i--) {
 		if (_scl_internal_callstack.data[i].file) {
@@ -889,7 +895,6 @@ void _scl_set_up_signal_handler() {
 
 _scl_frame_t* _scl_push() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
-	errno = 0;
 
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
@@ -909,7 +914,6 @@ _scl_frame_t* _scl_push() {
 
 _scl_frame_t* _scl_pop() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
-	errno = 0;
 	_scl_internal_stack.ptr--;
 	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr];
 	_scl_internal_callstack.ptr--;
