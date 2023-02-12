@@ -939,8 +939,20 @@ extern genericFunc _scl_internal_destroy_functions[];
 #ifndef SCL_COMPILER_NO_MAIN
 const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
 
+#if defined(static_assert)
+static_assert(sizeof(scl_int) == sizeof(scl_any), "Size of scl_int and scl_any do not match!");
+static_assert(sizeof(scl_int) == sizeof(scl_float), "Size of scl_int and scl_float do not match!");
+static_assert(sizeof(scl_any) == sizeof(scl_float), "Size of scl_any and scl_float do not match!");
+#endif
+
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
 _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
+	#if !defined(static_assert)
+	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
+	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
+	assert(sizeof(scl_any) == sizeof(scl_float) && "Size of scl_any and scl_float do not match!");
+	#endif
+
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
@@ -980,6 +992,12 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 
 // Initialize as library
 _scl_constructor void _scl_load() {
+	#if !defined(static_assert)
+	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
+	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
+	assert(sizeof(scl_any) == sizeof(scl_float) && "Size of scl_any and scl_float do not match!");
+	#endif
+
 
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
