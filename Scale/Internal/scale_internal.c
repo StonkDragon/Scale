@@ -903,20 +903,10 @@ _scl_frame_t* _scl_push() {
 	return res;
 }
 
-static scl_int max(scl_int a, scl_int b) {
-	return (a > b ? a : b);
-}
-
 _scl_frame_t* _scl_pop() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
 	errno = 0;
 	_scl_internal_stack.ptr--;
-	if (_scl_internal_stack.ptr < (_scl_internal_stack.cap / 2)) {
-		while (_scl_internal_stack.cap >= _scl_internal_stack.ptr) {
-			_scl_internal_stack.cap /= 2;
-		}
-		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
-	}
 	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr];
 	_scl_internal_callstack.ptr--;
 	return res;
