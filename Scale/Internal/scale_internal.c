@@ -455,9 +455,6 @@ struct scl_Array {
 
 // Converts C NULL-terminated array to Array-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-#if defined(SCL_DEBUG)
-	return NULL;
-#endif
 	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", hash1("SclObject"));
 	scl_int cap = 0;
 	while (arr[cap] != NULL) {
@@ -962,9 +959,7 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	}
 
 	// Register signal handler for all available signals
-#if !defined(SCL_DEBUG)
 	_scl_set_up_signal_handler();
-#endif
 
 	_scl_internal_callstack.data[0].file = __FILE__;
 	_scl_internal_callstack.data[0].func = (scl_str) __FUNCTION__;
@@ -982,13 +977,8 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
 
 	// Convert argv and envp from native arrays to Scale arrays
-#if !defined(SCL_DEBUG)
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
 	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) envp);
-#else
-	struct scl_Array* args = (struct scl_Array*) NULL;
-	struct scl_Array* env = (struct scl_Array*) NULL;
-#endif
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
