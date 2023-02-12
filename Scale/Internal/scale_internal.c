@@ -980,8 +980,13 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
 
 	// Convert argv and envp from native arrays to Scale arrays
+#if !defined(SCL_DEBUG)
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
 	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) envp);
+#else
+	struct scl_Array* args = (struct scl_Array*) NULL;
+	struct scl_Array* env = (struct scl_Array*) NULL;
+#endif
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
