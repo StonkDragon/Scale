@@ -23,7 +23,7 @@
 		"scope": "source.scale",
 		"prefix": "lambda",
 		"body": [
-			"lambda($2)",
+			"lambda($1): ${2:none}",
 			"\t$0",
 			"end"
 		],
