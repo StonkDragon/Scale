@@ -738,9 +738,9 @@ namespace sclc {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
-            append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
+            append("_scl_assert(_scl_top()->i, \"Not nil assertion failed!\");\n");
         } else {
-            append("if (_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i == 0) {\n");
+            append("if (_scl_top()->i == 0) {\n");
             scopeDepth++;
             append("_scl_internal_callstack.ptr--;\n");
             if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_scl_internal_callstack.ptr);\n");
@@ -811,7 +811,7 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "dup") {
-            append("_scl_push()->v = _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v;\n");
+            append("_scl_push()->v = _scl_top()->v;\n");
             typeStack.push(typeStackTop);
             debugPrintPush();
         } else if (body[i].getValue() == "swap") {
@@ -926,7 +926,7 @@ namespace sclc {
             typeStack.push("bool");
         } else if (body[i].getValue() == "!") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "!", typeStackTop)) return;
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = !_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i;\n");
+            append("_scl_top()->i = !_scl_top()->i;\n");
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push("bool");
@@ -936,12 +936,12 @@ namespace sclc {
                 if (typeStack.size())
                     typeStack.pop();
                 typeStack.push(type.substr(0, type.size() - 1));
-                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Not nil assertion failed!\");\n");
+                append("_scl_assert(_scl_top()->i, \"Not nil assertion failed!\");\n");
             } else {
                 transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
-                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
+                append("_scl_assert(_scl_top()->i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
         } else if (body[i].getValue() == "?") {
             handle(ReturnOnNil);
@@ -1017,12 +1017,12 @@ namespace sclc {
             typeStack.push("bool");
         } else if (body[i].getValue() == "++") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i++;\n");
+            append("_scl_top()->i++;\n");
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].getValue() == "--") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "--", typeStackTop)) return;
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i--;\n");
+            append("_scl_top()->i--;\n");
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].getValue() == "exit") {
@@ -1209,14 +1209,14 @@ namespace sclc {
                         return;
                     }
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
-                    append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Failed to allocate memory for struct '%s'\");\n", struct_.c_str());
+                    append("_scl_assert(_scl_top()->i, \"Failed to allocate memory for struct '%s'\");\n", struct_.c_str());
                     typeStack.push(struct_);
                     debugPrintPush();
                     if (hasMethod(result, Token(tok_identifier, "init", 0, ""), struct_)) {
                         append("{\n");
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
-                        append("struct Struct_%s* tmp = (struct Struct_%s*) _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v;\n", struct_.c_str(), struct_.c_str());
+                        append("struct Struct_%s* tmp = (struct Struct_%s*) _scl_top()->v;\n", struct_.c_str(), struct_.c_str());
                         debugPrintPush();
                         if (f->getArgs().size() > 0) {
                             append("_scl_internal_stack.ptr -= %zu;\n", f->getArgs().size());
@@ -2408,7 +2408,7 @@ namespace sclc {
             }
             vars[varDepth].push_back(v);
             if (!typeCanBeNil(v.getType())) {
-                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
+                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
             }
             append("%s Var_%s = (%s) _scl_pop()->%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str(), sclTypeToCType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
             if (typeStack.size())
@@ -2436,7 +2436,7 @@ namespace sclc {
                     return;
                 }
                 if (!typeCanBeNil(container.getMember(memberName).getType())) {
-                    append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", containerName.c_str(), memberName.c_str());
+                    append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", containerName.c_str(), memberName.c_str());
                 }
                 append("Container_%s.%s = (%s) _scl_pop()->%s;\n", containerName.c_str(), memberName.c_str(), sclTypeToCType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
                 if (typeStack.size())
@@ -2458,7 +2458,7 @@ namespace sclc {
                                 return;
                             }
                             if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable 'self.%s'\");\n", mem.getName().c_str());
+                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable 'self.%s'\");\n", mem.getName().c_str());
                             }
                             if (mem.getType() == "float")
                                 append("Var_self->%s = _scl_pop()->f;\n", body[i].getValue().c_str());
@@ -2475,7 +2475,7 @@ namespace sclc {
                                 return;
                             }
                             if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), mem.getName().c_str());
+                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), mem.getName().c_str());
                             }
                             if (mem.getType() == "float")
                                 append("Var_%s$%s = _scl_pop()->f;\n", s.getName().c_str(), body[i].getValue().c_str());
@@ -2506,7 +2506,7 @@ namespace sclc {
                             }
                             std::string loadFrom = s.getName() + "$" + body[i].getValue();
                             if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), body[i].getValue().c_str());
+                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), body[i].getValue().c_str());
                             }
                             if (mem.getType() == "float")
                                 append("Var_%s = _scl_pop()->f;\n", loadFrom.c_str());
@@ -2533,7 +2533,7 @@ namespace sclc {
                     }
                     if (i + 1 >= body.size() || body[i + 1].getType() != tok_dot) {
                         if (!typeCanBeNil(v.getType())) {
-                            append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s'\");\n", loadFrom.c_str());
+                            append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", loadFrom.c_str());
                         }
                         append("Var_%s = _scl_pop()->v;\n", loadFrom.c_str());
                         if (typeStack.size())
@@ -2570,7 +2570,7 @@ namespace sclc {
                         return;
                     }
                     if (!typeCanBeNil(mem.getType())) {
-                        append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", loadFrom.c_str(), mem.getName().c_str());
+                        append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", loadFrom.c_str(), mem.getName().c_str());
                     }
                     if (mem.getType() == "float")
                         append("Var_%s->%s = _scl_pop()->f;\n", loadFrom.c_str(), body[i].getValue().c_str());
@@ -2586,7 +2586,7 @@ namespace sclc {
                         return;
                     }
                     if (!typeCanBeNil(v.getType())) {
-                        append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
+                        append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
                     }
                     if (v.getType() == "lambda" && strstarts(typeStackTop, "lambda(")) {
                         v.setType(typeStackTop);
@@ -3039,7 +3039,7 @@ namespace sclc {
         }
         std::string struct_ = body[i].getValue();
         if (struct_ == "str" || struct_ == "int" || struct_ == "float" || struct_ == "any") {
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = 1;\n");
+            append("_scl_top()->i = 1;\n");
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push("bool");
@@ -3050,7 +3050,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v && _scl_struct_is_type(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].v, 0x%xU);\n", hash1((char*) struct_.c_str()));
+        append("_scl_top()->i = _scl_top()->v && _scl_struct_is_type(_scl_top()->v, 0x%xU);\n", hash1((char*) struct_.c_str()));
         if (typeStack.size())
             typeStack.pop();
         typeStack.push("bool");
@@ -3306,7 +3306,7 @@ namespace sclc {
     handler(AddrOf) {
         noUnused;
         if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
-        append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].v = (*(scl_any*) _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v);\n");
+        append("_scl_top()->v = (*(scl_any*) _scl_top()->v);\n");
         std::string ptr = typeStackTop;
         if (typeStack.size())
             typeStack.pop();
@@ -3360,8 +3360,8 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push(type.value);
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i &= ((1UL << (sizeof(scl_%s) * 8)) - 1);\n", type.value.c_str());
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = (scl_%s) _scl_internal_stack.data[_scl_internal_stack.ptr - 1].i;\n", type.value.c_str());
+            append("_scl_top()->i &= ((1UL << (sizeof(scl_%s) * 8)) - 1);\n", type.value.c_str());
+            append("_scl_top()->i = (scl_%s) _scl_top()->i;\n", type.value.c_str());
             return;
         }
         if (hasTypealias(result, type.value)) {
@@ -3387,7 +3387,7 @@ namespace sclc {
             ITER_INC;
         } else {
             if (typeCanBeNil(typeStackTop)) {
-                append("_scl_assert(_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i, \"Nil cannot be cast to non-nil type '%s!'\");\n", type.value.c_str());
+                append("_scl_assert(_scl_top()->i, \"Nil cannot be cast to non-nil type '%s!'\");\n", type.value.c_str());
             }
             typeStack.push(type.value);
         }
@@ -3428,9 +3428,9 @@ namespace sclc {
             return;
         }
         if (mem.getType() == "float")
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].f = ((struct Struct_%s*) _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+            append("_scl_top()->f = ((struct Struct_%s*) _scl_top()->v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         else
-            append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].v = (scl_any) ((struct Struct_%s*) _scl_internal_stack.data[_scl_internal_stack.ptr - 1].v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+            append("_scl_top()->v = (scl_any) ((struct Struct_%s*) _scl_top()->v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         if (typeStack.size())
             typeStack.pop();
         typeStack.push(mem.getType());

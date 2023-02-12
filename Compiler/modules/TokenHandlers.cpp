@@ -181,7 +181,7 @@ namespace sclc {
 
             case tok_lnot: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "~", typeStackTop)) break;
-                append("_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i = ~_scl_internal_stack.data[_scl_internal_stack.ptr - 1].i;\n");
+                append("_scl_top()->i = ~_scl_top()->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 typeStack.push("int");
@@ -240,7 +240,7 @@ namespace sclc {
 
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         append("_scl_push()->i = %s;\n", token.getValue().c_str());
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_internal_stack.data[_scl_internal_stack.ptr - 1].i);\n");
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_top()->i);\n");
         typeStack.push("int");
         FPResult result;
         result.success = true;
@@ -251,7 +251,7 @@ namespace sclc {
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         append("_scl_push()->f = %s;\n", token.getValue().c_str());
         typeStack.push("float");
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", _scl_internal_stack.data[_scl_internal_stack.ptr - 1].f);\n");
+        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", _scl_top()->f);\n");
         FPResult result;
         result.success = true;
         result.message = "";

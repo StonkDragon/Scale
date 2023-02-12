@@ -922,6 +922,10 @@ _scl_frame_t* _scl_pop() {
 	return res;
 }
 
+_scl_frame_t* _scl_top() {
+	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
+}
+
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
