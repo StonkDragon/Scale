@@ -889,11 +889,15 @@ void _scl_set_up_signal_handler() {
 }
 
 _scl_frame_t* _scl_push() {
+	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
+
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
 		_scl_internal_stack.cap *= 2;
 		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 	}
+	
+	_scl_internal_callstack.ptr--;
 	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
 }
 
@@ -902,11 +906,13 @@ static scl_int max(scl_int a, scl_int b) {
 }
 
 _scl_frame_t* _scl_pop() {
+	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
 	_scl_internal_stack.ptr--;
 	if (_scl_internal_stack.ptr < (_scl_internal_stack.cap / 2)) {
 		_scl_internal_stack.cap = max((scl_int) pow(2, ceil(log2((double) _scl_internal_stack.ptr))), 16);
 		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 	}
+	_scl_internal_callstack.ptr--;
 	return &_scl_internal_stack.data[_scl_internal_stack.ptr];
 }
 
@@ -982,7 +988,7 @@ _scl_constructor void _scl_load() {
 	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
 	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
 	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
-	
+
 #endif
 
 	// Run __init__ functions
