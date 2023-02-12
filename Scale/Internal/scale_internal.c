@@ -890,6 +890,7 @@ void _scl_set_up_signal_handler() {
 
 _scl_frame_t* _scl_push() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
+	errno = 0;
 
 	_scl_internal_stack.ptr++;
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
@@ -907,6 +908,7 @@ static scl_int max(scl_int a, scl_int b) {
 
 _scl_frame_t* _scl_pop() {
 	_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = "_scl_push";
+	errno = 0;
 	_scl_internal_stack.ptr--;
 	if (_scl_internal_stack.ptr < (_scl_internal_stack.cap / 2)) {
 		_scl_internal_stack.cap = max((scl_int) pow(2, ceil(log2((double) _scl_internal_stack.ptr))), 16);
