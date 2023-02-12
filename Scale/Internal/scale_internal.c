@@ -920,6 +920,19 @@ _scl_frame_t* _scl_top() {
 	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
 }
 
+scl_str* _scl_platform_get_env() {
+    scl_str* env;
+
+#if defined(WIN) && (_MSC_VER >= 1900)
+    env = *__p__environ();
+#else
+    extern char ** environ;
+    env = environ;
+#endif
+
+    return env;
+}
+
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
@@ -949,8 +962,8 @@ static_assert(sizeof(scl_int) == sizeof(scl_float), "Size of scl_int and scl_flo
 static_assert(sizeof(scl_any) == sizeof(scl_float), "Size of scl_any and scl_float do not match!");
 #endif
 
-_scl_no_return int _scl_native_main(int argc, char** argv, char** envp) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
-_scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
+_scl_no_return int _scl_native_main(int argc, char** argv) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
+_scl_no_return int _scl_native_main(int argc, char** argv) {
 	#if !defined(static_assert)
 	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
 	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
@@ -988,7 +1001,7 @@ _scl_no_return int _scl_native_main(int argc, char** argv, char** envp) {
 
 	// Convert argv and envp from native arrays to Scale arrays
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
-	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) envp);
+	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
@@ -1025,7 +1038,8 @@ _scl_constructor void _scl_load() {
 #ifndef SCL_COMPILER_NO_MAIN
 
 	int ret;
-	if (setjmp(_scl_internal_exceptions._scl_jmp_buf[_scl_internal_exceptions._scl_jmp_buf_ptr++]) != 666) {
+	_scl_internal_exceptions._scl_jmp_buf_ptr++;
+	if (setjmp(_scl_internal_exceptions._scl_jmp_buf[_scl_internal_exceptions._scl_jmp_buf_ptr]) != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
 		ret = (_scl_main ? _scl_main(args, env) : 0);
