@@ -911,7 +911,9 @@ _scl_frame_t* _scl_pop() {
 	errno = 0;
 	_scl_internal_stack.ptr--;
 	if (_scl_internal_stack.ptr < (_scl_internal_stack.cap / 2)) {
-		_scl_internal_stack.cap = max((scl_int) pow(2, ceil(log2((double) _scl_internal_stack.ptr))), 16);
+		while (_scl_internal_stack.cap >= _scl_internal_stack.ptr) {
+			_scl_internal_stack.cap /= 2;
+		}
 		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 	}
 	_scl_internal_callstack.ptr--;
