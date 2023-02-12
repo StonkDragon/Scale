@@ -459,7 +459,6 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	scl_int cap = 0;
 	while (arr[cap] != NULL) {
 		cap++;
-		printf("cap: %d\n", cap);
 	}
 
 	array->capacity = (scl_any) cap;
