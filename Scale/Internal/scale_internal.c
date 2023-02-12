@@ -455,6 +455,9 @@ struct scl_Array {
 
 // Converts C NULL-terminated array to Array-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
+#if defined(SCL_DEBUG)
+	return NULL;
+#endif
 	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", hash1("SclObject"));
 	scl_int cap = 0;
 	while (arr[cap]) {
