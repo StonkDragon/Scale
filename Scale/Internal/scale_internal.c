@@ -898,8 +898,9 @@ _scl_frame_t* _scl_push() {
 		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 	}
 	
+	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
 	_scl_internal_callstack.ptr--;
-	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
+	return res;
 }
 
 static scl_int max(scl_int a, scl_int b) {
@@ -916,8 +917,9 @@ _scl_frame_t* _scl_pop() {
 		}
 		_scl_internal_stack.data = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 	}
+	_scl_frame_t* res = &_scl_internal_stack.data[_scl_internal_stack.ptr];
 	_scl_internal_callstack.ptr--;
-	return &_scl_internal_stack.data[_scl_internal_stack.ptr];
+	return res;
 }
 
 // Returns a function pointer with the following signature:
