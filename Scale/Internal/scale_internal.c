@@ -460,6 +460,7 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	while (arr[cap]) {
 		arr += sizeof(scl_str*);
 		cap++;
+		printf("cap: %d\n", cap);
 	}
 
 	arr -= cap * sizeof(scl_str*);
