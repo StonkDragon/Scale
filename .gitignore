@@ -12,6 +12,8 @@ out.h
 out.typeinfo.h
 *.wasm
 *.js
+*.S
+*.s
 
 # Linker output
 *.ilk
@@ -73,3 +75,4 @@ dkms.conf
 scale.vscodeextension/.DS_Store
 ErrorMessages.txt
 msg.md
+scl_trace.log
