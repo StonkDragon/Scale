@@ -17,7 +17,7 @@ __thread struct _exception_handling {
 	scl_any*	_scl_exception_table;	// The exception
 	jmp_buf*	_scl_jmp_buf;			// jump buffer used by longjmp()
 	scl_int		_scl_jmp_buf_ptr;		// number specifying the current depth
-	scl_int 	_cap;		// capacity of lists
+	scl_int 	_cap;					// capacity of lists
 	scl_int*	_scl_cs_ptr;			// callstack-pointer of this catch level
 } _scl_internal_exceptions = {0};
 
