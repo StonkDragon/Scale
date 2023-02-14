@@ -448,7 +448,6 @@ namespace sclc {
             append("  scl_str $__type_name__;\n");
             append("  scl_int $__super__;\n");
             append("  scl_int $__size__;\n");
-            append("  scl_int $__count__;\n");
             for (Variable s : c.getMembers()) {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
@@ -1100,7 +1099,7 @@ namespace sclc {
                 return;
             }
         } else if (body[i].getValue() == "try") {
-            append("_scl_internal_exceptions.ptr++;\n");
+            append("_scl_exception_push();\n");
             append("if (setjmp(_scl_internal_exceptions.jmptable[_scl_internal_exceptions.ptr - 1]) != 666) {\n");
             scopeDepth++;
             append("_scl_internal_exceptions.callstk_ptr[_scl_internal_exceptions.ptr - 1] = _scl_internal_callstack.ptr;\n");
@@ -3864,10 +3863,11 @@ namespace sclc {
         append("extern __thread _scl_stack_t _scl_internal_stack;\n");
         append("extern __thread _scl_callstack_t _scl_internal_callstack;\n");
         append("extern __thread struct _exception_handling {\n");
-	    append("  scl_Exception extable[EXCEPTION_DEPTH];\n");
-	    append("  jmp_buf       jmptable[EXCEPTION_DEPTH];\n");
-	    append("  scl_int       ptr;\n");
-        append("  scl_int       callstk_ptr[EXCEPTION_DEPTH];\n");
+	    append("  scl_Exception* extable;\n");
+	    append("  jmp_buf*       jmptable;\n");
+	    append("  scl_int        ptr;\n");
+	    append("  scl_int        cap;\n");
+        append("  scl_int*       callstk_ptr;\n");
         append("} _scl_internal_exceptions;\n");
         append("\n");
 
@@ -3884,7 +3884,6 @@ namespace sclc {
         append("scl_str  $__type_name__;\n");
         append("scl_int  $__super__;\n");
         append("scl_int  $__size__;\n");
-        append("scl_int  $__count__;\n");
         append("scl_int  name_hash;\n");
         append("scl_str  name;\n");
         append("scl_int  id;\n");
@@ -3900,7 +3899,6 @@ namespace sclc {
         append("scl_str    $__type_name__;\n");
         append("scl_int    $__super__;\n");
         append("scl_int    $__size__;\n");
-        append("scl_int    $__count__;\n");
         append("scl_int    type;\n");
         append("scl_str    name;\n");
         append("scl_int    size;\n");
@@ -3940,7 +3938,6 @@ namespace sclc {
             append(".$__type_name__ = \"Method\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
-            append(".$__count__ = 0,\n");
             append(".name_hash = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f).c_str()));
             append(".name = \"%s\",\n", sclFunctionNameToFriendlyString(f).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_function_%s,\n", f->getName().c_str());
@@ -3974,7 +3971,6 @@ namespace sclc {
             append(".$__type_name__ = \"Method\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_methodinfo),\n");
-            append(".$__count__ = 0,\n");
             append(".name_hash = 0x%xU,\n", hash1((char*) (m->getMemberType() + ":" + sclFunctionNameToFriendlyString(f)).c_str()));
             append(".name = \"%s:%s\",\n", m->getMemberType().c_str(), sclFunctionNameToFriendlyString(f).c_str());
             append(".ptr = (scl_any) _scl_reflect_call_method_%s_function_%s,\n", m->getMemberType().c_str(), f->getName().c_str());
@@ -4021,7 +4017,6 @@ namespace sclc {
             append(".$__type_name__ = \"Struct\",\n");
             append(".$__super__ = 645084402,\n");
             append(".$__size__ = sizeof(struct _scl_typeinfo),\n");
-            append(".$__count__ = 0,\n");
             append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
             append(".name = \"%s\",\n", s.getName().c_str());
             append(".size = sizeof(struct Struct_%s),\n", s.getName().c_str());

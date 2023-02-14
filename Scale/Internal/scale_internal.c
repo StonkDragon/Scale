@@ -14,10 +14,11 @@ __thread _scl_callstack_t	_scl_internal_callstack;
 
 // this is used by try-catch
 __thread struct _exception_handling {
-	void*	_scl_exception_table[EXCEPTION_DEPTH];	// The exception
-	jmp_buf	_scl_jmp_buf[EXCEPTION_DEPTH];			// jump buffer used by longjmp()
-	scl_int	_scl_jmp_buf_ptr;						// number specifying the current depth
-	scl_int	_scl_cs_ptr[EXCEPTION_DEPTH];			// callstack-pointer of this catch level
+	scl_any*	_scl_exception_table;	// The exception
+	jmp_buf*	_scl_jmp_buf;			// jump buffer used by longjmp()
+	scl_int		_scl_jmp_buf_ptr;		// number specifying the current depth
+	scl_int 	_cap;		// capacity of lists
+	scl_int*	_scl_cs_ptr;			// callstack-pointer of this catch level
 } _scl_internal_exceptions = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
@@ -454,7 +455,6 @@ struct scl_Array {
 	scl_str $__type_name__;
 	scl_any $__super_list__;
 	scl_any $__super_list_len__;
-  	scl_int	$__count__;
 	scl_any values;
 	scl_any count;
 	scl_any capacity;
@@ -536,7 +536,6 @@ struct _scl_methodinfo {
   scl_str  __type_name__;
   scl_int  __super__;
   scl_int  __size__;
-  scl_int  __count__;
   scl_int  name_hash;
   scl_str  name;
   scl_int  id;
@@ -551,7 +550,6 @@ struct _scl_typeinfo {
   scl_str					__type_name__;
   scl_int					__super__;
   scl_int					__size__;
-  scl_int					__count__;
   scl_int					type;
   scl_str					name;
   scl_int					size;
@@ -920,6 +918,26 @@ _scl_frame_t* _scl_top() {
 	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
 }
 
+void _scl_exception_push() {
+	_scl_internal_exceptions._scl_jmp_buf_ptr++;
+	if (_scl_internal_exceptions._scl_jmp_buf_ptr >= _scl_internal_exceptions._cap) {
+		_scl_internal_exceptions._cap *= 2;
+		scl_any* tmp;
+
+		tmp = realloc(_scl_internal_exceptions._scl_cs_ptr, _scl_internal_exceptions._cap * sizeof(scl_int));
+		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		_scl_internal_exceptions._scl_cs_ptr = (scl_int*) tmp;
+
+		tmp = realloc(_scl_internal_exceptions._scl_exception_table, _scl_internal_exceptions._cap * sizeof(scl_any));
+		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		_scl_internal_exceptions._scl_exception_table = tmp;
+
+		tmp = realloc(_scl_internal_exceptions._scl_jmp_buf, _scl_internal_exceptions._cap * sizeof(jmp_buf));
+		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		_scl_internal_exceptions._scl_jmp_buf = (jmp_buf*) tmp;
+	}
+}
+
 scl_str* _scl_platform_get_env() {
     scl_str* env;
 
@@ -962,8 +980,8 @@ static_assert(sizeof(scl_int) == sizeof(scl_float), "Size of scl_int and scl_flo
 static_assert(sizeof(scl_any) == sizeof(scl_float), "Size of scl_any and scl_float do not match!");
 #endif
 
-_scl_no_return int _scl_native_main(int argc, char** argv) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
-_scl_no_return int _scl_native_main(int argc, char** argv) {
+_scl_no_return void _scl_native_main(int argc, char** argv) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
+_scl_no_return void _scl_native_main(int argc, char** argv) {
 	#if !defined(static_assert)
 	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
 	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
@@ -999,6 +1017,13 @@ _scl_no_return int _scl_native_main(int argc, char** argv) {
 	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
 	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
 
+	_scl_internal_exceptions._scl_cs_ptr = 0;
+	_scl_internal_exceptions._scl_jmp_buf_ptr = 0;
+	_scl_internal_exceptions._cap = SCL_DEFAULT_STACK_FRAME_COUNT;
+	_scl_internal_exceptions._scl_cs_ptr = malloc(_scl_internal_exceptions._cap * sizeof(scl_int));
+	_scl_internal_exceptions._scl_exception_table = malloc(_scl_internal_exceptions._cap * sizeof(scl_any));
+	_scl_internal_exceptions._scl_jmp_buf = malloc(_scl_internal_exceptions._cap * sizeof(jmp_buf));
+
 	// Convert argv and envp from native arrays to Scale arrays
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
 	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
@@ -1027,6 +1052,13 @@ _scl_constructor void _scl_load() {
 	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
 	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
 	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
+
+	_scl_internal_exceptions._scl_cs_ptr = 0;
+	_scl_internal_exceptions._scl_jmp_buf_ptr = 0;
+	_scl_internal_exceptions._cap = SCL_DEFAULT_STACK_FRAME_COUNT;
+	_scl_internal_exceptions._scl_cs_ptr = malloc(_scl_internal_exceptions._cap * sizeof(scl_int));
+	_scl_internal_exceptions._scl_exception_table = malloc(_scl_internal_exceptions._cap * sizeof(scl_any));
+	_scl_internal_exceptions._scl_jmp_buf = malloc(_scl_internal_exceptions._cap * sizeof(jmp_buf));
 
 #endif
 

@@ -272,6 +272,7 @@ void				_scl_free(scl_any ptr);
 void				_scl_assert(scl_int b, scl_str msg);
 void				_scl_finalize(void);
 void				_scl_unreachable(char* msg);
+void				_scl_exception_push();
 
 hash				hash1(char* data);
 void				_scl_cleanup_post_func(scl_int depth);
