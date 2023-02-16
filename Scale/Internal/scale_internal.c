@@ -909,13 +909,35 @@ _scl_frame_t* _scl_push() {
 }
 
 _scl_frame_t* _scl_pop() {
+#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
+	if (_scl_internal_stack.ptr <= 0) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+	}
+#endif
+
 	_scl_internal_stack.ptr--;
 	_scl_frame_t* res = &(_scl_internal_stack.data[_scl_internal_stack.ptr]);
 	return res;
 }
 
 _scl_frame_t* _scl_top() {
+#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
+	if (_scl_internal_stack.ptr <= 0) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+	}
+#endif
+
 	return &_scl_internal_stack.data[_scl_internal_stack.ptr - 1];
+}
+
+void _scl_popn(scl_int n) {
+	_scl_internal_stack.ptr -= n;
+
+#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
+	if (_scl_internal_stack.ptr < 0) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+	}
+#endif
 }
 
 void _scl_exception_push() {
@@ -944,7 +966,7 @@ scl_str* _scl_platform_get_env() {
 #if defined(WIN) && (_MSC_VER >= 1900)
     env = *__p__environ();
 #else
-    extern char ** environ;
+    extern char** environ;
     env = environ;
 #endif
 
@@ -1040,6 +1062,10 @@ _scl_constructor void _scl_load() {
 	assert(sizeof(scl_any) == sizeof(scl_float) && "Size of scl_any and scl_float do not match!");
 	#endif
 
+	// Endian-ness detection
+	short word = 0x0001;
+	char *byte = (char*) &word;
+	_scl_assert(byte[0], "Invalid byte order detected!");
 
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future

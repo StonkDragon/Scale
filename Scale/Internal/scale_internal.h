@@ -260,6 +260,7 @@ ssize_t				ctrl_stack_size(void);
 _scl_frame_t*		_scl_push();
 _scl_frame_t*		_scl_pop();
 _scl_frame_t*		_scl_top();
+void				_scl_popn(scl_int n);
 
 void				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
