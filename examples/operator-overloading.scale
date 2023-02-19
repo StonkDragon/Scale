@@ -1,6 +1,4 @@
 struct Foo
-    decl foo: const int
-
     function +(): str  "+ operator"  return end
     function -(): str  "- operator"  return end
     function *(): str  "* operator"  return end
@@ -54,6 +52,4 @@ function main(): none
     f ++ puts
     f -- puts
     f @  puts
-
-    # 0 => f.foo
 end

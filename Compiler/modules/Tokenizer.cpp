@@ -280,6 +280,14 @@ namespace sclc
             syntaxWarn("'extern' is deprecated! Use 'expect' instead!");
         }
 
+        if (value == "pragma") {
+            if (c == '!') {
+                value += c;
+                c = source[++current];
+                column++;
+            }
+        }
+
         TOKEN("function",   tok_function, line, filename);
         TOKEN("end",        tok_end, line, filename);
         TOKEN("extern",     tok_extern, line, filename);
@@ -323,6 +331,7 @@ namespace sclc
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
         TOKEN("enum",       tok_enum, line, filename);
+        TOKEN("pragma!",    tok_identifier, line, filename);
         
         TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);

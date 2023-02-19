@@ -614,7 +614,7 @@ namespace sclc {
 
     handler(Lambda) {
         noUnused;
-        Function* f = new Function("$lambda" + std::to_string(lambdaCount++), body[i]);
+        Function* f = new Function("$lambda" + std::to_string(lambdaCount++) + "$" + function->getName(), body[i]);
         f->addModifier("<lambda>");
         f->addModifier("no_cleanup");
         f->setReturnType("none");
@@ -719,8 +719,8 @@ namespace sclc {
 
         std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
 
-        append("%s Function_$lambda%d() __asm(\"l.%d\");\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, lambdaCount - 1);
-        append("_scl_push()->v = Function_$lambda%d;\n", lambdaCount - 1);
+        append("%s Function_$lambda%d$%s() __asm(\"l.%d$%s\");\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, function->getName().c_str(), lambdaCount - 1, function->getName().c_str());
+        append("_scl_push()->v = Function_$lambda%d$%s;\n", lambdaCount - 1, function->getName().c_str());
         typeStack.push(lambdaType);
         result.functions.push_back(f);
     }
@@ -793,6 +793,22 @@ namespace sclc {
         Variable v = Variable(exName, ex);
         vars[varDepth].push_back(v);
         append("scl_%s Var_%s = (scl_%s) _scl_internal_exceptions.extable[_scl_internal_exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+    }
+
+    handler(Pragma) {
+        noUnused;
+        ITER_INC;
+        if (body[i].getValue() == "print") {
+            ITER_INC;
+            std::cout << body[i].getFile()
+                      << ":"
+                      << body[i].getLine()
+                      << ":"
+                      << body[i].getColumn()
+                      << ": "
+                      << body[i].getValue()
+                      << std::endl;
+        }
     }
 
     handler(Identifier) {
@@ -1110,6 +1126,8 @@ namespace sclc {
             handle(Catch);
         } else if (body[i].getValue() == "lambda") {
             handle(Lambda);
+        } else if (body[i].getValue() == "pragma!") {
+            handle(Pragma);
     #ifdef __APPLE__
     #pragma endregion
     #endif
@@ -1362,6 +1380,9 @@ namespace sclc {
                             debugPrintPush();
                         }
                         typeStack.push(v.getType());
+                    } else {
+                        transpilerError("Unknown static member of struct '" + s.getName() + "'", i);
+                        errors.push_back(err);
                     }
                 }
             }
@@ -3402,6 +3423,58 @@ namespace sclc {
         }
         ITER_INC;
         if (!s.hasMember(body[i].getValue())) {
+            if (s.getName() == "Map" || s.extends("Map")) {
+                Method* f = getMethodByName(result, "get", s.getName());
+                if (!f) {
+                    transpilerError("Could not find method 'get' on struct '" + s.getName() + "'", i - 1);
+                    errors.push_back(err);
+                    return;
+                }
+                
+                append("{\n");
+                scopeDepth++;
+                append("scl_any tmp = _scl_pop()->v;\n");
+                std::string t = typeStackTop;
+                typeStack.pop();
+                append("_scl_push()->s = \"%s\";\n", body[i].getValue().c_str());
+                typeStack.push(t);
+                typeStack.push("str");
+                append("_scl_push()->v = tmp;\n");
+                scopeDepth--;
+                append("}\n");
+
+                if (f->getArgs().size() > 0) {
+                    append("_scl_popn(%zu);\n", f->getArgs().size());
+                }
+                bool argsCorrect = checkStackType(result, f->getArgs());
+                if (!argsCorrect) {
+                    {
+                        transpilerError("Arguments for method '" + f->getMemberType() + ":" + sclFunctionNameToFriendlyString(f) + "' do not equal inferred stack!", i);
+                        errors.push_back(err);
+                    }
+                    transpilerError("Expected: [" + argVectorToString(f->getArgs()) + "], but got: [" + stackSliceToString(f->getArgs().size()) + "]", i);
+                    err.isNote = true;
+                    errors.push_back(err);
+                    return;
+                }
+                for (ssize_t m = f->getArgs().size() - 1; m >= 0; m--) {
+                    if (typeStack.size())
+                        typeStack.pop();
+                }
+                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                    if (f->getReturnType() == "float") {
+                        append("_scl_push()->f = Method_%s_%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                        debugPrintPush();
+                    } else {
+                        append("_scl_push()->v = (scl_any) Method_%s_%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                        debugPrintPush();
+                    }
+                    typeStack.push(f->getReturnType());
+                } else {
+                    append("Method_%s_%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                }
+                return;
+            }
             std::string help = "";
             if (getMethodByName(result, body[i].getValue(), s.getName())) {
                 help = ". Maybe you meant to use ':' instead of '.' here";
@@ -3860,15 +3933,15 @@ namespace sclc {
         (void) warns;
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("extern __thread _scl_stack_t _scl_internal_stack;\n");
-        append("extern __thread _scl_callstack_t _scl_internal_callstack;\n");
+        append("extern __thread _scl_stack_t _scl_internal_stack _scl_align;\n");
+        append("extern __thread _scl_callstack_t _scl_internal_callstack _scl_align;\n");
         append("extern __thread struct _exception_handling {\n");
 	    append("  scl_Exception* extable;\n");
 	    append("  jmp_buf*       jmptable;\n");
 	    append("  scl_int        ptr;\n");
 	    append("  scl_int        cap;\n");
         append("  scl_int*       callstk_ptr;\n");
-        append("} _scl_internal_exceptions;\n");
+        append("} _scl_internal_exceptions _scl_align;\n");
         append("\n");
 
         append("/* STRUCTS */\n");

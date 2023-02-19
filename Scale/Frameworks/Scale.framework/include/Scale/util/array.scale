@@ -11,7 +11,7 @@ sealed struct Array is IIterable, IFinalizable
 
   private decl pos: readonly int
   
-  export function sort(): none
+  function sort(): none
     inline_c
       scl_int i = 0;
       while (i < (scl_int) (*self)->count) {
@@ -32,7 +32,7 @@ sealed struct Array is IIterable, IFinalizable
     end_inline
   end
 
-  export function get(index: int): any?
+  function get(index: int): any?
     if index 0 < index self.count >= || then
       "Index "
       index longToString +
@@ -44,7 +44,7 @@ sealed struct Array is IIterable, IFinalizable
     self.values index sizeof int * + @ return
   end
 
-  export function set(index: int, value: any): none
+  function set(index: int, value: any): none
     if index 0 < index self.capacity >= || then
       "Index "
       index longToString +
@@ -61,14 +61,14 @@ sealed struct Array is IIterable, IFinalizable
     value => @tmp
   end
 
-  export function top(): any?
+  function top(): any?
     if self.count 0 <= then
       "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
     fi
     self.values self.count 1 - sizeof int * + @ return
   end
 
-  export function push(value: any): none
+  function push(value: any): none
     if self.count self.capacity >= then
       self.capacity 2 * => self.capacity
       self.capacity sizeof int * self.values realloc
@@ -81,14 +81,14 @@ sealed struct Array is IIterable, IFinalizable
     self.count 1 + => self.count
   end
 
-  export function pop(): none
+  function pop(): none
     if self.count 0 <= then
       "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new throw
     fi
     self.count 1 - => self.count
   end
 
-  export function contains(val: any): bool
+  function contains(val: any): bool
     for i in 0 to self.count do
       if i self:get val == then
         true return
@@ -97,7 +97,7 @@ sealed struct Array is IIterable, IFinalizable
     false return
   end
 
-  export function init(size: int): none
+  function init(size: int): none
     if size 1 < then
       "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
@@ -108,11 +108,11 @@ sealed struct Array is IIterable, IFinalizable
     size => self.capacity
   end
 
-  export function hasNext(): bool
+  function hasNext(): bool
     self.pos self.count < return
   end
 
-  export function next(): any?
+  function next(): any?
     self.pos 1 + => self.pos
     if self:hasNext ! then
       nil return
@@ -121,13 +121,13 @@ sealed struct Array is IIterable, IFinalizable
     self.pos self:get return
   end
 
-  export function begin(): any?
+  function begin(): any?
     0 self:get
     0 => self.pos
     return
   end
 
-  export function toString() s: str
+  function toString() s: str
     if self.count 0 == then
       "{}" => s
     else
@@ -149,17 +149,33 @@ sealed struct Array is IIterable, IFinalizable
     return
   end
 
-  export function finalize(): none
+  function finalize(): none
     self.values free
     -1 => self.count
   end
 
-  export function immutableCopy(): ImmutableArray
+  function immutableCopy(): ImmutableArray
     self.count sizeof int * malloc => decl newVals: [any]
     newVals self.values self.count sizeof int * memcpy => newVals
     self.count => decl newCount: int
 
     newCount newVals ImmutableArray::new return
+  end
+
+  function map(x: lambda(any): none): none
+    foreach elem in self do
+      elem x:accept
+    done
+  end
+
+  function filter(x: lambda(any): bool) arr: Array
+    self.capacity Array::new => arr
+    foreach elem in self do
+      if elem x:accept then
+        elem arr:push
+      fi
+    done
+    return
   end
 
   static function fromPointerCollection(count: int, values: [any]) arr: Array
