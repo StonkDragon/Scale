@@ -7,10 +7,10 @@
 // Variables
 
 // The Stack
-__thread _scl_stack_t 		_scl_internal_stack;
+__thread _scl_stack_t 		_scl_internal_stack _scl_align;
 
 // Scale Callstack
-__thread _scl_callstack_t	_scl_internal_callstack;
+__thread _scl_callstack_t	_scl_internal_callstack _scl_align;
 
 // this is used by try-catch
 __thread struct _exception_handling {
@@ -19,7 +19,7 @@ __thread struct _exception_handling {
 	scl_int		_scl_jmp_buf_ptr;		// number specifying the current depth
 	scl_int 	_cap;					// capacity of lists
 	scl_int*	_scl_cs_ptr;			// callstack-pointer of this catch level
-} _scl_internal_exceptions = {0};
+} _scl_internal_exceptions _scl_align = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 

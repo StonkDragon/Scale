@@ -82,6 +82,12 @@
 #define EXCEPTION_DEPTH		1024
 #endif
 
+#if __has_attribute(aligned)
+#define _scl_align __attribute__((aligned(16)))
+#else
+#define _scl_align
+#endif
+
 #if !defined(SIGABRT)
 #define SIGABRT 6
 #endif
@@ -219,24 +225,24 @@ typedef union {
 } _scl_frame_t;
 
 typedef struct {
-	scl_int			ptr;
-	scl_int			cap;
-	_scl_frame_t*	data;
+	_scl_frame_t*	data					_scl_align;
+	scl_int			ptr						_scl_align;
+	scl_int			cap						_scl_align;
 } _scl_stack_t;
 
 typedef struct {
-	scl_str file;
-	scl_str func;
-	scl_int line;
-	scl_int col;
-	scl_int begin_stack_size;
-	scl_int begin_var_count;
-	scl_int sp;
+	scl_str file							_scl_align;
+	scl_str func							_scl_align;
+	scl_int line							_scl_align;
+	scl_int col								_scl_align;
+	scl_int begin_stack_size				_scl_align;
+	scl_int begin_var_count					_scl_align;
+	scl_int sp								_scl_align;
 } _scl_callframe_t;
 
 typedef struct {
-	ssize_t				ptr;
-	_scl_callframe_t	data[STACK_SIZE];
+	ssize_t				ptr					_scl_align;
+	_scl_callframe_t	data[STACK_SIZE]	_scl_align;
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
