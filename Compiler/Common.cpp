@@ -326,8 +326,6 @@ namespace sclc
                         (*i)--;
                         r.value += ":none";
                     }
-                    std::cout << body[*i].tostring() << std::endl;
-                    std::cout << r.value << std::endl;
                 }
             }
         } else if (body[*i].getType() == tok_question_mark || body[*i].getValue() == "?") {
