@@ -2380,6 +2380,11 @@ namespace sclc {
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
+            if (getStructByName(result, body[i].getValue()) != Struct("")) {
+                transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i+1);
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
+            }
             if (hasVar(body[i])) {
                 transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i+1);
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
@@ -2637,6 +2642,11 @@ namespace sclc {
         }
         if (hasContainer(result, body[i])) {
             transpilerError("Variable '" + body[i].getValue() + "' shadowed by container '" + body[i].getValue() + "'", i+1);
+            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+            else errors.push_back(err);
+        }
+        if (getStructByName(result, body[i].getValue()) != Struct("")) {
+            transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
