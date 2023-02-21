@@ -31,8 +31,9 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "rm -rf $HOME/Scale";
-    "cp -r Scale $HOME";
+    "rm -rf $HOME/Scale/23.0";
+    "mkdir -p $HOME/Scale";
+    "cp -r Scale $HOME/Scale/23.0";
   ];
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
@@ -73,8 +74,9 @@ install: {
     "-pedantic";
   ];
   preBuild: [
-    "rm -rf $HOME/Scale";
-    "cp -r Scale $HOME";
+    "rm -rf $HOME/Scale/23.0";
+    "mkdir -p $HOME/Scale";
+    "cp -r Scale $HOME/Scale/23.0";
   ];
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
