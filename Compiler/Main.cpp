@@ -545,7 +545,7 @@ namespace sclc
         scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "Os";
+        std::string optimizer   = "O2";
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
 
