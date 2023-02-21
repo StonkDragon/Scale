@@ -22,7 +22,7 @@
     1624 Compiler/modules/SyntaxTree.cpp
      264 Compiler/modules/TokenHandlers.cpp
      531 Compiler/modules/Tokenizer.cpp
-    4358 Compiler/modules/Transpiler.cpp
+    4368 Compiler/modules/Transpiler.cpp
      254 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       68 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       74 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -44,7 +44,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/hashable.scale
       78 Scale/Frameworks/Scale.framework/include/Scale/util/immutablearray.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/iterable.scale
-      75 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
+      83 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
        9 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
       93 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
@@ -82,4 +82,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   14038 total
+   14056 total
