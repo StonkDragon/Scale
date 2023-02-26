@@ -347,6 +347,15 @@ void print_stacktrace_with_file(FILE* trace) {
 	fprintf(trace, "\n");
 }
 
+// generic struct
+struct sclstruct {
+	scl_int	type;
+	scl_str	type_name;
+	scl_int	super;
+	scl_int	size;
+	scl_int	count;
+};
+
 // final signal handler
 // if we get here, something has gone VERY wrong
 void _scl_catch_final(int sig_num) {
@@ -445,6 +454,32 @@ void _scl_catch_final(int sig_num) {
 		printf("\n");
 		fprintf(trace, "\n");
 	}
+	fprintf(trace, "Memory Dump:\n");
+	for (scl_int i = 0; i < alloced_ptrs_count; i++) {
+		if (_scl_find_index_of_struct(alloced_ptrs[i]) != -1) {
+			fprintf(trace, "  Instance of struct '%s':\n", ((struct sclstruct*) alloced_ptrs[i])->type_name);
+		} else {
+			fprintf(trace, "  %zu bytes at %p:\n", ptrs_size[i], alloced_ptrs[i]);
+		}
+		fprintf(trace, "    |");
+		for (scl_int col = 0; col < (ptrs_size[i] < 16 ? ptrs_size[i] : 16); col++) {
+			fprintf(trace, "%02x|", (char) ((col & 0xFF) + (((scl_int) alloced_ptrs[i]) & 0xF)));
+		}
+		fprintf(trace, "\n");
+		fprintf(trace, "    |");
+		for (scl_int col = 0; col < (ptrs_size[i] < 16 ? ptrs_size[i] : 16); col++) {
+			fprintf(trace, "--|");
+		}
+		fprintf(trace, "\n");
+		for (scl_int sz = 0; sz < ptrs_size[i]; sz += 16) {
+			fprintf(trace, "    |");
+			for (scl_int col = 0; col < (ptrs_size[i] < 16 ? ptrs_size[i] : 16); col++) {
+				fprintf(trace, "%02x|", (*(char*) (alloced_ptrs[i] + sz + col) & 0xFF));
+			}
+			fprintf(trace, "\n");
+		}
+		fprintf(trace, "\n");
+	}
 
 	fclose(trace);
 	exit(sig_num);
@@ -532,27 +567,12 @@ hash hash1(char* data) {
 }
 
 struct _scl_methodinfo {
-  scl_int  __type__;
-  scl_str  __type_name__;
-  scl_int  __super__;
-  scl_int  __size__;
-  scl_int  name_hash;
-  scl_str  name;
-  scl_int  id;
   scl_any  ptr;
-  scl_int  member_type;
-  scl_int  arg_count;
-  scl_str  return_type;
+  scl_int  pure_name;
 };
 
 struct _scl_typeinfo {
-  scl_int					__type__;
-  scl_str					__type_name__;
-  scl_int					__super__;
-  scl_int					__size__;
   scl_int					type;
-  scl_str					name;
-  scl_int					size;
   scl_int					super;
   scl_int					methodscount;
   struct _scl_methodinfo**	methods;
@@ -561,23 +581,6 @@ struct _scl_typeinfo {
 // Structs
 extern struct _scl_typeinfo		_scl_internal_types[];
 extern size_t 					_scl_internal_types_count;
-
-// Functions
-extern struct _scl_methodinfo*	_scl_internal_functions[];
-extern size_t 					_scl_internal_functions_size;
-
-// Methods
-extern struct _scl_methodinfo*	_scl_internal_methods[];
-extern size_t 					_scl_internal_methods_size;
-
-// generic struct
-struct sclstruct {
-	scl_int	type;
-	scl_str	type_name;
-	scl_int	super;
-	scl_int	size;
-	scl_int	count;
-};
 
 // table of instances
 static struct sclstruct** allocated_structs;
@@ -786,9 +789,9 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
-		if (methods_[mid]->id == id) {
+		if (methods_[mid]->pure_name == id) {
 			return mid;
-		} else if (methods_[mid]->id < id) {
+		} else if (methods_[mid]->pure_name < id) {
 			left = mid + 1;
 		} else {
 			right = mid - 1;
@@ -796,36 +799,6 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 	}
 
 	return -1;
-}
-
-// Reflectively calls a function
-void _scl_reflect_call(hash func) {
-	scl_int i = _scl_binary_search_method_index((void**) _scl_internal_functions, _scl_internal_functions_size, func);
-	if (i >= 0) {
-		((void(*)()) _scl_internal_functions[i]->ptr)();
-	} else {
-		_scl_security_throw(EX_REFLECT_ERROR, "Could not find function.");
-	}
-}
-
-// Returns true, if the given function exists
-scl_int _scl_reflect_find(hash func) {
-	return _scl_binary_search_method_index((void**) _scl_internal_functions, _scl_internal_functions_size, func) >= 0;
-}
-
-// Returns true, if the given method exists
-scl_int _scl_reflect_find_method(hash func) {
-	return _scl_binary_search_method_index((void**) _scl_internal_methods, _scl_internal_methods_size, func) >= 0;
-}
-
-// Reflectively calls a method
-void _scl_reflect_call_method(hash func) {
-	scl_int i = _scl_binary_search_method_index((void**) _scl_internal_methods, _scl_internal_methods_size, func);
-	if (i >= 0) {
-		((void(*)()) _scl_internal_methods[i]->ptr)();
-	} else {
-		_scl_security_throw(EX_REFLECT_ERROR, "Could not find method.");
-	}
 }
 
 void _scl_set_up_signal_handler() {

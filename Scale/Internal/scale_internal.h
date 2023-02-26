@@ -62,6 +62,12 @@
 #define _scl_destructor
 #endif
 
+#if __GNUC__ >= 4
+#define _scl_symbol_hidden __attribute__((visibility("hidden")))
+#else
+#define _scl_symbol_hidden
+#endif
+
 #define nullable __nullable
 #define nonnull  __nonnull
 
