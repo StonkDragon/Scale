@@ -23,22 +23,14 @@
 
 #define LINE_LENGTH 48
 
-#ifndef ASM_FN_FMT
-#ifdef __APPLE__
-#define ASM_FN_FMT "[%s]"
-#else
-#define ASM_FN_FMT "\\\"[%s]\\\""
-#endif
-#endif
-
 #define ssize_t signed long long
 
 #include "Color.hpp"
 #include "Version.hpp"
 #include "TokenType.hpp"
 #include "Token.hpp"
-#include "Results.hpp"
 #include "Function.hpp"
+#include "Results.hpp"
 #include "Variable.hpp"
 #include "Container.hpp"
 #include "Interface.hpp"
