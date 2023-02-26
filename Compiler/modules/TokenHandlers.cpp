@@ -80,13 +80,13 @@ namespace sclc {
             }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->f = Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_%s_%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                append("Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
             }
             return true;
         }
@@ -244,7 +244,6 @@ namespace sclc {
 
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth) {
         append("_scl_push()->i = %s;\n", token.getValue().c_str());
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_top()->i);\n");
         typeStack.push("int");
         FPResult result;
         result.success = true;
@@ -255,7 +254,6 @@ namespace sclc {
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth) {
         append("_scl_push()->f = %s;\n", token.getValue().c_str());
         typeStack.push("float");
-        if (Main.options.debugBuild) append("fprintf(stderr, \"Pushed: %%f\\n\", _scl_top()->f);\n");
         FPResult result;
         result.success = true;
         result.message = "";
