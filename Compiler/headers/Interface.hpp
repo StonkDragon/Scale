@@ -7,6 +7,8 @@
 #include <regex>
 #include <unordered_map>
 
+#include "Function.hpp"
+
 namespace sclc
 {
     class Interface {

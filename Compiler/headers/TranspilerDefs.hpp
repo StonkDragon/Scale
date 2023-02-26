@@ -8,10 +8,6 @@
     err.type = body[(at)].getType();     \
     err.message = msg
 
-#define debugPrintPush()         \
-    if (Main.options.debugBuild) \
-        append("fprintf(stderr, \"Pushed: %%lld\\n\", _scl_top()->i);\n");
-
 #define resetFile()                                                                          \
     do                                                                                       \
     {                                                                                        \
