@@ -18,12 +18,11 @@ function system(_cmd_: str): int
 end
 
 function getenv(_key_: str): str?
-  str::default => decl v: str
+  decl ptr: mut [int8]
   inline_c
-    (*v)->_data = getenv((*_key_)->_data);
-    (*v)->_len = strlen((*v)->_data);
+    *ptr = getenv((*_key_)->_data);
   end_inline
-  v return
+  ptr str::new return
 end
 
 function sizeofStack(): int
@@ -80,10 +79,10 @@ function strsplit(_str_: str, _delim_: str): Array
   10 Array::new => decl arr: Array
   inline_c
     scl_int8* string = strdup((*_str_)->_data);
-    scl_str line = _scl_create_string(strtok(string, (*_delim_)->_data));
+    scl_int8* line = strtok(string, (*_delim_)->_data);
     while (line != NULL) {
-      Method_Array$push(line, *arr);
-      line = _scl_create_string(strtok(NULL, (*_delim_)->_data));
+      Method_Array$push(_scl_create_string(line), *arr);
+      line = strtok(NULL, (*_delim_)->_data);
     }
   end_inline
   arr return

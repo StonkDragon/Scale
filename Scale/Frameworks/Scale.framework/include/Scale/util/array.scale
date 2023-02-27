@@ -4,7 +4,7 @@ import Scale.debug
 import Scale.util.arg
 import Scale.util.bounds
 
-sealed struct Array is IIterable, IFinalizable
+sealed struct Array is IIterable
   decl values:  mut readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
@@ -150,7 +150,8 @@ sealed struct Array is IIterable, IFinalizable
           s ", " + => s
         fi
         if elem is SclObject then
-          s elem as SclObject :toString + => s
+          elem as SclObject :toString => decl asStr
+          s asStr + => s
         else
           s elem as int longToString + => s
         fi
@@ -158,11 +159,6 @@ sealed struct Array is IIterable, IFinalizable
       s "}" + => s
     fi
     return
-  end
-
-  function finalize(): none
-    self.values free
-    -1 => self.count
   end
 
   function immutableCopy(): ImmutableArray

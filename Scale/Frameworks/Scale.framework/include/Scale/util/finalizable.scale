@@ -1,3 +1,0 @@
-interface IFinalizable
-    function finalize(): none
-end

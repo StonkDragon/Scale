@@ -12,14 +12,15 @@ sealed struct MapEntry
 
   function toString(): str
     if value is SclObject then
-      key ": " + value as SclObject :toString + return
+      value as SclObject:toString => decl asStr: str
+      key ": " + asStr + return
     else
       key ": " + value as int longToString + return
     fi
   end
 end
 
-sealed struct Map is IIterable, IFinalizable
+sealed struct Map is IIterable
   private decl data: Array
 
   function init(size: int): none

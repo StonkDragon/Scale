@@ -2638,7 +2638,7 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("Method_Map$set(\"%s\", _scl_pop()->v, tmp);\n", key.c_str());
+                append("Method_Map$set(_scl_create_string(\"%s\"), _scl_pop()->v, tmp);\n", key.c_str());
                 if (typeStack.size())
                     typeStack.pop();
             }
@@ -2690,7 +2690,7 @@ namespace sclc {
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_MapEntry$init(\"%s\", _scl_pop()->v, tmp);\n", key.c_str());
+                append("Method_MapEntry$init(_scl_create_string(\"%s\"), _scl_pop()->v, tmp);\n", key.c_str());
             }
             append("_scl_push()->v = tmp;\n");
             typeStack.push("MapEntry");
@@ -3299,6 +3299,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+        // append("_scl_assert(_scl_top()->v && _scl_struct_is_type(_scl_top()->v, 0x%xU), \"Instance is not of type '%s'\");\n", hash1((char*) s.getName().c_str()), s.getName().c_str());
         if (mem.getType() == "float")
             append("_scl_top()->f = ((struct Struct_%s*) _scl_top()->v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
         else
@@ -3938,7 +3939,7 @@ namespace sclc {
             
             scopeDepth++;
 
-            if (function->isMethod && static_cast<Method*>(function)->getMemberType() == "_String") {
+            if (function->isMethod) {
                 Method* m = static_cast<Method*>(function);
                 append("if (!_scl_do_method_check) goto _scl_jmp_after_%s_%s;\n", m->getMemberType().c_str(), m->getName().c_str());
                 {

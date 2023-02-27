@@ -16,15 +16,15 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   end
 
   function clone(): str
-    self._data strdup str::new return
+    self:view str::new return
   end
 
   function append(other: str): str
-    self._data other._data concat return
+    self._data other._data concat str::new return
   end
 
   function prepend(other: str): str
-    other._data self._data concat return
+    other._data self._data concat str::new return
   end
 
   function equals(other: str): bool
@@ -36,9 +36,6 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   end
 
   function size(): int
-    if self._len ! then
-      self._data strlen => self._len
-    fi
     self._len return
   end
 
@@ -59,18 +56,17 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   end
 
   function reverse(): str
-    str::default => decl out: str
+    decl out: [int8]
     inline_c
       scl_int i = 0;
       scl_int len = strlen((*self)->_data);
-      (*out)->_data = _scl_alloc(len + 1);
-      (*out)->_len = len;
+      *out = _scl_alloc(len + 1);
       for (i = len - 1; i >= 0; i--) {
-        (*out)->_data[i] = (*self)->_data[len - i - 1];
+        (*out)[i] = (*self)->_data[len - i - 1];
       }
-      (*out)->_data[len] = '\0';
+      (*out)[len] = '\0';
     end_inline
-    out return
+    out str::new return
   end
 
   function toChars() _arr_: Array

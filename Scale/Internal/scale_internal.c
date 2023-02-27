@@ -211,9 +211,6 @@ _scl_no_return void _scl_security_throw(int code, scl_int8* msg) {
 // exit()
 _scl_no_return void _scl_security_safe_exit(int code) {
 
-	// Call finalizers on instances
-	_scl_finalize();
-
 	// exit
 	exit(code);
 }
@@ -512,9 +509,9 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 
 	array->capacity = (scl_any) cap;
 	array->count = 0;
-	array->values = _scl_alloc(cap * sizeof(scl_int8*));
+	array->values = _scl_alloc(cap * sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
-		((scl_any*) array->values)[(scl_int) array->count++] = _scl_create_string(arr[i]);
+		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(arr[i]);
 	}
 	return array;
 }
@@ -606,16 +603,6 @@ static struct sclstruct** mallocced_structs;
 static scl_int mallocced_structs_count = 0;
 static scl_int mallocced_structs_cap = 64;
 
-// Free all allocated instances
-void _scl_finalize() {
-	for (size_t i = 0; i < mallocced_structs_count; i++) {
-		if (mallocced_structs[i]) {
-			_scl_free(mallocced_structs[i]);
-		}
-		mallocced_structs[i] = 0;
-	}
-}
-
 scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
 	scl_int left = 0;
 	scl_int right = count - 1;
@@ -679,9 +666,6 @@ scl_any _scl_add_struct(scl_any ptr) {
 	return ptr;
 }
 
-// SclObject:finalize()
-void Method_SclObject_finalize(scl_any) __asm("m.SclObject.f.finalize");
-
 // creates a new instance with a size of 'size'
 scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 
@@ -738,11 +722,6 @@ void _scl_free_struct(scl_any ptr) {
 	if (_scl_find_index_of_struct(ptr) == -1)
 		return;
 
-	scl_any method = _scl_get_method_on_type(((struct sclstruct*) ptr)->type, hash1("finalize"));
-	if (method) {
-		_scl_push()->v = ptr;
-		((void(*)()) method)();
-	}
 	size_t i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		_scl_struct_map_remove(i);
@@ -1103,9 +1082,6 @@ _scl_destructor void _scl_destroy() {
 #endif
 
 	// Run finalization:
-	// call finalizers on instances and free all allocated memory
-	_scl_finalize();
-
 	// Run __destroy__ functions
 	for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
 		_scl_internal_destroy_functions[i]();
