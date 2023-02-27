@@ -90,8 +90,20 @@ sealed struct Array is IIterable, IFinalizable
 
   function contains(val: any): bool
     for i in 0 to self.count do
-      if i self:get val == then
-        true return
+      if i self:get is SclObject then
+        if val is SclObject then
+          if
+            i self:get as SclObject
+            val as SclObject
+            ==
+          then
+            true return
+          fi
+        fi
+      else
+        if i self:get val == then
+          true return
+        fi
       fi
     done
     false return
@@ -138,8 +150,7 @@ sealed struct Array is IIterable, IFinalizable
           s ", " + => s
         fi
         if elem is SclObject then
-          elem as SclObject :toString => decl asStr
-          s asStr + => s
+          s elem as SclObject :toString + => s
         else
           s elem as int longToString + => s
         fi

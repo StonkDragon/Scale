@@ -6,13 +6,16 @@ import Scale.util.finalizable
 
 struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable, IFinalizable
     function toString(): str
-        decl typename: mut str
-        decl address: mut str
+        decl typenamePtr: mut [int8]
+        decl addressPtr: mut [int8]
         inline_c
-            *typename = (*self)->$__type_name__;
-            *address = _scl_alloc(19);
-            snprintf(*address, 18, "%p", *self);
+            *typenamePtr = (*self)->$__type_name__;
+            *addressPtr = _scl_alloc(19);
+            snprintf(*addressPtr, 18, "%p", *self);
         end_inline
+
+        typenamePtr str::new => decl typename
+        addressPtr str::new => decl address
 
         typename "@" + address + return
     end

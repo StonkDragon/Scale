@@ -860,7 +860,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
                     FPResult result;
                     result.message = "Invalid name for struct: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
@@ -872,12 +872,14 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Structs", tokens[i], flatcase, PascalCase, true)
-                else if namingConvention("Structs", tokens[i], UPPERCASE, PascalCase, true)
-                else if namingConvention("Structs", tokens[i], camelCase, PascalCase, true)
-                else if namingConvention("Structs", tokens[i], snake_case, PascalCase, true)
-                else if namingConvention("Structs", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
-                else if namingConvention("Structs", tokens[i], IPascalCase, PascalCase, true)
+                if (tokens[i].getValue() != "str") {
+                    if namingConvention("Structs", tokens[i], flatcase, PascalCase, true)
+                    else if namingConvention("Structs", tokens[i], UPPERCASE, PascalCase, true)
+                    else if namingConvention("Structs", tokens[i], camelCase, PascalCase, true)
+                    else if namingConvention("Structs", tokens[i], snake_case, PascalCase, true)
+                    else if namingConvention("Structs", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
+                    else if namingConvention("Structs", tokens[i], IPascalCase, PascalCase, true)
+                }
                 currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
                 for (std::string m : nextAttributes) {
                     if (m == "sealed")

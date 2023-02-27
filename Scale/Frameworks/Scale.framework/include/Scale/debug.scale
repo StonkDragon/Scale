@@ -59,10 +59,10 @@ function throw(ex: Exception): none
   end_inline
 end
 
-function sysPrettyString() s: str
-  40 malloc => s
+function sysPrettyString(): str
+  40 malloc => decl sPtr: [int8]
   inline_c
-    snprintf(*s, 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+    snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
   end_inline
-  return
+  sPtr str::new return
 end

@@ -373,6 +373,7 @@ namespace sclc {
         if (result.structs.size() == 0) return;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
+            if (c.getName() == "str") continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
@@ -441,7 +442,7 @@ namespace sclc {
 
             append("struct Struct_%s {\n", c.getName().c_str());
             append("  scl_int $__type__;\n");
-            append("  scl_str $__type_name__;\n");
+            append("  scl_int8* $__type_name__;\n");
             append("  scl_int $__super__;\n");
             append("  scl_int $__size__;\n");
             for (Variable s : c.getMembers()) {
@@ -450,7 +451,7 @@ namespace sclc {
             append("};\n");
             fprintf(support_header, "struct %s {\n", c.getName().c_str());
             fprintf(support_header, "  scl_int __type_identifier__;\n");
-            fprintf(support_header, "  scl_str __type_string__;\n");
+            fprintf(support_header, "  scl_int8* __type_string__;\n");
             fprintf(support_header, "  scl_int __super__;\n");
             fprintf(support_header, "  scl_int __size__;\n");
             for (Variable s : c.getMembers()) {
@@ -505,11 +506,9 @@ namespace sclc {
         bool typesMatch = true;
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
             std::string typeA = tmp.at(i);
-            if (typeA == "_String") typeA = "str";
             if (typeA == "bool") typeA = "int";
             if (strstarts(typeA, "lambda(")) typeA = "lambda";
             std::string typeB = args.at(i).getType();
-            if (typeB == "_String") typeB = "str";
             if (typeB == "bool") typeB = "int";
             if (strstarts(typeB, "lambda(")) typeB = "lambda";
 
@@ -544,7 +543,6 @@ namespace sclc {
         std::string arg = "";
         for (size_t i = 0; i < amount; i++) {
             std::string typeA = tmp.at(i);
-            if (typeA == "_String") typeA = "str";
             
             if (i) {
                 arg += ", ";
@@ -1111,11 +1109,11 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "puts") {
-            append("puts(_scl_pop()->s);\n");
+            append("puts(_scl_pop()->s->_data);\n");
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "eputs") {
-            append("fprintf(stderr, \"%%s\\n\", _scl_pop()->s);\n");
+            append("fprintf(stderr, \"%%s\\n\", _scl_pop()->s->_data);\n");
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "abort") {
@@ -1123,10 +1121,10 @@ namespace sclc {
         } else if (body[i].getValue() == "typeof") {
             ITER_INC;
             if (hasVar(body[i]) && getStructByName(result, getVar(body[i]).getType()) == Struct("")) {
-                append("_scl_push()->s = \"%s\";\n", getVar(body[i]).getType().c_str());
+                append("_scl_push()->s = _scl_create_string(\"%s\");\n", getVar(body[i]).getType().c_str());
                 typeStack.push("str");
             } else if (getStructByName(result, getVar(body[i]).getType()) != Struct("")) {
-                append("_scl_push()->s = Var_%s->$__type_name__;\n", body[i].getValue().c_str());
+                append("_scl_push()->s = _scl_create_string(Var_%s->$__type_name__);\n", body[i].getValue().c_str());
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
@@ -1136,7 +1134,7 @@ namespace sclc {
         } else if (body[i].getValue() == "nameof") {
             ITER_INC;
             if (hasVar(body[i])) {
-                append("_scl_push()->s = \"%s\";\n", body[i].getValue().c_str());
+                append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
@@ -2790,7 +2788,7 @@ namespace sclc {
 
     handler(StringLiteral) {
         noUnused;
-        append("_scl_push()->s = \"%s\";\n", body[i].getValue().c_str());
+        append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
         typeStack.push("str");
     }
 
@@ -2893,7 +2891,7 @@ namespace sclc {
             return;
         }
         std::string struct_ = body[i].getValue();
-        if (struct_ == "str" || struct_ == "int" || struct_ == "float" || struct_ == "any") {
+        if (struct_ == "int" || struct_ == "float" || struct_ == "any") {
             append("_scl_top()->i = 1;\n");
             if (typeStack.size())
                 typeStack.pop();
@@ -3169,9 +3167,6 @@ namespace sclc {
             if (ptr.at(0) == '[' && ptr.at(ptr.size() - 1) == ']') {
                 typeStack.push(ptr.substr(1, ptr.size() - 2));
                 return;
-            } else if (ptr == "str") {
-                typeStack.push("int");
-                return;
             }
         }
         typeStack.push("any");
@@ -3271,7 +3266,7 @@ namespace sclc {
                 append("scl_any tmp = _scl_pop()->v;\n");
                 std::string t = typeStackTop;
                 typeStack.pop();
-                append("_scl_push()->s = \"%s\";\n", body[i].getValue().c_str());
+                append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
                 typeStack.push(t);
                 typeStack.push("str");
                 append("_scl_push()->v = tmp;\n");
@@ -3906,7 +3901,6 @@ namespace sclc {
                     Variable var = function->getArgs()[i];
                     vars[varDepth].push_back(var);
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                    if (type == "_String") type = "str";
                     if (i) {
                         arguments += ", ";
                     }
@@ -4023,7 +4017,7 @@ namespace sclc {
                     else
                         append("%s Var_%s = (%s) _scl_pop()->v;\n", sclTypeToCType(result, arg.getType()).c_str(), arg.getName().c_str(), sclTypeToCType(result, arg.getType()).c_str());
                 }
-                if (!typeCanBeNil(arg.getType()) || arg.getType() == "str") {
+                if (!typeCanBeNil(arg.getType())) {
                     append("_scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }
             }

@@ -65,12 +65,6 @@ namespace sclc
         remove("scale_support.h");
         support_header = fopen("scale_support.h", "a");
         fprintf(support_header, "#include <scale_internal.h>\n\n");
-        fprintf(support_header, "#define ssize_t signed long\n");
-        fprintf(support_header, "typedef void* scl_any;\n");
-        fprintf(support_header, "typedef long long scl_int;\n");
-        fprintf(support_header, "typedef char* scl_str;\n");
-        fprintf(support_header, "typedef double scl_float;\n\n");
-        fprintf(support_header, "extern _scl_stack_t stack;\n\n");
 
         std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
         std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);

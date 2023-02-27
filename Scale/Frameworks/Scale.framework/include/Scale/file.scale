@@ -3,7 +3,7 @@ typealias file "FILE*"
 function fopen(_filename_: str, _mode_: str): file?
   decl _f_: file?
   inline_c
-    *_f_ = fopen(*_filename_, *_mode_);
+    *_f_ = fopen((*_filename_)->_data, (*_mode_)->_data);
   end_inline
   _f_ return
 end
@@ -40,9 +40,15 @@ function fwrite(_buf_: any, _size_: int, _file_: file): none
   end_inline
 end
 
+function fwrites(_buf_: str, _size_: int, _file_: file): none
+  inline_c
+    int _ignored = fwrite((*_buf_)->_data, 1, *_size_, *_file_); (void) _ignored;
+  end_inline
+end
+
 function fputs(_file_: file, _str_: str): none
-  _str_ _str_ strlen _file_ fwrite
-  "\n" 1 _file_ fwrite
+  _str_ _str_ strlen _file_ fwrites
+  "\n" 1 _file_ fwrites
 end
 
 function fputint(_file_: file, _int_: int): none

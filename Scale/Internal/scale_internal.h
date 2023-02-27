@@ -135,7 +135,7 @@
 typedef void*				scl_any;
 typedef int		 			scl_int;
 typedef unsigned int		scl_uint;
-typedef char* 				scl_str;
+typedef struct _scl_string* scl_str;
 typedef float 				scl_float;
 #else
 // 64-bit system
@@ -162,7 +162,7 @@ typedef float 				scl_float;
 typedef void*				scl_any;
 typedef long long 			scl_int;
 typedef unsigned long long	scl_uint;
-typedef char* 				scl_str;
+typedef struct _scl_string* scl_str;
 typedef double 				scl_float;
 #endif
 
@@ -173,6 +173,15 @@ typedef char		 		scl_int8;
 typedef unsigned int 		scl_uint32;
 typedef unsigned short 		scl_uint16;
 typedef unsigned char 		scl_uint8;
+
+struct _scl_string {
+	scl_int		$__type__;
+	scl_int8*	$__type_name__;
+	scl_int		$__super__;
+	scl_int		$__size__;
+	scl_int8*	_data;
+	scl_int		_len;
+};
 
 #if defined(__ANDROID__)
 #define SCL_OS_NAME "Android"
@@ -237,13 +246,13 @@ typedef struct {
 } _scl_stack_t;
 
 typedef struct {
-	scl_str file							_scl_align;
-	scl_str func							_scl_align;
-	scl_int line							_scl_align;
-	scl_int col								_scl_align;
-	scl_int begin_stack_size				_scl_align;
-	scl_int begin_var_count					_scl_align;
-	scl_int sp								_scl_align;
+	scl_int8* 	file							_scl_align;
+	scl_int8*	func							_scl_align;
+	scl_int		line							_scl_align;
+	scl_int 	col								_scl_align;
+	scl_int 	begin_stack_size				_scl_align;
+	scl_int 	begin_var_count					_scl_align;
+	scl_int 	sp								_scl_align;
 } _scl_callframe_t;
 
 typedef struct {
@@ -253,7 +262,7 @@ typedef struct {
 
 typedef void(*_scl_lambda)(void);
 
-_scl_no_return void	_scl_security_throw(int code, scl_str msg);
+_scl_no_return void	_scl_security_throw(int code, scl_int8* msg);
 _scl_no_return void	_scl_security_safe_exit(int code);
 
 void				_scl_catch_final(int sig_num);
@@ -273,6 +282,7 @@ _scl_frame_t*		_scl_push();
 _scl_frame_t*		_scl_pop();
 _scl_frame_t*		_scl_top();
 void				_scl_popn(scl_int n);
+scl_str				_scl_create_string(scl_int8* data);
 
 void				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
@@ -282,14 +292,14 @@ scl_int				_scl_check_allocated(scl_any ptr);
 scl_any				_scl_realloc(scl_any ptr, size_t size);
 scl_any				_scl_alloc(size_t size);
 void				_scl_free(scl_any ptr);
-void				_scl_assert(scl_int b, scl_str msg);
+void				_scl_assert(scl_int b, scl_int8* msg);
 void				_scl_finalize(void);
-void				_scl_unreachable(char* msg);
+void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
 
-hash				hash1(char* data);
+hash				hash1(scl_int8* data);
 void				_scl_cleanup_post_func(scl_int depth);
-scl_any				_scl_alloc_struct(size_t size, scl_str type_name, hash super);
+scl_any				_scl_alloc_struct(size_t size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);

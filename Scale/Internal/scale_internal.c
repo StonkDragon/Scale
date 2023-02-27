@@ -25,11 +25,11 @@ __thread struct _exception_handling {
 
 static scl_any*	alloced_ptrs;				// List of allocated pointers
 static scl_int	alloced_ptrs_count = 0;		// Length of the list
-static scl_int	alloced_ptrs_cap = 64;		// Length of the list
+static scl_int	alloced_ptrs_cap = 64;		// Capacity of the list
 
 static size_t*	ptrs_size;					// List of pointer sizes
 static scl_int	ptrs_size_count = 0;		// Length of the list
-static scl_int	ptrs_size_cap = 64;			// Length of the list
+static scl_int	ptrs_size_cap = 64;			// Capacity of the list
 
 // Inserts value into array at it's sorted position
 // returns the index at which the value was inserted
@@ -180,7 +180,7 @@ void _scl_free(scl_any ptr) {
 
 
 // Assert, that 'b' is true
-void _scl_assert(scl_int b, scl_str msg) {
+void _scl_assert(scl_int b, scl_int8* msg) {
 	if (!b) {
 		printf("\n");
 		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line, _scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col);
@@ -192,7 +192,7 @@ void _scl_assert(scl_int b, scl_str msg) {
 }
 
 // Hard-throw an exception
-_scl_no_return void _scl_security_throw(int code, scl_str msg) {
+_scl_no_return void _scl_security_throw(int code, scl_int8* msg) {
 	remove("scl_trace.log");
 	FILE* trace = fopen("scl_trace.log", "a");
 	printf("\n");
@@ -223,6 +223,12 @@ void _scl_cleanup_post_func(scl_int depth) {
 	_scl_internal_stack.ptr = _scl_internal_callstack.data[depth].begin_stack_size;
 }
 
+scl_str _scl_create_string(scl_int8* data) {
+	scl_str instance = _scl_alloc_struct(sizeof(struct _scl_string), "str", hash1("SclObject"));
+	instance->_data = data;
+	instance->_len = strlen(data);
+	return instance;
+}
 
 static int printingStacktrace = 0;
 
@@ -261,15 +267,15 @@ void print_stacktrace() {
 			if (!f) f = _scl_internal_callstack.data[i].file;
 			else f++;
 			if (_scl_internal_callstack.data[i].line) {
-				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
 			} else {
-				printf("  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
+				printf("  %s -> %s\n", (scl_int8*) _scl_internal_callstack.data[i].func, f);
 			}
 		} else {
 			if (_scl_internal_callstack.data[i].line) {
-				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
 			} else {
-				printf("  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
+				printf("  %s -> (nil)\n", (scl_int8*) _scl_internal_callstack.data[i].func);
 			}
 		}
 
@@ -325,19 +331,19 @@ void print_stacktrace_with_file(FILE* trace) {
 			if (!f) f = _scl_internal_callstack.data[i].file;
 			else f++;
 			if (_scl_internal_callstack.data[i].line) {
-				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
-				fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, f, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
 			} else {
-				printf("  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
-				fprintf(trace, "  %s -> %s\n", (scl_str) _scl_internal_callstack.data[i].func, f);
+				printf("  %s -> %s\n", (scl_int8*) _scl_internal_callstack.data[i].func, f);
+				fprintf(trace, "  %s -> %s\n", (scl_int8*) _scl_internal_callstack.data[i].func, f);
 			}
 		} else {
 			if (_scl_internal_callstack.data[i].line) {
-				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
-				fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_str) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
+				fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _scl_internal_callstack.data[i].func, _scl_internal_callstack.data[i].line, _scl_internal_callstack.data[i].col);
 			} else {
-				printf("  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
-				fprintf(trace, "  %s -> (nil)\n", (scl_str) _scl_internal_callstack.data[i].func);
+				printf("  %s -> (nil)\n", (scl_int8*) _scl_internal_callstack.data[i].func);
+				fprintf(trace, "  %s -> (nil)\n", (scl_int8*) _scl_internal_callstack.data[i].func);
 			}
 		}
 	}
@@ -350,7 +356,7 @@ void print_stacktrace_with_file(FILE* trace) {
 // generic struct
 struct sclstruct {
 	scl_int	type;
-	scl_str	type_name;
+	scl_int8*	type_name;
 	scl_int	super;
 	scl_int	size;
 	scl_int	count;
@@ -359,7 +365,7 @@ struct sclstruct {
 // final signal handler
 // if we get here, something has gone VERY wrong
 void _scl_catch_final(int sig_num) {
-	scl_str signalString;
+	scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
 #if defined(SIGHUP)
@@ -487,7 +493,7 @@ void _scl_catch_final(int sig_num) {
 
 struct scl_Array {
 	scl_int $__type__;
-	scl_str $__type_name__;
+	scl_int8* $__type_name__;
 	scl_any $__super_list__;
 	scl_any $__super_list_len__;
 	scl_any values;
@@ -506,9 +512,9 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 
 	array->capacity = (scl_any) cap;
 	array->count = 0;
-	array->values = _scl_alloc(cap * sizeof(scl_str));
+	array->values = _scl_alloc(cap * sizeof(scl_int8*));
 	for (scl_int i = 0; i < cap; i++) {
-		((scl_any*) array->values)[(scl_int) array->count++] = arr[i];
+		((scl_any*) array->values)[(scl_int) array->count++] = _scl_create_string(arr[i]);
 	}
 	return array;
 }
@@ -523,6 +529,10 @@ inline _scl_frame_t* ctrl_pop_frame() {
 
 inline void ctrl_push_string(scl_str c) {
 	_scl_push()->s = c;
+}
+
+inline void ctrl_push_c_string(scl_int8* c) {
+	_scl_push()->v = c;
 }
 
 inline void ctrl_push_double(scl_float d) {
@@ -547,6 +557,10 @@ inline scl_float ctrl_pop_double() {
 
 inline scl_str ctrl_pop_string() {
 	return _scl_pop()->s;
+}
+
+inline scl_int8* ctrl_pop_c_string() {
+	return _scl_pop()->v;
 }
 
 inline scl_any ctrl_pop() {
@@ -669,7 +683,7 @@ scl_any _scl_add_struct(scl_any ptr) {
 void Method_SclObject_finalize(scl_any) __asm("m.SclObject.f.finalize");
 
 // creates a new instance with a size of 'size'
-scl_any _scl_alloc_struct(size_t size, scl_str type_name, hash super) {
+scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
@@ -933,8 +947,8 @@ void _scl_exception_push() {
 	}
 }
 
-scl_str* _scl_platform_get_env() {
-    scl_str* env;
+scl_int8** _scl_platform_get_env() {
+    scl_int8** env;
 
 #if defined(WIN) && (_MSC_VER >= 1900)
     env = *__p__environ();
@@ -998,7 +1012,7 @@ _scl_no_return void _scl_native_main(int argc, char** argv) {
 	_scl_set_up_signal_handler();
 
 	_scl_internal_callstack.data[0].file = __FILE__;
-	_scl_internal_callstack.data[0].func = (scl_str) __FUNCTION__;
+	_scl_internal_callstack.data[0].func = (scl_int8*) __FUNCTION__;
 
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
@@ -1069,8 +1083,9 @@ _scl_constructor void _scl_load() {
 #ifndef SCL_COMPILER_NO_MAIN
 
 	int ret;
+	int jmp = setjmp(_scl_internal_exceptions._scl_jmp_buf[_scl_internal_exceptions._scl_jmp_buf_ptr]);
 	_scl_internal_exceptions._scl_jmp_buf_ptr++;
-	if (setjmp(_scl_internal_exceptions._scl_jmp_buf[_scl_internal_exceptions._scl_jmp_buf_ptr]) != 666) {
+	if (jmp != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
 		ret = (_scl_main ? _scl_main(args, env) : 0);

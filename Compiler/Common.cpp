@@ -683,8 +683,6 @@ namespace sclc
         while (typeCanBeNil(type))
             type = type.substr(0, type.size() - 1);
 
-        if (type == "str") return "_String";
-
         return type;
     }
 
