@@ -689,6 +689,8 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
 
+	if (ptr == NULL) return NULL;
+
 	// Type name hash
 	((struct sclstruct*) ptr)->type = hash1(type_name);
 
