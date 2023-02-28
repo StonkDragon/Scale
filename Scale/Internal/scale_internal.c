@@ -31,6 +31,25 @@ static size_t*	ptrs_size;					// List of pointer sizes
 static scl_int	ptrs_size_count = 0;		// Length of the list
 static scl_int	ptrs_size_cap = 64;			// Capacity of the list
 
+// generic struct
+struct sclstruct {
+	scl_int	type;
+	scl_int8*	type_name;
+	scl_int	super;
+	scl_int	size;
+	scl_int	count;
+};
+
+// table of instances
+static struct sclstruct** allocated_structs;
+static scl_int allocated_structs_count = 0;
+static scl_int allocated_structs_cap = 64;
+
+// table of instances allocated with _scl_alloc_struct()
+static struct sclstruct** mallocced_structs;
+static scl_int mallocced_structs_count = 0;
+static scl_int mallocced_structs_cap = 64;
+
 // Inserts value into array at it's sorted position
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
@@ -47,7 +66,7 @@ scl_int _scl_sorted_insert(scl_any** array, scl_int* size, scl_any value, scl_in
 
 	if ((*size) + 1 >= (*cap)) {
 		(*cap) *= 2;
-		(*array) = realloc((*array), *(cap) * sizeof((*array)[0]));
+		(*array) = realloc((*array), (*cap) * sizeof(scl_any*));
 	}
 
     scl_int j;
@@ -192,13 +211,22 @@ void _scl_assert(scl_int b, scl_int8* msg) {
 }
 
 // Hard-throw an exception
-_scl_no_return void _scl_security_throw(int code, scl_int8* msg) {
+_scl_no_return void _scl_security_throw(int code, scl_int8* msg, ...) {
 	remove("scl_trace.log");
 	FILE* trace = fopen("scl_trace.log", "a");
 	printf("\n");
 	fprintf(trace, "\n");
-	printf("Exception: %s\n", msg);
-	fprintf(trace, "Exception: %s\n", msg);
+
+	va_list args;
+	va_start(args, msg);
+	
+	char* str = malloc(strlen(msg) * 8);
+	vsprintf(str, msg, args);
+	printf("Exception: %s\n", str);
+	fprintf(trace, "Exception: %s\n", str);
+
+	va_end(args);
+
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 		fprintf(trace, "errno: %s\n", strerror(errno));
@@ -222,8 +250,16 @@ void _scl_cleanup_post_func(scl_int depth) {
 
 scl_str _scl_create_string(scl_int8* data) {
 	scl_str instance = _scl_alloc_struct(sizeof(struct _scl_string), "str", hash1("SclObject"));
-	instance->_data = data;
-	instance->_len = strlen(data);
+	if (instance == NULL) {
+		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
+		return NULL;
+	}
+	instance->_data = strdup(data);
+	instance->_len = strlen(instance->_data);
+	if (_scl_find_index_of_struct(instance) == -1) {
+		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT "\n", data, _scl_find_index_of_struct(instance));
+		return NULL;
+	}
 	return instance;
 }
 
@@ -349,15 +385,6 @@ void print_stacktrace_with_file(FILE* trace) {
 	printf("\n");
 	fprintf(trace, "\n");
 }
-
-// generic struct
-struct sclstruct {
-	scl_int	type;
-	scl_int8*	type_name;
-	scl_int	super;
-	scl_int	size;
-	scl_int	count;
-};
 
 // final signal handler
 // if we get here, something has gone VERY wrong
@@ -593,16 +620,6 @@ struct _scl_typeinfo {
 extern struct _scl_typeinfo		_scl_internal_types[];
 extern size_t 					_scl_internal_types_count;
 
-// table of instances
-static struct sclstruct** allocated_structs;
-static scl_int allocated_structs_count = 0;
-static scl_int allocated_structs_cap = 64;
-
-// table of instances allocated with _scl_alloc_struct()
-static struct sclstruct** mallocced_structs;
-static scl_int mallocced_structs_count = 0;
-static scl_int mallocced_structs_cap = 64;
-
 scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
 	scl_int left = 0;
 	scl_int right = count - 1;
@@ -689,8 +706,9 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 
 	// Add struct to allocated table
 	scl_int index = _scl_sorted_insert((scl_any**) &mallocced_structs, &mallocced_structs_count, ptr, &mallocced_structs_cap);
-	allocated_structs_count++;
-	return allocated_structs[index] = ptr;
+	if (index == -1) return NULL;
+	index = _scl_sorted_insert((scl_any**) &allocated_structs, &allocated_structs_count, ptr, &allocated_structs_cap);
+	return allocated_structs[index];
 }
 
 // Removes an instance from the allocated table by index

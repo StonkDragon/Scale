@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdarg.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -262,7 +263,7 @@ typedef struct {
 
 typedef void(*_scl_lambda)(void);
 
-_scl_no_return void	_scl_security_throw(int code, scl_int8* msg);
+_scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 
 void				_scl_catch_final(int sig_num);
