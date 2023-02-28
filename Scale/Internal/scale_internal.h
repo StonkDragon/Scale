@@ -81,6 +81,9 @@
 // This function was declared in Scale code
 #define export
 
+#define str_of(_cstr) _scl_create_string((_cstr))
+#define cstr_of(_scl_string) ((_scl_string)->_data)
+
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
 #endif
