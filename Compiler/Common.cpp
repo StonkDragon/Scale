@@ -688,7 +688,6 @@ namespace sclc
 
     bool sclIsProhibitedInit(std::string s) {
         if (s.size() > 1 && s.back() == '?') s = s.substr(0, s.size() - 1);
-        if (s == "_String") return true;
 
         return false;
     }

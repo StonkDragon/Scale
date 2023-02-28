@@ -150,8 +150,7 @@ sealed struct Array is IIterable
           s ", " + => s
         fi
         if elem is SclObject then
-          elem as SclObject :toString => decl asStr
-          s asStr + => s
+          s elem as SclObject :toString + => s
         else
           s elem as int longToString + => s
         fi

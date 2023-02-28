@@ -12,8 +12,7 @@ sealed struct MapEntry
 
   function toString(): str
     if value is SclObject then
-      value as SclObject:toString => decl asStr: str
-      key ": " + asStr + return
+      key ": " + value as SclObject:toString + return
     else
       key ": " + value as int longToString + return
     fi

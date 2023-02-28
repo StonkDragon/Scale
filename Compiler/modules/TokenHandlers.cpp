@@ -52,6 +52,10 @@ namespace sclc {
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
+    bool checkStackType(TPResult result, std::vector<Variable> args);
+    std::string argVectorToString(std::vector<Variable> args);
+    std::string stackSliceToString(size_t amount);
+
     bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
         if (type.size() == 0)
             return false;
@@ -60,33 +64,27 @@ namespace sclc {
         }
         if (hasMethod(result, op, type)) {
             Method* f = getMethodByName(result, op, type);
-            bool equals = true;
-            if (typeStack.size())
-                typeStack.pop();
-            for (ssize_t m = f->getArgs().size() - 2; m >= 0; m--) {
-                std::string typeA = sclConvertToStructType(f->getArgs()[m].getType());
-                std::string typeB = sclConvertToStructType(typeStackTop);
-                if (typeA != typeB) {
-                    equals = false;
-                }
-                if (typeStack.size())
-                    typeStack.pop();
-            }
-            if (!equals) {
-                return false;
-            }
+            
             if (f->getArgs().size() > 0) {
                 append("_scl_popn(%zu);\n", f->getArgs().size());
             }
+            bool argsCorrect = checkStackType(result, f->getArgs());
+            if (!argsCorrect) {
+                return false;
+            }
+            for (size_t m = 0; m < f->getArgs().size(); m++) {
+                if (typeStack.size())
+                    typeStack.pop();
+            }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_%s$%s(%s);\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
             }
             return true;
         }

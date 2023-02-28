@@ -582,7 +582,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        for (ssize_t m = self->getArgs().size() - 1; m >= 0; m--) {
+        for (size_t m = 0; m < self->getArgs().size(); m++) {
             if (typeStack.size())
                 typeStack.pop();
         }
@@ -1247,11 +1247,6 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
-                if ((body[i].getValue() == "new" || body[i].getValue() == "default") && sclIsProhibitedInit(s.getName())) {
-                    transpilerError("Explicit instanciation of struct '_String' is not allowed!", i);
-                    errors.push_back(err);
-                    return;
-                }
                 if (body[i].getValue() == "new") {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_assert(_scl_top()->i, \"Failed to allocate memory for struct '%s'\");\n", struct_.c_str());
@@ -3065,10 +3060,9 @@ namespace sclc {
         else {
             if (function->hasNamedReturnValue) {
                 std::string type = sclTypeToCType(result, function->getNamedReturnValue().getType());
-                if (type == "scl__String") type = "scl_str";
                 append("return (%s) Var_%s;\n", type.c_str(), function->getNamedReturnValue().getName().c_str());
             } else {
-                if (return_type == "scl_str" || return_type == "scl__String") {
+                if (return_type == "scl_str") {
                     append("return returnFrame.s;\n");
                 } else if (return_type == "scl_int") {
                     append("return returnFrame.i;\n");
@@ -3239,6 +3233,8 @@ namespace sclc {
             if (typeCanBeNil(typeStackTop)) {
                 append("_scl_assert(_scl_top()->i, \"Nil cannot be cast to non-nil type '%s!'\");\n", type.value.c_str());
             }
+            if (typeStack.size())
+                typeStack.pop();
             typeStack.push(type.value);
         }
     }
