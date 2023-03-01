@@ -47,10 +47,12 @@
 #define FRAMEWORK_VERSION_REQ "23.0"
 #endif
 
+#ifndef SCL_ROOT_DIR
 #ifdef _WIN32
-#define HOME getenv("USERPROFILE")
+#define SCL_ROOT_DIR getenv("USERPROFILE")
 #else
-#define HOME getenv("HOME")
+#define SCL_ROOT_DIR getenv("HOME")
+#endif
 #endif
 
 namespace sclc
@@ -542,7 +544,7 @@ namespace sclc
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
-        scaleFolder             = std::string(HOME) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
+        scaleFolder             = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
