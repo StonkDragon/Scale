@@ -462,14 +462,6 @@
 		],
 		"description": "step"
 	},
-	"Keyword decl": {
-		"scope": "source.scale",
-		"prefix": "decl",
-		"body": [
-			"decl",
-		],
-		"description": "decl"
-	},
 	"Keyword addr": {
 		"scope": "source.scale",
 		"prefix": "addr",
