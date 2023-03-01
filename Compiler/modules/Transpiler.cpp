@@ -562,7 +562,7 @@ namespace sclc {
             if (self->getReturnType() == "float") {
                 append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             }
         }
     }
@@ -590,7 +590,7 @@ namespace sclc {
             if (self->getReturnType() == "float") {
                 append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             }
             typeStack.push(self->getReturnType());
         } else {
@@ -607,7 +607,7 @@ namespace sclc {
             if (self->getReturnType() == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             }
         }
     }
@@ -635,7 +635,7 @@ namespace sclc {
             if (self->getReturnType() == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             }
             typeStack.push(self->getReturnType());
         } else {
@@ -3757,7 +3757,7 @@ namespace sclc {
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
             Method* m = (Method*) f;
-            append("_scl_symbol_hidden static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
+            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
             scopeDepth++;
             append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->getName().c_str());
             append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
@@ -3771,7 +3771,7 @@ namespace sclc {
             std::vector<Method*> methods = methodsOnType(result, s.getName());
             append("/* %s */\n", s.getName().c_str());
             if (methods.size()) {
-                append("_scl_symbol_hidden static struct _scl_methodinfo* _scl_methodinfo_ptrs_%s[] = (struct _scl_methodinfo*[]) {\n", s.getName().c_str());
+                append("static struct _scl_methodinfo* _scl_methodinfo_ptrs_%s[] = (struct _scl_methodinfo*[]) {\n", s.getName().c_str());
                 scopeDepth++;
                 for (Method* m : methods) {
                     append("  &_scl_methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), m->getName().c_str());
