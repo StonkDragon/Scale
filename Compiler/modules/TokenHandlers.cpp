@@ -80,7 +80,7 @@ namespace sclc {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
