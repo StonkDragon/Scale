@@ -522,6 +522,7 @@ struct scl_Array {
 	scl_any values;
 	scl_any count;
 	scl_any capacity;
+	scl_int initCapacity;
 	scl_int pos;
 };
 
@@ -534,6 +535,7 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	}
 
 	array->capacity = (scl_any) cap;
+	array->initCapacity = cap;
 	array->count = 0;
 	array->values = _scl_alloc(cap * sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
