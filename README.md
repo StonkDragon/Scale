@@ -13,15 +13,9 @@
 ## Installation
 
 ### Linux & macOS
-Run:
 ```shell
-$ python install.py
-```
-
-Or add the `-with-compiler` flag to specify a different C compiler:
-Run:
-```shell
-$ python install.py -with-compiler clang
+$ git clone https://github.com/StonkDragon/Scale
+$ sh install.sh
 ```
 
 ### Windows
@@ -32,9 +26,7 @@ Windows is not supported directly. To use Scale, follow the [Linux](#linux--maco
 
 Required:
 - `gcc` (or similar C compiler)
-
-Optional:
-- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
+- [`dragon`](https://github.com/StonkDragon/Dragon) (The [install.sh](./install.sh) script will install this for you)
 
 # Documentation
 
