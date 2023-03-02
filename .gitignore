@@ -62,6 +62,7 @@ experimental
 gen.js
 scale_support.h
 scale-symbol-table.txt
+.chglog
 
 # Build
 Dragon
