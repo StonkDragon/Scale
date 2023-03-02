@@ -1,16 +1,16 @@
-if [[ "$(uname)" == "Darwin" ]]; then
-    if !which gcc; then
+if test "$(uname)" == "Darwin"; then
+    if ! which gcc >/dev/null; then
         echo "Please install the Xcode command line tools"
         exit 1
     fi
 fi
 
-if ! which g++; then
+if ! which g++ >/dev/null; then
     echo "Please install g++"
     exit 1
 fi
 
-if [[ ! -e ./Dragon/build/dragon ]]; then
+if [ ! -e ./Dragon/build/dragon ]; then
     echo "---------"
     echo "Downloading dragon..."
     git clone https://github.com/StonkDragon/Dragon
