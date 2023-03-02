@@ -63,6 +63,9 @@ gen.js
 scale_support.h
 scale-symbol-table.txt
 
+# Build
+Dragon
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
