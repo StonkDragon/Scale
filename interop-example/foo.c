@@ -3,7 +3,7 @@
 #include "scale_support.h"
 
 // Define function `foo` and export it to scale
-scl_export(foo) {
+void foo() {
     // call scale function `bar`
-    bar("Foo!");
+    bar(str_of("Foo!"));
 }

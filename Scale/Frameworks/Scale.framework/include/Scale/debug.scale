@@ -1,0 +1,68 @@
+import Scale.fmt
+
+function dumpStack(): none
+  inline_c
+    printf("Dump:\n");
+    for (ssize_t i = _scl_internal_stack.ptr - 1; i >= 0; i--) {
+      scl_int v = _scl_internal_stack.data[i].i;
+      printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+    }
+	  printf("\n");
+  end_inline
+end
+
+function trace(): none
+  inline_c
+    print_stacktrace();
+  end_inline
+end
+
+function crash(): none
+  inline_c
+    _scl_security_safe_exit(1);
+  end_inline
+end
+
+function raise(_sig_: int): none
+  inline_c
+    if (*_sig_ != 2 && *_sig_ != 4 && *_sig_ != 6 && *_sig_ != 8 && *_sig_ != 11) {
+      int raised = raise(*_sig_);
+      if (raised != 0) {
+        _scl_catch_final(*_sig_);
+      }
+    } else {
+      _scl_catch_final(*_sig_);
+    }
+  end_inline
+end
+
+function breakPoint(): none
+  inline_c
+    printf("Hit breakPoint. Press enter to continue.\n");
+	  getchar();
+  end_inline
+end
+
+sealed struct Exception
+  decl msg: str
+end
+
+function throw(ex: Exception): none
+  inline_c
+    _scl_internal_exceptions.ptr--;
+    if (_scl_internal_exceptions.ptr < 0) {
+      _scl_unreachable("Impossible state encountered trying to throw an exception!");
+    }
+    _scl_internal_exceptions.extable[_scl_internal_exceptions.ptr] = *ex;
+    _scl_internal_callstack.ptr = _scl_internal_exceptions.callstk_ptr[_scl_internal_exceptions.ptr];
+    longjmp(_scl_internal_exceptions.jmptable[_scl_internal_exceptions.ptr], 666);
+  end_inline
+end
+
+function sysPrettyString(): str
+  40 malloc => decl sPtr: [int8]
+  inline_c
+    snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+  end_inline
+  sPtr str::new return
+end

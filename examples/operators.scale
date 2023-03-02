@@ -28,11 +28,19 @@ function main(): none
   
   # Floating point operators
   # Addition
-  10.0 3.0 .+ putfloat
+  10.0 3   + putfloat
+  10   3.0 + putfloat
+  10.0 3.0 + putfloat
   # Subtraction
-  10.0 3.0 .- putfloat
+  10.0 3   - putfloat
+  10   3.0 - putfloat
+  10.0 3.0 - putfloat
   # Multiplication
-  10.0 3.0 .* putfloat
+  10.0 3   * putfloat
+  10   3.0 * putfloat
+  10.0 3.0 * putfloat
   # Division
-  10.0 3.0 ./ putfloat
+  10.0 3   / putfloat
+  10   3.0 / putfloat
+  10.0 3.0 / putfloat
 end

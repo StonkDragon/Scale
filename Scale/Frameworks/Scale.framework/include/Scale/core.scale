@@ -1,0 +1,155 @@
+import Scale.sclobject
+import Scale.io
+import Scale.types
+import Scale.util.array
+
+function sleep(_millis_: int): none
+  inline_c
+    sleep(*_millis_);
+  end_inline
+end
+
+function system(_cmd_: str): int
+  decl ret: int
+  inline_c
+    *ret = system((*_cmd_)->_data);
+  end_inline
+  ret return
+end
+
+function getenv(_key_: str): str?
+  decl ptr: mut [int8]
+  inline_c
+    *ptr = getenv((*_key_)->_data);
+  end_inline
+  ptr str::new return
+end
+
+function sizeofStack(): int
+  inline_c
+    _scl_push()->i = _scl_internal_stack.ptr;
+  end_inline
+  return
+end
+
+function malloc(_size_: int): [any]?
+  decl s: [any]
+  inline_c
+    *s = _scl_alloc(*_size_);
+    if (!(*s)) {
+      _scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+      *s = NULL;
+    }
+  end_inline
+  s return
+end
+
+function realloc(_size_: int, _ptr_: [any]): [any]?
+  inline_c
+    *_ptr_ = _scl_realloc(*_ptr_, *_size_);
+    if (!(*_ptr_)) {
+      _scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+      *_ptr_ = NULL;
+    }
+  end_inline
+  _ptr_ return
+end
+
+function memset(ptr: [any], val: int, len: int): [any]
+  inline_c
+    _scl_push()->v = memset(*ptr, *val, *len);
+  end_inline
+  return
+end
+
+function memcpy(dst: [any], src: [any], n: int): [any]
+  inline_c
+    _scl_push()->v = memcpy(*dst, *src, *n);
+  end_inline
+  return
+end
+
+function free(_ptr_: [any]): none
+  inline_c
+    _scl_free(*_ptr_);
+  end_inline
+end
+
+function strsplit(_str_: str, _delim_: str): Array
+  10 Array::new => decl arr: Array
+  inline_c
+    scl_int8* string = strdup((*_str_)->_data);
+    scl_int8* line = strtok(string, (*_delim_)->_data);
+    while (line != NULL) {
+      Method_Array$push(_scl_create_string(line), *arr);
+      line = strtok(NULL, (*_delim_)->_data);
+    }
+  end_inline
+  arr return
+end
+
+function time(): float
+  decl secs: float
+  inline_c
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
+  end_inline
+  secs return
+end
+
+function longToString(_long_: int): str
+  decl out: [int8]
+  inline_c
+    *out = _scl_alloc(25);
+	  sprintf(*out, SCL_INT_FMT, *_long_);
+  end_inline
+  out str::new return
+end
+
+function stringToLong(_str_: str): int
+  inline_c
+    _scl_push()->i = atoll((*_str_)->_data);
+  end_inline
+  return
+end
+
+function stringToDouble(_str_: str): float
+  inline_c
+    _scl_push()->f = atof((*_str_)->_data);
+  end_inline
+  return
+end
+
+function doubleToString(_double_: float): str
+  decl out: [int8]
+  inline_c
+    *out = _scl_alloc(100);
+	  sprintf(*out, "%f", *_double_);
+  end_inline
+  out str::new return
+end
+
+function nop(): none
+  0 sleep
+end
+
+function toChar(_val_: int): int
+  _val_ 0xff & return
+end
+
+function toInt(_val_: int): int
+  _val_ 0xffffffff & return
+end
+
+function toShort(_val_: int): int
+  _val_ 0xffff & return
+end
+
+function isnil(x: any): bool
+  x nil == return
+end
+
+function isnotnil(x: any): bool
+  x nil != return
+end

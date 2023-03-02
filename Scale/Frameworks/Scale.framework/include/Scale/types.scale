@@ -1,0 +1,147 @@
+typealias int32 "scl_int32"
+typealias float32 "scl_float32"
+typealias int16 "scl_int16"
+typealias int8 "scl_int8"
+typealias uint32 "scl_uint32"
+typealias uint16 "scl_uint16"
+typealias uint8 "scl_uint8"
+typealias lambda "_scl_lambda"
+
+sealed struct str is IEquatable, ICloneable, IStringifyable
+  private decl _data: [int8]
+  private decl _len: int
+
+  function +(other: str): str
+    other self:prepend return
+  end
+
+  function clone(): str
+    self:view str::new return
+  end
+
+  function append(other: str): str
+    self._data other._data concat str::new return
+  end
+
+  function prepend(other: str): str
+    other._data self._data concat str::new return
+  end
+
+  function equals(other: str): bool
+    self._data other._data strcmp return
+  end
+
+  function ==(other: str): bool
+    other self:equals return
+  end
+
+  function size(): int
+    self._len return
+  end
+
+  function at(i: int): int
+    if i 0 < i self:size >= || then
+      nameof i " is out of bounds":prepend eputs
+      abort
+    fi
+    self._data i + @ as int toChar return
+  end
+
+  function toString(): str
+    self return
+  end
+
+  function @(i: int): int
+    i self:at return
+  end
+
+  function reverse(): str
+    decl out: [int8]
+    inline_c
+      scl_int i = 0;
+      scl_int len = strlen((*self)->_data);
+      *out = _scl_alloc(len + 1);
+      for (i = len - 1; i >= 0; i--) {
+        (*out)[i] = (*self)->_data[len - i - 1];
+      }
+      (*out)[len] = '\0';
+    end_inline
+    out str::new return
+  end
+
+  function toChars() _arr_: Array
+    self:size Array::new => _arr_
+
+    for _i_ in 0 to self:size do
+      _i_ self:at _arr_:push
+    done
+    return
+  end
+
+  function startsWith(_s_: str): bool
+    self._data _s_._data _s_:size strncmp return
+  end
+
+  function view(): [int8]
+    self._data strdup return
+  end
+
+  function init(data: [int8]): none
+    data => self._data
+    inline_c
+      (*self)->_len = strlen(*data);
+    end_inline
+  end
+
+  private function strlen(_str_: [int8]) len: int
+    inline_c
+      *len = strlen(*_str_);
+    end_inline
+    return
+  end
+
+  private function strcmp(_str1_: [int8], _str2_: [int8]): bool
+    decl t: bool
+    inline_c
+      *t = (strcmp(*_str1_, *_str2_) == 0);
+    end_inline
+    t return
+  end
+
+  private function strdup(_str_: [int8]): [int8]
+    decl s: [int8]
+    inline_c
+      *s = strdup(*_str_);
+    end_inline
+    s return
+  end
+
+  private function strncmp(_str1_: [int8], _str2_: [int8], _n_: int): bool
+    decl t: bool
+    inline_c
+      *t = (strncmp(*_str1_, *_str2_, *_n_) == 0);
+    end_inline
+    t return
+  end
+
+  private function concat(_str1_: [int8], _str2_: [int8]): [int8]
+    decl out: [int8]
+    _str1_ strlen => decl len: int
+    _str2_ strlen => decl len2: int
+
+    len len2 + 1 + malloc => out
+
+    out _str1_ strcpy
+    inline_c
+      strcat(*out, *_str2_);
+    end_inline
+
+    out return
+  end
+
+  private function strcpy(dest: [int8], src: [int8]): none
+    inline_c
+      strcpy(*dest, *src);
+    end_inline
+  end
+end

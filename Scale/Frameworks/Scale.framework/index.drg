@@ -1,8 +1,10 @@
 framework: {
-    version: "3.4";
+    version: "23.0";
     headerDir: "include";
     implDir: "impl";
     implementers: [];
     implHeaderDir: "impl";
     implHeaders: [];
+    docfile: "Docs.scldoc";
+    docfile-format: "scldoc";
 };

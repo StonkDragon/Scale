@@ -9,7 +9,9 @@ function main(): none
     elif dup 5 % 0 == then
       "Buzz" puts
     else
-      dup putint
+      # we have to cast to int here because the typechecker
+      # can't infer types from different scopes
+      as int dup putint
     fi
     1 +
   done drop

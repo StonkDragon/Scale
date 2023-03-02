@@ -18,16 +18,10 @@ build: {
     "modules/InfoDumper.cpp";
     "Common.cpp";
   ];
-  outFilePrefix: "-o";
-  libraryPathPrefix: "-L";
-  libraryPrefix: "-l";
-  macroPrefix: "-D";
-  includePrefix: "-I";
-  libraryPaths: [];
-  libs: [];
   defines: [
-    "VERSION=\"3.4\"";
+    "VERSION=\"23.0\"";
     "C_VERSION=\"gnu17\"";
+    "SCL_ROOT_DIR=\"/opt\"";
   ];
   std: "gnu++17";
   flags: [
@@ -38,12 +32,58 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "rm -rf $HOME/Scale";
-    "cp -r Scale $HOME";
+    "rm -rf /opt/Scale/23.0";
+    "sudo mkdir -p /opt/Scale";
+    "sudo chmod 777 /opt/Scale";
+    "cp -r Scale /opt/Scale/23.0";
   ];
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "python3 tests.py run";
+  ];
+};
+
+install: {
+  compiler: "g++";
+  sourceDir: "Compiler";
+  outputDir: "target";
+  target: "sclc";
+  includes: [
+    "Compiler";
+  ];
+  units: [
+    "Main.cpp";
+    "modules/SyntaxTree.cpp";
+    "modules/Parser.cpp";
+    "modules/TokenHandlers.cpp";
+    "modules/Tokenizer.cpp";
+    "modules/Transpiler.cpp";
+    "modules/DragonConfig.cpp";
+    "modules/Function.cpp";
+    "modules/InfoDumper.cpp";
+    "Common.cpp";
+  ];
+  defines: [
+    "VERSION=\"23.0\"";
+    "C_VERSION=\"gnu17\"";
+    "SCL_ROOT_DIR=\"/opt\"";
+  ];
+  std: "gnu++17";
+  flags: [
+    "-Wall";
+    "-Wextra";
+    "-Werror";
+    "-pedantic";
+  ];
+  preBuild: [
+    "rm -rf /opt/Scale/23.0";
+    "sudo mkdir -p /opt/Scale";
+    "sudo chmod 777 /opt/Scale";
+    "cp -r Scale /opt/Scale/23.0";
+  ];
+  postBuild: [
+    "sudo mv target/sclc /usr/local/bin/sclc";
+    "rm -rf target";
   ];
 };

@@ -7,6 +7,6 @@ function main(): none
 
         // in inline-c pseudo-variables exist that are pointers to the actual values
         // they have the same name as the scale variable
-        printf("Greeting: %s\n", *foo);
+        printf("Greeting: %s\n", (*foo)->_data);
     end_inline
 end

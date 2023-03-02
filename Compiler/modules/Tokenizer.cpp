@@ -8,9 +8,9 @@
 #include "../headers/Common.hpp"
 
 #ifdef _WIN32
-#define PATH_SEPARATOR '\\'
+#define PATH_SEPARATOR "\\"
 #else
-#define PATH_SEPARATOR '/'
+#define PATH_SEPARATOR "/"
 #endif
 
 #define syntaxError(msg) \
@@ -19,8 +19,20 @@
     result.message = msg; \
     result.in = filename; \
     result.line = line; \
+    result.column = begin; \
     result.value = value; \
     errors.push_back(result); \
+    } while (0)
+
+#define syntaxWarn(msg) \
+    do { \
+    FPResult result; \
+    result.message = msg; \
+    result.in = filename; \
+    result.line = line; \
+    result.column = begin; \
+    result.value = value; \
+    warns.push_back(result); \
     } while (0)
 
 namespace sclc
@@ -200,7 +212,7 @@ namespace sclc
                     value += c;
                 }
             } else if (c == '!') {
-                if (source[current + 1] == '=') {
+                if (source[current + 1] == '=' || source[current + 1] == '!') {
                     c = source[++current];
                     column++;
                     value += c;
@@ -230,17 +242,6 @@ namespace sclc
             value += c;
             c = source[++current];
             column++;
-            switch (c)
-            {
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-                value += c;
-                c = source[++current];
-                column++;
-                break;
-            }
         } else if (isBracket(c)) {
             value += c;
             c = source[++current];
@@ -255,12 +256,7 @@ namespace sclc
         }
 
         if (value == "store") {
-            FPResult result;
-            result.message = "The 'store' keyword is deprecated! Use '=>' instead.";
-            result.in = filename;
-            result.line = line;
-            result.value = value;
-            warns.push_back(result);
+            syntaxWarn("The 'store' keyword is deprecated! Use '=>' instead.");
         }
 
         if (value == "inline_c") {
@@ -280,10 +276,22 @@ namespace sclc
             return Token(tok_extern_c, value, startLine, filename, startColumn);
         }
 
+        if (value == "extern") {
+            syntaxWarn("'extern' is deprecated! Use 'expect' instead!");
+        }
+
+        if (value == "pragma") {
+            if (c == '!') {
+                value += c;
+                c = source[++current];
+                column++;
+            }
+        }
+
         TOKEN("function",   tok_function, line, filename);
         TOKEN("end",        tok_end, line, filename);
         TOKEN("extern",     tok_extern, line, filename);
-        TOKEN("extern_c",   tok_extern, line, filename);
+        TOKEN("expect",     tok_extern, line, filename);
         TOKEN("while",      tok_while, line, filename);
         TOKEN("do",         tok_do, line, filename);
         TOKEN("done",       tok_done, line, filename);
@@ -322,6 +330,8 @@ namespace sclc
         TOKEN("step",       tok_step, line, filename);
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
+        TOKEN("enum",       tok_enum, line, filename);
+        TOKEN("pragma!",    tok_identifier, line, filename);
         
         TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);
@@ -346,10 +356,6 @@ namespace sclc
         TOKEN("<<",         tok_lsh, line, filename);
         TOKEN(">>",         tok_rsh, line, filename);
         TOKEN("**",         tok_pow, line, filename);
-        TOKEN(".+",         tok_dadd, line, filename);
-        TOKEN(".-",         tok_dsub, line, filename);
-        TOKEN(".*",         tok_dmul, line, filename);
-        TOKEN("./",         tok_ddiv, line, filename);
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("<",          tok_identifier, line, filename);
         TOKEN("<=",         tok_identifier, line, filename);
@@ -357,6 +363,7 @@ namespace sclc
         TOKEN(">=",         tok_identifier, line, filename);
         TOKEN("==",         tok_identifier, line, filename);
         TOKEN("!",          tok_identifier, line, filename);
+        TOKEN("!!",         tok_identifier, line, filename);
         TOKEN("!=",         tok_identifier, line, filename);
         TOKEN("&&",         tok_identifier, line, filename);
         TOKEN("||",         tok_identifier, line, filename);
@@ -395,6 +402,10 @@ namespace sclc
         fseek(fp, 0, SEEK_END);
         size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
+
+        if (size == 0) {
+            goto fatal_error;
+        }
 
         buffer = new char[size + 1];
 
@@ -450,8 +461,8 @@ namespace sclc
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         bool inFunction = false;
-        for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].getType() == tok_function) {
+        for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
+            if (tokens[i].getType() == tok_function && (i - 1 >= 0 ? tokens[i - 1].getValue() != "expect" : true)) {
                 inFunction = true;
             } else if (tokens[i].getType() == tok_end) {
                 inFunction = false;
@@ -461,55 +472,33 @@ namespace sclc
                 continue;
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
-                std::string framework = tokens[i].getValue();
-                if (std::find(Main.frameworks.begin(), Main.frameworks.end(), framework) == Main.frameworks.end()) {
-                    FPResult r;
-                    r.message = "Could not find Framework '" + framework + "'";
-                    r.in = tokens[i].getFile();
-                    r.column = tokens[i].getColumn();
-                    r.line = tokens[i].getLine();
-                    r.type = tokens[i].getType();
-                    r.value = tokens[i].getValue();
-                    r.success = false;
-                    return r;
-                }
-                i += 2;
-                std::string file = tokens[i].getValue();
-                Token firstFileToken = tokens[i];
-                while (tokens[i + 1].getType() == tok_dot) {
-                    i++;
-                    file += PATH_SEPARATOR + tokens[i + 1].getValue();
-                }
-
-                std::string fullFile = Main.options.mapIncludePathsToFrameworks[framework] + PATH_SEPARATOR + file + ".scale";
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), fullFile) == Main.options.files.end()) {
-                    if (!fileExists(fullFile)) {
-                        FPResult r;
-                        r.message = "Could not find File '" + file + "' in framework '" + framework + "'";
-                        r.in = firstFileToken.getFile();
-                        r.column = firstFileToken.getColumn();
-                        r.line = firstFileToken.getLine();
-                        r.type = firstFileToken.getType();
-                        r.value = firstFileToken.getValue();
-                        r.success = false;
-                        return r;
+                std::string file = "";
+                FPResult r;
+                r.column = tokens[i].getColumn();
+                r.value = tokens[i].getValue();
+                r.in = tokens[i].getFile();
+                r.line = tokens[i].getLine();
+                r.type = tokens[i].getType();
+                while (true) {
+                    if (file.size() == 0)
+                        file = tokens[i].getValue();
+                    else
+                        file += PATH_SEPARATOR + tokens[i].getValue();
+                    
+                    if (tokens[i + 1].getType() != tok_dot) {
+                        i--;
+                        break;
                     }
-                    Main.options.files.push_back(fullFile);
+                    i += 2;
                 }
-            } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "include") {
-                i++;
-                std::string file = std::filesystem::path(tokens[i].getFile()).parent_path().string() + PATH_SEPARATOR + tokens[i].getValue();
-                if (!fileExists(file)) {
-                    FPResult r;
-                    r.message = "Could not find File '" + file + "'";
-                    r.in = tokens[i].getFile();
-                    r.column = tokens[i].getColumn();
-                    r.line = tokens[i].getLine();
-                    r.type = tokens[i].getType();
-                    r.value = tokens[i].getValue();
+                file += ".scale";
+                FPResult find = findFileInIncludePath(file);
+                if (!find.success) {
                     r.success = false;
+                    r.message = find.message;
                     return r;
                 }
+                file = find.in;
                 if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
                     Main.options.files.push_back(file);
                 }
@@ -522,7 +511,8 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file) {
         for (std::string path : Main.options.includePaths) {
-            if (fileExists(path + PATH_SEPARATOR + file)) {
+            using namespace std::filesystem;
+            if (exists(path + PATH_SEPARATOR + file)) {
                 FPResult r;
                 r.success = true;
                 if (path == "." || path == "./") {

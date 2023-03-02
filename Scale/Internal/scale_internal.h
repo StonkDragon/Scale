@@ -1,4 +1,4 @@
-#ifndef _SCALE_INTERNAL_H_
+#if !defined(_SCALE_INTERNAL_H_)
 #define _SCALE_INTERNAL_H_
 
 #include <stdio.h>
@@ -12,14 +12,15 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdarg.h>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <Windows.h>
 #include <io.h>
 #define sleep(s) Sleep(s)
 #define read(fd, buf, n) _read(fd, buf, n)
 #define write(fd, buf, n) _write(fd, buf, n)
-#ifndef WINDOWS
+#if !defined(WINDOWS)
 #define WINDOWS
 #endif
 #else
@@ -28,82 +29,294 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-/* Function header */
-#define sclDefFuncHeader(name, scl_name, returns, ...) \
-  returns Function_ ## name (__VA_ARGS__) __asm("fnct_" scl_name "")
+#if !defined(_WIN32) && !defined(__wasm__)
+#include <execinfo.h>
+#endif
 
-#define sclDefFunc(name, returns, ...) \
-  returns Function_ ## name (__VA_ARGS__)
+#if __has_include(<setjmp.h>)
+#include <setjmp.h>
+#else
+#error <setjmp.h> not found, which is required for Scale!
+#endif
 
-#define sclDefMethod(name, type, returns, ...) \
-  returns Method_ ## type ## _ ## name (struct Struct ## type * Var_self __VA_OPT__(,) __VA_ARGS__)
+#if __has_attribute(__noreturn__)
+#define _scl_no_return __attribute__((__noreturn__))
+#else
+#define _scl_no_return
+#endif
 
-/* Call a function with the given name. */
-#define sclCallFunc(name) \
-  Function_ ## name ()
+#if __has_attribute(constructor)
+#define _scl_constructor __attribute__((constructor))
+#else
+#if defined(SCL_COMPILER_NO_MAIN)
+#error "Can't compile with --no-main"
+#endif
+#define _scl_constructor
+#endif
+
+#if __has_attribute(destructor)
+#define _scl_destructor __attribute__((destructor))
+#else
+#if defined(SCL_COMPILER_NO_MAIN)
+#error "Can't compile with --no-main"
+#endif
+#define _scl_destructor
+#endif
+
+#if __GNUC__ >= 4
+#define _scl_symbol_hidden __attribute__((visibility("hidden")))
+#else
+#define _scl_symbol_hidden
+#endif
 
 #define nullable __nullable
 #define nonnull  __nonnull
 
-#if __SIZEOF_POINTER__ < 8
-#error "Scale is not supported on this platform"
+#define _scl_macro_to_string_(x) # x
+#define _scl_macro_to_string(x) _scl_macro_to_string_(x)
+
+// Scale expects this function
+#define expect
+
+// This function was declared in Scale code
+#define export
+
+#define str_of(_cstr) _scl_create_string((_cstr))
+#define cstr_of(_scl_string) ((_scl_string)->_data)
+
+#if !defined(STACK_SIZE)
+#define STACK_SIZE			131072
 #endif
 
-#ifndef STACK_SIZE
-#define STACK_SIZE			4096
+#if !defined(EXCEPTION_DEPTH)
+#define EXCEPTION_DEPTH		1024
+#endif
+
+#if __has_attribute(aligned)
+#define _scl_align __attribute__((aligned(16)))
+#else
+#define _scl_align
+#endif
+
+#if !defined(SIGABRT)
+#define SIGABRT 6
 #endif
 
 // Define scale-specific signals
-#define EX_BAD_PTR			128
-#define EX_STACK_OVERFLOW	129
-#define EX_STACK_UNDERFLOW	130
-#define EX_UNHANDLED_DATA	131
-#define EX_IO_ERROR			132
-#define EX_INVALID_ARGUMENT	133
-#define EX_CAST_ERROR		134
-#define EX_THREAD_ERROR		136
+#define EX_BAD_PTR				128
+#define EX_STACK_OVERFLOW		129
+#define EX_STACK_UNDERFLOW		130
+#define EX_UNHANDLED_DATA		131
+#define EX_IO_ERROR				132
+#define EX_INVALID_ARGUMENT		133
+#define EX_CAST_ERROR			134
+#define EX_THREAD_ERROR			136
+#define EX_ASSERTION_FAIL		137
+#define EX_REFLECT_ERROR		138
+#define EX_THROWN				139
+#define EX_INVALID_BYTE_ORDER	140
+#define EX_UNREACHABLE			141
 
 #define ssize_t signed long
 
-typedef void* scl_any;
-typedef long long scl_int;
-typedef char* scl_str;
-typedef double scl_float;
-typedef void (*scl_method)(void);
+#if __SIZEOF_POINTER__ < 8
+// WASM or 32-bit system
+#if defined(__wasm__)
+#define SCL_SYSTEM "WASM32"
+#define SCL_WASM32 1
+#elif defined(__arm__)
+#define SCL_SYSTEM "aarch32"
+#define SCL_ARM32  1
+#elif defined(__i386__)
+#define SCL_SYSTEM "x86"
+#define SCL_X86    1
+#else
+#define SCL_SYSTEM "unknown 32-bit"
+#define SCL_UNKNOWN_ARCH 1
+#endif
+#define SCL_INT_HEX_FMT 	"%x"
+#define SCL_INT_FMT		 	"%d"
+typedef void*				scl_any;
+typedef int		 			scl_int;
+typedef unsigned int		scl_uint;
+typedef struct _scl_string* scl_str;
+typedef float 				scl_float;
+#else
+// 64-bit system
+#if defined(__wasm__)
+#define SCL_SYSTEM  "WASM64"
+#define SCL_WASM64  1
+#define SCL_WASM32	1
+#elif defined(__aarch64__)
+#define SCL_SYSTEM  "aarch64"
+#define SCL_AARCH64 1
+#define SCL_ARM64   1
+#define SCL_ARM32	1
+#elif defined(__x86_64__)
+#define SCL_SYSTEM  "x86_64"
+#define SCL_X64     1
+#define SCL_X86_64  1
+#define SCL_X86		1
+#else
+#define SCL_SYSTEM  "unknown 64-bit"
+#define SCL_UNKNOWN_ARCH 1
+#endif
+#define SCL_INT_HEX_FMT 	"%llx"
+#define SCL_INT_FMT		 	"%lld"
+typedef void*				scl_any;
+typedef long long 			scl_int;
+typedef unsigned long long	scl_uint;
+typedef struct _scl_string* scl_str;
+typedef double 				scl_float;
+#endif
+
+typedef int		 			scl_int32;
+typedef float 				scl_float32;
+typedef short		 		scl_int16;
+typedef char		 		scl_int8;
+typedef unsigned int 		scl_uint32;
+typedef unsigned short 		scl_uint16;
+typedef unsigned char 		scl_uint8;
+
+struct _scl_string {
+	scl_int		$__type__;
+	scl_int8*	$__type_name__;
+	scl_int		$__super__;
+	scl_int		$__size__;
+	scl_int8*	_data;
+	scl_int		_len;
+};
+
+#if defined(__ANDROID__)
+#define SCL_OS_NAME "Android"
+#elif defined(__amigaos__)
+#define SCL_OS_NAME "AmigaOS"
+#elif defined(__bsdi__)
+#define SCL_OS_NAME "BSD-like"
+#elif defined(__CYGWIN__)
+#define SCL_OS_NAME "Windows (Cygwin)"
+#define SCL_CYGWIN
+#elif defined(__DragonFly__)
+#define SCL_OS_NAME "DragonFly"
+#elif defined(__FreeBSD__)
+#define SCL_OS_NAME "FreeBSD"
+#elif defined(__gnu_linux__)
+#define SCL_OS_NAME "GNU/Linux"
+#elif defined(__GNU__)
+#define SCL_OS_NAME "GNU"
+#elif defined(macintosh)
+#define SCL_OS_NAME "Classic Mac OS"
+#elif defined(__APPLE__) && defined(__MACH__)
+#define SCL_OS_NAME "macOS"
+#elif defined(__minix)
+#define SCL_OS_NAME "MINIX"
+#elif defined(__MSDOS__)
+#define SCL_OS_NAME "MS-DOS"
+#elif defined(__NetBSD__)
+#define SCL_OS_NAME "NetBSD"
+#elif defined(__OpenBSD__)
+#define SCL_OS_NAME "OpenBSD"
+#elif defined(__OS2__)
+#define SCL_OS_NAME "IBM OS/2"
+#elif defined(__unix__)
+#define SCL_OS_NAME "UNIX"
+#elif defined(_WIN32) || defined(_WIN32_WCE)
+#define SCL_OS_NAME "Windows"
+#else
+#define SCL_OS_NAME "Unknown OS"
+#endif
+
+typedef unsigned int hash;
 
 typedef union {
-	scl_int 	i;
+	scl_int		i;
 	scl_str		s;
-	scl_float 	f;
-	scl_any	v;
-} scl_frame_t;
+	scl_float	f;
+	scl_any		v;
+
+	scl_int32	i32;
+	scl_float32	f32;
+	scl_int16	i16;
+	scl_int8	i8;
+	scl_uint32	u32;
+	scl_uint16	u16;
+	scl_uint8	u8;
+} _scl_frame_t;
 
 typedef struct {
-	ssize_t     ptr;
-	scl_frame_t data[STACK_SIZE];
-} scl_stack_t;
+	_scl_frame_t*	data					_scl_align;
+	scl_int			ptr						_scl_align;
+	scl_int			cap						_scl_align;
+} _scl_stack_t;
 
-void		scl_security_throw(int code, scl_str msg);
-void		scl_security_safe_exit(int code);
-void		process_signal(int sig_num);
+typedef struct {
+	scl_int8* 	file							_scl_align;
+	scl_int8*	func							_scl_align;
+	scl_int		line							_scl_align;
+	scl_int 	col								_scl_align;
+	scl_int 	begin_stack_size				_scl_align;
+	scl_int 	begin_var_count					_scl_align;
+	scl_int 	sp								_scl_align;
+} _scl_callframe_t;
 
-void		print_stacktrace(void);
+typedef struct {
+	ssize_t				ptr					_scl_align;
+	_scl_callframe_t	data[STACK_SIZE]	_scl_align;
+} _scl_callstack_t;
 
-void		ctrl_push_args(scl_int argc, scl_str argv[]);
-void		ctrl_push_string(scl_str c);
-void		ctrl_push_long(scl_int n);
-void		ctrl_push_double(scl_float d);
-void		ctrl_push(scl_any n);
-scl_str		ctrl_pop_string(void);
-scl_float	ctrl_pop_double(void);
-scl_int		ctrl_pop_long(void);
-scl_any	ctrl_pop(void);
-ssize_t		ctrl_stack_size(void);
+typedef void(*_scl_lambda)(void);
 
-scl_any	scl_realloc(scl_any ptr, size_t size);
-scl_any	scl_alloc(size_t size);
-void		scl_free(scl_any ptr);
+_scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
+_scl_no_return void	_scl_security_safe_exit(int code);
 
-scl_any	scl_alloc_struct(size_t size, scl_str type_name);
+void				_scl_catch_final(int sig_num);
+void				print_stacktrace(void);
+void				print_stacktrace_with_file(FILE* trace);
 
-#endif
+void				ctrl_push_string(scl_str c);
+void				ctrl_push_long(scl_int n);
+void				ctrl_push_double(scl_float d);
+void				ctrl_push(scl_any n);
+scl_str				ctrl_pop_string(void);
+scl_float			ctrl_pop_double(void);
+scl_int				ctrl_pop_long(void);
+scl_any				ctrl_pop(void);
+ssize_t				ctrl_stack_size(void);
+_scl_frame_t*		_scl_push();
+_scl_frame_t*		_scl_pop();
+_scl_frame_t*		_scl_top();
+void				_scl_popn(scl_int n);
+scl_str				_scl_create_string(scl_int8* data);
+
+void				_scl_remove_ptr(scl_any ptr);
+scl_int				_scl_get_index_of_ptr(scl_any ptr);
+void				_scl_remove_ptr_at_index(scl_int index);
+void				_scl_add_ptr(scl_any ptr, size_t size);
+scl_int				_scl_check_allocated(scl_any ptr);
+scl_any				_scl_realloc(scl_any ptr, size_t size);
+scl_any				_scl_alloc(size_t size);
+void				_scl_free(scl_any ptr);
+void				_scl_assert(scl_int b, scl_int8* msg);
+void				_scl_finalize(void);
+void				_scl_unreachable(scl_int8* msg);
+void				_scl_exception_push();
+
+hash				hash1(scl_int8* data);
+void				_scl_cleanup_post_func(scl_int depth);
+scl_any				_scl_alloc_struct(size_t size, scl_int8* type_name, hash super);
+void				_scl_free_struct(scl_any ptr);
+scl_any				_scl_add_struct(scl_any ptr);
+scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);
+scl_any				_scl_get_method_on_type(hash type, hash method);
+size_t				_scl_find_index_of_struct(scl_any ptr);
+void				_scl_free_struct_no_finalize(scl_any ptr);
+
+void				_scl_reflect_call(hash func);
+void				_scl_reflect_call_method(hash func);
+scl_any				_scl_typeinfo_of(hash type);
+scl_int				_scl_reflect_find(hash func);
+scl_int				_scl_reflect_find_method(hash func);
+scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
+scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+
+#endif // __SCALE_INTERNAL_H__

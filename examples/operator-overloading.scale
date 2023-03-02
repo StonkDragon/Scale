@@ -1,0 +1,55 @@
+struct Foo
+    function +(): str  "+ operator"  return end
+    function -(): str  "- operator"  return end
+    function *(): str  "* operator"  return end
+    function /(): str  "/ operator"  return end
+    function %(): str  "% operator"  return end
+    function &(): str  "& operator"  return end
+    function |(): str  "| operator"  return end
+    function ^(): str  "^ operator"  return end
+    function ~(): str  "~ operator"  return end
+    function <<(): str "<< operator" return end
+    function >>(): str ">> operator" return end
+    function **(): str "** operator" return end
+    function <(): str  "< operator"  return end
+    function <=(): str "<= operator" return end
+    function >(): str  "> operator"  return end
+    function >=(): str ">= operator" return end
+    function ==(): str "== operator" return end
+    function !(): str  "! operator"  return end
+    function !=(): str "!= operator" return end
+    function &&(): str "&& operator" return end
+    function ||(): str "|| operator" return end
+    function ++(): str "++ operator" return end
+    function --(): str "-- operator" return end
+    function @(): str  "@ operator"  return end
+end
+
+function main(): none
+    Foo::new => decl f: mut Foo
+    
+    f +  puts
+    f -  puts
+    f *  puts
+    f /  puts
+    f %  puts
+    f &  puts
+    f |  puts
+    f ^  puts
+    f ~  puts
+    f << puts
+    f >> puts
+    f ** puts
+    f <  puts
+    f <= puts
+    f >  puts
+    f >= puts
+    f == puts
+    f !  puts
+    f != puts
+    f && puts
+    f || puts
+    f ++ puts
+    f -- puts
+    f @  puts
+end

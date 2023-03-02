@@ -16,9 +16,14 @@
     "contributes": {
         "languages": [{
             "id": "scale",
-            "aliases": ["scale", "Scale"],
+            "aliases": ["Scale", "scale"],
             "extensions": [".scale"],
             "configuration": "./language-configuration.json"
+        },{
+            "id": "scldoc",
+            "aliases": ["ScaleDoc", "scldoc", "Scale Documentation"],
+            "extensions": [".scldoc"],
+            "configuration": "./scldoc/language-configuration.json"
         }],
         "grammars": [{
             "language": "scale",
@@ -27,6 +32,10 @@
               "meta.embedded.block.c": "c"
             },
             "path": "./syntaxes/scale.syntax.tmlanguage.json"
+        },{
+            "language": "scldoc",
+            "scopeName": "source.scldoc",
+            "path": "./scldoc/syntaxes/scldoc.syntax.tmlanguage.json"
         }],
         "snippets": [{
             "language": "scale",

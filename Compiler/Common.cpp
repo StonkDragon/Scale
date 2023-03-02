@@ -1,11 +1,20 @@
 #include "headers/Common.hpp"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
 #endif
 
 namespace sclc
 {
+
+    std::regex flatcase_regex("^[a-z]+$");
+    std::regex UPPERCASE_regex("^[A-Z]+$");
+    std::regex camelCase_regex("^[a-z]+([A-Z][a-z]*)*$");
+    std::regex PascalCase_regex("^([A-Z][a-z]*)+$");
+    std::regex IPascalCase_regex("^I([A-Z][a-z]*)+$");
+    std::regex snake_case_regex("^[a-z]+(_[a-z]+)*$");
+    std::regex SCREAMING_SNAKE_CASE_regex("^[A-Z]+(_[A-Z]+)*$");
+
     #ifdef _WIN32
     const std::string Color::RESET = "";
     const std::string Color::BLACK = "";
@@ -49,12 +58,12 @@ namespace sclc
     _Main Main = _Main();
 
     void print_trace(void) {
-#ifndef _WIN32
-        void* array[32];
+#if !defined(_WIN32) && !defined(__wasm__)
+        void* array[64];
         char** strings;
         int size, i;
 
-        size = backtrace(array, 32);
+        size = backtrace(array, 64);
         strings = backtrace_symbols(array, size);
         if (strings != NULL) {
             for (i = 0; i < size; i++)
@@ -74,6 +83,10 @@ namespace sclc
 
     bool strends(const std::string& str, const std::string& suffix) {
         return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
+    }
+
+    bool strstarts(const std::string& str, const std::string& prefix) {
+        return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
     }
 
     int isCharacter(char c) {
@@ -152,7 +165,7 @@ namespace sclc
 
     bool isOperator(Token token) {
         TokenType type = token.getType();
-        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow || type == tok_dadd || type == tok_dsub || type == tok_dmul || type == tok_ddiv;
+        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow;
     }
 
     bool fileExists(const std::string& name) {
@@ -263,6 +276,7 @@ namespace sclc
     }
 
     hash hash1(char* data) {
+        if (strlen(data) == 0) return 0;
         hash h = 7;
         for (size_t i = 0; i < strlen(data); i++) {
             h = h * 31 + data[i];
@@ -275,10 +289,46 @@ namespace sclc
         FPResult r;
         r.success = false;
         r.value = "";
+        r.line = body[*i].getLine();
+        r.in = body[*i].getFile();
+        r.column = body[*i].getColumn();
+        r.value = body[*i].getValue();
+        r.type = body[*i].getType();
+        r.message = "Failed to parse type! Token for type: " + body[*i].tostring();
         if (body[*i].getType() == tok_identifier) {
             r.value = body[*i].getValue();
             r.success = true;
-        } else if (body[*i].getType() == tok_question_mark) {
+            if (r.value == "lambda") {
+                (*i)++;
+                if (body[*i].getType() != tok_paren_open) {
+                    (*i)--;
+                } else {
+                    (*i)++;
+                    r.value += "(";
+                    int count = 0;
+                    while (body[*i].getType() != tok_paren_close) {
+                        FPResult tmp = parseType(body, i);
+                        if (!tmp.success) return tmp;
+                        (*i)++;
+                        if (body[*i].getType() == tok_comma) {
+                            (*i)++;
+                        }
+                        count++;
+                    }
+                    (*i)++;
+                    r.value += std::to_string(count) + ")";
+                    if (body[*i].getType() == tok_column) {
+                        (*i)++;
+                        FPResult tmp = parseType(body, i);
+                        if (!tmp.success) return tmp;
+                        r.value += ":" + tmp.value;
+                    } else {
+                        (*i)--;
+                        r.value += ":none";
+                    }
+                }
+            }
+        } else if (body[*i].getType() == tok_question_mark || body[*i].getValue() == "?") {
             r.value = "?";
             r.success = true;
         } else if (body[*i].getType() == tok_bracket_open) {
@@ -302,24 +352,47 @@ namespace sclc
                 r.type = body[*i].getType();
                 r.success = false;
             }
+        } else {
+            r.success = false;
+            r.line = body[*i].getLine();
+            r.in = body[*i].getFile();
+            r.column = body[*i].getColumn();
+            r.value = body[*i].getValue();
+            r.type = body[*i].getType();
+            r.message = "Unexpected token: '" + body[*i].tostring() + "'";
         }
         return r;
     }
 
     Function* getFunctionByName(TPResult result, std::string name) {
         for (Function* func : result.functions) {
+            if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->getName() == name) {
                 return func;
             }
         }
         for (Function* func : result.extern_functions) {
+            if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->getName() == name) {
                 return func;
             }
         }
         return nullptr;
+    }
+
+    bool hasEnum(TPResult result, std::string name) {
+        return getEnumByName(result, name).getName().size() != 0;
+    }
+
+    Enum getEnumByName(TPResult result, std::string name) {
+        for (Enum e : result.enums) {
+            if (e.getName() == name) {
+                return e;
+            }
+        }
+        return Enum("");
     }
     
     Interface* getInterfaceByName(TPResult result, std::string name) {
@@ -332,6 +405,39 @@ namespace sclc
     }
     
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        type = sclConvertToStructType(type);
+        if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
+        if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
+        if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
+        if (name == "/") name = "operator_" + Main.options.operatorRandomData + "_div";
+        if (name == "%") name = "operator_" + Main.options.operatorRandomData + "_mod";
+        if (name == "&") name = "operator_" + Main.options.operatorRandomData + "_logic_and";
+        if (name == "|") name = "operator_" + Main.options.operatorRandomData + "_logic_or";
+        if (name == "^") name = "operator_" + Main.options.operatorRandomData + "_logic_xor";
+        if (name == "~") name = "operator_" + Main.options.operatorRandomData + "_logic_not";
+        if (name == "<<") name = "operator_" + Main.options.operatorRandomData + "_logic_lsh";
+        if (name == ">>") name = "operator_" + Main.options.operatorRandomData + "_logic_rsh";
+        if (name == "**") name = "operator_" + Main.options.operatorRandomData + "_pow";
+        if (name == ".") name = "operator_" + Main.options.operatorRandomData + "_dot";
+        if (name == "<") name = "operator_" + Main.options.operatorRandomData + "_less";
+        if (name == "<=") name = "operator_" + Main.options.operatorRandomData + "_less_equal";
+        if (name == ">") name = "operator_" + Main.options.operatorRandomData + "_more";
+        if (name == ">=") name = "operator_" + Main.options.operatorRandomData + "_more_equal";
+        if (name == "==") name = "operator_" + Main.options.operatorRandomData + "_equal";
+        if (name == "!") name = "operator_" + Main.options.operatorRandomData + "_not";
+        if (name == "!!") name = "operator_" + Main.options.operatorRandomData + "_assert_not_nil";
+        if (name == "!=") name = "operator_" + Main.options.operatorRandomData + "_not_equal";
+        if (name == "&&") name = "operator_" + Main.options.operatorRandomData + "_bool_and";
+        if (name == "||") name = "operator_" + Main.options.operatorRandomData + "_bool_or";
+        if (name == "++") name = "operator_" + Main.options.operatorRandomData + "_inc";
+        if (name == "--") name = "operator_" + Main.options.operatorRandomData + "_dec";
+        if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
+        if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
+
+        if (type == "") {
+            return nullptr;
+        }
+
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
             if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
@@ -344,7 +450,28 @@ namespace sclc
                 return (Method*) func;
             }
         }
-        return nullptr;
+        Struct s = getStructByName(result, type);
+        return getMethodByName(result, name, s.extends());
+    }
+
+    std::vector<Method*> methodsOnType(TPResult res, std::string type) {
+        type = sclConvertToStructType(type);
+
+        std::vector<Method*> methods;
+
+        for (Function* func : res.functions) {
+            if (!func->isMethod) continue;
+            if (((Method*) func)->getMemberType() == type) {
+                methods.push_back((Method*) func);
+            }
+        }
+        for (Function* func : res.extern_functions) {
+            if (!func->isMethod) continue;
+            if (((Method*) func)->getMemberType() == type) {
+                methods.push_back((Method*) func);
+            }
+        }
+        return methods;
     }
 
     Container getContainerByName(TPResult result, std::string name) {
@@ -357,6 +484,7 @@ namespace sclc
     }
 
     Struct getStructByName(TPResult result, std::string name) {
+        name = sclConvertToStructType(name);
         for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
@@ -381,20 +509,50 @@ namespace sclc
         return false;
     }
 
+
+    std::vector<std::string> supersToVector(TPResult r, Struct s) {
+        std::vector<std::string> v;
+        v.push_back(s.getName());
+        Struct super = getStructByName(r, s.extends());
+        while (super.getName().size()) {
+            v.push_back(super.getName());
+            super = getStructByName(r, super.extends());
+        }
+        return v;
+    }
+    std::string supersToHashedCList(TPResult r, Struct s) {
+        std::string list = "(scl_int[]) {";
+        std::vector<std::string> v = supersToVector(r, s);
+        for (size_t i = 0; i < v.size(); i++) {
+            if (i) {
+                list += ", ";
+            }
+            std::string super = v[i];
+            list += std::to_string(hash1((char*) super.c_str()));
+        }
+        list += "}";
+        return list;
+    }
+    std::string supersToCList(TPResult r, Struct s) {
+        std::string list = "(scl_str*) {\"" + s.getName() + "\"";
+        Struct super = getStructByName(r, s.extends());
+        while (super.getName().size()) {
+            list += "\"" + super.getName() + "\"";
+            super = getStructByName(r, super.extends());
+            if (super.getName().size()) {
+                list += ", ";
+            }
+        }
+        list += "}";
+        return list;
+    }
+
+    bool hasMethod(TPResult result, std::string name, std::string type) {
+        return getMethodByName(result, name, type) != nullptr;
+    }
+
     bool hasMethod(TPResult result, Token name, std::string type) {
-        for (Function* func : result.functions) {
-            if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
-                return true;
-            }
-        }
-        for (Function* func : result.extern_functions) {
-            if (!func->isMethod) continue;
-            if (func->getName() == name.getValue() && (type == "*" || ((Method*) func)->getMemberType() == type)) {
-                return true;
-            }
-        }
-        return false;
+        return hasMethod(result, name.getValue(), type);
     }
 
     bool hasContainer(TPResult result, Token name) {
@@ -418,5 +576,127 @@ namespace sclc
             }
         }
         return false;
+    }
+
+    bool isInitFunction(Function* f) {
+        if (strstarts(f->getName(), "__init__")) {
+            return true;
+        }
+        if (f->isMethod) {
+            Method* m = static_cast<Method*>(f);
+            if (m->getName() == "init") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
+
+        if (isConst && !isMut) {
+            if (isInitFunction(f)) {
+                if (f->isMethod) {
+                    Method* m = static_cast<Method*>(f);
+                    if (m->getMemberType() == internalMutableFrom) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (isConst && isMut) {
+            if (accessType == VarAccess::Write) {
+                return false;
+            }
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    if (isInitFunction(f)) {
+                        if (f->isMethod) {
+                            Method* m = static_cast<Method*>(f);
+                            if (m->getMemberType() == internalMutableFrom) {
+                                return true;
+                            }
+                        } else {
+                            return true;
+                        }
+                    }
+                    return false;
+                } else {
+                    return false;
+                }
+            }
+            if (isInitFunction(f)) {
+                if (f->isMethod) {
+                    Method* m = static_cast<Method*>(f);
+                    if (m->getMemberType() == internalMutableFrom) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+            return true;
+        }
+        if (!isConst && isMut) {
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (!isConst && !isMut) {
+            if (accessType == VarAccess::Dereference) {
+                return false;
+            }
+            if (isInternalMut || internalMutableFrom.size()) {
+                if (!f->isMethod) {
+                    return false;
+                }
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == internalMutableFrom) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+        std::cerr << __func__ << ": Should not reach here" << std::endl;
+        exit(-1);
+    }
+
+    std::string sclConvertToStructType(std::string type) {
+        while (typeCanBeNil(type))
+            type = type.substr(0, type.size() - 1);
+
+        return type;
+    }
+
+    bool sclIsProhibitedInit(std::string s) {
+        if (s.size() > 1 && s.back() == '?') s = s.substr(0, s.size() - 1);
+
+        return false;
+    }
+
+    bool typeCanBeNil(std::string s) {
+        return isPrimitiveType(s) || (s.size() > 1 && s.back() == '?');
+    }
+
+    bool isPrimitiveType(std::string s) {
+        return s == "int" || s == "float" || s == "any" || s == "bool";
     }
 } // namespace sclc

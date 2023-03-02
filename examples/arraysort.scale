@@ -1,5 +1,5 @@
 function createList(len: int): Array
-    decl arr:Array len Array::new => arr
+    len Array::new => decl arr: Array
     decl i: int 0 => i
     while i len < do
         i len i - arr:set
@@ -9,9 +9,9 @@ function createList(len: int): Array
 end
 
 function printArray(arr: Array): none
-    decl i: int 0 => i
-    while i arr.capacity < do
-        i arr:get putint
+    0 => decl i
+    while i arr.count < do
+        i arr:get as int putint
         i 1 + => i
     done
 end

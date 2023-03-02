@@ -1,0 +1,34 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "scldoc",
+	"patterns": [
+		{"include": "#code"},
+		{"include": "#heading"},
+		{"include": "#color-coding"}
+	],
+	"repository": {
+		"color-coding": {
+			"name": "variable.name",
+			"match": "<<(RESET|BLACK|RED|GREEN|YELLOW|BLUE|MAGENTA|CYAN|WHITE|BOLDBLACK|BOLDRED|BOLDGREEN|BOLDYELLOW|BOLDBLUE|BOLDMAGENTA|BOLDCYAN|BOLDWHITE)>>"
+		},
+		"heading": {
+			"name": "variable.name",
+			"begin": "#",
+			"end": "\n",
+			"patterns": [{
+				"name": "variable.name",
+				"match": "."
+			}]
+		}
+	},
+	"code": {
+		"name": "string.quoted.double",
+		"begin": "`",
+		"end": "`",
+		"patterns": [{
+			"name": "string",
+			"match": "\\\\."
+		}]
+	},
+	"scopeName": "source.scldoc"
+}

@@ -8,6 +8,12 @@
 *.elf
 *.scale.c
 out.c
+out.h
+out.typeinfo.h
+*.wasm
+*.js
+*.S
+*.s
 
 # Linker output
 *.ilk
@@ -57,6 +63,9 @@ gen.js
 scale_support.h
 scale-symbol-table.txt
 
+# Build
+Dragon
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
@@ -67,3 +76,6 @@ Mkfile.old
 dkms.conf
 *DS_Store*
 scale.vscodeextension/.DS_Store
+ErrorMessages.txt
+msg.md
+scl_trace.log

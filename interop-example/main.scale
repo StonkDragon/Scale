@@ -1,10 +1,8 @@
-
 # extern function imported from C
-extern_c function foo(): none
+expect function foo(): none
 
-# nomangle Modifier to export function to C
-@nomangle
-function bar(a: str): none
+# function exported to C
+export function bar(a: str): none
     a puts
 end
 

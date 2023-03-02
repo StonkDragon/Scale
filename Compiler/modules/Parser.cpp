@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <algorithm>
+#include <type_traits>
 
 #include <stdio.h>
 
@@ -14,6 +16,17 @@ namespace sclc
         return result;
     }
 
+    extern FILE* support_header;
+
+    template<typename T>
+    bool compare(T& a, T& b) {
+        if constexpr(std::is_pointer<T>::value) {
+            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
+        } else {
+            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
+        }
+    }
+
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
         std::vector<FPResult> errors;
@@ -21,7 +34,9 @@ namespace sclc
         std::vector<Variable> globals;
 
         remove(filename.c_str());
-        FILE* fp = fopen(filename.c_str(), "a");
+        remove((filename.substr(0, filename.size() - 2) + ".h").c_str());
+        remove((filename.substr(0, filename.size() - 2) + ".typeinfo.h").c_str());
+        FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
 
         Function* mainFunction = getFunctionByName(result, "main");
         if (mainFunction == nullptr && !Main.options.noMain) {
@@ -32,6 +47,13 @@ namespace sclc
             result.in = filename;
             result.column = 0;
             errors.push_back(result);
+
+            FPResult parseResult;
+            parseResult.success = true;
+            parseResult.message = "";
+            parseResult.errors = errors;
+            parseResult.warns = warns;
+            return parseResult;
         }
 
         std::vector<Variable> defaultScope;
@@ -40,67 +62,52 @@ namespace sclc
         vars.clear();
         vars.push_back(defaultScope);
 
+        remove("scale_support.h");
+        support_header = fopen("scale_support.h", "a");
+        fprintf(support_header, "#include <scale_internal.h>\n\n");
+
+        std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
+        std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);
+        std::sort(result.containers.begin(), result.containers.end(), compare<Container>);
+        std::sort(result.structs.begin(), result.structs.end(), compare<Struct>);
+        std::sort(result.globals.begin(), result.globals.end(), compare<Variable>);
+        std::sort(result.extern_globals.begin(), result.extern_globals.end(), compare<Variable>);
+        std::sort(result.interfaces.begin(), result.interfaces.end(), compare<Interface*>);
+
         ConvertC::writeHeader(fp, errors, warns);
-        ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);
         ConvertC::writeStructs(fp, result, errors, warns);
+        ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
         ConvertC::writeExternHeaders(fp, result, errors, warns);
-        ConvertC::writeFunctions(fp, errors, warns, globals, result);
+        ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
-        std::string push_args = "";
-        if (mainFunction->getArgs().size() > 0) {
-            push_args = "ctrl_push_args(argc, argv);\n";
-        }
+        fclose(support_header);
 
-        std::string sclTypeToCType(TPResult result, std::string t);
-
-        std::string main = "";
-        if (mainFunction->getReturnType() == "none") {
-            if (mainFunction->getArgs().size() != 0)
-                main = "Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
-            else
-                main = "Function_main();\n";
-        } else {
-            if (mainFunction->getArgs().size() != 0)
-                main = "return_value = Function_main((" + sclTypeToCType(result, mainFunction->getArgs()[0].getType()) + ") stack.data[--stack.ptr].v);\n";
-            else
-                main = "return_value = Function_main();\n";
-        }
-
-        if (Main.options.noMain)
-            goto after_main;
-        append("int main(int argc, char** argv) {\n");
-        append("#ifdef SIGINT\n");
-        append("  signal(SIGINT, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGABRT\n");
-        append("  signal(SIGABRT, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGSEGV\n");
-        append("  signal(SIGSEGV, process_signal);\n");
-        append("#endif\n");
-        append("#ifdef SIGBUS\n");
-        append("  signal(SIGBUS, process_signal);\n");
-        append("#endif\n\n");
-        append("  int return_value = 0;\n");
-        if (push_args.size() > 0)
-            append("  %s", push_args.c_str());
+        append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {
             if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
-                append("  Function_%s();\n", f->getName().c_str());
+                append("  (scl_any) Function_%s,\n", f->getName().c_str());
             }
         }
-        append("  %s", main.c_str());
+        append("  0\n");
+        append("};\n\n");
+        append("scl_any _scl_internal_destroy_functions[] = {\n");
         for (Function* f : result.functions) {
             if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
-                append("  Function_%s();\n", f->getName().c_str());
+                append("  (scl_any) Function_%s,\n", f->getName().c_str());
             }
         }
-        append("  return return_value;\n");
-        append("}\n");
+        append("  0\n");
+        append("};\n\n");
 
-    after_main:
+        append("scl_any _scl_get_main_addr() {\n");
+        if (mainFunction && !Main.options.noMain) {
+            append("  return Function_main;\n");
+        } else {
+            append("  return NULL;\n");
+        }
+        append("}\n");
 
         append("#ifdef __cplusplus\n");
         append("}\n");

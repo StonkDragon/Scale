@@ -2,117 +2,46 @@
 
 ## Introduction
 
-  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Porth](https://gitlab.com/tsoding/porth).
+  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) and [object oriented](https://en.wikipedia.org/wiki/Object-oriented_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Lua](https://www.lua.org/) and [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. This file contains C-declarations for all important Scale internal functions and data types. If you have any scale functions marked with the `nomangle` modifier, C-declarations for those functions will also appear in the file. The `scl_export`-Macro defined in said file allows you to declare functions that can be called from scale.
+  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. If you have any scale functions marked with the `export` modifier, C-declarations for those functions will appear in the file. Functions marked with the `expect` keyword are expected to be implemented in a different translation unit, i.e. your C-code.
 
   The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
 
+  Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
+
 ## Installation
 
-  To install Scale, download the zip file for your operating system from the Release page.
+### Linux & macOS
+```shell
+$ git clone https://github.com/StonkDragon/Scale
+$ sh install.sh
+```
 
-  Then, unzip the file and execute the install.py script. On Windows, you have to run it with Administrator permissions. On macOS and Linux, the script will ask for permissions once it needs them.
-
-  Reason: `runas` requires name of an Administrator account and the Hostname on Windows
+### Windows
+Windows is not supported directly. To use Scale, follow the [Linux](#linux--macos) install instructions inside of WSL.
 
 ## Dependencies
-
   Scale has the following dependencies:
 
 Required:
-- `gcc`
-- `python3` ([install.py](./install.py))
-
-Optional:
-- [`dragon`](https://github.com/StonkDragon/Dragon) (for compiling the Compiler)
+- `gcc` (or similar C compiler)
+- [`dragon`](https://github.com/StonkDragon/Dragon) (The [install.sh](./install.sh) script will install this for you)
 
 # Documentation
 
-## Operators
-
-  The following operators are supported:
-
-  - `+`: Addition (Prefix with `.` to operate on floats)
-  - `-`: Subtraction (Prefix with `.` to operate on floats)
-  - `*`: Multiplication (Prefix with `.` to operate on floats)
-  - `/`: Division (Prefix with `.` to operate on floats)
-  - `%`: Modulo
-  - `&`: Logical AND
-  - `|`: Logical OR
-  - `^`: Logical XOR
-  - `~`: Logical NOT
-  - `<<`: Left shift
-  - `>>`: Right shift
-  - `**`: Exponentiation
-  - `=>`: Into-Operator, stores the top of the stack in the following variable
-  - `=> @`: Into-Address-Operator, stores the top of the stack at address in variable
-  - `@` Push the value at the address on the stack onto the stack
-  - `.`: Container Access/Structure Dereference
-  - `:`: Call a member function of a type/Define type of variable in variable declaration
-
-## Keywords
-
-  - `function`: Define a function
-  - `end`: End a function
-  - `extern`: Declare an externally defined function or global variable
-  - `while`: Begin a while loop header
-  - `else`: Define an else block
-  - `do`: End a while loop header and begin the loop body
-  - `done`: End a loop body
-  - `if`: Begin an if statement
-  - `fi`: End an if statement
-  - `return`: Return from a function
-  - `break`: Break out of a loop
-  - `continue`: Continue to the next iteration of a loop
-  - `for`: Begin a for-loop header
-  - `in`: Define for-loop start value
-  - `to`: Define for-loop end value
-  - `step`: Define the step of the for-loop
-  - `decl`: Declare a variable
-  - `addr`: Get the address of the following identifier
-  - `container`: Declare a new Container to hold multiple values
-  - `repeat`: Define repeat iterator loop
-  - `struct`: Define a struct
-  - `new`: Create a new value of a Struct type
-  - `is`: Check if a value is of a specific type
-  - `cdecl`: Interprets the following string literal as C-code
-  - `label`: Declare a new label
-  - `goto`: Goto a label
-  - `self`: Reference to the current instance inside of a member function
-  - `switch`: Define a switch statement
-  - `case`: Define a case inside of a switch statement
-  - `esac`: End of a case statement
-  - `default`: Define a default statement inside of a switch statement
-
-## Argument Notation/Calling Convention
-
-Say we have following function:
-
-```
-function foo(a: int, b: int, c: int): int
-  a b +
-  c + return
-end
+Run:
+```console
+$ sclc -doc categories
+$ sclc -doc info
 ```
 
-To Call the function, the arguments must be passed in the following order:
+## Scale Framework Documentation
 
+Run:
+```console
+$ sclc -doc-for Scale
 ```
-  a b c foo
-```
-
-The last argument of the function must be on the top of the stack.
-
-Example:
-
-```
-  1 2 3 foo
-    => 6
-```
-
-## Core Framework
-- [Can be found here](./Scale/Frameworks/Core.framework/Docs.md)
 
 ## Examples
 
@@ -146,7 +75,7 @@ Example:
 
   To build the compiler, execute the following command from the root directory of the repository:
 
-```bash
+```shell
 $ dragon build
 ```
 

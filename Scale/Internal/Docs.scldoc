@@ -1,0 +1,374 @@
+# Scale Documentation
+## Conventions
+### Argument notation and calling conventions
+Say we have following function:
+<<BLUE>>function<<WHITE>> foo<<BLUE>>(<<WHITE>>a<<BLUE>>: int, <<WHITE>>b<<BLUE>>: int, <<WHITE>>c<<BLUE>>: int): int<<WHITE>>
+    a b <<BLUE>>+<<WHITE>>
+    c <<BLUE>>+ return<<WHITE>>
+<<BLUE>>end<<RESET>>
+
+To Call the function, the arguments must be passed in the following order:
+
+    <<WHITE>>a b c foo<<RESET>>
+
+The last argument of the function must be on the top of the stack.
+Example:
+
+    <<WHITE>>1 2 3 foo
+    <<CYAN>># returns 6<<WHITE>><<RESET>>
+
+### Strict Constness
+Strict constness means that if a variable is <<BLUE>>const<<RESET>> and it is a pointer, you are not allowed to write to either the variable or the address in the variable.
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: const [int]<<WHITE>>
+<<CYAN>># Both do not compile: i is not writable in this scope, i.e. i is const
+<<YELLOW>>1 <<BLUE>>=> <<WHITE>>i
+<<YELLOW>>1 <<BLUE>>=> @<<WHITE>>i<<RESET>>
+
+Strict constness is lifted in `init`-methods.
+That means writing to <<BLUE>>const<<RESET>> variables is possible in constructors for const struct members and <<WHITE>>__init__<<RESET>> for global variables respectively
+
+## Keywords
+### function
+Define a new function.
+Example:<<WHITE>>
+<<BLUE>>function<<WHITE>> main<<BLUE>>(): none<<WHITE>>
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>end<<WHITE>><<RESET>>
+
+### end
+This keyword marks the end of a `function`, `struct`, `container`, or `interface`.
+
+### expect
+This keyword marks a `function` or global variable as externally defined.
+Example:<<WHITE>>
+<<BLUE>>expect function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
+<<BLUE>>expect decl<<WHITE>> bar<<BLUE>>: int<<WHITE>><<RESET>>
+
+### while
+This keyword marks the begin of a `while`-loop
+Example:<<WHITE>>
+<<CYAN>># loops infinetly<<WHITE>>
+<<BLUE>>while true do<<WHITE>>
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>done<<WHITE>><<RESET>>
+
+### if
+This keyword marks the begin of an `if` statement.
+Example:<<WHITE>>
+<<BLUE>>if<<WHITE>> a <<BLUE>>then<<WHITE>>
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>fi<<WHITE>><<RESET>>
+
+### elif
+This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't execute, but only executes, if a condition is `true`.
+Example:<<WHITE>>
+<<BLUE>>elif<<WHITE>> b <<BLUE>>then<<WHITE>>
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>fi<<WHITE>><<RESET>>
+
+### else
+This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't execute.
+Example:<<WHITE>>
+<<BLUE>>else<<WHITE>>
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>fi<<WHITE>><<RESET>>
+
+### fi
+This keyword marks the end of an `if`-statement.
+
+### do
+This keyword marks the end of the looping condition of a `while`, `for`, or `foreach`-loop.
+
+### done
+This keyword marks the end of a loop. If reached, the condition of the loop gets evaluated and if evaluated to `true`, repeat.
+
+### return
+This keyword marks a return statement.
+This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't.
+Example:<<WHITE>>
+<<BLUE>>function<<WHITE>> foo<<BLUE>>(): str<<WHITE>>
+    <<GREEN>>"Hello" <<BLUE>>return<<WHITE>>
+<<BLUE>>end<<WHITE>><<RESET>>
+
+### break
+If control flow reaches this keyword, the innermost loop stops looping, regardless of the looping condition.
+
+### continue
+If control flow reaches this keyword, the innermost loop continues to the next iteration, if the looping condition is still true.
+
+### for
+This keyword marks the begin of a `for`-loop.
+Example:<<WHITE>>
+<<CYAN>># Executes 10 times<<WHITE>>
+<<BLUE>>for<<WHITE>> i <<BLUE>>in<<YELLOW>> 0 <<BLUE>>to<<YELLOW>> 10 <<BLUE>>do
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>done<<WHITE>><<RESET>>
+
+### decl
+This keyword is used to declare a new variable.
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: int<<RESET>>
+
+### addr
+This keyword is used to grab the address of a function or variable
+Example:<<WHITE>>
+<<BLUE>>addr<<WHITE>> i<<RESET>>
+
+### container
+This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the `MathConstants` container in Scale's math library.
+<<WHITE>>
+<<BLUE>>container<<WHITE>> Foo
+    <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
+    <<BLUE>>decl<<WHITE>> b<<BLUE>>: str
+    <<BLUE>>decl<<WHITE>> c<<BLUE>>: any
+<<BLUE>>end<<WHITE>><<RESET>>
+
+### repeat
+This keyword is used to repeat a certain action a fixed number of times
+Example:<<WHITE>>
+<<CYAN>># Executes 10 times<<WHITE>>
+<<BLUE>>repeat<<WHITE>> 10 <<BLUE>>do
+    <<CYAN>># code<<WHITE>>
+<<BLUE>>done<<WHITE>><<RESET>>
+
+### struct
+This keyword is used to declare a new struct. Structs can have member variables and functions, and static variables and static functions.
+Example:<<WHITE>>
+<<BLUE>>struct<<WHITE>> Foo
+    <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
+    <<BLUE>>function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
+        <<CYAN>># code<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+    <<BLUE>>static decl<<WHITE>> iCanBeAnything<<BLUE>>: any
+    <<BLUE>>static function<<WHITE>> bar<<BLUE>>(): none<<WHITE>>
+        <<CYAN>># code<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>><<RESET>>
+
+### is
+This keyword is used to check if the value on the stack is of a certain struct type.
+
+### label
+This keyword is used to declare a new label that you can `goto` to.
+
+### goto
+This keyword is used to go to a `label`
+
+### self
+This keyword is used to reference the current instance inside of a non-static member function of a struct.
+
+### switch
+This keyword is used to create a switch statement.
+<<WHITE>>
+foo <<BLUE>>switch<<WHITE>>
+    <<BLUE>>case<<WHITE>> 1
+        <<CYAN>># code<<WHITE>>
+    <<BLUE>>esac<<WHITE>>
+    <<BLUE>>case<<WHITE>> 2
+        <<CYAN>># code<<WHITE>>
+    <<BLUE>>esac<<WHITE>>
+    <<BLUE>>default<<WHITE>>
+        <<CYAN>># code<<WHITE>>
+    <<BLUE>>esac<<WHITE>>
+<<BLUE>>done<<WHITE>><<RESET>>
+
+### case
+This keyword is used to create a new branch inside of a switch statement. A case branch ends when the `esac` keyword is encountered.
+
+### default
+This keyword is used to create a branch inside of a switch statement that gets used if the value of the switch is not matched by any `case` statements.
+
+### import
+This keyword is used to import the contents of other files into the current file.
+Example:
+<<BLUE>>import <<WHITE>>Scale<<BLUE>>.<<WHITE>>fmt<<RESET>>
+
+### const
+This keyword is used to make a variable immutable.
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: const int<<RESET>>
+
+### readonly
+This keyword is used to make a member variable of a struct not writable from outside of member functions of the struct.
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: readonly int<<RESET>>
+
+### mut
+This keyword is used to signify that the memory a variable points to can be changed
+Example:<<WHITE>>
+<<BLUE>>decl<<WHITE>> i<<BLUE>>: mut int<<RESET>>
+
+### try
+This keyword is used to denote the start of a try-catch block of code.
+Example:<<WHITE>>
+<<BLUE>>try
+<<CYAN>>  # code that might throw
+<<BLUE>>catch typeof <<WHITE>>Exception <<BLUE>>as <<WHITE>>ex
+<<CYAN>>  # handle exception here
+<<BLUE>>done
+
+### catch
+This keyword is used to denote the start of the catch part of a try-catch block. See <<BLUE>>try<<RESET>>.
+
+## Operators
+### +
+The `+` operator returns the result of an addition of the top two values on the stack.
+
+### -
+The `-` operator returns the result of a subtraction of the top two values on the stack.
+
+### *
+The `*` operator returns the result of a multiplication of the top two values on the stack.
+
+### /
+The `/` operator returns the result of a division of the top two values on the stack.
+
+### %
+The `%` operator returns the remainder of a division of the top two values on the stack as integers.
+
+### &
+The `&` operator returns the logical AND of the top two values on the stack.
+
+### |
+The `|` operator returns the logical OR of the top two values on the stack.
+
+### ^
+The `^` operator returns the logical XOR of the top two values on the stack.
+
+### ~
+The `~` operator returns the logical NOT of the top value on the stack.
+
+### <<
+`a b <<`: The `<<` operator shifts `a` `b` times to the left.
+
+### >>
+`a b >>`: The `>>` operator shifts `a` `b` times to the right.
+
+### **
+`a b **`: Raises `a` to the power of `b`.
+
+### <
+`a b <`: Returns `true` if `a` is less than `b`.
+
+### <=
+`a b <=`: Returns `true` if `a` is less than or equal to `b`.
+
+### >
+`a b >`: Returns `true` if `a` is greater than `b`.
+
+### >=
+`a b >=`: Returns `true` if `a` is greater than or equal to `b`.
+
+### ==
+`a b ==`: Returns `true` if `a` is equal to `b`.
+
+### !
+`a !`: Returns `true` if `a` is `false`, `false` otherwise.
+
+### !!
+Asserts that the top value on the stack is not `nil`. If it is `nil`, abort execution.
+
+### !=
+`a b !=`: Returns `true` if `a` is not equal to `b`.
+
+### &&
+`a b <`: Returns `true` if `a` and `b` are `true`.
+
+### ||
+`a b <`: Returns `true` if `a` or `b` is `true`.
+
+### ++
+Increments the top value on the stack by one.
+
+### --
+Decrements the top value on the stack by one.
+
+### =>
+Stores the top value of the stack into a variable.
+Example:<<WHITE>>
+<<YELLOW>>0 <<BLUE>>=><<WHITE>> i<<RESET>>
+
+### => @
+Stores the top value of the stack at the address stored in a variable.
+Example:<<WHITE>>
+<<YELLOW>>0 <<BLUE>>=><<WHITE>> @ j<<RESET>>
+
+### @
+This operator returns the value at the address on the stack.
+Example:<<WHITE>>
+i<<BLUE>> @<<WHITE>><<RESET>>
+
+### Overriding Operators
+Operators can be overridden like this:<<WHITE>>
+<<BLUE>>struct <<WHITE>>Foo
+    <<BLUE>>function +(): Foo<<WHITE>>
+        <<CYAN>># do stuff to `self`<<WHITE>>
+        <<BLUE>>self return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+Operators don't have to return their member type:
+<<BLUE>>struct <<WHITE>>Bar
+    <<BLUE>>function <<(): <<WHITE>>Foo<<WHITE>>
+        <<WHITE>>Foo<<BLUE>>::new return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+They don't even have to return anything:
+<<BLUE>>struct <<WHITE>>Baz
+    <<BLUE>>function !(): none<<WHITE>>
+        <<BLUE>>if self nil == then<<WHITE>>
+            <<WHITE>>abort<<WHITE>>
+        <<BLUE>>fi<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+
+## Data types
+### str
+The `str` data type represents a `nil` terminated string.
+Example:
+<<GREEN>>"Hello, World!"<<RESET>>
+
+### int
+The `int` data type represents a signed 64-bit number.
+Example:
+<<YELLOW>>0<<RESET>>
+<<YELLOW>>10<<RESET>>
+<<YELLOW>>-5<<RESET>>
+
+### float
+The `float` data type represents a 64-bit floating point number.
+Example:
+<<YELLOW>>0.0<<RESET>>
+<<YELLOW>>1.1<<RESET>>
+<<YELLOW>>-2.8<<RESET>>
+<<YELLOW>>4.5<<RESET>>
+
+### any
+The `any` data type can represent any value.
+Example:
+<<YELLOW>>0.0<<RESET>>
+<<YELLOW>>1<<RESET>>
+<<GREEN>>"Hello!"<<RESET>>
+<<BLUE>>addr <<WHITE>>foo<<RESET>>
+
+### pointers
+Pointers are denoted by wrapping a type inside of `[]`.
+Example:
+<<BLUE>>[int]<<RESET>>
+<<BLUE>>[any]<<RESET>>
+
+Pointers can be nested to make pointers to pointers:
+<<BLUE>>[[str]]<<RESET>>
+
+## Built-in constants
+### true
+The `true` constant is equal to `1`.
+
+### false
+The `false` constant is equal to `0`.
+
+### nil
+The `nil` constant represents a null pointer. It is equal to `0`.

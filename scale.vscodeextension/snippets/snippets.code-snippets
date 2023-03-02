@@ -1,5 +1,5 @@
 {
-    "Main Function": {
+	"Main Function": {
 		"scope": "source.scale",
 		"prefix": "main",
 		"body": [
@@ -19,6 +19,16 @@
 		],
 		"description": "Create a function"
 	},
+	"Lambda": {
+		"scope": "source.scale",
+		"prefix": "lambda",
+		"body": [
+			"lambda($1): ${2:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Create an anonymous function"
+	},
 	"Method": {
 		"scope": "source.scale",
 		"prefix": "method",
@@ -33,17 +43,9 @@
 		"scope": "source.scale",
 		"prefix": "import",
 		"body": [
-			"import ${1:framework}.${2:file}"
+			"import ${1:file}"
 		],
-		"description": "Import from Framework"
-	},
-	"Include": {
-		"scope": "source.scale",
-		"prefix": "include",
-		"body": [
-			"include \"${1:file}\""
-		],
-		"description": "Include local file in build"
+		"description": "Import file. Replace '/' in file path with '.'!"
 	},
 	"Init": {
 		"scope": "source.scale",
@@ -131,11 +133,29 @@
 	},
 	"Extern Function": {
 		"scope": "source.scale",
-		"prefix": "extern",
+		"prefix": "extern function",
 		"body": [
-			"extern"
+			"expect function ${1:name}($2): ${3:none}"
 		],
-		"description": "Declare an extern function or variable"
+		"description": "Import a function from a library or object file"
+	},
+	"Export Function": {
+		"scope": "source.scale",
+		"prefix": "export",
+		"body": [
+			"export function ${1:name}($2): ${3:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Export a function to C"
+	},
+	"Extern Method": {
+		"scope": "source.scale",
+		"prefix": "extern method",
+		"body": [
+			"expect function ${1:type}:${2:name}($3): ${4:none}"
+		],
+		"description": "Import a method from a library or object file"
 	},
 	"Load Var": {
 		"scope": "source.scale",
@@ -207,13 +227,18 @@
 		],
 		"description": "Foreach Loop"
 	},
-	"Prototype": {
+	"Try Catch": {
 		"scope": "source.scale",
-		"prefix": "prototype",
+		"prefix": "try-catch",
 		"body": [
-			"extern function ${1:name}($2): ${3:none}"
+			"try",
+			"\t$0",
+			"catch typeof ${1:Exception}",
+			"\t# Handle exceptions of type '${1:Exception}' here",
+			"\t",
+			"done"
 		],
-		"description": "Declare a prototype"
+		"description": "Try-Catch Statement"
 	},
 	"Dereference": {
 		"scope": "source.scale",
@@ -253,12 +278,21 @@
 		],
 		"description": "Struct"
 	},
+	"Enum": {
+		"scope": "source.scale",
+		"prefix": "enum",
+		"body": [
+			"enum ${1:name}",
+			"\t$0",
+			"end"
+		],
+		"description": "Struct"
+	},
 	"Sealed Struct": {
 		"scope": "source.scale",
 		"prefix": "sealed struct",
 		"body": [
-			"@sealed",
-			"struct ${1:name}",
+			"sealed struct ${1:name}",
 			"\t$0",
 			"end"
 		],
@@ -323,5 +357,301 @@
 			"end_inline",
 		],
 		"description": "Inline C"
+	},
+	"Keyword end": {
+		"scope": "source.scale",
+		"prefix": "end",
+		"body": [
+			"end",
+		],
+		"description": "end"
+	},
+	"Keyword do": {
+		"scope": "source.scale",
+		"prefix": "do",
+		"body": [
+			"do",
+		],
+		"description": "do"
+	},
+	"Keyword done": {
+		"scope": "source.scale",
+		"prefix": "done",
+		"body": [
+			"done",
+		],
+		"description": "done"
+	},
+	"Keyword then": {
+		"scope": "source.scale",
+		"prefix": "then",
+		"body": [
+			"then",
+		],
+		"description": "then"
+	},
+	"Keyword fi": {
+		"scope": "source.scale",
+		"prefix": "fi",
+		"body": [
+			"fi",
+		],
+		"description": "fi"
+	},
+	"Keyword esac": {
+		"scope": "source.scale",
+		"prefix": "esac",
+		"body": [
+			"esac",
+		],
+		"description": "esac"
+	},
+	"Keyword default": {
+		"scope": "source.scale",
+		"prefix": "default",
+		"body": [
+			"default",
+		],
+		"description": "default"
+	},
+	"Keyword return": {
+		"scope": "source.scale",
+		"prefix": "return",
+		"body": [
+			"return",
+		],
+		"description": "return"
+	},
+	"Keyword break": {
+		"scope": "source.scale",
+		"prefix": "break",
+		"body": [
+			"break",
+		],
+		"description": "break"
+	},
+	"Keyword continue": {
+		"scope": "source.scale",
+		"prefix": "continue",
+		"body": [
+			"continue",
+		],
+		"description": "continue"
+	},
+	"Keyword in": {
+		"scope": "source.scale",
+		"prefix": "in",
+		"body": [
+			"in",
+		],
+		"description": "in"
+	},
+	"Keyword to": {
+		"scope": "source.scale",
+		"prefix": "to",
+		"body": [
+			"to",
+		],
+		"description": "to"
+	},
+	"Keyword step": {
+		"scope": "source.scale",
+		"prefix": "step",
+		"body": [
+			"step",
+		],
+		"description": "step"
+	},
+	"Keyword addr": {
+		"scope": "source.scale",
+		"prefix": "addr",
+		"body": [
+			"addr",
+		],
+		"description": "addr"
+	},
+	"Keyword nil": {
+		"scope": "source.scale",
+		"prefix": "nil",
+		"body": [
+			"nil",
+		],
+		"description": "nil"
+	},
+	"Keyword true": {
+		"scope": "source.scale",
+		"prefix": "true",
+		"body": [
+			"true",
+		],
+		"description": "true"
+	},
+	"Keyword false": {
+		"scope": "source.scale",
+		"prefix": "false",
+		"body": [
+			"false",
+		],
+		"description": "false"
+	},
+	"Keyword typeof": {
+		"scope": "source.scale",
+		"prefix": "typeof",
+		"body": [
+			"typeof",
+		],
+		"description": "typeof"
+	},
+	"Keyword nameof": {
+		"scope": "source.scale",
+		"prefix": "nameof",
+		"body": [
+			"nameof",
+		],
+		"description": "nameof"
+	},
+	"Keyword sizeof": {
+		"scope": "source.scale",
+		"prefix": "sizeof",
+		"body": [
+			"sizeof",
+		],
+		"description": "sizeof"
+	},
+	"Keyword typealias": {
+		"scope": "source.scale",
+		"prefix": "typealias",
+		"body": [
+			"typealias",
+		],
+		"description": "typealias"
+	},
+	"Keyword as": {
+		"scope": "source.scale",
+		"prefix": "as",
+		"body": [
+			"as",
+		],
+		"description": "as"
+	},
+	"Keyword new": {
+		"scope": "source.scale",
+		"prefix": "new",
+		"body": [
+			"new",
+		],
+		"description": "new"
+	},
+	"Keyword is": {
+		"scope": "source.scale",
+		"prefix": "is",
+		"body": [
+			"is",
+		],
+		"description": "is"
+	},
+	"Keyword goto": {
+		"scope": "source.scale",
+		"prefix": "goto",
+		"body": [
+			"goto",
+		],
+		"description": "goto"
+	},
+	"Keyword label": {
+		"scope": "source.scale",
+		"prefix": "label",
+		"body": [
+			"label",
+		],
+		"description": "label"
+	},
+	"Keyword self": {
+		"scope": "source.scale",
+		"prefix": "self",
+		"body": [
+			"self",
+		],
+		"description": "self"
+	},
+	"Keyword sealed": {
+		"scope": "source.scale",
+		"prefix": "sealed",
+		"body": [
+			"sealed",
+		],
+		"description": "sealed"
+	},
+	"Keyword nowarn": {
+		"scope": "source.scale",
+		"prefix": "nowarn",
+		"body": [
+			"nowarn",
+		],
+		"description": "nowarn"
+	},
+	"Keyword nomangle": {
+		"scope": "source.scale",
+		"prefix": "nomangle",
+		"body": [
+			"nomangle",
+		],
+		"description": "nomangle"
+	},
+	"Keyword static": {
+		"scope": "source.scale",
+		"prefix": "static",
+		"body": [
+			"static",
+		],
+		"description": "static"
+	},
+	"Keyword private": {
+		"scope": "source.scale",
+		"prefix": "private",
+		"body": [
+			"private",
+		],
+		"description": "private"
+	},
+	"Keyword referencetype": {
+		"scope": "source.scale",
+		"prefix": "referencetype",
+		"body": [
+			"referencetype",
+		],
+		"description": "referencetype"
+	},
+	"Keyword valuetype": {
+		"scope": "source.scale",
+		"prefix": "valuetype",
+		"body": [
+			"valuetype",
+		],
+		"description": "valuetype"
+	},
+	"Keyword const": {
+		"scope": "source.scale",
+		"prefix": "const",
+		"body": [
+			"const",
+		],
+		"description": "const"
+	},
+	"Keyword readonly": {
+		"scope": "source.scale",
+		"prefix": "readonly",
+		"body": [
+			"readonly",
+		],
+		"description": "readonly"
+	},
+	"Keyword mut": {
+		"scope": "source.scale",
+		"prefix": "mut",
+		"body": [
+			"mut",
+		],
+		"description": "mut"
 	},
 }

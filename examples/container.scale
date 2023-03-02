@@ -1,14 +1,14 @@
 # a container is a static structure
-container foo
-  decl bar: any
-  decl baz: any
+container Foo
+  decl bar: str
+  decl baz: mut [str]
 end
 
 function main(): none
-  "load/store" => foo.bar
-  foo.bar puts
+  "load/store" => Foo.bar
+  Foo.bar puts
   
-  8 malloc => foo.baz
-  "ref/deref" => @ foo.baz
-  foo.baz @ puts
+  8 malloc => Foo.baz
+  "ref/deref" => @ Foo.baz
+  Foo.baz @ puts
 end
