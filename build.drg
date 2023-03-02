@@ -21,6 +21,7 @@ build: {
   defines: [
     "VERSION=\"23.0\"";
     "C_VERSION=\"gnu17\"";
+    "SCL_ROOT_DIR=\"/opt\"";
   ];
   std: "gnu++17";
   flags: [
@@ -31,9 +32,10 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "rm -rf $HOME/Scale/23.0";
-    "mkdir -p $HOME/Scale";
-    "cp -r Scale $HOME/Scale/23.0";
+    "rm -rf /opt/Scale/23.0";
+    "sudo mkdir -p /opt/Scale";
+    "sudo chmod 777 /opt/Scale";
+    "cp -r Scale /opt/Scale/23.0";
   ];
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
@@ -65,6 +67,7 @@ install: {
   defines: [
     "VERSION=\"23.0\"";
     "C_VERSION=\"gnu17\"";
+    "SCL_ROOT_DIR=\"/opt\"";
   ];
   std: "gnu++17";
   flags: [
@@ -74,9 +77,10 @@ install: {
     "-pedantic";
   ];
   preBuild: [
-    "rm -rf $HOME/Scale/23.0";
-    "mkdir -p $HOME/Scale";
-    "cp -r Scale $HOME/Scale/23.0";
+    "rm -rf /opt/Scale/23.0";
+    "sudo mkdir -p /opt/Scale";
+    "sudo chmod 777 /opt/Scale";
+    "cp -r Scale /opt/Scale/23.0";
   ];
   postBuild: [
     "sudo mv target/sclc /usr/local/bin/sclc";
