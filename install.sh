@@ -38,11 +38,9 @@ fi
 
 if [ ! -z "$VSCODE_EXTENSIONS_PATH" ]; then
     echo "Found VSCode extension folder at '$VSCODE_EXTENSIONS_PATH'"
-    echo "Is this correct?"
-    select yn in "Yes" "No"; do
-        case $yn in
-            Yes ) cp -r ./scale.vscodeextension "$VSCODE_EXTENSIONS_PATH"; break;;
-            No );;
-        esac
-    done
+    echo "Is this correct? [yn]"
+    read answer
+    if [ "$answer" != "${answer#[Yy]}" ]; then
+        cp -r ./scale.vscodeextension "$VSCODE_EXTENSIONS_PATH"
+    fi
 fi
