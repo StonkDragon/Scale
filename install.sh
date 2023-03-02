@@ -1,4 +1,4 @@
-if [ "$(uname)" == "Darwin" ]; then
+if [ `uname` = "Darwin" ]; then
     if ! which gcc >/dev/null; then
         echo "Please install the Xcode command line tools"
         exit 1
