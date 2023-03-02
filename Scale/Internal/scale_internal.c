@@ -33,11 +33,10 @@ static scl_int	ptrs_size_cap = 64;			// Capacity of the list
 
 // generic struct
 struct sclstruct {
-	scl_int	type;
+	scl_int		type;
 	scl_int8*	type_name;
-	scl_int	super;
-	scl_int	size;
-	scl_int	count;
+	scl_int		super;
+	scl_int		size;
 };
 
 // table of instances
@@ -65,7 +64,7 @@ scl_int _scl_sorted_insert(scl_any** array, scl_int* size, scl_any value, scl_in
 	if ((*array)[i] == value) return i;
 
 	if ((*size) + 1 >= (*cap)) {
-		(*cap) *= 2;
+		(*cap) += 64;
 		(*array) = realloc((*array), (*cap) * sizeof(scl_any*));
 	}
 
@@ -110,7 +109,7 @@ void _scl_add_ptr(scl_any ptr, size_t size) {
 		ptrs_size_cap = index;
 		ptrs_size = realloc(ptrs_size, ptrs_size_cap * sizeof(scl_any));
 	} else if (ptrs_size_count >= ptrs_size_cap) {
-		ptrs_size_cap *= 2;
+		ptrs_size_cap += 64;
 		ptrs_size = realloc(ptrs_size, ptrs_size_cap * sizeof(scl_any));
 	}
 	ptrs_size[index] = size;
@@ -703,9 +702,6 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 	// Size (Currently only used by SclObject:clone())
     ((struct sclstruct*) ptr)->size = size;
 
-	// Reference count
-    ((struct sclstruct*) ptr)->count = 1;
-
 	// Add struct to allocated table
 	scl_int index = _scl_sorted_insert((scl_any**) &mallocced_structs, &mallocced_structs_count, ptr, &mallocced_structs_cap);
 	if (index == -1) return NULL;
@@ -881,7 +877,7 @@ _scl_frame_t* _scl_push() {
 	_scl_internal_stack.ptr++;
 
 	if (_scl_internal_stack.ptr >= _scl_internal_stack.cap) {
-		_scl_internal_stack.cap *= 2;
+		_scl_internal_stack.cap += 64;
 		_scl_frame_t* tmp = realloc(_scl_internal_stack.data, sizeof(_scl_frame_t) * _scl_internal_stack.cap);
 		if (!tmp) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
@@ -929,7 +925,7 @@ void _scl_popn(scl_int n) {
 void _scl_exception_push() {
 	_scl_internal_exceptions._scl_jmp_buf_ptr++;
 	if (_scl_internal_exceptions._scl_jmp_buf_ptr >= _scl_internal_exceptions._cap) {
-		_scl_internal_exceptions._cap *= 2;
+		_scl_internal_exceptions._cap += 64;
 		scl_any* tmp;
 
 		tmp = realloc(_scl_internal_exceptions._scl_cs_ptr, _scl_internal_exceptions._cap * sizeof(scl_int));
