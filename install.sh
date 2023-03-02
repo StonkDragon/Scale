@@ -16,7 +16,7 @@ if [ ! -e ./Dragon/build/dragon ]; then
     git clone https://github.com/StonkDragon/Dragon
     cd Dragon
     make compile
-    sudo mv build/dragon /usr/local/bin/dragon
+    sudo cp build/dragon /usr/local/bin/dragon
     cd ..
 fi
 
