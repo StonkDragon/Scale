@@ -328,7 +328,7 @@ void print_stacktrace_with_file(FILE* trace) {
 		fprintf(trace, "Stacktrace:\n");
 	}
 #if defined(SCL_DEBUG) && !defined(_WIN32) && !defined(__wasm__)
-	if (true) {
+	if (1) {
 #else
 	if (_scl_internal_callstack.ptr == 0) {
 #endif
