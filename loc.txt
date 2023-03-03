@@ -22,7 +22,7 @@
     1626 Compiler/modules/SyntaxTree.cpp
      260 Compiler/modules/TokenHandlers.cpp
      531 Compiler/modules/Tokenizer.cpp
-    4038 Compiler/modules/Transpiler.cpp
+    4042 Compiler/modules/Transpiler.cpp
      155 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       68 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       80 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13509 total
+   13513 total

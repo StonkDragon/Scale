@@ -3930,7 +3930,11 @@ namespace sclc {
                 append("}\n");
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             } else {
-                append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
+                if (contains<std::string>(function->getModifiers(), "<lambda>")) {
+                    append("%s Function_%s() {\n", return_type.c_str(), function->getName().c_str());
+                } else {
+                    append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
+                }
             }
             
             scopeDepth++;
