@@ -161,6 +161,7 @@ namespace sclc {
             std::string docsIncludeFolder;
             std::string operatorRandomData;
             std::vector<std::string> files;
+            std::vector<std::string> features;
             std::vector<std::string> includePaths;
             std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
             std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
@@ -221,6 +222,7 @@ namespace sclc {
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
     bool isPrimitiveType(std::string s);
+    bool featureEnabled(std::string feat);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

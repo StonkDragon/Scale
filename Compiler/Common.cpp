@@ -699,4 +699,8 @@ namespace sclc
     bool isPrimitiveType(std::string s) {
         return s == "int" || s == "float" || s == "any" || s == "bool";
     }
+
+    bool featureEnabled(std::string feat) {
+        return contains<std::string>(Main.options.features, feat);
+    }
 } // namespace sclc
