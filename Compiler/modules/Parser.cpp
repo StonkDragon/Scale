@@ -66,6 +66,31 @@ namespace sclc
         support_header = fopen("scale_support.h", "a");
         fprintf(support_header, "#include <scale_internal.h>\n\n");
 
+        if (
+            featureEnabled("default-interface-implementation") ||
+            featureEnabled("default-interface-impl")
+        ) {
+            for (Struct s : result.structs) {
+                for (std::string i : s.getInterfaces()) {
+                    Interface* interface = getInterfaceByName(result, i);
+                    for (Method* m : interface->getDefaultImplementations()) {
+                        if (!hasMethod(result, m->getName(), s.getName())) {
+                            Method* m2 = m->cloneAs(s.getName());
+                            std::vector<Variable> args = m2->getArgs();
+                            m2->clearArgs();
+                            for (Variable v : args) {
+                                if (v.getType() == "") {
+                                    v.setType(s.getName());
+                                }
+                                m2->addArgument(v);
+                            }
+                            result.functions.push_back(m2);
+                        }
+                    }
+                }
+            }
+        }
+
         std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
         std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);
         std::sort(result.containers.begin(), result.containers.end(), compare<Container>);

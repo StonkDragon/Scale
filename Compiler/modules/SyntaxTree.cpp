@@ -616,10 +616,34 @@ namespace sclc {
                     continue;
                 }
                 if (currentInterface != nullptr) {
-                    std::string name = tokens[i + 1].getValue();
-                    Token func = tokens[i + 1];
-                    Function* functionToImplement = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
-                    currentInterface->addToImplement(functionToImplement);
+                    if (contains<std::string>(nextAttributes, "default")) {
+                        Token func = tokens[i + 1];
+                        std::string name = func.getValue();
+                        currentFunction = parseMethod(name, func, "", errors, warns, nextAttributes, i, tokens);
+                        for (std::string s : nextAttributes) {
+                            currentFunction->addModifier(s);
+                        }
+                        if (!(
+                            featureEnabled("default-interface-implementation") ||
+                            featureEnabled("default-interface-impl")
+                        )) {
+                            FPResult warn;
+                            warn.message = "Default implementations are locked behind the 'default-interface-impl' feature flag. Treating as standard interface method declaration";
+                            warn.value = currentFunction->getNameToken().getValue();
+                            warn.line = currentFunction->getNameToken().getLine();
+                            warn.in = currentFunction->getNameToken().getFile();
+                            warn.type = currentFunction->getNameToken().getType();
+                            warn.column = currentFunction->getNameToken().getColumn();
+                            warn.success = true;
+                            warns.push_back(warn);
+                            currentInterface->addToImplement(currentFunction);
+                        }
+                    } else {
+                        std::string name = tokens[i + 1].getValue();
+                        Token func = tokens[i + 1];
+                        Function* functionToImplement = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
+                        currentInterface->addToImplement(functionToImplement);
+                    }
                     nextAttributes.clear();
                     continue;
                 }
@@ -681,8 +705,22 @@ namespace sclc {
                             break;
                         }
                     }
-                    
-                    if (currentFunction->isMethod || !containsB) {
+
+                    if (currentInterface != nullptr) {
+                        if (currentFunction->isMethod) {
+                            currentInterface->addDefaultImplementation(static_cast<Method*>(currentFunction));
+                        } else {
+                            FPResult result;
+                            result.message = "Expected a method, but got a function. If you see this error, something has gone very wrong! Report this: ERR_INTERFACE_DEFAULT_NO_METHOD";
+                            result.value = currentFunction->getNameToken().getValue();
+                            result.line = currentFunction->getNameToken().getLine();
+                            result.in = currentFunction->getNameToken().getFile();
+                            result.type = currentFunction->getNameToken().getType();
+                            result.column = currentFunction->getNameToken().getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                        }
+                    } else if (currentFunction->isMethod || !containsB) {
                         functions.push_back(currentFunction);
                     } else {
                         FPResult result;
@@ -1540,7 +1578,7 @@ namespace sclc {
                     nextAttributes.clear();
                 }
             } else {
-                if (tokens[i].getType() == tok_identifier) {
+                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_default) {
                     if (tokens[i].getValue() == "typealias") {
                         i++;
                         std::string type = tokens[i].getValue();

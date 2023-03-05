@@ -349,7 +349,7 @@ namespace sclc {
     bool argsAreIdentical(std::vector<Variable> methodArgs, std::vector<Variable> functionArgs) {
         if ((methodArgs.size() - 1) != functionArgs.size()) return false;
         for (size_t i = 0; i < methodArgs.size(); i++) {
-            if (methodArgs[i].getName() == "self") continue;
+            if (methodArgs[i].getName() == "self" || functionArgs[i].getName() == "self") continue;
             if (methodArgs[i] != functionArgs[i]) return false;
         }
         return true;

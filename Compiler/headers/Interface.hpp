@@ -13,13 +13,22 @@ namespace sclc
 {
     class Interface {
         std::string name;
-        std::vector<Function*> to_implement;
+        std::vector<Function*> toImplement;
+        std::vector<Method*> defaultImplementations;
     public:
         Interface(std::string name) {
             this->name = name;
         }
         bool hasToImplement(std::string func) {
-            for (Function* f : to_implement) {
+            for (Function* f : toImplement) {
+                if (f->getName() == func) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        bool hasDefaultImplementation(std::string func) {
+            for (Method* f : defaultImplementations) {
                 if (f->getName() == func) {
                     return true;
                 }
@@ -27,7 +36,15 @@ namespace sclc
             return false;
         }
         Function* getToImplement(std::string func) {
-            for (Function* f : to_implement) {
+            for (Function* f : toImplement) {
+                if (f->getName() == func) {
+                    return f;
+                }
+            }
+            return nullptr;
+        }
+        Method* getDefaultImplementation(std::string func) {
+            for (Method* f : defaultImplementations) {
                 if (f->getName() == func) {
                     return f;
                 }
@@ -35,10 +52,16 @@ namespace sclc
             return nullptr;
         }
         std::vector<Function*> getImplements() {
-            return to_implement;
+            return toImplement;
+        }
+        std::vector<Method*> getDefaultImplementations() {
+            return defaultImplementations;
         }
         void addToImplement(Function* func) {
-            to_implement.push_back(func);
+            toImplement.push_back(func);
+        }
+        void addDefaultImplementation(Method* func) {
+            defaultImplementations.push_back(func);
         }
         std::string getName() {
             return name;
