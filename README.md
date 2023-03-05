@@ -61,7 +61,6 @@ $ sclc -doc-for Scale
   - [Repeat-Block](./examples/repeat.scale)
   - [FizzBuzz](./examples/fizzbuzz.scale)
   - [Function Arguments](./examples/arguments.scale)
-  - [Pointer Dereferencing](./examples/deref.scale)
   - [Container Introduction](./examples/container.scale)
   - [Structure Introduction](./examples/struct.scale)
   - [C Declaration codeblock](./examples/cdecl.scale)

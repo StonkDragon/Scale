@@ -20,8 +20,8 @@ namespace sclc
         std::vector<std::string> modifiers;
         std::vector<Variable> args;
         Variable namedReturnValue;
-        Token nameToken;
     public:
+        Token nameToken;
         bool isMethod;
         bool isExternC;
         bool isPrivate;
@@ -46,6 +46,7 @@ namespace sclc
         virtual Variable getNamedReturnValue();
         virtual void setNamedReturnValue(Variable v);
         virtual bool belongsToType(std::string typeName);
+        virtual void clearArgs();
 
         virtual bool operator==(const Function& other) const;
     };
@@ -70,6 +71,27 @@ namespace sclc
         }
         void forceAdd(bool force) {
             force_add = force;
+        }
+        Method* cloneAs(std::string memberType) {
+            Method* m = new Method(memberType, getName(), nameToken);
+            m->isMethod = isMethod;
+            m->force_add = force_add;
+            m->setReturnType(getReturnType());
+            for (auto s : getModifiers()) {
+                m->addModifier(s);
+            }
+            m->setFile(getFile());
+            m->setReturnType(getReturnType());
+            for (Token t : this->getBody()) {
+                m->addToken(t);
+            }
+            for (Variable v : getArgs()) {
+                m->addArgument(v);
+            }
+            if (hasNamedReturnValue) {
+                m->setNamedReturnValue(getNamedReturnValue());
+            }
+            return m;
         }
     };
 } // namespace sclc

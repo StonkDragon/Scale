@@ -105,3 +105,6 @@ void Function::setNamedReturnValue(Variable v) {
 bool Function::belongsToType(std::string typeName) {
     return (!this->isMethod && !strstarts(this->getName(), typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->getMemberType() != typeName);
 }
+void Function::clearArgs() {
+    this->args = std::vector<Variable>();
+}
