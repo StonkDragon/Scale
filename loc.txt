@@ -1,12 +1,12 @@
-     702 Compiler/Common.cpp
-    1323 Compiler/Main.cpp
+     706 Compiler/Common.cpp
+    1336 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
-     230 Compiler/headers/Common.hpp
+     232 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      100 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
-      75 Compiler/headers/Function.hpp
-      57 Compiler/headers/Interface.hpp
+      97 Compiler/headers/Function.hpp
+      80 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       55 Compiler/headers/Results.hpp
      133 Compiler/headers/Struct.hpp
@@ -16,10 +16,10 @@
       71 Compiler/headers/Variable.hpp
       77 Compiler/headers/Version.hpp
      394 Compiler/modules/DragonConfig.cpp
-     107 Compiler/modules/Function.cpp
+     110 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
-     126 Compiler/modules/Parser.cpp
-    1626 Compiler/modules/SyntaxTree.cpp
+     151 Compiler/modules/Parser.cpp
+    1664 Compiler/modules/SyntaxTree.cpp
      260 Compiler/modules/TokenHandlers.cpp
      531 Compiler/modules/Tokenizer.cpp
     4042 Compiler/modules/Transpiler.cpp
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13513 total
+   13643 total

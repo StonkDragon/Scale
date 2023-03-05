@@ -70,6 +70,7 @@ namespace sclc
         std::cout << "  -f <framework>       Use Scale Framework" << std::endl;
         std::cout << "  -no-main             Do not check for main Function" << std::endl;
         std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
+        std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
         std::cout << "  -run                 Run the compiled program" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -debug               Run in debug mode" << std::endl;
@@ -573,6 +574,10 @@ namespace sclc
             if (scaleConfig->hasMember("includeFiles"))
                 for (size_t i = 0; i < scaleConfig->getList("includeFiles")->size(); i++)
                     Main.frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
+            
+            if (scaleConfig->hasMember("featureFlags"))
+                for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
+                    Main.options.features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
         }
 
         Main.options.minify = false;
@@ -634,6 +639,14 @@ namespace sclc
                     std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
                     system((compiler + " -v").c_str());
                     return 0;
+                } else if (args[i] == "-feat") {
+                    if (i + 1 < args.size()) {
+                        Main.options.features.push_back(args[i + 1]);
+                        i++;
+                    } else {
+                        std::cerr << "Error: -feat requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else if (args[i] == "--comp" || args[i] == "-compiler") {
                     if (i + 1 < args.size()) {
                         compiler = args[i + 1];
