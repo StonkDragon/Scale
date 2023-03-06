@@ -129,6 +129,17 @@ namespace sclc {
     }
 
     std::string generateSymbolForFunction(Function* f) {
+        if (contains<std::string>(f->getModifiers(), "cdecl")) {
+            auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
+                for (size_t i = 0; i < v.size(); i++) {
+                    if (v.at(i) == s) return i;
+                }
+                return -1;
+            };
+            std::string cLabel = f->getModifiers().at(indexOf(f->getModifiers(), "cdecl") + 1);
+
+            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + cLabel + "\"";
+        }
         std::string symbol = f->getName();
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
@@ -507,9 +518,20 @@ namespace sclc {
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
             std::string typeA = tmp.at(i);
             if (typeA == "bool") typeA = "int";
+            
+            while (typeA.size() && typeA.at(typeA.size() - 1) == '?') {
+                typeA = typeA.substr(0, typeA.size() - 1);
+            }
+
             if (strstarts(typeA, "lambda(")) typeA = "lambda";
+
             std::string typeB = args.at(i).getType();
             if (typeB == "bool") typeB = "int";
+            
+            while (typeB.size() && typeB.at(typeB.size() - 1) == '?') {
+                typeB = typeB.substr(0, typeB.size() - 1);
+            }
+
             if (strstarts(typeB, "lambda(")) typeB = "lambda";
 
             if (typeB == "any" || typeB == "[any]" || (typeCanBeNil(typeB) && (typeA == "any" || typeA == "[any]"))) {
@@ -1109,11 +1131,11 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "puts") {
-            append("puts(_scl_pop()->s->_data);\n");
+            append("puts((_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "eputs") {
-            append("fprintf(stderr, \"%%s\\n\", _scl_pop()->s->_data);\n");
+            append("fprintf(stderr, \"%%s\\n\", (_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
             if (typeStack.size())
                 typeStack.pop();
         } else if (body[i].getValue() == "abort") {

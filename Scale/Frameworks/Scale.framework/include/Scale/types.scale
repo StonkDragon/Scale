@@ -7,6 +7,17 @@ typealias uint16 "scl_uint16"
 typealias uint8 "scl_uint8"
 typealias lambda "_scl_lambda"
 
+cdecl "strlen"
+expect function __c_strlen(_str_: [int8]) len: int
+cdecl "strcmp"
+expect function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
+cdecl "strdup"
+expect function __c_strdup(_str_: [int8]): [int8]
+cdecl "strncmp"
+expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
+cdecl "strcpy"
+expect function __c_strcpy(dest: [int8], src: [int8]): none
+
 sealed struct str is IEquatable, ICloneable, IStringifyable
   private decl _data: [int8]
   private decl _len: int
@@ -28,7 +39,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   end
 
   function equals(other: str): bool
-    self._data other._data strcmp return
+    self._data other._data __c_strcmp 0 == return
   end
 
   function ==(other: str): bool
@@ -79,69 +90,30 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   end
 
   function startsWith(_s_: str): bool
-    self._data _s_._data _s_:size strncmp return
+    self._data _s_._data _s_:size __c_strncmp 0 == return
   end
 
   function view(): [int8]
-    self._data strdup return
+    self._data __c_strdup return
   end
 
   function init(data: [int8]): none
     data => self._data
-    inline_c
-      (*self)->_len = strlen(*data);
-    end_inline
-  end
-
-  private function strlen(_str_: [int8]) len: int
-    inline_c
-      *len = strlen(*_str_);
-    end_inline
-    return
-  end
-
-  private function strcmp(_str1_: [int8], _str2_: [int8]): bool
-    decl t: bool
-    inline_c
-      *t = (strcmp(*_str1_, *_str2_) == 0);
-    end_inline
-    t return
-  end
-
-  private function strdup(_str_: [int8]): [int8]
-    decl s: [int8]
-    inline_c
-      *s = strdup(*_str_);
-    end_inline
-    s return
-  end
-
-  private function strncmp(_str1_: [int8], _str2_: [int8], _n_: int): bool
-    decl t: bool
-    inline_c
-      *t = (strncmp(*_str1_, *_str2_, *_n_) == 0);
-    end_inline
-    t return
+    data __c_strlen => self._len
   end
 
   private function concat(_str1_: [int8], _str2_: [int8]): [int8]
     decl out: [int8]
-    _str1_ strlen => decl len: int
-    _str2_ strlen => decl len2: int
+    _str1_ __c_strlen => decl len: int
+    _str2_ __c_strlen => decl len2: int
 
     len len2 + 1 + malloc => out
 
-    out _str1_ strcpy
+    out _str1_ __c_strcpy
     inline_c
       strcat(*out, *_str2_);
     end_inline
 
     out return
-  end
-
-  private function strcpy(dest: [int8], src: [int8]): none
-    inline_c
-      strcpy(*dest, *src);
-    end_inline
   end
 end

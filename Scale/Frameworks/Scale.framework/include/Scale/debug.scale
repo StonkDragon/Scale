@@ -1,5 +1,15 @@
 import Scale.fmt
 
+cdecl "print_stacktrace"
+expect function trace(): none
+
+cdecl "_scl_security_safe_exit"
+expect function __c_exit(i: int): none
+cdecl "_scl_catch_final"
+expect function __c_scl_catch_final(_sig_: int): none
+cdecl "raise"
+expect function __c_raise(_sig_: int): int
+
 function dumpStack(): none
   inline_c
     printf("Dump:\n");
@@ -11,36 +21,27 @@ function dumpStack(): none
   end_inline
 end
 
-function trace(): none
-  inline_c
-    print_stacktrace();
-  end_inline
-end
-
 function crash(): none
-  inline_c
-    _scl_security_safe_exit(1);
-  end_inline
+  1 __c_exit
 end
 
 function raise(_sig_: int): none
-  inline_c
-    if (*_sig_ != 2 && *_sig_ != 4 && *_sig_ != 6 && *_sig_ != 8 && *_sig_ != 11) {
-      int raised = raise(*_sig_);
-      if (raised != 0) {
-        _scl_catch_final(*_sig_);
-      }
-    } else {
-      _scl_catch_final(*_sig_);
-    }
-  end_inline
+  if _sig_ 2 != _sig_ 4 != && _sig_ 6 != _sig_ 8 != && && _sig_ 11 != && then
+    _sig_ __c_raise => decl raised
+    if raised ! then
+      _sig_ __c_scl_catch_final
+    fi
+  else
+    _sig_ __c_scl_catch_final
+  fi
 end
 
+cdecl "getchar"
+expect function __c_getchar(): int8
+
 function breakPoint(): none
-  inline_c
-    printf("Hit breakPoint. Press enter to continue.\n");
-	  getchar();
-  end_inline
+  "Hit breakPoint. Press enter to continue." puts
+  __c_getchar
 end
 
 sealed struct Exception

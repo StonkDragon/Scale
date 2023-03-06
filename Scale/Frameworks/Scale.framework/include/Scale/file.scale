@@ -1,49 +1,27 @@
 typealias file "FILE*"
 
+cdecl "fopen"
+expect function __c_fopen(_name_: [int8], _mode_: [int8]): file?
+cdecl "fwrite"
+expect function __c_fwrite(_buf_: any, _size_: int, _num_elem_: int, _file_: file): none
+cdecl "fread"
+expect function __c_fread(_buf_: any, _num_elem_: int, _size_: int, _f_: file): none
+
+expect function fclose(_file_: file): none
+expect function ftell(_file_: file): int
+expect function fileno(_file_: file): int
+expect function fseek(_file_: file, _offset_: int, _whence_: int): none
+
 function fopen(_filename_: str, _mode_: str): file?
-  decl _f_: file?
-  inline_c
-    *_f_ = fopen((*_filename_)->_data, (*_mode_)->_data);
-  end_inline
-  _f_ return
-end
-
-function fclose(_file_: file): none
-  inline_c
-    fclose(*_file_);
-  end_inline
-end
-
-function ftell(_file_: file): int
-  inline_c
-    _scl_push()->i = ftell(*_file_);
-  end_inline
-  return
-end
-
-function fileno(_file_: file): int
-  inline_c
-    _scl_push()->i = fileno(*_file_);
-  end_inline
-  return
-end
-
-function fseek(_file_: file, _whence_: int, _offset_: int): none
-  inline_c
-    fseek(*_file_, *_offset_, *_whence_);
-  end_inline
+  _filename_:view _mode_:view __c_fopen return
 end
 
 function fwrite(_buf_: any, _size_: int, _file_: file): none
-  inline_c
-    int _ignored = fwrite(*_buf_, 1, *_size_, *_file_); (void) _ignored;
-  end_inline
+  _buf_ 1 _size_ _file_ __c_fwrite
 end
 
 function fwrites(_buf_: str, _size_: int, _file_: file): none
-  inline_c
-    int _ignored = fwrite((*_buf_)->_data, 1, *_size_, *_file_); (void) _ignored;
-  end_inline
+  _buf_:view 1 _size_ _file_ __c_fwrite
 end
 
 function fputs(_file_: file, _str_: str): none
@@ -60,21 +38,19 @@ function fputfloat(_file_: file, _float_: float): none
 end
 
 function fread(_f_: file, _size_: int): [any]?
-  decl _buf_: [any]? _size_ malloc => _buf_
-  inline_c
-    int _ignored = fread(*_buf_, 1, *_size_, *_f_); (void) _ignored;
-  end_inline
+  _size_ malloc => decl _buf_: [any]?
+  _buf_ 1 _size_ _f_ fread
   _buf_ return
 end
 
 function fseekstart(_f_: file, _offset_: int): none
-  _f_ 0 _offset_ fseek
+  _f_ _offset_ 0 fseek
 end
 
 function fseekend(_f_: file, _offset_: int): none
-  _f_ 2 _offset_ fseek
+  _f_ _offset_ 2 fseek
 end
 
 function fseekcur(_f_: file, _offset_: int): none
-  _f_ 1 _offset_ fseek
+  _f_ _offset_ 1 fseek
 end

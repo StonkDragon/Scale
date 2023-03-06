@@ -1,38 +1,39 @@
+cdecl "write"
+expect function __c_write(_fd_: int, _str_: [int8], _len_: int): none
+cdecl "read"
+expect function __c_read(_fd_: int, _buf_: [int8], _n_: int): none
+cdecl "puts"
+expect function __c_puts(_str_: [int8]): none
+
 function write(_fd_: int, _str_: str): none
-  inline_c
-  int _ignored = write(*_fd_, (*_str_)->_data, (*_str_)->_len); (void) _ignored;
-  end_inline
+  _fd_ _str_:view _str_:size __c_write
 end
 
 function read(_fd_: int, _n_: int): str?
   _n_ malloc => decl buf: [int8]
-  inline_c
-    int _ignored = read(*_fd_, *buf, *_n_); (void) _ignored;
-  end_inline
+  _fd_ buf _n_ __c_read
   buf str::new return
 end
 
 function puts(_str_: str): none
-  inline_c
-  puts((*_str_)->_data);
-  end_inline
+  _str_:view __c_puts
 end
 
 function eputs(_str_: str): none
   inline_c
-  fprintf(stderr, "%s\n", (*_str_)->_data);
+    fprintf(stderr, "%s\n", (*_str_)->_data);
   end_inline
 end
 
 function putint(_int_: int): none
   inline_c
-  printf(SCL_INT_FMT "\n", *_int_);
+    printf(SCL_INT_FMT "\n", *_int_);
   end_inline
 end
 
 function putfloat(_f_: float): none
   inline_c
-  printf("%f\n", *_f_);
+    printf("%f\n", *_f_);
   end_inline
 end
 
