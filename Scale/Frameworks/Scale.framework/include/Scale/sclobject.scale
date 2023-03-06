@@ -7,11 +7,11 @@ struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable
     function toString(): str
         decl typenamePtr: [int8]
         decl addressPtr: [int8]
-        inline_c
+        c!
             *typenamePtr = (*self)->$__type_name__;
             *addressPtr = _scl_alloc(21);
             snprintf(*addressPtr, 20, "<%p>", *self);
-        end_inline
+        end
 
         typenamePtr str::new => decl typename: str
         addressPtr str::new => decl address: str
@@ -29,19 +29,19 @@ struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable
 
     function clone() instance: SclObject
         decl sz: mut int
-        inline_c
+        c!
             *sz = (*self)->$__size__;
             *instance = _scl_alloc(*sz);
             _scl_add_struct(*instance);
-        end_inline
+        end
         instance self sz memcpy
         return
     end
 
     function hashCode() hash: int
-        inline_c
+        c!
             *hash = (*self)->$__type__;
-        end_inline
+        end
         return
     end
 

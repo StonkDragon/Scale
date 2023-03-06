@@ -11,14 +11,14 @@ cdecl "raise"
 expect function __c_raise(_sig_: int): int
 
 function dumpStack(): none
-  inline_c
+  c!
     printf("Dump:\n");
     for (ssize_t i = _scl_internal_stack.ptr - 1; i >= 0; i--) {
       scl_int v = _scl_internal_stack.data[i].i;
       printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
     }
 	  printf("\n");
-  end_inline
+  end
 end
 
 function crash(): none
@@ -49,7 +49,7 @@ sealed struct Exception
 end
 
 function throw(ex: Exception): none
-  inline_c
+  c!
     _scl_internal_exceptions.ptr--;
     if (_scl_internal_exceptions.ptr < 0) {
       _scl_unreachable("Impossible state encountered trying to throw an exception!");
@@ -57,13 +57,13 @@ function throw(ex: Exception): none
     _scl_internal_exceptions.extable[_scl_internal_exceptions.ptr] = *ex;
     _scl_internal_callstack.ptr = _scl_internal_exceptions.callstk_ptr[_scl_internal_exceptions.ptr];
     longjmp(_scl_internal_exceptions.jmptable[_scl_internal_exceptions.ptr], 666);
-  end_inline
+  end
 end
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]
-  inline_c
+  c!
     snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
-  end_inline
+  end
   sPtr str::new return
 end

@@ -42,9 +42,9 @@ end
 function malloc(_size_: int) s: [any]?
   _size_ _scl_alloc => s
   if s ! then
-    inline_c
+    c!
       _scl_security_throw(EX_BAD_PTR, "malloc() failed!");
-    end_inline
+    end
   fi
   return
 end
@@ -52,9 +52,9 @@ end
 function realloc(_size_: int, _ptr_: [any]): [any]?
   _ptr_ _size_ _scl_realloc => _ptr_
   if _ptr_ ! then
-    inline_c
+    c!
       _scl_security_throw(EX_BAD_PTR, "realloc() failed!");
-    end_inline
+    end
   fi
   _ptr_ return
 end
@@ -77,19 +77,19 @@ end
 
 function time(): float
   decl secs: float
-  inline_c
+  c!
     struct timeval tv;
     gettimeofday(&tv, NULL);
     *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
-  end_inline
+  end
   secs return
 end
 
 function longToString(_long_: int): str
   25 malloc => decl out: [int8]
-  inline_c
+  c!
 	  sprintf(*out, SCL_INT_FMT, *_long_);
-  end_inline
+  end
   out str::new return
 end
 
@@ -103,9 +103,9 @@ end
 
 function doubleToString(_double_: float): str
   100 malloc => decl out: [int8]
-  inline_c
+  c!
 	  sprintf(*out, "%f", *_double_);
-  end_inline
+  end
   out str::new return
 end
 
