@@ -19,18 +19,18 @@ sealed struct Thread
         if tid then
             "Thread started" ThreadException::new throw
         fi
-        inline_c
+        c!
             pthread_create(&(*self)->tid, NULL, (*self)->func, NULL);
-        end_inline
+        end
     end
 
     function join(): none
         if tid! then
             "Thread ended" ThreadException::new throw
         fi
-        inline_c
+        c!
             pthread_join((*self)->tid, NULL);
-        end_inline
+        end
         nil => self.tid
     end
 end

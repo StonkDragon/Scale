@@ -259,11 +259,29 @@ namespace sclc
             syntaxWarn("The 'store' keyword is deprecated! Use '=>' instead.");
         }
 
-        if (value == "inline_c") {
+        if (value == "pragma") {
+            if (c == '!') {
+                value += c;
+                c = source[++current];
+                column++;
+            }
+        } else if (value == "c") {
+            if (c == '!') {
+                value += c;
+                c = source[++current];
+                column++;
+            }
+        }
+
+        if (value == "inline_c" || value == "c!") {
+            bool newInline = value == "c!";
+            if (!newInline) {
+                syntaxWarn("The 'inline_c' keyword is deprecated! Use 'c!' instead.");
+            }
             value = "";
             int startLine = line;
             int startColumn = column;
-            while (strncmp("end_inline", (source + current), strlen("end_inline")) != 0) {
+            while (strncmp((newInline ? "end" : "end_inline"), (source + current), strlen((newInline ? "end" : "end_inline"))) != 0) {
                 value += c;
                 c = source[current++];
                 column++;
@@ -272,20 +290,12 @@ namespace sclc
                     column = 0;
                 }
             }
-            current += strlen("end_inline");
+            current += strlen((newInline ? "end" : "end_inline"));
             return Token(tok_extern_c, value, startLine, filename, startColumn);
         }
 
         if (value == "extern") {
             syntaxWarn("'extern' is deprecated! Use 'expect' instead!");
-        }
-
-        if (value == "pragma") {
-            if (c == '!') {
-                value += c;
-                c = source[++current];
-                column++;
-            }
         }
 
         TOKEN("function",   tok_function, line, filename);

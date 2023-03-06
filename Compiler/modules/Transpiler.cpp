@@ -129,13 +129,20 @@ namespace sclc {
     }
 
     std::string generateSymbolForFunction(Function* f) {
+        auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
+            for (size_t i = 0; i < v.size(); i++) {
+                if (v.at(i) == s) return i;
+            }
+            return -1;
+        };
+
+        if (contains<std::string>(f->getModifiers(), "asm")) {
+            std::string label = f->getModifiers().at(indexOf(f->getModifiers(), "asm") + 1);
+
+            return std::string("\"") + label + "\"";
+        }
+
         if (contains<std::string>(f->getModifiers(), "cdecl")) {
-            auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
-                for (size_t i = 0; i < v.size(); i++) {
-                    if (v.at(i) == s) return i;
-                }
-                return -1;
-            };
             std::string cLabel = f->getModifiers().at(indexOf(f->getModifiers(), "cdecl") + 1);
 
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + cLabel + "\"";

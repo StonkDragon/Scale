@@ -7,9 +7,9 @@ function __init__math_scale(): none
   2.71828182845904523536028747135266250 => MathConstants.e
   3.14159265358979323846264338327950288 => MathConstants.pi
 
-  inline_c
+  c!
     srand(time(NULL));
-  end_inline
+  end
 end
 
 expect function sqrt(_f_: float): float
@@ -32,9 +32,9 @@ expect function log10(_f_: float): float
 
 function random(): int
   decl r: int
-  inline_c
+  c!
     *r = ((scl_int) rand() << 32) | (scl_int) rand();
-  end_inline
+  end
   r return
 end
 

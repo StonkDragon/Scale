@@ -20,21 +20,21 @@ function puts(_str_: str): none
 end
 
 function eputs(_str_: str): none
-  inline_c
+  c!
     fprintf(stderr, "%s\n", (*_str_)->_data);
-  end_inline
+  end
 end
 
 function putint(_int_: int): none
-  inline_c
+  c!
     printf(SCL_INT_FMT "\n", *_int_);
-  end_inline
+  end
 end
 
 function putfloat(_f_: float): none
-  inline_c
+  c!
     printf("%f\n", *_f_);
-  end_inline
+  end
 end
 
 function throwerr(_err_: str): none

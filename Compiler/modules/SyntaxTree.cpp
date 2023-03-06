@@ -1587,6 +1587,7 @@ namespace sclc {
                            t.getValue() == "default" ||
                            t.getValue() == "static" ||
                            t.getValue() == "private" ||
+                           t.getValue() == "asm" ||
                            t.getType()  == tok_string_literal;
                 };
 

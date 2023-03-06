@@ -28,7 +28,7 @@ namespace sclc
         tok_do,             // do
         tok_done,           // done
         tok_extern,         // extern
-        tok_extern_c,       // extern_c
+        tok_extern_c,       // c!
         tok_break,          // break
         tok_continue,       // continue
         tok_for,            // for

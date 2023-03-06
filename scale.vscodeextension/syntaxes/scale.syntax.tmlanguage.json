@@ -3,7 +3,8 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
-		{"include": "#query"},
+		{"include": "#inline_c"},
+		{"include": "#inline_c_old"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#keyw_constant"},
@@ -75,9 +76,21 @@
 			"name": "variable.name",
 			"match": "[A-Za-z_]+([A-Za-z_0-9]+)?"
 		},
-		"query": {
+		"inline_c_old": {
 			"begin": "\\b(inline_c)\\b",
 			"end": "\\b(end_inline)\\b",
+			"beginCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"endCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"name": "meta.embedded.block.c",
+			"patterns": [{"include": "source.c"}]
+		},
+		"inline_c": {
+			"begin": "\\b(c!)",
+			"end": "\\b(end)\\b",
 			"beginCaptures": {
 			  "0": { "name": "keyword.control" }
 			},

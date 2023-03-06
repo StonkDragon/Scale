@@ -352,9 +352,9 @@
 		"scope": "source.scale",
 		"prefix": "inline c",
 		"body": [
-			"inline_c",
+			"c!",
 			"\t$0",
-			"end_inline",
+			"end",
 		],
 		"description": "Inline C"
 	},

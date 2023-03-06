@@ -68,7 +68,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
 
   function reverse(): str
     decl out: [int8]
-    inline_c
+    c!
       scl_int i = 0;
       scl_int len = strlen((*self)->_data);
       *out = _scl_alloc(len + 1);
@@ -76,7 +76,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
         (*out)[i] = (*self)->_data[len - i - 1];
       }
       (*out)[len] = '\0';
-    end_inline
+    end
     out str::new return
   end
 
@@ -110,9 +110,9 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
     len len2 + 1 + malloc => out
 
     out _str1_ __c_strcpy
-    inline_c
+    c!
       strcat(*out, *_str2_);
-    end_inline
+    end
 
     out return
   end
