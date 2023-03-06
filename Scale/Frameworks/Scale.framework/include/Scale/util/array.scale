@@ -13,24 +13,23 @@ sealed struct Array is IIterable
   private decl pos: readonly int
   
   function sort(): none
-    inline_c
-      scl_int i = 0;
-      while (i < (scl_int) (*self)->count) {
-        scl_int speicher = (scl_int) Method_Array$get(i, (*self));
-        scl_int j = i - 1;
-        while (j >= 0) {
-          if (speicher < (scl_int) Method_Array$get(j, (*self))) {
-            Method_Array$set(j + 1, Method_Array$get(j, (*self)), (*self));
-            Method_Array$set(j, (scl_any) speicher, (*self));
-          } else {
-            Method_Array$set(j + 1, (scl_any) speicher, (*self));
-            break;
-          }
-          j--;
-        }
-        i++;
-      }
-    end_inline
+    0 => decl i
+
+    while i self.count < do
+      i self:get => decl tmp
+      i 1 - => decl j
+      while j 0 >= do
+        if tmp j self:get < then
+          j 1 + j self:get self:set
+          j tmp self:set
+        else
+          j 1 + tmp self:set
+          break
+        fi
+        j-- => j
+      done
+      i++ => i
+    done
   end
 
   function get(index: int): any?

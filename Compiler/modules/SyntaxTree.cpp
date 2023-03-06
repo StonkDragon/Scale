@@ -1578,28 +1578,38 @@ namespace sclc {
                     nextAttributes.clear();
                 }
             } else {
-                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_default) {
-                    if (tokens[i].getValue() == "typealias") {
-                        i++;
-                        std::string type = tokens[i].getValue();
-                        i++;
-                        if (tokens[i].getType() != tok_string_literal) {
-                            FPResult result;
-                            result.message = "Expected string, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
-                            result.column = tokens[i].getColumn();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        std::string replacement = tokens[i].getValue();
-                        typealiases[type] = replacement;
+
+                auto validAttribute = [](Token& t) -> bool {
+                    return t.getValue() == "expect" ||
+                           t.getValue() == "export" ||
+                           t.getValue() == "no_cleanup" ||
+                           t.getValue() == "cdecl" ||
+                           t.getValue() == "default" ||
+                           t.getValue() == "static" ||
+                           t.getValue() == "private" ||
+                           t.getType()  == tok_string_literal;
+                };
+
+                if (tokens[i].getValue() == "typealias") {
+                    i++;
+                    std::string type = tokens[i].getValue();
+                    i++;
+                    if (tokens[i].getType() != tok_string_literal) {
+                        FPResult result;
+                        result.message = "Expected string, but got '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
                         continue;
                     }
+                    std::string replacement = tokens[i].getValue();
+                    typealiases[type] = replacement;
+                } else if (validAttribute(tokens[i])) {
                     nextAttributes.push_back(tokens[i].getValue());
                 }
             }

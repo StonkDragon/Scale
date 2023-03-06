@@ -3,88 +3,75 @@ import Scale.io
 import Scale.types
 import Scale.util.array
 
-function sleep(_millis_: int): none
-  inline_c
-    sleep(*_millis_);
-  end_inline
-end
+expect function memset(ptr: [any], val: int, len: int): [any]
+expect function memcpy(dst: [any], src: [any], n: int): [any]
+cdecl "ctrl_stack_size"
+expect function sizeofStack(): int
+cdecl "_scl_sleep"
+expect function sleep(_millis_: int): none
+
+cdecl "system"
+expect function __c_system(cmd: [int8]): int
+cdecl "getenv"
+expect function __c_getenv(cmd: [int8]): [int8]?
+cdecl "strdup"
+expect function __c_strdup(s: [int8]): [int8]
+cdecl "strtok"
+expect function __c_strtok(s: any, delim: [int8]): [int8]?
+cdecl "atoll"
+expect function __c_atoll(s: [int8]): int
+cdecl "atof"
+expect function __c_atof(s: [int8]): float
+
+expect function _scl_alloc(_sz_: int): [any]?
+expect function _scl_realloc(_ptr_: [any], _sz_: int): [any]?
+expect function _scl_free(_ptr_: [any]): none
 
 function system(_cmd_: str): int
-  decl ret: int
-  inline_c
-    *ret = system((*_cmd_)->_data);
-  end_inline
-  ret return
+  _cmd_:view __c_system return
 end
 
 function getenv(_key_: str): str?
-  decl ptr: mut [int8]
-  inline_c
-    *ptr = getenv((*_key_)->_data);
-  end_inline
-  ptr str::new return
+  _key_:view __c_getenv => decl ptr
+  if ptr then
+    ptr!! str::new return
+  fi
+  nil return
 end
 
-function sizeofStack(): int
-  inline_c
-    _scl_push()->i = _scl_internal_stack.ptr;
-  end_inline
-  return
-end
-
-function malloc(_size_: int): [any]?
-  decl s: [any]
-  inline_c
-    *s = _scl_alloc(*_size_);
-    if (!(*s)) {
+function malloc(_size_: int) s: [any]?
+  _size_ _scl_alloc => s
+  if s ! then
+    inline_c
       _scl_security_throw(EX_BAD_PTR, "malloc() failed!");
-      *s = NULL;
-    }
-  end_inline
-  s return
+    end_inline
+  fi
+  return
 end
 
 function realloc(_size_: int, _ptr_: [any]): [any]?
-  inline_c
-    *_ptr_ = _scl_realloc(*_ptr_, *_size_);
-    if (!(*_ptr_)) {
+  _ptr_ _size_ _scl_realloc => _ptr_
+  if _ptr_ ! then
+    inline_c
       _scl_security_throw(EX_BAD_PTR, "realloc() failed!");
-      *_ptr_ = NULL;
-    }
-  end_inline
+    end_inline
+  fi
   _ptr_ return
 end
 
-function memset(ptr: [any], val: int, len: int): [any]
-  inline_c
-    _scl_push()->v = memset(*ptr, *val, *len);
-  end_inline
-  return
-end
-
-function memcpy(dst: [any], src: [any], n: int): [any]
-  inline_c
-    _scl_push()->v = memcpy(*dst, *src, *n);
-  end_inline
-  return
-end
-
 function free(_ptr_: [any]): none
-  inline_c
-    _scl_free(*_ptr_);
-  end_inline
+  _ptr_ _scl_free
 end
 
 function strsplit(_str_: str, _delim_: str): Array
   10 Array::new => decl arr: Array
-  inline_c
-    scl_int8* string = strdup((*_str_)->_data);
-    scl_int8* line = strtok(string, (*_delim_)->_data);
-    while (line != NULL) {
-      Method_Array$push(_scl_create_string(line), *arr);
-      line = strtok(NULL, (*_delim_)->_data);
-    }
-  end_inline
+  _str_:view => decl string
+  string _delim_:view __c_strtok => decl line
+
+  while line do
+    line!! str::new arr:push
+    nil _delim_:view __c_strtok => line
+  done
   arr return
 end
 
@@ -99,32 +86,24 @@ function time(): float
 end
 
 function longToString(_long_: int): str
-  decl out: [int8]
+  25 malloc => decl out: [int8]
   inline_c
-    *out = _scl_alloc(25);
 	  sprintf(*out, SCL_INT_FMT, *_long_);
   end_inline
   out str::new return
 end
 
 function stringToLong(_str_: str): int
-  inline_c
-    _scl_push()->i = atoll((*_str_)->_data);
-  end_inline
-  return
+  _str_:view __c_atoll return
 end
 
 function stringToDouble(_str_: str): float
-  inline_c
-    _scl_push()->f = atof((*_str_)->_data);
-  end_inline
-  return
+  _str_:view __c_atof return
 end
 
 function doubleToString(_double_: float): str
-  decl out: [int8]
+  100 malloc => decl out: [int8]
   inline_c
-    *out = _scl_alloc(100);
 	  sprintf(*out, "%f", *_double_);
   end_inline
   out str::new return

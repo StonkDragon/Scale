@@ -596,6 +596,9 @@ inline ssize_t ctrl_stack_size(void) {
 	return _scl_internal_stack.ptr;
 }
 
+void _scl_sleep(scl_int millis) {
+	sleep(millis);
+}
 
 hash hash1(char* data) {
     hash h = 7;
@@ -957,6 +960,31 @@ scl_int8** _scl_platform_get_env() {
     return env;
 }
 
+#if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
+#define SCL_DEFAULT_STACK_FRAME_COUNT 16
+#endif
+
+void _scl_create_stack() {
+	// These use C's malloc, keep it that way
+	// They should NOT be affected by any future
+	// stuff we might do with _scl_alloc()
+	_scl_internal_stack.ptr = 0;
+	_scl_internal_stack.cap = SCL_DEFAULT_STACK_FRAME_COUNT;
+	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * _scl_internal_stack.cap);
+
+	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
+	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
+	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
+	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
+
+	_scl_internal_exceptions._scl_cs_ptr = 0;
+	_scl_internal_exceptions._scl_jmp_buf_ptr = 0;
+	_scl_internal_exceptions._cap = SCL_DEFAULT_STACK_FRAME_COUNT;
+	_scl_internal_exceptions._scl_cs_ptr = malloc(_scl_internal_exceptions._cap * sizeof(scl_int));
+	_scl_internal_exceptions._scl_exception_table = malloc(_scl_internal_exceptions._cap * sizeof(scl_any));
+	_scl_internal_exceptions._scl_jmp_buf = malloc(_scl_internal_exceptions._cap * sizeof(jmp_buf));
+}
+
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
@@ -972,10 +1000,6 @@ extern genericFunc _scl_internal_init_functions[];
 // __destroy__
 // last element is always NULL
 extern genericFunc _scl_internal_destroy_functions[];
-
-#if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
-#define SCL_DEFAULT_STACK_FRAME_COUNT 16
-#endif
 
 #ifndef SCL_COMPILER_NO_MAIN
 const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
@@ -1011,24 +1035,7 @@ _scl_no_return void _scl_native_main(int argc, char** argv) {
 	_scl_internal_callstack.data[0].file = __FILE__;
 	_scl_internal_callstack.data[0].func = (scl_int8*) __FUNCTION__;
 
-	// These use C's malloc, keep it that way
-	// They should NOT be affected by any future
-	// stuff we might do with _scl_alloc()
-	_scl_internal_stack.ptr = 0;
-	_scl_internal_stack.cap = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * _scl_internal_stack.cap);
-
-	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
-	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
-	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
-	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
-
-	_scl_internal_exceptions._scl_cs_ptr = 0;
-	_scl_internal_exceptions._scl_jmp_buf_ptr = 0;
-	_scl_internal_exceptions._cap = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_scl_internal_exceptions._scl_cs_ptr = malloc(_scl_internal_exceptions._cap * sizeof(scl_int));
-	_scl_internal_exceptions._scl_exception_table = malloc(_scl_internal_exceptions._cap * sizeof(scl_any));
-	_scl_internal_exceptions._scl_jmp_buf = malloc(_scl_internal_exceptions._cap * sizeof(jmp_buf));
+	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
 	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
@@ -1051,24 +1058,7 @@ _scl_constructor void _scl_load() {
 	char *byte = (char*) &word;
 	_scl_assert(byte[0], "Invalid byte order detected!");
 
-	// These use C's malloc, keep it that way
-	// They should NOT be affected by any future
-	// stuff we might do with _scl_alloc()
-	_scl_internal_stack.ptr = 0;
-	_scl_internal_stack.cap = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_scl_internal_stack.data = malloc(sizeof(_scl_frame_t) * _scl_internal_stack.cap);
-
-	alloced_ptrs = malloc(alloced_ptrs_cap * sizeof(scl_any));
-	ptrs_size = malloc(ptrs_size_cap * sizeof(size_t));
-	allocated_structs = malloc(allocated_structs_cap * sizeof(struct sclstruct*));
-	mallocced_structs = malloc(mallocced_structs_cap * sizeof(struct sclstruct*));
-
-	_scl_internal_exceptions._scl_cs_ptr = 0;
-	_scl_internal_exceptions._scl_jmp_buf_ptr = 0;
-	_scl_internal_exceptions._cap = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_scl_internal_exceptions._scl_cs_ptr = malloc(_scl_internal_exceptions._cap * sizeof(scl_int));
-	_scl_internal_exceptions._scl_exception_table = malloc(_scl_internal_exceptions._cap * sizeof(scl_any));
-	_scl_internal_exceptions._scl_jmp_buf = malloc(_scl_internal_exceptions._cap * sizeof(jmp_buf));
+	_scl_create_stack();
 
 #endif
 
