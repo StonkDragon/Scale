@@ -17,7 +17,7 @@
 
 ### Linux & macOS
 ```shell
-$ curl https://raw.githubusercontent.com/StonkDragon/Scale/master/install.sh | sh
+$ bash -c "$(curl -fsSL https://raw.githubusercontent.com/StonkDragon/Scale/master/install.sh)"
 ```
 
 ### Windows
