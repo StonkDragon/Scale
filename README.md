@@ -12,10 +12,23 @@
 
 ## Installation
 
+## Install a release
+
+
+### Linux & macOS
+```shell
+$ curl https://raw.githubusercontent.com/StonkDragon/Scale/master/install.sh | sh
+```
+
+### Windows
+Windows is not supported directly. To use Scale, follow the [Linux](#linux--macos) install instructions inside of WSL.
+
+## Install stable dev
+
 ### Linux & macOS
 ```shell
 $ git clone https://github.com/StonkDragon/Scale
-$ sh install.sh
+$ sh install_local.sh
 ```
 
 ### Windows
