@@ -133,7 +133,7 @@
 	},
 	"Extern Function": {
 		"scope": "source.scale",
-		"prefix": "extern function",
+		"prefix": "expect function",
 		"body": [
 			"expect function ${1:name}($2): ${3:none}"
 		],
@@ -151,7 +151,7 @@
 	},
 	"Extern Method": {
 		"scope": "source.scale",
-		"prefix": "extern method",
+		"prefix": "expect method",
 		"body": [
 			"expect function ${1:type}:${2:name}($3): ${4:none}"
 		],
@@ -357,6 +357,22 @@
 			"end",
 		],
 		"description": "Inline C"
+	},
+	"C Symbol": {
+		"scope": "source.scale",
+		"prefix": "cdecl",
+		"body": [
+			"cdecl \"$0\"",
+		],
+		"description": "C Symbol name"
+	},
+	"ASM Symbol": {
+		"scope": "source.scale",
+		"prefix": "asm",
+		"body": [
+			"asm \"$0\"",
+		],
+		"description": "ASM Symbol name"
 	},
 	"Keyword end": {
 		"scope": "source.scale",
