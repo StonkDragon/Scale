@@ -6,6 +6,11 @@ end
 
 typealias _sys_pthread "pthread_t"
 
+cdecl "pthread_create"
+expect function __c_pthread_create(tid: [_sys_pthread], _unused0_: any?, func: any, arg: any?): none
+cdecl "pthread_join"
+expect function __c_pthread_joid(tid: _sys_pthread, _unused0_: any?): none
+
 sealed struct Thread
     private decl func: any
     private decl tid: _sys_pthread?
@@ -19,18 +24,14 @@ sealed struct Thread
         if tid then
             "Thread started" ThreadException::new throw
         fi
-        c!
-            pthread_create(&(*self)->tid, NULL, (*self)->func, NULL);
-        end
+        ref self.tid nil self.func nil __c_pthread_create
     end
 
     function join(): none
         if tid! then
             "Thread ended" ThreadException::new throw
         fi
-        c!
-            pthread_join((*self)->tid, NULL);
-        end
+        self.tid nil __c_pthread_joid
         nil => self.tid
     end
 end
