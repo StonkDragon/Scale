@@ -16,8 +16,10 @@
 
 
 ### Linux & macOS
+Go to the Releases tab and download the latest `source.zip`. Then:
 ```shell
-$ bash -c "$(curl -fsSL https://raw.githubusercontent.com/StonkDragon/Scale/master/install.sh)"
+$ unzip source.zip
+$ sh install.sh
 ```
 
 ### Windows
@@ -28,7 +30,7 @@ Windows is not supported directly. To use Scale, follow the [Linux](#linux--maco
 ### Linux & macOS
 ```shell
 $ git clone https://github.com/StonkDragon/Scale
-$ sh install_local.sh
+$ sh install.sh
 ```
 
 ### Windows
