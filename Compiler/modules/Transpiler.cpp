@@ -58,6 +58,11 @@ namespace sclc {
         return "";
     }
 
+    std::string notNilTypeOf(std::string t) {
+        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
+        return t;
+    }
+
     std::string sclTypeToCType(TPResult result, std::string t) {
         if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         std::string return_type = "scl_any";
@@ -1675,7 +1680,8 @@ namespace sclc {
         if (hasFunction(result, toGet)) {
             Function* f = getFunctionByName(result, toGet.getValue());
             append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
-            typeStack.push("any");
+            std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+            typeStack.push(lambdaType);
         } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
             ITER_INC;
             if (body[i].getType() != tok_double_column) {
@@ -1693,12 +1699,13 @@ namespace sclc {
                     return;
                 }
                 append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
-                typeStack.push("any");
+                std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+                typeStack.push(lambdaType);
             } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                 std::string loadFrom = struct_ + "$" + body[i].getValue();
                 Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
                 append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                typeStack.push("any");
+                typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
             }
         } else if (hasVar(toGet)) {
             Variable v = getVar(body[i]);
@@ -1716,13 +1723,14 @@ namespace sclc {
                         return;
                     }
                     Method* f = getMethodByName(result, body[i].getValue(), v.getType());
-                    append("_scl_push()->v = (scl_any) &Method_%s$%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());    
-                    typeStack.push("any");
+                    append("_scl_push()->v = (scl_any) &Method_%s$%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
+                    std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+                    typeStack.push(lambdaType);
                 } else {
                     ITER_INC;
                     if (body[i].getType() != tok_dot) {
                         append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                        typeStack.push("any");
+                        typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
                         i--;
                         return;
                     }
@@ -1744,11 +1752,11 @@ namespace sclc {
                         return;
                     }
                     append("_scl_push()->v = (scl_any) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                    typeStack.push("any");
+                    typeStack.push("[" + notNilTypeOf(mem.getType()) + "]");
                 }
             } else {
                 append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                typeStack.push("any");
+                typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
             }
         } else if (hasContainer(result, toGet)) {
             ITER_INC;
@@ -1768,7 +1776,7 @@ namespace sclc {
                 return;
             }
             append("_scl_push()->v = (scl_any) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
-            typeStack.push("any");
+            typeStack.push("[" + notNilTypeOf(container.getMemberType(memberName)) + "]");
         } else {
             transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
             errors.push_back(err);
