@@ -294,13 +294,12 @@ namespace sclc
             return Token(tok_extern_c, value, startLine, filename, startColumn);
         }
 
-        if (value == "extern") {
-            syntaxWarn("'extern' is deprecated! Use 'expect' instead!");
+        if (value == "addr") {
+            syntaxWarn("'addr' is deprecated! Use 'ref' instead!");
         }
 
         TOKEN("function",   tok_function, line, filename);
         TOKEN("end",        tok_end, line, filename);
-        TOKEN("extern",     tok_extern, line, filename);
         TOKEN("expect",     tok_extern, line, filename);
         TOKEN("while",      tok_while, line, filename);
         TOKEN("do",         tok_do, line, filename);
@@ -322,6 +321,7 @@ namespace sclc
         TOKEN("=>",         tok_store, line, filename);
         TOKEN("decl",       tok_declare, line, filename);
         TOKEN("addr",       tok_addr_ref, line, filename);
+        TOKEN("ref",        tok_addr_ref, line, filename);
         TOKEN("nil",        tok_nil, line, filename);
         TOKEN("true",       tok_true, line, filename);
         TOKEN("false",      tok_false, line, filename);
