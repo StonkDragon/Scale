@@ -222,7 +222,7 @@ void CompoundEntry::addCompound(CompoundEntry* value) {
     this->entries.push_back(reinterpret_cast<ConfigEntry*>(value));
 }
 void CompoundEntry::remove(const std::string& key) {
-    for (u_long i = 0; i < this->entries.size(); i++) {
+    for (size_t i = 0; i < this->entries.size(); i++) {
         if (this->entries[i]->getKey() == key) {
             this->entries[i] = nullptr;
             return;
@@ -237,7 +237,7 @@ bool CompoundEntry::isEmpty() {
 }
 void CompoundEntry::print(std::ostream& stream, int indent) {
     if (this->getKey() == ".root") {
-        for (u_long i = 0; i < this->entries.size(); i++) {
+        for (size_t i = 0; i < this->entries.size(); i++) {
             this->entries[i]->print(stream, indent);
         }
     } else {
@@ -247,7 +247,7 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
         } 
         stream << "{" << std::endl;
         indent += 2;
-        for (u_long i = 0; i < this->entries.size(); i++) {
+        for (size_t i = 0; i < this->entries.size(); i++) {
             this->entries[i]->print(stream, indent);
         }
         indent -= 2;
