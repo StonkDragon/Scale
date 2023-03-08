@@ -478,13 +478,13 @@
 		],
 		"description": "step"
 	},
-	"Keyword addr": {
+	"Keyword ref": {
 		"scope": "source.scale",
-		"prefix": "addr",
+		"prefix": "ref",
 		"body": [
-			"addr",
+			"ref",
 		],
-		"description": "addr"
+		"description": "ref"
 	},
 	"Keyword nil": {
 		"scope": "source.scale",
