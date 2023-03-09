@@ -102,6 +102,17 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
     data __c_strlen => self._len
   end
 
+  function hashCode(): int
+    if self:size 0 == then
+      0 return
+    fi
+    7 => decl h
+    for i in 0 to self:size do
+      h 31 * i self @ + => h
+    done
+    h return
+  end
+
   private function concat(_str1_: [int8], _str2_: [int8]): [int8]
     decl out: [int8]
     _str1_ __c_strlen => decl len: int
