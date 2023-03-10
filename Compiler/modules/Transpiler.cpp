@@ -2307,7 +2307,7 @@ namespace sclc {
                 i--;
             }
             Variable v = Variable(name, type, isConst, isMut);
-            if (!typeWasInferred && typeCanBeNil(type)) {
+            if (typeCanBeNil(type)) {
                 v.canBeNil = true;
             }
             vars[varDepth].push_back(v);

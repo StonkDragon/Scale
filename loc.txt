@@ -1,7 +1,7 @@
-     724 Compiler/Common.cpp
+     748 Compiler/Common.cpp
     1336 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
-     235 Compiler/headers/Common.hpp
+     236 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      100 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13434 total
+   13459 total
