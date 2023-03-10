@@ -14,6 +14,7 @@ namespace sclc {
     std::string sclTypeToCType(TPResult result, std::string t);
     std::string sclGenArgs(TPResult result, Function *func);
     bool isPrimitiveIntegerType(std::string s);
+    std::string removeTypeModifiers(std::string t);
 
     bool isFloatingType(std::string s) {
         return s == "float" || s == "float32";

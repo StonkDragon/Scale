@@ -18,6 +18,8 @@ namespace sclc
         Write,
     };
 
+    std::string removeTypeModifiers(std::string t);
+
     class Variable {
         std::string name;
         std::string type;
@@ -62,7 +64,7 @@ namespace sclc
             if (this->getType() == "?" || other.getType() == "?") {
                 return this->name == other.name;
             }
-            return this->name == other.name && this->getType() == other.getType();
+            return this->name == other.name && removeTypeModifiers(this->getType()) == removeTypeModifiers(other.getType());
         }
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);

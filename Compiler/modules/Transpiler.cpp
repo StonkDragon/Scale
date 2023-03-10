@@ -63,24 +63,45 @@ namespace sclc {
         return t;
     }
 
+    std::string removeTypeModifiers(std::string t) {
+        while (strstarts(t, "mut ") || strstarts(t, "const ") || strstarts(t, "readonly ")) {
+            if (strstarts(t, "mut ")) {
+                t = t.substr(4);
+            } else if (strstarts(t, "const ")) {
+                t = t.substr(6);
+            } else if (strstarts(t, "readonly ")) {
+                t = t.substr(9);
+            }
+        }
+        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') {
+            t = t.substr(0, t.size() - 1);
+        }
+        return t;
+    }
+
     std::string sclTypeToCType(TPResult result, std::string t) {
-        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         std::string return_type = "scl_any";
-        if (strstarts(t, "lambda(")) return "_scl_lambda";
+
+        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') {
+            t = t.substr(0, t.size() - 1);
+        }
+        t = removeTypeModifiers(t);
+
+        if (strstarts(t, "lambda(")) return_type = "_scl_lambda";
         if (t == "any") return_type = "scl_any";
         else if (t == "none") return_type = "void";
         else if (t == "int") return_type = "scl_int";
         else if (t == "float") return_type = "scl_float";
-        else if (t == "str") return_type = "scl_str";
         else if (t == "bool") return_type = "scl_int";
         else if (!(getStructByName(result, t) == Struct(""))) {
             return_type = "scl_" + getStructByName(result, t).getName();
         } else if (t.size() > 2 && t.size() && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
-            return type + "*";
+            return_type = type + "*";
         } else if (hasTypealias(result, t)) {
             return_type = getTypealias(result, t);
         }
+
         return return_type;
     }
 
@@ -89,19 +110,19 @@ namespace sclc {
         for (size_t i = 0; i < func->getArgs().size(); i++) {
             Variable arg = func->getArgs()[i];
             if (i) args += ", ";
-            if (arg.getType() == "float") {
+            if (removeTypeModifiers(arg.getType()) == "float") {
                 if (i) {
                     args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].f";
                 } else {
                     args += "_scl_internal_stack.data[_scl_internal_stack.ptr].f";
                 }
-            } else if (arg.getType() == "int" || arg.getType() == "bool") {
+            } else if (removeTypeModifiers(arg.getType()) == "int" || removeTypeModifiers(arg.getType()) == "bool") {
                 if (i) {
                     args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].i";
                 } else {
                     args += "_scl_internal_stack.data[_scl_internal_stack.ptr].i";
                 }
-            } else if (arg.getType() == "str") {
+            } else if (removeTypeModifiers(arg.getType()) == "str") {
                 if (i) {
                     args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].s";
                 } else {
@@ -384,7 +405,7 @@ namespace sclc {
             if (i) 
                 arg += ", ";
             Variable v = args[i];
-            arg += v.getType();
+            arg += removeTypeModifiers(v.getType());
         }
         return arg;
     }
@@ -528,7 +549,7 @@ namespace sclc {
 
         bool typesMatch = true;
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
-            std::string typeA = tmp.at(i);
+            std::string typeA = removeTypeModifiers(tmp.at(i));
             if (typeA == "bool") typeA = "int";
             
             while (typeA.size() && typeA.at(typeA.size() - 1) == '?') {
@@ -537,7 +558,7 @@ namespace sclc {
 
             if (strstarts(typeA, "lambda(")) typeA = "lambda";
 
-            std::string typeB = args.at(i).getType();
+            std::string typeB = removeTypeModifiers(args.at(i).getType());
             if (typeB == "bool") typeB = "int";
             
             while (typeB.size() && typeB.at(typeB.size() - 1) == '?') {
@@ -590,10 +611,10 @@ namespace sclc {
     void generateUnsafeCall(Method* self, FILE* fp, TPResult result) {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
-        if (self->getReturnType() == "none") {
+        if (removeTypeModifiers(self->getReturnType()) == "none") {
             append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
         } else {
-            if (self->getReturnType() == "float") {
+            if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
                 append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
@@ -620,8 +641,8 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         }
-        if (self->getReturnType().size() > 0 && self->getReturnType() != "none") {
-            if (self->getReturnType() == "float") {
+        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
+            if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
                 append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
@@ -635,10 +656,10 @@ namespace sclc {
     void generateUnsafeCall(Function* self, FILE* fp, TPResult result) {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
-        if (self->getReturnType() == "none") {
+        if (removeTypeModifiers(self->getReturnType()) == "none") {
             append("Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
         } else {
-            if (self->getReturnType() == "float") {
+            if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
                 append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
@@ -665,8 +686,8 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         }
-        if (self->getReturnType().size() > 0 && self->getReturnType() != "none") {
-            if (self->getReturnType() == "float") {
+        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
+            if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
             } else {
                 append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
@@ -754,20 +775,14 @@ namespace sclc {
                     bool isMut = false;
                     if (body[i].getType() == tok_column) {
                         i++;
-                        while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
-                            if (body[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (body[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            ITER_INC;
-                        }
                         FPResult r = parseType(body, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             transpilerError("Type 'none' is only valid for function return types.", i);
                             errors.push_back(err);
@@ -780,10 +795,7 @@ namespace sclc {
                         continue;
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (body[i + 1].getValue() == "?") {
-                        v.canBeNil = true;
-                        ITER_INC;
-                    }
+                    v.canBeNil = typeCanBeNil(type);
                     f->addArgument(v);
                 } else {
                     transpilerError("Expected identifier for argument name, but got '" + body[i].getValue() + "'", i);
@@ -812,10 +824,6 @@ namespace sclc {
                 return;
             }
             std::string type = r.value;
-            if (body[i + 1].getValue() == "?") {
-                type += "?";
-                ITER_INC;
-            }
             f->setReturnType(type);
             ITER_INC;
         }
@@ -1274,7 +1282,7 @@ namespace sclc {
             } else {
                 append("_scl_push()->v = (scl_any) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
             }
-            typeStack.push(container.getMemberType(memberName) + (!container.getMember(memberName).canBeNil ? "" : ""));
+            typeStack.push(container.getMemberType(memberName));
         } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
             if (body[i + 1].getType() == tok_double_column) {
                 std::string struct_ = body[i].getValue();
@@ -1289,7 +1297,7 @@ namespace sclc {
                         append("{\n");
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
-                        append("struct Struct_%s* tmp = (struct Struct_%s*) _scl_top()->v;\n", struct_.c_str(), struct_.c_str());
+                        append("%s tmp = (%s) _scl_top()->v;\n", sclTypeToCType(result, struct_).c_str(), sclTypeToCType(result, struct_).c_str());
                         generateCall(f, fp, result, errors, body);
                         append("_scl_push()->v = tmp;\n");
                         typeStack.push(struct_);
@@ -1337,7 +1345,7 @@ namespace sclc {
         } else if (hasVar(body[i])) {
             std::string loadFrom = body[i].getValue();
             Variable v = getVar(body[i]);
-            if (v.getType() == "float") {
+            if (removeTypeModifiers(v.getType()) == "float") {
                 append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
             } else {
                 append("_scl_push()->v = (scl_any) Var_%s;\n", loadFrom.c_str());
@@ -1638,7 +1646,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("struct Struct_%s* %s = (struct Struct_%s*) _scl_pop()->v;\n", typeStackTop.c_str(), iterator_name.c_str(), typeStackTop.c_str());
+        append("%s %s = (%s) _scl_pop()->v;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         std::string type = typeStackTop;
         if (typeStack.size()) {
             typeStack.pop();
@@ -2282,20 +2290,14 @@ namespace sclc {
             bool typeWasInferred = false;
             if (body[i].getType() == tok_column) {
                 ITER_INC;
-                while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
-                    if (body[i].getValue() == "const") {
-                        isConst = true;
-                    } else if (body[i].getValue() == "mut") {
-                        isMut = true;
-                    }
-                    ITER_INC;
-                }
                 FPResult r = parseType(body, &i);
                 if (!r.success) {
                     errors.push_back(r);
                     return;
                 }
                 type = r.value;
+                isConst = typeIsConst(type);
+                isMut = typeIsMut(type);
                 if (type == "lambda" && strstarts(typeStackTop, "lambda(")) {
                     type = typeStackTop;
                 }
@@ -2305,9 +2307,8 @@ namespace sclc {
                 i--;
             }
             Variable v = Variable(name, type, isConst, isMut);
-            if (!typeWasInferred && body[i + 1].getValue() == "?") {
+            if (!typeWasInferred && typeCanBeNil(type)) {
                 v.canBeNil = true;
-                ITER_INC;
             }
             vars[varDepth].push_back(v);
             if (!typeCanBeNil(v.getType())) {
@@ -2546,30 +2547,21 @@ namespace sclc {
         bool isMut = false;
         if (body[i].getType() == tok_column) {
             ITER_INC;
-            while (body[i].getValue() == "const" || body[i].getValue() == "mut") {
-                if (body[i].getValue() == "const") {
-                    isConst = true;
-                } else if (body[i].getValue() == "mut") {
-                    isMut = true;
-                }
-                i++;
-            }
             FPResult r = parseType(body, &i);
             if (!r.success) {
                 errors.push_back(r);
                 return;
             }
             type = r.value;
+            isConst = typeIsConst(type);
+            isMut = typeIsMut(type);
         } else {
             transpilerError("A type is required!", i);
             errors.push_back(err);
             return;
         }
         Variable v = Variable(name, type, isConst, isMut);
-        if (body[i + 1].getValue() == "?") {
-            v.canBeNil = true;
-            ITER_INC;
-        }
+        v.canBeNil = typeCanBeNil(type);
         vars[varDepth].push_back(v);
         append("%s Var_%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str());
     }
@@ -3332,11 +3324,10 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        // append("_scl_assert(_scl_top()->v && _scl_struct_is_type(_scl_top()->v, 0x%xU), \"Instance is not of type '%s'\");\n", hash1((char*) s.getName().c_str()), s.getName().c_str());
         if (mem.getType() == "float")
-            append("_scl_top()->f = ((struct Struct_%s*) _scl_top()->v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+            append("_scl_top()->f = ((%s) _scl_top()->v)->%s;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
         else
-            append("_scl_top()->v = (scl_any) ((struct Struct_%s*) _scl_top()->v)->%s;\n", s.getName().c_str(), body[i].getValue().c_str());
+            append("_scl_top()->v = (scl_any) ((%s) _scl_top()->v)->%s;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
         if (typeStack.size())
             typeStack.pop();
         typeStack.push(mem.getType());

@@ -221,6 +221,10 @@ namespace sclc {
     std::string sclConvertToStructType(std::string type);
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
+    bool typeIsConst(std::string s);
+    bool typeIsMut(std::string s);
+    bool typeIsRef(std::string s);
+    bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s);
     bool featureEnabled(std::string feat);
     
