@@ -58,6 +58,7 @@ namespace sclc {
     std::string stackSliceToString(size_t amount);
 
     bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
+        type = removeTypeModifiers(type);
         if (type.size() == 0)
             return false;
         if (isPrimitiveType(type) && type != "bool") {

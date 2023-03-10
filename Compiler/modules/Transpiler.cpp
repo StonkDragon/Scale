@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <stack>
+#include <functional>
 
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"
@@ -1795,159 +1796,7 @@ namespace sclc {
     handler(Store) {
         noUnused;
         ITER_INC;
-        if (body[i].getType() == tok_addr_of) {
-            ITER_INC;
-            if (hasContainer(result, body[i])) {
-                std::string containerName = body[i].getValue();
-                ITER_INC;
-                if (body[i].getType() != tok_dot) {
-                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                ITER_INC;
-                std::string memberName = body[i].getValue();
-                Container container = getContainerByName(result, containerName);
-                if (!container.hasMember(memberName)) {
-                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Dereference)) {
-                    transpilerError("Container member variable '" + body[i].getValue() + "' is not mutable", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("*((scl_any*) Container_%s.%s) = _scl_pop()->v;\n", containerName.c_str(), memberName.c_str());
-                if (typeStack.size())
-                    typeStack.pop();
-            } else {
-                if (body[i].getType() != tok_identifier) {
-                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                    errors.push_back(err);
-                }
-                if (!hasVar(body[i])) {
-                    if (function->isMethod) {
-                        Method* m = static_cast<Method*>(function);
-                        Struct s = getStructByName(result, m->getMemberType());
-                        if (s.hasMember(body[i].getValue())) {
-                            Variable mem = s.getMember(body[i].getValue());
-                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not mutable", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            append("*(scl_any*) Var_self->%s = _scl_pop()->v;\n", body[i].getValue().c_str());
-                            if (typeStack.size())
-                                typeStack.pop();
-                            return;
-                        } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Static variable '" + body[i].getValue() + "' is not mutable", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            append("*(scl_any*) Var_%s$%s = _scl_pop()->v;\n", s.getName().c_str(), body[i].getValue().c_str());
-                            if (typeStack.size())
-                                typeStack.pop();
-                            return;
-                        }
-                    }
-                    ITER_INC;
-                    i--;
-                    if (body[i + 1].getType() == tok_double_column) {
-                        ITER_INC;
-                        Struct s = getStructByName(result, body[i - 1].getValue());
-                        ITER_INC;
-                        if (s != Struct("")) {
-                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
-                                transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                            if (mem.getType() == "float") {
-                                append("*((scl_float*) Var_%s) = _scl_pop()->f;\n", loadFrom.c_str());
-                            } else {
-                                append("*((scl_any*) Var_%s) = (%s) _scl_pop()->v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
-                            }
-                            if (typeStack.size())
-                                typeStack.pop();
-                            return;
-                        }
-                    }
-                    transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                Variable v = getVar(body[i]);
-                std::string loadFrom = v.getName();
-                if (getStructByName(result, v.getType()) != Struct("")) {
-                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
-                        errors.push_back(err);
-                        if (body[i + 1].getType() == tok_dot) {
-                            ITER_INC;
-                            ITER_INC;
-                        }
-                        return;
-                    }
-                    ITER_INC;
-                    if (body[i].getType() != tok_dot) {
-                        append("*(scl_any*) Var_%s = _scl_pop()->v;\n", loadFrom.c_str());
-                        if (typeStack.size())
-                            typeStack.pop();
-                        i--;
-                        return;
-                    }
-                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
-                        errors.push_back(err);
-                        ITER_INC;
-                        return;
-                    }
-                    ITER_INC;
-                    Struct s = getStructByName(result, v.getType());
-                    if (!s.hasMember(body[i].getValue())) {
-                        std::string help = "";
-                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
-                            help = ". Maybe you meant to use ':' instead of '.' here";
-                        }
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    Variable mem = s.getMember(body[i].getValue());
-                    if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Member variable '" + body[i].getValue() + "' is not mutable", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
-                        transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    append("*(scl_any*) Var_%s->%s = _scl_pop()->v;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                } else {
-                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    append("*(scl_any*) Var_%s = _scl_pop()->v;\n", loadFrom.c_str());
-                }
-                if (typeStack.size())
-                    typeStack.pop();
-            }
-        } else if (body[i].getType() == tok_paren_open) {
+        if (body[i].getType() == tok_paren_open) {
             append("{\n");
             scopeDepth++;
             append("struct Struct_Array* tmp = (struct Struct_Array*) _scl_pop()->v;\n");
@@ -2257,24 +2106,32 @@ namespace sclc {
                 return;
             }
             if (hasFunction(result, body[i])) {
-                transpilerError("Variable '" + body[i].getValue() + "' shadowed by function '" + body[i].getValue() + "'", i+1);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                {
+                    transpilerError("Variable '" + body[i].getValue() + "' shadowed by function '" + body[i].getValue() + "'", i);
+                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                    else errors.push_back(err);
+                }
             }
             if (hasContainer(result, body[i])) {
-                transpilerError("Variable '" + body[i].getValue() + "' shadowed by container '" + body[i].getValue() + "'", i+1);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                {
+                    transpilerError("Variable '" + body[i].getValue() + "' shadowed by container '" + body[i].getValue() + "'", i);
+                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                    else errors.push_back(err);
+                }
             }
             if (getStructByName(result, body[i].getValue()) != Struct("")) {
-                transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i+1);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                {
+                    transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i);
+                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                    else errors.push_back(err);
+                }
             }
             if (hasVar(body[i])) {
-                transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i+1);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                {
+                    transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i);
+                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                    else errors.push_back(err);
+                }
             }
             std::string name = body[i].getValue();
             if namingConvention("Variables", body[i], flatcase, camelCase, false)
@@ -2287,7 +2144,6 @@ namespace sclc {
             ITER_INC;
             bool isConst = false;
             bool isMut = false;
-            bool typeWasInferred = false;
             if (body[i].getType() == tok_column) {
                 ITER_INC;
                 FPResult r = parseType(body, &i);
@@ -2303,7 +2159,6 @@ namespace sclc {
                 }
             } else {
                 type = typeStackTop;
-                typeWasInferred = true;
                 i--;
             }
             Variable v = Variable(name, type, isConst, isMut);
@@ -2318,191 +2173,212 @@ namespace sclc {
             if (typeStack.size())
                 typeStack.pop();
         } else {
-            if (hasContainer(result, body[i])) {
-                std::string containerName = body[i].getValue();
-                ITER_INC;
-                if (body[i].getType() != tok_dot) {
-                    transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                ITER_INC;
-                std::string memberName = body[i].getValue();
-                Container container = getContainerByName(result, containerName);
-                if (!container.hasMember(memberName)) {
-                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Write)) {
-                    transpilerError("Container member variable '" + body[i].getValue() + "' is const", i);
-                    errors.push_back(err);
-                    return;
-                }
-                if (!typeCanBeNil(container.getMember(memberName).getType())) {
-                    append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", containerName.c_str(), memberName.c_str());
-                }
-                append("Container_%s.%s = (%s) _scl_pop()->%s;\n", containerName.c_str(), memberName.c_str(), sclTypeToCType(result, container.getMemberType(memberName)).c_str(), container.getMemberType(memberName) == "float" ? "f" : "v");
-                if (typeStack.size())
-                    typeStack.pop();
-            } else {
-                if (body[i].getType() != tok_identifier) {
-                    transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
-                    errors.push_back(err);
-                }
-                if (!hasVar(body[i])) {
-                    if (function->isMethod) {
-                        Method* m = static_cast<Method*>(function);
-                        Struct s = getStructByName(result, m->getMemberType());
-                        if (s.hasMember(body[i].getValue())) {
-                            Variable mem = s.getMember(body[i].getValue());
-                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable 'self.%s'\");\n", mem.getName().c_str());
-                            }
-                            if (mem.getType() == "float")
-                                append("Var_self->%s = _scl_pop()->f;\n", body[i].getValue().c_str());
-                            else
-                                append("Var_self->%s = (%s) _scl_pop()->v;\n", body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
-                            if (typeStack.size())
-                                typeStack.pop();
-                            return;
-                        } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Static member variable '" + body[i].getValue() + "' is const", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), mem.getName().c_str());
-                            }
-                            if (mem.getType() == "float")
-                                append("Var_%s$%s = _scl_pop()->f;\n", s.getName().c_str(), body[i].getValue().c_str());
-                            else
-                                append("Var_%s$%s = (%s) _scl_pop()->v;\n", s.getName().c_str(), body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
-                            if (typeStack.size())
-                                typeStack.pop();
-                            return;
+            if (body[i].getType() != tok_identifier && body[i].getType() != tok_addr_of) {
+                transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                errors.push_back(err);
+            }
+            Variable v("", "");
+            bool topLevelDeref = false;
+            std::string containerBegin = "";
+
+            auto generatePathStructRoot = [result, function, fp](std::vector<Token>& body, size_t* i, std::vector<FPResult> &errors, std::string* lastType, bool parseFromExpr, Variable& v, std::string& containerBegin, bool topLevelDeref) -> std::string {
+                #define REF_INC do { (*i)++; if ((*i) >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function! " + std::string("Error happened in function ") + std::string(__func__) + " in line " + std::to_string(__LINE__); err.line = body[(*i) - 1].getLine(); err.in = body[(*i) - 1].getFile(); err.column = body[(*i) - 1].getColumn(); err.value = body[(*i) - 1].getValue(); err.type = body[(*i) - 1].getType(); errors.push_back(err); return ""; } } while (0)
+                std::string path = "(Var_" + body[(*i)].getValue() + ")";
+                std::string sclPath = body[(*i)].getValue();
+                Variable v2 = v;
+                Struct currentRoot = getStructByName(result, v.getType());
+                std::string nextType = removeTypeModifiers(v2.getType());
+                if (parseFromExpr) {
+                    std::string s = typeStackTop;
+                    if (s.at(0) == '[' && s.at(s.size() - 1) == ']') {
+                        s = s.substr(1, s.size() - 2);
+                    } else {
+                        s = "any";
+                    }
+                    path = "(*(" + sclTypeToCType(result, typeStackTop) + ") tmp)";
+                    currentRoot = getStructByName(result, s);
+                    nextType = removeTypeModifiers(s);
+                    sclPath = "<expr>";
+                } else {
+                    if (containerBegin.size()) {
+                        path = containerBegin;
+                    }
+                    if (topLevelDeref) {
+                        path = "(*" + path + ")";
+                        sclPath = "@" + sclPath;
+                    }
+                    if (topLevelDeref) {
+                        nextType = notNilTypeOf(nextType);
+                        if (nextType.at(0) == '[' && nextType.at(nextType.size() - 1) == ']') {
+                            nextType = removeTypeModifiers(nextType.substr(1, nextType.size() - 2));
+                        } else {
+                            nextType = "any";
                         }
                     }
+                    if (!v2.isWritableFrom(function, VarAccess::Write)) {
+                        transpilerError("Variable '" + body[*i].getValue() + "' is const", *i);
+                        errors.push_back(err);
+                        (*lastType) = nextType;
+                        return path;
+                    }
+                    (*i)++;
+                    if ((*i) >= body.size()) {
+                        (*lastType) = nextType;
+                        return path;
+                    }
+                }
+                size_t last = -1;
+                while (body[*i].getType() == tok_dot) {
+                    REF_INC;
+                    bool deref = false;
+                    sclPath += ".";
+                    if (body[*i].getType() == tok_addr_of) {
+                        deref = true;
+                        nextType = notNilTypeOf(nextType);
+                        sclPath += "@";
+                        REF_INC;
+                    }
+                    if (!currentRoot.hasMember(body[*i].getValue())) {
+                        transpilerError("Struct '" + currentRoot.getName() + "' has no member named '" + body[*i].getValue() + "'", *i);
+                        errors.push_back(err);
+                        (*lastType) = nextType;
+                        return path;
+                    } else {
+                        if (v2.getName().size() && !v2.isWritableFrom(function, VarAccess::Dereference)) {
+                            transpilerError("Variable '" + body[last].getValue() + "' is not mut", last);
+                            errors.push_back(err);
+                            (*lastType) = nextType;
+                            return path;
+                        }
+                        last = *i;
+                        v2 = currentRoot.getMember(body[*i].getValue());
+                        nextType = v2.getType();
+                        if (deref) {
+                            nextType = removeTypeModifiers(nextType);
+                            nextType = notNilTypeOf(nextType);
+                            if (nextType.at(0) == '[' && nextType.at(nextType.size() - 1) == ']') {
+                                nextType = nextType.substr(1, nextType.size() - 2);
+                            } else {
+                                nextType = "any";
+                            }
+                        }
+                        if (!v2.isWritableFrom(function, VarAccess::Write)) {
+                            transpilerError("Variable '" + body[*i].getValue() + "' is const", *i);
+                            errors.push_back(err);
+                            (*lastType) = nextType;
+                            return path;
+                        }
+                        currentRoot = getStructByName(result, nextType);
+                    }
+                    sclPath += body[*i].getValue();
+                    append("_scl_assert(*(scl_int*) &(%s), \"Tried dereferencing nil pointer '%s'!\");\n", path.c_str(), sclPath.c_str());
+                    if (deref) {
+                        append("_scl_assert(*(scl_int*) &(%s->%s), \"Tried dereferencing nil pointer '%s'!\");\n", path.c_str(), body[*i].getValue().c_str(), sclPath.c_str());
+                        path = "(*(" + path + "->" + body[*i].getValue() + "))";
+                    } else {
+                        path = "(" + path + "->" + body[*i].getValue() + ")";
+                    }
+                    (*i)++;
+                    if ((*i) >= body.size()) {
+                        (*i)--;
+                        (*lastType) = nextType;
+                        return path;
+                    }
+                }
+                if (!typeCanBeNil(v2.getType())) {
+                    append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v2.getName().c_str());
+                }
+                (*i)--;
+                (*lastType) = nextType;
+                return path;
+            };
+
+            std::string lastType;
+            std::string path;
+
+            if (body[i].getType() == tok_addr_of) {
+                topLevelDeref = true;
+                ITER_INC;
+                if (body[i].getType() == tok_paren_open) {
                     ITER_INC;
-                    i--;
-                    if (body[i + 1].getType() == tok_double_column) {
+                    append("{\n");
+                    scopeDepth++;
+                    append("scl_any _scl_value_to_store = _scl_pop()->v;\n");
+                    if (typeStack.size()) typeStack.pop();
+                    append("{\n");
+                    scopeDepth++;
+                    while (body[i].getType() != tok_paren_close) {
+                        handle(Token);
                         ITER_INC;
-                        Struct s = getStructByName(result, body[i - 1].getValue());
+                    }
+                    scopeDepth--;
+                    append("}\n");
+                    append("scl_any* tmp = _scl_pop()->v;\n");
+                    if (i + 1 < body.size() && body[i + 1].getType() == tok_dot) {
                         ITER_INC;
-                        if (s != Struct("")) {
-                            if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
-                                transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
-                            if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Static member variable '" + body[i].getValue() + "' is const", i);
-                                errors.push_back(err);
-                                return;
-                            }
-                            std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                            if (!typeCanBeNil(mem.getType())) {
-                                append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s::%s'\");\n", s.getName().c_str(), body[i].getValue().c_str());
-                            }
-                            if (mem.getType() == "float")
-                                append("Var_%s = _scl_pop()->f;\n", loadFrom.c_str());
-                            else
-                                append("Var_%s = (%s) _scl_pop()->v;\n", loadFrom.c_str(), sclTypeToCType(result, mem.getType()).c_str());
-                            if (typeStack.size())
-                                typeStack.pop();
+                        path = generatePathStructRoot(body, &i, errors, &lastType, true, v, containerBegin, topLevelDeref);
+                    } else {
+                        path = "(*tmp)";
+                    }
+                    if (typeStack.size()) typeStack.pop();
+                    append("_scl_push()->v = _scl_value_to_store;\n");
+                    if (removeTypeModifiers(lastType) == "float")
+                        append("%s = _scl_pop()->f;\n", path.c_str());
+                    else
+                        append("%s = (%s) _scl_pop()->v;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
+                    scopeDepth--;
+                    append("}\n");
+                    return;
+                }
+            }
+            if (!hasVar(body[i])) {
+                if (function->isMethod) {
+                    Method* m = static_cast<Method*>(function);
+                    Struct s = getStructByName(result, m->getMemberType());
+                    if (s.hasMember(body[i].getValue())) {
+                        v = s.getMember(body[i].getValue());
+                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                        v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                    }
+                } else if (body[i + 1].getType() == tok_double_column) {
+                    ITER_INC;
+                    Struct s = getStructByName(result, body[i - 1].getValue());
+                    ITER_INC;
+                    if (s != Struct("")) {
+                        if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
+                            transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                            errors.push_back(err);
                             return;
                         }
+                        v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                     }
+                } else if (hasContainer(result, body[i])) {
+                    Container c = getContainerByName(result, body[i].getValue());
+                    ITER_INC;
+                    ITER_INC;
+                    std::string memberName = body[i].getValue();
+                    if (!c.hasMember(memberName)) {
+                        transpilerError("Unknown container member: '" + memberName + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    containerBegin = "(Container_" + c.getName() + "." + body[i].getValue() + ")";
+                    v = c.getMember(memberName);
+                } else {
                     transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
                     errors.push_back(err);
                     return;
                 }
-                Variable v = getVar(body[i]);
-                std::string loadFrom = v.getName();
-                if (getStructByName(result, v.getType()) != Struct("")) {
-                    if (!v.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is const", i);
-                        errors.push_back(err);
-                        ITER_INC;
-                        ITER_INC;
-                        return;
-                    }
-                    if (i + 1 >= body.size() || body[i + 1].getType() != tok_dot) {
-                        if (!typeCanBeNil(v.getType())) {
-                            append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", loadFrom.c_str());
-                        }
-                        append("Var_%s = _scl_pop()->v;\n", loadFrom.c_str());
-                        if (typeStack.size())
-                            typeStack.pop();
-                        return;
-                    }
-                    ITER_INC;
-                    if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
-                        errors.push_back(err);
-                        ITER_INC;
-                        return;
-                    }
-                    ITER_INC;
-                    Struct s = getStructByName(result, v.getType());
-                    if (!s.hasMember(body[i].getValue())) {
-                        std::string help = "";
-                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
-                            help = ". Maybe you meant to use ':' instead of '.' here";
-                        }
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    Variable mem = s.getMember(body[i].getValue());
-                    if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
-                        transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    if (!typeCanBeNil(mem.getType())) {
-                        append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s.%s'\");\n", loadFrom.c_str(), mem.getName().c_str());
-                    }
-                    if (mem.getType() == "float")
-                        append("Var_%s->%s = _scl_pop()->f;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                    else
-                        append("Var_%s->%s = (%s) _scl_pop()->v;\n", loadFrom.c_str(), body[i].getValue().c_str(), sclTypeToCType(result, mem.getType()).c_str());
-                    if (typeStack.size())
-                        typeStack.pop();
-                } else {
-                    Variable v = getVar(body[i]);
-                    if (!v.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is const", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    if (!typeCanBeNil(v.getType())) {
-                        append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
-                    }
-                    if (v.getType() == "lambda" && strstarts(typeStackTop, "lambda(")) {
-                        v.setType(typeStackTop);
-                    }
-                    if (v.getType() == "float")
-                        append("Var_%s = _scl_pop()->f;\n", loadFrom.c_str());
-                    else
-                        append("Var_%s = (%s) _scl_pop()->v;\n", loadFrom.c_str(), sclTypeToCType(result, v.getType()).c_str());
-                    if (typeStack.size())
-                        typeStack.pop();
-                }
+            } else {
+                v = getVar(body[i]);
             }
+
+            path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, topLevelDeref);
+
+            if (removeTypeModifiers(lastType) == "float")
+                append("%s = _scl_pop()->f;\n", path.c_str());
+            else
+                append("%s = (%s) _scl_pop()->v;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
         }
     }
 
@@ -3183,7 +3059,7 @@ namespace sclc {
         noUnused;
         if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
         append("_scl_top()->v = (*(scl_any*) _scl_top()->v);\n");
-        std::string ptr = typeStackTop;
+        std::string ptr = removeTypeModifiers(typeStackTop);
         if (typeStack.size())
             typeStack.pop();
         if (ptr.size()) {
@@ -3237,7 +3113,14 @@ namespace sclc {
             append("_scl_top()->i = (scl_%s) _scl_top()->i;\n", type.value.c_str());
             return;
         }
-        if (hasTypealias(result, type.value)) {
+        auto typeIsPtr = [type]() -> bool {
+            std::string t = type.value;
+            if (t.size() == 0) return false;
+            t = removeTypeModifiers(t);
+            t = notNilTypeOf(t);
+            return (t.at(0) == '[' && t.at(t.size() - 1) == ']');
+        };
+        if (hasTypealias(result, type.value) || typeIsPtr()) {
             if (typeStack.size())
                 typeStack.pop();
             typeStack.push(type.value);

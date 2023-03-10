@@ -53,12 +53,12 @@ sealed struct Array is IIterable
       "!" +
       IndexOutOfBoundsException::new throw
     fi
+    
     if index self.count >= then
       index 1 + => self.count
     fi
-    decl tmp: mut [any]
-    self.values index sizeof any * + => tmp
-    value => @tmp
+
+    value => @(self.values index sizeof any * +)
   end
 
   function top(): any?
@@ -75,9 +75,7 @@ sealed struct Array is IIterable
       => self.values
     fi
 
-    decl tmp: mut [any]
-    self.values self.count sizeof any * + => tmp
-    value => @tmp
+    value => @(self.values self.count sizeof any * +)
     self.count 1 + => self.count
   end
 
