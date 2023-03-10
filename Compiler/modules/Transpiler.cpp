@@ -1806,7 +1806,7 @@ namespace sclc {
                     return;
                 }
                 if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Dereference)) {
-                    transpilerError("Container member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                    transpilerError("Container member variable '" + body[i].getValue() + "' is not mutable", i);
                     errors.push_back(err);
                     return;
                 }
@@ -1825,7 +1825,7 @@ namespace sclc {
                         if (s.hasMember(body[i].getValue())) {
                             Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1836,7 +1836,7 @@ namespace sclc {
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Static variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                transpilerError("Static variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1860,7 +1860,7 @@ namespace sclc {
                             }
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -1883,7 +1883,7 @@ namespace sclc {
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                         errors.push_back(err);
                         if (body[i + 1].getType() == tok_dot) {
                             ITER_INC;
@@ -1900,7 +1900,7 @@ namespace sclc {
                         return;
                     }
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
                         errors.push_back(err);
                         ITER_INC;
                         return;
@@ -1918,7 +1918,7 @@ namespace sclc {
                     }
                     Variable mem = s.getMember(body[i].getValue());
                     if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        transpilerError("Member variable '" + body[i].getValue() + "' is not mutable", i);
                         errors.push_back(err);
                         return;
                     }
@@ -1930,7 +1930,7 @@ namespace sclc {
                     append("*(scl_any*) Var_%s->%s = _scl_pop()->v;\n", loadFrom.c_str(), body[i].getValue().c_str());
                 } else {
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                         errors.push_back(err);
                         return;
                     }
@@ -1974,7 +1974,7 @@ namespace sclc {
                             return;
                         }
                         if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Dereference)) {
-                            transpilerError("Container member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                            transpilerError("Container member variable '" + body[i].getValue() + "' is not mutable", i);
                             errors.push_back(err);
                             ITER_INC;
                             ITER_INC;
@@ -1994,7 +1994,7 @@ namespace sclc {
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                                     if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                                         errors.push_back(err);
                                         return;
                                     }
@@ -2004,7 +2004,7 @@ namespace sclc {
                                 } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                                     Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                                     if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                        transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                        transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                                         errors.push_back(err);
                                         return;
                                     }
@@ -2021,7 +2021,7 @@ namespace sclc {
                         std::string loadFrom = v.getName();
                         if (getStructByName(result, v.getType()) != Struct("")) {
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
                                 ITER_INC;
                                 ITER_INC;
@@ -2034,7 +2034,7 @@ namespace sclc {
                                 continue;
                             }
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
                                 errors.push_back(err);
                                 ITER_INC;
                                 return;
@@ -2052,7 +2052,7 @@ namespace sclc {
                             }
                             Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not deref-writable in the current scope", i);
+                                transpilerError("Member variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2064,7 +2064,7 @@ namespace sclc {
                             append("*(scl_any*) Var_%s->%s = Method_Array$get(%d, tmp);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
                         } else {
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2089,7 +2089,7 @@ namespace sclc {
                             return;
                         }
                         if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Write)) {
-                            transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                            transpilerError("Container member variable '" + body[i].getValue() + "' is const", i);
                             errors.push_back(err);
                             return;
                         }
@@ -2115,7 +2115,7 @@ namespace sclc {
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = s.getMember(body[i].getValue());
                                     if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                        transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
                                         errors.push_back(err);
                                         return;
                                     }
@@ -2132,7 +2132,7 @@ namespace sclc {
                                     continue;
                                 } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                                     if (!getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "")).isWritableFrom(function, VarAccess::Write)) {
-                                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                        transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
                                         errors.push_back(err);
                                         return;
                                     }
@@ -2156,7 +2156,7 @@ namespace sclc {
                         std::string loadFrom = v.getName();
                         if (getStructByName(result, v.getType()) != Struct("")) {
                             if (!v.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 ITER_INC;
                                 ITER_INC;
@@ -2177,7 +2177,7 @@ namespace sclc {
                                 continue;
                             }
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                                transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
                                 errors.push_back(err);
                                 ITER_INC;
                                 return;
@@ -2195,7 +2195,7 @@ namespace sclc {
                             }
                             Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2215,7 +2215,7 @@ namespace sclc {
                             append("}\n");
                         } else {
                             if (!v.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2334,7 +2334,7 @@ namespace sclc {
                     return;
                 }
                 if (!container.getMember(memberName).isWritableFrom(function, VarAccess::Write)) {
-                    transpilerError("Container member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                    transpilerError("Container member variable '" + body[i].getValue() + "' is const", i);
                     errors.push_back(err);
                     return;
                 }
@@ -2356,7 +2356,7 @@ namespace sclc {
                         if (s.hasMember(body[i].getValue())) {
                             Variable mem = s.getMember(body[i].getValue());
                             if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2373,7 +2373,7 @@ namespace sclc {
                         } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Static member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Static member variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2403,7 +2403,7 @@ namespace sclc {
                             }
                             Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                             if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                                transpilerError("Static member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                                transpilerError("Static member variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
@@ -2428,7 +2428,7 @@ namespace sclc {
                 std::string loadFrom = v.getName();
                 if (getStructByName(result, v.getType()) != Struct("")) {
                     if (!v.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                         errors.push_back(err);
                         ITER_INC;
                         ITER_INC;
@@ -2445,7 +2445,7 @@ namespace sclc {
                     }
                     ITER_INC;
                     if (!v.isWritableFrom(function, VarAccess::Dereference)) {
-                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not deref-writable in the current scope", i - 1);
+                        transpilerError("Variable '" + body[i - 1].getValue() + "' is not mutable", i - 1);
                         errors.push_back(err);
                         ITER_INC;
                         return;
@@ -2463,7 +2463,7 @@ namespace sclc {
                     }
                     Variable mem = s.getMember(body[i].getValue());
                     if (!mem.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Member variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        transpilerError("Member variable '" + body[i].getValue() + "' is const", i);
                         errors.push_back(err);
                         return;
                     }
@@ -2484,7 +2484,7 @@ namespace sclc {
                 } else {
                     Variable v = getVar(body[i]);
                     if (!v.isWritableFrom(function, VarAccess::Write)) {
-                        transpilerError("Variable '" + body[i].getValue() + "' is not writable in the current scope", i);
+                        transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                         errors.push_back(err);
                         return;
                     }
