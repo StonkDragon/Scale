@@ -1686,111 +1686,188 @@ namespace sclc {
         noUnused;
         ITER_INC;
         Token toGet = body[i];
+
+        Variable v("", "");
+        std::string containerBegin = "";
+
+        auto generatePathStructRoot = [result, function, fp](std::vector<Token>& body, size_t* i, std::vector<FPResult> &errors, std::string* lastType, bool parseFromExpr, Variable& v, std::string& containerBegin, bool topLevelDeref) -> std::string {
+            #define REF_INC do { (*i)++; if ((*i) >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function! " + std::string("Error happened in function ") + std::string(__func__) + " in line " + std::to_string(__LINE__); err.line = body[(*i) - 1].getLine(); err.in = body[(*i) - 1].getFile(); err.column = body[(*i) - 1].getColumn(); err.value = body[(*i) - 1].getValue(); err.type = body[(*i) - 1].getType(); errors.push_back(err); return ""; } } while (0)
+            std::string path = "(Var_" + body[(*i)].getValue() + ")";
+            std::string sclPath = body[(*i)].getValue();
+            Variable v2 = v;
+            Struct currentRoot = getStructByName(result, v.getType());
+            std::string nextType = removeTypeModifiers(v2.getType());
+            if (parseFromExpr) {
+                std::string s = typeStackTop;
+                if (s.at(0) == '[' && s.at(s.size() - 1) == ']') {
+                    s = s.substr(1, s.size() - 2);
+                } else {
+                    s = "any";
+                }
+                path = "(*(" + sclTypeToCType(result, typeStackTop) + ") tmp)";
+                currentRoot = getStructByName(result, s);
+                nextType = removeTypeModifiers(s);
+                sclPath = "<expr>";
+            } else {
+                if (containerBegin.size()) {
+                    path = containerBegin;
+                }
+                if (topLevelDeref) {
+                    path = "(*" + path + ")";
+                    sclPath = "@" + sclPath;
+                }
+                if (topLevelDeref) {
+                    nextType = notNilTypeOf(nextType);
+                    if (nextType.at(0) == '[' && nextType.at(nextType.size() - 1) == ']') {
+                        nextType = removeTypeModifiers(nextType.substr(1, nextType.size() - 2));
+                    } else {
+                        nextType = "any";
+                    }
+                }
+                if (!v2.isWritableFrom(function, VarAccess::Write)) {
+                    transpilerError("Variable '" + body[*i].getValue() + "' is const", *i);
+                    errors.push_back(err);
+                    (*lastType) = nextType;
+                    return path;
+                }
+                (*i)++;
+                if ((*i) >= body.size()) {
+                    (*lastType) = nextType;
+                    return path;
+                }
+            }
+            size_t last = -1;
+            while (body[*i].getType() == tok_dot) {
+                REF_INC;
+                bool deref = false;
+                sclPath += ".";
+                if (body[*i].getType() == tok_addr_of) {
+                    deref = true;
+                    nextType = notNilTypeOf(nextType);
+                    sclPath += "@";
+                    REF_INC;
+                }
+                if (!currentRoot.hasMember(body[*i].getValue())) {
+                    transpilerError("Struct '" + currentRoot.getName() + "' has no member named '" + body[*i].getValue() + "'", *i);
+                    errors.push_back(err);
+                    (*lastType) = nextType;
+                    return path;
+                } else {
+                    if (last != (size_t) -1 && v2.getName().size() && !v2.isWritableFrom(function, VarAccess::Dereference)) {
+                        transpilerError("Variable '" + body[last].getValue() + "' is not mut", last);
+                        errors.push_back(err);
+                        (*lastType) = nextType;
+                        return path;
+                    }
+                    last = *i;
+                    v2 = currentRoot.getMember(body[*i].getValue());
+                    nextType = v2.getType();
+                    if (deref) {
+                        nextType = removeTypeModifiers(nextType);
+                        nextType = notNilTypeOf(nextType);
+                        if (nextType.at(0) == '[' && nextType.at(nextType.size() - 1) == ']') {
+                            nextType = nextType.substr(1, nextType.size() - 2);
+                        } else {
+                            nextType = "any";
+                        }
+                    }
+                    if (!v2.isWritableFrom(function, VarAccess::Write)) {
+                        transpilerError("Variable '" + body[*i].getValue() + "' is const", *i);
+                        errors.push_back(err);
+                        (*lastType) = nextType;
+                        return path;
+                    }
+                    currentRoot = getStructByName(result, nextType);
+                }
+                sclPath += body[*i].getValue();
+                append("_scl_assert(*(scl_int*) &(%s), \"Tried dereferencing nil pointer '%s'!\");\n", path.c_str(), sclPath.c_str());
+                if (deref) {
+                    append("_scl_assert(*(scl_int*) &(%s->%s), \"Tried dereferencing nil pointer '%s'!\");\n", path.c_str(), body[*i].getValue().c_str(), sclPath.c_str());
+                    path = "(*(" + path + "->" + body[*i].getValue() + "))";
+                } else {
+                    path = "(" + path + "->" + body[*i].getValue() + ")";
+                }
+                (*i)++;
+                if ((*i) >= body.size()) {
+                    (*i)--;
+                    (*lastType) = nextType;
+                    return path;
+                }
+            }
+            (*i)--;
+            (*lastType) = nextType;
+            return path;
+        };
+
+        std::string lastType;
+        std::string path;
+
         if (hasFunction(result, toGet)) {
             Function* f = getFunctionByName(result, toGet.getValue());
             append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
             std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
             typeStack.push(lambdaType);
-        } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
-            ITER_INC;
-            if (body[i].getType() != tok_double_column) {
-                transpilerError("Expected '::', but got '" + body[i].getValue() + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            std::string struct_ = body[i - 1].getValue();
-            ITER_INC;
-            if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
-                Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
-                if (f->isMethod) {
-                    transpilerError("'" + f->getName() + "' is not static!", i);
+            return;
+        }
+        if (!hasVar(body[i])) {
+            if (function->isMethod) {
+                Method* m = static_cast<Method*>(function);
+                Struct s = getStructByName(result, m->getMemberType());
+                if (s.hasMember(body[i].getValue())) {
+                    v = s.getMember(body[i].getValue());
+                } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                    v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                }
+            } else if (body[i + 1].getType() == tok_double_column) {
+                ITER_INC;
+                Struct s = getStructByName(result, body[i - 1].getValue());
+                ITER_INC;
+                if (s != Struct("")) {
+                    if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
+                        transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
+                        Function* f = getFunctionByName(result, s.getName() + "$" + body[i].getValue());
+                        if (f->isMethod) {
+                            transpilerError("'" + f->getName() + "' is not static!", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
+                        std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+                        typeStack.push(lambdaType);
+                        return;
+                    } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
+                        std::string loadFrom = s.getName() + "$" + body[i].getValue();
+                        v = getVar(Token(tok_identifier, loadFrom, 0, ""));
+                    }
+                }
+            } else if (hasContainer(result, body[i])) {
+                Container c = getContainerByName(result, body[i].getValue());
+                ITER_INC;
+                ITER_INC;
+                std::string memberName = body[i].getValue();
+                if (!c.hasMember(memberName)) {
+                    transpilerError("Unknown container member: '" + memberName + "'", i);
                     errors.push_back(err);
                     return;
                 }
-                append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
-                std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
-                typeStack.push(lambdaType);
-            } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
-                std::string loadFrom = struct_ + "$" + body[i].getValue();
-                Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
-                append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
-            }
-        } else if (hasVar(toGet)) {
-            Variable v = getVar(body[i]);
-            std::string loadFrom = v.getName();
-            if (getStructByName(result, v.getType()) != Struct("")) {
-                if (i + 1 < body.size() && body[i + 1].getType() == tok_column) {
-                    if (!hasMethod(result, body[i], v.getType())) {
-                        std::string help = "";
-                        Struct s = getStructByName(result, v.getType());
-                        if (s.hasMember(body[i].getValue())) {
-                            help = ". Maybe you meant to use '.' instead of ':' here";
-                        }
-                        transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + v.getType() + "'" + help, i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    Method* f = getMethodByName(result, body[i].getValue(), v.getType());
-                    append("_scl_push()->v = (scl_any) &Method_%s$%s;\n", ((Method*)(f))->getMemberType().c_str(), f->getName().c_str());
-                    std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
-                    typeStack.push(lambdaType);
-                } else {
-                    ITER_INC;
-                    if (body[i].getType() != tok_dot) {
-                        append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                        typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
-                        i--;
-                        return;
-                    }
-                    ITER_INC;
-                    Struct s = getStructByName(result, v.getType());
-                    if (!s.hasMember(body[i].getValue())) {
-                        std::string help = "";
-                        if (getMethodByName(result, body[i].getValue(), s.getName())) {
-                            help = ". Maybe you meant to use ':' instead of '.' here";
-                        }
-                        transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    Variable mem = s.getMember(body[i].getValue());
-                    if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
-                        transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    append("_scl_push()->v = (scl_any) &Var_%s->%s;\n", loadFrom.c_str(), body[i].getValue().c_str());
-                    typeStack.push("[" + notNilTypeOf(mem.getType()) + "]");
-                }
+                containerBegin = "(Container_" + c.getName() + "." + body[i].getValue() + ")";
+                v = c.getMember(memberName);
             } else {
-                append("_scl_push()->v = (scl_any) &Var_%s;\n", loadFrom.c_str());
-                typeStack.push("[" + notNilTypeOf(v.getType()) + "]");
-            }
-        } else if (hasContainer(result, toGet)) {
-            ITER_INC;
-            std::string containerName = body[i].getValue();
-            ITER_INC;
-            if (body[i].getType() != tok_dot) {
-                transpilerError("Expected '.' to access container contents, but got '" + body[i].getValue() + "'", i);
+                transpilerError("Use of undefined variable '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
                 return;
             }
-            ITER_INC;
-            std::string memberName = body[i].getValue();
-            Container container = getContainerByName(result, containerName);
-            if (!container.hasMember(memberName)) {
-                transpilerError("Unknown container member: '" + memberName + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            append("_scl_push()->v = (scl_any) &(Container_%s.%s);\n", containerName.c_str(), memberName.c_str());
-            typeStack.push("[" + notNilTypeOf(container.getMemberType(memberName)) + "]");
         } else {
-            transpilerError("Unknown variable: '" + toGet.getValue() + "'", i+1);
-            errors.push_back(err);
-            return;
+            v = getVar(body[i]);
         }
+        path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, false);
+        debugDump(path);
+        append("_scl_push()->v = (scl_any) &(%s);\n", path.c_str());
+        typeStack.push("[" + lastType + "]");
     }
 
     handler(Store) {
