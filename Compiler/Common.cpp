@@ -287,7 +287,7 @@ namespace sclc
     FPResult parseType(std::vector<Token> body, size_t* i) {
         // int, str, any, none, Struct
         FPResult r;
-        r.success = false;
+        r.success = true;
         r.value = "";
         r.line = body[*i].getLine();
         r.in = body[*i].getFile();
@@ -295,9 +295,44 @@ namespace sclc
         r.value = body[*i].getValue();
         r.type = body[*i].getType();
         r.message = "Failed to parse type! Token for type: " + body[*i].tostring();
+        r.value = "";
+        std::string type_mods = "";
+        bool isConst = false;
+        bool isMut = false;
+        bool isReadonly = false;
+        while (body[(*i)].getValue() == "const" || body[(*i)].getValue() == "mut" || body[(*i)].getValue() == "readonly") {
+            if (!isConst && body[(*i)].getValue() == "const") {
+                type_mods += "const ";
+                isConst = true;
+                if (isMut) {
+                    r.success = false;
+                    r.line = body[*i].getLine();
+                    r.in = body[*i].getFile();
+                    r.column = body[*i].getColumn();
+                    r.value = body[*i].getValue();
+                    r.type = body[*i].getType();
+                    r.message = "Cannot specify 'const' on already 'mut' type!";
+                }
+            } else if (!isMut && body[(*i)].getValue() == "mut") {
+                type_mods += "mut ";
+                isMut = true;
+                if (isConst) {
+                    r.success = false;
+                    r.line = body[*i].getLine();
+                    r.in = body[*i].getFile();
+                    r.column = body[*i].getColumn();
+                    r.value = body[*i].getValue();
+                    r.type = body[*i].getType();
+                    r.message = "Cannot specify 'mut' on already 'const' type!";
+                }
+            } else if (!isReadonly && body[(*i)].getValue() == "readonly") {
+                type_mods += "readonly ";
+                isReadonly = true;
+            }
+            (*i)++;
+        }
         if (body[*i].getType() == tok_identifier) {
-            r.value = body[*i].getValue();
-            r.success = true;
+            r.value = type_mods + body[*i].getValue();
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].getType() != tok_paren_open) {
@@ -329,8 +364,7 @@ namespace sclc
                 }
             }
         } else if (body[*i].getType() == tok_question_mark || body[*i].getValue() == "?") {
-            r.value = "?";
-            r.success = true;
+            r.value = type_mods + "?";
         } else if (body[*i].getType() == tok_bracket_open) {
             std::string type = "[";
             (*i)++;
@@ -342,11 +376,10 @@ namespace sclc
             (*i)++;
             if (body[*i].getType() == tok_bracket_close) {
                 type += "]";
-                r.success = true;
-                r.value = type;
+                r.value = type_mods + type;
             } else {
                 r.message = "Expected ']', but got '" + body[*i].getValue() + "'";
-                r.value = body[*i].getValue();
+                r.value = type_mods + body[*i].getValue();
                 r.line = body[*i].getLine();
                 r.in = body[*i].getFile();
                 r.type = body[*i].getType();
@@ -360,6 +393,10 @@ namespace sclc
             r.value = body[*i].getValue();
             r.type = body[*i].getType();
             r.message = "Unexpected token: '" + body[*i].tostring() + "'";
+        }
+        if (body[(*i + 1)].getValue() == "?") {
+            (*i)++;
+            r.value += "?";
         }
         return r;
     }
@@ -483,7 +520,10 @@ namespace sclc
         return Container("");
     }
 
+    std::string removeTypeModifiers(std::string t);
+
     Struct getStructByName(TPResult result, std::string name) {
+        name = removeTypeModifiers(name);
         name = sclConvertToStructType(name);
         for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
@@ -584,111 +624,52 @@ namespace sclc
         }
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
-            if (m->getName() == "init") {
-                return true;
-            }
+            return contains<std::string>(m->getModifiers(), "<constructor>") || strstarts(m->getName(), "init");
         }
         return false;
     }
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
-    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
 
-        if (isConst && !isMut) {
-            if (isInitFunction(f)) {
-                if (f->isMethod) {
-                    Method* m = static_cast<Method*>(f);
-                    if (m->getMemberType() == internalMutableFrom) {
-                        return true;
-                    }
-                } else {
+    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
+        auto memberOfStruct = [this](Function* f) -> bool {
+            if (f->isMethod) {
+                Method* m = static_cast<Method*>(f);
+                if (m->getMemberType() == this->internalMutableFrom) {
                     return true;
                 }
             }
             return false;
+        };
+
+        if (typeIsReadonly(getType())) {
+            return memberOfStruct(f);
         }
-        if (isConst && isMut) {
-            if (accessType == VarAccess::Write) {
-                return false;
-            }
-            if (isInternalMut || internalMutableFrom.size()) {
-                if (!f->isMethod) {
-                    return false;
-                }
-                Method* m = static_cast<Method*>(f);
-                if (m->getMemberType() == internalMutableFrom) {
-                    if (isInitFunction(f)) {
-                        if (f->isMethod) {
-                            Method* m = static_cast<Method*>(f);
-                            if (m->getMemberType() == internalMutableFrom) {
-                                return true;
-                            }
-                        } else {
-                            return true;
-                        }
-                    }
-                    return false;
-                } else {
-                    return false;
-                }
-            }
-            if (isInitFunction(f)) {
-                if (f->isMethod) {
-                    Method* m = static_cast<Method*>(f);
-                    if (m->getMemberType() == internalMutableFrom) {
-                        return true;
-                    }
-                } else {
-                    return true;
-                }
-            }
+        if (typeIsConst(getType())) {
+            return false;
+        }
+        if (typeIsMut(getType())) {
             return true;
         }
-        if (!isConst && isMut) {
-            if (isInternalMut || internalMutableFrom.size()) {
-                if (!f->isMethod) {
-                    return false;
-                }
-                Method* m = static_cast<Method*>(f);
-                if (m->getMemberType() == internalMutableFrom) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            return true;
+
+        if (accessType == VarAccess::Dereference) {
+            return false;
         }
-        if (!isConst && !isMut) {
-            if (accessType == VarAccess::Dereference) {
-                return false;
-            }
-            if (isInternalMut || internalMutableFrom.size()) {
-                if (!f->isMethod) {
-                    return false;
-                }
-                Method* m = static_cast<Method*>(f);
-                if (m->getMemberType() == internalMutableFrom) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            return true;
-        }
-        std::cerr << __func__ << ": Should not reach here" << std::endl;
-        exit(-1);
+        return true;
     }
 
     std::string sclConvertToStructType(std::string type) {
         while (typeCanBeNil(type))
             type = type.substr(0, type.size() - 1);
 
+        type = removeTypeModifiers(type);
+
         return type;
     }
 
     bool sclIsProhibitedInit(std::string s) {
-        if (s.size() > 1 && s.back() == '?') s = s.substr(0, s.size() - 1);
-
+        // Kept because i am too lazy to refactor
+        (void) s;
         return false;
     }
 
@@ -696,7 +677,68 @@ namespace sclc
         return isPrimitiveType(s) || (s.size() > 1 && s.back() == '?');
     }
 
+    bool typeIsReadonly(std::string s) {
+        while (strstarts(s, "mut ") || strstarts(s, "const ") || strstarts(s, "ref ")) {
+            while (strstarts(s, "mut ")) {
+                s = s.substr(4);
+            }
+            while (strstarts(s, "ref ")) {
+                s = s.substr(4);
+            }
+            while (strstarts(s, "const ")) {
+                s = s.substr(6);
+            }
+        }
+        return strstarts(s, "readonly ");
+    }
+
+    bool typeIsConst(std::string s) {
+        while (strstarts(s, "mut ") || strstarts(s, "readonly ") || strstarts(s, "ref ")) {
+            while (strstarts(s, "mut ")) {
+                s = s.substr(4);
+            }
+            while (strstarts(s, "ref ")) {
+                s = s.substr(4);
+            }
+            while (strstarts(s, "readonly ")) {
+                s = s.substr(9);
+            }
+        }
+        return strstarts(s, "const ");
+    }
+
+    bool typeIsMut(std::string s) {
+        while (strstarts(s, "const ") || strstarts(s, "readonly ") || strstarts(s, "ref ")) {
+            while (strstarts(s, "const ")) {
+                s = s.substr(6);
+            }
+            while (strstarts(s, "readonly ")) {
+                s = s.substr(9);
+            }
+            while (strstarts(s, "ref ")) {
+                s = s.substr(4);
+            }
+        }
+        return strstarts(s, "mut ");
+    }
+
+    bool typeIsRef(std::string s) {
+        while (strstarts(s, "const ") || strstarts(s, "readonly ") || strstarts(s, "mut ")) {
+            while (strstarts(s, "const ")) {
+                s = s.substr(6);
+            }
+            while (strstarts(s, "readonly ")) {
+                s = s.substr(9);
+            }
+            while (strstarts(s, "mut ")) {
+                s = s.substr(4);
+            }
+        }
+        return strstarts(s, "ref ");
+    }
+    
     bool isPrimitiveType(std::string s) {
+        s = removeTypeModifiers(s);
         return s == "int" || s == "float" || s == "any" || s == "bool";
     }
 

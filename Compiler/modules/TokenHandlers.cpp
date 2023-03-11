@@ -14,6 +14,7 @@ namespace sclc {
     std::string sclTypeToCType(TPResult result, std::string t);
     std::string sclGenArgs(TPResult result, Function *func);
     bool isPrimitiveIntegerType(std::string s);
+    std::string removeTypeModifiers(std::string t);
 
     bool isFloatingType(std::string s) {
         return s == "float" || s == "float32";
@@ -57,6 +58,7 @@ namespace sclc {
     std::string stackSliceToString(size_t amount);
 
     bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
+        type = removeTypeModifiers(type);
         if (type.size() == 0)
             return false;
         if (isPrimitiveType(type) && type != "bool") {

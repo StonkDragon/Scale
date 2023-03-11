@@ -39,20 +39,14 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
-                            if (tokens[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (tokens[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            i++;
-                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -79,10 +73,7 @@ namespace sclc {
                         continue;
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "?") {
-                        v.canBeNil = true;
-                        i++;
-                    }
+                    v.canBeNil = typeCanBeNil(v.getType());
                     func->addArgument(v);
                 } else if (tokens[i].getType() == tok_curly_open) {
                     std::vector<std::string> multi;
@@ -120,20 +111,14 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
-                            if (tokens[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (tokens[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            i++;
-                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -161,10 +146,7 @@ namespace sclc {
                     }
                     for (std::string s : multi) {
                         Variable v = Variable(s, type, isConst, isMut);
-                        if (tokens[i + 1].getValue() == "?") {
-                            v.canBeNil = true;
-                            i++;
-                        }
+                        v.canBeNil = typeCanBeNil(v.getType());
                         func->addArgument(v);
                     }
                 } else {
@@ -218,16 +200,10 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
-                bool canReturnNil = false;
-                if (tokens[i + 1].getValue() == "?") {
-                    canReturnNil = true;
-                    type += "?";
-                    i++;
-                }
                 func->setReturnType(type);
                 if (namedReturn.size()) {
                     Variable v = Variable(namedReturn, type, false, true);
-                    v.canBeNil = canReturnNil;
+                    v.canBeNil = typeCanBeNil(v.getType());
                     func->setNamedReturnValue(v);
                 }
             } else {
@@ -320,20 +296,14 @@ namespace sclc {
                     i++;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
-                            if (tokens[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (tokens[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            i++;
-                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -360,10 +330,7 @@ namespace sclc {
                         continue;
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "?") {
-                        v.canBeNil = true;
-                        i++;
-                    }
+                    v.canBeNil = typeCanBeNil(v.getType());
                     method->addArgument(v);
                 } else if (tokens[i].getType() == tok_curly_open) {
                     std::vector<std::string> multi;
@@ -401,20 +368,14 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut") {
-                            if (tokens[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (tokens[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            i++;
-                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -442,10 +403,7 @@ namespace sclc {
                     }
                     for (std::string s : multi) {
                         Variable v = Variable(s, type, isConst, isMut);
-                        if (tokens[i + 1].getValue() == "?") {
-                            v.canBeNil = true;
-                            i++;
-                        }
+                        v.canBeNil = typeCanBeNil(v.getType());
                         method->addArgument(v);
                     }
                 } else {
@@ -480,7 +438,7 @@ namespace sclc {
                 continue;
             }
             i++;
-            Variable self = Variable("self", memberName);
+            Variable self = Variable("self", "mut " + memberName);
             self.canBeNil = false;
             method->addArgument(self);
 
@@ -503,12 +461,7 @@ namespace sclc {
                     return nullptr;
                 }
                 std::string type = r.value;
-                bool canReturnNil = false;
-                if (tokens[i + 1].getValue() == "?") {
-                    canReturnNil = true;
-                    type += "?";
-                    i++;
-                }
+                bool canReturnNil = typeCanBeNil(type);
                 method->setReturnType(type);
                 if (namedReturn.size()) {
                     Variable v = Variable(namedReturn, type, false, true);
@@ -1297,20 +1250,14 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
-                            if (tokens[i].getValue() == "const") {
-                                isConst = true;
-                            } else if (tokens[i].getValue() == "mut") {
-                                isMut = true;
-                            }
-                            i++;
-                        }
                         FPResult r = parseType(tokens, &i);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        isConst = typeIsConst(type);
+                        isMut = typeIsMut(type);
                         if (type == "none") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -1325,10 +1272,7 @@ namespace sclc {
                         }
                     }
                     Variable v = Variable(name, type, isConst, isMut);
-                    if (tokens[i + 1].getValue() == "?") {
-                        v.canBeNil = true;
-                        i++;
-                    }
+                    v.canBeNil = typeCanBeNil(v.getType());
                     extern_globals.push_back(v);
                 } else {
                     FPResult result;
@@ -1369,20 +1313,14 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
-                        if (tokens[i].getValue() == "const") {
-                            isConst = true;
-                        } else if (tokens[i].getValue() == "mut") {
-                            isMut = true;
-                        }
-                        i++;
-                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
                     }
                     type = r.value;
+                    isConst = typeIsConst(type);
+                    isMut = typeIsMut(type);
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
@@ -1398,10 +1336,7 @@ namespace sclc {
                 }
                 nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
-                if (tokens[i + 1].getValue() == "?") {
-                    v.canBeNil = true;
-                    i++;
-                }
+                v.canBeNil = typeCanBeNil(v.getType());
                 globals.push_back(v);
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -1429,20 +1364,14 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
-                        if (tokens[i].getValue() == "const") {
-                            isConst = true;
-                        } else if (tokens[i].getValue() == "mut") {
-                            isMut = true;
-                        }
-                        i++;
-                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
                     }
                     type = r.value;
+                    isConst = typeIsConst(type);
+                    isMut = typeIsMut(type);
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
@@ -1459,10 +1388,7 @@ namespace sclc {
                 }
                 nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
-                if (tokens[i + 1].getValue() == "?") {
-                    v.canBeNil = true;
-                    i++;
-                }
+                v.canBeNil = typeCanBeNil(v.getType());
                 currentContainer->addMember(v);
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -1493,24 +1419,16 @@ namespace sclc {
                 bool isPrivate = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    while (tokens[i].getValue() == "const" || tokens[i].getValue() == "mut" || tokens[i].getValue() == "readonly" || tokens[i].getValue() == "private") {
-                        if (tokens[i].getValue() == "const") {
-                            isConst = true;
-                        } else if (tokens[i].getValue() == "mut") {
-                            isMut = true;
-                        } else if (tokens[i].getValue() == "readonly") {
-                            isInternalMut = true;
-                        } else if (tokens[i].getValue() == "private") {
-                            isPrivate = true;
-                        }
-                        i++;
-                    }
                     FPResult r = parseType(tokens, &i);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
                     }
                     type = r.value;
+                    isConst = typeIsConst(type);
+                    isMut = typeIsMut(type);
+                    isInternalMut = typeIsReadonly(type);
+                    isPrivate = contains<std::string>(nextAttributes, "private");
                     if (type == "none") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
@@ -1525,14 +1443,11 @@ namespace sclc {
                         continue;
                     }
                 }
-                if (currentStruct->isStatic() || std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end()) {
+                if (currentStruct->isStatic() || contains<std::string>(nextAttributes, "static")) {
                     Variable v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
-                    v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                    v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                     nextAttributes.clear();
-                    if (tokens[i + 1].getValue() == "?") {
-                        v.canBeNil = true;
-                        i++;
-                    }
+                    v.canBeNil = typeCanBeNil(v.getType());
                     globals.push_back(v);
                 } else {
                     if (isConst && isInternalMut) {
@@ -1551,27 +1466,18 @@ namespace sclc {
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
                         v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
-                        if (tokens[i + 1].getValue() == "?") {
-                            v.canBeNil = true;
-                            i++;
-                        }
+                        v.canBeNil = typeCanBeNil(v.getType());
                         currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
                             v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
-                            if (tokens[i + 1].getValue() == "?") {
-                                v.canBeNil = true;
-                                i++;
-                            }
+                            v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
                             v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
-                            if (tokens[i + 1].getValue() == "?") {
-                                v.canBeNil = true;
-                                i++;
-                            }
+                            v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         }
                     }

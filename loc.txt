@@ -1,7 +1,7 @@
-     706 Compiler/Common.cpp
+     748 Compiler/Common.cpp
     1336 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
-     232 Compiler/headers/Common.hpp
+     236 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      100 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
@@ -13,16 +13,16 @@
       50 Compiler/headers/Token.hpp
       91 Compiler/headers/TokenType.hpp
       32 Compiler/headers/TranspilerDefs.hpp
-      71 Compiler/headers/Variable.hpp
+      73 Compiler/headers/Variable.hpp
       77 Compiler/headers/Version.hpp
      394 Compiler/modules/DragonConfig.cpp
      110 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      151 Compiler/modules/Parser.cpp
-    1675 Compiler/modules/SyntaxTree.cpp
-     260 Compiler/modules/TokenHandlers.cpp
+    1581 Compiler/modules/SyntaxTree.cpp
+     262 Compiler/modules/TokenHandlers.cpp
      541 Compiler/modules/Tokenizer.cpp
-    4079 Compiler/modules/Transpiler.cpp
+    4030 Compiler/modules/Transpiler.cpp
      134 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
@@ -32,7 +32,7 @@
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      130 Scale/Frameworks/Scale.framework/include/Scale/types.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
-     195 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+     193 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/bounds.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13513 total
+   13418 total
