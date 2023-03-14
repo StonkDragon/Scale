@@ -1865,7 +1865,6 @@ namespace sclc {
             v = getVar(body[i]);
         }
         path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, false);
-        debugDump(path);
         append("_scl_push()->v = (scl_any) &(%s);\n", path.c_str());
         typeStack.push("[" + lastType + "]");
     }
