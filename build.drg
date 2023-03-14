@@ -38,7 +38,9 @@ build: {
     "cp -r Scale /opt/Scale/23.2";
   ];
   postBuild: [
-    "sudo mv target/sclc /usr/local/bin/sclc";
+    "sudo mv target/sclc /opt/Scale/23.2";
+    "sudo rm -f /usr/local/bin/sclc";
+    "sudo ln -s /opt/Scale/23.2/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "python3 tests.py run";
   ];
@@ -83,7 +85,9 @@ install: {
     "cp -r Scale /opt/Scale/23.2";
   ];
   postBuild: [
-    "sudo mv target/sclc /usr/local/bin/sclc";
+    "sudo mv target/sclc /opt/Scale/23.2";
+    "sudo rm -f /usr/local/bin/sclc";
+    "sudo ln -s /opt/Scale/23.2/sclc /usr/local/bin/sclc";
     "rm -rf target";
   ];
 };
