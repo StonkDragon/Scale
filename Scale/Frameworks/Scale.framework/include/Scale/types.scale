@@ -52,8 +52,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
 
   function at(i: int): int
     if i 0 < i self:size >= || then
-      nameof i " is out of bounds":prepend eputs
-      abort
+      nameof i " is out of bounds" + IndexOutOfBoundsException::new throw
     fi
     self._data i + @ as int toChar return
   end
