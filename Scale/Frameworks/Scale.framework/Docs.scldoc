@@ -1,37 +1,34 @@
 # Scale Framework Documentation
 ## Core
 ### function sleep(_millis_: int): none
-Sleeps for `_millis_` milliseconds.
+Sleeps for <<WHITE>>_millis_<<RESET>> milliseconds.
 
 ### function system(_cmd_: str): int
-Executes the shell command `_cmd_` and returns the return value. If `_cmd_` is <<BLUE>>nil<<RESET>> the function will return a non-zero value if a command processor was found.
+Executes the shell command <<WHITE>>_cmd_<<RESET>> and returns the return value. If <<WHITE>>_cmd_<<RESET>> is <<BLUE>>nil<<RESET>> the function will return a non-zero value if a command processor was found.
 
 ### function getenv(_key_: str): str
-Returns the value of the environment variable `_key_`. If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned. Modifying the returned string is undefined behavior.
+Returns the value of the environment variable <<WHITE>>_key_<<RESET>>. If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned. Modifying the returned string is undefined behavior.
 
 ### function sizeofStack(): int
 Returns the current stack size.
 
 ### function malloc(_size_: int): any
-Returns a pointer to `_size_` bytes of memory. This memory may not be <<GREEN>>0<<RESET>>-initialized. It is undefined behavior to pass in a `_size_` of <<GREEN>>0<<RESET>>.
+Returns a pointer to <<WHITE>>_size_<<RESET>> bytes of memory. This memory may not be <<GREEN>>0<<RESET>>-initialized. It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
 
 ### function realloc(_size_: int, _ptr_: any): any
-Reallocates the memory pointed to by `_ptr_` with a new size of `_size_` bytes. Any call to `realloc` may invalidate the old pointer so it is strongly suggested to reassign it to the return value. If `_ptr_` is <<BLUE>>nil<<RESET>> the function will behave identical to `malloc`. It is undefined behavior to pass in a `_size_` of <<GREEN>>0<<RESET>>.
+Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes. Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value. If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>. It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
 
 ### function free(_ptr_: any): none
-Frees the memory pointed to by `_ptr_`. If `_ptr_` was not allocated, a call to `free` will result in undefined behavior. If `_ptr_` is <<BLUE>>nil<<RESET>>, the function will do nothing.
+Frees the memory pointed to by <<WHITE>>_ptr_<<RESET>>. If <<WHITE>>_ptr_<<RESET>> was not allocated, a call to <<WHITE>>free<<RESET>> will result in undefined behavior. If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>>, the function will do nothing.
 
 ### function memset(ptr: [any], val: int, len: int): [any]
-Sets the first `len` bytes pointed to by `ptr` to `val`. Returns a pointer to the changed memory.
+Sets the first <<WHITE>>len<<RESET>> bytes pointed to by <<WHITE>>ptr<<RESET>> to <<WHITE>>val<<RESET>>. Returns a pointer to the changed memory.
 
 ### function memcpy(dst: [any], src: [any], n: int): [any]
-Copies `n` bytes from `src` to `dst` and returns `dst`.
-
-### function strlen(_str_: str): int
-Returns the length of `_str_`. It is undefined behavior if `_str_` is <<BLUE>>nil<<RESET>>.
+Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RESET>> and returns <<WHITE>>dst<<RESET>>.
 
 ### function strsplit(_str_: str, _delim_: str): Array
-Splits `_str_` at every occurence of `_delim_` and returns an array containing the results. Returns an empty array if `_str_` does not contain `_delim_`.
+Splits <<WHITE>>_str_<<RESET>> at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results. Returns an empty array if <<WHITE>>_str_<<RESET>> does not contain <<WHITE>>_delim_<<RESET>>.
 
 Example:<<WHITE>>
 <<YELLOW>>"hello world!" " "<<WHITE>> strsplit<<RESET>>
@@ -40,81 +37,63 @@ Will split 'hello world!' at every space character, returning an array with thes
 1. <<YELLOW>>"hello"<<RESET>>
 2. <<YELLOW>>"world!"<<RESET>>
 
-### function strcmp(_str1_: str, _str2_: str): int
-Returns <<BLUE>>true<<RESET>>, if `_str1_` and `_str2_` are equal, <<BLUE>>false<<RESET>> otherwise.
-
-### function strncmp(_str1_: str, _str2_: str, _n_: int): int
-Returns <<BLUE>>true<<RESET>>, if `_str1_` and `_str2_` are equal, <<BLUE>>false<<RESET>> otherwise. The function will only compare up to `_n_` characters until a character differs, or until a <<BLUE>>nil<<RESET>> byte is found.
-
-### function concat(_str1_: str, _str2_: str): str
-Concates `_str1_` and `_str2_` together.
-
-### function strrev(_str_: str): str
-Reverses `_str_`. Returns an empty string if `_str_` has a length of zero.
-
 ### function time(): float
 Returns the current time in seconds as a float.
 
 ### function longToString(_long_: int): str
-Converts `_long_` to a string.
+Converts <<WHITE>>_long_<<RESET>> to a string.
 
 ### function stringToLong(_str_: str): int
-Converts `_str_` to an interger. Returns <<GREEN>>0<<RESET>> if the string is not a valid number. If `_str_` contains the string representation of a float, this function will return the whole part of the number.
+Converts <<WHITE>>_str_<<RESET>> to an interger. Returns <<GREEN>>0<<RESET>> if the string is not a valid number. If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
 
 ### function stringToDouble(_str_: str): float
-Converts `_str_` to a float. Returns `0.0` if the string is not a valid float. Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+Converts <<WHITE>>_str_<<RESET>> to a float. Returns <<WHITE>>0<<RESET>>0` if the string is not a valid float. Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
 
 ### function doubleToString(_double_: float): str
-Converts `_double_` to a string.
+Converts <<WHITE>>_double_<<RESET>> to a string.
 
 ### function nop(): none
 Do nothing.
 
-### function strStarts(_s1_: str, _s2_: str): int
-Returns <<BLUE>>true<<RESET>>, if `_s1_` starts with `_s2_`
-
-### function sizeof(_type_: str): int
-Returns the size of `_type_`. Returns `-1` if `_type_` is not recognized.
-
 ### function toChar(_val_: int): int
-Converts `_val_` to an 8-Bit integer.
+Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
 
 ### function toShort(_val_: int): int
-Converts `_val_` to a 16-Bit integer.
+Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
 
 ### function toInt(_val_: int): int
-Converts `_val_` to a 32-Bit integer.
+Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
 
 ### function toChars(_str_: str): Array
-Converts `_str_` to an array of characters. An empty array is returned if the string has a length of zero.
+Converts <<WHITE>>_str_<<RESET>> to an array of characters. An empty array is returned if the string has a length of zero.
 
 ### function isnil(x: any): bool
-Returns <<BLUE>>true<<RESET>>, if `x` is <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
 
 ### function isnotnil(x: any): bool
-Returns <<BLUE>>true<<RESET>>, if `x` is not <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is not <<BLUE>>nil<<RESET>>.
 
 ## IO
 ### function write(_fd_: int, _str_: str, _n_: int): none
-Writes `_n_` bytes of `_str_` to file descriptor `_fd_`.
+Writes <<WHITE>>_n_<<RESET>> bytes of <<WHITE>>_str_<<RESET>> to file descriptor <<WHITE>>_fd_<<RESET>>.
 
 ### function read(_fd_: int, _n_: int): any
-Reads `_n_` bytes from file descriptor `_fd_`.
+Reads <<WHITE>>_n_<<RESET>> bytes from file descriptor <<WHITE>>_fd_<<RESET>>.
 
 ### function puts(_str_: str): none
-Prints `_str_` followed by a new line to the standard output.
+Prints <<WHITE>>_str_<<RESET>> followed by a new line to the standard output.
 
 ### function eputs(_str_: str): none
-Prints `_str_` followed by a new line to the standard error output.
+Prints <<WHITE>>_str_<<RESET>> followed by a new line to the standard error output.
 
 ### function putint(_int_: int): none
-Prints the number `_int_` followed by a new line to the standard output.
+Prints the number <<WHITE>>_int_<<RESET>> followed by a new line to the standard output.
 
 ### function putfloat(_f_: float): none
-Prints the float `_f_` followed by a new line to the standard output.
+Prints the float <<WHITE>>_f_<<RESET>> followed by a new line to the standard output.
 
 ### function throwerr(_err_: str): none
-Prints `_err_` to standard error output and exits with exit code 1.
+Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code 1.
 
 ## Math
 ### container MathConstants
@@ -125,107 +104,116 @@ Member types:
 <<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>. It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
 
 ### function sqrt(_f_: float): float
-Calculates the square root of `_f_`.
+Calculates the square root of <<WHITE>>_f_<<RESET>>.
 
 ### function sin(_f_: float): float
-Calculates the sine of `_f_`.
+Calculates the sine of <<WHITE>>_f_<<RESET>>.
 
 ### function cos(_f_: float): float
-Calculates the cosine of `_f_`.
+Calculates the cosine of <<WHITE>>_f_<<RESET>>.
 
 ### function tan(_f_: float): float
-Calculates the tangent of `_f_`.
+Calculates the tangent of <<WHITE>>_f_<<RESET>>.
 
 ### function asin(_f_: float): float
-Calculates the arc sine of `_f_`.
+Calculates the arc sine of <<WHITE>>_f_<<RESET>>.
 
 ### function acos(_f_: float): float
-Calculates the arc cosine of `_f_`.
+Calculates the arc cosine of <<WHITE>>_f_<<RESET>>.
 
 ### function atan(_f_: float): float
-Calculates the arc tangent of `_f_`.
+Calculates the arc tangent of <<WHITE>>_f_<<RESET>>.
 
 ### function atan2(_n1_: float, _n2_: float): float
 Calculates the arc tangent of an argument.
 
 ### function sinh(_f_: float): float
-Calculates the hyperbolic sine of `_f_`.
+Calculates the hyperbolic sine of <<WHITE>>_f_<<RESET>>.
 
 ### function cosh(_f_: float): float
-Calculates the hyperbolic cosine of `_f_`.
+Calculates the hyperbolic cosine of <<WHITE>>_f_<<RESET>>.
 
 ### function tanh(_f_: float): float
-Calculates the hyperbolic tangent of `_f_`.
+Calculates the hyperbolic tangent of <<WHITE>>_f_<<RESET>>.
 
 ### function asinh(_f_: float): float
-Calculates the arc hyperbolic sine of `_f_`.
+Calculates the arc hyperbolic sine of <<WHITE>>_f_<<RESET>>.
 
 ### function acosh(_f_: float): float
-Calculates the arc hyperbolic cosine of `_f_`.
+Calculates the arc hyperbolic cosine of <<WHITE>>_f_<<RESET>>.
 
 ### function atanh(_f_: float): float
-Calculates the arc hyperbolic tangent of `_f_`.
+Calculates the arc hyperbolic tangent of <<WHITE>>_f_<<RESET>>.
 
 ### function exp(_f_: float): float
-Calculates `MathConstants.e` raised to the power of `_f_`.
+Calculates <<WHITE>>MathConstants<<RESET>>e` raised to the power of <<WHITE>>_f_<<RESET>>.
 
 ### function log(_f_: float): float
-Calculates the natural logarithm of `_f_`.
+Calculates the natural logarithm of <<WHITE>>_f_<<RESET>>.
 
 ### function log10(_f_: float): float
-Calculates the base 10 logarithm of `_f_`.
+Calculates the base 10 logarithm of <<WHITE>>_f_<<RESET>>.
 
 ### function random(): int
 Generates a random number.
 
 ### function iseven(_i_: int): int
-Returns <<BLUE>>true<<RESET>> if `_i_` is even.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>_i_<<RESET>> is even.
 
 ### function isodd(_i_: int): int
-Returns <<BLUE>>true<<RESET>> if `_i_` is odd.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>_i_<<RESET>> is odd.
 
 ### function lrandom(_limit_: int): int
-Returns a random number not exceeding `_limit_`.
+Returns a random number not exceeding <<WHITE>>_limit_<<RESET>>.
 
 ### function lerp(_a_: int, _b_: int, _t_: int): int
-Linear interpolation between `_a_` and `_b_` with the argument `_t_`.
+Linear interpolation between <<WHITE>>_a_<<RESET>> and <<WHITE>>_b_<<RESET>> with the argument <<WHITE>>_t_<<RESET>>.
 
 ### function neg(_i_: int): int
 Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
 
 ## File
 ### function fopen(_filename_: str, _mode_: str): any
-Opens a new file handle of file `_filename_` in mode `_mode_`.
+Opens a new file handle of file <<WHITE>>_filename_<<RESET>> in mode <<WHITE>>_mode_<<RESET>>.
 
 ### function fclose(_file_: any): none
-Closes the file handle `_file_`.
+Closes the file handle <<WHITE>>_file_<<RESET>>.
 
 ### function ftell(_file_: any): int
-Returns the current position in the file `_file_`.
+Returns the current position in the file <<WHITE>>_file_<<RESET>>.
 
 ### function fileno(_file_: any): int
-Returns the file descriptor of `_file_`.
+Returns the file descriptor of <<WHITE>>_file_<<RESET>>.
 
 ### function fseek(_file_: any, _whence_: int, _offset_: int): none
-Seeks to `_offset_` in the `_file_` from `_whence_`.
+Seeks to <<WHITE>>_offset_<<RESET>> in the <<WHITE>>_file_<<RESET>> from <<WHITE>>_whence_<<RESET>>.
 
 ### function fwrite(_buf_: any, _size_: int, _file_: any): none
-Writes `_size_` bytes of buffer `_buf_` to the file `_file_`.
+Writes <<WHITE>>_size_<<RESET>> bytes of buffer <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
+
+### function fwrites(_buf_: str, _size_: int, _file_: any): none
+Writes <<WHITE>>_size_<<RESET>> bytes of string <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
 
 ### function fputs(_file_: any, _str_: str): none
-Prints self `_str_` to `_file_`.
+Prints the string <<WHITE>>_str_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 
-### function fread(_f_: any, _size_: int): any
-Reads `_size_` bytes from file `_f_`.
+### function fputs(_file_: any, _int_: int): none
+Prints the integer <<WHITE>>_int_<<RESET>> to <<WHITE>>_file_<<RESET>>.
+
+### function fputs(_file_: any, _float_: float): none
+Prints the float <<WHITE>>_float_<<RESET>> to <<WHITE>>_file_<<RESET>>.
+
+### function fread(_f_: any, _size_: int): [any]?
+Reads <<WHITE>>_size_<<RESET>> bytes from file <<WHITE>>_f_<<RESET>>.
 
 ### function fseekstart(_f_: any, _offset_: int): none
-Seeks to position `_offset_` from the start of file `_f_`.
+Seeks to position <<WHITE>>_offset_<<RESET>> from the start of file <<WHITE>>_f_<<RESET>>.
 
 ### function fseekend(_f_: any, _offset_: int): none
-Seeks to position `_offset_` from the end of file `_f_`.
+Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>_f_<<RESET>>.
 
 ### function fseekcur(_f_: any, _offset_: int): none
-Seeks to position `_offset_` from the current position of file `_f_`.
+Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>_f_<<RESET>>.
 
 ## Array
 ### struct Array
@@ -242,76 +230,240 @@ Member types:
 Sorts the array. If the array is empty, the function will do nothing.
 
 ### function Array:get(index: int): any
-Returns the value at `index`. It is undefined behavior to access indices greater than or equal to `count`
+Returns the value at <<WHITE>>index<<RESET>>. If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:set(index: int, value: any): none
-Sets the value at `index` to `value`. It is undefined behavior to access indices greater than or equal to `count`
+Sets the value at <<WHITE>>index<<RESET>> to <<WHITE>>value<<RESET>>. If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:top(): any
-Returns the top value of the array. This invocation is identical to <<WHITE>>Array.count <<GREEN>>1 <<BLUE>>-<<WHITE>> Array:get<<RESET>>. It is undefined behavior to use <<WHITE>>Array:top<<RESET>> on an empty array.
+Returns the top value of the array. This invocation is identical to <<WHITE>>Array.count <<GREEN>>1 <<BLUE>>-<<WHITE>> Array:get<<RESET>>. If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:push(value: any): none
-Returns `value` onto the array. If the array has no more free slots, it will be resized accordingly.
+Returns <<WHITE>>value<<RESET>> onto the array. If the array has no more free slots, it will be resized accordingly.
 
 ### function Array:pop(): none
-Pops the top value of the array by decrementing the `count` property on the array. Invoking <<WHITE>>Array:pop<<RESET>> on an empty array is undefined behavior.
+Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array. If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:contains(val: any): bool
-Returns <<BLUE>>true<<RESET>> if the array contains val.
+Returns <<BLUE>>true<<RESET>>, if the array contains val.
+
+### function Array:toString(): str
+Returns a stringified version of the array.
+
+### function Array:immutableCopy(): ImmutableArray
+Returns an immutable copy of the array.
+
+### function Array:map(x: lambda(any): none): none
+Runs the lambda x for every element in the array.
+
+### function Array:filter(x: lambda(any): bool): Array
+Returns a new array with only those elements in it for which the lambda x returns <<BLUE>>true<<RESET>>.
 
 ### static function Array::new(size: int): none
-Create an empty array with an initial capacity of `size` elements, where `size` is bigger than <<GREEN>>0<<RESET>>.
+Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> elements, where <<WHITE>>size<<RESET>> is bigger than <<GREEN>>0<<RESET>>.
 
+### static function Array::fromPointerCollection(count: int, values: [any]): Array
+Returns a new array that contains count elements of the c-style array values.
 
 ## String
 ### function str:+(other: str): str
-Returns a new string with the contents of `other` appended to the end of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
+Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
 
 ### function str:++(c: int): str
-Returns a new string with the character stored in `c` appended to the end of the string.
+Returns a new string with the character stored in <<WHITE>>c<<RESET>> appended to the end of the string.
+
+### function str:clone(): str
+Returns a copy of the string.
 
 ### function str:append(other: str): str
-Returns a new string with the contents of `other` appended to the end of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
+Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
 
 ### function str:prepend(other: str): str
-Returns a new string with the contents of `other` prepended at the start of the string. Returns the string if `other` is <<BLUE>>nil<<RESET>> and `other` if the string is <<BLUE>>nil<<RESET>>. Returns <<BLUE>>nil<<RESET>> if both strings are <<BLUE>>nil<<RESET>>.
+Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended at the start of the string.
+
+### function str:==(other: str): bool
+Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
 
 ### function str:equals(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals `other`, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
 
 ### function str:size(): int
-Returns the length of the string. If the string is <<BLUE>>nil<<RESET>>, <<GREEN>>-1<<RESET>> is returned.
+Returns the length of the string.
 
 ### function str:at(index: int): int
-Returns the character at `index` in the string. Returns <<GREEN>>0<<RESET>> if the string is <<BLUE>>nil<<RESET>>.
+Returns the character at <<WHITE>>index<<RESET>> in the string. If the index is out of bounds for the string, an <<WHITE>>IndexOutOfBoundsException<<RESET>> is thrown.
+
+### function str:reverse(): str
+Returns a new string that is the original string reversed.
+
+### function str:toChars(): Array
+Returns an array containing all characters of the string in order.
+
+### function str:startsWith(_s_: str): bool
+Returns <<BLUE>>true<<RESET>> if the string starts with _s_.
+
+### function str:view(): [int8]
+Returns a copy of the underlying cstring.
+
+### function str:hashCode(): int
+Returns the hash of the string.
 
 ## Pair
 ### static function Pair::new(a: any, b: any): none
-Create a new pair of `a` and `b`.
+Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
 
 ## Triple
 
 ### static function Triple::new(a: any, b: any, c: any): none
-Create a new triple of `a`, `b` and `c`.
+Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<RESET>>.
 
 ## Ranges
 ### static function Range::new(_start: int, _end: int): none
-Create a new Range object from `_start` to `_end` counting up.
+Create a new Range object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting up.
 
 ### function Range:containsRange(other: Range): int
-Returns <<BLUE>>true<<RESET>> if `other` lies completely within the range. Returns <<BLUE>>true<<RESET>> if both ranges are equal.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> lies completely within the range. Returns <<BLUE>>true<<RESET>> if both ranges are equal.
 
 ### function Range:overlaps(other: Range): int
-Returns <<BLUE>>true<<RESET>> if `other` is partially contained within the range. For example, a Range from 2 to 7 will overlap with a Range from 4 to 10.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> is partially contained within the range. For example, a Range from 2 to 7 will overlap with a Range from 4 to 10.
 
 ### function Range:contains(pos: int): int
-Returns <<BLUE>>true<<RESET>> if `pos` is contained within the range. For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET>> for all numbers from 1 to 5, both including.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>pos<<RESET>> is contained within the range. For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET>> for all numbers from 1 to 5, both including.
 
 ### function Range:toReverseRange(): ReverseRange
-Convert range to a `ReverseRange` object. For example, a range from 1 to 5 will return a `ReverseRange` object from 5 to 1.
+Convert range to a <<WHITE>>ReverseRange<<RESET>> object. For example, a range from 1 to 5 will return a <<WHITE>>ReverseRange<<RESET>> object from 5 to 1.
 
 ### static function ReverseRange::new(_start: int, _end: int): none
-Create a new ReverseRange object from `_start` to `_end` counting down.
+Create a new ReverseRange object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting down.
 
 ### function ReverseRange:toRange(): Range
-Convert reverse range to a `Range` object. For example, a reverse range from 5 to 1 will return a `Range` object from 1 to 5.
+Convert reverse range to a <<WHITE>>Range<<RESET>> object. For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> object from 1 to 5.
+
+## SclObject
+### function SclObject:toString(): str
+Returns a string representation of this object. It follows the following pattern: "typename@<hexAddress>"
+
+### function SclObject:==(other: SclObject): bool
+Returns true if the objects are equal. This method should be redefined by Structs as the default implementation returns the pointer equality.
+
+### function SclObject:equals(other: SclObject): bool
+Returns true if the objects are equal. This method should be redefined by Structs as the default implementation returns the pointer equality.
+
+### function SclObject:clone(): SclObject
+Returns a copy of this object.
+
+### function SclObject:hashCode(): SclObject
+Returns the hash of this object. This method should be redefined by Structs as the default implementation returns the hash of the type name.
+
+## ImmutableArray
+### function ImmutableArray:get(index: int): any?
+TODO.
+
+### function ImmutableArray:top(): any?
+TODO.
+
+### function ImmutableArray:contains(val: any): bool
+TODO.
+
+### function ImmutableArray:toString(): str
+TODO.
+
+### function ImmutableArray:map(x: lambda(any): none): none
+TODO.
+
+### static function ImmutableArray::new(count: int, values: [any]): none
+TODO.
+
+## Thread
+### static function Thread::new(func: lambda(): none): none
+Creates a new Thread object.
+
+### function Thread:start(): none
+Starts the thread. If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> has not been called on this thread yet, a <<WHITE>>ThreadException<<RESET>> is thrown.
+
+### function Thread:join(): none
+Blocks the calling thread until the thread finishes execution. If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
+
+## Exception
+### struct Exception
+Member types:
+- <<WHITE>>msg<<BLUE>>: str<<RESET>>
+
+<<WHITE>>msg<<RESET>>: Contains the exception message.
+
+## Debug
+### function trace(): none
+Prints the current stack trace to stdout.
+
+### function dumpStack(): none
+Prints a stack dump.
+
+### function raise(_sig_: int): none
+Raises the signal <<WHITE>>_sig_<<RESET>>.
+
+### function throw(ex: Exception): none
+Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> block.
+
+### function sysPrettyString(): str
+Returns a string containing the OS name and architecture.
+
+## Format
+### static function ConsoleColor::reset(): str
+Returns the ANSI escape code to reset the color.
+
+### static function ConsoleColor::black(): str
+Returns the ANSI escape code for the color black.
+
+### static function ConsoleColor::red(): str
+Returns the ANSI escape code for the color red.
+
+### static function ConsoleColor::green(): str
+Returns the ANSI escape code for the color green.
+
+### static function ConsoleColor::yellow(): str
+Returns the ANSI escape code for the color yellow.
+
+### static function ConsoleColor::blue(): str
+Returns the ANSI escape code for the color blue.
+
+### static function ConsoleColor::magenta(): str
+Returns the ANSI escape code for the color magenta.
+
+### static function ConsoleColor::cyan(): str
+Returns the ANSI escape code for the color cyan.
+
+### static function ConsoleColor::white(): str
+Returns the ANSI escape code for the color white.
+
+### static function ConsoleColor::bold(): str
+Returns the ANSI escape code for the color bold.
+
+## Map
+### static function Map::new(size: int): none
+Creates a new Map with a starting capacity of <<WHITE>>size<<RESET>> elements.
+
+### function Map:get(key: str): any?
+Returns the value for the key in the map. Returns <<BLUE>>nil<<RESET>> if the key has no mapping.
+
+### function Map:set(key: str, value: any): none
+Sets the value for the key in the map. If the key is in the map already, it's value will be updated.
+
+### function Map:toString(): str
+Returns a string representation of this map.
+
+### function Map:map(x: lambda(MapEntry): none): none
+Executes the lambda x for each entry in the map.
+
+### struct MapEntry
+Member types:
+- <<WHITE>>key<<BLUE>>: str<<RESET>>
+- <<WHITE>>value<<BLUE>>: any<<RESET>>
+
+<<WHITE>>key<<RESET>>: The key for this map entry.
+<<WHITE>>value<<RESET>>: The value of this map entry.
+
+### static function MapEntry::new(key: str, value: any): none
+Creates a new map entry with the given key and value.
+
+### function MapEntry:toString(): str
+Returns a string representation of this map entry.
