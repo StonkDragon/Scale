@@ -9,7 +9,7 @@
 #define VERSION ""
 #endif
 
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+#define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
 #define ITER_INC                                             \
     do {                                                     \
         i++;                                                 \
@@ -60,7 +60,7 @@ namespace sclc {
     }
 
     std::string notNilTypeOf(std::string t) {
-        if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
+        while (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
         return t;
     }
 
