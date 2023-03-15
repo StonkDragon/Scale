@@ -25,7 +25,7 @@ Example:<<WHITE>>
 <<YELLOW>>1 <<BLUE>>=> <<WHITE>>i
 <<YELLOW>>1 <<BLUE>>=> @<<WHITE>>i<<RESET>>
 
-Strict constness is lifted in `init`-methods.
+Strict constness is lifted in <<WHITE>>init<<RESET>>-methods.
 That means writing to <<BLUE>>const<<RESET>> variables is possible in constructors for const struct members and <<WHITE>>__init__<<RESET>> for global variables respectively
 
 ## Keywords
@@ -37,16 +37,16 @@ Example:<<WHITE>>
 <<BLUE>>end<<WHITE>><<RESET>>
 
 ### end
-This keyword marks the end of a `function`, `struct`, `container`, or `interface`.
+This keyword marks the end of a <<BLUE>>function<<RESET>>, <<BLUE>>struct<<RESET>>, <<BLUE>>container<<RESET>>, or <<BLUE>>interface<<RESET>>.
 
 ### expect
-This keyword marks a `function` or global variable as externally defined.
+This keyword marks a <<BLUE>>function<<RESET>> or global variable as externally defined.
 Example:<<WHITE>>
 <<BLUE>>expect function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
 <<BLUE>>expect decl<<WHITE>> bar<<BLUE>>: int<<WHITE>><<RESET>>
 
 ### while
-This keyword marks the begin of a `while`-loop
+This keyword marks the begin of a <<BLUE>>while<<RESET>>-loop
 Example:<<WHITE>>
 <<CYAN>># loops infinetly<<WHITE>>
 <<BLUE>>while true do<<WHITE>>
@@ -54,38 +54,38 @@ Example:<<WHITE>>
 <<BLUE>>done<<WHITE>><<RESET>>
 
 ### if
-This keyword marks the begin of an `if` statement.
+This keyword marks the begin of an <<BLUE>>if<<RESET>> statement.
 Example:<<WHITE>>
 <<BLUE>>if<<WHITE>> a <<BLUE>>then<<WHITE>>
     <<CYAN>># code<<WHITE>>
 <<BLUE>>fi<<WHITE>><<RESET>>
 
 ### elif
-This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't execute, but only executes, if a condition is `true`.
+This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't execute, but only executes, if a condition is <<BLUE>>true<<RESET>>.
 Example:<<WHITE>>
 <<BLUE>>elif<<WHITE>> b <<BLUE>>then<<WHITE>>
     <<CYAN>># code<<WHITE>>
 <<BLUE>>fi<<WHITE>><<RESET>>
 
 ### else
-This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't execute.
+This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't execute.
 Example:<<WHITE>>
 <<BLUE>>else<<WHITE>>
     <<CYAN>># code<<WHITE>>
 <<BLUE>>fi<<WHITE>><<RESET>>
 
 ### fi
-This keyword marks the end of an `if`-statement.
+This keyword marks the end of an <<BLUE>>if<<RESET>>-statement.
 
 ### do
-This keyword marks the end of the looping condition of a `while`, `for`, or `foreach`-loop.
+This keyword marks the end of the looping condition of a <<BLUE>>while<<RESET>>, <<BLUE>>for<<RESET>>, or <<BLUE>>foreach<<RESET>>-loop.
 
 ### done
-This keyword marks the end of a loop. If reached, the condition of the loop gets evaluated and if evaluated to `true`, repeat.
+This keyword marks the end of a loop. If reached, the condition of the loop gets evaluated and if evaluated to <<BLUE>>true<<RESET>>, repeat.
 
 ### return
 This keyword marks a return statement.
-This keyword marks a code block that only gets executed, if all preceeding `if`s and `elif`s didn't.
+This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't.
 Example:<<WHITE>>
 <<BLUE>>function<<WHITE>> foo<<BLUE>>(): str<<WHITE>>
     <<GREEN>>"Hello" <<BLUE>>return<<WHITE>>
@@ -98,7 +98,7 @@ If control flow reaches this keyword, the innermost loop stops looping, regardle
 If control flow reaches this keyword, the innermost loop continues to the next iteration, if the looping condition is still true.
 
 ### for
-This keyword marks the begin of a `for`-loop.
+This keyword marks the begin of a <<BLUE>>for<<RESET>>-loop.
 Example:<<WHITE>>
 <<CYAN>># Executes 10 times<<WHITE>>
 <<BLUE>>for<<WHITE>> i <<BLUE>>in<<YELLOW>> 0 <<BLUE>>to<<YELLOW>> 10 <<BLUE>>do
@@ -116,7 +116,7 @@ Example:<<WHITE>>
 <<BLUE>>addr<<WHITE>> i<<RESET>>
 
 ### container
-This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the `MathConstants` container in Scale's math library.
+This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the <<WHITE>>MathConstants<<RESET>> container in Scale's math library.
 <<WHITE>>
 <<BLUE>>container<<WHITE>> Foo
     <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
@@ -150,10 +150,10 @@ Example:<<WHITE>>
 This keyword is used to check if the value on the stack is of a certain struct type.
 
 ### label
-This keyword is used to declare a new label that you can `goto` to.
+This keyword is used to declare a new label that you can <<BLUE>>goto<<RESET>> to.
 
 ### goto
-This keyword is used to go to a `label`
+This keyword is used to go to a <<BLUE>>label<<RESET>>
 
 ### self
 This keyword is used to reference the current instance inside of a non-static member function of a struct.
@@ -174,10 +174,10 @@ foo <<BLUE>>switch<<WHITE>>
 <<BLUE>>done<<WHITE>><<RESET>>
 
 ### case
-This keyword is used to create a new branch inside of a switch statement. A case branch ends when the `esac` keyword is encountered.
+This keyword is used to create a new branch inside of a switch statement. A case branch ends when the <<BLUE>>esac<<RESET>> keyword is encountered.
 
 ### default
-This keyword is used to create a branch inside of a switch statement that gets used if the value of the switch is not matched by any `case` statements.
+This keyword is used to create a branch inside of a switch statement that gets used if the value of the switch is not matched by any <<BLUE>>case<<RESET>> statements.
 
 ### import
 This keyword is used to import the contents of other files into the current file.
@@ -240,43 +240,43 @@ The `^` operator returns the logical XOR of the top two values on the stack.
 The `~` operator returns the logical NOT of the top value on the stack.
 
 ### <<
-`a b <<`: The `<<` operator shifts `a` `b` times to the left.
+`a b <<`: The `<<` operator shifts <<WHITE>>a<<RESET>> <<WHITE>>b<<RESET>> times to the left.
 
 ### >>
-`a b >>`: The `>>` operator shifts `a` `b` times to the right.
+`a b >>`: The `>>` operator shifts <<WHITE>>a<<RESET>> <<WHITE>>b<<RESET>> times to the right.
 
 ### **
-`a b **`: Raises `a` to the power of `b`.
+`a b **`: Raises <<WHITE>>a<<RESET>> to the power of <<WHITE>>b<<RESET>>.
 
 ### <
-`a b <`: Returns `true` if `a` is less than `b`.
+`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is less than <<WHITE>>b<<RESET>>.
 
 ### <=
-`a b <=`: Returns `true` if `a` is less than or equal to `b`.
+`a b <=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is less than or equal to <<WHITE>>b<<RESET>>.
 
 ### >
-`a b >`: Returns `true` if `a` is greater than `b`.
+`a b >`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is greater than <<WHITE>>b<<RESET>>.
 
 ### >=
-`a b >=`: Returns `true` if `a` is greater than or equal to `b`.
+`a b >=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is greater than or equal to <<WHITE>>b<<RESET>>.
 
 ### ==
-`a b ==`: Returns `true` if `a` is equal to `b`.
+`a b ==`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is equal to <<WHITE>>b<<RESET>>.
 
 ### !
-`a !`: Returns `true` if `a` is `false`, `false` otherwise.
+`a !`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is <<BLUE>>false<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
 
 ### !!
-Asserts that the top value on the stack is not `nil`. If it is `nil`, abort execution.
+Asserts that the top value on the stack is not <<BLUE>>nil<<RESET>>. If it is <<BLUE>>nil<<RESET>>, abort execution.
 
 ### !=
-`a b !=`: Returns `true` if `a` is not equal to `b`.
+`a b !=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is not equal to <<WHITE>>b<<RESET>>.
 
 ### &&
-`a b <`: Returns `true` if `a` and `b` are `true`.
+`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>> are <<BLUE>>true<<RESET>>.
 
 ### ||
-`a b <`: Returns `true` if `a` or `b` is `true`.
+`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> or <<WHITE>>b<<RESET>> is <<BLUE>>true<<RESET>>.
 
 ### ++
 Increments the top value on the stack by one.
@@ -327,19 +327,19 @@ They don't even have to return anything:
 
 ## Data types
 ### str
-The `str` data type represents a `nil` terminated string.
+The <<BLUE>>str<<RESET>> data type represents a <<BLUE>>nil<<RESET>> terminated string.
 Example:
 <<GREEN>>"Hello, World!"<<RESET>>
 
 ### int
-The `int` data type represents a signed 64-bit number.
+The <<BLUE>>int<<RESET>> data type represents a signed 64-bit number.
 Example:
 <<YELLOW>>0<<RESET>>
 <<YELLOW>>10<<RESET>>
 <<YELLOW>>-5<<RESET>>
 
 ### float
-The `float` data type represents a 64-bit floating point number.
+The <<BLUE>>float<<RESET>> data type represents a 64-bit floating point number.
 Example:
 <<YELLOW>>0.0<<RESET>>
 <<YELLOW>>1.1<<RESET>>
@@ -347,7 +347,7 @@ Example:
 <<YELLOW>>4.5<<RESET>>
 
 ### any
-The `any` data type can represent any value.
+The <<BLUE>>any<<RESET>> data type can represent any value.
 Example:
 <<YELLOW>>0.0<<RESET>>
 <<YELLOW>>1<<RESET>>
@@ -355,7 +355,7 @@ Example:
 <<BLUE>>addr <<WHITE>>foo<<RESET>>
 
 ### pointers
-Pointers are denoted by wrapping a type inside of `[]`.
+Pointers are denoted by wrapping a type inside of <<BLUE>>[]<<RESET>>.
 Example:
 <<BLUE>>[int]<<RESET>>
 <<BLUE>>[any]<<RESET>>
@@ -365,10 +365,10 @@ Pointers can be nested to make pointers to pointers:
 
 ## Built-in constants
 ### true
-The `true` constant is equal to `1`.
+The <<BLUE>>true<<RESET>> constant is equal to <<YELLOW>>1<<RESET>>.
 
 ### false
-The `false` constant is equal to `0`.
+The <<BLUE>>false<<RESET>> constant is equal to <<YELLOW>>0<<RESET>>.
 
 ### nil
-The `nil` constant represents a null pointer. It is equal to `0`.
+The <<BLUE>>nil<<RESET>> constant represents a null pointer. It is equal to <<YELLOW>>0<<RESET>>.
