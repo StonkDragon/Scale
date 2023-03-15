@@ -103,89 +103,11 @@ namespace sclc
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
-    auto parseMarkDown(std::string file) {
-        std::cerr << Color::BOLDMAGENTA << "Markdown Docfiles are deprecated." << Color::RESET << std::endl;
-
-        std::map<std::string, std::map<std::string, std::string>> docs;
-        FILE* fp = fopen(file.c_str(), "rb");
-        if (fp) fseek(fp, 0, SEEK_END);
-        long sz = ftell(fp);
-        if (fp) fseek(fp, 0, SEEK_SET);
-        char* data = new char[sz];
-        fread(data, 1, sz, fp);
-        fclose(fp);
-
-        std::vector<std::string> lines = split(std::string(data), "\n");
-
-        std::string current = "";
-        for (size_t i = 0; i < lines.size(); i++) {
-            std::string line = lines[i];
-
-            try {
-                line = replaceAll(line, "`", "");
-            } catch (std::out_of_range& e) {}
-            if (strstarts(line, "##") && !strstarts(line, "###")) {
-                try {
-                    size_t start = line.find_first_of('(') + 1;
-                    size_t end = line.find_last_of(')');
-                    if (start == std::string::npos) {
-                        current = "";
-                        continue;
-                    }
-                    current = line.substr(start, end - start);
-                    current = replaceAll(current, "\\./", "");
-                    current = replaceAll(current, Main.options.docsIncludeFolder + "/", "");
-                    current = replaceAll(current, "/", ".");
-                    current = replaceAll(current, "\\.scale$", "");
-                    current = Main.options.printDocFor + "." + current;
-                    
-                    std::map<std::string, std::string> key_value;
-                    docs[current] = key_value;
-                } catch (std::out_of_range& e) {}
-            } else if (strstarts(line, "###")) {
-                std::string key = line.substr(4);
-                docs[current][key] = "";
-                line = lines[++i];
-                while (i < lines.size() && !strstarts(line, "##")) {
-                    while (strstarts(line, "<div")) {
-                        line = lines[++i];
-                    }
-                    docs[current][key] += "  " + line + "\n";
-                    line = lines[++i];
-                }
-                std::string prev = docs[current][key];
-                std::string now = replaceAll(prev, "\n  \n", "\n");
-                while (prev != now) {
-                    prev = now;
-                    now = replaceAll(prev, "\n  \n", "\n");
-                }
-                now = replaceAll(now, "<<RESET>>", Color::GREEN);
-                now = replaceAll(now, "<<BLACK>>", Color::BLACK);
-                now = replaceAll(now, "<<RED>>", Color::RED);
-                now = replaceAll(now, "<<GREEN>>", Color::GREEN);
-                now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
-                now = replaceAll(now, "<<BLUE>>", Color::BLUE);
-                now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
-                now = replaceAll(now, "<<WHITE>>", Color::WHITE);
-                now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
-                now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
-                now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
-                now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
-                now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
-                now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
-                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
-                now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
-
-                docs[current][key] = now;
-                i--;
-            }
-        }
-        return docs;
-    }
+    using pairss = std::pair<std::string, std::string>;
+    using pairlist = std::vector<pairss>;
 
     auto parseSclDoc(std::string file) {
-        std::map<std::string, std::map<std::string, std::string>> docs;
+        std::map<std::string, pairlist> docs;
         FILE* fp = fopen(file.c_str(), "rb");
         if (fp) fseek(fp, 0, SEEK_END);
         long sz = ftell(fp);
@@ -204,21 +126,21 @@ namespace sclc
             if (strstarts(line, "##") && !strstarts(line, "###")) {
                 try {
                     current = line.substr(3);
-                    std::map<std::string, std::string> key_value;
+                    pairlist key_value;
                     docs[current] = key_value;
                 } catch (std::out_of_range& e) {}
             } else if (strstarts(line, "###")) {
                 std::string key = line.substr(4);
-                docs[current][key] = "";
+                docs[current].push_back(std::make_pair(key, ""));
                 line = lines[++i];
                 while (i < lines.size() && !strstarts(line, "##")) {
                     while (strstarts(line, "<div")) {
                         line = lines[++i];
                     }
-                    docs[current][key] += "  " + line + "\n";
+                    docs[current].back().second += "  " + line + "\n";
                     line = lines[++i];
                 }
-                std::string prev = docs[current][key];
+                std::string prev = docs[current].back().second;
                 std::string now = replaceAll(prev, "\n  \n", "\n");
                 now = replaceAll(now, "<<RESET>>", Color::GREEN);
                 now = replaceAll(now, "<<BLACK>>", Color::BLACK);
@@ -238,7 +160,7 @@ namespace sclc
                 now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
                 now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
 
-                docs[current][key] = now;
+                docs[current].back().second = now;
                 i--;
             }
         }
@@ -246,7 +168,7 @@ namespace sclc
     }
 
     auto docHandler(std::vector<std::string> args) {
-        std::map<std::string, std::map<std::string, std::string>> docs;
+        std::map<std::string, pairlist> docs;
         
         struct {
             std::vector<std::string> find;
@@ -315,7 +237,8 @@ namespace sclc
                 std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
                 Main.options.docsIncludeFolder = includeFolder;
                 if (docFileFormat == "markdown") {
-                    docs = parseMarkDown(file);
+                    std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
+                    return 1;
                 } else if (docFileFormat == "scldoc") {
                     docs = parseSclDoc(file);
                 } else {
@@ -326,7 +249,7 @@ namespace sclc
                 std::cout << "Categories: " << std::endl;
 
                 std::string current = "";
-                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                for (std::pair<std::string, pairlist> section : docs) {
                     current = section.first;
                     std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
                 }
@@ -337,7 +260,7 @@ namespace sclc
                 std::cout << "Categories: " << std::endl;
 
                 std::string current;
-                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                for (std::pair<std::string, pairlist> section : docs) {
                     current = section.first;
                     std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
                 }
@@ -351,10 +274,10 @@ namespace sclc
 
             std::string current;
             if (DocOps.find.size() == 0) {
-                for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                for (std::pair<std::string, pairlist> section : docs) {
                     current = section.first;
                     std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                    for (std::pair<std::string, std::string> kv : section.second) {
+                    for (pairss kv : section.second) {
                         std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                     }
                 }
@@ -364,9 +287,9 @@ namespace sclc
                     std::string sec = "";
                     bool hasSection = false;
                     std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    for (std::pair<std::string, pairlist> section : docs) {
                         current = section.first;
-                        for (std::pair<std::string, std::string> kv : section.second) {
+                        for (pairss kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
@@ -377,7 +300,7 @@ namespace sclc
                             }
                         }
                         if (!found) {
-                            for (std::pair<std::string, std::string> kv : section.second) {
+                            for (pairss kv : section.second) {
                                 std::string matchCurrent = current;
                                 std::string matchKey = kv.first;
                                 std::string matchDescription = kv.second;
@@ -388,11 +311,11 @@ namespace sclc
                             }
                         }
                     }
-                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    for (std::pair<std::string, pairlist> section : docs) {
                         current = section.first;
                         if (found && current == sec)
                             std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (std::pair<std::string, std::string> kv : section.second) {
+                        for (pairss kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
@@ -427,7 +350,8 @@ namespace sclc
             std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
             Main.options.docsIncludeFolder = includeFolder;
             if (docFileFormat == "markdown") {
-                docs = parseMarkDown(file);
+                std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
+                return 1;
             } else if (docFileFormat == "scldoc") {
                 docs = parseSclDoc(file);
             } else {
@@ -439,10 +363,10 @@ namespace sclc
             std::string current = "";
             if (DocOps.find.size() == 0) {
                 if (DocOps.find_category.size() == 0) {
-                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    for (std::pair<std::string, pairlist> section : docs) {
                         current = section.first;
                         std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (std::pair<std::string, std::string> kv : section.second) {
+                        for (pairss kv : section.second) {
                             std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                         }
                     }
@@ -451,7 +375,7 @@ namespace sclc
                         bool found = false;
                         std::string sec = "";
                         std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        for (std::pair<std::string, pairlist> section : docs) {
                             current = section.first;
                             std::string matchCurrent = current;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase))) {
@@ -459,11 +383,11 @@ namespace sclc
                                 sec = current;
                             }
                         }
-                        for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                        for (std::pair<std::string, pairlist> section : docs) {
                             current = section.first;
                             if (found && current == sec) {
                                 std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (std::pair<std::string, std::string> kv : section.second) {
+                                for (pairss kv : section.second) {
                                     std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                 }
                                 break;
@@ -480,9 +404,9 @@ namespace sclc
                     std::string sec = "";
                     bool hasSection = false;
                     std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    for (std::pair<std::string, pairlist> section : docs) {
                         current = section.first;
-                        for (std::pair<std::string, std::string> kv : section.second) {
+                        for (pairss kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
@@ -493,7 +417,7 @@ namespace sclc
                             }
                         }
                         if (!found) {
-                            for (std::pair<std::string, std::string> kv : section.second) {
+                            for (pairss kv : section.second) {
                                 std::string matchCurrent = current;
                                 std::string matchKey = kv.first;
                                 std::string matchDescription = kv.second;
@@ -504,11 +428,11 @@ namespace sclc
                             }
                         }
                     }
-                    for (std::pair<std::string, std::map<std::string, std::string>> section : docs) {
+                    for (std::pair<std::string, pairlist> section : docs) {
                         current = section.first;
                         if (found && current == sec)
                             std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (std::pair<std::string, std::string> kv : section.second) {
+                        for (pairss kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
