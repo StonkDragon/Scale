@@ -255,6 +255,8 @@ namespace sclc {
                 symbolTable = fopen("scale-symbol-table.txt", "a");
         }
 
+        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_cleanup_post_func", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_reflect_call", "_scl_reflect_call_method", "_scl_typeinfo_of", "_scl_reflect_find", "_scl_reflect_find_method", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
+
         for (Function* function : result.functions) {
             std::string return_type = "void";
 
@@ -282,7 +284,9 @@ namespace sclc {
             }
             if (function->isExternC) {
                 if (!function->isMethod) {
-                    fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    if (!contains<std::string>(forbidden_funcs_for_support_header, function->getName())) {
+                        fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    }
                 } else {
                     fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
@@ -305,6 +309,8 @@ namespace sclc {
         int scopeDepth = 0;
         if (result.extern_functions.size() == 0) return;
         append("/* EXTERN FUNCTIONS */\n");
+
+        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_cleanup_post_func", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_reflect_call", "_scl_reflect_call_method", "_scl_typeinfo_of", "_scl_reflect_find", "_scl_reflect_find_method", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
 
         for (Function* function : result.extern_functions) {
             bool hasFunction = false;
@@ -339,7 +345,9 @@ namespace sclc {
                 }
                 if (function->isExternC) {
                     if (!function->isMethod) {
-                        fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                        if (!contains<std::string>(forbidden_funcs_for_support_header, function->getName())) {
+                            fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                        }
                     } else {
                         fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                     }
