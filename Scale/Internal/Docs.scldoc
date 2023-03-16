@@ -110,10 +110,10 @@ This keyword is used to declare a new variable.
 Example:<<WHITE>>
 <<BLUE>>decl<<WHITE>> i<<BLUE>>: int<<RESET>>
 
-### addr
-This keyword is used to grab the address of a function or variable
+### ref
+This keyword is used to grab a reference to a function or variable. Taking the reference to a function returns a lambda object
 Example:<<WHITE>>
-<<BLUE>>addr<<WHITE>> i<<RESET>>
+<<BLUE>>ref<<WHITE>> i<<RESET>>
 
 ### container
 This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the <<WHITE>>MathConstants<<RESET>> container in Scale's math library.
@@ -210,6 +210,13 @@ Example:<<WHITE>>
 
 ### catch
 This keyword is used to denote the start of the catch part of a try-catch block. See <<BLUE>>try<<RESET>>.
+
+### lambda
+This keyword is used to create a new lambda object.
+Example:<<WHITE>>
+<<BLUE>>lambda(): none
+  <<YELLOW>>"Hello!" <<WHITE>>puts
+<<BLUE>>end
 
 ## Operators
 ### +
