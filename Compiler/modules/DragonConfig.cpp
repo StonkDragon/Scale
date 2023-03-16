@@ -1,11 +1,24 @@
+#include <regex>
+
 #include "../headers/DragonConfig.hpp"
-#include <cstring>
+
+extern "C" long unsigned int strlen(const char*);
 
 using namespace std;
 using namespace DragonConfig;
 
 #define DRAGON_LOG std::cout << "[Dragon] "
 #define DRAGON_ERR std::cerr << "[Dragon] "
+
+static CompoundEntry* currentParsingRoot = nullptr;
+
+static std::string replaceAll(std::string src, std::string from, std::string to) {
+    try {
+        return regex_replace(src, std::regex(from), to);
+    } catch (std::regex_error& e) {
+        return src;
+    }
+}
 
 std::string ConfigEntry::getKey() const { return key; }
 EntryType ConfigEntry::getType() const { return type; }
@@ -20,7 +33,21 @@ std::string StringEntry::getValue() {
     return this->value;
 }
 void StringEntry::setValue(std::string value) {
-    this->value = value;
+    size_t index;
+    std::string tmp = value;
+    std::string newVal = value;
+    while ((index = tmp.find_first_of("$(")) != std::string::npos) {
+        size_t endIndex = tmp.find_first_of(")");
+        auto s = tmp.substr(index + 2, endIndex - index - 2);
+        tmp = tmp.substr(endIndex + 1);
+        StringEntry* key = currentParsingRoot->getStringByPath(s);
+        if (key == nullptr) {
+            DRAGON_ERR << "Could not resolve path '" << s << "' for macro. Maybe that key doesn't exist yet?";
+            return;
+        }
+        newVal = replaceAll(newVal, "\\$\\(" + s + "\\)", key->getValue());
+    }
+    this->value = newVal;
 }
 bool StringEntry::isEmpty() {
     return this->value.empty();
@@ -131,7 +158,7 @@ bool CompoundEntry::hasMember(const std::string& key) {
 }
 StringEntry* CompoundEntry::getString(const std::string& key) {
     for (auto& entry : this->entries) {
-        if (entry->getKey() == key) {
+        if (entry->getType() == EntryType::String && entry->getKey() == key) {
             return reinterpret_cast<StringEntry*>(entry);
         }
     }
@@ -139,19 +166,17 @@ StringEntry* CompoundEntry::getString(const std::string& key) {
 }
 StringEntry* CompoundEntry::getStringOrDefault(const std::string& key, const std::string& defaultValue) {
     for (auto entry : this->entries) {
-        if (entry->getKey() == key) {
+        if (entry->getType() == EntryType::String && entry->getKey() == key) {
             return reinterpret_cast<StringEntry*>(entry);
         }
     }
     StringEntry* entry = new StringEntry();
-    entry->setKey(key);
     entry->setValue(defaultValue);
-    this->entries.push_back(entry);
     return entry;
 }
 ListEntry* CompoundEntry::getList(const std::string& key) {
     for (auto entry : this->entries) {
-        if (entry->getKey() == key) {
+        if (entry->getType() == EntryType::List && entry->getKey() == key) {
             return reinterpret_cast<ListEntry*>(entry);
         }
     }
@@ -159,15 +184,78 @@ ListEntry* CompoundEntry::getList(const std::string& key) {
 }
 CompoundEntry* CompoundEntry::getCompound(const std::string& key) {
     for (auto entry : this->entries) {
-        if (entry->getKey() == key) {
+        if (entry->getType() == EntryType::Compound && entry->getKey() == key) {
             return reinterpret_cast<CompoundEntry*>(entry);
         }
     }
     return nullptr;
 }
+StringEntry* CompoundEntry::getStringByPath(const std::string& path) {
+    ConfigEntry* entry = this->resolvePath(path);
+    if (!entry || entry->getType() != EntryType::String) {
+        return nullptr;
+    }
+    return reinterpret_cast<StringEntry*>(entry);
+}
+StringEntry* CompoundEntry::getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue) {
+    ConfigEntry* entry = this->resolvePath(path);
+    if (!entry || entry->getType() != EntryType::String) {
+        StringEntry* entry = new StringEntry();
+        entry->setValue(defaultValue);
+        return entry;
+    }
+    return reinterpret_cast<StringEntry*>(entry);
+}
+ListEntry* CompoundEntry::getListByPath(const std::string& path) {
+    ConfigEntry* entry = this->resolvePath(path);
+    if (!entry || entry->getType() != EntryType::List) {
+        return nullptr;
+    }
+    return reinterpret_cast<ListEntry*>(entry);
+}
+CompoundEntry* CompoundEntry::getCompoundByPath(const std::string& path) {
+    ConfigEntry* entry = this->resolvePath(path);
+    if (!entry || entry->getType() != EntryType::Compound) {
+        return nullptr;
+    }
+    return reinterpret_cast<CompoundEntry*>(entry);
+}
+
+static std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+    std::vector<std::string> body;
+    size_t start = 0;
+    size_t end = 0;
+    while ((end = str.find(delimiter, start)) != std::string::npos)
+    {
+        body.push_back(str.substr(start, end - start));
+        start = end + delimiter.length();
+    }
+    body.push_back(str.substr(start));
+    return body;
+}
+
+ConfigEntry* CompoundEntry::get(const std::string& key) {
+    for (auto entry : this->entries) {
+        if (entry->getKey() == key) {
+            return entry;
+        }
+    }
+    return nullptr;
+}
+
+ConfigEntry* CompoundEntry::resolvePath(const std::string& path) {
+    std::string internalCopy = path;
+    auto pathAsVec = split(internalCopy, ".");
+    CompoundEntry* current = this;
+    size_t i;
+    for (i = 0; i < pathAsVec.size() - 1; i++) {
+        current = current->getCompound(pathAsVec[i]);
+    }
+    return current->get(pathAsVec[i]);
+}
 void CompoundEntry::setString(const std::string& key, const std::string& value) {
     for (auto& entry : this->entries) {
-        if (entry->getKey() == key) {
+        if (entry->getType() ==  EntryType::String && entry->getKey() == key) {
             reinterpret_cast<StringEntry*>(entry)->getValue() = value;
             return;
         }
@@ -179,7 +267,7 @@ void CompoundEntry::setString(const std::string& key, const std::string& value) 
 }
 void CompoundEntry::addString(const std::string& key, const std::string& value) {
     if (this->hasMember(key)) {
-        std::cerr << "std::string with key '" << key << "' already exists" << std::endl;
+        std::cerr << "String with key '" << key << "' already exists" << std::endl;
         return;
     }
     StringEntry* newEntry = new StringEntry();
@@ -254,7 +342,6 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
         stream << std::string(indent, ' ') << "};" << std::endl;
     }
 }
-
 CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     FILE* fp = fopen(configFile.c_str(), "r");
     if (!fp) {
@@ -269,7 +356,7 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     buf[size] = '\0';
     fclose(fp);
     std::string config;
-    for (size_t i = 0; i < std::strlen(buf); i++) {
+    for (size_t i = 0; i < strlen(buf); i++) {
         if (buf[i] == '#') {
             while (buf[i] != '\n' && buf[i] != '\0') {
                 i++;
@@ -360,6 +447,11 @@ StringEntry* ConfigParser::parseString(std::string& data, int* i) {
 
 CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
     CompoundEntry* compound = new CompoundEntry();
+    bool resetCurrentAfter = false;
+    if (currentParsingRoot == nullptr) {
+        currentParsingRoot = compound;
+        resetCurrentAfter = true;
+    }
     char c = data.at(++(*i));
     while (c != '}') {
         std::string key = "";
@@ -369,17 +461,29 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
         c = data.at(++(*i));
         if (c == '[') {
             ListEntry* entry = this->parseList(data, i);
-            if (!entry) return nullptr;
+            if (!entry) {
+                if (resetCurrentAfter)
+                    currentParsingRoot = nullptr;
+                return nullptr;
+            }
             entry->setKey(key);
             compound->entries.push_back(entry);
         } else if (c == '{') {
             CompoundEntry* entry = parseCompound(data, i);
-            if (!entry) return nullptr;
+            if (!entry) {
+                if (resetCurrentAfter)
+                    currentParsingRoot = nullptr;
+                return nullptr;
+            }
             entry->setKey(key);
             compound->entries.push_back(entry);
         } else {
             StringEntry* entry = this->parseString(data, i);
-            if (!entry) return nullptr;
+            if (!entry) {
+                if (resetCurrentAfter)
+                    currentParsingRoot = nullptr;
+                return nullptr;
+            }
             entry->setKey(key);
             compound->entries.push_back(entry);
         }
@@ -388,7 +492,11 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
     c = data.at(++(*i));
     if (c != ';') {
         DRAGON_ERR << "Invalid compound entry!" << std::endl;
+        if (resetCurrentAfter)
+            currentParsingRoot = nullptr;
         return nullptr;
     }
+    if (resetCurrentAfter)
+        currentParsingRoot = nullptr;
     return compound;
 }

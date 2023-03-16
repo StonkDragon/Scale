@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 
 #ifdef _WIN32
 typedef unsigned long u_long;
@@ -71,10 +72,16 @@ namespace DragonConfig {
 
         CompoundEntry();
         bool hasMember(const std::string& key);
+        ConfigEntry* get(const std::string& key);
+        ConfigEntry* resolvePath(const std::string& path);
         StringEntry* getString(const std::string& key);
+        StringEntry* getStringByPath(const std::string& path);
         StringEntry* getStringOrDefault(const std::string& key, const std::string& defaultValue);
+        StringEntry* getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue);
         ListEntry* getList(const std::string& key);
+        ListEntry* getListByPath(const std::string& path);
         CompoundEntry* getCompound(const std::string& key);
+        CompoundEntry* getCompoundByPath(const std::string& path);
         void setString(const std::string& key, const std::string& value);
         void addString(const std::string& key, const std::string& value);
         void addList(const std::string& key, const std::vector<ConfigEntry*>& value);
@@ -89,7 +96,7 @@ namespace DragonConfig {
 
     struct ConfigParser {
         CompoundEntry* parse(const std::string& configFile);
-
+        
     private:
         bool isValidIdentifier(char c);
 

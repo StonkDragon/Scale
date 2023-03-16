@@ -19,7 +19,7 @@ build: {
     "Common.cpp";
   ];
   defines: [
-    "VERSION=\"23.2\"";
+    "VERSION=\"23.1.1\"";
     "C_VERSION=\"gnu17\"";
     "SCL_ROOT_DIR=\"/opt\"";
   ];
@@ -32,15 +32,15 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "rm -rf /opt/Scale/23.2";
+    "rm -rf /opt/Scale/23.1.1";
     "sudo mkdir -p /opt/Scale";
     "sudo chmod 777 /opt/Scale";
-    "cp -r Scale /opt/Scale/23.2";
+    "cp -r Scale /opt/Scale/23.1.1";
   ];
   postBuild: [
-    "sudo mv target/sclc /opt/Scale/23.2";
+    "sudo mv target/sclc /opt/Scale/23.1.1";
     "sudo rm -f /usr/local/bin/sclc";
-    "sudo ln -s /opt/Scale/23.2/sclc /usr/local/bin/sclc";
+    "sudo ln -s /opt/Scale/23.1.1/sclc /usr/local/bin/sclc";
     "rm -rf target";
     "python3 tests.py run";
   ];
@@ -67,7 +67,7 @@ install: {
     "Common.cpp";
   ];
   defines: [
-    "VERSION=\"23.2\"";
+    "VERSION=\"23.1.1\"";
     "C_VERSION=\"gnu17\"";
     "SCL_ROOT_DIR=\"/opt\"";
   ];
@@ -79,15 +79,15 @@ install: {
     "-pedantic";
   ];
   preBuild: [
-    "rm -rf /opt/Scale/23.2";
+    "rm -rf /opt/Scale/23.1.1";
     "sudo mkdir -p /opt/Scale";
     "sudo chmod 777 /opt/Scale";
-    "cp -r Scale /opt/Scale/23.2";
+    "cp -r Scale /opt/Scale/23.1.1";
   ];
   postBuild: [
-    "sudo mv target/sclc /opt/Scale/23.2";
+    "sudo mv target/sclc /opt/Scale/23.1.1";
     "sudo rm -f /usr/local/bin/sclc";
-    "sudo ln -s /opt/Scale/23.2/sclc /usr/local/bin/sclc";
+    "sudo ln -s /opt/Scale/23.1.1/sclc /usr/local/bin/sclc";
     "rm -rf target";
   ];
 };
