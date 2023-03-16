@@ -647,8 +647,9 @@ namespace sclc {
             return;
         }
         for (size_t m = 0; m < self->getArgs().size(); m++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
@@ -692,8 +693,9 @@ namespace sclc {
             return;
         }
         for (ssize_t m = self->getArgs().size() - 1; m >= 0; m--) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
@@ -864,8 +866,9 @@ namespace sclc {
         noUnused;
         if (typeCanBeNil(typeStackTop)) {
             std::string type = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.substr(0, type.size() - 1));
         }
         if (!typeCanBeNil(function->getReturnType()) && return_type != "void") {
@@ -958,8 +961,9 @@ namespace sclc {
     #endif
         if (body[i].getValue() == "drop") {
             append("_scl_internal_stack.ptr--;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         } else if (body[i].getValue() == "dup") {
             append("_scl_push()->v = _scl_top()->v;\n");
             typeStack.push(typeStackTop);
@@ -973,11 +977,13 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
             std::string b = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string a = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(b);
             typeStack.push(a);
         } else if (body[i].getValue() == "over") {
@@ -992,14 +998,17 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
             std::string c = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string b = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string a = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(c);
             typeStack.push(b);
             typeStack.push(a);
@@ -1014,11 +1023,13 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
             std::string b = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string a = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(a);
             typeStack.push(b);
             typeStack.push(a);
@@ -1034,14 +1045,17 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
             std::string c = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string b = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             std::string a = typeStackTop;
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(b);
             typeStack.push(a);
             typeStack.push(c);
@@ -1049,29 +1063,34 @@ namespace sclc {
             append("_scl_bulk_decr(0, _scl_internal_stack.ptr);\n");
             append("_scl_internal_stack.ptr = 0;\n");
             for (size_t t = 0; t < typeStack.size(); t++) {
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
             }
         } else if (body[i].getValue() == "&&") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i && _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "!") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "!", typeStackTop)) return;
             append("_scl_top()->i = !_scl_top()->i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "!!") {
             if (typeCanBeNil(typeStackTop)) {
                 std::string type = typeStackTop;
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
                 typeStack.push(type.substr(0, type.size() - 1));
                 append("_scl_assert(_scl_top()->i, \"Not nil assertion failed!\");\n");
             } else {
@@ -1086,64 +1105,78 @@ namespace sclc {
             if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i || _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "<") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i < _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == ">") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i > _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "==") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i == _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "<=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i <= _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == ">=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i >= _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "!=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
             append("_scl_popn(2);\n");
             append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i != _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
-            if (typeStack.size())
+            }
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
         } else if (body[i].getValue() == "++") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
@@ -1157,16 +1190,19 @@ namespace sclc {
                 typeStack.push("int");
         } else if (body[i].getValue() == "exit") {
             append("exit(_scl_pop()->i);\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         } else if (body[i].getValue() == "puts") {
             append("puts((_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         } else if (body[i].getValue() == "eputs") {
             append("fprintf(stderr, \"%%s\\n\", (_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         } else if (body[i].getValue() == "abort") {
             append("abort();\n");
         } else if (body[i].getValue() == "typeof") {
@@ -1476,15 +1512,17 @@ namespace sclc {
         }
         ITER_INC;
         append("__it%d.start = _scl_pop()->i;\n", iterator_count);
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         while (body[i].getType() != tok_step && body[i].getType() != tok_do) {
             handle(Token);
             ITER_INC;
         }
         append("__it%d.end = _scl_pop()->i;\n", iterator_count);
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         std::string iterator_direction = "++";
         if (body[i].getType() == tok_step) {
             ITER_INC;
@@ -1884,8 +1922,9 @@ namespace sclc {
             append("{\n");
             scopeDepth++;
             append("struct Struct_Array* tmp = (struct Struct_Array*) _scl_pop()->v;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             ITER_INC;
             int destructureIndex = 0;
             while (body[i].getType() != tok_paren_close) {
@@ -2254,8 +2293,9 @@ namespace sclc {
                 append("_scl_assert(_scl_top()->i, \"Nil cannot be stored in non-nil variable '%s'\");\n", v.getName().c_str());
             }
             append("%s Var_%s = (%s) _scl_pop()->%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str(), sclTypeToCType(result, v.getType()).c_str(), v.getType() == "float" ? "f" : "v");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         } else {
             if (body[i].getType() != tok_identifier && body[i].getType() != tok_addr_of) {
                 transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -2563,8 +2603,9 @@ namespace sclc {
             }
             if (didPush) {
                 append("Method_Array$push(_scl_pop()->v, tmp);\n");
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
             }
         }
         append("_scl_push()->v = tmp;\n");
@@ -2623,8 +2664,9 @@ namespace sclc {
             }
             if (didPush) {
                 append("Method_Map$set(_scl_create_string(\"%s\"), _scl_pop()->v, tmp);\n", key.c_str());
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
             }
         }
         append("_scl_push()->v = tmp;\n");
@@ -2664,8 +2706,9 @@ namespace sclc {
             Method* f = getMethodByName(result, "init", "MapEntry");
             Struct entry = getStructByName(result, "MapEntry");
             append("struct Struct_MapEntry* tmp = _scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_MapEntry$init(\"%s\", _scl_pop()->v, tmp);\n", key.c_str());
@@ -2788,8 +2831,9 @@ namespace sclc {
         s = replaceAll(s, R"(\\\")", "\"");
         append("%s\n", s.c_str());
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
     }
 
@@ -2827,8 +2871,9 @@ namespace sclc {
         scopeDepth--;
         append("}// End C\n");
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
     }
 
@@ -2877,8 +2922,9 @@ namespace sclc {
         std::string struct_ = body[i].getValue();
         if (struct_ == "int" || struct_ == "float" || struct_ == "any") {
             append("_scl_top()->i = 1;\n");
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push("bool");
             return;
         }
@@ -2888,15 +2934,17 @@ namespace sclc {
             return;
         }
         append("_scl_top()->i = _scl_top()->v && _scl_struct_is_type(_scl_top()->v, 0x%xU);\n", hash1((char*) struct_.c_str()));
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         typeStack.push("bool");
     }
 
     handler(If) {
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         noUnused;
         append("{\n");
@@ -2919,8 +2967,9 @@ namespace sclc {
 
     handler(Else) {
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         noUnused;
         scopeDepth--;
@@ -2935,8 +2984,9 @@ namespace sclc {
 
     handler(Elif) {
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         noUnused;
         scopeDepth--;
@@ -2961,8 +3011,9 @@ namespace sclc {
 
     handler(Fi) {
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         noUnused;
         scopeDepth--;
@@ -2976,8 +3027,9 @@ namespace sclc {
 
     handler(While) {
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
         noUnused;
         append("while (1) {\n");
@@ -2991,8 +3043,9 @@ namespace sclc {
 
     handler(Do) {
         noUnused;
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         append("if (!_scl_pop()->v) break;\n");
     }
 
@@ -3068,8 +3121,9 @@ namespace sclc {
         scopeDepth--;
         append("}\n");
         for (size_t t = 0; t < typeStack.size(); t++) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
         }
     }
 
@@ -3128,8 +3182,9 @@ namespace sclc {
 
     handler(Switch) {
         noUnused;
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         append("switch (_scl_pop()->i) {\n");
         scopeDepth++;
         varDepth++;
@@ -3144,8 +3199,9 @@ namespace sclc {
         if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
         append("_scl_top()->v = (*(scl_any*) _scl_top()->v);\n");
         std::string ptr = removeTypeModifiers(typeStackTop);
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         if (ptr.size()) {
             if (ptr.at(0) == '[' && ptr.at(ptr.size() - 1) == ']') {
                 typeStack.push(ptr.substr(1, ptr.size() - 2));
@@ -3184,14 +3240,16 @@ namespace sclc {
             return;
         }
         if (type.value == "int" || type.value == "float" || type.value == "any") {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.value);
             return;
         }
         if (isPrimitiveIntegerType(type.value)) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.value);
             append("_scl_top()->i &= ((1UL << (sizeof(scl_%s) * 8)) - 1);\n", type.value.c_str());
             append("_scl_top()->i = (scl_%s) _scl_top()->i;\n", type.value.c_str());
@@ -3205,8 +3263,9 @@ namespace sclc {
             return (t.at(0) == '[' && t.at(t.size() - 1) == ']');
         };
         if (hasTypealias(result, type.value) || typeIsPtr()) {
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.value);
             return;
         }
@@ -3221,16 +3280,18 @@ namespace sclc {
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
                 else errors.push_back(err);
             }
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.value + "?");
             ITER_INC;
         } else {
             if (typeCanBeNil(typeStackTop)) {
                 append("_scl_assert(_scl_top()->i, \"Nil cannot be cast to non-nil type '%s!'\");\n", type.value.c_str());
             }
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             typeStack.push(type.value);
         }
     }
@@ -3295,8 +3356,9 @@ namespace sclc {
             append("_scl_top()->f = ((%s) _scl_top()->v)->%s;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
         else
             append("_scl_top()->v = (scl_any) ((%s) _scl_top()->v)->%s;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
-        if (typeStack.size())
+        if (typeStack.size()) {
             typeStack.pop();
+        }
         typeStack.push(mem.getType());
     }
 
@@ -3334,12 +3396,14 @@ namespace sclc {
             size_t argAmount = std::stoi(args);
             
             for (size_t argc = argAmount; argc; argc--) {
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
             }
 
-            if (typeStack.size())
+            if (typeStack.size()) {
                 typeStack.pop();
+            }
             if (op == "accept") {
                 if (returnType == "none") {
                     append("((void(*)(void)) _scl_pop()->v)();\n");
@@ -3828,8 +3892,9 @@ namespace sclc {
                 vars[varDepth].push_back(g);
             }
             for (size_t t = 0; t < typeStack.size(); t++) {
-                if (typeStack.size())
+                if (typeStack.size()) {
                     typeStack.pop();
+                }
             }
 
             scopeDepth = 0;
