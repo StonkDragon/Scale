@@ -3395,7 +3395,15 @@ namespace sclc {
             std::string args = typeStackTop.substr(typeStackTop.find_first_of("(") + 1, typeStackTop.find_last_of("):") - typeStackTop.find_first_of("(") - 1);
             size_t argAmount = std::stoi(args);
             
+            std::string argTypes = "";
+            std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
+                argTypes += "scl_any";
+                argGet += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(argAmount - argc) + "].v";
+                if (argc > 1) {
+                    argTypes += ", ";
+                    argGet += ", ";
+                }
                 if (typeStack.size()) {
                     typeStack.pop();
                 }
@@ -3405,17 +3413,23 @@ namespace sclc {
                 typeStack.pop();
             }
             if (op == "accept") {
-                if (returnType == "none") {
-                    append("((void(*)(void)) _scl_pop()->v)();\n");
-                } else if (returnType == "float") {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->f = ((scl_float(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                append("{\n");
+                scopeDepth++;
+                append("scl_any lambda = _scl_pop()->v;\n");
+                if (removeTypeModifiers(returnType) == "none") {
+                    append("_scl_popn(%zu);\n", argAmount);
+                    append("((void(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                } else if (removeTypeModifiers(returnType) == "float") {
+                    append("_scl_popn(%zu);\n", argAmount);
+                    append("_scl_push()->f = ((scl_float(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
                     typeStack.push(returnType);
                 } else {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->v = ((scl_any(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                    append("_scl_popn(%zu);\n", argAmount);
+                    append("_scl_push()->v = ((scl_any(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
                     typeStack.push(returnType);
                 }
+                scopeDepth--;
+                append("}\n");
             } else {
                 transpilerError("Unknown method '" + body[i].getValue() + "' on type 'lambda'", i);
                 errors.push_back(err);
@@ -3990,11 +4004,7 @@ namespace sclc {
                 append("}\n");
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
             } else {
-                if (contains<std::string>(function->getModifiers(), "<lambda>")) {
-                    append("%s Function_%s() {\n", return_type.c_str(), function->getName().c_str());
-                } else {
-                    append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
-                }
+                append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             }
             
             scopeDepth++;
@@ -4066,18 +4076,9 @@ namespace sclc {
                 if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
                 append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].begin_stack_size = _scl_internal_stack.ptr;\n");
             }
-            if (contains<std::string>(function->getModifiers(), "<lambda>")) {
-                append("_scl_assert(_scl_internal_stack.ptr >= %zu, \"Not enough arguments for lambda\");\n", function->getArgs().size());
-            }
 
             for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
                 Variable arg = function->getArgs()[a];
-                if (contains<std::string>(function->getModifiers(), "<lambda>")) {
-                    if (arg.getType() == "float")
-                        append("%s Var_%s = _scl_pop()->f;\n", sclTypeToCType(result, arg.getType()).c_str(), arg.getName().c_str());
-                    else
-                        append("%s Var_%s = (%s) _scl_pop()->v;\n", sclTypeToCType(result, arg.getType()).c_str(), arg.getName().c_str(), sclTypeToCType(result, arg.getType()).c_str());
-                }
                 if (!typeCanBeNil(arg.getType())) {
                     append("_scl_assert(*(scl_int*) &Var_%s, \"Argument '%s' is nil!\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }
