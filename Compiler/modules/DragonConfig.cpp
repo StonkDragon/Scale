@@ -36,8 +36,8 @@ void StringEntry::setValue(std::string value) {
     size_t index;
     std::string tmp = value;
     std::string newVal = value;
-    while ((index = tmp.find_first_of("$(")) != std::string::npos) {
-        size_t endIndex = tmp.find_first_of(")");
+    while ((index = tmp.find("$(")) != std::string::npos) {
+        size_t endIndex = tmp.find(")");
         auto s = tmp.substr(index + 2, endIndex - index - 2);
         tmp = tmp.substr(endIndex + 1);
         StringEntry* key = currentParsingRoot->getStringByPath(s);
