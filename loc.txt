@@ -3,7 +3,7 @@
       32 Compiler/headers/Color.hpp
      236 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
-     100 Compiler/headers/DragonConfig.hpp
+     107 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
       97 Compiler/headers/Function.hpp
       80 Compiler/headers/Interface.hpp
@@ -15,7 +15,7 @@
       32 Compiler/headers/TranspilerDefs.hpp
       73 Compiler/headers/Variable.hpp
       77 Compiler/headers/Version.hpp
-     394 Compiler/modules/DragonConfig.cpp
+     502 Compiler/modules/DragonConfig.cpp
      110 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      151 Compiler/modules/Parser.cpp
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13414 total
+   13529 total
