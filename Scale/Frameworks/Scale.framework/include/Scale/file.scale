@@ -25,7 +25,7 @@ function fwrites(_buf_: str, _size_: int, _file_: file): none
 end
 
 function fputs(_file_: file, _str_: str): none
-  _str_ _str_ strlen _file_ fwrites
+  _str_ _str_:size _file_ fwrites
   "\n" 1 _file_ fwrites
 end
 
@@ -39,7 +39,7 @@ end
 
 function fread(_f_: file, _size_: int): [any]?
   _size_ malloc => decl _buf_: [any]?
-  _buf_ 1 _size_ _f_ fread
+  _buf_ 1 _size_ _f_ __c_fread
   _buf_ return
 end
 
