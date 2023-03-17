@@ -34,10 +34,10 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "rm -rf /opt/Scale/$(VERSION)";
+    "sudo rm -rf /opt/Scale/$(VERSION)";
     "sudo mkdir -p /opt/Scale";
-    "sudo chmod 777 /opt/Scale";
-    "cp -r Scale /opt/Scale/$(VERSION)";
+    "sudo cp -r Scale /opt/Scale/$(VERSION)";
+    "sudo chmod 777 -R /opt/Scale";
   ];
   postBuild: [
     "sudo mv target/sclc /opt/Scale/$(VERSION)";
