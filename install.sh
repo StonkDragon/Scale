@@ -1,8 +1,3 @@
-if [[ ":$PATH:" != *":/usr/local/bin:"* ]] && [[ ":$PATH:" != *":/usr/local/bin/:"* ]]; then
-    echo "Your path is missing /usr/local/bin, you might want to add it."
-    exit 1
-fi
-
 if [ `uname` = "Darwin" ]; then
     if ! which gcc >/dev/null; then
         echo "Please install the Xcode command line tools"
