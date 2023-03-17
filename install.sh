@@ -15,6 +15,8 @@ if ! which g++ >/dev/null; then
     exit 1
 fi
 
+set -e
+
 if ! which dragon >/dev/null; then
     echo "---------"
     echo "Downloading dragon..."
@@ -42,6 +44,7 @@ dragon build -conf install
 for f in /opt/Scale/*; do
     if [ -e $f/sclc ]; then
         echo "Linking $f/sclc to sclc-${f:11}"
+        sudo rm -rf /usr/local/bin/sclc-${f:11}
         sudo ln -s $f/sclc /usr/local/bin/sclc-${f:11}
     fi
 done
