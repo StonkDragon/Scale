@@ -53,7 +53,7 @@ $ sclc -doc info
 
 ## Scale Framework Documentation
 
-Run:
+Visit [scale.stonkdragon.ml](http://scale.stonkdragon.ml/) or run:
 ```console
 $ sclc -doc-for Scale
 ```
