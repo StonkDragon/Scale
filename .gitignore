@@ -66,6 +66,7 @@ scale-symbol-table.txt
 
 # Build
 Dragon
+e.sh
 
 # Kernel Module Compile Results
 *.mod*
