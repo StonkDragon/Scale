@@ -13,8 +13,8 @@ expect function __c_raise(_sig_: int): int
 function dumpStack(): none
   c!
     printf("Dump:\n");
-    for (ssize_t i = _scl_internal_stack.ptr - 1; i >= 0; i--) {
-      scl_int v = _scl_internal_stack.data[i].i;
+    for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
+      scl_int v = _stack.data[i].i;
       printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
     }
 	  printf("\n");
@@ -50,13 +50,13 @@ end
 
 function throw(ex: Exception): none
   c!
-    _scl_internal_exceptions.ptr--;
-    if (_scl_internal_exceptions.ptr < 0) {
+    _extable.ptr--;
+    if (_extable.ptr < 0) {
       _scl_unreachable("Impossible state encountered trying to throw an exception!");
     }
-    _scl_internal_exceptions.extable[_scl_internal_exceptions.ptr] = *ex;
-    _scl_internal_callstack.ptr = _scl_internal_exceptions.callstk_ptr[_scl_internal_exceptions.ptr];
-    longjmp(_scl_internal_exceptions.jmptable[_scl_internal_exceptions.ptr], 666);
+    _extable.extable[_extable.ptr] = *ex;
+    _callstack.ptr = _extable.callstk_ptr[_extable.ptr];
+    longjmp(_extable.jmptable[_extable.ptr], 666);
   end
 end
 

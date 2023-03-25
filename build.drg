@@ -37,7 +37,7 @@ build: {
     "sudo rm -rf /opt/Scale/$(VERSION)";
     "sudo mkdir -p /opt/Scale";
     "sudo cp -r Scale /opt/Scale/$(VERSION)";
-    "sudo chmod 777 -R /opt/Scale";
+    "sudo chmod -R 777 /opt/Scale";
   ];
   postBuild: [
     "sudo mv target/sclc /opt/Scale/$(VERSION)";
@@ -83,7 +83,7 @@ install: {
   preBuild: [
     "rm -rf /opt/Scale/$(VERSION)";
     "sudo mkdir -p /opt/Scale";
-    "sudo chmod 777 /opt/Scale";
+    "sudo chmod -R 777 /opt/Scale";
     "cp -r Scale /opt/Scale/$(VERSION)";
   ];
   postBuild: [

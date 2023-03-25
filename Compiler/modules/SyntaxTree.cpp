@@ -516,6 +516,49 @@ namespace sclc {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
 
+        // Builtins
+        {
+            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "<builtin>"));
+            builtinIsInstanceOf->addModifier("export");
+
+            builtinIsInstanceOf->addArgument(Variable("obj", "any"));
+            builtinIsInstanceOf->addArgument(Variable("typeStr", "str"));
+
+            builtinIsInstanceOf->setReturnType("int");
+            
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtin>"));
+            functions.push_back(builtinIsInstanceOf);
+
+            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "<builtin>"));
+            builtinHash->isExternC = true;
+            builtinHash->addModifier("extern");
+            builtinHash->addModifier("cdecl");
+            builtinHash->addModifier("hash1");
+            
+            builtinHash->addArgument(Variable("data", "[int8]"));
+            
+            builtinHash->setReturnType("int32");
+            extern_functions.push_back(builtinHash);
+
+            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
+            builtinTypeEquals->isExternC = true;
+            builtinTypeEquals->addModifier("extern");
+            builtinTypeEquals->addModifier("cdecl");
+            builtinTypeEquals->addModifier("_scl_struct_is_type");
+
+            builtinTypeEquals->addArgument(Variable("obj", "any"));
+            builtinTypeEquals->addArgument(Variable("typeId", "int32"));
+
+            builtinTypeEquals->setReturnType("int");
+            extern_functions.push_back(builtinTypeEquals);
+        }
+        
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 

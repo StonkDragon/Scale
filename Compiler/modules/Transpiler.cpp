@@ -113,27 +113,33 @@ namespace sclc {
             if (i) args += ", ";
             if (removeTypeModifiers(arg.getType()) == "float") {
                 if (i) {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].f";
+                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].f";
                 } else {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr].f";
+                    args += "_stack.data[_stack.ptr].f";
                 }
             } else if (removeTypeModifiers(arg.getType()) == "int" || removeTypeModifiers(arg.getType()) == "bool") {
                 if (i) {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].i";
+                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].i";
                 } else {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr].i";
+                    args += "_stack.data[_stack.ptr].i";
                 }
             } else if (removeTypeModifiers(arg.getType()) == "str") {
                 if (i) {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].s";
+                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].s";
                 } else {
-                    args += "_scl_internal_stack.data[_scl_internal_stack.ptr].s";
+                    args += "_stack.data[_stack.ptr].s";
+                }
+            } else if (removeTypeModifiers(arg.getType()) == "any") {
+                if (i) {
+                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].v";
+                } else {
+                    args += "_stack.data[_stack.ptr].v";
                 }
             } else {
                 if (i) {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(i) + "].v";
+                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _stack.data[_stack.ptr + " + std::to_string(i) + "].i";
                 } else {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_internal_stack.data[_scl_internal_stack.ptr].v";
+                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _stack.data[_stack.ptr].i";
                 }
             }
         }
@@ -879,8 +885,8 @@ namespace sclc {
         } else {
             append("if (_scl_top()->i == 0) {\n");
             scopeDepth++;
-            append("_scl_internal_callstack.ptr--;\n");
-            if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_scl_internal_callstack.ptr);\n");
+            append("_callstack.ptr--;\n");
+            if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
             if (return_type == "void")
                 append("return;\n");
             else {
@@ -909,7 +915,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("} else if (_scl_struct_is_type(_scl_internal_exceptions.extable[_scl_internal_exceptions.ptr], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
+            append("} else if (_scl_struct_is_type(_extable.extable[_extable.ptr], %uU)) {\n", hash1((char*) body[i].getValue().c_str()));
         } else {
             i--;
             {
@@ -930,7 +936,7 @@ namespace sclc {
         scopeDepth++;
         Variable v = Variable(exName, ex);
         vars[varDepth].push_back(v);
-        append("scl_%s Var_%s = (scl_%s) _scl_internal_exceptions.extable[_scl_internal_exceptions.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
+        append("scl_%s Var_%s = (scl_%s) _extable.extable[_extable.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
     }
 
     handler(Pragma) {
@@ -960,7 +966,7 @@ namespace sclc {
     #pragma region Identifier functions
     #endif
         if (body[i].getValue() == "drop") {
-            append("_scl_internal_stack.ptr--;\n");
+            append("_stack.ptr--;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1060,8 +1066,8 @@ namespace sclc {
             typeStack.push(a);
             typeStack.push(c);
         } else if (body[i].getValue() == "clearstack") {
-            append("_scl_bulk_decr(0, _scl_internal_stack.ptr);\n");
-            append("_scl_internal_stack.ptr = 0;\n");
+            append("_scl_bulk_decr(0, _stack.ptr);\n");
+            append("_stack.ptr = 0;\n");
             for (size_t t = 0; t < typeStack.size(); t++) {
                 if (typeStack.size()) {
                     typeStack.pop();
@@ -1070,7 +1076,7 @@ namespace sclc {
         } else if (body[i].getValue() == "&&") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i && _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i && _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1104,7 +1110,7 @@ namespace sclc {
         } else if (body[i].getValue() == "||") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i || _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i || _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1115,7 +1121,7 @@ namespace sclc {
         } else if (body[i].getValue() == "<") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i < _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i < _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1126,7 +1132,7 @@ namespace sclc {
         } else if (body[i].getValue() == ">") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i > _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i > _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1137,7 +1143,7 @@ namespace sclc {
         } else if (body[i].getValue() == "==") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i == _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i == _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1148,7 +1154,7 @@ namespace sclc {
         } else if (body[i].getValue() == "<=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i <= _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i <= _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1159,7 +1165,7 @@ namespace sclc {
         } else if (body[i].getValue() == ">=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i >= _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i >= _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1170,7 +1176,7 @@ namespace sclc {
         } else if (body[i].getValue() == "!=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_internal_stack.data[_scl_internal_stack.ptr].i != _scl_internal_stack.data[_scl_internal_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _stack.data[_stack.ptr].i != _stack.data[_stack.ptr + 1].i;\n");
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -1207,8 +1213,8 @@ namespace sclc {
             append("abort();\n");
         } else if (body[i].getValue() == "typeof") {
             ITER_INC;
-            if (hasVar(body[i]) && getStructByName(result, getVar(body[i]).getType()) == Struct("")) {
-                append("_scl_push()->s = _scl_create_string(\"%s\");\n", getVar(body[i]).getType().c_str());
+            if (hasVar(body[i])) {
+                append("_scl_push()->s = _scl_create_string(_scl_find_index_of_struct(*(scl_any*) &Var_%s) != -1 ? ((scl_SclObject) Var_%s)->$__type_name__ : \"%s\");\n", getVar(body[i]).getName().c_str(), getVar(body[i]).getName().c_str(), getVar(body[i]).getType().c_str());
                 typeStack.push("str");
             } else if (getStructByName(result, getVar(body[i]).getType()) != Struct("")) {
                 append("_scl_push()->s = _scl_create_string(Var_%s->$__type_name__);\n", body[i].getValue().c_str());
@@ -1267,9 +1273,9 @@ namespace sclc {
             }
         } else if (body[i].getValue() == "try") {
             append("_scl_exception_push();\n");
-            append("if (setjmp(_scl_internal_exceptions.jmptable[_scl_internal_exceptions.ptr - 1]) != 666) {\n");
+            append("if (setjmp(_extable.jmptable[_extable.ptr - 1]) != 666) {\n");
             scopeDepth++;
-            append("_scl_internal_exceptions.callstk_ptr[_scl_internal_exceptions.ptr - 1] = _scl_internal_callstack.ptr;\n");
+            append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
             varDepth++;
             std::vector<Variable> defaultScope;
             vars.push_back(defaultScope);
@@ -2754,13 +2760,13 @@ namespace sclc {
                 append("_scl_popn(2);\n");
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
-                        append("_scl_push()->f = Method_Pair$init(_scl_internal_stack.data[_scl_internal_stack.ptr].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, tmp);\n");
+                        append("_scl_push()->f = Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                     } else {
-                        append("_scl_push()->v = (scl_any) Method_Pair$init(_scl_internal_stack.data[_scl_internal_stack.ptr].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, tmp);\n");
+                        append("_scl_push()->v = (scl_any) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                     }
                     typeStack.push(f->getReturnType());
                 } else {
-                    append("Method_Pair$init(_scl_internal_stack.data[_scl_internal_stack.ptr].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, tmp);\n");
+                    append("Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                 }
                 append("_scl_push()->v = tmp;\n");
                 typeStack.push("Pair");
@@ -2791,13 +2797,13 @@ namespace sclc {
                 append("_scl_popn(3);\n");
                 if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                     if (f->getReturnType() == "float") {
-                        append("_scl_push()->f = Method_Triple$init(_scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 2].v, tmp);\n");
+                        append("_scl_push()->f = Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
                     } else {
-                        append("_scl_push()->v = (scl_any) Method_Triple$init(_scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 2].v, tmp);\n");
+                        append("_scl_push()->v = (scl_any) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
                     }
                     typeStack.push(f->getReturnType());
                 } else {
-                    append("Method_Triple$init(_scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 1].v, _scl_internal_stack.data[_scl_internal_stack.ptr + 2].v, tmp);\n");
+                    append("Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
                 }
                 append("_scl_push()->v = tmp;\n");
                 typeStack.push("Triple");
@@ -2841,16 +2847,16 @@ namespace sclc {
         noUnused;
         append("{// Start C\n");
         scopeDepth++;
-        append("_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = \"<%s:native code>\";\n", function->getName().c_str());
-        if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line = %d;\n", body[i].getLine());
-        if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
+        append("_callstack.data[_callstack.ptr++].func = \"<%s:native code>\";\n", function->getName().c_str());
+        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", body[i].getLine());
+        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
         std::string file = body[i].getFile();
         if (strstarts(file, scaleFolder)) {
             file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
         } else {
             file = std::filesystem::path(file).relative_path();
         }
-        if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
+        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
         std::string ext = body[i].getValue();
         for (std::vector<Variable> lvl : vars) {
             for (Variable v : lvl) {
@@ -2867,7 +2873,7 @@ namespace sclc {
         }
         scopeDepth--;
         append("}\n");
-        append("_scl_internal_callstack.ptr--;\n");
+        append("_callstack.ptr--;\n");
         scopeDepth--;
         append("}// End C\n");
         for (size_t t = 0; t < typeStack.size(); t++) {
@@ -3000,7 +3006,7 @@ namespace sclc {
             ITER_INC;
         }
         append("\n");
-        append("if (_passedCondition%zu) _scl_internal_stack.ptr--;\n", condCount - 1);
+        append("if (_passedCondition%zu) _stack.ptr--;\n", condCount - 1);
         append("else if (_scl_pop()->i) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
@@ -3056,7 +3062,7 @@ namespace sclc {
         vars.pop_back();
         if (was_catch.size() > 0 && was_catch.back()) {
             append("} else {\n");
-            append("  Function_throw(_scl_internal_exceptions.extable[_scl_internal_exceptions.ptr]);\n");
+            append("  Function_throw(_extable.extable[_extable.ptr]);\n");
         }
         append("}\n");
         if (repeat_depth > 0 && was_rep.back()) {
@@ -3071,9 +3077,9 @@ namespace sclc {
         append("{\n");
         scopeDepth++;
         if (return_type != "void" && !function->hasNamedReturnValue)
-            append("_scl_frame_t returnFrame = _scl_internal_stack.data[--_scl_internal_stack.ptr];\n");
-        append("_scl_internal_callstack.ptr--;\n");
-        if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_scl_internal_callstack.ptr);\n");
+            append("_scl_frame_t returnFrame = _stack.data[--_stack.ptr];\n");
+        append("_callstack.ptr--;\n");
+        if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
 
         if (return_type != "void") {
             if (!typeCanBeNil(function->getReturnType())) {
@@ -3371,17 +3377,17 @@ namespace sclc {
                 if (op == "accept") {
                     append("((void(*)(void)) _scl_pop()->v)();\n");
                 } else if (op == "acceptWithIntResult") {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->i = ((scl_int(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                    append("_stack.ptr--;\n");
+                    append("_scl_push()->i = ((scl_int(*)(void)) _stack.data[_stack.ptr].v)();\n");
                 } else if (op == "acceptWithFloatResult") {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->f = ((scl_float(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                    append("_stack.ptr--;\n");
+                    append("_scl_push()->f = ((scl_float(*)(void)) _stack.data[_stack.ptr].v)();\n");
                 } else if (op == "acceptWithStringResult") {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->s = ((scl_str(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                    append("_stack.ptr--;\n");
+                    append("_scl_push()->s = ((scl_str(*)(void)) _stack.data[_stack.ptr].v)();\n");
                 } else if (op == "acceptWithResult") {
-                    append("_scl_internal_stack.ptr--;\n");
-                    append("_scl_push()->v = ((scl_any(*)(void)) _scl_internal_stack.data[_scl_internal_stack.ptr].v)();\n");
+                    append("_stack.ptr--;\n");
+                    append("_scl_push()->v = ((scl_any(*)(void)) _stack.data[_stack.ptr].v)();\n");
                 } else {
                     transpilerError("Unknown method '" + body[i].getValue() + "' on type 'untyped-lambda'", i);
                     errors.push_back(err);
@@ -3399,7 +3405,7 @@ namespace sclc {
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
                 argTypes += "scl_any";
-                argGet += "_scl_internal_stack.data[_scl_internal_stack.ptr + " + std::to_string(argAmount - argc) + "].v";
+                argGet += "_stack.data[_stack.ptr + " + std::to_string(argAmount - argc) + "].v";
                 if (argc > 1) {
                     argTypes += ", ";
                     argGet += ", ";
@@ -3484,15 +3490,15 @@ namespace sclc {
 
         if (body[i].getType() != tok_case) {
             if (currentFile != file) {
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
                 currentFile = file;
             }
             if (currentLine != body[i].getLine()) {
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line = %d;\n", body[i].getLine());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", body[i].getLine());
                 currentLine = body[i].getLine();
             }
             if (currentCol != body[i].getColumn()) {
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
                 currentCol = body[i].getColumn();
             }
         }
@@ -3774,15 +3780,15 @@ namespace sclc {
         (void) warns;
         scopeDepth = 0;
         append("/* EXTERN VARS FROM INTERNAL */\n");
-        append("extern __thread _scl_stack_t _scl_internal_stack _scl_align;\n");
-        append("extern __thread _scl_callstack_t _scl_internal_callstack _scl_align;\n");
+        append("extern __thread _scl_stack_t _stack _scl_align;\n");
+        append("extern __thread _scl_callstack_t _callstack _scl_align;\n");
         append("extern __thread struct _exception_handling {\n");
 	    append("  scl_Exception* extable;\n");
 	    append("  jmp_buf*       jmptable;\n");
 	    append("  scl_int        ptr;\n");
 	    append("  scl_int        cap;\n");
         append("  scl_int*       callstk_ptr;\n");
-        append("} _scl_internal_exceptions _scl_align;\n");
+        append("} _extable _scl_align;\n");
         append("\n");
 
         append("/* STRUCTS */\n");
@@ -3853,7 +3859,7 @@ namespace sclc {
                 append("};\n");
             }
         }
-        append("struct _scl_typeinfo _scl_internal_types[] = {\n");
+        append("struct _scl_typeinfo _scl_types[] = {\n");
         scopeDepth++;
         for (Struct s : result.structs) {
             append("/* %s */\n", s.getName().c_str());
@@ -3875,10 +3881,10 @@ namespace sclc {
         }
         scopeDepth--;
         append("};\n");
-        append("size_t _scl_internal_types_count = %zu;\n\n", result.structs.size());
+        append("size_t _scl_types_count = %zu;\n\n", result.structs.size());
         append("static int _scl_do_method_check = 1;\n\n");
 
-        append("extern hash hash1(char*);\n\n");
+        append("extern const hash hash1(const char*);\n\n");
 
         fprintf(fp, "#ifdef __cplusplus\n");
         fprintf(fp, "}\n");
@@ -4013,16 +4019,16 @@ namespace sclc {
                 Method* m = static_cast<Method*>(function);
                 append("if (!_scl_do_method_check) goto _scl_jmp_after_%s_%s;\n", m->getMemberType().c_str(), m->getName().c_str());
                 {
-                    append("_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                    append("_callstack.data[_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
                     std::string file = function->getNameToken().getFile();
                     if (strstarts(file, scaleFolder)) {
                         file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
                     } else {
                         file = std::filesystem::path(file).relative_path();
                     }
-                    if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
-                    if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
-                    if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
+                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
+                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
                 }
                 append("if (Var_self->$__type__ != 0x%xU) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
@@ -4033,7 +4039,7 @@ namespace sclc {
                     append("  _scl_push()->i = *(scl_int*) &Var_%s;\n", arg.getName().c_str());
                 }
                 append("  _scl_do_method_check = 0;\n");
-                append("  _scl_internal_callstack.ptr--;\n");
+                append("  _callstack.ptr--;\n");
                 append("  ((void(*)()) method)();\n");
                 append("  _scl_do_method_check = 1;\n");
                 if (sclTypeToCType(result, m->getReturnType()) != "void") {
@@ -4048,7 +4054,7 @@ namespace sclc {
                 append("}\n");
                 scopeDepth--;
                 append("}\n");
-                append("_scl_internal_callstack.ptr--;\n");
+                append("_callstack.ptr--;\n");
                 scopeDepth--;
                 append("_scl_jmp_after_%s_%s:", m->getMemberType().c_str(), m->getName().c_str());
                 scopeDepth++;
@@ -4059,7 +4065,7 @@ namespace sclc {
             if (body.size() == 0)
                 goto emptyFunction;
 
-            append("_scl_internal_callstack.data[_scl_internal_callstack.ptr++].func = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("_callstack.data[_callstack.ptr++].func = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
             if (function->hasNamedReturnValue) {
                 append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
             }
@@ -4071,10 +4077,10 @@ namespace sclc {
                 } else {
                     file = std::filesystem::path(file).relative_path();
                 }
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
-                if (!Main.options.minify) append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
-                append("_scl_internal_callstack.data[_scl_internal_callstack.ptr - 1].begin_stack_size = _scl_internal_stack.ptr;\n");
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                append("_callstack.data[_callstack.ptr - 1].begin_stack_size = _stack.ptr;\n");
             }
 
             for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
@@ -4089,9 +4095,9 @@ namespace sclc {
             }
             scopeDepth = 1;
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
-                append("_scl_internal_callstack.ptr--;\n");
+                append("_callstack.ptr--;\n");
                 if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
-                    append("_scl_cleanup_post_func(_scl_internal_callstack.ptr);\n");
+                    append("_scl_cleanup_post_func(_callstack.ptr);\n");
                 }
             }
 

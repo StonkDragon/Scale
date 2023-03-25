@@ -301,7 +301,7 @@ void				_scl_finalize(void);
 void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
 
-hash				hash1(scl_int8* data);
+const hash			hash1(const scl_int8* data);
 void				_scl_cleanup_post_func(scl_int depth);
 scl_any				_scl_alloc_struct(size_t size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
