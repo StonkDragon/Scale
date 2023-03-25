@@ -1199,16 +1199,6 @@ namespace sclc {
             if (typeStack.size()) {
                 typeStack.pop();
             }
-        } else if (body[i].getValue() == "puts") {
-            append("puts((_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
-            if (typeStack.size()) {
-                typeStack.pop();
-            }
-        } else if (body[i].getValue() == "eputs") {
-            append("fprintf(stderr, \"%%s\\n\", (_scl_top()->s ? _scl_pop()->s->_data : \"(null)\"));\n");
-            if (typeStack.size()) {
-                typeStack.pop();
-            }
         } else if (body[i].getValue() == "abort") {
             append("abort();\n");
         } else if (body[i].getValue() == "typeof") {

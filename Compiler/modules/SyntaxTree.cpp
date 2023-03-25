@@ -526,6 +526,15 @@ namespace sclc {
 
             builtinIsInstanceOf->setReturnType("int");
             
+            // if typeStr "any" == then true return
+            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
             builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "<builtin>"));
             builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtin>"));
             builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "<builtin>"));
