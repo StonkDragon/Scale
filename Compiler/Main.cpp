@@ -465,7 +465,9 @@ namespace sclc
             return 1;
         }
 
-        auto start = std::chrono::high_resolution_clock::now();
+        using clock = std::chrono::high_resolution_clock;
+
+        auto start = clock::now();
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
@@ -473,6 +475,7 @@ namespace sclc
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
+        bool hasCppFiles        = false;
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
 
@@ -508,6 +511,9 @@ namespace sclc
         Main.options.stackSize = 16;
 
         for (size_t i = 1; i < args.size(); i++) {
+            if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
+                hasCppFiles = true;
+            }
             if (strends(std::string(args[i]), ".scale")) {
                 if (!fileExists(args[i])) {
                     continue;
@@ -630,13 +636,22 @@ namespace sclc
 
         if (!Main.options.printCflags)
             cflags.push_back(compiler);
-        cflags.push_back("-I" + scaleFolder + "/Frameworks");
-        cflags.push_back("-I" + scaleFolder + "/Internal");
-        cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
-        cflags.push_back("-std=" + std::string(C_VERSION));
-        cflags.push_back("-" + optimizer);
-        cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-        cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
+
+        if (Main.options.files.size() != 0) {
+            cflags.push_back("-I" + scaleFolder + "/Frameworks");
+            cflags.push_back("-I" + scaleFolder + "/Internal");
+            cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
+            cflags.push_back("-" + optimizer);
+            cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+            cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
+        }
+        if (!hasCppFiles) {
+            // -std= only works when there are no c++ files to build
+            cflags.push_back("-std=" + std::string(C_VERSION));
+        } else {
+            // link to c++ library if needed
+            cflags.push_back("-lc++");
+        }
 
         if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
             cflags.push_back("-o");
@@ -1178,7 +1193,7 @@ namespace sclc
             }
 
             if (Main.options.transpileOnly) {
-                auto end = std::chrono::high_resolution_clock::now();
+                auto end = clock::now();
                 double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
                 std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
                 return 0;
@@ -1223,7 +1238,7 @@ namespace sclc
 
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
-        auto end = std::chrono::high_resolution_clock::now();
+        auto end = clock::now();
         double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
         if (!Main.options.doRun) std::cout << "Took " << duration << " seconds." << std::endl;
 
