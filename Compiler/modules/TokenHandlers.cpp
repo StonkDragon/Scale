@@ -12,7 +12,7 @@ namespace sclc {
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
 
     std::string sclTypeToCType(TPResult result, std::string t);
-    std::string sclGenArgs(TPResult result, Function *func);
+    std::string generateArgumentsForFunction(TPResult result, Function *func);
     bool isPrimitiveIntegerType(std::string s);
     std::string removeTypeModifiers(std::string t);
 
@@ -80,13 +80,13 @@ namespace sclc {
             }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                    append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), sclGenArgs(result, f).c_str());
+                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
             }
             return true;
         }
