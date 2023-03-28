@@ -6,4 +6,19 @@ referencetype sealed struct Pair
 		a => self.a
 		b => self.b
 	end
+
+	function toString(): str
+		if a is SclObject then
+			a as SclObject:toString
+		else
+			a longToString
+		fi => decl aStr: str
+		if b is SclObject then
+			b as SclObject:toString
+		else
+			b longToString
+		fi => decl bStr: str
+		
+		"(" aStr + ", " + bStr + ")" + return
+	end
 end

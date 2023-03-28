@@ -39,6 +39,10 @@ sealed struct Range is IIterable
     false return
   end
 
+  function toString(): str
+    lower longToString " .. " + upper longToString + return
+  end
+
   function hasNext(): bool
     self.pos self.lower + self.upper <= return
   end
@@ -73,6 +77,10 @@ sealed struct ReverseRange is IIterable
     0 => self.pos
   end
 
+  function toString(): str
+    lower longToString " .. " + upper longToString + return
+  end
+  
   function hasNext(): bool
     self.lower self.pos - self.upper >= return
   end
