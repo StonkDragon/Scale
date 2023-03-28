@@ -16,7 +16,7 @@ function read(_fd_: int, _n_: int): str?
 end
 
 function puts(_val_: any): none
-  if _val_ "SclObject" builtinIsInstanceOf then
+  if _val_ is SclObject then
     _val_ as SclObject:toString
   else
     _val_ longToString
@@ -24,7 +24,7 @@ function puts(_val_: any): none
 end
 
 function eputs(_val_: any): none
-  if _val_ "SclObject" builtinIsInstanceOf then
+  if _val_ is SclObject then
     _val_ as SclObject:toString:view
   else
     _val_ longToString:view
