@@ -88,6 +88,18 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
     return
   end
 
+  function split(_delim_: str): Array
+    10 Array::new => decl arr: Array
+    self:view => decl string
+    string _delim_:view __c_strtok => decl line
+
+    while line do
+      line!! str::new arr:push
+      nil _delim_:view __c_strtok => line
+    done
+    arr return
+  end
+
   function startsWith(_s_: str): bool
     self._data _s_._data _s_:size __c_strncmp 0 == return
   end

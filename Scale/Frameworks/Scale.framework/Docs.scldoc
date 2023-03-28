@@ -27,9 +27,6 @@ Sets the first <<WHITE>>len<<RESET>> bytes pointed to by <<WHITE>>ptr<<RESET>> t
 ### function memcpy(dst: [any], src: [any], n: int): [any]
 Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RESET>> and returns <<WHITE>>dst<<RESET>>.
 
-### function strsplit(_str_: str, _delim_: str): Array
-Splits <<WHITE>>_str_<<RESET>> at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results. Returns an empty array if <<WHITE>>_str_<<RESET>> does not contain <<WHITE>>_delim_<<RESET>>.
-
 Example:<<WHITE>>
 <<YELLOW>>"hello world!" " "<<WHITE>> strsplit<<RESET>>
 
@@ -63,9 +60,6 @@ Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
 
 ### function toInt(_val_: int): int
 Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
-
-### function toChars(_str_: str): Array
-Converts <<WHITE>>_str_<<RESET>> to an array of characters. An empty array is returned if the string has a length of zero.
 
 ### function isnil(x: any): bool
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
@@ -308,14 +302,23 @@ Returns a copy of the underlying cstring.
 ### function str:hashCode(): int
 Returns the hash of the string.
 
+### function split(_delim_: str): Array
+Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results. Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
+
 ## Pair
 ### static function Pair::new(a: any, b: any): none
 Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
+
+### function Pair:toString(): str
+Returns a string representation of this pair.
 
 ## Triple
 
 ### static function Triple::new(a: any, b: any, c: any): none
 Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<RESET>>.
+
+### function Triple:toString(): str
+Returns a string representation of this triple.
 
 ## Ranges
 ### static function Range::new(_start: int, _end: int): none
