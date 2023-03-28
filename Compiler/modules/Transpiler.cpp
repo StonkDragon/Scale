@@ -106,7 +106,7 @@ namespace sclc {
         return return_type;
     }
 
-    std::string sclGenArgs(TPResult result, Function *func) {
+    std::string generateArgumentsForFunction(TPResult result, Function *func) {
         std::string args = "";
         for (size_t i = 0; i < func->getArgs().size(); i++) {
             Variable arg = func->getArgs()[i];
@@ -388,7 +388,15 @@ namespace sclc {
         (void) errors;
         (void) warns;
         int scopeDepth = 0;
+        append("/* STRUCT TYPES */\n");
+        for (Struct c : result.structs) {
+            if (c.getName() == "str") continue;
+            append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
+            fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
+        }
+        append("\n");
         if (result.containers.size() == 0) return;
+        
         append("/* CONTAINERS */\n");
         for (Container c : result.containers) {
             append("struct {\n");
@@ -627,12 +635,12 @@ namespace sclc {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
         if (removeTypeModifiers(self->getReturnType()) == "none") {
-            append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+            append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
-                append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
-                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             }
         }
     }
@@ -659,13 +667,13 @@ namespace sclc {
         }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
-                append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
-                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             }
             typeStack.push(self->getReturnType());
         } else {
-            append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), sclGenArgs(result, self).c_str());
+            append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
         }
     }
 
@@ -673,12 +681,12 @@ namespace sclc {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
         if (removeTypeModifiers(self->getReturnType()) == "none") {
-            append("Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+            append("Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
-                append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
-                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             }
         }
     }
@@ -705,13 +713,13 @@ namespace sclc {
         }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
-                append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->f = Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
-                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+                append("_scl_push()->i = (scl_int) Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
             }
             typeStack.push(self->getReturnType());
         } else {
-            append("Function_%s(%s);\n", self->getName().c_str(), sclGenArgs(result, self).c_str());
+            append("Function_%s(%s);\n", self->getName().c_str(), generateArgumentsForFunction(result, self).c_str());
         }
     }
 
@@ -1208,6 +1216,11 @@ namespace sclc {
                 typeStack.push("str");
             } else if (getStructByName(result, getVar(body[i]).getType()) != Struct("")) {
                 append("_scl_push()->s = _scl_create_string(Var_%s->$__type_name__);\n", body[i].getValue().c_str());
+                typeStack.push("str");
+            } else if (hasFunction(result, body[i])) {
+                Function* f = getFunctionByName(result, body[i].getValue());
+                std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
+                append("_scl_push()->s = _scl_create_string(\"%s\");\n", lambdaType.c_str());
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
@@ -3766,6 +3779,15 @@ namespace sclc {
         return return_type + "(*)(" + arguments + ")";
     }
 
+    template<typename T>
+    bool compare(T& a, T& b) {
+        if constexpr(std::is_pointer<T>::value) {
+            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
+        } else {
+            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
+        }
+    }
+
     extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult result, std::string filename) {
         (void) warns;
         scopeDepth = 0;
@@ -3820,10 +3842,25 @@ namespace sclc {
                 append("static void _scl_caller_func_%s$%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
             }
         }
+        for (Function* function : result.extern_functions) {
+            if (function->isMethod) {
+                append("static void _scl_caller_func_%s$%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+            }
+        }
 
         append("/* METHOD REFLECT */\n");
         scopeDepth++;
         for (Function* f : result.functions) {
+            if (!f->isMethod) continue;
+            Method* m = (Method*) f;
+            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
+            scopeDepth++;
+            append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->getName().c_str());
+            append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+            scopeDepth--;
+            append("};\n");
+        }
+        for (Function* f : result.extern_functions) {
             if (!f->isMethod) continue;
             Method* m = (Method*) f;
             append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->getName().c_str());
@@ -3838,6 +3875,7 @@ namespace sclc {
         append("/* TYPES */\n");
         for (Struct s : result.structs) {
             std::vector<Method*> methods = methodsOnType(result, s.getName());
+            std::sort(methods.begin(), methods.end(), compare<Method*>);
             append("/* %s */\n", s.getName().c_str());
             if (methods.size()) {
                 append("static struct _scl_methodinfo* _scl_methodinfo_ptrs_%s[] = (struct _scl_methodinfo*[]) {\n", s.getName().c_str());
@@ -3861,6 +3899,7 @@ namespace sclc {
             std::vector<Method*> methods = methodsOnType(result, s.getName());
 
             append(".methodscount = %zu,\n", methods.size());
+
             if (methods.size()) {
                 append(".methods = (struct _scl_methodinfo**) _scl_methodinfo_ptrs_%s,\n", s.getName().c_str());
             } else {
@@ -3889,6 +3928,28 @@ namespace sclc {
         fprintf(fp, "#endif\n\n");
 
         append("/* FUNCTIONS */\n");
+
+        auto joinVecs = [](std::vector<Function*> a, std::vector<Function*> b) -> auto {
+            decltype(a) v;
+            for (auto s : a) {
+                v.push_back(s);
+            }
+            for (auto s : b) {
+                v.push_back(s);
+            }
+            return v;
+        };
+
+        for (auto f : joinVecs(result.extern_functions, result.functions)) {
+            if (f->isMethod) {
+                auto m = (Method*) f;
+                append("static void _scl_caller_func_%s$%s() {\n", m->getMemberType().c_str(), f->getName().c_str());
+                scopeDepth++;
+                generateUnsafeCall(m, fp, result);
+                scopeDepth--;
+                append("}\n");
+            }
+        }
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = result.functions[f];
@@ -3992,20 +4053,8 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                Method* m = (Method*) function;
-                append("static void _scl_caller_func_%s$%s() {\n", m->getMemberType().c_str(), function->getName().c_str());
-                scopeDepth++;
-                generateUnsafeCall(m, fp, result);
-                scopeDepth--;
-                append("}\n");
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
-            } else {
-                append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
-            }
-            
-            scopeDepth++;
-
-            if (function->isMethod) {
+                scopeDepth++;
                 Method* m = static_cast<Method*>(function);
                 append("if (!_scl_do_method_check) goto _scl_jmp_after_%s_%s;\n", m->getMemberType().c_str(), m->getName().c_str());
                 {
@@ -4049,7 +4098,12 @@ namespace sclc {
                 append("_scl_jmp_after_%s_%s:", m->getMemberType().c_str(), m->getName().c_str());
                 scopeDepth++;
                 append("_scl_do_method_check = 1;\n");
+                scopeDepth--;
+            } else {
+                append("%s Function_%s(%s) {\n", return_type.c_str(), function->getName().c_str(), arguments.c_str());
             }
+            
+            scopeDepth++;
 
             std::vector<Token> body = function->getBody();
             if (body.size() == 0)
