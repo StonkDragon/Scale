@@ -5,6 +5,7 @@
         "type": "git",
         "url": "https://github.com/StonkDragon/Scale"
     },
+    "icon": "icon.png",
     "publisher": "StonkDragon",
     "description": "Language Support for the Scale Programming Language",
     "version": "23.2.0",
