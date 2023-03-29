@@ -39,24 +39,12 @@ function getenv(_key_: str): str?
   nil return
 end
 
-function malloc(_size_: int) s: [any]?
-  _size_ _scl_alloc => s
-  if s ! then
-    c!
-      _scl_security_throw(EX_BAD_PTR, "malloc() failed!");
-    end
-  fi
-  return
+function malloc(_size_: int): [any]
+  _size_ _scl_alloc return
 end
 
-function realloc(_size_: int, _ptr_: [any]): [any]?
-  _ptr_ _size_ _scl_realloc => _ptr_
-  if _ptr_ ! then
-    c!
-      _scl_security_throw(EX_BAD_PTR, "realloc() failed!");
-    end
-  fi
-  _ptr_ return
+function realloc(_size_: int, _ptr_: [any]): [any]
+  _ptr_ _size_ _scl_realloc return
 end
 
 function free(_ptr_: [any]): none
