@@ -1,8 +1,13 @@
 {
     "name": "scale",
     "displayName": "Scale Syntax highlighting",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/StonkDragon/Scale"
+    },
+    "publisher": "StonkDragon",
     "description": "Language Support for the Scale Programming Language",
-    "version": "3.1.0",
+    "version": "23.2.0",
     "engines": {
         "vscode": "^1.61.0"
     },
