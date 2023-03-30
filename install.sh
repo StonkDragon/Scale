@@ -45,19 +45,4 @@ for f in /opt/Scale/*; do
 done
 
 echo "---------"
-echo "Checking for VSCode installation..."
-
-VSCODE_EXTENSIONS_PATH=""
-
-if [ -e "$HOME/.vscode/extensions" ]; then
-    VSCODE_EXTENSIONS_PATH="$HOME/.vscode/extensions"
-elif [ -e "$HOME/.vscode-insiders/extensions" ]; then
-    VSCODE_EXTENSIONS_PATH="$HOME/.vscode-insiders/extensions"
-else
-    echo "No VSCode installation found"
-fi
-
-if [ ! -z "$VSCODE_EXTENSIONS_PATH" ]; then
-    echo "Found VSCode extension folder at '$VSCODE_EXTENSIONS_PATH'"
-    cp -r ./scale.vscodeextension "$VSCODE_EXTENSIONS_PATH"
-fi
+echo "Done..."
