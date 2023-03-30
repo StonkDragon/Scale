@@ -23,8 +23,8 @@ expect function __c_atoll(s: [int8]): int
 cdecl "atof"
 expect function __c_atof(s: [int8]): float
 
-expect function _scl_alloc(_sz_: int): [any]?
-expect function _scl_realloc(_ptr_: [any], _sz_: int): [any]?
+expect function _scl_alloc(_sz_: int): [any]
+expect function _scl_realloc(_ptr_: [any], _sz_: int): [any]
 expect function _scl_free(_ptr_: [any]): none
 
 function system(_cmd_: str): int

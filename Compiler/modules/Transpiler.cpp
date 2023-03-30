@@ -182,7 +182,7 @@ namespace sclc {
         }
         std::string symbol = f->getName();
         if (f->isMethod) {
-            Method* m = (Method*)(f);
+            Method* m = ((Method*)f);
             symbol = "m." + m->getMemberType() + "." + f->getName();
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = m->getMemberType() + "$" + f->getName();
@@ -199,7 +199,7 @@ namespace sclc {
 
         if (Main.options.transpileOnly && symbolTable) {
             if (f->isMethod) {
-                fprintf(symbolTable, "Symbol for Method %s:%s: '%s'\n", (Method*)(f)->getMemberType().c_str(), f->getName().c_str(), symbol.c_str());
+                fprintf(symbolTable, "Symbol for Method %s:%s: '%s'\n", ((Method*)f)->getMemberType().c_str(), f->getName().c_str(), symbol.c_str());
             } else {
                 fprintf(symbolTable, "Symbol for Function %s: '%s'\n", replaceFirstAfter(f->getName(), "$", "::", 1).c_str(), symbol.c_str());
             }
@@ -286,7 +286,7 @@ namespace sclc {
             if (!function->isMethod) {
                 append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
-                append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
             }
             if (function->isExternC) {
                 if (!function->isMethod) {
@@ -294,14 +294,14 @@ namespace sclc {
                         fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                     }
                 } else {
-                    fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
                 continue;
             } else if (contains<std::string>(function->getModifiers(), "export")) {
                 if (!function->isMethod) {
                     fprintf(support_header, "export %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
-                    fprintf(support_header, "export %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    fprintf(support_header, "export %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
@@ -347,7 +347,7 @@ namespace sclc {
                 if (!function->isMethod) {
                     append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
-                    append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
                 if (function->isExternC) {
                     if (!function->isMethod) {
@@ -355,7 +355,7 @@ namespace sclc {
                             fprintf(support_header, "expect %s %s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                         }
                     } else {
-                        fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
+                        fprintf(support_header, "expect %s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                     }
                 }
             }
@@ -1382,7 +1382,7 @@ namespace sclc {
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
-                        if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != struct_))) {
+                        if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*)function)->getMemberType() != struct_))) {
                             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + struct_ + "'", i);
                             errors.push_back(err);
                             return;
@@ -1409,7 +1409,7 @@ namespace sclc {
             }
             typeStack.push(v.getType());
         } else if (function->isMethod) {
-            Method* m = (Method*)(function);
+            Method* m = ((Method*)function);
             Struct s = getStructByName(result, m->getMemberType());
             if (hasMethod(result, body[i], s.getName())) {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
@@ -1869,7 +1869,7 @@ namespace sclc {
         }
         if (!hasVar(body[i])) {
             if (function->isMethod) {
-                Method* m = (Method*)(function);
+                Method* m = ((Method*)function);
                 Struct s = getStructByName(result, m->getMemberType());
                 if (s.hasMember(body[i].getValue())) {
                     v = s.getMember(body[i].getValue());
@@ -1981,7 +1981,7 @@ namespace sclc {
                         }
                         if (!hasVar(body[i])) {
                             if (function->isMethod) {
-                                Method* m = (Method*)(function);
+                                Method* m = ((Method*)function);
                                 Struct s = getStructByName(result, m->getMemberType());
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
@@ -2048,7 +2048,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*)function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2102,7 +2102,7 @@ namespace sclc {
                         }
                         if (!hasVar(body[i])) {
                             if (function->isMethod) {
-                                Method* m = (Method*)(function);
+                                Method* m = ((Method*)function);
                                 Struct s = getStructByName(result, m->getMemberType());
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = s.getMember(body[i].getValue());
@@ -2191,7 +2191,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*)function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2469,7 +2469,7 @@ namespace sclc {
             }
             if (!hasVar(body[i])) {
                 if (function->isMethod) {
-                    Method* m = (Method*)(function);
+                    Method* m = ((Method*)function);
                     Struct s = getStructByName(result, m->getMemberType());
                     if (s.hasMember(body[i].getValue())) {
                         v = s.getMember(body[i].getValue());
@@ -3401,7 +3401,7 @@ namespace sclc {
             return;
         }
         Variable mem = s.getMember(body[i].getValue());
-        if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (Method*)(function)->getMemberType() != s.getName())) {
+        if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || ((Method*)function)->getMemberType() != s.getName())) {
             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
             errors.push_back(err);
             return;
@@ -3527,7 +3527,7 @@ namespace sclc {
             return;
         }
         Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
-        if (f->isPrivate && (!function->isMethod || (Method*)(function)->getMemberType() != s.getName())) {
+        if (f->isPrivate && (!function->isMethod || ((Method*)function)->getMemberType() != s.getName())) {
             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
             errors.push_back(err);
             return;
@@ -3904,12 +3904,12 @@ namespace sclc {
 
         for (Function* function : result.functions) {
             if (function->isMethod) {
-                append("static void _scl_caller_func_%s$%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+                append("static void _scl_caller_func_%s$%s();\n", (((Method*)function))->getMemberType().c_str(), function->getName().c_str());
             }
         }
         for (Function* function : result.extern_functions) {
             if (function->isMethod) {
-                append("static void _scl_caller_func_%s$%s();\n", ((Method*)(function))->getMemberType().c_str(), function->getName().c_str());
+                append("static void _scl_caller_func_%s$%s();\n", (((Method*)function))->getMemberType().c_str(), function->getName().c_str());
             }
         }
 
@@ -4047,7 +4047,7 @@ namespace sclc {
             std::string functionDeclaration = "";
 
             if (function->isMethod) {
-                functionDeclaration += (Method*)(function)->getMemberType() + ":" + function->getName() + "(";
+                functionDeclaration += ((Method*)function)->getMemberType() + ":" + function->getName() + "(";
                 for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
                     if (i != 0) {
                         functionDeclaration += ", ";
@@ -4107,9 +4107,9 @@ namespace sclc {
                 return_type = sclTypeToCType(result, t);
             }
             if (function->isMethod) {
-                if (!((Method*)(function))->addAnyway() && getStructByName(result, ((Method*)(function))->getMemberType()).isSealed()) {
+                if (!(((Method*)function))->addAnyway() && getStructByName(result, (((Method*)function))->getMemberType()).isSealed()) {
                     FPResult result;
-                    result.message = "Struct '" + ((Method*)(function))->getMemberType() + "' is sealed!";
+                    result.message = "Struct '" + (((Method*)function))->getMemberType() + "' is sealed!";
                     result.value = function->getNameToken().getValue();
                     if (!Main.options.minify) result.line = function->getNameToken().getLine();
                     result.in = function->getNameToken().getFile();
@@ -4119,9 +4119,9 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                append("%s Method_%s$%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
+                append("%s Method_%s$%s(%s) {\n", return_type.c_str(), (((Method*)function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
                 scopeDepth++;
-                Method* m = (Method*)(function);
+                Method* m = ((Method*)function);
                 append("if (_scl_do_method_check) {\n");
                 scopeDepth++;
                 append("_callstack.data[_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
@@ -4162,7 +4162,7 @@ namespace sclc {
                 append("}\n");
                 append("_callstack.ptr--;\n");
                 scopeDepth--;
-                append("}", m->getMemberType().c_str(), m->getName().c_str());
+                append("}");
                 append("_scl_do_method_check = 1;\n");
                 scopeDepth--;
             } else {
