@@ -305,7 +305,7 @@ namespace sclc
         TOKEN("do",         tok_do, line, filename);
         TOKEN("done",       tok_done, line, filename);
         TOKEN("if",         tok_if, line, filename);
-        TOKEN("unless",     tok_if, line, filename);
+        TOKEN("unless",     tok_unless, line, filename);
         TOKEN("then",       tok_then, line, filename);
         TOKEN("else",       tok_else, line, filename);
         TOKEN("elif",       tok_elif, line, filename);
