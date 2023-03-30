@@ -20,8 +20,10 @@ namespace sclc
         tok_false,          // false
         tok_nil,            // nil
         tok_if,             // if
+        tok_unless,         // unless
         tok_then,           // then
         tok_elif,           // elif
+        tok_elunless,       // elunless
         tok_else,           // else
         tok_fi,             // fi
         tok_while,          // while

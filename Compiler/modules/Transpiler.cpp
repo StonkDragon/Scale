@@ -182,7 +182,7 @@ namespace sclc {
         }
         std::string symbol = f->getName();
         if (f->isMethod) {
-            Method* m = static_cast<Method*>(f);
+            Method* m = (Method*)(f);
             symbol = "m." + m->getMemberType() + "." + f->getName();
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = m->getMemberType() + "$" + f->getName();
@@ -199,7 +199,7 @@ namespace sclc {
 
         if (Main.options.transpileOnly && symbolTable) {
             if (f->isMethod) {
-                fprintf(symbolTable, "Symbol for Method %s:%s: '%s'\n", static_cast<Method*>(f)->getMemberType().c_str(), f->getName().c_str(), symbol.c_str());
+                fprintf(symbolTable, "Symbol for Method %s:%s: '%s'\n", (Method*)(f)->getMemberType().c_str(), f->getName().c_str(), symbol.c_str());
             } else {
                 fprintf(symbolTable, "Symbol for Function %s: '%s'\n", replaceFirstAfter(f->getName(), "$", "::", 1).c_str(), symbol.c_str());
             }
@@ -752,7 +752,10 @@ namespace sclc {
     handler(TruthyType);
     handler(Is);
     handler(If);
+    handler(Unless);
     handler(Else);
+    handler(Elif);
+    handler(Elunless);
     handler(While);
     handler(Do);
     handler(DoneLike);
@@ -1379,7 +1382,7 @@ namespace sclc {
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
-                        if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != struct_))) {
+                        if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != struct_))) {
                             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + struct_ + "'", i);
                             errors.push_back(err);
                             return;
@@ -1406,7 +1409,7 @@ namespace sclc {
             }
             typeStack.push(v.getType());
         } else if (function->isMethod) {
-            Method* m = static_cast<Method*>(function);
+            Method* m = (Method*)(function);
             Struct s = getStructByName(result, m->getMemberType());
             if (hasMethod(result, body[i], s.getName())) {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
@@ -1866,7 +1869,7 @@ namespace sclc {
         }
         if (!hasVar(body[i])) {
             if (function->isMethod) {
-                Method* m = static_cast<Method*>(function);
+                Method* m = (Method*)(function);
                 Struct s = getStructByName(result, m->getMemberType());
                 if (s.hasMember(body[i].getValue())) {
                     v = s.getMember(body[i].getValue());
@@ -1978,7 +1981,7 @@ namespace sclc {
                         }
                         if (!hasVar(body[i])) {
                             if (function->isMethod) {
-                                Method* m = static_cast<Method*>(function);
+                                Method* m = (Method*)(function);
                                 Struct s = getStructByName(result, m->getMemberType());
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
@@ -2045,7 +2048,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2099,7 +2102,7 @@ namespace sclc {
                         }
                         if (!hasVar(body[i])) {
                             if (function->isMethod) {
-                                Method* m = static_cast<Method*>(function);
+                                Method* m = (Method*)(function);
                                 Struct s = getStructByName(result, m->getMemberType());
                                 if (s.hasMember(body[i].getValue())) {
                                     Variable mem = s.getMember(body[i].getValue());
@@ -2188,7 +2191,7 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && static_cast<Method*>(function)->getMemberType() != s.getName()))) {
+                            if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && (Method*)(function)->getMemberType() != s.getName()))) {
                                 transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
                                 errors.push_back(err);
                                 return;
@@ -2466,7 +2469,7 @@ namespace sclc {
             }
             if (!hasVar(body[i])) {
                 if (function->isMethod) {
-                    Method* m = static_cast<Method*>(function);
+                    Method* m = (Method*)(function);
                     Struct s = getStructByName(result, m->getMemberType());
                     if (s.hasMember(body[i].getValue())) {
                         v = s.getMember(body[i].getValue());
@@ -2974,6 +2977,31 @@ namespace sclc {
         varDepth++;
     }
 
+    handler(Unless) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size()) {
+                typeStack.pop();
+            }
+        }
+        noUnused;
+        append("{\n");
+        scopeDepth++;
+        ITER_INC;
+        while (body[i].getType() != tok_then) {
+            handle(Token);
+            ITER_INC;
+        }
+        append("\n");
+        append("scl_int _passedCondition%zu = 0;\n", condCount++);
+        append("if (!(_scl_pop()->i)) {\n");
+        scopeDepth++;
+        append("_passedCondition%zu = 1;\n\n", condCount - 1);
+
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+        varDepth++;
+    }
+
     handler(Else) {
         for (size_t t = 0; t < typeStack.size(); t++) {
             if (typeStack.size()) {
@@ -3011,6 +3039,33 @@ namespace sclc {
         append("\n");
         append("if (_passedCondition%zu) _stack.ptr--;\n", condCount - 1);
         append("else if (_scl_pop()->i) {\n");
+        scopeDepth++;
+        append("_passedCondition%zu = 1;\n\n", condCount - 1);
+        varDepth++;
+        std::vector<Variable> defaultScope;
+        vars.push_back(defaultScope);
+    }
+
+    handler(Elunless) {
+        for (size_t t = 0; t < typeStack.size(); t++) {
+            if (typeStack.size()) {
+                typeStack.pop();
+            }
+        }
+        noUnused;
+        scopeDepth--;
+        varDepth--;
+        vars.pop_back();
+        
+        append("}\n");
+        ITER_INC;
+        while (body[i].getType() != tok_then) {
+            handle(Token);
+            ITER_INC;
+        }
+        append("\n");
+        append("if (_passedCondition%zu) _stack.ptr--;\n", condCount - 1);
+        append("else if (!(_scl_pop()->i)) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
         varDepth++;
@@ -3346,7 +3401,7 @@ namespace sclc {
             return;
         }
         Variable mem = s.getMember(body[i].getValue());
-        if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || static_cast<Method*>(function)->getMemberType() != s.getName())) {
+        if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (Method*)(function)->getMemberType() != s.getName())) {
             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
             errors.push_back(err);
             return;
@@ -3472,7 +3527,7 @@ namespace sclc {
             return;
         }
         Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
-        if (f->isPrivate && (!function->isMethod || static_cast<Method*>(function)->getMemberType() != s.getName())) {
+        if (f->isPrivate && (!function->isMethod || (Method*)(function)->getMemberType() != s.getName())) {
             transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
             errors.push_back(err);
             return;
@@ -3586,6 +3641,11 @@ namespace sclc {
                     break;
                 }
 
+                case tok_unless: {
+                    handle(Unless);
+                    break;
+                }
+
                 case tok_else: {
                     handle(Else);
                     break;
@@ -3593,6 +3653,11 @@ namespace sclc {
 
                 case tok_elif: {
                     handle(Elif);
+                    break;
+                }
+
+                case tok_elunless: {
+                    handle(Elunless);
                     break;
                 }
 
@@ -3825,17 +3890,17 @@ namespace sclc {
         scopeDepth--;
         append("};\n\n");
 
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "}\n");
-        fprintf(fp, "#endif\n");
-        fprintf(fp, "#endif\n");
+        append("#ifdef __cplusplus\n");
+        append("}\n");
+        append("#endif\n");
+        append("#endif\n");
 
         fclose(fp);
         fp = fopen((filename.substr(0, filename.size() - 2) + ".typeinfo.h").c_str(), "a");
-        fprintf(fp, "#include \"%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "extern \"c\" {\n");
-        fprintf(fp, "#endif\n\n");
+        append("#include \"%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+        append("#ifdef __cplusplus\n");
+        append("extern \"c\" {\n");
+        append("#endif\n\n");
 
         for (Function* function : result.functions) {
             if (function->isMethod) {
@@ -3915,17 +3980,18 @@ namespace sclc {
 
         append("extern const hash hash1(const char*);\n\n");
 
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "}\n");
-        fprintf(fp, "#endif\n");
+        append("#ifdef __cplusplus\n");
+        append("}\n");
+        append("#endif\n");
 
         fclose(fp);
         fp = fopen(filename.c_str(), "a");
-        fprintf(fp, "#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
-        fprintf(fp, "#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
-        fprintf(fp, "#ifdef __cplusplus\n");
-        fprintf(fp, "extern \"c\" {\n");
-        fprintf(fp, "#endif\n\n");
+        
+        append("#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
+        append("#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+        append("#ifdef __cplusplus\n");
+        append("extern \"c\" {\n");
+        append("#endif\n\n");
 
         append("/* FUNCTIONS */\n");
 
@@ -3981,7 +4047,7 @@ namespace sclc {
             std::string functionDeclaration = "";
 
             if (function->isMethod) {
-                functionDeclaration += static_cast<Method*>(function)->getMemberType() + ":" + function->getName() + "(";
+                functionDeclaration += (Method*)(function)->getMemberType() + ":" + function->getName() + "(";
                 for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
                     if (i != 0) {
                         functionDeclaration += ", ";
@@ -4055,48 +4121,48 @@ namespace sclc {
                 }
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), ((Method*)(function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str());
                 scopeDepth++;
-                Method* m = static_cast<Method*>(function);
-                append("if (!_scl_do_method_check) goto _scl_jmp_after_%s_%s;\n", m->getMemberType().c_str(), m->getName().c_str());
-                {
-                    append("_callstack.data[_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-                    std::string file = function->getNameToken().getFile();
-                    if (strstarts(file, scaleFolder)) {
-                        file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-                    } else {
-                        file = std::filesystem::path(file).relative_path();
-                    }
-                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
-                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
-                    if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                Method* m = (Method*)(function);
+                append("if (_scl_do_method_check) {\n");
+                scopeDepth++;
+                append("_callstack.data[_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                std::string file = function->getNameToken().getFile();
+                if (strstarts(file, scaleFolder)) {
+                    file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+                } else {
+                    file = std::filesystem::path(file).relative_path();
                 }
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
+                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
                 append("if (Var_self->$__type__ != 0x%xU) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
                 append("scl_any method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
-                append("if (method != NULL) {\n");
+                append("if (method) {\n");
+                scopeDepth++;
                 for (size_t k = 0; k < function->getArgs().size(); k++) {
                     Variable arg = function->getArgs()[k];
-                    append("  _scl_push()->i = *(scl_int*) &Var_%s;\n", arg.getName().c_str());
+                    append("_scl_push()->i = *(scl_int*) &Var_%s;\n", arg.getName().c_str());
                 }
-                append("  _scl_do_method_check = 0;\n");
-                append("  _callstack.ptr--;\n");
-                append("  ((void(*)()) method)();\n");
-                append("  _scl_do_method_check = 1;\n");
+                append("_scl_do_method_check = 0;\n");
+                append("_callstack.ptr--;\n");
+                append("((void(*)()) method)();\n");
+                append("_scl_do_method_check = 1;\n");
                 if (sclTypeToCType(result, m->getReturnType()) != "void") {
                     if (function->getReturnType() == "float") {
-                        append("  return _scl_pop()->f;\n");
+                        append("return _scl_pop()->f;\n");
                     } else {
-                        append("  return (%s) _scl_pop()->v;\n", sclTypeToCType(result, m->getReturnType()).c_str());
+                        append("return (%s) _scl_pop()->v;\n", sclTypeToCType(result, m->getReturnType()).c_str());
                     }
                 } else {
-                    append("  return;\n");
+                    append("return;\n");
                 }
+                scopeDepth++;
                 append("}\n");
                 scopeDepth--;
                 append("}\n");
                 append("_callstack.ptr--;\n");
                 scopeDepth--;
-                append("_scl_jmp_after_%s_%s:", m->getMemberType().c_str(), m->getName().c_str());
-                scopeDepth++;
+                append("}", m->getMemberType().c_str(), m->getName().c_str());
                 append("_scl_do_method_check = 1;\n");
                 scopeDepth--;
             } else {

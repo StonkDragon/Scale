@@ -103,23 +103,49 @@
 		"scope": "source.scale",
 		"prefix": "if",
 		"body": [
-			"if ${1:condition} then"
+			"if ${1:condition} then",
+			"\t$0",
+			"fi"
 		],
 		"description": "If statement"
 	},
+	"Unless Statement": {
+		"scope": "source.scale",
+		"prefix": "unless",
+		"body": [
+			"unless ${1:condition} then",
+			"\t$0",
+			"fi"
+		],
+		"description": "Unless statement"
+	},
 	"Else If Statement": {
 		"scope": "source.scale",
-		"prefix": "else if",
+		"prefix": "elif",
 		"body": [
-			"elif ${1:condition} then"
+			"elif ${1:condition} then",
+			"\t$0",
+			"fi"
 		],
 		"description": "Else If Statement"
+	},
+	"Else Unless Statement": {
+		"scope": "source.scale",
+		"prefix": "elunless",
+		"body": [
+			"elunless ${1:condition} then",
+			"\t$0",
+			"fi"
+		],
+		"description": "Else Unless Statement"
 	},
 	"Else Statement": {
 		"scope": "source.scale",
 		"prefix": "else",
 		"body": [
-			"else"
+			"else",
+			"\t$0",
+			"fi"
 		],
 		"description": "Else statement"
 	},
@@ -191,9 +217,9 @@
 	},
 	"Address of": {
 		"scope": "source.scale",
-		"prefix": "address of",
+		"prefix": "ref",
 		"body": [
-			"addr ${1:name}"
+			"ref ${1:name}"
 		],
 		"description": "Address of"
 	},

@@ -36,7 +36,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|import|end|while|do|done|if|elif|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|enum|interface|new|is|cdecl|asm|goto|label|none|int|float|int32|float32|int16|int8|uint32|uint16|uint8|any|str|self|bool|sealed|nowarn|nomangle|static|private|export|expect|(reference|value)type|const|readonly|mut|try|catch|lambda)\\b"
+				"match": "\\b(function|import|end|while|do|done|unless|if|elif|elunless|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|enum|interface|new|is|cdecl|asm|goto|label|none|int|float|int32|float32|int16|int8|uint32|uint16|uint8|any|str|self|bool|sealed|nowarn|nomangle|static|private|export|expect|(reference|value)type|const|readonly|mut|try|catch|lambda)\\b"
 			}]
 		},
 		"illegal": {
