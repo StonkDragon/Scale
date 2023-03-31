@@ -103,11 +103,24 @@ namespace sclc
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
-    using pairss = std::pair<std::string, std::string>;
-    using pairlist = std::vector<pairss>;
+    template <typename A,typename B,typename C>
+    class triple {
+    public:
+        A first;
+        B second;
+        C third;
+
+        triple(A a, B b, C c) {
+            first = a;
+            second = b;
+            third = c;
+        }
+    };
+    using Triple = triple<std::string, std::string, std::string>;
+    using TripleList = std::vector<Triple>;
 
     auto parseSclDoc(std::string file) {
-        std::map<std::string, pairlist> docs;
+        std::map<std::string, TripleList> docs;
         FILE* fp = fopen(file.c_str(), "rb");
         if (fp) fseek(fp, 0, SEEK_END);
         long sz = ftell(fp);
@@ -118,22 +131,27 @@ namespace sclc
 
         std::vector<std::string> lines = split(std::string(data), "\n");
         std::string current = "";
+        std::string nextFileName = "";
         for (size_t i = 0; i < lines.size(); i++) {
             std::string line = lines[i];
             try {
                 line = replaceAll(line, "`", "");
             } catch (std::out_of_range& e) {}
-            if (strstarts(line, "##") && !strstarts(line, "###")) {
+            if (strstarts(line, "@")) {
+                try {
+                    nextFileName = line.substr(1);
+                } catch (std::out_of_range& e) {}
+            } else if (strstarts(line, "##") && !strstarts(line, "###")) {
                 try {
                     current = line.substr(3);
-                    pairlist key_value;
+                    TripleList key_value;
                     docs[current] = key_value;
                 } catch (std::out_of_range& e) {}
             } else if (strstarts(line, "###")) {
                 std::string key = line.substr(4);
-                docs[current].push_back(std::make_pair(key, ""));
+                docs[current].push_back(triple(key, std::string(""), nextFileName));
                 line = lines[++i];
-                while (i < lines.size() && !strstarts(line, "##")) {
+                while (i < lines.size() && !strstarts(line, "##") && !strstarts(line, "@")) {
                     while (strstarts(line, "<div")) {
                         line = lines[++i];
                     }
@@ -168,7 +186,7 @@ namespace sclc
     }
 
     auto docHandler(std::vector<std::string> args) {
-        std::map<std::string, pairlist> docs;
+        std::map<std::string, TripleList> docs;
         
         struct {
             std::vector<std::string> find;
@@ -249,7 +267,7 @@ namespace sclc
                 std::cout << "Categories: " << std::endl;
 
                 std::string current = "";
-                for (std::pair<std::string, pairlist> section : docs) {
+                for (std::pair<std::string, TripleList> section : docs) {
                     current = section.first;
                     std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
                 }
@@ -260,7 +278,7 @@ namespace sclc
                 std::cout << "Categories: " << std::endl;
 
                 std::string current;
-                for (std::pair<std::string, pairlist> section : docs) {
+                for (std::pair<std::string, TripleList> section : docs) {
                     current = section.first;
                     std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
                 }
@@ -274,11 +292,14 @@ namespace sclc
 
             std::string current;
             if (DocOps.find.size() == 0) {
-                for (std::pair<std::string, pairlist> section : docs) {
+                for (std::pair<std::string, TripleList> section : docs) {
                     current = section.first;
                     std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                    for (pairss kv : section.second) {
-                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                    for (Triple kv : section.second) {
+                        if (kv.third.size())
+                            std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                        else
+                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                     }
                 }
             } else {
@@ -287,9 +308,9 @@ namespace sclc
                     std::string sec = "";
                     bool hasSection = false;
                     std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, pairlist> section : docs) {
+                    for (std::pair<std::string, TripleList> section : docs) {
                         current = section.first;
-                        for (pairss kv : section.second) {
+                        for (Triple kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
@@ -300,7 +321,7 @@ namespace sclc
                             }
                         }
                         if (!found) {
-                            for (pairss kv : section.second) {
+                            for (Triple kv : section.second) {
                                 std::string matchCurrent = current;
                                 std::string matchKey = kv.first;
                                 std::string matchDescription = kv.second;
@@ -311,16 +332,19 @@ namespace sclc
                             }
                         }
                     }
-                    for (std::pair<std::string, pairlist> section : docs) {
+                    for (std::pair<std::string, TripleList> section : docs) {
                         current = section.first;
                         if (found && current == sec)
                             std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (pairss kv : section.second) {
+                        for (Triple kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                if (kv.third.size())
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                else
+                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
                                 std::string s = kv.second;
                                 std::smatch matches;
@@ -328,7 +352,10 @@ namespace sclc
                                 for (auto match : matches) {
                                     s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
                                 }
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                if (kv.third.size())
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                else
+                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                             }
                         }
                     }
@@ -363,11 +390,14 @@ namespace sclc
             std::string current = "";
             if (DocOps.find.size() == 0) {
                 if (DocOps.find_category.size() == 0) {
-                    for (std::pair<std::string, pairlist> section : docs) {
+                    for (std::pair<std::string, TripleList> section : docs) {
                         current = section.first;
                         std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (pairss kv : section.second) {
-                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                        for (Triple kv : section.second) {
+                            if (kv.third.size())
+                                std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                            else
+                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                         }
                     }
                 } else {
@@ -375,7 +405,7 @@ namespace sclc
                         bool found = false;
                         std::string sec = "";
                         std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                        for (std::pair<std::string, pairlist> section : docs) {
+                        for (std::pair<std::string, TripleList> section : docs) {
                             current = section.first;
                             std::string matchCurrent = current;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase))) {
@@ -383,12 +413,15 @@ namespace sclc
                                 sec = current;
                             }
                         }
-                        for (std::pair<std::string, pairlist> section : docs) {
+                        for (std::pair<std::string, TripleList> section : docs) {
                             current = section.first;
                             if (found && current == sec) {
                                 std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (pairss kv : section.second) {
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                for (Triple kv : section.second) {
+                                    if (kv.third.size())
+                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                    else
+                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                 }
                                 break;
                             }
@@ -404,9 +437,9 @@ namespace sclc
                     std::string sec = "";
                     bool hasSection = false;
                     std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, pairlist> section : docs) {
+                    for (std::pair<std::string, TripleList> section : docs) {
                         current = section.first;
-                        for (pairss kv : section.second) {
+                        for (Triple kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
@@ -417,7 +450,7 @@ namespace sclc
                             }
                         }
                         if (!found) {
-                            for (pairss kv : section.second) {
+                            for (Triple kv : section.second) {
                                 std::string matchCurrent = current;
                                 std::string matchKey = kv.first;
                                 std::string matchDescription = kv.second;
@@ -428,16 +461,19 @@ namespace sclc
                             }
                         }
                     }
-                    for (std::pair<std::string, pairlist> section : docs) {
+                    for (std::pair<std::string, TripleList> section : docs) {
                         current = section.first;
                         if (found && current == sec)
                             std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (pairss kv : section.second) {
+                        for (Triple kv : section.second) {
                             std::string matchCurrent = current;
                             std::string matchKey = kv.first;
                             std::string matchDescription = kv.second;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                if (kv.third.size())
+                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                    else
+                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
                                 std::string s = kv.second;
                                 std::smatch matches;
@@ -446,6 +482,10 @@ namespace sclc
                                     s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
                                 }
                                 std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                if (kv.third.size())
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                else
+                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                             }
                         }
                     }
