@@ -136,6 +136,8 @@
 #endif
 #define SCL_INT_HEX_FMT 	"%x"
 #define SCL_INT_FMT		 	"%d"
+#define SCL_int_MAX			INT32_MAX
+#define SCL_uint_MAX		UINT32_MAX
 typedef void*				scl_any;
 typedef int		 			scl_int;
 typedef unsigned int		scl_uint;
@@ -163,6 +165,8 @@ typedef float 				scl_float;
 #endif
 #define SCL_INT_HEX_FMT 	"%llx"
 #define SCL_INT_FMT		 	"%lld"
+#define SCL_int_MAX			INT64_MAX
+#define SCL_uint_MAX		UINT64_MAX
 typedef void*				scl_any;
 typedef long long 			scl_int;
 typedef unsigned long long	scl_uint;
@@ -170,10 +174,22 @@ typedef struct _scl_string* scl_str;
 typedef double 				scl_float;
 #endif
 
-typedef int		 			scl_int32;
+#define SCL_int64_MAX		INT64_MAX
+#define SCL_int32_MAX		INT32_MAX
+#define SCL_int16_MAX		INT16_MAX
+#define SCL_int8_MAX		INT8_MAX
+#define SCL_uint64_MAX		UINT64_MAX
+#define SCL_uint32_MAX		UINT32_MAX
+#define SCL_uint16_MAX		UINT16_MAX
+#define SCL_uint8_MAX		UINT8_MAX
+
 typedef float 				scl_float32;
+typedef double 				scl_float64;
+typedef long long 			scl_int64;
+typedef int		 			scl_int32;
 typedef short		 		scl_int16;
 typedef char		 		scl_int8;
+typedef unsigned long long	scl_uint64;
 typedef unsigned int 		scl_uint32;
 typedef unsigned short 		scl_uint16;
 typedef unsigned char 		scl_uint8;
