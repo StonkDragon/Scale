@@ -1,12 +1,3 @@
-typealias int32 "scl_int32"
-typealias float32 "scl_float32"
-typealias int16 "scl_int16"
-typealias int8 "scl_int8"
-typealias uint32 "scl_uint32"
-typealias uint16 "scl_uint16"
-typealias uint8 "scl_uint8"
-typealias lambda "_scl_lambda"
-
 cdecl "strlen"
 expect function __c_strlen(_str_: [int8]) len: int
 cdecl "strcmp"
@@ -54,7 +45,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
     if i 0 < i self:size >= || then
       nameof i " is out of bounds" + IndexOutOfBoundsException::new throw
     fi
-    self._data i + @ as int toChar return
+    self._data i + @ toInt8 as int return
   end
 
   function toString(): str
