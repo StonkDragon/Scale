@@ -1,0 +1,74 @@
+struct Fraction
+    decl numerator: int
+    decl denominator: int
+
+    function init(numerator: int, denominator: int): none
+        numerator denominator self:gcd => decl div
+
+        numerator div / => self.numerator
+        denominator div / => self.denominator
+    end
+
+    function toString(): str
+        numerator longToString "/" + denominator longToString + return
+    end
+
+    function toFloat(): float
+        numerator as float denominator as float / return
+    end
+
+    function +(other: Fraction): Fraction
+        self.denominator other.numerator *
+        self.numerator other.denominator *
+        +
+        self.denominator other.denominator *
+        Fraction::new return
+    end
+
+    function -(other: Fraction): Fraction
+        self.denominator other.numerator *
+        self.numerator other.denominator *
+        -
+        self.denominator other.denominator *
+        Fraction::new return
+    end
+
+    function ++(): Fraction
+        self.numerator self.denominator + => self.numerator
+        self return
+    end
+
+    function --(): Fraction
+        self.numerator self.denominator - => self.numerator
+        self return
+    end
+
+    function *(other: Fraction): Fraction
+        self.numerator other.numerator *
+        self.denominator other.denominator *
+        Fraction::new return
+    end
+
+    function inverse(): Fraction
+        self.denominator self.numerator Fraction::new return
+    end
+
+    function /(other: Fraction): Fraction
+        other self:inverse * return
+    end
+
+    private function gcd(a: int, b: int): int
+        if a 0 < then a -1 * => a fi
+        if b 0 < then b -1 * => b fi
+
+        while a b != do
+            if a b > then
+                a b - => a
+            else
+                b a - => b
+            fi
+        done
+
+        a return
+    end
+end
