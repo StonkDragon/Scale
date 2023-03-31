@@ -106,6 +106,19 @@ namespace sclc {
         return return_type;
     }
 
+    bool isPrimitiveIntegerType(std::string type);
+
+    std::string sclIntTypeToConvert(std::string type) {
+        if (type == "int") return "";
+        if (type == "int8") return "Function_toInt8";
+        if (type == "int16") return "Function_toInt16";
+        if (type == "int32") return "Function_toInt32";
+        if (type == "uint8") return "Function_toUInt8";
+        if (type == "uint16") return "Function_toUInt16";
+        if (type == "uint32") return "Function_toUInt32";
+        return "never_happens";
+    }
+
     std::string generateArgumentsForFunction(TPResult result, Function *func) {
         std::string args = "";
         for (size_t i = 0; i < func->getArgs().size(); i++) {
@@ -134,6 +147,12 @@ namespace sclc {
                     args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].v";
                 } else {
                     args += "_stack.data[_stack.ptr].v";
+                }
+            } else if (isPrimitiveIntegerType(arg.getType())) {
+                if (i) {
+                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _stack.data[_stack.ptr + " + std::to_string(i) + "].i)";
+                } else {
+                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _stack.data[_stack.ptr].i)";
                 }
             } else {
                 if (i) {
@@ -594,6 +613,10 @@ namespace sclc {
                 continue;
             }
 
+            if (isPrimitiveIntegerType(typeA) && isPrimitiveIntegerType(typeB)) {
+                continue;
+            }
+
             if (typeA != typeB) {
                 Struct a = getStructByName(result, typeA);
                 Struct b = getStructByName(result, typeB);
@@ -706,7 +729,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        for (ssize_t m = self->getArgs().size() - 1; m >= 0; m--) {
+        for (size_t m = 0; m < self->getArgs().size(); m++) {
             if (typeStack.size()) {
                 typeStack.pop();
             }
@@ -791,12 +814,6 @@ namespace sclc {
             while (i < body.size() && body[i].getType() != tok_paren_close) {
                 if (body[i].getType() == tok_identifier) {
                     std::string name = body[i].getValue();
-                    if namingConvention("Variables", body[i], flatcase, camelCase, false)
-                    else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
-                    else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
-                    else if namingConvention("Variables", body[i], snake_case, camelCase, false)
-                    else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                    else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     ITER_INC;
                     bool isConst = false;
@@ -1077,7 +1094,7 @@ namespace sclc {
             typeStack.push(a);
             typeStack.push(c);
         } else if (body[i].getValue() == "clearstack") {
-            append("_scl_bulk_decr(0, _stack.ptr);\n");
+            append("_scl_popn(_stack.ptr);\n");
             append("_stack.ptr = 0;\n");
             for (size_t t = 0; t < typeStack.size(); t++) {
                 if (typeStack.size()) {
@@ -2269,12 +2286,6 @@ namespace sclc {
                 }
             }
             std::string name = body[i].getValue();
-            if namingConvention("Variables", body[i], flatcase, camelCase, false)
-            else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
-            else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
-            else if namingConvention("Variables", body[i], snake_case, camelCase, false)
-            else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
-            else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
             std::string type = "any";
             ITER_INC;
             bool isConst = false;
@@ -2316,11 +2327,16 @@ namespace sclc {
             Variable v("", "");
             bool topLevelDeref = false;
             std::string containerBegin = "";
+            std::string getStaticVar = "";
 
-            auto generatePathStructRoot = [result, function, fp](std::vector<Token>& body, size_t* i, std::vector<FPResult> &errors, std::string* lastType, bool parseFromExpr, Variable& v, std::string& containerBegin, bool topLevelDeref) -> std::string {
+            auto generatePathStructRoot = [result, function, fp](std::vector<Token>& body, size_t* i, std::vector<FPResult> &errors, std::string* lastType, bool parseFromExpr, Variable& v, std::string& containerBegin, bool topLevelDeref, std::string& getStaticVar) -> std::string {
                 #define REF_INC do { (*i)++; if ((*i) >= body.size()) { FPResult err; err.success = false; err.message = "Unexpected end of function! " + std::string("Error happened in function ") + std::string(__func__) + " in line " + std::to_string(__LINE__); err.line = body[(*i) - 1].getLine(); err.in = body[(*i) - 1].getFile(); err.column = body[(*i) - 1].getColumn(); err.value = body[(*i) - 1].getValue(); err.type = body[(*i) - 1].getType(); errors.push_back(err); return ""; } } while (0)
                 std::string path = "(Var_" + body[(*i)].getValue() + ")";
                 std::string sclPath = body[(*i)].getValue();
+                if (getStaticVar.size()) {
+                    path = "(Var_" + getStaticVar + "$" + body[(*i)].getValue() + ")";
+                    sclPath = getStaticVar + "::" + sclPath;
+                }
                 Variable v2 = v;
                 Struct currentRoot = getStructByName(result, v.getType());
                 std::string nextType = removeTypeModifiers(v2.getType());
@@ -2452,7 +2468,7 @@ namespace sclc {
                     append("scl_any* tmp = _scl_pop()->v;\n");
                     if (i + 1 < body.size() && body[i + 1].getType() == tok_dot) {
                         ITER_INC;
-                        path = generatePathStructRoot(body, &i, errors, &lastType, true, v, containerBegin, topLevelDeref);
+                        path = generatePathStructRoot(body, &i, errors, &lastType, true, v, containerBegin, topLevelDeref, getStaticVar);
                     } else {
                         path = "(*tmp)";
                     }
@@ -2468,13 +2484,14 @@ namespace sclc {
                 }
             }
             if (!hasVar(body[i])) {
-                if (function->isMethod) {
+                if (function->isMethod && !(body[i + 1].getType() == tok_double_column || hasContainer(result, body[i]))) {
                     Method* m = ((Method*)function);
                     Struct s = getStructByName(result, m->getMemberType());
                     if (s.hasMember(body[i].getValue())) {
                         v = s.getMember(body[i].getValue());
                     } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                         v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                        getStaticVar = s.getName();
                     }
                 } else if (body[i + 1].getType() == tok_double_column) {
                     ITER_INC;
@@ -2487,6 +2504,7 @@ namespace sclc {
                             return;
                         }
                         v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
+                        getStaticVar = s.getName();
                     }
                 } else if (hasContainer(result, body[i])) {
                     Container c = getContainerByName(result, body[i].getValue());
@@ -2509,7 +2527,7 @@ namespace sclc {
                 v = getVar(body[i]);
             }
 
-            path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, topLevelDeref);
+            path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, topLevelDeref, getStaticVar);
 
             if (removeTypeModifiers(lastType) == "float")
                 append("%s = _scl_pop()->f;\n", path.c_str());
@@ -2547,12 +2565,6 @@ namespace sclc {
             else errors.push_back(err);
         }
         std::string name = body[i].getValue();
-        if namingConvention("Variables", body[i], flatcase, camelCase, false)
-        else if namingConvention("Variables", body[i], UPPERCASE, camelCase, false)
-        else if namingConvention("Variables", body[i], PascalCase, camelCase, false)
-        else if namingConvention("Variables", body[i], snake_case, camelCase, false)
-        else if namingConvention("Variables", body[i], SCREAMING_SNAKE_CASE, camelCase, false)
-        else if namingConvention("Variables", body[i], IPascalCase, camelCase, false)
         std::string type = "any";
         ITER_INC;
         bool isConst = false;
@@ -3178,7 +3190,7 @@ namespace sclc {
                     append("return returnFrame.v;\n");
                 } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, function->getReturnType())) {
                     std::string type = sclTypeToCType(result, function->getReturnType());
-                    append("return (%s) returnFrame.v;\n", type.c_str());
+                    append("return (%s) returnFrame.i;\n", type.c_str());
                 }
             }
         }
@@ -3287,9 +3299,12 @@ namespace sclc {
 
     bool isPrimitiveIntegerType(std::string s) {
         return s == "int" ||
+               s == "int64" ||
                s == "int32" ||
                s == "int16" ||
                s == "int8" ||
+               s == "uint" ||
+               s == "uint64" ||
                s == "uint32" ||
                s == "uint16" ||
                s == "uint8";
@@ -3315,8 +3330,7 @@ namespace sclc {
                 typeStack.pop();
             }
             typeStack.push(type.value);
-            append("_scl_top()->i &= ((1UL << (sizeof(scl_%s) * 8)) - 1);\n", type.value.c_str());
-            append("_scl_top()->i = (scl_%s) _scl_top()->i;\n", type.value.c_str());
+            append("_scl_top()->i &= SCL_%s_MAX;\n", type.value.c_str());
             return;
         }
         auto typeIsPtr = [type]() -> bool {
@@ -4156,13 +4170,12 @@ namespace sclc {
                 } else {
                     append("return;\n");
                 }
-                scopeDepth++;
                 append("}\n");
                 scopeDepth--;
                 append("}\n");
                 append("_callstack.ptr--;\n");
                 scopeDepth--;
-                append("}");
+                append("}\n");
                 append("_scl_do_method_check = 1;\n");
                 scopeDepth--;
             } else {
