@@ -1,5 +1,5 @@
-     748 Compiler/Common.cpp
-    1275 Compiler/Main.cpp
+     745 Compiler/Common.cpp
+    1315 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      236 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -19,18 +19,18 @@
      110 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      151 Compiler/modules/Parser.cpp
-    1633 Compiler/modules/SyntaxTree.cpp
+    1528 Compiler/modules/SyntaxTree.cpp
      262 Compiler/modules/TokenHandlers.cpp
      543 Compiler/modules/Tokenizer.cpp
-    4219 Compiler/modules/Transpiler.cpp
-     110 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+    4232 Compiler/modules/Transpiler.cpp
+      91 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
       59 Scale/Frameworks/Scale.framework/include/Scale/math.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
-     141 Scale/Frameworks/Scale.framework/include/Scale/types.scale
+     132 Scale/Frameworks/Scale.framework/include/Scale/string.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
      193 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
@@ -47,7 +47,7 @@
       36 Scale/Frameworks/Scale.framework/include/Scale/util/thread.scale
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
     1069 Scale/Internal/scale_internal.c
-     322 Scale/Internal/scale_internal.h
+     338 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -76,4 +76,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13723 total
+   13656 total
