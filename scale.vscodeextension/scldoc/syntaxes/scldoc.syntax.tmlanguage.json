@@ -4,6 +4,7 @@
 	"patterns": [
 		{"include": "#code"},
 		{"include": "#heading"},
+		{"include": "#file"},
 		{"include": "#color-coding"}
 	],
 	"repository": {
@@ -14,6 +15,15 @@
 		"heading": {
 			"name": "variable.name",
 			"begin": "#",
+			"end": "\n",
+			"patterns": [{
+				"name": "variable.name",
+				"match": "."
+			}]
+		},
+		"file": {
+			"name": "variable.name",
+			"begin": "@",
 			"end": "\n",
 			"patterns": [{
 				"name": "variable.name",
