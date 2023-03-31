@@ -646,7 +646,7 @@ namespace sclc
             return memberOfStruct(f);
         }
         if (typeIsConst(getType())) {
-            return false;
+            return isInitFunction(f);
         }
         if (typeIsMut(getType())) {
             return true;
