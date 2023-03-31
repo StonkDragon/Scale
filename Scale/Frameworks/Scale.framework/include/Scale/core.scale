@@ -1,9 +1,10 @@
 import Scale.sclobject
 import Scale.io
-import Scale.types
+import Scale.string
 import Scale.util.array
+import Scale.inttypes
 
-expect function memset(ptr: [any], val: int, len: int): [any]
+expect function memset(ptr: [any], val: int32, len: int): [any]
 expect function memcpy(dst: [any], src: [any], n: int): [any]
 cdecl "ctrl_stack_size"
 expect function sizeofStack(): int
@@ -87,24 +88,4 @@ end
 
 function nop(): none
   0 sleep
-end
-
-function toChar(_val_: int): int
-  _val_ 0xff & return
-end
-
-function toInt(_val_: int): int
-  _val_ 0xffffffff & return
-end
-
-function toShort(_val_: int): int
-  _val_ 0xffff & return
-end
-
-function isnil(x: any): bool
-  x nil == return
-end
-
-function isnotnil(x: any): bool
-  x nil != return
 end

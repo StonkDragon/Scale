@@ -1,0 +1,74 @@
+typealias int64 "scl_int64"
+typealias int32 "scl_int32"
+typealias int16 "scl_int16"
+typealias int8 "scl_int8"
+typealias uint64 "scl_uint64"
+typealias uint32 "scl_uint32"
+typealias uint16 "scl_uint16"
+typealias uint8 "scl_uint8"
+typealias float32 "scl_float32"
+typealias lambda "_scl_lambda"
+
+function toInt8(_val_: any): int8
+  _val_ as int8 return
+end
+
+function toInt16(_val_: any): int16
+  _val_ as int16 return
+end
+
+function toInt32(_val_: any): int32
+  _val_ as int32 return
+end
+
+function toInt(_val_: any): int
+  _val_ as int return
+end
+
+function toUInt8(_val_: any): uint8
+  _val_ as uint8 return
+end
+
+function toUInt16(_val_: any): uint16
+  _val_ as uint16 return
+end
+
+function toUInt32(_val_: any): uint32
+  _val_ as uint32 return
+end
+
+function toUInt(_val_: any): uint
+  _val_ as uint return
+end
+
+function isValidInt8(val: any): bool
+  val val toInt8 == return
+end
+
+function isValidInt16(val: any): bool
+  val val toInt16 == return
+end
+
+function isValidInt32(val: any): bool
+  val val toInt32 == return
+end
+
+function isValidUInt8(val: any): bool
+  val val toUInt8 == return
+end
+
+function isValidUInt16(val: any): bool
+  val val toUInt16 == return
+end
+
+function isValidUInt32(val: any): bool
+  val val toUInt32 == return
+end
+
+function isnil(x: any): bool
+  x nil == return
+end
+
+function isnotnil(x: any): bool
+  x nil != return
+end
