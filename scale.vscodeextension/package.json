@@ -8,7 +8,7 @@
     "icon": "icon.png",
     "publisher": "StonkDragon",
     "description": "Language Support for the Scale Programming Language",
-    "version": "23.2.0",
+    "version": "23.2.1",
     "engines": {
         "vscode": "^1.61.0"
     },
@@ -46,6 +46,9 @@
         "snippets": [{
             "language": "scale",
             "path": "./snippets/snippets.code-snippets"
+        },{
+            "language": "scldoc",
+            "path": "./scldoc/snippets/snippets.code-snippets"
         }]
     }
 }

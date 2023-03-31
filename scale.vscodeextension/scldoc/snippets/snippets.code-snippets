@@ -1,0 +1,146 @@
+{
+	"RESET": {
+        "scope": "source.scldoc",
+        "prefix": "RESET",
+        "body": [
+            "<<RESET>>"
+        ],
+        "description": "Color RESET"
+    },
+	"BLACK": {
+        "scope": "source.scldoc",
+        "prefix": "BLACK",
+        "body": [
+            "<<BLACK>>"
+        ],
+        "description": "Color BLACK"
+    },
+	"RED": {
+        "scope": "source.scldoc",
+        "prefix": "RED",
+        "body": [
+            "<<RED>>"
+        ],
+        "description": "Color RED"
+    },
+	"GREEN": {
+        "scope": "source.scldoc",
+        "prefix": "GREEN",
+        "body": [
+            "<<GREEN>>"
+        ],
+        "description": "Color GREEN"
+    },
+	"YELLOW": {
+        "scope": "source.scldoc",
+        "prefix": "YELLOW",
+        "body": [
+            "<<YELLOW>>"
+        ],
+        "description": "Color YELLOW"
+    },
+	"BLUE": {
+        "scope": "source.scldoc",
+        "prefix": "BLUE",
+        "body": [
+            "<<BLUE>>"
+        ],
+        "description": "Color BLUE"
+    },
+	"MAGENTA": {
+        "scope": "source.scldoc",
+        "prefix": "MAGENTA",
+        "body": [
+            "<<MAGENTA>>"
+        ],
+        "description": "Color MAGENTA"
+    },
+	"CYAN": {
+        "scope": "source.scldoc",
+        "prefix": "CYAN",
+        "body": [
+            "<<CYAN>>"
+        ],
+        "description": "Color CYAN"
+    },
+	"WHITE": {
+        "scope": "source.scldoc",
+        "prefix": "WHITE",
+        "body": [
+            "<<WHITE>>"
+        ],
+        "description": "Color WHITE"
+    },
+	"BOLDBLACK": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDBLACK",
+        "body": [
+            "<<BOLDBLACK>>"
+        ],
+        "description": "Color BOLDBLACK"
+    },
+	"BOLDRED": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDRED",
+        "body": [
+            "<<BOLDRED>>"
+        ],
+        "description": "Color BOLDRED"
+    },
+	"BOLDGREEN": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDGREEN",
+        "body": [
+            "<<BOLDGREEN>>"
+        ],
+        "description": "Color BOLDGREEN"
+    },
+	"BOLDYELLOW": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDYELLOW",
+        "body": [
+            "<<BOLDYELLOW>>"
+        ],
+        "description": "Color BOLDYELLOW"
+    },
+	"BOLDBLUE": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDBLUE",
+        "body": [
+            "<<BOLDBLUE>>"
+        ],
+        "description": "Color BOLDBLUE"
+    },
+	"BOLDMAGENTA": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDMAGENTA",
+        "body": [
+            "<<BOLDMAGENTA>>"
+        ],
+        "description": "Color BOLDMAGENTA"
+    },
+	"BOLDCYAN": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDCYAN",
+        "body": [
+            "<<BOLDCYAN>>"
+        ],
+        "description": "Color BOLDCYAN"
+    },
+	"BOLDWHITE": {
+        "scope": "source.scldoc",
+        "prefix": "BOLDWHITE",
+        "body": [
+            "<<BOLDWHITE>>"
+        ],
+        "description": "Color BOLDWHITE"
+    },
+    "File": {
+        "scope": "source.scldoc",
+        "prefix": "file",
+        "body": [
+            "@${1:file}"
+        ],
+        "description": "Set file"
+    }
+}
