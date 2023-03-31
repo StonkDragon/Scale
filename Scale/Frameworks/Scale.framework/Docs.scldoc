@@ -1,38 +1,42 @@
 # Scale Framework Documentation
+@Scale.core
 ## Core
 ### function sleep(_millis_: int): none
 Sleeps for <<WHITE>>_millis_<<RESET>> milliseconds.
+This function can be used to suspend execution for a given amount of time.
 
 ### function system(_cmd_: str): int
-Executes the shell command <<WHITE>>_cmd_<<RESET>> and returns the return value. If <<WHITE>>_cmd_<<RESET>> is <<BLUE>>nil<<RESET>> the function will return a non-zero value if a command processor was found.
+Executes the shell command <<WHITE>>_cmd_<<RESET>> and returns the return value.
 
-### function getenv(_key_: str): str
-Returns the value of the environment variable <<WHITE>>_key_<<RESET>>. If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned. Modifying the returned string is undefined behavior.
+### function getenv(_key_: str): str?
+Returns the value of the environment variable <<WHITE>>_key_<<RESET>>.
+If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned.
 
 ### function sizeofStack(): int
 Returns the current stack size.
 
 ### function malloc(_size_: int): any
-Returns a pointer to <<WHITE>>_size_<<RESET>> bytes of memory. This memory may not be <<GREEN>>0<<RESET>>-initialized. It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
+Returns a pointer to <<WHITE>>_size_<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
+The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
 
 ### function realloc(_size_: int, _ptr_: any): any
-Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes. Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value. If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>. It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
+Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes.
+Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
+If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>.
+It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
 
 ### function free(_ptr_: any): none
-Frees the memory pointed to by <<WHITE>>_ptr_<<RESET>>. If <<WHITE>>_ptr_<<RESET>> was not allocated, a call to <<WHITE>>free<<RESET>> will result in undefined behavior. If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>>, the function will do nothing.
+Frees the memory pointed to by <<WHITE>>_ptr_<<RESET>>.
+If <<WHITE>>_ptr_<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
 
 ### function memset(ptr: [any], val: int, len: int): [any]
-Sets the first <<WHITE>>len<<RESET>> bytes pointed to by <<WHITE>>ptr<<RESET>> to <<WHITE>>val<<RESET>>. Returns a pointer to the changed memory.
+Sets the first <<WHITE>>len<<RESET>> bytes pointed to by <<WHITE>>ptr<<RESET>> to <<WHITE>>val<<RESET>>.
+Returns a pointer to the changed memory.
 
 ### function memcpy(dst: [any], src: [any], n: int): [any]
 Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RESET>> and returns <<WHITE>>dst<<RESET>>.
-
-Example:<<WHITE>>
-<<YELLOW>>"hello world!" " "<<WHITE>> strsplit<<RESET>>
-
-Will split 'hello world!' at every space character, returning an array with these elements:
-1. <<YELLOW>>"hello"<<RESET>>
-2. <<YELLOW>>"world!"<<RESET>>
 
 ### function time(): float
 Returns the current time in seconds as a float.
@@ -41,10 +45,14 @@ Returns the current time in seconds as a float.
 Converts <<WHITE>>_long_<<RESET>> to a string.
 
 ### function stringToLong(_str_: str): int
-Converts <<WHITE>>_str_<<RESET>> to an interger. Returns <<GREEN>>0<<RESET>> if the string is not a valid number. If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
+Converts <<WHITE>>_str_<<RESET>> to an interger.
+Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
+If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
 
 ### function stringToDouble(_str_: str): float
-Converts <<WHITE>>_str_<<RESET>> to a float. Returns <<WHITE>>0<<RESET>>0` if the string is not a valid float. Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+Converts <<WHITE>>_str_<<RESET>> to a float.
+Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
+Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
 
 ### function doubleToString(_double_: float): str
 Converts <<WHITE>>_double_<<RESET>> to a string.
@@ -52,14 +60,50 @@ Converts <<WHITE>>_double_<<RESET>> to a string.
 ### function nop(): none
 Do nothing.
 
-### function toChar(_val_: int): int
+@Scale.inttypes
+### function toInt8(_val_: int): int8
 Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
 
-### function toShort(_val_: int): int
+### function toInt16(_val_: int): int16
 Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
 
-### function toInt(_val_: int): int
+### function toInt32(_val_: int): int32
 Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
+
+### function toInt(_val_: any): int
+Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### function toUInt8(_val_: int): int8
+Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
+
+### function toUInt16(_val_: int): int16
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
+
+### function toUInt32(_val_: int): int32
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
+
+### function toUInt(_val_: any): uint
+Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### function isValidInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
+
+### function isValidInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
+
+### function isValidInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
+
+### function isValidUInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
+
+### function isValidUInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
+
+### function isValidUInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
 
 ### function isnil(x: any): bool
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
@@ -67,6 +111,7 @@ Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
 ### function isnotnil(x: any): bool
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is not <<BLUE>>nil<<RESET>>.
 
+@Scale.io
 ## IO
 ### function write(_fd_: int, _str_: str, _n_: int): none
 Writes <<WHITE>>_n_<<RESET>> bytes of <<WHITE>>_str_<<RESET>> to file descriptor <<WHITE>>_fd_<<RESET>>.
@@ -89,13 +134,16 @@ Prints the float <<WHITE>>_f_<<RESET>> followed by a new line to the standard ou
 ### function throwerr(_err_: str): none
 Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code 1.
 
+@Scale.math
 ## Math
 ### container MathConstants
 Member types:
 - <<BLUE>>const <<WHITE>>e<<BLUE>>: float<<RESET>>
 - <<BLUE>>const <<WHITE>>pi<<BLUE>>: float<<RESET>>
-<<WHITE>>e<<RESET>>: The math constant <<WHITE>>e<<RESET>>. It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
-<<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>. It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
+<<WHITE>>e<<RESET>>: The math constant <<WHITE>>e<<RESET>>.
+It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
+<<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>.
+It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
 
 ### function sqrt(_f_: float): float
 Calculates the square root of <<WHITE>>_f_<<RESET>>.
@@ -166,6 +214,7 @@ Linear interpolation between <<WHITE>>_a_<<RESET>> and <<WHITE>>_b_<<RESET>> wit
 ### function neg(_i_: int): int
 Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
 
+@Scale.file
 ## File
 ### function fopen(_filename_: str, _mode_: str): any
 Opens a new file handle of file <<WHITE>>_filename_<<RESET>> in mode <<WHITE>>_mode_<<RESET>>.
@@ -209,6 +258,48 @@ Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>_f_<<
 ### function fseekcur(_f_: any, _offset_: int): none
 Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>_f_<<RESET>>.
 
+@Scale.math.fraction
+## Fraction
+### struct Fraction
+Member types:
+- <<WHITE>>numerator<<BLUE>>: int<<RESET>>
+- <<WHITE>>denominator<<BLUE>>: int<<RESET>>
+
+<<WHITE>>numerator<<RESET>>: The numerator of the fraction
+<<WHITE>>denominator<<RESET>>: The denominator of the fraction
+
+### static function Fraction::new(numerator: int, denominator: int): Fraction
+Creates a new fraction with the given numerator and denominator.
+
+### function Fraction:toString(): str
+Returns a string representation of this fraction.
+It follows this pattern: numerator "/" denominator
+
+### function Fraction:toFloat(): float
+Returns a float approximation of the fraction.
+
+### function Fraction:+(other: Fraction): Fraction
+Adds two fractions and returns a new Fraction based on the result of the addition.
+
+### function Fraction:-(other: Fraction): Fraction
+Subtracts two fractions and returns a new Fraction based on the result of the subtraction.
+
+### function Fraction:++(): Fraction
+Increments this fraction by adding the denominator to the numerator once.
+
+### function Fraction:--(): Fraction
+Increments this fraction by subtracting the denominator from the numerator once.
+
+### function Fraction:*(other: Fraction): Fraction
+Multiplies two fractions and returns a new Fraction based on the result of the multiplication.
+
+### function Fraction:/(other: Fraction): Fraction
+Divides two fractions and returns a new Fraction based on the result of the division.
+
+### function Fraction:inverse(): Fraction
+Returns the inverse of this fraction.
+
+@Scale.util.array
 ## Array
 ### struct Array
 Member types:
@@ -221,22 +312,29 @@ Member types:
 <<WHITE>>capacity<<RESET>>: Contains the maximum capacity of the array.
 
 ### function Array:sort(): none
-Sorts the array. If the array is empty, the function will do nothing.
+Sorts the array.
+If the array is empty, the function will do nothing.
 
 ### function Array:get(index: int): any
-Returns the value at <<WHITE>>index<<RESET>>. If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+Returns the value at <<WHITE>>index<<RESET>>.
+If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:set(index: int, value: any): none
-Sets the value at <<WHITE>>index<<RESET>> to <<WHITE>>value<<RESET>>. If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+Sets the value at <<WHITE>>index<<RESET>> to <<WHITE>>value<<RESET>>.
+If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:top(): any
-Returns the top value of the array. This invocation is identical to <<WHITE>>Array.count <<GREEN>>1 <<BLUE>>-<<WHITE>> Array:get<<RESET>>. If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+Returns the top value of the array.
+This invocation is identical to <<WHITE>>Array.count <<GREEN>>1 <<BLUE>>-<<WHITE>> Array:get<<RESET>>.
+If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:push(value: any): none
-Returns <<WHITE>>value<<RESET>> onto the array. If the array has no more free slots, it will be resized accordingly.
+Returns <<WHITE>>value<<RESET>> onto the array.
+If the array has no more free slots, it will be resized accordingly.
 
 ### function Array:pop(): none
-Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array. If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array.
+If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
 ### function Array:contains(val: any): bool
 Returns <<BLUE>>true<<RESET>>, if the array contains val.
@@ -259,6 +357,7 @@ Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> element
 ### static function Array::fromPointerCollection(count: int, values: [any]): Array
 Returns a new array that contains count elements of the c-style array values.
 
+@Scale.string
 ## String
 ### function str:+(other: str): str
 Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
@@ -276,16 +375,19 @@ Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to th
 Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended at the start of the string.
 
 ### function str:==(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
+Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
 
 ### function str:equals(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise. Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
+Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
+Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
 
 ### function str:size(): int
 Returns the length of the string.
 
 ### function str:at(index: int): int
-Returns the character at <<WHITE>>index<<RESET>> in the string. If the index is out of bounds for the string, an <<WHITE>>IndexOutOfBoundsException<<RESET>> is thrown.
+Returns the character at <<WHITE>>index<<RESET>> in the string.
+If the index is out of bounds for the string, an <<WHITE>>IndexOutOfBoundsException<<RESET>> is thrown.
 
 ### function str:reverse(): str
 Returns a new string that is the original string reversed.
@@ -302,9 +404,11 @@ Returns a copy of the underlying cstring.
 ### function str:hashCode(): int
 Returns the hash of the string.
 
-### function split(_delim_: str): Array
-Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results. Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
+### function str:split(_delim_: str): Array
+Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results.
+Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
 
+@Scale.util.pair
 ## Pair
 ### static function Pair::new(a: any, b: any): none
 Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
@@ -312,52 +416,64 @@ Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
 ### function Pair:toString(): str
 Returns a string representation of this pair.
 
+@Scale.util.triple
 ## Triple
-
 ### static function Triple::new(a: any, b: any, c: any): none
 Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<RESET>>.
 
 ### function Triple:toString(): str
 Returns a string representation of this triple.
 
+@Scale.util.range
 ## Ranges
 ### static function Range::new(_start: int, _end: int): none
 Create a new Range object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting up.
 
 ### function Range:containsRange(other: Range): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> lies completely within the range. Returns <<BLUE>>true<<RESET>> if both ranges are equal.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> lies completely within the range.
+Returns <<BLUE>>true<<RESET>> if both ranges are equal.
 
 ### function Range:overlaps(other: Range): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> is partially contained within the range. For example, a Range from 2 to 7 will overlap with a Range from 4 to 10.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> is partially contained within the range.
+For example, a Range from 2 to 7 will overlap with a Range from 4 to 10.
 
 ### function Range:contains(pos: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>pos<<RESET>> is contained within the range. For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET>> for all numbers from 1 to 5, both including.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>pos<<RESET>> is contained within the range.
+For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET>> for all numbers from 1 to 5, both including.
 
 ### function Range:toReverseRange(): ReverseRange
-Convert range to a <<WHITE>>ReverseRange<<RESET>> object. For example, a range from 1 to 5 will return a <<WHITE>>ReverseRange<<RESET>> object from 5 to 1.
+Convert range to a <<WHITE>>ReverseRange<<RESET>> object.
+For example, a range from 1 to 5 will return a <<WHITE>>ReverseRange<<RESET>> object from 5 to 1.
 
 ### static function ReverseRange::new(_start: int, _end: int): none
 Create a new ReverseRange object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting down.
 
 ### function ReverseRange:toRange(): Range
-Convert reverse range to a <<WHITE>>Range<<RESET>> object. For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> object from 1 to 5.
+Convert reverse range to a <<WHITE>>Range<<RESET>> object.
+For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> object from 1 to 5.
 
+@Scale.sclobject
 ## SclObject
 ### function SclObject:toString(): str
-Returns a string representation of this object. It follows the following pattern: "typename@<hexAddress>"
+Returns a string representation of this object.
+It follows the following pattern: "typename@<hexAddress>"
 
 ### function SclObject:==(other: SclObject): bool
-Returns true if the objects are equal. This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the objects are equal.
+This method should be redefined by Structs as the default implementation returns the pointer equality.
 
 ### function SclObject:equals(other: SclObject): bool
-Returns true if the objects are equal. This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the objects are equal.
+This method should be redefined by Structs as the default implementation returns the pointer equality.
 
 ### function SclObject:clone(): SclObject
 Returns a copy of this object.
 
 ### function SclObject:hashCode(): SclObject
-Returns the hash of this object. This method should be redefined by Structs as the default implementation returns the hash of the type name.
+Returns the hash of this object.
+This method should be redefined by Structs as the default implementation returns the hash of the type name.
 
+@Scale.util.immutablearray
 ## ImmutableArray
 ### function ImmutableArray:get(index: int): any?
 TODO.
@@ -377,16 +493,20 @@ TODO.
 ### static function ImmutableArray::new(count: int, values: [any]): none
 TODO.
 
+@Scale.util.thread
 ## Thread
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
 
 ### function Thread:start(): none
-Starts the thread. If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> has not been called on this thread yet, a <<WHITE>>ThreadException<<RESET>> is thrown.
+Starts the thread.
+If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> has not been called on this thread yet, a <<WHITE>>ThreadException<<RESET>> is thrown.
 
 ### function Thread:join(): none
-Blocks the calling thread until the thread finishes execution. If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
+Blocks the calling thread until the thread finishes execution.
+If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
 
+@Scale.debug
 ## Exception
 ### struct Exception
 Member types:
@@ -410,6 +530,7 @@ Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> bloc
 ### function sysPrettyString(): str
 Returns a string containing the OS name and architecture.
 
+@Scale.fmt
 ## Format
 ### static function ConsoleColor::reset(): str
 Returns the ANSI escape code to reset the color.
@@ -441,15 +562,18 @@ Returns the ANSI escape code for the color white.
 ### static function ConsoleColor::bold(): str
 Returns the ANSI escape code for the color bold.
 
+@Scale.util.map
 ## Map
 ### static function Map::new(size: int): none
 Creates a new Map with a starting capacity of <<WHITE>>size<<RESET>> elements.
 
 ### function Map:get(key: str): any?
-Returns the value for the key in the map. Returns <<BLUE>>nil<<RESET>> if the key has no mapping.
+Returns the value for the key in the map.
+Returns <<BLUE>>nil<<RESET>> if the key has no mapping.
 
 ### function Map:set(key: str, value: any): none
-Sets the value for the key in the map. If the key is in the map already, it's value will be updated.
+Sets the value for the key in the map.
+If the key is in the map already, it's value will be updated.
 
 ### function Map:toString(): str
 Returns a string representation of this map.
