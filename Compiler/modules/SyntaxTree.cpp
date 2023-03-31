@@ -5,17 +5,7 @@
 #include "../headers/Common.hpp"
 
 namespace sclc {
-    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
-        if (name.find(Main.options.operatorRandomData) == std::string::npos) {
-
-            if namingConvention("Functions", nameToken, flatcase, camelCase, false)
-            else if namingConvention("Functions", nameToken, UPPERCASE, camelCase, false)
-            else if namingConvention("Functions", nameToken, PascalCase, camelCase, false)
-            else if namingConvention("Functions", nameToken, snake_case, camelCase, false)
-            else if namingConvention("Functions", nameToken, SCREAMING_SNAKE_CASE, camelCase, false)
-            else if namingConvention("Functions", nameToken, IPascalCase, camelCase, false)
-        }
-
+    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
         Function* func = new Function(name, nameToken);
         func->setFile(nameToken.getFile());
         for (std::string m : nextAttributes) {
@@ -27,12 +17,6 @@ namespace sclc {
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     i++;
                     bool isConst = false;
@@ -96,12 +80,6 @@ namespace sclc {
                             continue;
                         }
                         std::string name = tokens[i].getValue();
-                        if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                         multi.push_back(name);
                         i++;
                     }
@@ -184,12 +162,6 @@ namespace sclc {
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
                 namedReturn = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 i++;
             }
             if (tokens[i].getType() == tok_column) {
@@ -234,7 +206,7 @@ namespace sclc {
         return func;
     }
 
-    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
         if (name == "+") name = "operator_" + Main.options.operatorRandomData + "_add";
         if (name == "-") name = "operator_" + Main.options.operatorRandomData + "_sub";
         if (name == "*") name = "operator_" + Main.options.operatorRandomData + "_mul";
@@ -263,18 +235,12 @@ namespace sclc {
         if (name == "@") name = "operator_" + Main.options.operatorRandomData + "_at";
         if (name == "?") name = "operator_" + Main.options.operatorRandomData + "_wildcard";
 
-        if (name.find(Main.options.operatorRandomData) == std::string::npos) {
-            if namingConvention("Methods", nameToken, flatcase, camelCase, false)
-            else if namingConvention("Methods", nameToken, UPPERCASE, camelCase, false)
-            else if namingConvention("Methods", nameToken, PascalCase, camelCase, false)
-            else if namingConvention("Methods", nameToken, snake_case, camelCase, false)
-            else if namingConvention("Methods", nameToken, SCREAMING_SNAKE_CASE, camelCase, false)
-            else if namingConvention("Methods", nameToken, IPascalCase, camelCase, false)
-        }
-
         Method* method = new Method(memberName, name, nameToken);
         method->setFile(nameToken.getFile());
         method->forceAdd(true);
+        if (method->getName() == "init" || strstarts(method->getName(), "init")) {
+            method->addModifier("<constructor>");
+        }
         for (std::string m : nextAttributes) {
             method->addModifier(m);
         }
@@ -284,12 +250,6 @@ namespace sclc {
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
                 if (tokens[i].getType() == tok_identifier) {
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     bool isConst = false;
                     bool isMut = false;
@@ -353,12 +313,6 @@ namespace sclc {
                             continue;
                         }
                         std::string name = tokens[i].getValue();
-                        if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                        else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                         multi.push_back(name);
                         i++;
                     }
@@ -445,12 +399,6 @@ namespace sclc {
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
                 namedReturn = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 i++;
             }
             if (tokens[i].getType() == tok_column) {
@@ -602,7 +550,7 @@ namespace sclc {
                     if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
-                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
+                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
                         currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
@@ -612,7 +560,7 @@ namespace sclc {
                     }
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);
+                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
                     currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
@@ -624,7 +572,7 @@ namespace sclc {
                     if (contains<std::string>(nextAttributes, "default")) {
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        currentFunction = parseMethod(name, func, "", errors, warns, nextAttributes, i, tokens);
+                        currentFunction = parseMethod(name, func, "", errors, nextAttributes, i, tokens);
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -646,7 +594,7 @@ namespace sclc {
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
-                        Function* functionToImplement = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
+                        Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
                         currentInterface->addToImplement(functionToImplement);
                     }
                     nextAttributes.clear();
@@ -671,7 +619,7 @@ namespace sclc {
                     i++;
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = parseMethod(name, func, member_type, errors, warns, nextAttributes, i, tokens);
+                    currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
                     if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
@@ -689,7 +637,7 @@ namespace sclc {
                     i--;
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
-                    currentFunction = parseFunction(name, func, errors, warns, nextAttributes, i, tokens);
+                    currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
                 }
                 for (std::string s : nextAttributes) {
                     currentFunction->addModifier(s);
@@ -834,12 +782,6 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Containers", tokens[i], flatcase, PascalCase, true)
-                else if namingConvention("Containers", tokens[i], UPPERCASE, PascalCase, true)
-                else if namingConvention("Containers", tokens[i], camelCase, PascalCase, true)
-                else if namingConvention("Containers", tokens[i], snake_case, PascalCase, true)
-                else if namingConvention("Containers", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
-                else if namingConvention("Containers", tokens[i], IPascalCase, PascalCase, true)
                 currentContainer = new Container(tokens[i].getValue());
             } else if (token.getType() == tok_struct_def) {
                 if (currentContainer != nullptr) {
@@ -916,12 +858,6 @@ namespace sclc {
                     continue;
                 }
                 if (tokens[i].getValue() != "str") {
-                    if namingConvention("Structs", tokens[i], flatcase, PascalCase, true)
-                    else if namingConvention("Structs", tokens[i], UPPERCASE, PascalCase, true)
-                    else if namingConvention("Structs", tokens[i], camelCase, PascalCase, true)
-                    else if namingConvention("Structs", tokens[i], snake_case, PascalCase, true)
-                    else if namingConvention("Structs", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, true)
-                    else if namingConvention("Structs", tokens[i], IPascalCase, PascalCase, true)
                 }
                 currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
                 for (std::string m : nextAttributes) {
@@ -1086,20 +1022,8 @@ namespace sclc {
                 }
                 std::string name = tokens[i].getValue();
                 i++;
-                if namingConvention("Enums", tokens[i], flatcase, PascalCase, false)
-                else if namingConvention("Enums", tokens[i], UPPERCASE, PascalCase, false)
-                else if namingConvention("Enums", tokens[i], camelCase, PascalCase, false)
-                else if namingConvention("Enums", tokens[i], snake_case, PascalCase, false)
-                else if namingConvention("Enums", tokens[i], SCREAMING_SNAKE_CASE, PascalCase, false)
-                else if namingConvention("Enums", tokens[i], IPascalCase, PascalCase, false)
                 Enum e = Enum(name);
                 while (tokens[i].getType() != tok_end) {
-                    if namingConvention("Enum members", tokens[i], flatcase, camelCase, false)
-                    else if namingConvention("Enum members", tokens[i], UPPERCASE, camelCase, false)
-                    else if namingConvention("Enum members", tokens[i], PascalCase, camelCase, false)
-                    else if namingConvention("Enum members", tokens[i], snake_case, camelCase, false)
-                    else if namingConvention("Enum members", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                    else if namingConvention("Enum members", tokens[i], IPascalCase, camelCase, false)
 
                     if (tokens[i].getType() != tok_identifier) {
                         FPResult result;
@@ -1205,12 +1129,6 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if namingConvention("Interfaces", tokens[i], flatcase, IPascalCase, true)
-                else if namingConvention("Interfaces", tokens[i], UPPERCASE, IPascalCase, true)
-                else if namingConvention("Interfaces", tokens[i], camelCase, IPascalCase, true)
-                else if namingConvention("Interfaces", tokens[i], snake_case, IPascalCase, true)
-                else if namingConvention("Interfaces", tokens[i], SCREAMING_SNAKE_CASE, IPascalCase, true)
-                else if namingConvention("Interfaces", tokens[i], PascalCase, IPascalCase, true)
                 currentInterface = new Interface(tokens[i].getValue());
             } else if (token.getType() == tok_addr_of) {
                 if (currentFunction == nullptr) {
@@ -1245,7 +1163,7 @@ namespace sclc {
                         if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
                             std::string name = tokens[i + 1].getValue();
                             Token func = tokens[i + 1];
-                            Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, warns, nextAttributes, i, tokens);
+                            Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
                             function->isExternC = true;
                             nextAttributes.clear();
                             extern_functions.push_back(function);
@@ -1253,7 +1171,7 @@ namespace sclc {
                         }
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, currentStruct->getName(), errors, warns, nextAttributes, i, tokens);
+                        Function* function = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
                         function->isExternC = true;
                         extern_functions.push_back(function);
                         nextAttributes.clear();
@@ -1264,13 +1182,13 @@ namespace sclc {
                         i += 2;
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, member_type, errors, warns, nextAttributes, i, tokens);
+                        Function* function = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
                         function->isExternC = true;
                         extern_functions.push_back(function);
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token funcTok = tokens[i + 1];
-                        Function* func = parseFunction(name, funcTok, errors, warns, nextAttributes, i, tokens);
+                        Function* func = parseFunction(name, funcTok, errors, nextAttributes, i, tokens);
                         func->isExternC = true;
                         extern_functions.push_back(func);
                     }
@@ -1290,12 +1208,6 @@ namespace sclc {
                         continue;
                     }
                     std::string name = tokens[i].getValue();
-                    if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                    else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                     std::string type = "any";
                     i++;
                     bool isConst = false;
@@ -1352,12 +1264,6 @@ namespace sclc {
                 }
                 i++;
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 Token tok = tokens[i];
                 std::string type = "any";
                 i++;
@@ -1403,12 +1309,6 @@ namespace sclc {
                 }
                 i++;
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 Token tok = tokens[i];
                 std::string type = "any";
                 i++;
@@ -1457,12 +1357,6 @@ namespace sclc {
                 i++;
                 Token nameToken = tokens[i];
                 std::string name = tokens[i].getValue();
-                if namingConvention("Variables", tokens[i], flatcase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], UPPERCASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], PascalCase, camelCase, false)
-                else if namingConvention("Variables", tokens[i], snake_case, camelCase, false)
-                else if namingConvention("Variables", tokens[i], SCREAMING_SNAKE_CASE, camelCase, false)
-                else if namingConvention("Variables", tokens[i], IPascalCase, camelCase, false)
                 std::string type = "any";
                 i++;
                 bool isConst = false;
@@ -1545,6 +1439,7 @@ namespace sclc {
                            t.getValue() == "default" ||
                            t.getValue() == "static" ||
                            t.getValue() == "private" ||
+                           t.getValue() == "sealed" ||
                            t.getValue() == "asm" ||
                            t.getType()  == tok_string_literal;
                 };
