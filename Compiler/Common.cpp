@@ -652,10 +652,7 @@ namespace sclc
             return true;
         }
 
-        if (accessType == VarAccess::Dereference) {
-            return false;
-        }
-        return true;
+        return accessType != VarAccess::Dereference;
     }
 
     std::string sclConvertToStructType(std::string type) {
