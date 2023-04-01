@@ -20,6 +20,7 @@ namespace sclc
         std::vector<std::string> interfaces;
         std::string super;
     public:
+        std::vector<std::string> toImplementFunctions;
         static Struct Null;
 
         Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {}
