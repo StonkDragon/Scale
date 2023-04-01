@@ -94,7 +94,7 @@ namespace sclc {
         else if (t == "int") return_type = "scl_int";
         else if (t == "float") return_type = "scl_float";
         else if (t == "bool") return_type = "scl_int";
-        else if (!(getStructByName(result, t) == Struct(""))) {
+        else if (!(getStructByName(result, t) == Struct::Null)) {
             return_type = "scl_" + getStructByName(result, t).getName();
         } else if (t.size() > 2 && t.size() && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
@@ -938,7 +938,7 @@ namespace sclc {
             was_catch.push_back(true);
             scopeDepth--;
             // TODO: Check for children of 'Exception'
-            if (getStructByName(result, body[i].getValue()) == Struct("")) {
+            if (getStructByName(result, body[i].getValue()) == Struct::Null) {
                 transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
                 return;
@@ -1234,7 +1234,7 @@ namespace sclc {
             if (hasVar(body[i])) {
                 append("_scl_push()->s = _scl_create_string(_scl_find_index_of_struct(*(scl_any*) &Var_%s) != -1 ? ((scl_SclObject) Var_%s)->$__type_name__ : \"%s\");\n", getVar(body[i]).getName().c_str(), getVar(body[i]).getName().c_str(), getVar(body[i]).getType().c_str());
                 typeStack.push("str");
-            } else if (getStructByName(result, getVar(body[i]).getType()) != Struct("")) {
+            } else if (getStructByName(result, getVar(body[i]).getType()) != Struct::Null) {
                 append("_scl_push()->s = _scl_create_string(Var_%s->$__type_name__);\n", body[i].getValue().c_str());
                 typeStack.push("str");
             } else if (hasFunction(result, body[i])) {
@@ -1283,7 +1283,7 @@ namespace sclc {
             if (hasVar(body[i])) {
                 append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i]).getType()).c_str());
                 typeStack.push("int");
-            } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
+            } else if (getStructByName(result, body[i].getValue()) != Struct::Null) {
                 append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
                 typeStack.push("int");
             } else if (hasTypealias(result, body[i].getValue())) {
@@ -1357,7 +1357,7 @@ namespace sclc {
                 append("_scl_push()->v = (scl_any) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
             }
             typeStack.push(container.getMemberType(memberName));
-        } else if (getStructByName(result, body[i].getValue()) != Struct("")) {
+        } else if (getStructByName(result, body[i].getValue()) != Struct::Null) {
             if (body[i + 1].getType() == tok_double_column) {
                 std::string struct_ = body[i].getValue();
                 ITER_INC;
@@ -1897,7 +1897,7 @@ namespace sclc {
                 ITER_INC;
                 Struct s = getStructByName(result, body[i - 1].getValue());
                 ITER_INC;
-                if (s != Struct("")) {
+                if (s != Struct::Null) {
                     if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                         transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
                         errors.push_back(err);
@@ -2028,7 +2028,7 @@ namespace sclc {
                         }
                         Variable v = getVar(body[i]);
                         std::string loadFrom = v.getName();
-                        if (getStructByName(result, v.getType()) != Struct("")) {
+                        if (getStructByName(result, v.getType()) != Struct::Null) {
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
                                 transpilerError("Variable '" + body[i].getValue() + "' is not mutable", i);
                                 errors.push_back(err);
@@ -2163,7 +2163,7 @@ namespace sclc {
                         }
                         Variable v = getVar(body[i]);
                         std::string loadFrom = v.getName();
-                        if (getStructByName(result, v.getType()) != Struct("")) {
+                        if (getStructByName(result, v.getType()) != Struct::Null) {
                             if (!v.isWritableFrom(function, VarAccess::Write)) {
                                 transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
@@ -2271,7 +2271,7 @@ namespace sclc {
                     else errors.push_back(err);
                 }
             }
-            if (getStructByName(result, body[i].getValue()) != Struct("")) {
+            if (getStructByName(result, body[i].getValue()) != Struct::Null) {
                 {
                     transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i);
                     if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
@@ -2497,7 +2497,7 @@ namespace sclc {
                     ITER_INC;
                     Struct s = getStructByName(result, body[i - 1].getValue());
                     ITER_INC;
-                    if (s != Struct("")) {
+                    if (s != Struct::Null) {
                         if (!hasVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                             transpilerError("Struct '" + s.getName() + "' has no static member named '" + body[i].getValue() + "'", i);
                             errors.push_back(err);
@@ -2554,7 +2554,7 @@ namespace sclc {
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
-        if (getStructByName(result, body[i].getValue()) != Struct("")) {
+        if (getStructByName(result, body[i].getValue()) != Struct::Null) {
             transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
@@ -2593,7 +2593,7 @@ namespace sclc {
     handler(CurlyOpen) {
         noUnused;
         std::string struct_ = "Array";
-        if (getStructByName(result, struct_) == Struct("")) {
+        if (getStructByName(result, struct_) == Struct::Null) {
             transpilerError("Struct definition for 'Array' not found!", i);
             errors.push_back(err);
             return;
@@ -2641,7 +2641,7 @@ namespace sclc {
     handler(BracketOpen) {
         noUnused;
         std::string struct_ = "Map";
-        if (getStructByName(result, struct_) == Struct("")) {
+        if (getStructByName(result, struct_) == Struct::Null) {
             transpilerError("Struct definition for 'Map' not found!", i);
             errors.push_back(err);
             return;
@@ -2701,140 +2701,96 @@ namespace sclc {
 
     handler(ParenOpen) {
         noUnused;
-        if (body[i + 2].getType() == tok_column) {
-            if (getStructByName(result, "MapEntry") == Struct("")) {
-                transpilerError("Struct definition for 'MapEntry' not found!", i);
+        int commas = 0;
+        auto stackSizeHere = typeStack.size();
+        ITER_INC;
+        append("{\n");
+        scopeDepth++;
+        append("scl_int begin_stack_size = _stack.ptr;\n");
+        while (body[i].getType() != tok_paren_close) {
+            if (body[i].getType() == tok_comma) {
+                commas++;
+                ITER_INC;
+            }
+            handle(Token);
+            ITER_INC;
+        }
+
+        if (commas == 0) {
+            // Last-returns expression
+            if (typeStack.size() > stackSizeHere) {
+                std::string returns = typeStackTop;
+                append("_scl_frame_t* return_value = _scl_pop();\n");
+                append("_stack.ptr = begin_stack_size;\n");
+                while (typeStack.size() > stackSizeHere) {
+                    typeStack.pop();
+                }
+                append("_scl_push()->i = return_value->i;\n");
+                typeStack.push(returns);
+            }
+        } else if (commas == 1) {
+            Struct pair = getStructByName(result, "Pair");
+            if (pair == Struct::Null) {
+                transpilerError("Struct definition for 'Pair' not found!", i);
                 errors.push_back(err);
                 return;
             }
             append("{\n");
             scopeDepth++;
-            ITER_INC;
-            if (body[i].getType() != tok_string_literal) {
-                transpilerError("MapEntry keys must be strings!", i);
-                errors.push_back(err);
-                return;
-            }
-            std::string key = body[i].getValue();
-            ITER_INC;
-            if (body[i].getType() != tok_column) {
-                transpilerError("Expected ':', but got '" + body[i].getValue() + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            ITER_INC;
-            while (body[i].getType() != tok_paren_close) {
-                handle(Token);
-                ITER_INC;
-            }
-            Method* f = getMethodByName(result, "init", "MapEntry");
-            Struct entry = getStructByName(result, "MapEntry");
-            append("struct Struct_MapEntry* tmp = _scl_alloc_struct(sizeof(struct Struct_MapEntry), \"MapEntry\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
-            if (typeStack.size()) {
-                typeStack.pop();
-            }
+            append("struct Struct_Pair* tmp = _scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\", %uU);\n", hash1((char*) pair.getName().c_str()));
+            append("_scl_popn(2);\n");
+            Method* f = getMethodByName(result, "init", "Pair");
+            if (typeStack.size()) typeStack.pop();
+            if (typeStack.size()) typeStack.pop();
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_MapEntry$init(\"%s\", _scl_pop()->v, tmp);\n", key.c_str());
+                    append("_scl_push()->f = Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_MapEntry$init(\"%s\", _scl_pop()->v, tmp);\n", key.c_str());
+                    append("_scl_push()->v = (scl_any) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_MapEntry$init(_scl_create_string(\"%s\"), _scl_pop()->v, tmp);\n", key.c_str());
+                append("Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
             }
             append("_scl_push()->v = tmp;\n");
-            typeStack.push("MapEntry");
+            typeStack.push("Pair");
             scopeDepth--;
             append("}\n");
-        } else if (body[i + 2].getType() == tok_comma) {
-            int j = 0;
-            int commas = 0;
-            for (; body[i + j].getType() != tok_paren_close; j++) {
-                if (body[i + j].getType() == tok_comma) commas++;
-            }
-            if (commas == 1) {
-                if (getStructByName(result, "Pair") == Struct("")) {
-                    transpilerError("Struct definition for 'Pair' not found!", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("{\n");
-                scopeDepth++;
-                ITER_INC;
-                while (body[i].getType() != tok_paren_close) {
-                    if (body[i].getType() == tok_comma) {
-                        ITER_INC;
-                        continue;
-                    }
-                    while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                        handle(Token);
-                        ITER_INC;
-                    }
-                }
-                Method* f = getMethodByName(result, "init", "Pair");
-                Struct pair = getStructByName(result, "Pair");
-                append("struct Struct_Pair* tmp = _scl_alloc_struct(sizeof(struct Struct_Pair), \"Pair\", %uU);\n", hash1((char*) pair.getName().c_str()));
-                append("_scl_popn(2);\n");
-                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                    if (f->getReturnType() == "float") {
-                        append("_scl_push()->f = Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
-                    } else {
-                        append("_scl_push()->v = (scl_any) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
-                    }
-                    typeStack.push(f->getReturnType());
-                } else {
-                    append("Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
-                }
-                append("_scl_push()->v = tmp;\n");
-                typeStack.push("Pair");
-                scopeDepth--;
-                append("}\n");
-            } else if (commas == 2) {
-                if (getStructByName(result, "Triple") == Struct("")) {
-                    transpilerError("Struct definition for 'Triple' not found!", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("{\n");
-                scopeDepth++;
-                ITER_INC;
-                while (body[i].getType() != tok_paren_close) {
-                    if (body[i].getType() == tok_comma) {
-                        ITER_INC;
-                        continue;
-                    }
-                    while (body[i].getType() != tok_comma && body[i].getType() != tok_paren_close) {
-                        handle(Token);
-                        ITER_INC;
-                    }
-                }
-                Method* f = getMethodByName(result, "init", "Triple");
-                Struct triple = getStructByName(result, "Triple");
-                append("struct Struct_Triple* tmp = _scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
-                append("_scl_popn(3);\n");
-                if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
-                    if (f->getReturnType() == "float") {
-                        append("_scl_push()->f = Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
-                    } else {
-                        append("_scl_push()->v = (scl_any) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
-                    }
-                    typeStack.push(f->getReturnType());
-                } else {
-                    append("Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
-                }
-                append("_scl_push()->v = tmp;\n");
-                typeStack.push("Triple");
-                scopeDepth--;
-                append("}\n");
-            } else {
-                transpilerError("Unsupported tuple-like literal!", i);
+        } else if (commas == 2) {
+            Struct triple = getStructByName(result, "Triple");
+            if (getStructByName(result, "Triple") == Struct::Null) {
+                transpilerError("Struct definition for 'Triple' not found!", i);
                 errors.push_back(err);
+                return;
             }
+            append("{\n");
+            scopeDepth++;
+            append("struct Struct_Triple* tmp = _scl_alloc_struct(sizeof(struct Struct_Triple), \"Triple\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
+            append("_scl_popn(3);\n");
+            Method* f = getMethodByName(result, "init", "Triple");
+            if (typeStack.size()) typeStack.pop();
+            if (typeStack.size()) typeStack.pop();
+            if (typeStack.size()) typeStack.pop();
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+                if (f->getReturnType() == "float") {
+                    append("_scl_push()->f = Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                } else {
+                    append("_scl_push()->v = (scl_any) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                }
+                typeStack.push(f->getReturnType());
+            } else {
+                append("Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+            }
+            append("_scl_push()->v = tmp;\n");
+            typeStack.push("Triple");
+            scopeDepth--;
+            append("}\n");
         } else {
             transpilerError("Unsupported tuple-like literal!", i);
             errors.push_back(err);
         }
+        scopeDepth--;
+        append("}\n");
     }
 
     handler(StringLiteral) {
@@ -2952,7 +2908,7 @@ namespace sclc {
             typeStack.push("bool");
             return;
         }
-        if (getStructByName(result, struct_) == Struct("")) {
+        if (getStructByName(result, struct_) == Struct::Null) {
             transpilerError("Usage of undeclared struct '" + body[i].getValue() + "'", i);
             errors.push_back(err);
             return;
@@ -3347,7 +3303,7 @@ namespace sclc {
             typeStack.push(type.value);
             return;
         }
-        if (getStructByName(result, type.value) == Struct("")) {
+        if (getStructByName(result, type.value) == Struct::Null) {
             transpilerError("Use of undeclared Struct '" + type.value + "'", i);
             errors.push_back(err);
             return;
@@ -3377,7 +3333,7 @@ namespace sclc {
     handler(Dot) {
         noUnused;
         Struct s = getStructByName(result, typeStackTop);
-        if (s == Struct("")) {
+        if (s == Struct::Null) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
@@ -3515,7 +3471,7 @@ namespace sclc {
             return;
         }
         Struct s = getStructByName(result, typeStackTop);
-        if (s == Struct("")) {
+        if (s == Struct::Null) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
             errors.push_back(err);
             return;
