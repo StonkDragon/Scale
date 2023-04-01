@@ -152,6 +152,7 @@ namespace sclc {
             bool assembleOnly;
             bool transpileOnly;
             bool preprocessOnly;
+            bool mainReturnsNone;
             bool noErrorLocation;
             bool noScaleFramework;
             std::string optimizer;
