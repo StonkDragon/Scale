@@ -968,7 +968,7 @@ extern genericFunc _scl_internal_init_functions[];
 // last element is always NULL
 extern genericFunc _scl_internal_destroy_functions[];
 
-#ifndef SCL_COMPILER_NO_MAIN
+#if !defined(SCL_COMPILER_NO_MAIN)
 const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
 
 #if defined(static_assert)
@@ -1034,7 +1034,7 @@ _scl_constructor void _scl_load() {
 		_scl_internal_init_functions[i]();
 	}
 
-#ifndef SCL_COMPILER_NO_MAIN
+#if !defined(SCL_COMPILER_NO_MAIN)
 
 	int ret;
 	int jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr]);
@@ -1042,7 +1042,12 @@ _scl_constructor void _scl_load() {
 	if (jmp != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
+#if defined(SCL_MAIN_RETURN_NONE)
+		ret = 0;
+		(_scl_main ? _scl_main(args, env) : 0);
+#else
 		ret = (_scl_main ? _scl_main(args, env) : 0);
+#endif
 	} else {
 
 		// Scale exception reached here
@@ -1062,7 +1067,7 @@ _scl_destructor void _scl_destroy() {
 		_scl_internal_destroy_functions[i]();
 	}
 
-#ifndef SCL_COMPILER_NO_MAIN
+#if !defined(SCL_COMPILER_NO_MAIN)
 	// We don't return
 	exit(ret);
 #endif
