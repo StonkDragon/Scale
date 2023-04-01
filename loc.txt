@@ -1,4 +1,4 @@
-     745 Compiler/Common.cpp
+     747 Compiler/Common.cpp
     1315 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      236 Compiler/headers/Common.hpp
@@ -22,13 +22,15 @@
     1528 Compiler/modules/SyntaxTree.cpp
      262 Compiler/modules/TokenHandlers.cpp
      543 Compiler/modules/Tokenizer.cpp
-    4232 Compiler/modules/Transpiler.cpp
+    4188 Compiler/modules/Transpiler.cpp
       91 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
+      74 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
       59 Scale/Frameworks/Scale.framework/include/Scale/math.scale
+      74 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
       49 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      132 Scale/Frameworks/Scale.framework/include/Scale/string.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
@@ -53,7 +55,7 @@
       24 examples/arraysort.scale
       12 examples/cdecl.scale
       14 examples/container.scale
-      29 examples/data-type-literals.scale
+      27 examples/data-type-literals.scale
       11 examples/enum.scale
       17 examples/fib.scale
       18 examples/fizzbuzz.scale
@@ -76,4 +78,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13656 total
+   13760 total
