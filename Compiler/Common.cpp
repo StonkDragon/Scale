@@ -735,10 +735,12 @@ namespace sclc
         }
         return strstarts(s, "ref ");
     }
+
+    bool isPrimitiveIntegerType(std::string type);
     
     bool isPrimitiveType(std::string s) {
         s = removeTypeModifiers(s);
-        return s == "int" || s == "float" || s == "any" || s == "bool";
+        return isPrimitiveIntegerType(s) || s == "float" || s == "any" || s == "bool";
     }
 
     bool featureEnabled(std::string feat) {
