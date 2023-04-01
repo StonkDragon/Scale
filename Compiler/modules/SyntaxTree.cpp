@@ -1563,11 +1563,11 @@ namespace sclc {
                 toString->addToken(Token(tok_string_literal, "}", 0, "<generated12>"));
                 toString->addToken(Token(tok_add, "+", 0, "<generated13>"));
                 toString->addToken(Token(tok_return, "return", 0, "<generated14>"));
-                toString->addAnyway();
+                toString->forceAdd(true);
                 return toString;
             };
             bool hasImplementedToString = false;
-            if (!hasMethod(result, "toString", s.getName())) {
+            if (!getMethodByNameOnThisType(result, "toString", s.getName())) {
                 result.functions.push_back(createToStringMethod(s, result));
                 hasImplementedToString = true;
             }
