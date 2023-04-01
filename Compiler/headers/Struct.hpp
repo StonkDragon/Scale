@@ -20,9 +20,9 @@ namespace sclc
         std::vector<std::string> interfaces;
         std::string super;
     public:
-        Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {
-            
-        }
+        static Struct Null;
+
+        Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {}
         Struct(std::string name, Token t) {
             this->name = name;
             this->name_token = t;

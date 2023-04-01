@@ -53,6 +53,8 @@ namespace sclc
     const std::string Color::BOLDWHITE = "\033[1m\033[37m";
     #endif
 
+    Struct Struct::Null = Struct("");
+
     std::vector<std::vector<Variable>> vars;
     size_t varDepth = 0;
     _Main Main = _Main();
