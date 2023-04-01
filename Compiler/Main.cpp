@@ -1240,6 +1240,10 @@ namespace sclc
             }
         }
 
+        if (Main.options.mainReturnsNone) {
+            tmpFlags.push_back("-DSCL_MAIN_RETURN_NONE");
+        }
+
     actAsCCompiler:
 
         for (std::string s : tmpFlags) {
