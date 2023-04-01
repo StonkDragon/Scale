@@ -456,7 +456,6 @@ For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> o
 ## SclObject
 ### function SclObject:toString(): str
 Returns a string representation of this object.
-It follows the following pattern: "typename@<hexAddress>"
 
 ### function SclObject:==(other: SclObject): bool
 Returns true if the objects are equal.
