@@ -857,8 +857,6 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (tokens[i].getValue() != "str") {
-                }
                 currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
                 for (std::string m : nextAttributes) {
                     if (m == "sealed")
@@ -875,6 +873,13 @@ namespace sclc {
                         currentStruct->toggleStatic();
                     }
                 }
+                for (size_t i = 0; i < nextAttributes.size(); i++) {
+                    if (nextAttributes[i] == "autoimpl") {
+                        i++;
+                        currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
+                    }
+                }
+                
                 if (!(currentStruct->heapAllocAllowed() || currentStruct->stackAllocAllowed()) && !currentStruct->isStatic()) {
                     FPResult result;
                     result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
@@ -1439,6 +1444,7 @@ namespace sclc {
                            t.getValue() == "default" ||
                            t.getValue() == "static" ||
                            t.getValue() == "private" ||
+                           t.getValue() == "autoimpl" ||
                            t.getValue() == "sealed" ||
                            t.getValue() == "asm" ||
                            t.getType()  == tok_string_literal;
@@ -1519,6 +1525,56 @@ namespace sclc {
                 }
                 oldSuper = super;
                 super = getStructByName(result, super.extends());
+            }
+            newStructs.push_back(s);
+        }
+        result.structs = newStructs;
+        newStructs.clear();
+        for (Struct s : result.structs) {
+            auto createToStringMethod = [](Struct& s, TPResult& result) -> Method* {
+                Token t(tok_identifier, "toString", 0, "<generated>");
+                Method* toString = new Method(s.getName(), std::string("toString"), t);
+                std::string stringify = s.getName() + " {";
+                toString->setReturnType("str");
+                toString->addArgument(Variable("self", "mut " + s.getName()));
+                toString->addToken(Token(tok_string_literal, stringify, 0, "<generated1>"));
+
+                for (size_t i = 0; i < s.getMembers().size(); i++) {
+                    auto member = s.getMembers()[i];
+                    if (i) {
+                        toString->addToken(Token(tok_string_literal, ", ", 0, "<generated2>"));
+                        toString->addToken(Token(tok_add, "+", 0, "<generated3>"));
+                    }
+
+                    toString->addToken(Token(tok_string_literal, member.getName() + ": ", 0, "<generated4>"));
+                    toString->addToken(Token(tok_add, "+", 0, "<generated5>"));
+                    toString->addToken(Token(tok_identifier, member.getName(), 0, "<generated6>"));
+                    if (removeTypeModifiers(member.getType()) == "float") {
+                        toString->addToken(Token(tok_identifier, "doubleToString", 0, "<generated7>"));
+                    } else if (getStructByName(result, member.getType()) != Struct::Null) {
+                        toString->addToken(Token(tok_column, ":", 0, "<generated8>"));
+                        toString->addToken(Token(tok_identifier, "toString", 0, "<generated9>"));
+                    } else {
+                        toString->addToken(Token(tok_identifier, "longToString", 0, "<generated10>"));
+                    }
+                    toString->addToken(Token(tok_add, "+", 0, "<generated11>"));
+
+                }
+                toString->addToken(Token(tok_string_literal, "}", 0, "<generated12>"));
+                toString->addToken(Token(tok_add, "+", 0, "<generated13>"));
+                toString->addToken(Token(tok_return, "return", 0, "<generated14>"));
+                toString->addAnyway();
+                return toString;
+            };
+            bool hasImplementedToString = false;
+            if (!hasMethod(result, "toString", s.getName())) {
+                result.functions.push_back(createToStringMethod(s, result));
+                hasImplementedToString = true;
+            }
+            for (auto& toImplement : s.toImplementFunctions) {
+                if (!hasImplementedToString && toImplement == "toString") {
+                    result.functions.push_back(createToStringMethod(s, result));
+                }
             }
             newStructs.push_back(s);
         }

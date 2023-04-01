@@ -1,24 +1,8 @@
 import Scale.util.cloneable
-import Scale.util.stringifyable
 import Scale.util.equatable
 import Scale.util.hashable
 
-struct SclObject is ICloneable, IStringifyable, IEquatable, IHashable
-    function toString(): str
-        decl typenamePtr: [int8]
-        decl addressPtr: [int8]
-        c!
-            *typenamePtr = (*self)->$__type_name__;
-            *addressPtr = _scl_alloc(21);
-            snprintf(*addressPtr, 20, "<%p>", *self);
-        end
-
-        typenamePtr str::new => decl typename: str
-        addressPtr str::new => decl address: str
-
-        typename "@" + address + return
-    end
-
+struct SclObject is ICloneable, IEquatable, IHashable
     function ==(other: SclObject): bool
         self as any other as any == return
     end

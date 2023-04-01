@@ -1,3 +1,5 @@
+import Scale.util.stringifyable
+
 cdecl "strlen"
 expect function __c_strlen(_str_: [int8]) len: int
 cdecl "strcmp"
