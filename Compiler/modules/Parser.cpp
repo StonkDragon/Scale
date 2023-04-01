@@ -56,6 +56,10 @@ namespace sclc
             return parseResult;
         }
 
+        if (mainFunction && !Main.options.noMain) {
+            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none";
+        }
+
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
         vars = tmp;
