@@ -493,6 +493,11 @@ namespace sclc
         return getMethodByName(result, name, s.extends());
     }
 
+    Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type) {
+        Method* method = getMethodByName(result, name, type);
+        return (method == nullptr || method->getMemberType() != sclConvertToStructType(type)) ? nullptr : method;
+    }
+
     std::vector<Method*> methodsOnType(TPResult res, std::string type) {
         type = sclConvertToStructType(type);
 
