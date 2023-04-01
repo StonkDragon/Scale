@@ -5,8 +5,29 @@ if [ `uname` = "Darwin" ]; then
     fi
 fi
 
+if ! command -v which &> /dev/null; then
+    echo "Please install which"
+    exit 1
+fi
+
+failedACommand=0
+
 if ! which g++ >/dev/null; then
     echo "Please install g++"
+    failedACommand=1
+fi
+
+if ! which git >/dev/null; then
+    echo "Please install git"
+    failedACommand=1
+fi
+
+if ! which make >/dev/null; then
+    echo "Please install make"
+    failedACommand=1
+fi
+
+if [ "$failedACommand" = "1" ]; then
     exit 1
 fi
 
