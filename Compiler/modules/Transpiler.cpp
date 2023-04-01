@@ -110,6 +110,7 @@ namespace sclc {
 
     std::string sclIntTypeToConvert(std::string type) {
         if (type == "int") return "";
+        if (type == "uint") return "Function_toUInt";
         if (type == "int8") return "Function_toInt8";
         if (type == "int16") return "Function_toInt16";
         if (type == "int32") return "Function_toInt32";
@@ -4104,6 +4105,7 @@ namespace sclc {
                 if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
                 if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
                 if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                append("if (!Var_self) _scl_assert(0, \"Argument 'self' is nil!\");\n");
                 append("if (Var_self->$__type__ != 0x%xU) {\n", hash1((char*) m->getMemberType().c_str()));
                 scopeDepth++;
                 append("scl_any method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
