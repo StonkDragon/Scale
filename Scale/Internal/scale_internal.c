@@ -48,7 +48,7 @@ static scl_int instances_cap = 64;
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
 static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
-    scl_int i = 0;
+	scl_int i = 0;
 	if (*size) {
 		for (i = 0; i < *size; i++) {
 			if ((*array)[i] > value) {
@@ -63,13 +63,13 @@ static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_
 		(*array) = realloc((*array), (*cap) * sizeof(scl_any*));
 	}
 
-    scl_int j;
-    for (j = *size; j > i; j--) {
-        (*array)[j] = (*array)[j-1];
-    }
-    (*array)[i] = value;
+	scl_int j;
+	for (j = *size; j > i; j--) {
+		(*array)[j] = (*array)[j-1];
+	}
+	(*array)[i] = value;
 
-    (*size)++;
+	(*size)++;
 	return i;
 }
 
@@ -91,9 +91,9 @@ scl_int _scl_get_index_of_ptr(scl_any ptr) {
 // Removes the pointer at the given index and shift everything after left
 void _scl_remove_ptr_at_index(scl_int index) {
 	for (scl_int i = index; i < allocated_count - 1; i++) {
-    	allocated[i] = allocated[i + 1];
-    }
-    allocated_count--;
+		allocated[i] = allocated[i + 1];
+	}
+	allocated_count--;
 }
 
 // Adds a new pointer to the table
@@ -196,7 +196,9 @@ void _scl_free(scl_any ptr) {
 void _scl_assert(scl_int b, scl_int8* msg) {
 	if (!b) {
 		printf("\n");
-		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", _callstack.data[_callstack.ptr - 1].file, _callstack.data[_callstack.ptr - 1].line, _callstack.data[_callstack.ptr - 1].col);
+		if (_callstack.data[_callstack.ptr - 1].file) {
+			printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", _callstack.data[_callstack.ptr - 1].file, _callstack.data[_callstack.ptr - 1].line, _callstack.data[_callstack.ptr - 1].col);
+		}
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -243,18 +245,18 @@ void _scl_cleanup_post_func(scl_int depth) {
 }
 
 scl_str _scl_create_string(scl_int8* data) {
-	scl_str instance = _scl_alloc_struct(sizeof(struct _scl_string), "str", hash1("SclObject"));
-	if (instance == NULL) {
+	scl_str self = _scl_alloc_struct(sizeof(struct _scl_string), "str", hash1("SclObject"));
+	if (self == NULL) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return NULL;
 	}
-	instance->_data = strdup(data);
-	instance->_len = strlen(instance->_data);
-	if (_scl_find_index_of_struct(instance) == -1) {
-		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT "\n", data, _scl_find_index_of_struct(instance));
+	self->_data = strdup(data);
+	self->_len = strlen(self->_data);
+	if (_scl_find_index_of_struct(self) == -1) {
+		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT "\n", data, _scl_find_index_of_struct(self));
 		return NULL;
 	}
-	return instance;
+	return self;
 }
 
 static int printingStacktrace = 0;
@@ -270,18 +272,18 @@ void print_stacktrace() {
 #if !defined(_WIN32) && !defined(__wasm__)
 		printf("Native trace:\n");
 
-        void* array[64];
-        char** strings;
-        int size, i;
+		void* array[64];
+		char** strings;
+		int size, i;
 
-        size = backtrace(array, 64);
-        strings = backtrace_symbols(array, size);
-        if (strings != NULL) {
-            for (i = 1; i < size; i++)
-                printf("  %s\n", strings[i]);
-        }
+		size = backtrace(array, 64);
+		strings = backtrace_symbols(array, size);
+		if (strings != NULL) {
+			for (i = 1; i < size; i++)
+				printf("  %s\n", strings[i]);
+		}
 
-        free(strings);
+		free(strings);
 #else
 		printf("  <empty>\n");
 #endif
@@ -300,9 +302,9 @@ void print_stacktrace() {
 			}
 		} else {
 			if (_callstack.data[i].line) {
-				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].line, _callstack.data[i].col);
+				printf("  %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].line, _callstack.data[i].col);
 			} else {
-				printf("  %s -> (nil)\n", (scl_int8*) _callstack.data[i].func);
+				printf("  %s\n", (scl_int8*) _callstack.data[i].func);
 			}
 		}
 
@@ -331,20 +333,20 @@ void print_stacktrace_with_file(FILE* trace) {
 		printf("Native trace:\n");
 		fprintf(trace, "Native trace:\n");
 
-        void* array[64];
-        char** strings;
-        int size, i;
+		void* array[64];
+		char** strings;
+		int size, i;
 
-        size = backtrace(array, 64);
-        strings = backtrace_symbols(array, size);
-        if (strings != NULL) {
-            for (i = 1; i < size; i++) {
-                printf("  %s\n", strings[i]);
-                fprintf(trace, "  %s\n", strings[i]);
+		size = backtrace(array, 64);
+		strings = backtrace_symbols(array, size);
+		if (strings != NULL) {
+			for (i = 1; i < size; i++) {
+				printf("  %s\n", strings[i]);
+				fprintf(trace, "  %s\n", strings[i]);
 			}
-        }
+		}
 
-        free(strings);
+		free(strings);
 #else
 		printf("  <empty>\n");
 		fprintf(trace, "  <empty>\n");
@@ -596,11 +598,11 @@ void _scl_sleep(scl_int millis) {
 }
 
 const hash hash1(const char* data) {
-    hash h = 7;
-    for (int i = 0; i < strlen(data); i++) {
-        h = h * 31 + data[i];
-    }
-    return h;
+	hash h = 7;
+	for (int i = 0; i < strlen(data); i++) {
+		h = h * 31 + data[i];
+	}
+	return h;
 }
 
 struct _scl_methodinfo {
@@ -640,12 +642,12 @@ scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int c
 // Marks unreachable execution paths
 _scl_no_return void _scl_unreachable(char* msg) {
 	// Uses compiler specific extensions if possible.
-    // Even if no extension is used, undefined behavior is still raised by
-    // an empty function body and the noreturn attribute.
+	// Even if no extension is used, undefined behavior is still raised by
+	// an empty function body and the noreturn attribute.
 #if defined(__GNUC__)
-    __builtin_unreachable();
+	__builtin_unreachable();
 #elif defined(_MSC_VER) // MSVC
-    __assume(false);
+	__assume(false);
 #endif
 }
 
@@ -694,13 +696,13 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 	((Struct*) ptr)->type = hash1(type_name);
 
 	// Type name
-    ((Struct*) ptr)->type_name = type_name;
+	((Struct*) ptr)->type_name = type_name;
 
 	// Parent struct name hash
-    ((Struct*) ptr)->super = super;
+	((Struct*) ptr)->super = super;
 
 	// Size (Currently only used by SclObject:clone())
-    ((Struct*) ptr)->size = size;
+	((Struct*) ptr)->size = size;
 
 	// Add struct to allocated table
 	scl_int index = insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
@@ -710,10 +712,10 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 
 // Removes an instance from the allocated table by index
 static void _scl_struct_map_remove(size_t index) {
-    for (size_t i = index; i < instances_count - 1; i++) {
-       instances[i] = instances[i + 1];
-    }
-    instances_count--;
+	for (size_t i = index; i < instances_count - 1; i++) {
+	   instances[i] = instances[i + 1];
+	}
+	instances_count--;
 }
 
 // Returns the next index of an instance in the allocated table
@@ -912,16 +914,64 @@ void _scl_exception_push() {
 }
 
 scl_int8** _scl_platform_get_env() {
-    scl_int8** env;
+	scl_int8** env;
 
 #if defined(WIN) && (_MSC_VER >= 1900)
-    env = *__p__environ();
+	env = *__p__environ();
 #else
-    extern char** environ;
-    env = environ;
+	extern char** environ;
+	env = environ;
 #endif
 
-    return env;
+	return env;
+}
+
+void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Argument %s is nil", name);
+		_scl_assert(0, msg);
+	}
+}
+
+void _scl_not_nil_cast(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Nil cannot be cast to non-nil type '%s'!", name);
+		_scl_assert(0, msg);
+	}
+}
+
+void _scl_struct_allocation_failure(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Failed to allocate memory for struct '%s'!", name);
+		_scl_assert(0, msg);
+	}
+}
+
+void _scl_nil_ptr_dereference(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Tried dereferencing nil pointer '%s'!", name);
+		_scl_assert(0, msg);
+	}
+}
+
+void _scl_check_not_nil_store(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Nil cannot be stored in non-nil variable '%s'!", name);
+		_scl_assert(0, msg);
+	}
+}
+
+void _scl_not_nil_return(scl_int val, scl_int8* name) {
+	if (val == 0) {
+		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		snprintf(msg, 64 + strlen(name), "Tried returning nil from function returning not-nil type '%s'!", name);
+		_scl_assert(0, msg);
+	}
 }
 
 #if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
@@ -995,7 +1045,6 @@ _scl_no_return void _scl_native_main(int argc, char** argv) {
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
 
-	_callstack.data[0].file = __FILE__;
 	_callstack.data[0].func = (scl_int8*) __FUNCTION__;
 
 	_scl_create_stack();
