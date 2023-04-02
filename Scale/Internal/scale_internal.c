@@ -1,9 +1,5 @@
 #include "scale_internal.h"
 
-#ifdef __cplusplus
-#error C++ is not supported by Scale
-#endif
-
 // Variables
 
 // The Stack

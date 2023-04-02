@@ -140,7 +140,11 @@
 #define SCL_uint_MAX		UINT32_MAX
 typedef void*				scl_any;
 typedef int		 			scl_int;
+#if __SIZEOF_SIZE_T__ == __SIZEOF_INT__
+typedef size_t				scl_uint;
+#else
 typedef unsigned int		scl_uint;
+#endif
 typedef struct _scl_string* scl_str;
 typedef float 				scl_float;
 #else
@@ -163,13 +167,23 @@ typedef float 				scl_float;
 #define SCL_SYSTEM  "unknown 64-bit"
 #define SCL_UNKNOWN_ARCH 1
 #endif
-#define SCL_INT_HEX_FMT 	"%llx"
-#define SCL_INT_FMT		 	"%lld"
 #define SCL_int_MAX			INT64_MAX
 #define SCL_uint_MAX		UINT64_MAX
 typedef void*				scl_any;
-typedef long long 			scl_int;
+#if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
+#define SCL_INT_HEX_FMT 	"%lx"
+#define SCL_INT_FMT		 	"%ld"
+typedef long				scl_int;
+#else
+#define SCL_INT_HEX_FMT 	"%llx"
+#define SCL_INT_FMT		 	"%lld"
+typedef long long			scl_int;
+#endif
+#if __SIZEOF_SIZE_T__ == __SIZEOF_LONG_LONG__
+typedef size_t				scl_uint;
+#else
 typedef unsigned long long	scl_uint;
+#endif
 typedef struct _scl_string* scl_str;
 typedef double 				scl_float;
 #endif

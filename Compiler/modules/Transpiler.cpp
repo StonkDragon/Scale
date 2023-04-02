@@ -92,6 +92,7 @@ namespace sclc {
         if (t == "any") return_type = "scl_any";
         else if (t == "none") return_type = "void";
         else if (t == "int") return_type = "scl_int";
+        else if (t == "uint") return_type = "scl_uint";
         else if (t == "float") return_type = "scl_float";
         else if (t == "bool") return_type = "scl_int";
         else if (!(getStructByName(result, t) == Struct::Null)) {
@@ -341,8 +342,9 @@ namespace sclc {
         for (Function* function : result.extern_functions) {
             bool hasFunction = false;
             for (Function* f : result.functions) {
-                if (f->getName() == function->getName()) {
+                if (*f == function) {
                     hasFunction = true;
+                    break;
                 }
             }
             if (!hasFunction) {
@@ -3758,33 +3760,33 @@ namespace sclc {
     }
 
     std::string sclFunctionNameToFriendlyString(std::string name) {
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_add", "+");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_sub", "-");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_mul", "*");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_div", "/");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_mod", "%");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_and", "&");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_or", "|");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_xor", "^");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_not", "~");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_lsh", "<<");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_logic_rsh", ">>");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_pow", "**");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_dot", ".");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_less", "<");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_less_equal", "<=");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_more", ">");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_more_equal", ">=");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_equal", "==");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_not", "!");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_assert_not_nil", "!!");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_not_equal", "!=");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_bool_and", "&&");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_bool_or", "||");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_inc", "++");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_dec", "--");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_at", "@");
-        name = replaceAll(name, "operator_" + Main.options.operatorRandomData + "_wildcard", "?");
+        name = replaceAll(name, "operator$add", "+");
+        name = replaceAll(name, "operator$sub", "-");
+        name = replaceAll(name, "operator$mul", "*");
+        name = replaceAll(name, "operator$div", "/");
+        name = replaceAll(name, "operator$mod", "%");
+        name = replaceAll(name, "operator$logic_and", "&");
+        name = replaceAll(name, "operator$logic_or", "|");
+        name = replaceAll(name, "operator$logic_xor", "^");
+        name = replaceAll(name, "operator$logic_not", "~");
+        name = replaceAll(name, "operator$logic_lsh", "<<");
+        name = replaceAll(name, "operator$logic_rsh", ">>");
+        name = replaceAll(name, "operator$pow", "**");
+        name = replaceAll(name, "operator$dot", ".");
+        name = replaceAll(name, "operator$less", "<");
+        name = replaceAll(name, "operator$less_equal", "<=");
+        name = replaceAll(name, "operator$more", ">");
+        name = replaceAll(name, "operator$more_equal", ">=");
+        name = replaceAll(name, "operator$equal", "==");
+        name = replaceAll(name, "operator$not", "!");
+        name = replaceAll(name, "operator$assert_not_nil", "!!");
+        name = replaceAll(name, "operator$not_equal", "!=");
+        name = replaceAll(name, "operator$bool_and", "&&");
+        name = replaceAll(name, "operator$bool_or", "||");
+        name = replaceAll(name, "operator$inc", "++");
+        name = replaceAll(name, "operator$dec", "--");
+        name = replaceAll(name, "operator$at", "@");
+        name = replaceAll(name, "operator$wildcard", "?");
         name = replaceAll(name, "\\$", "::");
 
         if (strstarts(name, "::lambda")) {
@@ -3947,7 +3949,7 @@ namespace sclc {
         scopeDepth--;
         append("};\n");
         append("size_t _scl_types_count = %zu;\n\n", result.structs.size());
-        append("static int _scl_do_method_check = 1;\n\n");
+        append("static __thread int _scl_do_method_check = 1;\n\n");
 
         append("extern const hash hash1(const char*);\n\n");
 
