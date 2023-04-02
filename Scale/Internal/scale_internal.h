@@ -98,6 +98,12 @@
 #define _scl_align
 #endif
 
+#if __has_builtin(__builtin_expect)
+#define _scl_expect(expr, c) __builtin_expect((expr), (c))
+#else
+#define _scl_expect(expr, c) (expr)
+#endif
+
 #if !defined(SIGABRT)
 #define SIGABRT 6
 #endif
@@ -327,7 +333,12 @@ scl_any				_scl_realloc(scl_any ptr, size_t size);
 scl_any				_scl_alloc(size_t size);
 void				_scl_free(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg);
-void				_scl_finalize(void);
+void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
+void				_scl_not_nil_cast(scl_int val, scl_int8* name);
+void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
+void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
+void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
+void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
 
@@ -348,5 +359,38 @@ scl_int				_scl_reflect_find(hash func);
 scl_int				_scl_reflect_find_method(hash func);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+
+inline void _scl_swap() {
+	scl_any b = _scl_pop()->v;
+	scl_any a = _scl_pop()->v;
+	_scl_push()->v = b;
+	_scl_push()->v = a;
+}
+
+inline void _scl_over() {
+	scl_any c = _scl_pop()->v;
+	scl_any b = _scl_pop()->v;
+	scl_any a = _scl_pop()->v;
+	_scl_push()->v = c;
+	_scl_push()->v = b;
+	_scl_push()->v = a;
+}
+
+inline void _scl_sdup2() {
+	scl_any b = _scl_pop()->v;
+	scl_any a = _scl_pop()->v;
+	_scl_push()->v = a;
+	_scl_push()->v = b;
+	_scl_push()->v = a;
+}
+
+inline void _scl_swap2() {
+	scl_any c = _scl_pop()->v;
+	scl_any b = _scl_pop()->v;
+	scl_any a = _scl_pop()->v;
+	_scl_push()->v = b;
+	_scl_push()->v = a;
+	_scl_push()->v = c;
+}
 
 #endif // __SCALE_INTERNAL_H__
