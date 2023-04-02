@@ -49,6 +49,7 @@ namespace sclc
         virtual void clearArgs();
 
         virtual bool operator==(const Function& other) const;
+        virtual bool operator==(const Function* other) const;
     };
     
     class Method : public Function {
