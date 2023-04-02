@@ -685,18 +685,6 @@ namespace sclc
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
             cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
         }
-        if (!hasCppFiles) {
-            // -std= only works when there are no c++ files to build
-            cflags.push_back("-std=" + std::string(C_VERSION));
-        } else {
-            // link to c++ library if needed
-            cflags.push_back("-lc++");
-        }
-
-        if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
-            cflags.push_back("-o");
-            cflags.push_back("\"" + outfile + "\"");
-        }
 
         std::string source;
         if (Main.options.files.size() == 0 && Main.options.printDocFor.size() == 0 && !Main.options.printDocs) {
@@ -772,7 +760,10 @@ namespace sclc
 
                     for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
                         std::string flag = compilerFlags->getString(i)->getValue();
-                        cflags.push_back(flag);
+                        if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        tmpFlags.push_back(flag);
                     }
 
                     Main.frameworks.push_back(framework);
@@ -785,7 +776,10 @@ namespace sclc
                     for (unsigned long i = 0; i < implementersSize; i++) {
                         std::string implementer = implementers->getString(i)->getValue();
                         if (!Main.options.assembleOnly) {
-                            cflags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                            if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                                hasCppFiles = true;
+                            }
+                            tmpFlags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
                         }
                     }
                     for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
@@ -847,7 +841,10 @@ namespace sclc
 
                     for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
                         std::string flag = compilerFlags->getString(i)->getValue();
-                        cflags.push_back(flag);
+                        if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        tmpFlags.push_back(flag);
                     }
 
                     Main.frameworks.push_back(framework);
@@ -860,7 +857,10 @@ namespace sclc
                     for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
                         std::string implementer = implementers->getString(i)->getValue();
                         if (!Main.options.assembleOnly) {
-                            cflags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
+                            if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                                hasCppFiles = true;
+                            }
+                            tmpFlags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
                         }
                     }
                     for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
@@ -1238,6 +1238,19 @@ namespace sclc
                 std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
                 return 0;
             }
+        }
+
+        if (!hasCppFiles) {
+            // -std= only works when there are no c++ files to build
+            cflags.push_back("-std=" + std::string(C_VERSION));
+        } else {
+            // link to c++ library if needed
+            cflags.push_back("-lc++");
+        }
+
+        if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
+            cflags.push_back("-o");
+            cflags.push_back("\"" + outfile + "\"");
         }
 
         if (Main.options.mainReturnsNone) {
