@@ -217,6 +217,12 @@ namespace sclc
                     column++;
                     value += c;
                 }
+            } else if (c == '?') {
+                if (source[current + 1] == '.') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
             } else if (c == '&') {
                 if (source[current + 1] == '&') {
                     c = source[++current];
@@ -369,6 +375,7 @@ namespace sclc
         TOKEN(">>",         tok_rsh, line, filename);
         TOKEN("**",         tok_pow, line, filename);
         TOKEN(".",          tok_dot, line, filename);
+        TOKEN("?.",         tok_dot, line, filename);
         TOKEN("<",          tok_identifier, line, filename);
         TOKEN("<=",         tok_identifier, line, filename);
         TOKEN(">",          tok_identifier, line, filename);
