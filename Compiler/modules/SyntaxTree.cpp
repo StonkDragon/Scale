@@ -514,6 +514,32 @@ namespace sclc {
 
             builtinTypeEquals->setReturnType("int");
             extern_functions.push_back(builtinTypeEquals);
+
+            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "<builtin>"));
+            builtinToString->addModifier("export");
+            
+            builtinToString->addArgument(Variable("val", "any"));
+
+            builtinToString->setReturnType("str");
+
+            // if val is SclObject then val as SclObject:toString return else val longToString return fi
+            builtinToString->addToken(Token(tok_if, "if", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_is, "is", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_then, "then", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_as, "as", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_column, ":", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "longToString", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
+
+            functions.push_back(builtinToString);
         }
         
         for (size_t i = 0; i < tokens.size(); i++) {
@@ -1246,6 +1272,7 @@ namespace sclc {
                 } else {
                     FPResult result;
                     result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
+                    result.column = tokens[i].getColumn();
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -1531,7 +1558,7 @@ namespace sclc {
         result.structs = newStructs;
         newStructs.clear();
         for (Struct s : result.structs) {
-            auto createToStringMethod = [](Struct& s, TPResult& result) -> Method* {
+            auto createToStringMethod = [](Struct& s) -> Method* {
                 Token t(tok_identifier, "toString", 0, "<generated>");
                 Method* toString = new Method(s.getName(), std::string("toString"), t);
                 std::string stringify = s.getName() + " {";
@@ -1551,11 +1578,8 @@ namespace sclc {
                     toString->addToken(Token(tok_identifier, member.getName(), 0, "<generated6>"));
                     if (removeTypeModifiers(member.getType()) == "float") {
                         toString->addToken(Token(tok_identifier, "doubleToString", 0, "<generated7>"));
-                    } else if (getStructByName(result, member.getType()) != Struct::Null) {
-                        toString->addToken(Token(tok_column, ":", 0, "<generated8>"));
-                        toString->addToken(Token(tok_identifier, "toString", 0, "<generated9>"));
                     } else {
-                        toString->addToken(Token(tok_identifier, "longToString", 0, "<generated10>"));
+                        toString->addToken(Token(tok_identifier, "builtinToString", 0, "<generated10>"));
                     }
                     toString->addToken(Token(tok_add, "+", 0, "<generated11>"));
 
@@ -1568,12 +1592,12 @@ namespace sclc {
             };
             bool hasImplementedToString = false;
             if (!getMethodByNameOnThisType(result, "toString", s.getName())) {
-                result.functions.push_back(createToStringMethod(s, result));
+                result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
             }
             for (auto& toImplement : s.toImplementFunctions) {
                 if (!hasImplementedToString && toImplement == "toString") {
-                    result.functions.push_back(createToStringMethod(s, result));
+                    result.functions.push_back(createToStringMethod(s));
                 }
             }
             newStructs.push_back(s);
