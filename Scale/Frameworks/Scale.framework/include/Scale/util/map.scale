@@ -64,10 +64,6 @@ sealed struct Map is IIterable
     self.data:next as MapEntry? return
   end
 
-  function begin(): MapEntry?
-    self.data:begin as MapEntry? return
-  end
-
   function toString(): str
     self.data:toString return
   end

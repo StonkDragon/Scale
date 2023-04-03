@@ -38,13 +38,8 @@ sealed struct ImmutableArray is IIterable
   end
 
   function next(): any?
+    self.pos self:get
     self.pos 1 + => self.pos
-    self.pos self:get return
-  end
-
-  function begin(): any?
-    0 self:get
-    0 => self.pos
     return
   end
 

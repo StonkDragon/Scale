@@ -56,7 +56,6 @@ namespace sclc
     Struct Struct::Null = Struct("");
 
     std::vector<std::vector<Variable>> vars;
-    size_t varDepth = 0;
     _Main Main = _Main();
 
     void print_trace(void) {

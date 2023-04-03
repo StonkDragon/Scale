@@ -174,7 +174,6 @@ namespace sclc {
     extern _Main Main;
     extern std::string scaleFolder;
     extern std::vector<std::vector<Variable>> vars;
-    extern size_t varDepth;
 
     long long parseNumber(std::string str);
     double parseDouble(std::string str);

@@ -1,5 +1,4 @@
 interface IIterable
   function hasNext(): bool
   function next(): ?
-  function begin(): ?
 end

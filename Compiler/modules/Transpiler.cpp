@@ -556,8 +556,25 @@ namespace sclc {
     int scopeDepth = 0;
     size_t i = 0;
     size_t condCount = 0;
-    std::vector<bool> was_rep;
-    std::vector<bool> was_catch;
+    std::vector<char> whatWasIt;
+
+#define wasRepeat()     (whatWasIt.size() > 0 && whatWasIt.back() == 1)
+#define popRepeat()     (whatWasIt.pop_back())
+#define pushRepeat()    (whatWasIt.push_back(1))
+#define wasCatch()      (whatWasIt.size() > 0 && whatWasIt.back() == 2)
+#define popCatch()      (whatWasIt.pop_back())
+#define pushCatch()     (whatWasIt.push_back(2))
+#define wasIterate()    (whatWasIt.size() > 0 && whatWasIt.back() == 4)
+#define popIterate()    (whatWasIt.pop_back())
+#define pushIterate()   (whatWasIt.push_back(4))
+#define wasOther()      (whatWasIt.size() > 0 && whatWasIt.back() == 0)
+#define popOther()      (whatWasIt.pop_back())
+#define pushOther()     (whatWasIt.push_back(0))
+
+#define varScopePush()  do { std::vector<Variable> _vec; vars.push_back(_vec); } while (0)
+#define varScopePop()   do { vars.pop_back(); } while (0)
+#define varScopeTop()   vars.back()
+
     char repeat_depth = 0;
     int iterator_count = 0;
     bool noWarns;
@@ -930,11 +947,8 @@ namespace sclc {
         ITER_INC;
         if (body[i].getValue() == "typeof") {
             ITER_INC;
-            std::vector<Variable> defaultScope;
-            vars.pop_back();
-            vars.push_back(defaultScope);
-            was_rep.push_back(false);
-            was_catch.push_back(true);
+            varScopeTop().clear();
+            pushCatch();
             scopeDepth--;
             // TODO: Check for children of 'Exception'
             if (getStructByName(result, body[i].getValue()) == Struct::Null) {
@@ -962,7 +976,7 @@ namespace sclc {
         }
         scopeDepth++;
         Variable v = Variable(exName, ex);
-        vars[varDepth].push_back(v);
+        varScopeTop().push_back(v);
         append("scl_%s Var_%s = (scl_%s) _extable.extable[_extable.ptr];\n", ex.c_str(), exName.c_str(), ex.c_str());
     }
 
@@ -1203,9 +1217,7 @@ namespace sclc {
             append("if (setjmp(_extable.jmptable[_extable.ptr - 1]) != 666) {\n");
             scopeDepth++;
             append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
-            varDepth++;
-            std::vector<Variable> defaultScope;
-            vars.push_back(defaultScope);
+            varScopePush();
         } else if (body[i].getValue() == "catch") {
             handle(Catch);
         } else if (body[i].getValue() == "lambda") {
@@ -1411,11 +1423,8 @@ namespace sclc {
         );
         repeat_depth++;
         scopeDepth++;
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
-        was_rep.push_back(true);
-        was_catch.push_back(false);
+        varScopePush();
+        pushRepeat();
         ITER_INC;
     }
 
@@ -1534,9 +1543,7 @@ namespace sclc {
         if (!hasVar(var)) {
             var_prefix = "scl_int ";
         }
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        varScopePush();
         
         if (iterator_direction == "")
             append("for (%sVar_%s = __it%d.start; Var_%s != __it%d.end;) {\n", var_prefix.c_str(), var.getValue().c_str(), iterator_count, var.getValue().c_str(), iterator_count);
@@ -1580,9 +1587,8 @@ namespace sclc {
         }
 
         if (!hasVar(var))
-            vars[varDepth].push_back(Variable(var.getValue(), "int"));
-        was_rep.push_back(false);
-        was_catch.push_back(false);
+            varScopeTop().push_back(Variable(var.getValue(), "int"));
+        pushOther();
     }
 
     handler(Foreach) {
@@ -1626,33 +1632,23 @@ namespace sclc {
         std::string type = typeStackTop;
         typePop;
 
-        Method* beginMethod = getMethodByName(result, "begin", type);
         Method* nextMethod = getMethodByName(result, "next", type);
         Method* hasNextMethod = getMethodByName(result, "hasNext", type);
         std::string var_prefix = "";
         if (!hasVar(iter_var_tok)) {
             var_prefix = sclTypeToCType(result, nextMethod->getReturnType()) + " ";
         }
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
-        vars[varDepth].push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
+        varScopePush();
+        varScopeTop().push_back(Variable(iter_var_tok.getValue(), nextMethod->getReturnType()));
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok).getType());
-        append(
-            "for (%sVar_%s = (%s) Method_%s$begin(%s); Method_%s$hasNext(%s); Var_%s = (%s) Method_%s$next(%s)) {\n",
-            var_prefix.c_str(),
-            iter_var_tok.getValue().c_str(),
-            cType.c_str(),
-            beginMethod->getMemberType().c_str(),
-            iterator_name.c_str(),
-            hasNextMethod->getMemberType().c_str(),
-            iterator_name.c_str(),
-            iter_var_tok.getValue().c_str(),
-            cType.c_str(),
-            nextMethod->getMemberType().c_str(),
-            iterator_name.c_str()
-        );
+        append("{\n");
         scopeDepth++;
+        if (var_prefix.size())
+            append("%sVar_%s;\n", var_prefix.c_str(), iter_var_tok.getValue().c_str());
+        append("while (Method_%s$hasNext(%s)) {\n", hasNextMethod->getMemberType().c_str(), iterator_name.c_str());
+        scopeDepth++;
+        append("Var_%s = (%s) Method_%s$next(%s);\n", iter_var_tok.getValue().c_str(), cType.c_str(), hasNextMethod->getMemberType().c_str(), iterator_name.c_str());
+        pushIterate();
     }
 
     handler(AddrRef) {
@@ -2207,7 +2203,7 @@ namespace sclc {
             if (typeCanBeNil(type)) {
                 v.canBeNil = true;
             }
-            vars[varDepth].push_back(v);
+            varScopeTop().push_back(v);
             if (!typeCanBeNil(v.getType())) {
                 append("_scl_check_not_nil_store(_scl_top()->i, \"%s\");\n", v.getName().c_str());
             }
@@ -2486,7 +2482,7 @@ namespace sclc {
         }
         Variable v = Variable(name, type, isConst, isMut);
         v.canBeNil = typeCanBeNil(type);
-        vars[varDepth].push_back(v);
+        varScopeTop().push_back(v);
         append("%s Var_%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str());
     }
 
@@ -2826,9 +2822,7 @@ namespace sclc {
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
         typePop;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
-        varDepth++;
+        varScopePush();
     }
 
     handler(Unless) {
@@ -2849,9 +2843,7 @@ namespace sclc {
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
 
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
-        varDepth++;
+        varScopePush();
     }
 
     handler(Else) {
@@ -2860,13 +2852,10 @@ namespace sclc {
         }
         noUnused;
         scopeDepth--;
-        varDepth--;
-        vars.pop_back();
+        varScopePop();
         append("} else {\n");
         scopeDepth++;
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        varScopePush();
     }
 
     handler(Elif) {
@@ -2875,8 +2864,7 @@ namespace sclc {
         }
         noUnused;
         scopeDepth--;
-        varDepth--;
-        vars.pop_back();
+        varScopePop();
         
         append("}\n");
         ITER_INC;
@@ -2889,9 +2877,7 @@ namespace sclc {
         append("else if (_scl_pop()->i) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        varScopePush();
     }
 
     handler(Elunless) {
@@ -2900,8 +2886,7 @@ namespace sclc {
         }
         noUnused;
         scopeDepth--;
-        varDepth--;
-        vars.pop_back();
+        varScopePop();
         
         append("}\n");
         ITER_INC;
@@ -2914,9 +2899,7 @@ namespace sclc {
         append("else if (!(_scl_pop()->i)) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        varScopePush();
     }
 
     handler(Fi) {
@@ -2925,12 +2908,11 @@ namespace sclc {
         }
         noUnused;
         scopeDepth--;
-        varDepth--;
         append("}\n");
         scopeDepth--;
         append("}\n");
         condCount--;
-        vars.pop_back();
+        varScopePop();
     }
 
     handler(While) {
@@ -2940,11 +2922,8 @@ namespace sclc {
         noUnused;
         append("while (1) {\n");
         scopeDepth++;
-        was_rep.push_back(false);
-        was_catch.push_back(false);
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        pushOther();
+        varScopePush();
     }
 
     handler(Do) {
@@ -2956,18 +2935,21 @@ namespace sclc {
     handler(DoneLike) {
         noUnused;
         scopeDepth--;
-        varDepth--;
-        vars.pop_back();
-        if (was_catch.size() > 0 && was_catch.back()) {
+        varScopePop();
+        if (wasCatch()) {
             append("} else {\n");
             append("  Function_throw(_extable.extable[_extable.ptr]);\n");
+        } else if (wasIterate()) {
+            append("}\n");
+            scopeDepth--;
         }
         append("}\n");
-        if (repeat_depth > 0 && was_rep.back()) {
+        if (repeat_depth > 0 && wasRepeat()) {
             repeat_depth--;
         }
-        if (was_catch.size() > 0) was_catch.pop_back();
-        if (was_rep.size() > 0) was_rep.pop_back();
+        if (wasCatch()) popCatch();
+        if (wasRepeat()) popRepeat();
+        if (wasIterate()) popIterate();
     }
 
     handler(Return) {
@@ -3058,9 +3040,7 @@ namespace sclc {
         } else {
             append("case %s: {\n", body[i].getValue().c_str());
             scopeDepth++;
-            varDepth++;
-            std::vector<Variable> defaultScope;
-            vars.push_back(defaultScope);
+            varScopePush();
         }
     }
 
@@ -3068,8 +3048,7 @@ namespace sclc {
         noUnused;
         append("break;\n");
         scopeDepth--;
-        varDepth--;
-        vars.pop_back();
+        varScopePop();
         append("}\n");
     }
 
@@ -3077,9 +3056,7 @@ namespace sclc {
         noUnused;
         append("default: {\n");
         scopeDepth++;
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
+        varScopePush();
     }
 
     handler(Switch) {
@@ -3087,11 +3064,8 @@ namespace sclc {
         typePop;
         append("switch (_scl_pop()->i) {\n");
         scopeDepth++;
-        varDepth++;
-        std::vector<Variable> defaultScope;
-        vars.push_back(defaultScope);
-        was_rep.push_back(false);
-        was_catch.push_back(false);
+        varScopePush();
+        pushOther();
     }
 
     handler(AddrOf) {
@@ -3849,14 +3823,10 @@ namespace sclc {
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = result.functions[f];
-            while (vars.size() < 2) {
-                std::vector<Variable> def;
-                vars.push_back(def);
-            }
-            varDepth = 1;
-            vars[varDepth].clear();
+            std::vector<Variable> def;
+            varScopePush();
             for (Variable g : globals) {
-                vars[varDepth].push_back(g);
+                varScopeTop().push_back(g);
             }
             for (size_t t = 0; t < typeStack.size(); t++) {
                 typePop;
@@ -3916,12 +3886,12 @@ namespace sclc {
 
             std::string arguments = "";
             if (function->hasNamedReturnValue) {
-                vars[varDepth].push_back(function->getNamedReturnValue());
+                varScopeTop().push_back(function->getNamedReturnValue());
             }
             if (function->getArgs().size() > 0) {
                 for (size_t i = 0; i < function->getArgs().size(); i++) {
                     Variable var = function->getArgs()[i];
-                    vars[varDepth].push_back(var);
+                    varScopeTop().push_back(var);
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                     if (i) {
                         arguments += ", ";
@@ -4038,6 +4008,7 @@ namespace sclc {
         emptyFunction:
             scopeDepth = 0;
             append("}\n\n");
+            varScopePop();
         }
     }
 } // namespace sclc

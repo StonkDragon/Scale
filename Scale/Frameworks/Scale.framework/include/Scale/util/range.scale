@@ -48,13 +48,9 @@ sealed struct Range is IIterable
   end
 
   function next(): int
+    self.lower self.pos +
     self.pos 1 + => self.pos
-    self.lower self.pos + return
-  end
-
-  function begin(): int
-    0 => self.pos
-    self.lower return
+    return
   end
 
   export function toReverseRange(): ReverseRange
@@ -86,13 +82,9 @@ sealed struct ReverseRange is IIterable
   end
 
   function next(): int
+    self.lower self.pos -
     self.pos 1 + => self.pos
-    self.lower self.pos - return
-  end
-
-  function begin(): int
-    0 => self.pos
-    self.lower return
+    return
   end
 
   export function toRange(): Range
