@@ -272,7 +272,7 @@ void print_stacktrace() {
 #if !defined(_WIN32) && !defined(__wasm__)
 		printf("Native trace:\n");
 
-		void* array[64];
+		scl_any array[64];
 		char** strings;
 		int size, i;
 
@@ -333,7 +333,7 @@ void print_stacktrace_with_file(FILE* trace) {
 		printf("Native trace:\n");
 		fprintf(trace, "Native trace:\n");
 
-		void* array[64];
+		scl_any array[64];
 		char** strings;
 		int size, i;
 
@@ -653,10 +653,10 @@ _scl_no_return void _scl_unreachable(char* msg) {
 
 // Returns a pointer to the typeinfo of the given struct
 // NULL if the struct does not exist
-void* _scl_typeinfo_of(hash type) {
+scl_any _scl_typeinfo_of(hash type) {
 	scl_int index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, type);
 	if (index >= 0) {
-		return (void*) _scl_types + (index * sizeof(struct _scl_typeinfo));
+		return (scl_any) _scl_types + (index * sizeof(struct _scl_typeinfo));
 	}
 	return NULL;
 }
@@ -666,7 +666,7 @@ struct _scl_typeinfo* _scl_find_typeinfo_of(hash type) {
 }
 
 // returns the method handle of a method on a struct, or a parent struct
-void* _scl_get_method_on_type(hash type, hash method) {
+scl_any _scl_get_method_on_type(hash type, hash method) {
 	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
 	while (p) {
 		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);

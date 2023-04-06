@@ -140,19 +140,6 @@
 #define SCL_SYSTEM "unknown 32-bit"
 #define SCL_UNKNOWN_ARCH 1
 #endif
-#define SCL_INT_HEX_FMT 	"%x"
-#define SCL_INT_FMT		 	"%d"
-#define SCL_int_MAX			INT32_MAX
-#define SCL_uint_MAX		UINT32_MAX
-typedef void*				scl_any;
-typedef int		 			scl_int;
-#if __SIZEOF_SIZE_T__ == __SIZEOF_INT__
-typedef size_t				scl_uint;
-#else
-typedef unsigned int		scl_uint;
-#endif
-typedef struct _scl_string* scl_str;
-typedef float 				scl_float;
 #else
 // 64-bit system
 #if defined(__wasm__)
@@ -173,9 +160,13 @@ typedef float 				scl_float;
 #define SCL_SYSTEM  "unknown 64-bit"
 #define SCL_UNKNOWN_ARCH 1
 #endif
+#endif
+
 #define SCL_int_MAX			INT64_MAX
 #define SCL_uint_MAX		UINT64_MAX
-typedef void*				scl_any;
+
+typedef uintptr_t			scl_any;
+
 #if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
 #define SCL_INT_FMT		 	"%ld"
@@ -185,14 +176,15 @@ typedef long				scl_int;
 #define SCL_INT_FMT		 	"%lld"
 typedef long long			scl_int;
 #endif
+
 #if __SIZEOF_SIZE_T__ == __SIZEOF_LONG_LONG__
 typedef size_t				scl_uint;
 #else
 typedef unsigned long long	scl_uint;
 #endif
+
 typedef struct _scl_string* scl_str;
 typedef double 				scl_float;
-#endif
 
 #define SCL_int64_MAX		INT64_MAX
 #define SCL_int32_MAX		INT32_MAX
@@ -203,8 +195,6 @@ typedef double 				scl_float;
 #define SCL_uint16_MAX		UINT16_MAX
 #define SCL_uint8_MAX		UINT8_MAX
 
-typedef float 				scl_float32;
-typedef double 				scl_float64;
 typedef long long 			scl_int64;
 typedef int		 			scl_int32;
 typedef short		 		scl_int16;
@@ -270,13 +260,14 @@ typedef union {
 	scl_float	f;
 	scl_any		v;
 
-	scl_int32	i32;
-	scl_float32	f32;
-	scl_int16	i16;
 	scl_int8	i8;
-	scl_uint32	u32;
-	scl_uint16	u16;
+	scl_int16	i16;
+	scl_int32	i32;
+	scl_int64	i64;
 	scl_uint8	u8;
+	scl_uint16	u16;
+	scl_uint32	u32;
+	scl_uint64  u64;
 } _scl_frame_t;
 
 typedef struct {
@@ -358,7 +349,7 @@ scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_reflect_find(hash func);
 scl_int				_scl_reflect_find_method(hash func);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+scl_int				_scl_binary_search_method_index(uintptr_t* methods, scl_int count, hash id);
 
 inline void _scl_swap() {
 	scl_any b = _scl_pop()->v;
