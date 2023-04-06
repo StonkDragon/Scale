@@ -17,7 +17,7 @@ namespace sclc {
     std::string removeTypeModifiers(std::string t);
 
     bool isFloatingType(std::string s) {
-        return s == "float" || s == "float32";
+        return s == "float";
     }
 
     bool handlePrimitiveOperator(FILE* fp, int scopeDepth, std::string op, std::string typeA) {
@@ -30,7 +30,7 @@ namespace sclc {
             typeStack.pop();
         if (op == "+" || op == "-" || op == "*" || op == "/") {
             if (!isFloatingType(typeA)) {
-                if (typeB == "float") {
+                if (isFloatingType(typeB)) {
                     append("_scl_popn(2); _scl_push()->f = _stack.data[_stack.ptr].f %s ((scl_float) _stack.data[_stack.ptr + 1].i);\n", op.c_str());
                     typeStack.push("float");
                 } else {
@@ -38,7 +38,7 @@ namespace sclc {
                     typeStack.push("int");
                 }
             } else {
-                if (typeB == "float") {
+                if (isFloatingType(typeB)) {
                     append("_scl_popn(2); _scl_push()->f = _stack.data[_stack.ptr].f %s _stack.data[_stack.ptr + 1].f;\n", op.c_str());
                     typeStack.push("float");
                 } else {
@@ -47,6 +47,22 @@ namespace sclc {
                 }
             }
             return true;
+        }   
+        if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
+            if (!isFloatingType(typeA)) {
+                if (isFloatingType(typeB)) {
+                    append("_scl_popn(2); _scl_push()->i = _stack.data[_stack.ptr].f %s ((scl_float) _stack.data[_stack.ptr + 1].i);\n", op.c_str());
+                } else {
+                    append("_scl_popn(2); _scl_push()->i = _stack.data[_stack.ptr].i %s _stack.data[_stack.ptr + 1].i;\n", op.c_str());
+                }
+            } else {
+                if (isFloatingType(typeB)) {
+                    append("_scl_popn(2); _scl_push()->i = _stack.data[_stack.ptr].f %s _stack.data[_stack.ptr + 1].f;\n", op.c_str());
+                } else {
+                    append("_scl_popn(2); _scl_push()->i = ((scl_float) _stack.data[_stack.ptr].i) %s _stack.data[_stack.ptr + 1].f;\n", op.c_str());
+                }
+            }
+            typeStack.push("bool");
         }
         return false;
     }
