@@ -11,9 +11,10 @@ expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
 cdecl "strcpy"
 expect function __c_strcpy(dest: [int8], src: [int8]): [int8]
 
-sealed struct str is IEquatable, ICloneable, IStringifyable
+sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   private decl _data: [int8]
   private decl _len: int
+  private decl _iter: int
 
   function +(other: str): str
     other self:prepend return
@@ -104,6 +105,17 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
   function init(data: [int8]): none
     data => self._data
     data __c_strlen => self._len
+    0 => self._iter
+  end
+
+  function hasNext(): bool
+    self._iter self._len < return
+  end
+
+  function next(): int8
+    self._iter self @
+    self._iter 1 + => self._iter
+    return
   end
 
   function hashCode(): int
