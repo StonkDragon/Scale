@@ -50,7 +50,7 @@ function lrandom(_limit_: int): int
   random _limit_ % return
 end
 
-function lerp(_a_: int, _b_: int, _t_: int): int
+function lerp(_a_: float, _b_: float, _t_: float): float
   _b_ _a_ - _t_ * _a_ + return
 end
 
