@@ -63,6 +63,7 @@ namespace sclc {
                 }
             }
             typeStack.push("bool");
+            return true;
         }
         return false;
     }
