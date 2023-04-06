@@ -129,6 +129,22 @@ sealed struct Array is IIterable
     return
   end
 
+  function reverse(): Array
+    if self.count 0 <= then self return fi
+    
+    self.count Array::new => decl tmp
+    foreach elem in self do
+      elem tmp:push
+    done
+    0 => self.count
+    for i in 0 to tmp.count do
+      tmp:top self:push
+      tmp:pop
+    done
+    tmp free
+    self return
+  end
+
   function toString() s: str
     if self.count 0 == then
       "{}" => s

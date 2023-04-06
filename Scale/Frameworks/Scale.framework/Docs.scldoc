@@ -351,6 +351,9 @@ Runs the lambda x for every element in the array.
 ### function Array:filter(x: lambda(any): bool): Array
 Returns a new array with only those elements in it for which the lambda x returns <<BLUE>>true<<RESET>>.
 
+### function Array:reverse(): Array
+Reverses the order of the elements in the array.
+
 ### static function Array::new(size: int): none
 Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> elements, where <<WHITE>>size<<RESET>> is bigger than <<GREEN>>0<<RESET>>.
 
