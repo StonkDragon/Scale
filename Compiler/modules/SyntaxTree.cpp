@@ -1575,6 +1575,8 @@ namespace sclc {
 
                     toString->addToken(Token(tok_string_literal, member.getName() + ": ", 0, "<generated4>"));
                     toString->addToken(Token(tok_add, "+", 0, "<generated5>"));
+                    toString->addToken(Token(tok_identifier, "self", 0, "<generated6>"));
+                    toString->addToken(Token(tok_dot, ".", 0, "<generated6>"));
                     toString->addToken(Token(tok_identifier, member.getName(), 0, "<generated6>"));
                     if (removeTypeModifiers(member.getType()) == "float") {
                         toString->addToken(Token(tok_identifier, "doubleToString", 0, "<generated7>"));
