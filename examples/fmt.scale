@@ -1,52 +1,7 @@
-static struct FmtIO
-    cdecl "putchar" expect function putchar(char: int8): none
-
-    private function printStrNoNewline(s: str): none
-        foreach c in s do
-            c FmtIO::putchar
-        done
-    end
-
-    function puts(fmt: str): none
-        1 Array::new => decl fmtArgs
-
-        for i in 0 to fmt:size do
-            i fmt @ => decl char
-            if char '%' == then
-                as any fmtArgs:push
-                if i 1 + fmt:size < then
-                    i++ => i
-                else
-                    Exception::new => decl ex: mut Exception
-                    "Generic format string!" => ex.msg
-                    ex throw
-                fi
-            fi
-        done
-
-        for i in 0 to fmt:size do
-            i fmt @ => decl char
-            if char '%' == then
-                fmtArgs:top => decl arg
-                fmtArgs:pop
-                i++ => i
-                i fmt @ => char
-                if char 's' == char 'i' == || then
-                    arg builtinToString FmtIO::printStrNoNewline
-                elif char 'f' == then
-                    arg doubleToString FmtIO::printStrNoNewline
-                fi
-            else
-                char FmtIO::putchar
-            fi
-        done
-    end
-end
-
 function main(): none
     "Hello, World!" puts
 
     "Hello!\n" FmtIO::puts
     "world" "Hello %s!\n" FmtIO::puts
-    1 2.25 "This is %i %f\n" FmtIO::puts
+    2.25 1 "This is %i %f\n" FmtIO::puts
 end

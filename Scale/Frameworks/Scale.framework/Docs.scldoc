@@ -533,7 +533,7 @@ Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> bloc
 Returns a string containing the OS name and architecture.
 
 @Scale.fmt
-## Format
+## ConsoleColor
 ### static function ConsoleColor::reset(): str
 Returns the ANSI escape code to reset the color.
 
@@ -563,6 +563,14 @@ Returns the ANSI escape code for the color white.
 
 ### static function ConsoleColor::bold(): str
 Returns the ANSI escape code for the color bold.
+
+## FmtIO
+### static function FmtIO::puts(fmt: str): none
+Prints a formatted string to the console.
+Format specifiers:
+- <<GREEN>>"%s"<<RESET>>: format <<BLUE>>str<<RESET>>
+- <<GREEN>>"%i"<<RESET>>: format <<BLUE>>int<<RESET>>
+- <<GREEN>>"%f"<<RESET>>: format <<BLUE>>float<<RESET>>
 
 @Scale.util.map
 ## Map
