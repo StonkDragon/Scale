@@ -44,7 +44,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "23.2.1"
+#define FRAMEWORK_VERSION_REQ "23.3"
 #endif
 
 #ifndef SCL_ROOT_DIR
