@@ -184,7 +184,53 @@ namespace sclc {
         return v;
     }
 
-    std::string generateSymbolForFunction(Function* f) {
+    std::string convertToMangledType(TPResult result, std::string type) {
+        if (type.size() && type != "?" && type.at(type.size() - 1) == '?') {
+            type = type.substr(0, type.size() - 1);
+        }
+        if (type == "str") {
+            return std::string("P11_scl_string");
+        } else if (type == "any") {
+            return std::string("Pv");
+        } else if (type == "int8") {
+            return std::string("c");
+        } else if (type == "float") {
+            return std::string("d");
+        } else if (type == "uint8") {
+            return std::string("h");
+        } else if (type == "int32") {
+            return std::string("i");
+        } else if (type == "uint32") {
+            return std::string("j");
+        } else if (type == "int" || type == "bool") {
+            return std::string("l");
+        } else if (type == "uint") {
+            return std::string("m");
+        } else if (type == "int16") {
+            return std::string("s");
+        } else if (type == "uint16") {
+            return std::string("t");
+        } else if (type == "int64") {
+            return std::string("x");
+        } else if (type == "uint64") {
+            return std::string("y");
+        } else if (type == "lambda") {
+            return std::string("11_scl_lambda");
+        } else if (strstarts(type, "lambda(")) {
+            std::string returnType = type.substr(type.find_last_of("):") + 1);
+            std::string args = type.substr(type.find_first_of("(") + 1, type.find_last_of("):") - type.find_first_of("(") - 1);
+            return "PF" + convertToMangledType(result, returnType) + "4argsE";
+        } else if (type.size() && type.at(0) == '[') {
+            return "P" + convertToMangledType(result, type.substr(1, type.length() - 2));
+        } else if (getStructByName(result, type) != Struct::Null) {
+            return "P" + std::to_string(type.size()) + type;
+        } else if (hasTypealias(result, type)) {
+            return std::to_string(type.size() + 3) + "TA_" + type;
+        }
+        return "v";
+    }
+
+    std::string generateSymbolForFunction(TPResult result, Function* f) {
         auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
             for (size_t i = 0; i < v.size(); i++) {
                 if (v.at(i) == s) return i;
@@ -203,15 +249,32 @@ namespace sclc {
 
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + cLabel + "\"";
         }
+
         std::string symbol = f->getName();
         if (f->isMethod) {
             Method* m = ((Method*)f);
-            symbol = "m." + m->getMemberType() + "." + f->getName();
+            symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + std::to_string(f->getName().size()) + f->getName() + "E";
+            if (f->getArgs().size() == 0) {
+                symbol += "v";
+            } else {
+                for (size_t x = 0; x < f->getArgs().size(); x++) {
+                    std::string type = removeTypeModifiers(f->getArgs()[x].getType());
+                    symbol += convertToMangledType(result, type);
+                }
+            }
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = m->getMemberType() + "$" + f->getName();
             }
         } else {
-            symbol = "f." + f->getName();
+            symbol = "_Z" + std::to_string(f->getName().size()) + f->getName();
+            if (f->getArgs().size() == 0) {
+                symbol += "v";
+            } else {
+                for (size_t x = 0; x < f->getArgs().size(); x++) {
+                    std::string type = removeTypeModifiers(f->getArgs()[x].getType());
+                    symbol += convertToMangledType(result, type);
+                }
+            }
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = f->getName();
             }
@@ -304,7 +367,7 @@ namespace sclc {
                 }
             }
 
-            std::string symbol = generateSymbolForFunction(function);
+            std::string symbol = generateSymbolForFunction(result, function);
 
             if (!function->isMethod) {
                 append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
@@ -366,11 +429,24 @@ namespace sclc {
                         arguments += sclTypeToCType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
                     }
                 }
-                std::string symbol = generateSymbolForFunction(function);
+                std::string symbol = generateSymbolForFunction(result, function);
+
+                auto scaleArgs = [](std::vector<Variable> args) -> std::string {
+                    std::string result = "";
+                    for (size_t i = 0; i < args.size(); i++) {
+                        if (i) {
+                            result += ", ";
+                        }
+                        result += args[i].getName() + ": " + args[i].getType();
+                    }
+                    return result;
+                };
 
                 if (!function->isMethod) {
+                    append("// [Import: function %s(%s): %s]\n", function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
                     append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
+                    append("// [Import: function %s:%s(%s): %s]\n", (((Method*) function))->getMemberType().c_str(), function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
                     append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->getName().c_str(), arguments.c_str(), symbol.c_str());
                 }
                 if (function->isExternC) {
@@ -908,7 +984,7 @@ namespace sclc {
 
         std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
 
-        append("%s Function_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, function->getName().c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+        append("%s Function_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, function->getName().c_str(), arguments.c_str(), generateSymbolForFunction(result, f).c_str());
         append("_scl_push()->v = Function_$lambda%d$%s;\n", lambdaCount - 1, function->getName().c_str());
         typeStack.push(lambdaType);
         result.functions.push_back(f);
@@ -1270,7 +1346,7 @@ namespace sclc {
             if (container.getMemberType(memberName) == "float") {
                 append("_scl_push()->f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
+                append("_scl_push()->i = (scl_int) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
             }
             typeStack.push(container.getMemberType(memberName));
         } else if (getStructByName(result, body[i].getValue()) != Struct::Null) {
@@ -1323,7 +1399,7 @@ namespace sclc {
                         if (v.getType() == "float") {
                             append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
                         } else {
-                            append("_scl_push()->v = (scl_any) Var_%s;\n", loadFrom.c_str());
+                            append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
                         }
                         typeStack.push(v.getType());
                     } else {
@@ -1338,7 +1414,7 @@ namespace sclc {
             if (removeTypeModifiers(v.getType()) == "float") {
                 append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
             } else {
-                append("_scl_push()->v = (scl_any) Var_%s;\n", loadFrom.c_str());
+                append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
             }
             typeStack.push(v.getType());
         } else if (function->isMethod) {
@@ -1346,7 +1422,7 @@ namespace sclc {
             Struct s = getStructByName(result, m->getMemberType());
             if (hasMethod(result, body[i], s.getName())) {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
-                append("_scl_push()->v = (scl_any) Var_self;\n");
+                append("_scl_push()->i = (scl_int) Var_self;\n");
                 typeStack.push(f->getMemberType());
                 generateCall(f, fp, result, errors, body);
             } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
@@ -1366,7 +1442,7 @@ namespace sclc {
                 if (mem.getType() == "float") {
                     append("_scl_push()->f = Var_self->%s;\n", body[i].getValue().c_str());
                 } else {
-                    append("_scl_push()->v = (scl_any) Var_self->%s;\n", body[i].getValue().c_str());
+                    append("_scl_push()->i = (scl_int) Var_self->%s;\n", body[i].getValue().c_str());
                 }
                 typeStack.push(mem.getType());
             } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
@@ -1375,7 +1451,7 @@ namespace sclc {
                 if (v.getType() == "float") {
                     append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
                 } else {
-                    append("_scl_push()->v = (scl_any) Var_%s;\n", loadFrom.c_str());
+                    append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
                 }
                 typeStack.push(v.getType());
             } else {
@@ -1773,7 +1849,7 @@ namespace sclc {
 
         if (hasFunction(result, toGet)) {
             Function* f = getFunctionByName(result, toGet.getValue());
-            append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
+            append("_scl_push()->i = (scl_int) &Function_%s;\n", f->getName().c_str());
             std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
             typeStack.push(lambdaType);
             return;
@@ -1804,7 +1880,7 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("_scl_push()->v = (scl_any) &Function_%s;\n", f->getName().c_str());
+                        append("_scl_push()->i = (scl_int) &Function_%s;\n", f->getName().c_str());
                         std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
                         typeStack.push(lambdaType);
                         return;
@@ -1834,7 +1910,7 @@ namespace sclc {
             v = getVar(body[i]);
         }
         path = generatePathStructRoot(body, &i, errors, &lastType, false, v, containerBegin, false);
-        append("_scl_push()->v = (scl_any) &(%s);\n", path.c_str());
+        append("_scl_push()->i = (scl_int) &(%s);\n", path.c_str());
         typeStack.push("[" + lastType + "]");
     }
 
@@ -2503,7 +2579,7 @@ namespace sclc {
             if (f->getReturnType() == "float") {
                 append("_scl_push()->f = Method_Array$init(1, tmp);\n");
             } else {
-                append("_scl_push()->v = (scl_any) Method_Array$init(1, tmp);\n");
+                append("_scl_push()->i = (scl_int) Method_Array$init(1, tmp);\n");
             }
             typeStack.push(f->getReturnType());
         } else {
@@ -2549,7 +2625,7 @@ namespace sclc {
             if (f->getReturnType() == "float") {
                 append("_scl_push()->f = Method_Map$init(1, tmp);\n");
             } else {
-                append("_scl_push()->v = (scl_any) Method_Map$init(1, tmp);\n");
+                append("_scl_push()->i = (scl_int) Method_Map$init(1, tmp);\n");
             }
             typeStack.push(f->getReturnType());
         } else {
@@ -2638,7 +2714,7 @@ namespace sclc {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
@@ -2667,7 +2743,7 @@ namespace sclc {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
                 } else {
-                    append("_scl_push()->v = (scl_any) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
@@ -2765,7 +2841,7 @@ namespace sclc {
 
     handler(FalsyType) {
         noUnused;
-        append("_scl_push()->v = (scl_any) 0;\n");
+        append("_scl_push()->i = (scl_int) 0;\n");
         if (body[i].getType() == tok_nil) {
             typeStack.push("any");
         } else {
@@ -2775,7 +2851,7 @@ namespace sclc {
 
     handler(TruthyType) {
         noUnused;
-        append("_scl_push()->v = (scl_any) 1;\n");
+        append("_scl_push()->i = (scl_int) 1;\n");
         typeStack.push("bool");
     }
 
@@ -3951,7 +4027,7 @@ namespace sclc {
                     if (function->getReturnType() == "float") {
                         append("return _scl_pop()->f;\n");
                     } else {
-                        append("return (%s) _scl_pop()->v;\n", sclTypeToCType(result, m->getReturnType()).c_str());
+                        append("return (%s) _scl_pop()->i;\n", sclTypeToCType(result, m->getReturnType()).c_str());
                     }
                 } else {
                     append("return;\n");
