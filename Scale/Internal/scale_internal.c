@@ -264,48 +264,11 @@ static int printingStacktrace = 0;
 void print_stacktrace() {
 	printingStacktrace = 1;
 
-#if !defined(_WIN32) && !defined(__wasm__)
-	if (_callstack.ptr)
-#endif
-	printf("Stacktrace:\n");
-	if (_callstack.ptr == 0) {
-#if !defined(_WIN32) && !defined(__wasm__)
-		printf("Native trace:\n");
-
-		scl_any array[64];
-		char** strings;
-		int size, i;
-
-		size = backtrace(array, 64);
-		strings = backtrace_symbols(array, size);
-		if (strings != NULL) {
-			for (i = 1; i < size; i++)
-				printf("  %s\n", strings[i]);
-		}
-
-		free(strings);
-#else
-		printf("  <empty>\n");
-#endif
-		return;
-	}
-
 	for (signed long i = _callstack.ptr - 1; i >= 0; i--) {
 		if (_callstack.data[i].file) {
-			char* f = strrchr(_callstack.data[i].file, '/');
-			if (!f) f = _callstack.data[i].file;
-			else f++;
-			if (_callstack.data[i].line) {
-				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, f, _callstack.data[i].line, _callstack.data[i].col);
-			} else {
-				printf("  %s -> %s\n", (scl_int8*) _callstack.data[i].func, f);
-			}
+			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
 		} else {
-			if (_callstack.data[i].line) {
-				printf("  %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].line, _callstack.data[i].col);
-			} else {
-				printf("  %s\n", (scl_int8*) _callstack.data[i].func);
-			}
+			printf("  %s\n", (scl_int8*) _callstack.data[i].func);
 		}
 
 	}
@@ -317,63 +280,16 @@ void print_stacktrace() {
 void print_stacktrace_with_file(FILE* trace) {
 	printingStacktrace = 1;
 
-#if !defined(_WIN32) && !defined(__wasm__)
-	if (_callstack.ptr)
-#endif
-	{
-		printf("Stacktrace:\n");
-		fprintf(trace, "Stacktrace:\n");
-	}
-#if defined(SCL_DEBUG) && !defined(_WIN32) && !defined(__wasm__)
-	if (1) {
-#else
-	if (_callstack.ptr == 0) {
-#endif
-#if !defined(_WIN32) && !defined(__wasm__)
-		printf("Native trace:\n");
-		fprintf(trace, "Native trace:\n");
-
-		scl_any array[64];
-		char** strings;
-		int size, i;
-
-		size = backtrace(array, 64);
-		strings = backtrace_symbols(array, size);
-		if (strings != NULL) {
-			for (i = 1; i < size; i++) {
-				printf("  %s\n", strings[i]);
-				fprintf(trace, "  %s\n", strings[i]);
-			}
-		}
-
-		free(strings);
-#else
-		printf("  <empty>\n");
-		fprintf(trace, "  <empty>\n");
-#endif
-		return;
-	}
+	printf("Stacktrace:\n");
+	fprintf(trace, "Stacktrace:\n");
 
 	for (signed long i = _callstack.ptr - 1; i >= 0; i--) {
 		if (_callstack.data[i].file) {
-			char* f = strrchr(_callstack.data[i].file, '/');
-			if (!f) f = _callstack.data[i].file;
-			else f++;
-			if (_callstack.data[i].line) {
-				printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, f, _callstack.data[i].line, _callstack.data[i].col);
-				fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, f, _callstack.data[i].line, _callstack.data[i].col);
-			} else {
-				printf("  %s -> %s\n", (scl_int8*) _callstack.data[i].func, f);
-				fprintf(trace, "  %s -> %s\n", (scl_int8*) _callstack.data[i].func, f);
-			}
+			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
+			fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
 		} else {
-			if (_callstack.data[i].line) {
-				printf("  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].line, _callstack.data[i].col);
-				fprintf(trace, "  %s -> (nil):" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].line, _callstack.data[i].col);
-			} else {
-				printf("  %s -> (nil)\n", (scl_int8*) _callstack.data[i].func);
-				fprintf(trace, "  %s -> (nil)\n", (scl_int8*) _callstack.data[i].func);
-			}
+			printf("  %s\n", (scl_int8*) _callstack.data[i].func);
+			fprintf(trace, "  %s\n", (scl_int8*) _callstack.data[i].func);
 		}
 	}
 
@@ -1096,7 +1012,18 @@ _scl_constructor void _scl_load() {
 	} else {
 
 		// Scale exception reached here
-		_scl_security_throw(EX_THROWN, "Uncaught exception");
+		typedef struct {
+			Struct _structData;
+			scl_str msg;
+		} exception;
+
+		_extable.jmp_buf_ptr--;
+		scl_str msg = ((exception*) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+		if (msg) {
+			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+		} else {
+			_scl_security_throw(EX_THROWN, "Uncaught exception");
+		}
 	}
 
 #else

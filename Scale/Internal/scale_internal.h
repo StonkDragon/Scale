@@ -165,7 +165,7 @@
 #define SCL_int_MAX			INT64_MAX
 #define SCL_uint_MAX		UINT64_MAX
 
-typedef uintptr_t			scl_any;
+typedef void*				scl_any;
 
 #if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
@@ -211,6 +211,7 @@ struct _scl_string {
 	scl_int		$__size__;
 	scl_int8*	_data;
 	scl_int		_len;
+	scl_int		_iter;
 };
 
 #if defined(__ANDROID__)
@@ -349,7 +350,7 @@ scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_reflect_find(hash func);
 scl_int				_scl_reflect_find_method(hash func);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_binary_search_method_index(uintptr_t* methods, scl_int count, hash id);
+scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 
 inline void _scl_swap() {
 	scl_any b = _scl_pop()->v;
