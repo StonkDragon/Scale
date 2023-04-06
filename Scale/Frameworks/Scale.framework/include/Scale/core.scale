@@ -20,7 +20,7 @@ expect function __c_strdup(s: [int8]): [int8]
 cdecl "strtok"
 expect function __c_strtok(s: any, delim: [int8]): [int8]?
 cdecl "atoll"
-expect function __c_atoll(s: [int8]): int
+expect function __c_atoll(s: [int8]): int64
 cdecl "atof"
 expect function __c_atof(s: [int8]): float
 
@@ -71,11 +71,14 @@ function longToString(_long_: int): str
 end
 
 function stringToLong(_str_: str): int
-  _str_:view __c_atoll return
+  _str_:view __c_atoll as int return
 end
 
 function stringToDouble(_str_: str): float
-  _str_:view __c_atof return
+  c!
+    _scl_push()->f = (scl_float) atof((*_str_)->_data);
+  end
+  as float return
 end
 
 function doubleToString(_double_: float): str

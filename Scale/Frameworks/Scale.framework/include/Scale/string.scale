@@ -9,7 +9,7 @@ expect function __c_strdup(_str_: [int8]): [int8]
 cdecl "strncmp"
 expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
 cdecl "strcpy"
-expect function __c_strcpy(dest: [int8], src: [int8]): none
+expect function __c_strcpy(dest: [int8], src: [int8]): [int8]
 
 sealed struct str is IEquatable, ICloneable, IStringifyable
   private decl _data: [int8]
@@ -124,7 +124,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable
 
     len len2 + 1 + malloc => out
 
-    out _str1_ __c_strcpy
+    out _str1_ __c_strcpy drop
     c!
       strcat(*out, *_str2_);
     end
