@@ -22,11 +22,11 @@
     1610 Compiler/modules/SyntaxTree.cpp
      279 Compiler/modules/TokenHandlers.cpp
      550 Compiler/modules/Tokenizer.cpp
-    4115 Compiler/modules/Transpiler.cpp
+    4090 Compiler/modules/Transpiler.cpp
       94 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
-      13 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
+      60 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
       73 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
       59 Scale/Frameworks/Scale.framework/include/Scale/math.scale
@@ -34,7 +34,7 @@
       33 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      146 Scale/Frameworks/Scale.framework/include/Scale/string.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
-     184 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+     200 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/bounds.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
@@ -59,7 +59,7 @@
       11 examples/enum.scale
       17 examples/fib.scale
       18 examples/fizzbuzz.scale
-      52 examples/fmt.scale
+       7 examples/fmt.scale
        9 examples/for-step.scale
       10 examples/for.scale
       12 examples/foreach.scale
@@ -79,4 +79,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   13886 total
+   13879 total
