@@ -1,5 +1,5 @@
-import Scale.util.pair
-import Scale.util.iterable
+import std.util.Pair
+import std.util.Iterable
 
 sealed struct MapEntry
   decl key: str

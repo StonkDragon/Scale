@@ -1,4 +1,4 @@
-import Scale.util.map
+import std.util.Map
 
 function main(): none
     ["A": "Apple", "B": "Banana" " " + "Pineapple" +] => decl map

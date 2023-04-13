@@ -1,8 +1,5 @@
-import Scale.sclobject
-import Scale.io
-import Scale.string
-import Scale.util.array
-import Scale.inttypes
+import std.io
+import std.util.Array
 
 expect function memset(ptr: [any], val: int32, len: int): [any]
 expect function memcpy(dst: [any], src: [any], n: int): [any]

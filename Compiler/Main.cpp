@@ -6,6 +6,8 @@
 #include <regex>
 #include <filesystem>
 #include <map>
+#include <fstream>
+#include <optional>
 
 #include <signal.h>
 #include <errno.h>
@@ -297,7 +299,7 @@ namespace sclc
                     std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
                     for (Triple kv : section.second) {
                         if (kv.third.size())
-                            std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                            std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                         else
                             std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                     }
@@ -342,7 +344,7 @@ namespace sclc
                             std::string matchDescription = kv.second;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
                                 if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                 else
                                     std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
@@ -353,7 +355,7 @@ namespace sclc
                                     s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
                                 }
                                 if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 else
                                     std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                             }
@@ -395,7 +397,7 @@ namespace sclc
                         std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
                         for (Triple kv : section.second) {
                             if (kv.third.size())
-                                std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             else
                                 std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                         }
@@ -419,7 +421,7 @@ namespace sclc
                                 std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
                                 for (Triple kv : section.second) {
                                     if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                     else
                                         std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                 }
@@ -471,7 +473,7 @@ namespace sclc
                             std::string matchDescription = kv.second;
                             if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
                                 if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                                     else
                                         std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
                             } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
@@ -483,7 +485,7 @@ namespace sclc
                                 }
                                 std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nFile: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
+                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 else
                                     std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                             }
@@ -496,6 +498,40 @@ namespace sclc
             }
         }
 
+        return 0;
+    }
+
+    int makeFramework(std::string name) {
+        std::filesystem::create_directories(name + ".framework");
+        std::filesystem::create_directories(name + ".framework/include");
+        std::filesystem::create_directories(name + ".framework/impl");
+        std::fstream indexFile((name + ".framework/index.drg").c_str(), std::fstream::out);
+
+        DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
+        framework->setKey("framework");
+
+        framework->addString("version", "23.3");
+        framework->addString("headerDir", "include");
+        framework->addString("implDir", "impl");
+        framework->addString("implHeaderDir", "impl");
+        framework->addString("docfile", "");
+        framework->addString("docfile-format", "scldoc");
+        
+        auto implementers = new DragonConfig::ListEntry();
+        implementers->setKey("implementers");
+        framework->addList(implementers);
+
+        auto implHeaders = new DragonConfig::ListEntry();
+        implHeaders->setKey("implHeaders");
+        framework->addList(implHeaders);
+
+        auto modules = new DragonConfig::CompoundEntry();
+        modules->setKey("modules");
+        framework->addCompound(modules);
+
+        framework->print(indexFile);
+
+        indexFile.close();
         return 0;
     }
 
@@ -634,6 +670,15 @@ namespace sclc
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
+                } else if (args[i] == "-create-framework") {
+                    if (i + 1 < args.size()) {
+                        std::string name = args[i + 1];
+                        i++;
+                        return makeFramework(name);
+                    } else {
+                        std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
+                        return 1;
+                    }
                 } else if (args[i] == "-stack-size") {
                     if (i + 1 < args.size()) {
                         Main.options.stackSize = std::stoull(args[i + 1]);
@@ -871,14 +916,35 @@ namespace sclc
             }
             Main.options.includePaths.push_back("./");
             if (!Main.options.noScaleFramework) {
-                FPResult r = findFileInIncludePath("Scale/core.scale");
-                if (!r.success) {
-                    std::cerr << Color::BOLDRED << r.message << Color::RESET << std::endl;
-                    return 1;
-                }
-                std::string file = r.in;
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
-                    Main.options.files.push_back(file);
+                auto findModule = [&](const std::string moduleName) -> std::optional<std::vector<std::string>> {
+                    std::vector<std::string> mods;
+                    for (auto config : Main.options.mapFrameworkConfigs) {
+                        auto modules = config.second->getCompound("modules");
+                        if (modules) {
+                            auto list = modules->getList(moduleName);
+                            if (list) {
+                                for (size_t j = 0; j < list->size(); j++) {
+                                    FPResult find = findFileInIncludePath(list->getString(j)->getValue());
+                                    if (!find.success) {
+                                        return std::nullopt;
+                                    }
+                                    auto file = find.in;
+                                    mods.push_back(file);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    return std::make_optional(mods);
+                };
+
+                auto mod = findModule("std");
+                if (mod) {
+                    for (auto file : *mod) {
+                        if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                            Main.options.files.push_back(file);
+                        }
+                    }
                 }
             }
 

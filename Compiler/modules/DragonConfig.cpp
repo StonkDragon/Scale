@@ -396,7 +396,7 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
 }
 
 bool ConfigParser::isValidIdentifier(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.';
 }
 
 ListEntry* ConfigParser::parseList(std::string& data, int* i) {

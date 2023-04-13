@@ -1,5 +1,5 @@
-import Scale.util.iterable
-import Scale.debug
+import std.util.Iterable
+import std.debug
 
 sealed struct ImmutableArray is IIterable
   decl values:      readonly [any]

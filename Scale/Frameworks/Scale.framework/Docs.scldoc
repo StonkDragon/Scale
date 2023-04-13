@@ -1,5 +1,5 @@
 # Scale Framework Documentation
-@Scale.core
+@std
 ## Core
 ### function sleep(_millis_: int): none
 Sleeps for <<WHITE>>_millis_<<RESET>> milliseconds.
@@ -60,7 +60,7 @@ Converts <<WHITE>>_double_<<RESET>> to a string.
 ### function nop(): none
 Do nothing.
 
-@Scale.inttypes
+@std.Int
 ### function toInt8(_val_: int): int8
 Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
 
@@ -111,7 +111,7 @@ Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
 ### function isnotnil(x: any): bool
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is not <<BLUE>>nil<<RESET>>.
 
-@Scale.io
+@std.io
 ## IO
 ### function write(_fd_: int, _str_: str, _n_: int): none
 Writes <<WHITE>>_n_<<RESET>> bytes of <<WHITE>>_str_<<RESET>> to file descriptor <<WHITE>>_fd_<<RESET>>.
@@ -134,7 +134,7 @@ Prints the float <<WHITE>>_f_<<RESET>> followed by a new line to the standard ou
 ### function throwerr(_err_: str): none
 Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code 1.
 
-@Scale.math
+@std.math
 ## Math
 ### container MathConstants
 Member types:
@@ -214,7 +214,7 @@ Linear interpolation between <<WHITE>>_a_<<RESET>> and <<WHITE>>_b_<<RESET>> wit
 ### function neg(_i_: int): int
 Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
 
-@Scale.file
+@std.fs
 ## File
 ### function fopen(_filename_: str, _mode_: str): any
 Opens a new file handle of file <<WHITE>>_filename_<<RESET>> in mode <<WHITE>>_mode_<<RESET>>.
@@ -258,7 +258,7 @@ Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>_f_<<
 ### function fseekcur(_f_: any, _offset_: int): none
 Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>_f_<<RESET>>.
 
-@Scale.math.fraction
+@std.math.Fraction
 ## Fraction
 ### struct Fraction
 Member types:
@@ -299,7 +299,7 @@ Divides two fractions and returns a new Fraction based on the result of the divi
 ### function Fraction:inverse(): Fraction
 Returns the inverse of this fraction.
 
-@Scale.util.array
+@std.util.Array
 ## Array
 ### struct Array
 Member types:
@@ -360,7 +360,7 @@ Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> element
 ### static function Array::fromPointerCollection(count: int, values: [any]): Array
 Returns a new array that contains count elements of the c-style array values.
 
-@Scale.string
+@std.String
 ## String
 ### function str:+(other: str): str
 Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
@@ -411,7 +411,7 @@ Returns the hash of the string.
 Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results.
 Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
 
-@Scale.util.pair
+@std.util.Pair
 ## Pair
 ### static function Pair::new(a: any, b: any): none
 Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
@@ -419,7 +419,7 @@ Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
 ### function Pair:toString(): str
 Returns a string representation of this pair.
 
-@Scale.util.triple
+@std.util.Triple
 ## Triple
 ### static function Triple::new(a: any, b: any, c: any): none
 Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<RESET>>.
@@ -427,7 +427,7 @@ Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<
 ### function Triple:toString(): str
 Returns a string representation of this triple.
 
-@Scale.util.range
+@std.util.Range
 ## Ranges
 ### static function Range::new(_start: int, _end: int): none
 Create a new Range object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting up.
@@ -448,6 +448,7 @@ For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET
 Convert range to a <<WHITE>>ReverseRange<<RESET>> object.
 For example, a range from 1 to 5 will return a <<WHITE>>ReverseRange<<RESET>> object from 5 to 1.
 
+@std.util.ReverseRange
 ### static function ReverseRange::new(_start: int, _end: int): none
 Create a new ReverseRange object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting down.
 
@@ -455,7 +456,7 @@ Create a new ReverseRange object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<
 Convert reverse range to a <<WHITE>>Range<<RESET>> object.
 For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> object from 1 to 5.
 
-@Scale.sclobject
+@std.SclObject
 ## SclObject
 ### function SclObject:toString(): str
 Returns a string representation of this object.
@@ -475,7 +476,7 @@ Returns a copy of this object.
 Returns the hash of this object.
 This method should be redefined by Structs as the default implementation returns the hash of the type name.
 
-@Scale.util.immutablearray
+@std.util.ImmutableArray
 ## ImmutableArray
 ### function ImmutableArray:get(index: int): any?
 TODO.
@@ -495,7 +496,7 @@ TODO.
 ### static function ImmutableArray::new(count: int, values: [any]): none
 TODO.
 
-@Scale.util.thread
+@std.threading.Thread
 ## Thread
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
@@ -508,7 +509,7 @@ If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>joi
 Blocks the calling thread until the thread finishes execution.
 If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
 
-@Scale.debug
+@std.debug
 ## Exception
 ### struct Exception
 Member types:
@@ -532,7 +533,7 @@ Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> bloc
 ### function sysPrettyString(): str
 Returns a string containing the OS name and architecture.
 
-@Scale.fmt
+@std.io
 ## ConsoleColor
 ### static function ConsoleColor::reset(): str
 Returns the ANSI escape code to reset the color.
@@ -572,7 +573,7 @@ Format specifiers:
 - <<GREEN>>"%i"<<RESET>>: format <<BLUE>>int<<RESET>>
 - <<GREEN>>"%f"<<RESET>>: format <<BLUE>>float<<RESET>>
 
-@Scale.util.map
+@std.util.Map
 ## Map
 ### static function Map::new(size: int): none
 Creates a new Map with a starting capacity of <<WHITE>>size<<RESET>> elements.

@@ -1,8 +1,8 @@
-import Scale.util.iterable
-import Scale.util.immutablearray
-import Scale.debug
-import Scale.util.arg
-import Scale.util.bounds
+import std.util.Iterable
+import std.util.ImmutableArray
+import std.debug
+import std.util.InvalidArgumentException
+import std.util.IndexOutOfBoundsException
 
 sealed struct Array is IIterable
   decl values:  mut readonly [any]

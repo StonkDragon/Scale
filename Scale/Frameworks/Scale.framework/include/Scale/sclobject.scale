@@ -1,6 +1,6 @@
-import Scale.util.cloneable
-import Scale.util.equatable
-import Scale.util.hashable
+import std.util.Cloneable
+import std.util.Equatable
+import std.util.Hashable
 
 struct SclObject is ICloneable, IEquatable, IHashable
     function ==(other: SclObject): bool

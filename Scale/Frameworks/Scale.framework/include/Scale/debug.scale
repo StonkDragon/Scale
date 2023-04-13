@@ -1,4 +1,4 @@
-import Scale.fmt
+import std.io
 
 cdecl "print_stacktrace"
 expect function trace(): none

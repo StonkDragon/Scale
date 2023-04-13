@@ -1,6 +1,6 @@
-import Scale.util.map
-import Scale.util.pair
-import Scale.util.triple
+import std.util.Map
+import std.util.Pair
+import std.util.Triple
 
 function main(): none
     decl fruits: Array

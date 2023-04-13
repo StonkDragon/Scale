@@ -7,4 +7,83 @@ framework: {
     implHeaders: [];
     docfile: "Docs.scldoc";
     docfile-format: "scldoc";
+    modules: {
+        std: [
+            "Scale/core.scale";
+            "Scale/string.scale";
+            "Scale/sclobject.scale";
+            "Scale/inttypes.scale";
+            "Scale/debug.scale";
+        ];
+        std.Int: [
+            "Scale/inttypes.scale";
+        ];
+        std.String: [
+            "Scale/string.scale";
+        ];
+        std.SclObject: [
+            "Scale/sclobject.scale";
+        ];
+        std.debug: [
+            "Scale/debug.scale";
+        ];
+        std.math: [
+            "Scale/math.scale";
+        ];
+        std.math.Fraction: [
+            "Scale/math/fraction.scale";
+        ];
+        std.io: [
+            "Scale/fmt.scale";
+            "Scale/io.scale";
+        ];
+        std.fs: [
+            "Scale/file.scale";
+        ];
+        std.util.Array: [
+            "Scale/util/array.scale";
+        ];
+        std.util.ImmutableArray: [
+            "Scale/util/immutablearray.scale";
+        ];
+        std.util.InvalidArgumentException: [
+            "Scale/util/arg.scale";
+        ];
+        std.util.Pair: [
+            "Scale/util/pair.scale";
+        ];
+        std.util.IndexOutOfBoundsException: [
+            "Scale/util/bounds.scale";
+        ];
+        std.util.Cloneable: [
+            "Scale/util/cloneable.scale";
+        ];
+        std.util.Equatable: [
+            "Scale/util/equatable.scale";
+        ];
+        std.util.Hashable: [
+            "Scale/util/hashable.scale";
+        ];
+        std.util.Iterable: [
+            "Scale/util/iterable.scale";
+        ];
+        std.util.Map: [
+            "Scale/util/map.scale";
+        ];
+        std.util.Range: [
+            "Scale/util/range.scale";
+        ];
+        std.util.ReverseRange: [
+            "Scale/util/range.scale";
+        ];
+        std.util.Stringifyable: [
+            "Scale/util/stringifyable.scale";
+        ];
+        std.util.Triple: [
+            "Scale/util/triple.scale";
+        ];
+        std.threading.Thread: [
+            "Scale/util/thread.scale";
+        ];
+    };
 };

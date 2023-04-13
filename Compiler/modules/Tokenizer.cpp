@@ -491,6 +491,53 @@ namespace sclc
                 continue;
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
+                std::string moduleName = tokens[i].getValue();
+                while (i + 1 < (long long) tokens.size() && tokens[i + 1].getType() == tok_dot) {
+                    i += 2;
+                    moduleName += "." + tokens[i].getValue();
+                }
+                bool found = false;
+                for (auto config : Main.options.mapFrameworkConfigs) {
+                    auto modules = config.second->getCompound("modules");
+                    if (modules) {
+                        auto list = modules->getList(moduleName);
+                        if (list) {
+                            found = true;
+                            for (size_t j = 0; j < list->size(); j++) {
+                                FPResult find = findFileInIncludePath(list->getString(j)->getValue());
+                                if (!find.success) {
+                                    FPResult r;
+                                    r.column = tokens[i].getColumn();
+                                    r.value = tokens[i].getValue();
+                                    r.in = tokens[i].getFile();
+                                    r.line = tokens[i].getLine();
+                                    r.type = tokens[i].getType();
+                                    r.success = false;
+                                    r.message = find.message;
+                                    return r;
+                                }
+                                auto file = find.in;
+                                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                                    Main.options.files.push_back(file);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (!found) {
+                    FPResult r;
+                    r.success = false;
+                    r.column = tokens[i].getColumn();
+                    r.value = tokens[i].getValue();
+                    r.in = tokens[i].getFile();
+                    r.line = tokens[i].getLine();
+                    r.type = tokens[i].getType();
+                    r.message = "Could not find module '" + moduleName + "'";
+                    return r;
+                }
+            } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "__file_import") {
+                i++;
                 std::string file = "";
                 FPResult r;
                 r.column = tokens[i].getColumn();

@@ -1,4 +1,4 @@
-import Scale.util.stringifyable
+import std.util.Stringifyable
 
 cdecl "strlen"
 expect function __c_strlen(_str_: [int8]) len: int
