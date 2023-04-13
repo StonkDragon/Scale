@@ -45,7 +45,7 @@ Required:
 
 # Documentation
 
-The documentation can be viewed at [scale.stonkdragon.ml](http://scale.stonkdragon.ml/).
+The documentation can be viewed at [stonkdragon.ml/Scale](http://stonkdragon.ml/Scale/).
 Alternatively you can run one of the following commands:
 ```console
 $ sclc -doc categories
@@ -54,7 +54,7 @@ $ sclc -doc info
 
 ## Scale Framework Documentation
 
-The documentation can be viewed at [scale.stonkdragon.ml](http://scale.stonkdragon.ml/Core.framework).
+The documentation can be viewed at [stonkdragon.ml/Scale](http://stonkdragon.ml/Scale/Core.framework).
 Alternatively you can run the following command:
 ```console
 $ sclc -doc-for Scale
