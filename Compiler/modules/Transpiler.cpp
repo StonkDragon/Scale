@@ -130,39 +130,39 @@ namespace sclc {
             if (i) args += ", ";
             if (removeTypeModifiers(arg.getType()) == "float") {
                 if (i) {
-                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].f";
+                    args += "_scl_positive_offset(" + std::to_string(i) + ")->f";
                 } else {
-                    args += "_stack.data[_stack.ptr].f";
+                    args += "_scl_positive_offset(0)->f";
                 }
             } else if (removeTypeModifiers(arg.getType()) == "int" || removeTypeModifiers(arg.getType()) == "bool") {
                 if (i) {
-                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].i";
+                    args += "_scl_positive_offset(" + std::to_string(i) + ")->i";
                 } else {
-                    args += "_stack.data[_stack.ptr].i";
+                    args += "_scl_positive_offset(0)->i";
                 }
             } else if (removeTypeModifiers(arg.getType()) == "str") {
                 if (i) {
-                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].s";
+                    args += "_scl_positive_offset(" + std::to_string(i) + ")->s";
                 } else {
-                    args += "_stack.data[_stack.ptr].s";
+                    args += "_scl_positive_offset(0)->s";
                 }
             } else if (removeTypeModifiers(arg.getType()) == "any") {
                 if (i) {
-                    args += "_stack.data[_stack.ptr + " + std::to_string(i) + "].v";
+                    args += "_scl_positive_offset(" + std::to_string(i) + ")->v";
                 } else {
-                    args += "_stack.data[_stack.ptr].v";
+                    args += "_scl_positive_offset(0)->v";
                 }
             } else if (isPrimitiveIntegerType(arg.getType())) {
                 if (i) {
-                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _stack.data[_stack.ptr + " + std::to_string(i) + "].i)";
+                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _scl_positive_offset(" + std::to_string(i) + ")->i)";
                 } else {
-                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _stack.data[_stack.ptr].i)";
+                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _scl_positive_offset(0)->i)";
                 }
             } else {
                 if (i) {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _stack.data[_stack.ptr + " + std::to_string(i) + "].i";
+                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_positive_offset(" + std::to_string(i) + ")->i";
                 } else {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _stack.data[_stack.ptr].i";
+                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_positive_offset(0)->i";
                 }
             }
         }
@@ -1136,7 +1136,7 @@ namespace sclc {
         } else if (body[i].getValue() == "&&") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i && _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i && _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
@@ -1162,49 +1162,49 @@ namespace sclc {
         } else if (body[i].getValue() == "||") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i || _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i || _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == "<") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i < _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i < _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == ">") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i > _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i > _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == "==") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i == _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i == _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == "<=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i <= _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i <= _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == ">=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i >= _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i >= _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
         } else if (body[i].getValue() == "!=") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
             append("_scl_popn(2);\n");
-            append("_scl_push()->i = _stack.data[_stack.ptr].i != _stack.data[_stack.ptr + 1].i;\n");
+            append("_scl_push()->i = _scl_positive_offset(0)->i != _scl_positive_offset(1)->i;\n");
             typePop;
             typePop;
             typeStack.push("bool");
@@ -2712,13 +2712,13 @@ namespace sclc {
             typePop;
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
+                    append("_scl_push()->f = Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_Pair$init(_stack.data[_stack.ptr].v, _stack.data[_stack.ptr + 1].v, tmp);\n");
+                append("Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
             }
             append("_scl_push()->v = tmp;\n");
             typeStack.push("Pair");
@@ -2741,13 +2741,13 @@ namespace sclc {
             typePop;
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                    append("_scl_push()->f = Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_Triple$init(_stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 1].v, _stack.data[_stack.ptr + 2].v, tmp);\n");
+                append("Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
             }
             append("_scl_push()->v = tmp;\n");
             typeStack.push("Triple");
@@ -3320,16 +3320,16 @@ namespace sclc {
                     append("((void(*)(void)) _scl_pop()->v)();\n");
                 } else if (op == "acceptWithIntResult") {
                     append("_stack.ptr--;\n");
-                    append("_scl_push()->i = ((scl_int(*)(void)) _stack.data[_stack.ptr].v)();\n");
+                    append("_scl_push()->i = ((scl_int(*)(void)) _scl_positive_offset(0)->v)();\n");
                 } else if (op == "acceptWithFloatResult") {
                     append("_stack.ptr--;\n");
-                    append("_scl_push()->f = ((scl_float(*)(void)) _stack.data[_stack.ptr].v)();\n");
+                    append("_scl_push()->f = ((scl_float(*)(void)) _scl_positive_offset(0)->v)();\n");
                 } else if (op == "acceptWithStringResult") {
                     append("_stack.ptr--;\n");
-                    append("_scl_push()->s = ((scl_str(*)(void)) _stack.data[_stack.ptr].v)();\n");
+                    append("_scl_push()->s = ((scl_str(*)(void)) _scl_positive_offset(0)->v)();\n");
                 } else if (op == "acceptWithResult") {
                     append("_stack.ptr--;\n");
-                    append("_scl_push()->v = ((scl_any(*)(void)) _stack.data[_stack.ptr].v)();\n");
+                    append("_scl_push()->v = ((scl_any(*)(void)) _scl_positive_offset(0)->v)();\n");
                 } else {
                     transpilerError("Unknown method '" + body[i].getValue() + "' on type 'untyped-lambda'", i);
                     errors.push_back(err);
@@ -3347,7 +3347,7 @@ namespace sclc {
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
                 argTypes += "scl_any";
-                argGet += "_stack.data[_stack.ptr + " + std::to_string(argAmount - argc) + "].v";
+                argGet += "_scl_positive_offset(" + std::to_string(argAmount - argc) + ")->v";
                 if (argc > 1) {
                     argTypes += ", ";
                     argGet += ", ";

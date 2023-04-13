@@ -1,12 +1,12 @@
 #include "scale_internal.h"
 
-// Variables
+static const hash SclObjectHash = 0xC9CCFE34U;
 
 // The Stack
-__thread _scl_stack_t 		_stack _scl_align;
+__thread _scl_stack_t		_stack;
 
 // Scale Callstack
-__thread _scl_callstack_t	_callstack _scl_align;
+__thread _scl_callstack_t	_callstack;
 
 // this is used by try-catch
 __thread struct _exception_handling {
@@ -15,7 +15,7 @@ __thread struct _exception_handling {
 	scl_int		jmp_buf_ptr;	// number specifying the current depth
 	scl_int 	capacity;		// capacity of lists
 	scl_int*	cs_pointer;		// callstack-pointer of this catch level
-} _extable _scl_align = {0};
+} _extable = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
@@ -27,7 +27,7 @@ static scl_str*	strings;				// List of allocated string instances
 static scl_int	strings_count = 0;		// Length of the list
 static scl_int	strings_cap = 64;		// Capacity of the list
 
-static size_t*	memsizes;				// List of pointer sizes
+static scl_int*	memsizes;				// List of pointer sizes
 static scl_int	memsizes_count = 0;		// Length of the list
 static scl_int	memsizes_cap = 64;		// Capacity of the list
 
@@ -60,7 +60,7 @@ static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_
 
 	if ((*size) + 1 >= (*cap)) {
 		(*cap) += 64;
-		(*array) = realloc((*array), (*cap) * sizeof(scl_any*));
+		(*array) = system_realloc((*array), (*cap) * sizeof(scl_any*));
 	}
 
 	scl_int j;
@@ -97,15 +97,15 @@ void _scl_remove_ptr_at_index(scl_int index) {
 }
 
 // Adds a new pointer to the table
-void _scl_add_ptr(scl_any ptr, size_t size) {
+void _scl_add_ptr(scl_any ptr, scl_int size) {
 	scl_int index = insert_sorted((scl_any**) &allocated, &allocated_count, ptr, &allocated_cap);
 	memsizes_count++;
 	if (index >= memsizes_cap) {
 		memsizes_cap = index;
-		memsizes = realloc(memsizes, memsizes_cap * sizeof(scl_any));
+		memsizes = system_realloc(memsizes, memsizes_cap * sizeof(scl_any));
 	} else if (memsizes_count >= memsizes_cap) {
 		memsizes_cap += 64;
-		memsizes = realloc(memsizes, memsizes_cap * sizeof(scl_any));
+		memsizes = system_realloc(memsizes, memsizes_cap * sizeof(scl_any));
 	}
 	memsizes[index] = size;
 }
@@ -117,7 +117,7 @@ scl_int _scl_check_allocated(scl_any ptr) {
 
 // Allocates size bytes of memory
 // the memory will always have a size of a multiple of sizeof(scl_int)
-scl_any _scl_alloc(size_t size) {
+scl_any _scl_alloc(scl_int size) {
 
 	// Make size be next biggest multiple of sizeof(scl_int)
 	if (size % sizeof(scl_any) != 0) {
@@ -125,11 +125,11 @@ scl_any _scl_alloc(size_t size) {
 	}
 
 	// Allocate the memory
-	scl_any ptr = malloc(size);
+	scl_any ptr = system_allocate(size);
 
 	// Hard-throw if memory allocation failed
 	if (!ptr) {
-		_scl_security_throw(EX_BAD_PTR, "malloc() failed!");
+		_scl_security_throw(EX_BAD_PTR, "allocate() failed!");
 		return NULL;
 	}
 
@@ -140,7 +140,7 @@ scl_any _scl_alloc(size_t size) {
 
 // Reallocates a pointer to a new size
 // the memory will always have a size of a multiple of sizeof(scl_int)
-scl_any _scl_realloc(scl_any ptr, size_t size) {
+scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 	// Make size be next biggest multiple of sizeof(scl_int)
 	if (size % sizeof(scl_any) != 0) {
@@ -158,7 +158,7 @@ scl_any _scl_realloc(scl_any ptr, size_t size) {
 
 	// reallocate and reassign it
 	// At this point it is unsafe to use the old pointer!
-	ptr = realloc(ptr, size);
+	ptr = system_realloc(ptr, size);
 
 	// Hard-throw if memory allocation failed
 	if (!ptr) {
@@ -187,7 +187,7 @@ void _scl_free(scl_any ptr) {
 
 		// Finally, free the memory
 		// accessing the pointer is now unsafe!
-		free(ptr);
+		system_free(ptr);
 	}
 }
 
@@ -216,7 +216,7 @@ _scl_no_return void _scl_security_throw(int code, scl_int8* msg, ...) {
 	va_list args;
 	va_start(args, msg);
 	
-	char* str = malloc(strlen(msg) * 8);
+	char* str = system_allocate(strlen(msg) * 8);
 	vsprintf(str, msg, args);
 	printf("Exception: %s\n", str);
 	fprintf(trace, "Exception: %s\n", str);
@@ -245,7 +245,7 @@ void _scl_cleanup_post_func(scl_int depth) {
 }
 
 scl_str _scl_create_string(scl_int8* data) {
-	scl_str self = _scl_alloc_struct(sizeof(struct _scl_string), "str", hash1("SclObject"));
+	scl_str self = _scl_alloc_struct(sizeof(struct _scl_string), "str", SclObjectHash);
 	if (self == NULL) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return NULL;
@@ -300,7 +300,7 @@ void print_stacktrace_with_file(FILE* trace) {
 
 // final signal handler
 // if we get here, something has gone VERY wrong
-void _scl_catch_final(int sig_num) {
+void _scl_catch_final(scl_int sig_num) {
 	scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
@@ -401,7 +401,7 @@ void _scl_catch_final(int sig_num) {
 		if (_scl_find_index_of_struct(allocated[i]) != -1) {
 			fprintf(trace, "  Instance of struct '%s':\n", ((Struct*) allocated[i])->type_name);
 		} else {
-			fprintf(trace, "  %zu bytes at %p:\n", memsizes[i], allocated[i]);
+			fprintf(trace, "  " SCL_INT_FMT " bytes at %p:\n", memsizes[i], allocated[i]);
 		}
 		fprintf(trace, "    |");
 		for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
@@ -441,7 +441,7 @@ struct scl_Array {
 
 // Converts C NULL-terminated array to Array-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", hash1("SclObject"));
+	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", SclObjectHash);
 	scl_int cap = 0;
 	while (arr[cap] != NULL) {
 		cap++;
@@ -505,7 +505,7 @@ inline scl_any ctrl_pop() {
 	return _scl_pop()->v;
 }
 
-inline ssize_t ctrl_stack_size(void) {
+inline scl_int ctrl_stack_size(void) {
 	return _stack.ptr;
 }
 
@@ -515,7 +515,7 @@ void _scl_sleep(scl_int millis) {
 
 const hash hash1(const char* data) {
 	hash h = 7;
-	for (int i = 0; i < strlen(data); i++) {
+	for (size_t i = 0; i < strlen(data); i++) {
 		h = h * 31 + data[i];
 	}
 	return h;
@@ -535,7 +535,7 @@ struct _scl_typeinfo {
 
 // Structs
 extern struct _scl_typeinfo		_scl_types[];
-extern size_t 					_scl_types_count;
+extern scl_int 					_scl_types_count;
 
 scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
 	scl_int left = 0;
@@ -601,7 +601,7 @@ scl_any _scl_add_struct(scl_any ptr) {
 }
 
 // creates a new instance with a size of 'size'
-scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
+scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
@@ -627,8 +627,8 @@ scl_any _scl_alloc_struct(size_t size, scl_int8* type_name, hash super) {
 }
 
 // Removes an instance from the allocated table by index
-static void _scl_struct_map_remove(size_t index) {
-	for (size_t i = index; i < instances_count - 1; i++) {
+static void _scl_struct_map_remove(scl_int index) {
+	for (scl_int i = index; i < instances_count - 1; i++) {
 	   instances[i] = instances[i + 1];
 	}
 	instances_count--;
@@ -636,14 +636,14 @@ static void _scl_struct_map_remove(size_t index) {
 
 // Returns the next index of an instance in the allocated table
 // Returns -1, if not in table
-size_t _scl_find_index_of_struct(scl_any ptr) {
+scl_int _scl_find_index_of_struct(scl_any ptr) {
 	if (ptr == NULL) return -1;
 	return _scl_binary_search((void**) instances, instances_count, ptr);
 }
 
 // Removes an instance from the allocated table without calling its finalizer
 void _scl_free_struct_no_finalize(scl_any ptr) {
-	size_t i = _scl_find_index_of_struct(ptr);
+	scl_int i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		_scl_struct_map_remove(i);
 		i = _scl_find_index_of_struct(ptr);
@@ -655,7 +655,7 @@ void _scl_free_struct(scl_any ptr) {
 	if (_scl_find_index_of_struct(ptr) == -1)
 		return;
 
-	size_t i = _scl_find_index_of_struct(ptr);
+	scl_int i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		_scl_struct_map_remove(i);
 		i = _scl_find_index_of_struct(ptr);
@@ -729,37 +729,37 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 
 void _scl_set_up_signal_handler() {
 #if defined(SIGHUP)
-	signal(SIGHUP, _scl_catch_final);
+	signal(SIGHUP, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGINT)
-	signal(SIGINT, _scl_catch_final);
+	signal(SIGINT, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGQUIT)
-	signal(SIGQUIT, _scl_catch_final);
+	signal(SIGQUIT, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGILL)
-	signal(SIGILL, _scl_catch_final);
+	signal(SIGILL, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGTRAP)
-	signal(SIGTRAP, _scl_catch_final);
+	signal(SIGTRAP, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGABRT)
-	signal(SIGABRT, _scl_catch_final);
+	signal(SIGABRT, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGEMT)
-	signal(SIGEMT, _scl_catch_final);
+	signal(SIGEMT, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGFPE)
-	signal(SIGFPE, _scl_catch_final);
+	signal(SIGFPE, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGBUS)
-	signal(SIGBUS, _scl_catch_final);
+	signal(SIGBUS, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGSEGV)
-	signal(SIGSEGV, _scl_catch_final);
+	signal(SIGSEGV, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGSYS)
-	signal(SIGSYS, _scl_catch_final);
+	signal(SIGSYS, (void (*)(int)) _scl_catch_final);
 #endif
 }
 
@@ -768,7 +768,7 @@ _scl_frame_t* _scl_push() {
 
 	if (_stack.ptr >= _stack.cap) {
 		_stack.cap += 64;
-		_scl_frame_t* tmp = realloc(_stack.data, sizeof(_scl_frame_t) * _stack.cap);
+		_scl_frame_t* tmp = system_realloc(_stack.data, sizeof(_scl_frame_t) * _stack.cap);
 		if (!tmp) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		} else {
@@ -787,6 +787,14 @@ _scl_frame_t* _scl_pop() {
 #endif
 
 	return &(_stack.data[--_stack.ptr]);
+}
+
+_scl_frame_t* _scl_offset(scl_int offset) {
+	return &(_stack.data[offset]);
+}
+
+_scl_frame_t* _scl_positive_offset(scl_int offset) {
+	return &(_stack.data[_stack.ptr + offset]);
 }
 
 _scl_frame_t* _scl_top() {
@@ -815,15 +823,15 @@ void _scl_exception_push() {
 		_extable.capacity += 64;
 		scl_any* tmp;
 
-		tmp = realloc(_extable.cs_pointer, _extable.capacity * sizeof(scl_int));
+		tmp = system_realloc(_extable.cs_pointer, _extable.capacity * sizeof(scl_int));
 		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.cs_pointer = (scl_int*) tmp;
 
-		tmp = realloc(_extable.exceptions, _extable.capacity * sizeof(scl_any));
+		tmp = system_realloc(_extable.exceptions, _extable.capacity * sizeof(scl_any));
 		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.exceptions = tmp;
 
-		tmp = realloc(_extable.jmp_buf, _extable.capacity * sizeof(jmp_buf));
+		tmp = system_realloc(_extable.jmp_buf, _extable.capacity * sizeof(jmp_buf));
 		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.jmp_buf = (jmp_buf*) tmp;
 	}
@@ -844,7 +852,7 @@ scl_int8** _scl_platform_get_env() {
 
 void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Argument %s is nil", name);
 		_scl_assert(0, msg);
 	}
@@ -852,7 +860,7 @@ void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 
 void _scl_not_nil_cast(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Nil cannot be cast to non-nil type '%s'!", name);
 		_scl_assert(0, msg);
 	}
@@ -860,7 +868,7 @@ void _scl_not_nil_cast(scl_int val, scl_int8* name) {
 
 void _scl_struct_allocation_failure(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Failed to allocate memory for struct '%s'!", name);
 		_scl_assert(0, msg);
 	}
@@ -868,7 +876,7 @@ void _scl_struct_allocation_failure(scl_int val, scl_int8* name) {
 
 void _scl_nil_ptr_dereference(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Tried dereferencing nil pointer '%s'!", name);
 		_scl_assert(0, msg);
 	}
@@ -876,7 +884,7 @@ void _scl_nil_ptr_dereference(scl_int val, scl_int8* name) {
 
 void _scl_check_not_nil_store(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Nil cannot be stored in non-nil variable '%s'!", name);
 		_scl_assert(0, msg);
 	}
@@ -884,7 +892,7 @@ void _scl_check_not_nil_store(scl_int val, scl_int8* name) {
 
 void _scl_not_nil_return(scl_int val, scl_int8* name) {
 	if (val == 0) {
-		scl_int8* msg = (scl_int8*) malloc(sizeof(scl_int8) * strlen(name) + 64);
+		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Tried returning nil from function returning not-nil type '%s'!", name);
 		_scl_assert(0, msg);
 	}
@@ -900,18 +908,18 @@ void _scl_create_stack() {
 	// stuff we might do with _scl_alloc()
 	_stack.ptr = 0;
 	_stack.cap = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_stack.data = malloc(sizeof(_scl_frame_t) * _stack.cap);
+	_stack.data = system_allocate(sizeof(_scl_frame_t) * _stack.cap);
 
-	allocated = malloc(allocated_cap * sizeof(scl_any));
-	memsizes = malloc(memsizes_cap * sizeof(size_t));
-	instances = malloc(instances_cap * sizeof(Struct*));
+	allocated = system_allocate(allocated_cap * sizeof(scl_any));
+	memsizes = system_allocate(memsizes_cap * sizeof(scl_int));
+	instances = system_allocate(instances_cap * sizeof(Struct*));
 
 	_extable.cs_pointer = 0;
 	_extable.jmp_buf_ptr = 0;
 	_extable.capacity = SCL_DEFAULT_STACK_FRAME_COUNT;
-	_extable.cs_pointer = malloc(_extable.capacity * sizeof(scl_int));
-	_extable.exceptions = malloc(_extable.capacity * sizeof(scl_any));
-	_extable.jmp_buf = malloc(_extable.capacity * sizeof(jmp_buf));
+	_extable.cs_pointer = system_allocate(_extable.capacity * sizeof(scl_int));
+	_extable.exceptions = system_allocate(_extable.capacity * sizeof(scl_any));
+	_extable.jmp_buf = system_allocate(_extable.capacity * sizeof(jmp_buf));
 }
 
 // Returns a function pointer with the following signature:
@@ -933,36 +941,15 @@ extern genericFunc _scl_internal_destroy_functions[];
 #if !defined(SCL_COMPILER_NO_MAIN)
 const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
 
-#if defined(static_assert)
-static_assert(sizeof(scl_int) == sizeof(scl_any), "Size of scl_int and scl_any do not match!");
-static_assert(sizeof(scl_int) == sizeof(scl_float), "Size of scl_int and scl_float do not match!");
-static_assert(sizeof(scl_any) == sizeof(scl_float), "Size of scl_any and scl_float do not match!");
-#endif
-
-_scl_no_return void _scl_native_main(int argc, char** argv) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "main");
-_scl_no_return void _scl_native_main(int argc, char** argv) {
-	#if !defined(static_assert)
-	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
-	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
-	assert(sizeof(scl_any) == sizeof(scl_float) && "Size of scl_any and scl_float do not match!");
-	#endif
+int main(int argc, char** argv) {
 
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
 	_scl_assert(byte[0], "Invalid byte order detected!");
 
-	char* scl_print_licence;
-	if ((scl_print_licence = getenv("SCL_PRINT_LICENSE_AND_EXIT"))) {
-		printf("Scale License:\n%s", __SCL_LICENSE);
-		exit(0);
-	}
-
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
-
-	_callstack.data[0].func = (scl_int8*) __FUNCTION__;
-
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
@@ -975,11 +962,6 @@ _scl_no_return void _scl_native_main(int argc, char** argv) {
 
 // Initialize as library
 _scl_constructor void _scl_load() {
-	#if !defined(static_assert)
-	assert(sizeof(scl_int) == sizeof(scl_any) && "Size of scl_int and scl_any do not match!");
-	assert(sizeof(scl_int) == sizeof(scl_float) && "Size of scl_int and scl_float do not match!");
-	assert(sizeof(scl_any) == sizeof(scl_float) && "Size of scl_any and scl_float do not match!");
-	#endif
 
 	// Endian-ness detection
 	short word = 0x0001;
@@ -1040,7 +1022,6 @@ _scl_destructor void _scl_destroy() {
 	}
 
 #if !defined(SCL_COMPILER_NO_MAIN)
-	// We don't return
-	exit(ret);
+	return ret;
 #endif
 }
