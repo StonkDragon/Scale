@@ -114,10 +114,6 @@
 #define _scl_expect(expr, c) (expr)
 #endif
 
-#if !defined(SIGABRT)
-#define SIGABRT 6
-#endif
-
 // Define scale-specific signals
 #define EX_BAD_PTR				128
 #define EX_STACK_OVERFLOW		129
@@ -173,7 +169,9 @@
 #endif
 
 #define SCL_int_MAX			INT64_MAX
+#define SCL_int_MIN			INT64_MIN
 #define SCL_uint_MAX		UINT64_MAX
+#define SCL_uint_MIN		((scl_uint) 0)
 
 typedef void*				scl_any;
 
@@ -197,13 +195,21 @@ typedef struct _scl_string* scl_str;
 typedef double 				scl_float;
 
 #define SCL_int64_MAX		INT64_MAX
+#define SCL_int64_MIN		INT64_MIN
 #define SCL_int32_MAX		INT32_MAX
+#define SCL_int32_MIN		INT32_MIN
 #define SCL_int16_MAX		INT16_MAX
+#define SCL_int16_MIN		INT16_MIN
 #define SCL_int8_MAX		INT8_MAX
+#define SCL_int8_MIN		INT8_MIN
 #define SCL_uint64_MAX		UINT64_MAX
+#define SCL_uint64_MIN		((scl_uint64) 0)
 #define SCL_uint32_MAX		UINT32_MAX
+#define SCL_uint32_MIN		((scl_uint32) 0)
 #define SCL_uint16_MAX		UINT16_MAX
+#define SCL_uint16_MIN		((scl_uint16) 0)
 #define SCL_uint8_MAX		UINT8_MAX
+#define SCL_uint8_MIN		((scl_uint8) 0)
 
 typedef long long 			scl_int64;
 typedef int		 			scl_int32;
@@ -282,24 +288,24 @@ typedef union {
 } _scl_frame_t;
 
 typedef struct {
-	_scl_frame_t*	data					_scl_align;
-	scl_int			ptr						_scl_align;
-	scl_int			cap						_scl_align;
+	_scl_frame_t*	data;
+	scl_int			ptr;
+	scl_int			cap;
 } _scl_stack_t;
 
 typedef struct {
-	scl_int8* 	file							_scl_align;
-	scl_int8*	func							_scl_align;
-	scl_int		line							_scl_align;
-	scl_int 	col								_scl_align;
-	scl_int 	begin_stack_size				_scl_align;
-	scl_int 	begin_var_count					_scl_align;
-	scl_int 	sp								_scl_align;
+	scl_int8* 		file;
+	scl_int8*		func;
+	scl_int			line;
+	scl_int 		col;
+	scl_int 		begin_stack_size;
+	scl_int 		begin_var_count;
+	scl_int 		sp;
 } _scl_callframe_t;
 
 typedef struct {
-	ssize_t				ptr					_scl_align;
-	_scl_callframe_t	data[STACK_SIZE]	_scl_align;
+	ssize_t				ptr;
+	_scl_callframe_t	data[EXCEPTION_DEPTH];
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
