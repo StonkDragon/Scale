@@ -115,16 +115,16 @@ namespace sclc
 
         append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {
-            if (strncmp(f->getName().c_str(), "__init__", 8) == 0) {
-                append("  (scl_any) Function_%s,\n", f->getName().c_str());
+            if (isInitFunction(f)) {
+                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }
         append("  0\n");
         append("};\n\n");
         append("scl_any _scl_internal_destroy_functions[] = {\n");
         for (Function* f : result.functions) {
-            if (strncmp(f->getName().c_str(), "__destroy__", 11) == 0) {
-                append("  (scl_any) Function_%s,\n", f->getName().c_str());
+            if (isDestroyFunction(f)) {
+                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }
         append("  0\n");

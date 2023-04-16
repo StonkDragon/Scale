@@ -97,13 +97,13 @@ namespace sclc {
             }
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                    append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                    append("_scl_push()->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->getName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
             }
             return true;
         }

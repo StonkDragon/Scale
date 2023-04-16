@@ -631,8 +631,13 @@ namespace sclc
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
             return contains<std::string>(m->getModifiers(), "<constructor>") || strstarts(m->getName(), "init");
+        } else {
+            return contains<std::string>(f->getModifiers(), "construct");
         }
-        return false;
+    }
+
+    bool isDestroyFunction(Function* f) {
+        return strstarts(f->getName(), "__destroy__") || contains<std::string>(f->getModifiers(), "final");
     }
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl

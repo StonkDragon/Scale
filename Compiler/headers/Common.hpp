@@ -228,6 +228,8 @@ namespace sclc {
     bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s);
     bool featureEnabled(std::string feat);
+    bool isInitFunction(Function* f);
+    bool isDestroyFunction(Function* f);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

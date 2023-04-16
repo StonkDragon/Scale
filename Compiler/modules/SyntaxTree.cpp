@@ -1464,17 +1464,19 @@ namespace sclc {
             } else {
 
                 auto validAttribute = [](Token& t) -> bool {
-                    return t.getValue() == "expect" ||
-                           t.getValue() == "export" ||
+                    return t.getType()  == tok_string_literal ||
                            t.getValue() == "no_cleanup" ||
-                           t.getValue() == "cdecl" ||
-                           t.getValue() == "default" ||
-                           t.getValue() == "static" ||
-                           t.getValue() == "private" ||
+                           t.getValue() == "construct" ||
                            t.getValue() == "autoimpl" ||
+                           t.getValue() == "default" ||
+                           t.getValue() == "private" ||
+                           t.getValue() == "static" ||
+                           t.getValue() == "export" ||
+                           t.getValue() == "expect" ||
                            t.getValue() == "sealed" ||
-                           t.getValue() == "asm" ||
-                           t.getType()  == tok_string_literal;
+                           t.getValue() == "cdecl" ||
+                           t.getValue() == "final" ||
+                           t.getValue() == "asm";
                 };
 
                 if (tokens[i].getValue() == "typealias") {

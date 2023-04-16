@@ -30,6 +30,7 @@ namespace sclc
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
         virtual std::string getName();
+        virtual std::string finalName();
         virtual std::vector<Token> getBody();
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);

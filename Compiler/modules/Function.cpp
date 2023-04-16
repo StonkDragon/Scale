@@ -42,6 +42,20 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
 std::string Function::getName() {
     return name;
 }
+std::string Function::finalName() {
+    return (isInitFunction(this) || isDestroyFunction(this)
+        ?
+            name +
+            "$" +
+            std::to_string(hash1((char*) name.c_str())) +
+            "$" +
+            std::to_string(hash1((char*) nameToken.getFile().c_str())) +
+            "$" +
+            std::to_string(nameToken.getLine())
+        :
+            name
+        );
+}
 std::vector<Token> Function::getBody() {
     return body;
 }
