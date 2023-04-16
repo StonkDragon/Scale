@@ -83,7 +83,13 @@ framework: {
             "Scale/util/triple.scale";
         ];
         std.threading.Thread: [
-            "Scale/util/thread.scale";
+            "Scale/thread/thread.scale";
+        ];
+        std.threading.AtomicInteger: [
+            "Scale/thread/atomics/integer.scale";
+        ];
+        std.threading.AtomicFloat: [
+            "Scale/thread/atomics/float.scale";
         ];
     };
 };
