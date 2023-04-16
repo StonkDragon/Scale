@@ -698,6 +698,7 @@ namespace sclc {
 
             if (strstarts(typeA, "lambda(")) typeA = "lambda";
 
+            bool nillableB = typeCanBeNil(args.at(i).getType());
             std::string typeB = removeTypeModifiers(args.at(i).getType());
             if (typeB == "bool") typeB = "int";
             
@@ -707,7 +708,7 @@ namespace sclc {
 
             if (strstarts(typeB, "lambda(")) typeB = "lambda";
 
-            if (typeB == "any" || typeB == "[any]" || (typeCanBeNil(typeB) && (typeA == "any" || typeA == "[any]"))) {
+            if (typeB == "any" || typeB == "[any]" || ((typeCanBeNil(typeB) || nillableB) && (typeA == "any" || typeA == "[any]"))) {
                 continue;
             }
 
