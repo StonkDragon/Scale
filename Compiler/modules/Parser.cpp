@@ -115,7 +115,7 @@ namespace sclc
 
         append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {
-            if (isInitFunction(f)) {
+            if (!f->isMethod && isInitFunction(f)) {
                 append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }
@@ -123,7 +123,7 @@ namespace sclc
         append("};\n\n");
         append("scl_any _scl_internal_destroy_functions[] = {\n");
         for (Function* f : result.functions) {
-            if (isDestroyFunction(f)) {
+            if (!f->isMethod && isDestroyFunction(f)) {
                 append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }

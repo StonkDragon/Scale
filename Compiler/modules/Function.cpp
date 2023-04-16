@@ -43,7 +43,7 @@ std::string Function::getName() {
     return name;
 }
 std::string Function::finalName() {
-    return (isInitFunction(this) || isDestroyFunction(this)
+    return (!isMethod && (isInitFunction(this) || isDestroyFunction(this))
         ?
             name +
             "$" +
