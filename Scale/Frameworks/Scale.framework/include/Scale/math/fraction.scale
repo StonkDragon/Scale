@@ -3,7 +3,7 @@ struct Fraction
     decl denominator: int
 
     function init(numerator: int, denominator: int): none
-        numerator denominator self:gcd => decl div
+        numerator denominator Fraction::gcd => decl div
 
         numerator div / => self.numerator
         denominator div / => self.denominator
@@ -57,7 +57,86 @@ struct Fraction
         other self:inverse * return
     end
 
-    private function gcd(a: int, b: int): int
+    function isNan(): bool
+        self.numerator 0 == self.denominator 0 == && return
+    end
+
+    function isInfinite(): bool
+        self.denominator 0 == return
+    end
+
+    function isFinite(): bool
+        self:isInfinite ! return
+    end
+
+    function isNotNan(): bool
+        self:isNan ! return
+    end
+
+    static function fromFloat(d: float): Fraction
+        0 => decl num: int
+        0 => decl den: int
+        d doubleToString:view => decl s
+
+        c!
+            if (isnan(*d)) {
+                *num = 0;
+                *den = 0;
+            } else if (isinf(*d)) {
+                *num = 1;
+                *den = 0;
+            } else {
+                char whole[strlen(*s)];
+                char decimal[strlen(*s)];
+                int whole_ptr = 0;
+                int decimal_ptr = 0;
+
+                int hasWholePart = 1;
+                int hasDecimalPart = 0;
+                int sign = 1;
+
+                for (int i = 0; i < strlen(*s); i++) {
+                    if ((*s)[i] == '.') {
+                        hasWholePart = 0;
+                        hasDecimalPart = 1;
+                        continue;
+                    }
+                    if ((*s)[i] == '-') {
+                        sign = -1;
+                        continue;
+                    }
+            
+                    if (hasWholePart)
+                        whole[whole_ptr++] = (*s)[i];
+            
+                    if (hasDecimalPart)
+                        decimal[decimal_ptr++] = (*s)[i];
+                }
+
+                int num_whole = strtol(whole, NULL, 10);
+                int num_decimal = 0;
+            
+                if (strlen(decimal) != 0)
+                    num_decimal = strtol(decimal, NULL, 10);
+
+                int numerator = num_whole * pow(10, strlen(decimal)) + num_decimal;
+                numerator *= sign;
+            
+                int denominator = pow(10, strlen(decimal));
+            
+                int gd = Function_Fraction$gcd(numerator, denominator);
+
+                *num = numerator / gd;
+                *den = denominator / gd;
+            }
+        end
+
+        num den Fraction::new return
+    end
+
+    private static function gcd(a: int, b: int): int
+        if a 0 == then b return fi
+        if b 0 == then a return fi
         if a 0 < then a -1 * => a fi
         if b 0 < then b -1 * => b fi
 
