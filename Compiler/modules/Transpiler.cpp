@@ -83,30 +83,30 @@ namespace sclc {
     }
 
     std::string sclTypeToCType(TPResult result, std::string t) {
-        std::string return_type = "scl_any";
-
         if (t.size() && t != "?" && t.at(t.size() - 1) == '?') {
             t = t.substr(0, t.size() - 1);
         }
         t = removeTypeModifiers(t);
 
-        if (strstarts(t, "lambda(")) return_type = "_scl_lambda";
-        if (t == "any") return_type = "scl_any";
-        else if (t == "none") return_type = "void";
-        else if (t == "int") return_type = "scl_int";
-        else if (t == "uint") return_type = "scl_uint";
-        else if (t == "float") return_type = "scl_float";
-        else if (t == "bool") return_type = "scl_int";
-        else if (!(getStructByName(result, t) == Struct::Null)) {
-            return_type = "scl_" + getStructByName(result, t).getName();
-        } else if (t.size() > 2 && t.size() && t.at(0) == '[') {
+        if (strstarts(t, "lambda(")) return "_scl_lambda";
+        if (t == "any") return "scl_any";
+        if (t == "none") return "void";
+        if (t == "int") return "scl_int";
+        if (t == "uint") return "scl_uint";
+        if (t == "float") return "scl_float";
+        if (t == "bool") return "scl_int";
+        if (!(getStructByName(result, t) == Struct::Null)) {
+            return "scl_" + getStructByName(result, t).getName();
+        }
+        if (t.size() > 2 && t.size() && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
-            return_type = type + "*";
-        } else if (hasTypealias(result, t)) {
-            return_type = getTypealias(result, t);
+            return type + "*";
+        }
+        if (hasTypealias(result, t)) {
+            return getTypealias(result, t);
         }
 
-        return return_type;
+        return "scl_any";
     }
 
     bool isPrimitiveIntegerType(std::string type);
@@ -870,6 +870,7 @@ namespace sclc {
     handler(TruthyType);
     handler(Is);
     handler(If);
+    handler(Fi);
     handler(Unless);
     handler(Else);
     handler(Elif);
@@ -998,7 +999,7 @@ namespace sclc {
             typePop;
             typeStack.push(type.substr(0, type.size() - 1));
         }
-        if (!typeCanBeNil(function->getReturnType()) && return_type != "void") {
+        if (!typeCanBeNil(function->getReturnType()) && function->getReturnType() != "none") {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
@@ -1008,7 +1009,7 @@ namespace sclc {
             scopeDepth++;
             append("_callstack.ptr--;\n");
             if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
-            if (return_type == "void")
+            if (function->getReturnType() == "none")
                 append("return;\n");
             else {
                 append("return 0;\n");
@@ -1131,7 +1132,7 @@ namespace sclc {
         } else if (body[i].getValue() == "clearstack") {
             append("_scl_popn(_stack.ptr);\n");
             append("_stack.ptr = 0;\n");
-            for (size_t t = 0; t < typeStack.size(); t++) {
+            for (long t = typeStack.size() - 1; t >= 0; t--) {
                 typePop;
             }
         } else if (body[i].getValue() == "&&") {
@@ -2506,6 +2507,7 @@ namespace sclc {
                 append("%s = _scl_pop()->f;\n", path.c_str());
             else
                 append("%s = (%s) _scl_pop()->v;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
+            typePop;
         }
     }
 
@@ -2779,7 +2781,7 @@ namespace sclc {
         std::string s = replaceAll(body[i].getValue(), R"(\\\\)", "\\");
         s = replaceAll(s, R"(\\\")", "\"");
         append("%s\n", s.c_str());
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
     }
@@ -2817,7 +2819,7 @@ namespace sclc {
         append("_callstack.ptr--;\n");
         scopeDepth--;
         append("}// End C\n");
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
     }
@@ -2882,7 +2884,7 @@ namespace sclc {
     }
 
     handler(If) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -2893,17 +2895,71 @@ namespace sclc {
             handle(Token);
             ITER_INC;
         }
+        ITER_INC;
         append("\n");
         append("scl_int _passedCondition%zu = 0;\n", condCount++);
+        append("scl_int _stackSize%zu = _stack.ptr;\n", condCount - 1);
         append("if (_scl_pop()->i) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
         typePop;
         varScopePush();
+        auto tokenEndsIfBlock = [body](TokenType type) {
+            return type == tok_elif ||
+                   type == tok_elunless ||
+                   type == tok_fi ||
+                   type == tok_else;
+        };
+        std::string invalidType = "---------";
+        std::string ifBlockReturnType = invalidType;
+        bool exhaustive = false;
+        auto beginningStackSize = typeStack.size();
+        std::string problematicType = "";
+    nextIfPart:
+        while (!tokenEndsIfBlock(body[i].getType())) {
+            handle(Token);
+            ITER_INC;
+        }
+        if (ifBlockReturnType == invalidType && typeStackTop.size()) {
+            ifBlockReturnType = typeStackTop;
+        } else if (typeStackTop.size() && ifBlockReturnType != typeStackTop) {
+            problematicType = "[ " + ifBlockReturnType + ", " + typeStackTop + " ]";
+            ifBlockReturnType = "---";
+        }
+        if (body[i].getType() != tok_fi) {
+            handle(Token);
+        }
+        if (body[i].getType() == tok_else) {
+            exhaustive = true;
+        }
+        while (typeStack.size() > beginningStackSize) {
+            typePop;
+        }
+        if (body[i].getType() != tok_fi) {
+            ITER_INC;
+            goto nextIfPart;
+        }
+        if (ifBlockReturnType == "---") {
+            transpilerError("Not every branch of this if-statement returns the same type! Types are: " + problematicType, i);
+            errors.push_back(err);
+            return;
+        }
+        bool sizeDecreased = false;
+        while (typeStack.size() > beginningStackSize) {
+            typePop;
+            sizeDecreased = true;
+        }
+        if (exhaustive && sizeDecreased) {
+            append("_scl_frame_t _frame%zu = _stack.data[--_stack.ptr];\n", condCount - 1);
+            append("_stack.ptr = _stackSize%zu;\n", condCount - 1);
+            append("_stack.data[_stack.ptr++] = _frame%zu;\n", condCount - 1);
+            typeStack.push(ifBlockReturnType);
+        }
+        handle(Fi);
     }
 
     handler(Unless) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -2914,17 +2970,71 @@ namespace sclc {
             handle(Token);
             ITER_INC;
         }
+        ITER_INC;
         append("\n");
         append("scl_int _passedCondition%zu = 0;\n", condCount++);
+        append("scl_int _stackSize%zu = _stack.ptr;\n", condCount - 1);
         append("if (!(_scl_pop()->i)) {\n");
         scopeDepth++;
         append("_passedCondition%zu = 1;\n\n", condCount - 1);
-
+        typePop;
         varScopePush();
+        auto tokenEndsIfBlock = [body](TokenType type) {
+            return type == tok_elif ||
+                   type == tok_elunless ||
+                   type == tok_fi ||
+                   type == tok_else;
+        };
+        std::string invalidType = "---------";
+        std::string ifBlockReturnType = invalidType;
+        bool exhaustive = false;
+        auto beginningStackSize = typeStack.size();
+        std::string problematicType = "";
+    nextIfPart:
+        while (!tokenEndsIfBlock(body[i].getType())) {
+            handle(Token);
+            ITER_INC;
+        }
+        if (ifBlockReturnType == invalidType && typeStackTop.size()) {
+            ifBlockReturnType = typeStackTop;
+        } else if (typeStackTop.size() && ifBlockReturnType != typeStackTop) {
+            problematicType = "[ " + ifBlockReturnType + ", " + typeStackTop + " ]";
+            ifBlockReturnType = "---";
+        }
+        if (body[i].getType() != tok_fi) {
+            handle(Token);
+        }
+        if (body[i].getType() == tok_else) {
+            exhaustive = true;
+        }
+        while (typeStack.size() > beginningStackSize) {
+            typePop;
+        }
+        if (body[i].getType() != tok_fi) {
+            ITER_INC;
+            goto nextIfPart;
+        }
+        if (ifBlockReturnType == "---") {
+            transpilerError("Not every branch of this if-statement returns the same type! Types are: " + problematicType, i);
+            errors.push_back(err);
+            return;
+        }
+        bool sizeDecreased = false;
+        while (typeStack.size() > beginningStackSize) {
+            typePop;
+            sizeDecreased = true;
+        }
+        if (exhaustive && sizeDecreased) {
+            append("_scl_frame_t _frame%zu = _stack.data[--_stack.ptr];\n", condCount - 1);
+            append("_stack.ptr = _stackSize%zu;\n", condCount - 1);
+            append("_stack.data[_stack.ptr++] = _frame%zu;\n", condCount - 1);
+            typeStack.push(ifBlockReturnType);
+        }
+        handle(Fi);
     }
 
     handler(Else) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -2936,7 +3046,7 @@ namespace sclc {
     }
 
     handler(Elif) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -2958,7 +3068,7 @@ namespace sclc {
     }
 
     handler(Elunless) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -2980,9 +3090,6 @@ namespace sclc {
     }
 
     handler(Fi) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
-            typePop;
-        }
         noUnused;
         scopeDepth--;
         append("}\n");
@@ -2993,7 +3100,7 @@ namespace sclc {
     }
 
     handler(While) {
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
         noUnused;
@@ -3033,12 +3140,12 @@ namespace sclc {
         noUnused;
         append("{\n");
         scopeDepth++;
-        if (return_type != "void" && !function->hasNamedReturnValue)
+        if (function->getReturnType() != "none" && !function->hasNamedReturnValue)
             append("_scl_frame_t returnFrame = _stack.data[--_stack.ptr];\n");
         append("_callstack.ptr--;\n");
         if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
 
-        if (return_type != "void") {
+        if (function->getReturnType() != "none") {
             if (!typeCanBeNil(function->getReturnType())) {
                 if (function->hasNamedReturnValue) {
                     if (typeCanBeNil(function->getNamedReturnValue().getType())) {
@@ -3060,30 +3167,31 @@ namespace sclc {
             }
         }
 
-        if (return_type == "void")
+        auto type = removeTypeModifiers(function->getReturnType());
+
+        if (type == "none")
             append("return;\n");
         else {
             if (function->hasNamedReturnValue) {
                 std::string type = sclTypeToCType(result, function->getNamedReturnValue().getType());
                 append("return (%s) Var_%s;\n", type.c_str(), function->getNamedReturnValue().getName().c_str());
             } else {
-                if (return_type == "scl_str") {
+                if (type == "str") {
                     append("return returnFrame.s;\n");
-                } else if (return_type == "scl_int") {
+                } else if (type == "int") {
                     append("return returnFrame.i;\n");
-                } else if (return_type == "scl_float") {
+                } else if (type == "float") {
                     append("return returnFrame.f;\n");
-                } else if (return_type == "scl_any") {
+                } else if (type == "any") {
                     append("return returnFrame.v;\n");
-                } else if (strncmp(return_type.c_str(), "scl_", 4) == 0 || hasTypealias(result, function->getReturnType())) {
-                    std::string type = sclTypeToCType(result, function->getReturnType());
-                    append("return (%s) returnFrame.i;\n", type.c_str());
+                } else {
+                    append("return (%s) returnFrame.i;\n", sclTypeToCType(result, function->getReturnType()).c_str());
                 }
             }
         }
         scopeDepth--;
         append("}\n");
-        for (size_t t = 0; t < typeStack.size(); t++) {
+        for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;
         }
     }
@@ -3911,7 +4019,7 @@ namespace sclc {
             for (Variable g : globals) {
                 varScopeTop().push_back(g);
             }
-            for (size_t t = 0; t < typeStack.size(); t++) {
+            for (long t = typeStack.size() - 1; t >= 0; t--) {
                 typePop;
             }
 
