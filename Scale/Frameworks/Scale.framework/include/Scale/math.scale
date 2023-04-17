@@ -1,6 +1,8 @@
 container MathConstants
   const decl e: float
   const decl pi: float
+  const decl nan: float
+  const decl infinity: float
 end
 
 construct function mathInitialization(): none
@@ -8,27 +10,75 @@ construct function mathInitialization(): none
   3.14159265358979323846264338327950288 => MathConstants.pi
 
   c!
+    Container_MathConstants.nan = NAN;
+    Container_MathConstants.infinity = INFINITY;
     srand(time(NULL));
   end
 end
 
-expect function sqrt(_f_: float): float
-expect function sin(_f_: float): float
-expect function cos(_f_: float): float
-expect function tan(_f_: float): float
-expect function asin(_f_: float): float
-expect function acos(_f_: float): float
-expect function atan(_f_: float): float
-expect function atan2(_f1_: float, _f2_: float): float
-expect function sinh(_f_: float): float
-expect function cosh(_f_: float): float
-expect function tanh(_f_: float): float
-expect function asinh(_f_: float): float
-expect function acosh(_f_: float): float
-expect function atanh(_f_: float): float
-expect function exp(_f_: float): float
-expect function log(_f_: float): float
-expect function log10(_f_: float): float
+expect function acos(:float): float
+expect function asin(:float): float
+expect function atan(:float): float
+expect function atan2(:float, :float): float
+expect function cos(:float): float
+expect function sin(:float): float
+expect function tan(:float): float
+expect function acosh(:float): float
+expect function asinh(:float): float
+expect function atanh(:float): float
+expect function cosh(:float): float
+expect function sinh(:float): float
+expect function tanh(:float): float
+expect function exp(:float): float
+expect function exp2(:float): float
+expect function expm1(:float): float
+expect function log(:float): float
+expect function log10(:float): float
+expect function log2(:float): float
+expect function log1p(:float): float
+expect function logb(:float): float
+expect function fabs(:float): float
+expect function cbrt(:float): float
+expect function hypot(:float, :float): float
+expect function pow(:float, :float): float
+expect function sqrt(:float): float
+expect function erf(:float): float
+expect function erfc(:float): float
+expect function lgamma(:float): float
+expect function tgamma(:float): float
+expect function ceil(:float): float
+expect function floor(:float): float
+expect function nearbyint(:float): float
+expect function rint(:float): float
+expect function round(:float): float
+expect function trunc(:float): float
+expect function fmod(:float, :float): float
+expect function remainder(:float, :float): float
+expect function fdim(:float, :float): float
+expect function fmax(:float, :float): float
+expect function fmin(:float, :float): float
+expect function fma(:float, :float, :float): float
+expect function scalb(:float, :float): float
+
+function isInfinite(x: float): bool
+  c!
+    _scl_push()->i = isinf(*x);
+  end as int return
+end
+
+function isNaN(x: float): bool
+  c!
+    _scl_push()->i = isnan(*x);
+  end as int return
+end
+
+function isFinite(x: float): bool
+  x isInfinite ! return
+end
+
+function isNotNaN(x: float): bool
+  x isNaN ! return
+end
 
 function random(): int
   decl r: int
