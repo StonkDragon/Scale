@@ -363,7 +363,9 @@ namespace sclc {
                     if (i) {
                         arguments += ", ";
                     }
-                    arguments += sclTypeToCType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                    arguments += sclTypeToCType(result, function->getArgs()[i].getType());
+                    if (function->getArgs()[i].getName().size())
+                        arguments += " Var_" + function->getArgs()[i].getName();
                 }
             }
 
@@ -426,7 +428,9 @@ namespace sclc {
                         if (i) {
                             arguments += ", ";
                         }
-                        arguments += sclTypeToCType(result, function->getArgs()[i].getType()) + " Var_" + function->getArgs()[i].getName();
+                        arguments += sclTypeToCType(result, function->getArgs()[i].getType());
+                        if (function->getArgs()[i].getName().size())
+                            arguments += " Var_" + function->getArgs()[i].getName();
                     }
                 }
                 std::string symbol = generateSymbolForFunction(result, function);
@@ -908,10 +912,14 @@ namespace sclc {
         if (body[i].getType() == tok_paren_open) {
             ITER_INC;
             while (i < body.size() && body[i].getType() != tok_paren_close) {
-                if (body[i].getType() == tok_identifier) {
+                if (body[i].getType() == tok_identifier || body[i].getType() == tok_column) {
                     std::string name = body[i].getValue();
                     std::string type = "any";
-                    ITER_INC;
+                    if (body[i].getType() == tok_column) {
+                        name = "";
+                    } else {
+                        ITER_INC;
+                    }
                     bool isConst = false;
                     bool isMut = false;
                     if (body[i].getType() == tok_column) {
@@ -980,7 +988,11 @@ namespace sclc {
                 if (i) {
                     arguments += ", ";
                 }
-                arguments += type + " Var_" + f->getArgs()[i].getName();
+                if (f->getArgs()[i].getName().size()) {
+                    arguments += type + " Var_" + f->getArgs()[i].getName();
+                } else {
+                    arguments += type;
+                }
             }
         }
 
@@ -4087,7 +4099,9 @@ namespace sclc {
                     if (i) {
                         arguments += ", ";
                     }
-                    arguments += type + " Var_" + function->getArgs()[i].getName();
+                    arguments += type;
+                    if (function->getArgs()[i].getName().size())
+                        arguments += " Var_" + function->getArgs()[i].getName();
                 }
             }
 

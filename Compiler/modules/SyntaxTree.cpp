@@ -15,10 +15,14 @@ namespace sclc {
         if (tokens[i].getType() == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                if (tokens[i].getType() == tok_identifier) {
+                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
-                    i++;
+                    if (tokens[i].getType() == tok_column) {
+                        name = "";
+                    } else {
+                        i++;
+                    }
                     bool isConst = false;
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
@@ -248,12 +252,16 @@ namespace sclc {
         if (tokens[i].getType() == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
-                if (tokens[i].getType() == tok_identifier) {
+                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
+                    if (tokens[i].getType() == tok_column) {
+                        name = "";
+                    } else {
+                        i++;
+                    }
                     bool isConst = false;
                     bool isMut = false;
-                    i++;
                     if (tokens[i].getType() == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i);
