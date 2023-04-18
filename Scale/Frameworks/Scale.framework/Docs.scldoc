@@ -361,6 +361,9 @@ Member types:
 ### static function Fraction::new(numerator: int, denominator: int): Fraction
 Creates a new fraction with the given numerator and denominator.
 
+### static function Fraction::fromFloat(val: float): Fraction
+Creates a new fraction from the given <<BLUE>>float<<RESET>> value.
+
 ### function Fraction:toString(): str
 Returns a string representation of this fraction.
 It follows this pattern: numerator "/" denominator
