@@ -140,10 +140,14 @@ Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code
 Member types:
 - <<BLUE>>const <<WHITE>>e<<BLUE>>: float<<RESET>>
 - <<BLUE>>const <<WHITE>>pi<<BLUE>>: float<<RESET>>
+- <<BLUE>>const <<WHITE>>nan<<BLUE>>: float<<RESET>>
+- <<BLUE>>const <<WHITE>>infinity<<BLUE>>: float<<RESET>>
 <<WHITE>>e<<RESET>>: The math constant <<WHITE>>e<<RESET>>.
 It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
 <<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>.
 It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
+<<WHITE>>nan<<RESET>>: A floating point value representing "Not a Number".
+<<WHITE>>infinity<<RESET>>: A floating point value representing positive infinity.
 
 ### function acos(f: float): float
 Returns the arc cosine of <<WHITE>>f<<RESET>>.
