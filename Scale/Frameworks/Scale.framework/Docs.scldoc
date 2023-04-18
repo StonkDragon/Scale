@@ -267,7 +267,7 @@ Returns the larger of the two arguments.
 Returns the smaller of the two arguments.
 
 ### function fma(x: float, y: float, z: float): float
-Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<BLUE>>.
+Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<RESET>>.
 The function computes the result without losing precision in any intermediate result.
 
 ### function isInfinite(x: float): bool
