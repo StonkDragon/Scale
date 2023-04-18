@@ -128,8 +128,8 @@ Prints <<WHITE>>_str_<<RESET>> followed by a new line to the standard error outp
 ### function putint(_int_: int): none
 Prints the number <<WHITE>>_int_<<RESET>> followed by a new line to the standard output.
 
-### function putfloat(_f_: float): none
-Prints the float <<WHITE>>_f_<<RESET>> followed by a new line to the standard output.
+### function putfloat(f: float): none
+Prints the float <<WHITE>>f<<RESET>> followed by a new line to the standard output.
 
 ### function throwerr(_err_: str): none
 Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code 1.
@@ -145,73 +145,159 @@ It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
 <<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>.
 It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
 
-### function sqrt(_f_: float): float
-Calculates the square root of <<WHITE>>_f_<<RESET>>.
+### function acos(f: float): float
+Returns the arc cosine of <<WHITE>>f<<RESET>>.
 
-### function sin(_f_: float): float
-Calculates the sine of <<WHITE>>_f_<<RESET>>.
+### function asin(f: float): float
+Returns the arc sine of <<WHITE>>f<<RESET>>.
 
-### function cos(_f_: float): float
-Calculates the cosine of <<WHITE>>_f_<<RESET>>.
+### function atan(f: float): float
+Returns the arc tangent of <<WHITE>>f<<RESET>>.
 
-### function tan(_f_: float): float
-Calculates the tangent of <<WHITE>>_f_<<RESET>>.
+### function atan2(y: float, x: float): float
+Returns the angle of the point <<BLUE>>(<<WHITE>>x<<BLUE>>, <<WHITE>>y<<BLUE>>)<<RESET>> to the x-Axis.
 
-### function asin(_f_: float): float
-Calculates the arc sine of <<WHITE>>_f_<<RESET>>.
+### function cos(f: float): float
+Returns the cosine of <<WHITE>>f<<RESET>>.
 
-### function acos(_f_: float): float
-Calculates the arc cosine of <<WHITE>>_f_<<RESET>>.
+### function sin(f: float): float
+Returns the sine of <<WHITE>>f<<RESET>>.
 
-### function atan(_f_: float): float
-Calculates the arc tangent of <<WHITE>>_f_<<RESET>>.
+### function tan(f: float): float
+Returns the tangent of <<WHITE>>f<<RESET>>.
 
-### function atan2(_n1_: float, _n2_: float): float
-Calculates the arc tangent of an argument.
+### function acosh(f: float): float
+Returns the area hyperbolic cosine of <<WHITE>>f<<RESET>>.
 
-### function sinh(_f_: float): float
-Calculates the hyperbolic sine of <<WHITE>>_f_<<RESET>>.
+### function asinh(f: float): float
+Returns the area hyperbolic sine of <<WHITE>>f<<RESET>>.
 
-### function cosh(_f_: float): float
-Calculates the hyperbolic cosine of <<WHITE>>_f_<<RESET>>.
+### function atanh(f: float): float
+Returns the area hyperbolic tangent of <<WHITE>>f<<RESET>>.
 
-### function tanh(_f_: float): float
-Calculates the hyperbolic tangent of <<WHITE>>_f_<<RESET>>.
+### function cosh(f: float): float
+Returns the hyperbolic cosine of <<WHITE>>f<<RESET>>.
 
-### function asinh(_f_: float): float
-Calculates the arc hyperbolic sine of <<WHITE>>_f_<<RESET>>.
+### function sinh(f: float): float
+Returns the hyperbolic sine of <<WHITE>>f<<RESET>>.
 
-### function acosh(_f_: float): float
-Calculates the arc hyperbolic cosine of <<WHITE>>_f_<<RESET>>.
+### function tanh(f: float): float
+Returns the hyperbolic tangent of <<WHITE>>f<<RESET>>.
 
-### function atanh(_f_: float): float
-Calculates the arc hyperbolic tangent of <<WHITE>>_f_<<RESET>>.
+### function exp(f: float): float
+Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
-### function exp(_f_: float): float
-Calculates <<WHITE>>MathConstants<<RESET>>e` raised to the power of <<WHITE>>_f_<<RESET>>.
+### function exp2(f: float): float
+Returns <<YELLOW>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
-### function log(_f_: float): float
-Calculates the natural logarithm of <<WHITE>>_f_<<RESET>>.
+### function expm1(f: float): float
+Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<YELLOW>>1<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<YELLOW>>1 <<BLUE>>-<<RESET>>.
 
-### function log10(_f_: float): float
-Calculates the base 10 logarithm of <<WHITE>>_f_<<RESET>>.
+### function log(f: float): float
+Returns the natural logarithm of <<WHITE>>f<<RESET>>.
+
+### function log10(f: float): float
+Returns the common (base-10) logarithm of <<WHITE>>f<<RESET>>.
+
+### function log2(f: float): float
+Returns the binary logarithm of <<WHITE>>f<<RESET>>.
+
+### function log1p(f: float): float
+Returns the natural logarithm of <<YELLOW>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<YELLOW>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
+
+### function logb(f: float): float
+Returns the logarithm of the absolute value of <<WHITE>>f<<RESET>>.
+
+### function fabs(f: float): float
+Returns the absolute value of <<WHITE>>f<<RESET>>.
+
+### function cbrt(f: float): float
+Returns the cubic root of <<WHITE>>f<<RESET>>.
+
+### function hypot(x: float, y: float): float
+Returns the hypotenuse of a right-angled triangle whose legs are <<WHITE>>x<<RESET>> and <<WHITE>>y<<RESET>>.
+
+The function returns what would be the square root of the sum of the squares of <<WHITE>>x<<RESET>> and <<WHITE>>y<<RESET>>.
+
+### function pow(base: float, exp: float): float
+Returns <<WHITE>>base<<RESET>> raised to the power of <<WHITE>>exp<<RESET>>.
+
+### function sqrt(f: float): float
+Returns the square root of <<WHITE>>f<<RESET>>.
+
+### function erf(f: float): float
+Returns the error function value for <<WHITE>>f<<RESET>>.
+
+### function erfc(f: float): float
+Returns the complementary error function value for <<WHITE>>f<<RESET>>.
+
+### function lgamma(f: float): float
+Returns the natural logarithm of the absolute value of the gamma function of <<WHITE>>f<<RESET>>.
+
+### function tgamma(f: float): float
+Returns the gamma function of <<WHITE>>f<<RESET>>.
+
+### function ceil(f: float): float
+Rounds <<WHITE>>f<<RESET>> upwards to the nearest integer value not less than <<WHITE>>f<<RESET>>.
+
+### function floor(f: float): float
+Rounds <<WHITE>>f<<RESET>> downwards to the nearest integer value not more than <<WHITE>>f<<RESET>>.
+
+### function round(f: float): float
+Returns the integer value that is nearest to <<WHITE>>f<<RESET>>, with halfway cases rounded away from zero.
+
+### function trunc(f: float): float
+Rounds <<WHITE>>f<<RESET>> toward zero, returning the nearest integral value that is not larger in magnitude than <<WHITE>>f<<RESET>>.
+
+### function fmod(a: float, b: float): float
+Returns the floating-point remainder of <<WHITE>>a<<BLUE>>/<<WHITE>>b<<RESET>>.
+
+### function remainder(a: float, b: float): float
+Returns the floating-point remainder of <<WHITE>>a<<BLUE>>/<<WHITE>>b<<RESET>>.
+
+### function fdim(x: float, y: float): float
+Returns the positive difference between <<WHITE>>x <<RESET>>and <<WHITE>>y<<RESET>>.
+
+### function fmax(x: float, y: float): float
+Returns the larger of the two arguments.
+
+### function fmin(x: float, y: float): float
+Returns the smaller of the two arguments.
+
+### function fma(x: float, y: float, z: float): float
+Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<BLUE>>.
+The function computes the result without losing precision in any intermediate result.
+
+### function isInfinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
+
+### function isNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
+
+### function isFinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
+
+### function isNotNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
 
 ### function random(): int
-Generates a random number.
+Returns a random <<BLUE>>int<<RESET>>.
 
-### function iseven(_i_: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>_i_<<RESET>> is even.
+### function iseven(i: int): int
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<YELLOW>>2<<RESET>>.
 
-### function isodd(_i_: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>_i_<<RESET>> is odd.
+### function isodd(i: int): int
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<YELLOW>>2<<RESET>>.
 
-### function lrandom(_limit_: int): int
-Returns a random number not exceeding <<WHITE>>_limit_<<RESET>>.
+### function lrandom(lim: int): int
+Returns a random <<BLUE>>int<<RESET>> not exceeding <<WHITE>>lim<<RESET>>.
 
-### function lerp(_a_: int, _b_: int, _t_: int): int
+### function lerp(_a_: float, _b_: float, _t_: float): float
 Linear interpolation between <<WHITE>>_a_<<RESET>> and <<WHITE>>_b_<<RESET>> with the argument <<WHITE>>_t_<<RESET>>.
 
-### function neg(_i_: int): int
+### function neg(i: int): int
 Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
 
 @std.fs
@@ -246,17 +332,17 @@ Prints the integer <<WHITE>>_int_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 ### function fputs(_file_: any, _float_: float): none
 Prints the float <<WHITE>>_float_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 
-### function fread(_f_: any, _size_: int): [any]?
-Reads <<WHITE>>_size_<<RESET>> bytes from file <<WHITE>>_f_<<RESET>>.
+### function fread(f: any, _size_: int): [any]?
+Reads <<WHITE>>_size_<<RESET>> bytes from file <<WHITE>>f<<RESET>>.
 
-### function fseekstart(_f_: any, _offset_: int): none
-Seeks to position <<WHITE>>_offset_<<RESET>> from the start of file <<WHITE>>_f_<<RESET>>.
+### function fseekstart(f: any, _offset_: int): none
+Seeks to position <<WHITE>>_offset_<<RESET>> from the start of file <<WHITE>>f<<RESET>>.
 
-### function fseekend(_f_: any, _offset_: int): none
-Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>_f_<<RESET>>.
+### function fseekend(f: any, _offset_: int): none
+Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>f<<RESET>>.
 
-### function fseekcur(_f_: any, _offset_: int): none
-Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>_f_<<RESET>>.
+### function fseekcur(f: any, _offset_: int): none
+Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>f<<RESET>>.
 
 @std.math.Fraction
 ## Fraction

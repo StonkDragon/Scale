@@ -47,7 +47,27 @@ namespace sclc {
                 }
             }
             return true;
-        }   
+        }
+        if (op == "**") {
+            if (!isFloatingType(typeA)) {
+                if (isFloatingType(typeB)) {
+                    append("_scl_popn(2); _scl_push()->f = pow(_scl_positive_offset(0)->f, ((scl_float) _scl_positive_offset(1)->i));\n");
+                    typeStack.push("float");
+                } else {
+                    append("_scl_popn(2); _scl_push()->i = (scl_int) pow(_scl_positive_offset(0)->i, _scl_positive_offset(1)->i);\n");
+                    typeStack.push("int");
+                }
+            } else {
+                if (isFloatingType(typeB)) {
+                    append("_scl_popn(2); _scl_push()->f = pow(_scl_positive_offset(0)->f, _scl_positive_offset(1)->f);\n");
+                    typeStack.push("float");
+                } else {
+                    append("_scl_popn(2); _scl_push()->f = pow(((scl_float) _scl_positive_offset(0)->i), _scl_positive_offset(1)->f);\n");
+                    typeStack.push("float");
+                }
+            }
+            return true;
+        }
         if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
             if (!isFloatingType(typeA)) {
                 if (isFloatingType(typeB)) {

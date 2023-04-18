@@ -58,7 +58,6 @@ expect function fdim(:float, :float): float
 expect function fmax(:float, :float): float
 expect function fmin(:float, :float): float
 expect function fma(:float, :float, :float): float
-expect function scalb(:float, :float): float
 
 function isInfinite(x: float): bool
   c!
@@ -73,7 +72,7 @@ function isNaN(x: float): bool
 end
 
 function isFinite(x: float): bool
-  x isInfinite ! return
+  x isInfinite ! x isNaN ! && return
 end
 
 function isNotNaN(x: float): bool
