@@ -582,6 +582,7 @@ namespace sclc
                 for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
                     Main.options.features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
         }
+        Main.options.mapFrameworkConfigs["/local"] = scaleConfig;
 
         Main.options.minify = true;
         Main.options.stackSize = 16;
