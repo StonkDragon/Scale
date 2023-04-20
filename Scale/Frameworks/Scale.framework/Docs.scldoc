@@ -192,11 +192,11 @@ Returns the hyperbolic tangent of <<WHITE>>f<<RESET>>.
 Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
 ### function exp2(f: float): float
-Returns <<YELLOW>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
+Returns <<GREEN>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
 ### function expm1(f: float): float
-Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<YELLOW>>1<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<YELLOW>>1 <<BLUE>>-<<RESET>>.
+Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<GREEN>>1<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<GREEN>>1 <<BLUE>>-<<RESET>>.
 
 ### function log(f: float): float
 Returns the natural logarithm of <<WHITE>>f<<RESET>>.
@@ -208,8 +208,8 @@ Returns the common (base-10) logarithm of <<WHITE>>f<<RESET>>.
 Returns the binary logarithm of <<WHITE>>f<<RESET>>.
 
 ### function log1p(f: float): float
-Returns the natural logarithm of <<YELLOW>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<YELLOW>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
+Returns the natural logarithm of <<GREEN>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<GREEN>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
 
 ### function logb(f: float): float
 Returns the logarithm of the absolute value of <<WHITE>>f<<RESET>>.
@@ -290,10 +290,10 @@ Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN
 Returns a random <<BLUE>>int<<RESET>>.
 
 ### function iseven(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<YELLOW>>2<<RESET>>.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<GREEN>>2<<RESET>>.
 
 ### function isodd(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<YELLOW>>2<<RESET>>.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<GREEN>>2<<RESET>>.
 
 ### function lrandom(lim: int): int
 Returns a random <<BLUE>>int<<RESET>> not exceeding <<WHITE>>lim<<RESET>>.
@@ -391,6 +391,26 @@ Divides two fractions and returns a new Fraction based on the result of the divi
 
 ### function Fraction:inverse(): Fraction
 Returns the inverse of this fraction.
+
+@std.Any
+## Any
+### static function any::new(size: int): any
+Returns a pointer to <<WHITE>>size<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+It is undefined behavior to pass in a <<WHITE>>size<<RESET>> of <<GREEN>>0<<RESET>>.
+The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
+
+### static function any::default(): any
+Returns a pointer to <<BLUE>>sizeof any<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+
+### static function any::delete(ptr: any): none
+Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
+If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
+
+### static function any::size(ptr: any): int
+Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
+Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
 
 @std.util.Array
 ## Array
