@@ -21,7 +21,7 @@ This memory may not be <<GREEN>>0<<RESET>>-initialized.
 It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
 The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
 
-### function realloc(_size_: int, _ptr_: any): any
+### function realloc(_ptr_: any, _size_: int): any
 Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes.
 Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
 If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>.

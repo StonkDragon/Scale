@@ -7,6 +7,12 @@ cdecl "ctrl_stack_size"
 expect function sizeofStack(): int
 cdecl "_scl_sleep"
 expect function sleep(_millis_: int): none
+cdecl "_scl_alloc"
+expect function malloc(_sz_: int): [any]
+cdecl "_scl_free"
+expect function free(_ptr_: [any]): none
+cdecl "_scl_realloc"
+expect function realloc(_ptr_: [any], _sz_: int): [any]
 
 cdecl "system"
 expect function __c_system(cmd: [int8]): int
@@ -21,10 +27,6 @@ expect function __c_atoll(s: [int8]): int64
 cdecl "atof"
 expect function __c_atof(s: [int8]): float
 
-expect function _scl_alloc(_sz_: int): [any]
-expect function _scl_realloc(_ptr_: [any], _sz_: int): [any]
-expect function _scl_free(_ptr_: [any]): none
-
 function system(_cmd_: str): int
   _cmd_:view __c_system return
 end
@@ -35,18 +37,6 @@ function getenv(_key_: str): str?
     ptr!! str::new return
   fi
   nil return
-end
-
-function malloc(_size_: int): [any]
-  _size_ _scl_alloc return
-end
-
-function realloc(_size_: int, _ptr_: [any]): [any]
-  _ptr_ _size_ _scl_realloc return
-end
-
-function free(_ptr_: [any]): none
-  _ptr_ _scl_free
 end
 
 function time(): float

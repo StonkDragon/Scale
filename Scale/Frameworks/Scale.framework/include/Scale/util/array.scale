@@ -71,7 +71,7 @@ sealed struct Array is IIterable
   function push(value: any): none
     if self.count self.capacity >= then
       self.capacity self.initCap + => self.capacity
-      self.capacity sizeof any * self.values realloc
+      self.values self.capacity sizeof any * realloc
       => self.values
     fi
 
