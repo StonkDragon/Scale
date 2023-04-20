@@ -96,6 +96,12 @@ void _scl_remove_ptr_at_index(scl_int index) {
 	allocated_count--;
 }
 
+scl_int _scl_sizeof(scl_any ptr) {
+	scl_int index = _scl_get_index_of_ptr(ptr);
+	if (index == -1) return -1;
+	return memsizes[index];
+}
+
 // Adds a new pointer to the table
 void _scl_add_ptr(scl_any ptr, scl_int size) {
 	scl_int index = insert_sorted((scl_any**) &allocated, &allocated_count, ptr, &allocated_cap);

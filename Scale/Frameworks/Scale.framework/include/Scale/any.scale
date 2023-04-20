@@ -1,0 +1,20 @@
+static sealed struct any
+    function new(size: int): any
+        size malloc return
+    end
+
+    function delete(ptr: any): none
+        ptr free
+    end
+
+    function default(): any
+        sizeof any any::new return
+    end
+
+    function size(ptr: any) sz: int
+        c!
+            *sz = _scl_sizeof(*ptr);
+        end
+        return
+    end
+end

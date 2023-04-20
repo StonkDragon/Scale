@@ -879,14 +879,14 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none") {
                     FPResult result;
-                    result.message = "Invalid name for struct: '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Invalid name for struct: '" + tokens[i].getValue() + "'";
+                    result.value = tokens[i].getValue();
+                    result.line = tokens[i].getLine();
+                    result.in = tokens[i].getFile();
+                    result.type = tokens[i].getType();
+                    result.column = tokens[i].getColumn();
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1568,6 +1568,10 @@ namespace sclc {
         result.structs = newStructs;
         newStructs.clear();
         for (Struct s : result.structs) {
+            if (s.isStatic()) {
+                newStructs.push_back(s);
+                continue;
+            }
             auto createToStringMethod = [](Struct& s) -> Method* {
                 Token t(tok_identifier, "toString", 0, "<generated>");
                 Method* toString = new Method(s.getName(), std::string("toString"), t);

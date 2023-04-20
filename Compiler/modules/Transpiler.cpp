@@ -494,7 +494,7 @@ namespace sclc {
         int scopeDepth = 0;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
-            if (c.getName() == "str") continue;
+            if (c.getName() == "str" || c.getName() == "any") continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
@@ -544,7 +544,7 @@ namespace sclc {
         if (result.structs.size() == 0) return;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
-            if (c.getName() == "str") continue;
+            if (c.getName() == "str" || c.getName() == "any") continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
@@ -552,6 +552,7 @@ namespace sclc {
         append("/* STRUCT DEFINITIONS */\n");
 
         for (Struct c : result.structs) {
+            if (c.isStatic()) continue;
             for (std::string i : c.getInterfaces()) {
                 Interface* interface = getInterfaceByName(result, i);
                 if (interface == nullptr) {
@@ -1369,7 +1370,7 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
-                if (body[i].getValue() == "new") {
+                if (body[i].getValue() == "new" && s.getName() != "any") {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
                     typeStack.push(struct_);
@@ -1384,7 +1385,7 @@ namespace sclc {
                         scopeDepth--;
                         append("}\n");
                     }
-                } else if (body[i].getValue() == "default") {
+                } else if (body[i].getValue() == "default" && s.getName() != "any") {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
                     typeStack.push(struct_);
@@ -1469,7 +1470,7 @@ namespace sclc {
                 }
                 typeStack.push(v.getType());
             } else {
-                transpilerError("Unknown identifier: '" + body[i].getValue() + "'", i);
+                transpilerError("Unknown member: '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
             }
         } else {

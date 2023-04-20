@@ -14,9 +14,13 @@ framework: {
             "Scale/sclobject.scale";
             "Scale/inttypes.scale";
             "Scale/debug.scale";
+            "Scale/any.scale";
         ];
         std.Int: [
             "Scale/inttypes.scale";
+        ];
+        std.Any: [
+            "Scale/any.scale";
         ];
         std.String: [
             "Scale/string.scale";

@@ -3,7 +3,7 @@ referencetype sealed struct Triple
   decl b: any
   decl c: any
 
-  export function init(a: any, b: any, c: any): none
+  function init(a: any, b: any, c: any): none
     a => self.a
     b => self.b
     c => self.c

@@ -528,6 +528,8 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+
     Struct getStructByName(TPResult result, std::string name) {
         name = removeTypeModifiers(name);
         name = sclConvertToStructType(name);
@@ -536,7 +538,7 @@ namespace sclc
                 return struct_;
             }
         }
-        return Struct("");
+        return Struct::Null;
     }
 
     bool hasFunction(TPResult result, Token name) {
@@ -640,8 +642,6 @@ namespace sclc
         return strstarts(f->getName(), "__destroy__") || contains<std::string>(f->getModifiers(), "final");
     }
 
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
-
     bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
         auto memberOfStruct = [this](Function* f) -> bool {
             if (f->isMethod) {
@@ -667,7 +667,7 @@ namespace sclc
     }
 
     std::string sclConvertToStructType(std::string type) {
-        while (typeCanBeNil(type))
+        while (type.size() > 1 && type.back() == '?')
             type = type.substr(0, type.size() - 1);
 
         type = removeTypeModifiers(type);

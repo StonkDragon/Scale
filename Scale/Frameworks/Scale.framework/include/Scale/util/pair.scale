@@ -2,7 +2,7 @@ referencetype sealed struct Pair
 	decl a: any
 	decl b: any
 
-	export function init(a: any, b: any): none
+	function init(a: any, b: any): none
 		a => self.a
 		b => self.b
 	end
