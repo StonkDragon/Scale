@@ -56,6 +56,10 @@ sealed struct Map is IIterable
     key value MapEntry::new self.data:push
   end
 
+  function begin(): none
+    self.data:begin
+  end
+
   function hasNext(): bool
     self.data:hasNext return
   end

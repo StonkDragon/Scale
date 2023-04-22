@@ -43,6 +43,10 @@ sealed struct Range is IIterable
     lower int::toString " .. " + upper int::toString + return
   end
 
+  function begin(): none
+    0 => self.pos
+  end
+
   function hasNext(): bool
     self.pos self.lower + self.upper <= return
   end
@@ -75,6 +79,10 @@ sealed struct ReverseRange is IIterable
 
   function toString(): str
     lower int::toString " .. " + upper int::toString + return
+  end
+
+  function begin(): none
+    0 => self.pos
   end
   
   function hasNext(): bool

@@ -33,6 +33,10 @@ sealed struct ImmutableArray is IIterable
     0 => self.pos
   end
 
+  function begin(): none
+    0 => self.pos
+  end
+
   function hasNext(): bool
     self.pos self.count < return
   end
