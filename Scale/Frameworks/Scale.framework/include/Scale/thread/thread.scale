@@ -10,7 +10,7 @@ sealed struct AtomicOperationException : Exception
     end
 end
 
-typealias _sys_pthread "pthread_t"
+typealias pthread_t "pthread_t"
 typealias pthread_mutex_t "pthread_mutex_t"
 typealias pthread_mutexattr_t "pthread_mutexattr_t"
 
@@ -18,16 +18,50 @@ cdecl "pthread_mutex_init"    expect function __c_pthread_mutex_init(mutex: [pth
 cdecl "pthread_mutex_lock"    expect function __c_pthread_mutex_lock(mutex: [pthread_mutex_t]): int32
 cdecl "pthread_mutex_unlock"  expect function __c_pthread_mutex_unlock(mutex: [pthread_mutex_t]): int32
 cdecl "pthread_mutex_destroy" expect function __c_pthread_mutex_destroy(mutex: [pthread_mutex_t]): int32
-cdecl "pthread_create"        expect function __c_pthread_create(tid: [_sys_pthread?], _unused0_: any?, func: any, arg: any?): none
-cdecl "pthread_join"          expect function __c_pthread_join(tid: _sys_pthread, _unused0_: any?): none
+cdecl "pthread_create"        expect function __c_pthread_create(tid: [pthread_t?], _unused0_: any?, func: any, arg: any?): none
+cdecl "pthread_join"          expect function __c_pthread_join(tid: pthread_t, _unused0_: any?): none
+cdecl "pthread_self"          expect function __c_pthread_self(): pthread_t
 
 sealed struct Thread
+    private static decl threads: Array
+    private static decl nextID: int
+
+    static decl mainThread: readonly Thread
+
     private decl func: lambda(): none
-    private decl tid: _sys_pthread?
+    private decl tid: pthread_t?
+
+    decl name: str
+
+    construct function __privateInit(): none
+        0 => Thread::nextID
+        1 Array::new => Thread::threads
+        Thread::currentThread => Thread::mainThread
+        "Main Thread" => Thread::mainThread.name
+    end
+
+    static function currentThread(): Thread
+        __c_pthread_self => decl threadID
+        foreach thread in Thread::threads do
+            if thread as Thread.tid as int threadID as int == then
+                thread as Thread return
+            fi
+        done
+        Thread::default => decl tmp: mut Thread
+        threadID => tmp.tid
+        c!
+            scl_any _scl_get_main_addr();
+            (*tmp)->func = _scl_get_main_addr();
+        end
+        tmp Thread::threads:push
+        tmp return
+    end
 
     function init(func: lambda(): none): none
         func => self.func
         nil => self.tid
+        "Thread " Thread::nextID int::toString + => self.name
+        Thread::nextID 1 + => Thread::nextID
     end
 
     cdecl "_scl_stack_free" private static expect function stack_free(): none
@@ -43,14 +77,24 @@ sealed struct Thread
         if tid then
             "Thread started" ThreadException::new throw
         fi
+        self Thread::threads:push
         (ref self.tid) nil (ref Thread::execute as any) (self.func as any) __c_pthread_create
     end
 
     function join(): none
-        if tid! then
+        unless tid then
             "Thread ended" ThreadException::new throw
         fi
         self.tid nil __c_pthread_join
+        self Thread::threads:remove
         nil => self.tid
+    end
+
+    function equals(other: Thread): bool
+        self other == return
+    end
+
+    function ==(other: Thread): bool
+        self.tid other.tid == return
     end
 end
