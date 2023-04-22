@@ -563,8 +563,12 @@ If the array has no more free slots, it will be resized accordingly.
 Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array.
 If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
+### function Array:indexOf(val: any): int
+Returns the index of the first occurence of <<WHITE>>val<<RESET>> in the array.
+Returns <<GREEN>>-1<<RESET>> if <<WHITE>>val<<RESET>> is not found in the array.
+
 ### function Array:contains(val: any): bool
-Returns <<BLUE>>true<<RESET>>, if the array contains val.
+Returns <<BLUE>>true<<RESET>>, if the array contains <<WHITE>>val<<RESET>>.
 
 ### function Array:toString(): str
 Returns a stringified version of the array.
@@ -572,11 +576,19 @@ Returns a stringified version of the array.
 ### function Array:immutableCopy(): ImmutableArray
 Returns an immutable copy of the array.
 
+### function Array:remove(val: any): none
+Removes the first occurence of <<WHITE>>val<<RESET>> from the array.
+This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+
+### function Array:removeAll(val: any): none
+Removes all occurences of <<WHITE>>val<<RESET>> in the array.
+This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+
 ### function Array:map(x: lambda(any): none): none
-Runs the lambda x for every element in the array.
+Runs the <<BLUE>>lambda <<WHITE>>x<<RESET>> for every element in the array.
 
 ### function Array:filter(x: lambda(any): bool): Array
-Returns a new array with only those elements in it for which the lambda x returns <<BLUE>>true<<RESET>>.
+Returns a new array with only those elements in it for which the <<BLUE>>lambda <<WHITE>>x<<RESET>> returns <<BLUE>>true<<RESET>>.
 
 ### function Array:reverse(): Array
 Reverses the order of the elements in the array.
@@ -725,6 +737,12 @@ TODO.
 
 @std.threading.Thread
 ## Thread
+### static decl Thread::mainThread: readonly Thread
+A reference to the main thread.
+
+### static function Thread::currentThread(): Thread
+Returns a reference to the current thread.
+
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
 
@@ -735,6 +753,12 @@ If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>joi
 ### function Thread:join(): none
 Blocks the calling thread until the thread finishes execution.
 If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
+
+### function Thread:equals(other: Thread): bool
+Returns true, if both threads represent the same pthread instance.
+
+### function Thread:==(other: Thread): bool
+Returns true, if both threads represent the same pthread instance.
 
 @std.debug
 ## Exception
@@ -832,3 +856,55 @@ Creates a new map entry with the given key and value.
 
 ### function MapEntry:toString(): str
 Returns a string representation of this map entry.
+
+@std.util.Cloneable
+## Cloneable
+### interface ICloneable
+Implementing this interface indicates that instances of this struct may be copied.
+
+### function ICloneable:clone(): ?
+The interface method to implement for cloning, where <<BLUE>>?<<RESET>> represents this struct.
+
+@std.util.Equatable
+## Equatable
+### interface IEquatable
+Implementing this interface indicates that instances of this struct implement a custom equality check.
+
+### function IEquatable:equals(other: ?): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
+The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+
+### function IEquatable:==(other: ?): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
+The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+
+@std.util.Hashable
+## Hashable
+### interface IHashable
+Implementing this interface indicates that instances of this struct implement a custom hashCode method.
+
+### function IHashable:hashCode(): int
+Implementations of this interface method should return a hash code value.
+
+@std.util.Iterable
+## Iterable
+### interface IIterable
+Implementing this interface enables it to be used in a <<BLUE>>foreach<<RESET>>-loop
+
+### function IIterable:begin(): none
+Implementations of this interface method should set the instance up to be iterated.
+
+### function IIterable:hasNext(): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>>, if <<WHITE>>next<<RESET>> would return a valid value.
+
+### function IIterable:next(): ?
+Implementations of this interface method should return the next value in the iteration.
+The <<BLUE>>?<<RESET>> should represent a meaningful type for the iteration.
+
+@std.util.Stringifyable
+## Stringifyable
+### interface IStringifyable
+Implementing this interface indicates that instances of this struct implement a custom <<WHITE>>toString<<RESET>> method.
+
+### function IStringifyable:toString(): str
+Implementations of this interface method should return a meaningful string representation of the instance.

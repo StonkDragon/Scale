@@ -86,7 +86,7 @@ sealed struct Array is IIterable
     self.count 1 - => self.count
   end
 
-  function contains(val: any): bool
+  function indexOf(val: any): int
     for i in 0 to self.count do
       if i self:get is SclObject then
         if val is SclObject then
@@ -95,16 +95,20 @@ sealed struct Array is IIterable
             val as SclObject
             ==
           then
-            true return
+            i return
           fi
         fi
       else
         if i self:get val == then
-          true return
+          i return
         fi
       fi
     done
-    false return
+    -1 return
+  end
+
+  function contains(val: any): bool
+    val self:indexOf -1 != return
   end
 
   function init(size: int): none
@@ -117,6 +121,10 @@ sealed struct Array is IIterable
     0 => self.pos
     size => self.capacity
     size => self.initCap
+  end
+
+  function begin(): none
+    0 => self.pos
   end
 
   function hasNext(): bool
@@ -172,6 +180,19 @@ sealed struct Array is IIterable
     self.count => decl newCount: int
 
     newCount newVals ImmutableArray::new return
+  end
+
+  function remove(val: any): none
+    val self:indexOf => decl index
+    for i in index to self.count 1 - do
+      i (i 1 + self:get) self:set
+    done
+  end
+
+  function removeAll(val: any): none
+    while val self:indexOf -1 != do
+      val self:remove
+    done
   end
 
   function map(x: lambda(any): none): none

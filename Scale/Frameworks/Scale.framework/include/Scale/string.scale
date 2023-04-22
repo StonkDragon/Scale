@@ -108,6 +108,10 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     0 => self._iter
   end
 
+  function begin(): none
+    0 => self._iter
+  end
+
   function hasNext(): bool
     self._iter self._len < return
   end
