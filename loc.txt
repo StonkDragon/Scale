@@ -1,11 +1,11 @@
      763 Compiler/Common.cpp
     1399 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
-     239 Compiler/headers/Common.hpp
+     243 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      107 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
-      99 Compiler/headers/Function.hpp
+     101 Compiler/headers/Function.hpp
       80 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       77 Compiler/headers/Results.hpp
@@ -19,19 +19,19 @@
      136 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      155 Compiler/modules/Parser.cpp
-    1634 Compiler/modules/SyntaxTree.cpp
+    1711 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      597 Compiler/modules/Tokenizer.cpp
-    4344 Compiler/modules/Transpiler.cpp
+    4356 Compiler/modules/Transpiler.cpp
       21 Scale/Frameworks/Scale.framework/include/Scale/any.scale
-      90 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+      86 Scale/Frameworks/Scale.framework/include/Scale/core.scale
       69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       59 Scale/Frameworks/Scale.framework/include/Scale/float.scale
       60 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
-     187 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
+     173 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
-     112 Scale/Frameworks/Scale.framework/include/Scale/math.scale
+     108 Scale/Frameworks/Scale.framework/include/Scale/math.scale
      153 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
       33 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      150 Scale/Frameworks/Scale.framework/include/Scale/string.scale
@@ -84,4 +84,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   15020 total
+   15093 total
