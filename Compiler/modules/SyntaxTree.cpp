@@ -457,6 +457,7 @@ namespace sclc {
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
         Interface* currentInterface = nullptr;
+        Deprecation currentDeprecation;
 
         bool isInLambda = false;
 
@@ -587,6 +588,8 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
                         currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                         for (std::string s : nextAttributes) {
@@ -632,6 +635,8 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                        functionToImplement->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
                     }
                     nextAttributes.clear();
@@ -675,6 +680,8 @@ namespace sclc {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                    currentFunction->deprecated = currentDeprecation;
+                    currentDeprecation.clear();
                 }
                 for (std::string s : nextAttributes) {
                     currentFunction->addModifier(s);
@@ -1206,6 +1213,8 @@ namespace sclc {
                             std::string name = tokens[i + 1].getValue();
                             Token func = tokens[i + 1];
                             Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                            function->deprecated = currentDeprecation;
+                            currentDeprecation.clear();
                             function->member_type = currentStruct->getName();
                             function->isExternC = true;
                             nextAttributes.clear();
@@ -1232,6 +1241,8 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token funcTok = tokens[i + 1];
                         Function* func = parseFunction(name, funcTok, errors, nextAttributes, i, tokens);
+                        func->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
                         func->isExternC = true;
                         extern_functions.push_back(func);
                     }
@@ -1477,6 +1488,7 @@ namespace sclc {
 
                 auto validAttribute = [](Token& t) -> bool {
                     return t.getType()  == tok_string_literal ||
+                           t.getValue() == "sinceVersion:" ||
                            t.getValue() == "replaceWith:" ||
                            t.getValue() == "deprecated!" ||
                            t.getValue() == "no_cleanup" ||
@@ -1512,6 +1524,71 @@ namespace sclc {
                     }
                     std::string replacement = tokens[i].getValue();
                     typealiases[type] = replacement;
+                } else if (tokens[i].getValue() == "deprecated!") {
+                    i++;
+                    if (tokens[i].getType() != tok_bracket_open) {
+                        FPResult result;
+                        result.message = "Expected '[', but got '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    i++;
+                    #define expect(value, ...) if (!(__VA_ARGS__)) { \
+                        FPResult result; \
+                        result.message = "Expected " + std::string(value) + ", but got '" + tokens[i].getValue() + "'"; \
+                        result.va ## lue = tokens[i].getValue(); \
+                        result.line = tokens[i].getLine(); \
+                        result.in = tokens[i].getFile(); \
+                        result.type = tokens[i].getType(); \
+                        result.column = tokens[i].getColumn(); \
+                        result.success = false; \
+                        errors.push_back(result); \
+                        continue; \
+                    }
+                    #define invalidKey(key, type) do {\
+                        FPResult result; \
+                        result.message = "Invalid key for '" + std::string(type) + "': '" + key + "'"; \
+                        result.value = tokens[i].getValue(); \
+                        result.line = tokens[i].getLine(); \
+                        result.in = tokens[i].getFile(); \
+                        result.ty ## pe = tokens[i].getType(); \
+                        result.column = tokens[i].getColumn(); \
+                        result.success = false; \
+                        errors.push_back(result); \
+                        continue; \
+                    } while (0)
+                    
+                    while (tokens[i].getType() != tok_bracket_close && i < tokens.size()) {
+                        std::string key = tokens[i].getValue();
+                        i++;
+
+                        expect("':'", tokens[i].getType() == tok_column);
+                        i++;
+
+                        if (key == "since" || key == "replacement") {
+                            expect("string", tokens[i].getType() == tok_string_literal);
+                        } else if (key == "forRemoval") {
+                            expect("boolean", tokens[i].getType() == tok_true || tokens[i].getType() == tok_false);
+                        } else {
+                            invalidKey(key, "deprecated!");
+                        }
+                        std::string value = tokens[i].getValue();
+                        currentDeprecation[key] = value;
+                        i++;
+                        if (tokens[i].getType() == tok_comma) {
+                            i++;
+                        }
+                    }
+
+                    #undef invalidKey
+                    #undef expect
                 } else if (validAttribute(tokens[i])) {
                     if (tokens[i].getValue() == "construct" && currentStruct != nullptr) {
                         nextAttributes.push_back("private");

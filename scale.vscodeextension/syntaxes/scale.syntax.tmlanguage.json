@@ -7,6 +7,7 @@
 		{"include": "#inline_c_old"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
+		{"include": "#deprecation"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
 		{"include": "#quoted_string"},
@@ -39,7 +40,23 @@
 				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|enum|interface|new|is|cdecl|asm|goto|label|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|self|bool|sealed|nowarn|nomangle|static|private|export|expect|(reference|value)type|const|readonly|mut|try|catch|lambda)\\b"
 			},{
 				"name": "keyword.control",
-				"match": "((macro|pragma|deprecated)!|(replaceWith):)"
+				"match": "((macro|pragma)!)"
+			}]
+		},
+		"deprecation": {
+			"begin": "\\b(deprecated!\\[)",
+			"end": "\\]",
+			"beginCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"endCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"patterns": [{
+				"name": "keyword.control",
+				"match": "\\b(since|replacement|forRemoval)\\b"
+			},{
+				"include": "source.scale"
 			}]
 		},
 		"illegal": {

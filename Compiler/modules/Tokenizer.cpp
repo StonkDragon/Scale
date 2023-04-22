@@ -271,12 +271,6 @@ namespace sclc
                 c = source[++current];
                 column++;
             }
-        } else if (value == "replaceWith") {
-            if (c == ':') {
-                value += c;
-                c = source[++current];
-                column++;
-            }
         }
 
         if (value == "inline_c" || value == "c!") {

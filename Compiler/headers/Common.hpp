@@ -25,6 +25,10 @@
 
 #define ssize_t signed long long
 
+namespace sclc {
+    typedef std::unordered_map<std::string, std::string> Deprecation;
+}
+
 #include "Color.hpp"
 #include "Version.hpp"
 #include "TokenType.hpp"

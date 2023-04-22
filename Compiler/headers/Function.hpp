@@ -11,8 +11,9 @@
 
 namespace sclc
 {
-    class Function
-    {
+    typedef std::unordered_map<std::string, std::string> Deprecation;
+
+    class Function {
         std::string name;
         std::string file;
         std::string return_type;
@@ -27,6 +28,7 @@ namespace sclc
         bool isExternC;
         bool isPrivate;
         bool hasNamedReturnValue;
+        Deprecation deprecated;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}

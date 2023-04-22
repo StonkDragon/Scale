@@ -94,86 +94,72 @@ static sealed struct int
   end
 end
 
-deprecated! "23.5"
-replaceWith: "int::toInt8"
+deprecated![since: "23.5", replacement: "int::toInt8"]
 function toInt8(_val_: any): int8
   _val_ int::toInt8 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toInt16"
+deprecated![since: "23.5", replacement: "int::toInt16"]
 function toInt16(_val_: any): int16
   _val_ int::toInt16 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toInt32"
+deprecated![since: "23.5", replacement: "int::toInt32"]
 function toInt32(_val_: any): int32
   _val_ int::toInt32 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toInt"
+deprecated![since: "23.5", replacement: "int::toInt"]
 function toInt(_val_: any): int
   _val_ int::toInt return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toUInt8"
+deprecated![since: "23.5", replacement: "int::toUInt8"]
 function toUInt8(_val_: any): uint8
   _val_ int::toUInt8 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toUInt16"
+deprecated![since: "23.5", replacement: "int::toUInt16"]
 function toUInt16(_val_: any): uint16
   _val_ int::toUInt16 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toUInt32"
+deprecated![since: "23.5", replacement: "int::toUInt32"]
 function toUInt32(_val_: any): uint32
   _val_ int::toUInt32 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::toUInt"
+deprecated![since: "23.5", replacement: "int::toUInt"]
 function toUInt(_val_: any): uint
   _val_ int::toUInt return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidInt8"
+deprecated![since: "23.5", replacement: "int::isValidInt8"]
 function isValidInt8(val: any): bool
   val int::isValidInt8 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidInt16"
+deprecated![since: "23.5", replacement: "int::isValidInt16"]
 function isValidInt16(val: any): bool
   val int::isValidInt16 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidInt32"
+deprecated![since: "23.5", replacement: "int::isValidInt32"]
 function isValidInt32(val: any): bool
   val int::isValidInt32 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidUInt8"
+deprecated![since: "23.5", replacement: "int::isValidUInt8"]
 function isValidUInt8(val: any): bool
   val int::isValidUInt8 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidUInt16"
+deprecated![since: "23.5", replacement: "int::isValidUInt16"]
 function isValidUInt16(val: any): bool
   val int::isValidUInt16 return
 end
 
-deprecated! "23.5"
-replaceWith: "int::isValidUInt32"
+deprecated![since: "23.5", replacement: "int::isValidUInt32"]
 function isValidUInt32(val: any): bool
   val int::isValidUInt32 return
 end

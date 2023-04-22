@@ -784,27 +784,33 @@ namespace sclc {
     }
 
     void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
-        if (contains<std::string>(self->getModifiers(), "deprecated!")) {
-            auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
-                for (size_t i = 0; i < v.size(); i++) {
-                    if (v.at(i) == s) return i;
-                }
-                return -1;
-            };
+        if (self->deprecated.size()) {
+            Deprecation& depr = self->deprecated;
+            std::string since = depr["since"];
+            std::string replacement = depr["replacement"];
+            bool forRemoval = depr["forRemoval"] == "true";
 
-            std::string sinceStr = self->getModifiers().at(indexOf(self->getModifiers(), "deprecated!") + 1);
-            Version since = Version(sinceStr);
+            Version sinceVersion = Version(since);
             Version thisVersion = Version(VERSION);
-            if (since <= thisVersion) {
-                std::string extra = "";
-                if (contains<std::string>(self->getModifiers(), "replaceWith:")) {
-                    std::string replacement = self->getModifiers().at(indexOf(self->getModifiers(), "replaceWith:") + 1);
-                    extra = " Use '" + replacement + "' instead.";
-                }
-                transpilerError("Function '" + self->getName() + "' was deprecated in version " + sinceStr + "!" + extra, i);
-                warns.push_back(err);
+            if (sinceVersion > thisVersion) {
+                goto notDeprecated;
             }
+            
+            std::string message = "Function '" + self->getName() + "' is deprecated";
+            if (forRemoval) {
+                message += " and marked for removal";
+            }
+            if (since.size()) {
+                message += " in Version " + since + " and later";
+            }
+            message += "!";
+            if (replacement.size()) {
+                message += " Use '" + replacement + "' instead.";
+            }
+            transpilerError(message, i);
+            warns.push_back(err);
         }
+    notDeprecated:
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
@@ -849,27 +855,33 @@ namespace sclc {
     }
 
     void generateCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
-        if (contains<std::string>(self->getModifiers(), "deprecated!")) {
-            auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
-                for (size_t i = 0; i < v.size(); i++) {
-                    if (v.at(i) == s) return i;
-                }
-                return -1;
-            };
+        if (self->deprecated.size()) {
+            Deprecation& depr = self->deprecated;
+            std::string since = depr["since"];
+            std::string replacement = depr["replacement"];
+            bool forRemoval = depr["forRemoval"] == "true";
 
-            std::string sinceStr = self->getModifiers().at(indexOf(self->getModifiers(), "deprecated!") + 1);
-            Version since = Version(sinceStr);
+            Version sinceVersion = Version(since);
             Version thisVersion = Version(VERSION);
-            if (since <= thisVersion) {
-                std::string extra = "";
-                if (contains<std::string>(self->getModifiers(), "replaceWith:")) {
-                    std::string replacement = self->getModifiers().at(indexOf(self->getModifiers(), "replaceWith:") + 1);
-                    extra = " Use '" + replacement + "' instead.";
-                }
-                transpilerError("Function '" + self->getName() + "' was deprecated in version " + sinceStr + "!" + extra, i);
-                warns.push_back(err);
+            if (sinceVersion > thisVersion) {
+                goto notDeprecated;
             }
+            
+            std::string message = "Function '" + self->getName() + "' is deprecated";
+            if (forRemoval) {
+                message += " and marked for removal";
+            }
+            if (since.size()) {
+                message += " in Version " + since + " and later";
+            }
+            message += "!";
+            if (replacement.size()) {
+                message += " Use '" + replacement + "' instead.";
+            }
+            transpilerError(message, i);
+            warns.push_back(err);
         }
+    notDeprecated:
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
