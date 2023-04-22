@@ -21,6 +21,7 @@ namespace sclc
         std::vector<Variable> args;
         Variable namedReturnValue;
     public:
+        std::string member_type;
         Token nameToken;
         bool isMethod;
         bool isExternC;
@@ -54,7 +55,6 @@ namespace sclc
     };
     
     class Method : public Function {
-        std::string member_type;
         bool force_add;
     public:
         Method(std::string member_type, std::string name, Token& nameToken) : Function(name, true, nameToken) {

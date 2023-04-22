@@ -98,7 +98,7 @@ namespace sclc {
         if (!(getStructByName(result, t) == Struct::Null)) {
             return "scl_" + getStructByName(result, t).getName();
         }
-        if (t.size() > 2 && t.size() && t.at(0) == '[') {
+        if (t.size() > 2 && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
             return type + "*";
         }
@@ -681,6 +681,17 @@ namespace sclc {
         return extend;
     }
 
+    bool typeEquals(std::string a, std::string b) {
+        if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
+            return true;
+        } else if (a.size() > 2 && a.at(0) == '[') {
+            if (b.size() > 2 && b.at(0) == '[') {
+                return typeEquals(a.substr(1, a.size() - 1), b.substr(1, b.size() - 1));
+            }
+        }
+        return false;
+    }
+
     bool checkStackType(TPResult result, std::vector<Variable> args) {
         if (typeStack.size() == 0 || args.size() == 0) {
             return true;
@@ -721,7 +732,7 @@ namespace sclc {
                 continue;
             }
 
-            if (typeA != typeB) {
+            if (!typeEquals(typeA, typeB)) {
                 Struct a = getStructByName(result, typeA);
                 Struct b = getStructByName(result, typeB);
                 if (a.getName() != "" && b.getName() != "") {
@@ -1458,18 +1469,22 @@ namespace sclc {
                             return;
                         }
                         if (f->isPrivate && function->belongsToType(struct_)) {
-                            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                            errors.push_back(err);
-                            return;
+                            if (f->member_type != function->member_type) {
+                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
                         }
                         generateCall(f, fp, result, warns, errors, body, i);
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
                         if ((body[i].getValue().at(0) == '_' || v.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*) function)->getMemberType() != struct_))) {
-                            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + struct_ + "'", i);
-                            errors.push_back(err);
-                            return;
+                            if (!strstarts(v.getName(), function->member_type + "$")) {
+                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + struct_ + "'", i);
+                                errors.push_back(err);
+                                return;
+                            }
                         }
                         if (v.getType() == "float") {
                             append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
@@ -1785,6 +1800,22 @@ namespace sclc {
 
         Method* nextMethod = getMethodByName(result, "next", type);
         Method* hasNextMethod = getMethodByName(result, "hasNext", type);
+        Method* beginMethod = getMethodByName(result, "begin", type);
+        if (beginMethod == nullptr) {
+            transpilerError("Could not find method 'begin' on type '" + type + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        if (hasNextMethod == nullptr) {
+            transpilerError("Could not find method 'hasNext' on type '" + type + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        if (nextMethod == nullptr) {
+            transpilerError("Could not find method 'next' on type '" + type + "'", i);
+            errors.push_back(err);
+            return;
+        }
         std::string var_prefix = "";
         if (!hasVar(iter_var_tok)) {
             var_prefix = sclTypeToCType(result, nextMethod->getReturnType()) + " ";
@@ -1796,6 +1827,7 @@ namespace sclc {
         scopeDepth++;
         if (var_prefix.size())
             append("%sVar_%s;\n", var_prefix.c_str(), iter_var_tok.getValue().c_str());
+        append("Method_%s$begin(%s);\n", beginMethod->getMemberType().c_str(), iterator_name.c_str());
         append("while (Method_%s$hasNext(%s)) {\n", hasNextMethod->getMemberType().c_str(), iterator_name.c_str());
         scopeDepth++;
         append("Var_%s = (%s) Method_%s$next(%s);\n", iter_var_tok.getValue().c_str(), cType.c_str(), hasNextMethod->getMemberType().c_str(), iterator_name.c_str());
@@ -2133,9 +2165,11 @@ namespace sclc {
                                 return;
                             }
                             if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*) function)->getMemberType() != s.getName()))) {
-                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                                errors.push_back(err);
-                                return;
+                                if (!strstarts(mem.getName(), function->member_type + "$")) {
+                                    transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                                    errors.push_back(err);
+                                    return;
+                                }
                             }
                             append("*(scl_any*) Var_%s->%s = Method_Array$get(%d, tmp);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
                         } else {
@@ -2276,9 +2310,11 @@ namespace sclc {
                                 return;
                             }
                             if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || (function->isMethod && ((Method*) function)->getMemberType() != s.getName()))) {
-                                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                                errors.push_back(err);
-                                return;
+                                if (!strstarts(mem.getName(), function->member_type + "$")) {
+                                    transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                                    errors.push_back(err);
+                                    return;
+                                }
                             }
                             append("{\n");
                             scopeDepth++;
@@ -2448,7 +2484,7 @@ namespace sclc {
                         return path;
                     }
                 }
-                size_t last = -1;
+                size_t last = *i;
                 while (body[*i].getType() == tok_dot) {
                     REF_INC;
                     bool deref = false;
@@ -3491,9 +3527,11 @@ namespace sclc {
         }
         Variable mem = s.getMember(body[i].getValue());
         if ((body[i].getValue().at(0) == '_' || mem.isPrivate) && (!function->isMethod || ((Method*) function)->getMemberType() != s.getName())) {
-            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-            errors.push_back(err);
-            return;
+            if (s.getName() != function->member_type) {
+                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                errors.push_back(err);
+                return;
+            }
         }
         if (typeCanBeNil(typeStackTop) && dot.getValue() != "?.") {
             {
@@ -3620,9 +3658,11 @@ namespace sclc {
         }
         Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
         if (f->isPrivate && (!function->isMethod || ((Method*) function)->getMemberType() != s.getName())) {
-            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-            errors.push_back(err);
-            return;
+            if (f->getMemberType() != function->member_type) {
+                transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
+                errors.push_back(err);
+                return;
+            }
         }
         generateCall(f, fp, result, warns, errors, body, i);
     }

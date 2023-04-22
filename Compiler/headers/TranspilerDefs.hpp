@@ -6,6 +6,7 @@
     err.in = body[(at)].getFile();       \
     err.value = body[(at)].getValue();   \
     err.type = body[(at)].getType();     \
+    std::cout << "TRanspiler error in function " << __func__ << " in line " << __LINE__ << std::endl; \
     err.message = msg
 
 #define resetFile()                                                                          \

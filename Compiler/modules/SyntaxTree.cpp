@@ -587,6 +587,7 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                        currentFunction->member_type = currentStruct->getName();
                         currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
@@ -1205,6 +1206,7 @@ namespace sclc {
                             std::string name = tokens[i + 1].getValue();
                             Token func = tokens[i + 1];
                             Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                            function->member_type = currentStruct->getName();
                             function->isExternC = true;
                             nextAttributes.clear();
                             extern_functions.push_back(function);
@@ -1511,6 +1513,10 @@ namespace sclc {
                     std::string replacement = tokens[i].getValue();
                     typealiases[type] = replacement;
                 } else if (validAttribute(tokens[i])) {
+                    if (tokens[i].getValue() == "construct" && currentStruct != nullptr) {
+                        nextAttributes.push_back("private");
+                        nextAttributes.push_back("static");
+                    }
                     nextAttributes.push_back(tokens[i].getValue());
                 }
             }

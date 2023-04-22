@@ -978,6 +978,7 @@ namespace sclc
 
                 if (result.warns.size() > 0) {
                     for (FPResult error : result.warns) {
+                        if (error.type > tok_char_literal) continue;
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
@@ -1017,6 +1018,7 @@ namespace sclc
                 }
                 if (result.errors.size() > 0) {
                     for (FPResult error : result.errors) {
+                        if (error.type > tok_char_literal) continue;
                         std::string colorStr;
                         if (error.isNote) {
                             colorStr = Color::BOLDCYAN;
@@ -1091,6 +1093,7 @@ namespace sclc
 
             if (!Main.options.printCflags && result.warns.size() > 0) {
                 for (FPResult error : result.warns) {
+                    if (error.type > tok_char_literal) continue;
                     if (error.line == 0) {
                         std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                         continue;
@@ -1130,6 +1133,7 @@ namespace sclc
             }
             if (!Main.options.printCflags && result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
+                    if (error.type > tok_char_literal) continue;
                     std::string colorStr;
                     if (error.isNote) {
                         colorStr = Color::BOLDCYAN;
@@ -1189,6 +1193,7 @@ namespace sclc
                 FPResult parseResult = Main.parser->parse(source);
                 if (parseResult.warns.size() > 0) {
                     for (FPResult error : parseResult.warns) {
+                        if (error.type > tok_char_literal) continue;
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
@@ -1228,6 +1233,7 @@ namespace sclc
                 }
                 if (parseResult.errors.size() > 0) {
                     for (FPResult error : parseResult.errors) {
+                        if (error.type > tok_char_literal) continue;
                         std::string colorStr;
                         ssize_t addAtCol = -1;
                         std::string strToAdd = "";

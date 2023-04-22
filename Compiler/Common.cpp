@@ -649,11 +649,16 @@ namespace sclc
                 if (m->getMemberType() == this->internalMutableFrom) {
                     return true;
                 }
+            } else if (strstarts(this->getName(), f->member_type + "$")) {
+                return true;
             }
             return false;
         };
 
         if (typeIsReadonly(getType())) {
+            if (strstarts(this->getName(), f->member_type + "$")) {
+                return true;
+            }
             return memberOfStruct(f);
         }
         if (typeIsConst(getType())) {
