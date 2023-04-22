@@ -15,12 +15,16 @@ framework: {
             "Scale/inttypes.scale";
             "Scale/debug.scale";
             "Scale/any.scale";
+            "Scale/float.scale";
         ];
         std.Int: [
             "Scale/inttypes.scale";
         ];
         std.Any: [
             "Scale/any.scale";
+        ];
+        std.Float: [
+            "Scale/float.scale";
         ];
         std.String: [
             "Scale/string.scale";

@@ -14,7 +14,7 @@ sealed struct MapEntry
     if value is SclObject then
       key ": " + value as SclObject:toString + return
     else
-      key ": " + value as int longToString + return
+      key ": " + value as int int::toString + return
     fi
   end
 end

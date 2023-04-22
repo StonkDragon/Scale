@@ -19,6 +19,10 @@ __thread struct _exception_handling {
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
+static _scl_stack_t** stacks;
+static scl_int stacks_count = 0;
+static scl_int stacks_cap = 64;
+
 static scl_any*	allocated;				// List of allocated pointers
 static scl_int	allocated_count = 0;	// Length of the list
 static scl_int	allocated_cap = 64;		// Capacity of the list
@@ -71,6 +75,24 @@ static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_
 
 	(*size)++;
 	return i;
+}
+
+void _scl_remove_stack(_scl_stack_t* stack) {
+	scl_int index;
+	while ((index = _scl_stack_index(stack)) != -1) {
+		_scl_remove_stack_at(index);
+	}
+}
+
+scl_int _scl_stack_index(_scl_stack_t* stack) {
+	return _scl_binary_search((scl_any*) stacks, stacks_count, stack);
+}
+
+void _scl_remove_stack_at(scl_int index) {
+	for (scl_int i = index; i < stacks_count - 1; i++) {
+		stacks[i] = stacks[i + 1];
+	}
+	stacks_count--;
 }
 
 void _scl_remove_ptr(scl_any ptr) {
@@ -908,7 +930,7 @@ void _scl_not_nil_return(scl_int val, scl_int8* name) {
 #define SCL_DEFAULT_STACK_FRAME_COUNT 16
 #endif
 
-void _scl_create_stack() {
+void _scl_stack_new() {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
 	// stuff we might do with _scl_alloc()
@@ -916,9 +938,7 @@ void _scl_create_stack() {
 	_stack.cap = SCL_DEFAULT_STACK_FRAME_COUNT;
 	_stack.data = system_allocate(sizeof(_scl_frame_t) * _stack.cap);
 
-	allocated = system_allocate(allocated_cap * sizeof(scl_any));
-	memsizes = system_allocate(memsizes_cap * sizeof(scl_int));
-	instances = system_allocate(instances_cap * sizeof(Struct*));
+	insert_sorted((scl_any**) &stacks, &stacks_count, &_stack, &stacks_cap);
 
 	_extable.cs_pointer = 0;
 	_extable.jmp_buf_ptr = 0;
@@ -926,6 +946,50 @@ void _scl_create_stack() {
 	_extable.cs_pointer = system_allocate(_extable.capacity * sizeof(scl_int));
 	_extable.exceptions = system_allocate(_extable.capacity * sizeof(scl_any));
 	_extable.jmp_buf = system_allocate(_extable.capacity * sizeof(jmp_buf));
+}
+
+void _scl_debug_dump_stacks() {
+	printf("Stacks:\n");
+	for (scl_int i = 0; i < stacks_count; i++) {
+		if (stacks[i]) {
+			printf("  %p\n", stacks[i]);
+			printf("  Elements: " SCL_INT_FMT "\n", (stacks[i])->ptr);
+			printf("  Stack:\n");
+			for (scl_int j = 0; j < stacks[i]->ptr; j++) {
+				_scl_frame_t f = stacks[i]->data[j];
+				printf("    " SCL_INT_FMT ": " SCL_PTR_HEX_FMT " " SCL_INT_FMT "\n", j, f.i, f.i);
+			}
+		}
+	}
+}
+
+void _scl_stack_free() {
+	system_free(_stack.data);
+	_stack.ptr = 0;
+	_stack.cap = 0;
+	_stack.data = 0;
+
+	_scl_remove_stack(&_stack);
+
+	system_free(_extable.cs_pointer);
+	system_free(_extable.exceptions);
+	system_free(_extable.jmp_buf);
+	_extable.cs_pointer = 0;
+	_extable.jmp_buf_ptr = 0;
+	_extable.capacity = 0;
+}
+
+void _scl_create_stack() {
+	// These use C's malloc, keep it that way
+	// They should NOT be affected by any future
+	// stuff we might do with _scl_alloc()
+	stacks = system_allocate(stacks_cap * sizeof(_scl_stack_t*));
+
+	_scl_stack_new();
+
+	allocated = system_allocate(allocated_cap * sizeof(scl_any));
+	memsizes = system_allocate(memsizes_cap * sizeof(scl_int));
+	instances = system_allocate(instances_cap * sizeof(Struct*));
 }
 
 // Returns a function pointer with the following signature:
@@ -1026,6 +1090,8 @@ _scl_destructor void _scl_destroy() {
 	for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
 		_scl_internal_destroy_functions[i]();
 	}
+
+	_scl_stack_free();
 
 #if !defined(SCL_COMPILER_NO_MAIN)
 	return ret;

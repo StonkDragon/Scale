@@ -35,9 +35,9 @@ sealed struct Array is IIterable
   function get(index: int): any?
     if index 0 < index self.count >= || then
       "Index "
-      index longToString +
+      index int::toString +
       " is out of bounds for Array of length " +
-      self.count longToString +
+      self.count int::toString +
       "!" +
       IndexOutOfBoundsException::new throw
     fi
@@ -47,9 +47,9 @@ sealed struct Array is IIterable
   function set(index: int, value: any): none
     if index 0 < index self.capacity >= || then
       "Index "
-      index longToString +
+      index int::toString +
       " is out of bounds for Array of capacity " +
-      self.capacity longToString +
+      self.capacity int::toString +
       "!" +
       IndexOutOfBoundsException::new throw
     fi
@@ -158,7 +158,7 @@ sealed struct Array is IIterable
         if elem is SclObject then
           s elem as SclObject :toString + => s
         else
-          s elem as int longToString + => s
+          s elem as int int::toString + => s
         fi
       done
       s "}" + => s

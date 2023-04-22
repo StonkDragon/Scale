@@ -10,8 +10,8 @@ construct function mathInitialization(): none
   3.14159265358979323846264338327950288 => MathConstants.pi
 
   c!
-    Container_MathConstants.nan = NAN;
-    Container_MathConstants.infinity = INFINITY;
+    Container_MathConstants.nan = 0.0/0.0;
+    Container_MathConstants.infinity = 1.0/0.0;
     srand(time(NULL));
   end
 end
@@ -59,24 +59,28 @@ expect function fmax(:float, :float): float
 expect function fmin(:float, :float): float
 expect function fma(:float, :float, :float): float
 
+deprecated! "23.5"
+replaceWith: "float::isInfinite"
 function isInfinite(x: float): bool
-  c!
-    _scl_push()->i = isinf(*x);
-  end as int return
+  x float::isInfinite return
 end
 
+deprecated! "23.5"
+replaceWith: "float::isNaN"
 function isNaN(x: float): bool
-  c!
-    _scl_push()->i = isnan(*x);
-  end as int return
+  x float::isNaN return
 end
 
+deprecated! "23.5"
+replaceWith: "float::isFinite"
 function isFinite(x: float): bool
-  x isInfinite ! x isNaN ! && return
+  x float::isFinite return
 end
 
+deprecated! "23.5"
+replaceWith: "float::isNotNaN"
 function isNotNaN(x: float): bool
-  x isNaN ! return
+  x float::isNotNaN return
 end
 
 function random(): int

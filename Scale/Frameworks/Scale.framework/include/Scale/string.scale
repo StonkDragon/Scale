@@ -48,7 +48,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     if i 0 < i self:size >= || then
       nameof i " is out of bounds" + IndexOutOfBoundsException::new throw
     fi
-    self._data i + @ toInt8 as int return
+    self._data i + @ int::toInt8 as int return
   end
 
   function toString(): str

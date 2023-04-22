@@ -400,6 +400,22 @@
 		],
 		"description": "ASM Symbol name"
 	},
+	"Deprecated": {
+		"scope": "source.scale",
+		"prefix": "deprecate",
+		"body": [
+			"deprecated! \"${0:version}\"",
+		],
+		"description": "Marks a function as deprecated, resulting in a warning at compile time"
+	},
+	"Replacement": {
+		"scope": "source.scale",
+		"prefix": "replacement",
+		"body": [
+			"replaceWith: \"${0:func}\"",
+		],
+		"description": "Specifies the replacement for a deprecated function"
+	},
 	"Keyword end": {
 		"scope": "source.scale",
 		"prefix": "end",

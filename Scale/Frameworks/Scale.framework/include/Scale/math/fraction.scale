@@ -10,7 +10,7 @@ struct Fraction
     end
 
     function toString(): str
-        numerator longToString "/" + denominator longToString + return
+        numerator int::toString "/" + denominator int::toString + return
     end
 
     function toFloat(): float
@@ -76,7 +76,7 @@ struct Fraction
     static function fromFloat(d: float): Fraction
         0 => decl num: int
         0 => decl den: int
-        d doubleToString:view => decl s
+        d float::toString:view => decl s
 
         c!
             if (isnan(*d)) {

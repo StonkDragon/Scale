@@ -177,10 +177,12 @@ typedef void*				scl_any;
 
 #if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
+#define SCL_PTR_HEX_FMT 	"0x%016lx"
 #define SCL_INT_FMT		 	"%ld"
 typedef long				scl_int;
 #else
 #define SCL_INT_HEX_FMT 	"%llx"
+#define SCL_PTR_HEX_FMT 	"%016llx"
 #define SCL_INT_FMT		 	"%lld"
 typedef long long			scl_int;
 #endif
@@ -333,6 +335,8 @@ _scl_frame_t*		_scl_offset(scl_int offset);
 _scl_frame_t*		_scl_positive_offset(scl_int offset);
 void				_scl_popn(scl_int n);
 scl_str				_scl_create_string(scl_int8* data);
+void				_scl_stack_new();
+void				_scl_stack_free();
 
 void				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
@@ -362,6 +366,9 @@ scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
+void				_scl_remove_stack(_scl_stack_t* stack);
+scl_int				_scl_stack_index(_scl_stack_t* stack);
+void				_scl_remove_stack_at(scl_int index);
 
 void				_scl_reflect_call(hash func);
 void				_scl_reflect_call_method(hash func);

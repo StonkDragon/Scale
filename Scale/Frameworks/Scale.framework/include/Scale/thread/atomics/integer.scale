@@ -100,7 +100,7 @@ struct AtomicInteger
     end
 
     function toString(): str
-        self.value longToString return
+        self.value int::toString return
     end
 
     function intValue(): int

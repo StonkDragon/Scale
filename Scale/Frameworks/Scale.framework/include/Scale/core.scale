@@ -49,6 +49,8 @@ function time(): float
   secs return
 end
 
+deprecated! "23.5"
+replaceWith: "int::toString"
 function longToString(_long_: int): str
   25 malloc => decl out: [int8]
   c!
@@ -57,10 +59,14 @@ function longToString(_long_: int): str
   out str::new return
 end
 
+deprecated! "23.5"
+replaceWith: "int::parse"
 function stringToLong(_str_: str): int
   _str_:view __c_atoll as int return
 end
 
+deprecated! "23.5"
+replaceWith: "float::toString"
 function stringToDouble(_str_: str): float
   c!
     _scl_push()->f = (scl_float) atof((*_str_)->_data);
@@ -68,6 +74,8 @@ function stringToDouble(_str_: str): float
   as float return
 end
 
+deprecated! "23.5"
+replaceWith: "float::parse"
 function doubleToString(_double_: float): str
   100 malloc => decl out: [int8]
   c!
@@ -76,6 +84,7 @@ function doubleToString(_double_: float): str
   out str::new return
 end
 
+deprecated! "23.5"
 function nop(): none
   0 sleep
 end

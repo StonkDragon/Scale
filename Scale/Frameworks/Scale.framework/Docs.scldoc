@@ -42,67 +42,169 @@ Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RES
 Returns the current time in seconds as a float.
 
 ### function longToString(_long_: int): str
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toString<<RESET>>
 Converts <<WHITE>>_long_<<RESET>> to a string.
 
 ### function stringToLong(_str_: str): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>parse<<RESET>>
 Converts <<WHITE>>_str_<<RESET>> to an interger.
 Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
 If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
 
 ### function stringToDouble(_str_: str): float
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>toString<<RESET>>
 Converts <<WHITE>>_str_<<RESET>> to a float.
 Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
 Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
 
 ### function doubleToString(_double_: float): str
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>parse<<RESET>>
 Converts <<WHITE>>_double_<<RESET>> to a string.
 
 ### function nop(): none
+<<RED>>This function has been deprecated<<RESET>>
 Do nothing.
 
+@std.Any
+## Any
+### static function any::new(size: int): any
+Returns a pointer to <<WHITE>>size<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+It is undefined behavior to pass in a <<WHITE>>size<<RESET>> of <<GREEN>>0<<RESET>>.
+The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
+
+### static function any::default(): any
+Returns a pointer to <<BLUE>>sizeof any<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+
+### static function any::delete(ptr: any): none
+Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
+If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
+
+### static function any::size(ptr: any): int
+Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
+Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+
+### static function any::toString(x: any): int
+Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
+Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+
+### static function any::toHexString(x: any): int
+Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+
 @std.Int
+## Int
+### static function int::toString(i: int): str
+Converts <<WHITE>>i<<RESET>> to a string.
+
+### static function int::toHexString(i: int): str
+Returns the hexadecimal representation of <<WHITE>>i<<RESET>> as a string.
+
+### static function int::parse(s: str): int
+Converts <<WHITE>>s<<RESET>> to an interger.
+Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
+If <<WHITE>>s<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
+
+### static function int::toInt8(_val_: int): int8
+Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
+
+### static function int::toInt16(_val_: int): int16
+Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
+
+### static function int::toInt32(_val_: int): int32
+Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
+
+### static function int::toInt(_val_: any): int
+Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### static function int::toUInt8(_val_: int): int8
+Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
+
+### static function int::toUInt16(_val_: int): int16
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
+
+### static function int::toUInt32(_val_: int): int32
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
+
+### static function int::toUInt(_val_: any): uint
+Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### static function int::isValidInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
+
+### static function int::isValidInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
+
+### static function int::isValidInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
+
+### static function int::isValidUInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
+
+### static function int::isValidUInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
+
+### static function int::isValidUInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
+
 ### function toInt8(_val_: int): int8
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt8<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
 
 ### function toInt16(_val_: int): int16
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt16<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
 
 ### function toInt32(_val_: int): int32
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt32<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
 
 ### function toInt(_val_: any): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
 32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
 
 ### function toUInt8(_val_: int): int8
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt8<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
 
 ### function toUInt16(_val_: int): int16
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt16<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
 
 ### function toUInt32(_val_: int): int32
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt32<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
 
 ### function toUInt(_val_: any): uint
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
 32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
 
 ### function isValidInt8(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt8<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
 
 ### function isValidInt16(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt16<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
 
 ### function isValidInt32(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt32<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
 
 ### function isValidUInt8(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt8<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
 
 ### function isValidUInt16(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt16<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
 
 ### function isValidUInt32(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt32<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
 
 ### function isnil(x: any): bool
@@ -275,15 +377,19 @@ Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<RESET>>.
 The function computes the result without losing precision in any intermediate result.
 
 ### function isInfinite(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isInfinite<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
 
 ### function isNaN(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNaN<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
 
 ### function isFinite(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isFinite<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
 
 ### function isNotNaN(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNotNaN<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
 
 ### function random(): int
@@ -348,6 +454,34 @@ Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>f<<RE
 ### function fseekcur(f: any, _offset_: int): none
 Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>f<<RESET>>.
 
+@std.Float
+## Float
+### static function float::toString(x: float): str
+Converts <<WHITE>>x<<RESET>> to a string.
+
+### static function float::toHexString(x: float): str
+Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+
+### static function float::parse(s: str): float
+Converts <<WHITE>>s<<RESET>> to a float.
+Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
+Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+
+### static function float::bits(x: float) val: int
+Returns the bit representation of the float <<WHITE>>x<<RESET>>.
+
+### static function float::isInfinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
+
+### static function float::isNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
+
+### static function float::isFinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
+
+### static function float::isNotNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
+
 @std.math.Fraction
 ## Fraction
 ### struct Fraction
@@ -391,26 +525,6 @@ Divides two fractions and returns a new Fraction based on the result of the divi
 
 ### function Fraction:inverse(): Fraction
 Returns the inverse of this fraction.
-
-@std.Any
-## Any
-### static function any::new(size: int): any
-Returns a pointer to <<WHITE>>size<<RESET>> bytes of memory.
-This memory may not be <<GREEN>>0<<RESET>>-initialized.
-It is undefined behavior to pass in a <<WHITE>>size<<RESET>> of <<GREEN>>0<<RESET>>.
-The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
-
-### static function any::default(): any
-Returns a pointer to <<BLUE>>sizeof any<<RESET>> bytes of memory.
-This memory may not be <<GREEN>>0<<RESET>>-initialized.
-
-### static function any::delete(ptr: any): none
-Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
-If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
-
-### static function any::size(ptr: any): int
-Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
-Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
 
 @std.util.Array
 ## Array

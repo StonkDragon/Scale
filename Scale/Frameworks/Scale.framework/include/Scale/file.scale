@@ -30,11 +30,11 @@ function fputs(_file_: file, _str_: str): none
 end
 
 function fputint(_file_: file, _int_: int): none
-  _file_ _int_ longToString fputs
+  _file_ _int_ int::toString fputs
 end
 
 function fputfloat(_file_: file, _float_: float): none
-  _file_ _float_ doubleToString fputs
+  _file_ _float_ float::toString fputs
 end
 
 function fread(_f_: file, _size_: int): [any]?

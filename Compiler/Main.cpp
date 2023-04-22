@@ -351,9 +351,6 @@ namespace sclc
                                 std::string s = kv.second;
                                 std::smatch matches;
                                 std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                for (auto match : matches) {
-                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                }
                                 if (kv.third.size())
                                     std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 else
@@ -480,9 +477,6 @@ namespace sclc
                                 std::string s = kv.second;
                                 std::smatch matches;
                                 std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                for (auto match : matches) {
-                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                }
                                 std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 if (kv.third.size())
                                     std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;

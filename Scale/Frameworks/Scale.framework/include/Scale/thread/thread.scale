@@ -19,7 +19,7 @@ cdecl "pthread_mutex_lock"    expect function __c_pthread_mutex_lock(mutex: [pth
 cdecl "pthread_mutex_unlock"  expect function __c_pthread_mutex_unlock(mutex: [pthread_mutex_t]): int32
 cdecl "pthread_mutex_destroy" expect function __c_pthread_mutex_destroy(mutex: [pthread_mutex_t]): int32
 cdecl "pthread_create"        expect function __c_pthread_create(tid: [_sys_pthread?], _unused0_: any?, func: any, arg: any?): none
-cdecl "pthread_join"          expect function __c_pthread_joid(tid: _sys_pthread, _unused0_: any?): none
+cdecl "pthread_join"          expect function __c_pthread_join(tid: _sys_pthread, _unused0_: any?): none
 
 sealed struct Thread
     private decl func: lambda(): none
@@ -30,18 +30,27 @@ sealed struct Thread
         nil => self.tid
     end
 
+    cdecl "_scl_stack_free" private static expect function stack_free(): none
+    cdecl "_scl_stack_new" private static expect function stack_new(): none
+
+    private static function execute(func: lambda(): none): none
+        Thread::stack_new
+        func:accept
+        Thread::stack_free
+    end
+
     function start(): none
         if tid then
             "Thread started" ThreadException::new throw
         fi
-        ref self.tid nil self.func as any nil __c_pthread_create
+        (ref self.tid) nil (ref Thread::execute as any) (self.func as any) __c_pthread_create
     end
 
     function join(): none
         if tid! then
             "Thread ended" ThreadException::new throw
         fi
-        self.tid nil __c_pthread_joid
+        self.tid nil __c_pthread_join
         nil => self.tid
     end
 end

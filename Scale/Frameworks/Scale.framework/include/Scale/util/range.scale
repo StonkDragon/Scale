@@ -40,7 +40,7 @@ sealed struct Range is IIterable
   end
 
   function toString(): str
-    lower longToString " .. " + upper longToString + return
+    lower int::toString " .. " + upper int::toString + return
   end
 
   function hasNext(): bool
@@ -74,7 +74,7 @@ sealed struct ReverseRange is IIterable
   end
 
   function toString(): str
-    lower longToString " .. " + upper longToString + return
+    lower int::toString " .. " + upper int::toString + return
   end
   
   function hasNext(): bool

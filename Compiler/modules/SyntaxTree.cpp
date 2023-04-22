@@ -530,7 +530,7 @@ namespace sclc {
 
             builtinToString->setReturnType("str");
 
-            // if val is SclObject then val as SclObject:toString return else val longToString return fi
+            // if val is SclObject then val as SclObject:toString return else val int::toString return fi
             builtinToString->addToken(Token(tok_if, "if", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_is, "is", 0, "<builtin>"));
@@ -544,7 +544,9 @@ namespace sclc {
             builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "longToString", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "int", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_double_column, "::", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
 
             functions.push_back(builtinToString);
@@ -879,7 +881,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none") {
+                if (tokens[i].getValue() == "none") {
                     FPResult result;
                     result.message = "Invalid name for struct: '" + tokens[i].getValue() + "'";
                     result.value = tokens[i].getValue();
@@ -1473,6 +1475,8 @@ namespace sclc {
 
                 auto validAttribute = [](Token& t) -> bool {
                     return t.getType()  == tok_string_literal ||
+                           t.getValue() == "replaceWith:" ||
+                           t.getValue() == "deprecated!" ||
                            t.getValue() == "no_cleanup" ||
                            t.getValue() == "construct" ||
                            t.getValue() == "autoimpl" ||

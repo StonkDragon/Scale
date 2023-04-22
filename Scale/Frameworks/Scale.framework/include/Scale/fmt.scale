@@ -50,7 +50,7 @@ static sealed struct FmtIO
         if char 's' == char 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
         elif char 'f' == then
-          arg doubleToString FmtIO::printStrNoNewline
+          arg float::toString FmtIO::printStrNoNewline
         fi
       else
         char FmtIO::putchar

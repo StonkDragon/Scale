@@ -265,14 +265,14 @@ namespace sclc
             syntaxWarn("The 'store' keyword is deprecated! Use '=>' instead.");
         }
 
-        if (value == "pragma") {
+        if (value == "pragma" || value == "c" || value == "macro" || value == "deprecated") {
             if (c == '!') {
                 value += c;
                 c = source[++current];
                 column++;
             }
-        } else if (value == "c") {
-            if (c == '!') {
+        } else if (value == "replaceWith") {
+            if (c == ':') {
                 value += c;
                 c = source[++current];
                 column++;

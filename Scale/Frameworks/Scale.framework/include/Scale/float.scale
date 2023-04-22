@@ -1,0 +1,59 @@
+construct function float_scale_init(): none
+    1023  => float::maxExponent
+    -1022 => float::minExponent
+end
+
+static sealed struct float
+    decl maxExponent: const int
+    decl minExponent: const int
+
+    function toString(x: float): str
+        100 malloc => decl out: [int8]
+        c!
+            sprintf(*out, "%f", *x);
+        end
+        out str::new return
+    end
+
+    function toHexString(x: float): str
+        19 malloc => decl out: [int8]
+        c!
+            sprintf(*out, SCL_PTR_HEX_FMT, *(scl_int*) x);
+        end
+        out str::new return
+    end
+
+    function parse(s: str): float
+        c!
+            _scl_push()->f = (scl_float) atof((*s)->_data);
+        end
+        as float return
+    end
+
+    function bits(x: float) val: int
+        c!
+            *val = *(scl_int*) x;
+        end
+        return
+    end
+
+    function isInfinite(x: float): bool
+        c!
+            _scl_push()->i = isinf(*x);
+        end as int return
+    end
+
+    function isNaN(x: float): bool
+        c!
+            _scl_push()->i = isnan(*x);
+        end as int return
+    end
+
+    function isFinite(x: float): bool
+        x float::isInfinite ! x float::isNaN ! && return
+    end
+
+    function isNotNaN(x: float): bool
+        x float::isNaN ! return
+    end
+end

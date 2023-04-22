@@ -13,17 +13,17 @@ referencetype sealed struct Triple
 		if a is SclObject then
 			a as SclObject:toString
 		else
-			a longToString
+			a int::toString
 		fi => decl aStr: str
 		if b is SclObject then
 			b as SclObject:toString
 		else
-			b longToString
+			b int::toString
 		fi => decl bStr: str
 		if c is SclObject then
 			c as SclObject:toString
 		else
-			c longToString
+			c int::toString
 		fi => decl cStr: str
 		
 		"(" aStr + ", " + bStr ", " + cStr + ")" + return
