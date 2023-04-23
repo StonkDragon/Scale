@@ -1,10 +1,10 @@
 import std.util.Stringifyable
 
 cdecl "strlen"
-expect function __c_strlen(_str_: [int8]) len: int
+expect function __c_strlen(_str_: [int8]): int
 cdecl "strcmp"
 expect function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
-cdecl "strdup"
+cdecl "_scl_strdup"
 expect function __c_strdup(_str_: [int8]): [int8]
 cdecl "strncmp"
 expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
@@ -15,6 +15,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   private decl _data: [int8]
   private decl _len: int
   private decl _iter: int
+  private decl _hash: int
 
   function +(other: str): str
     other self:prepend return
@@ -85,11 +86,12 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   function split(_delim_: str): Array
     10 Array::new => decl arr: Array
     self:view => decl string
-    string _delim_:view __c_strtok => decl line
+    _delim_:view => decl cDelim
+    string cDelim __c_strtok => decl line
 
     while line do
       line!! str::new arr:push
-      nil _delim_:view __c_strtok => line
+      nil cDelim __c_strtok => line
     done
     arr return
   end
@@ -103,9 +105,11 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function init(data: [int8]): none
+    data __c_strdup => data
     data => self._data
     data __c_strlen => self._len
     0 => self._iter
+    data builtinHash => self._hash
   end
 
   function begin(): none
@@ -123,14 +127,7 @@ sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function hashCode(): int
-    if self:size 0 == then
-      0 return
-    fi
-    7 => decl h
-    for i in 0 to self:size do
-      h 31 * i self @ + => h
-    done
-    h return
+    self._hash return
   end
 
   private function concat(_str1_: [int8], _str2_: [int8]): [int8]
