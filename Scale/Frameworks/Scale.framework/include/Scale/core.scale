@@ -18,7 +18,7 @@ cdecl "system"
 expect function __c_system(cmd: [int8]): int
 cdecl "getenv"
 expect function __c_getenv(cmd: [int8]): [int8]?
-cdecl "strdup"
+cdecl "_scl_strdup"
 expect function __c_strdup(s: [int8]): [int8]
 cdecl "strtok"
 expect function __c_strtok(s: any, delim: [int8]): [int8]?
