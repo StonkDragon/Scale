@@ -230,6 +230,7 @@ struct _scl_string {
 	scl_int8*	_data;
 	scl_int		_len;
 	scl_int		_iter;
+	scl_int		_hash;
 };
 
 #if defined(__ANDROID__)
@@ -358,6 +359,7 @@ void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
 
 const hash			hash1(const scl_int8* data);
+const hash			hash1len(const scl_int8* data, size_t len);
 void				_scl_cleanup_post_func(scl_int depth);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);

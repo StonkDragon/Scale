@@ -1,6 +1,6 @@
 #include "scale_internal.h"
 
-static const hash SclObjectHash = 0xC9CCFE34U;
+const hash SclObjectHash = 0xC9CCFE34U;
 
 // The Stack
 __thread _scl_stack_t		_stack;
@@ -161,6 +161,9 @@ scl_any _scl_alloc(scl_int size) {
 		return NULL;
 	}
 
+	// Set memory to zero
+	memset(ptr, 0, size);
+
 	// Add the pointer to the table
 	_scl_add_ptr(ptr, size);
 	return ptr;
@@ -272,18 +275,30 @@ void _scl_cleanup_post_func(scl_int depth) {
 	_stack.ptr = _callstack.data[depth].begin_stack_size;
 }
 
+scl_int8* _scl_strndup(scl_int8* str, scl_int len) {
+	scl_int8* new = _scl_alloc(len);
+	strncpy(new, str, len);
+	return new;
+}
+
+scl_int8* _scl_strdup(scl_int8* str) {
+	scl_int len = strlen(str);
+	return _scl_strndup(str, len);
+}
+
 scl_str _scl_create_string(scl_int8* data) {
 	scl_str self = _scl_alloc_struct(sizeof(struct _scl_string), "str", SclObjectHash);
 	if (self == NULL) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return NULL;
 	}
-	self->_data = strdup(data);
-	self->_len = strlen(self->_data);
 	if (_scl_find_index_of_struct(self) == -1) {
 		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT "\n", data, _scl_find_index_of_struct(self));
 		return NULL;
 	}
+	self->_len = strlen(data);
+	self->_hash = hash1len(data, self->_len);
+	self->_data = _scl_strndup(data, self->_len);
 	return self;
 }
 
@@ -541,12 +556,16 @@ void _scl_sleep(scl_int millis) {
 	sleep(millis);
 }
 
-const hash hash1(const char* data) {
+const hash hash1len(const char* data, size_t len) {
 	hash h = 7;
-	for (size_t i = 0; i < strlen(data); i++) {
+	for (size_t i = 0; i < len; i++) {
 		h = h * 31 + data[i];
 	}
 	return h;
+}
+
+const hash hash1(const char* data) {
+	return hash1len(data, strlen(data));
 }
 
 struct _scl_methodinfo {
