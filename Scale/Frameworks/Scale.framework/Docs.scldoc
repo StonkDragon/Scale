@@ -459,6 +459,9 @@ Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <
 ### static function float::toString(x: float): str
 Converts <<WHITE>>x<<RESET>> to a string.
 
+### static function float::toPrecisionString(x: float): str
+Converts <<WHITE>>x<<RESET>> to a string with the highest precision available.
+
 ### static function float::toHexString(x: float): str
 Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
 

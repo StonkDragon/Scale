@@ -15,6 +15,14 @@ static sealed struct float
         out str::new return
     end
 
+    function toPrecisionString(x: float): str
+        100 malloc => decl out: [int8]
+        c!
+            sprintf(*out, "%.17f", *x);
+        end
+        out str::new return
+    end
+
     function toHexString(x: float): str
         19 malloc => decl out: [int8]
         c!
