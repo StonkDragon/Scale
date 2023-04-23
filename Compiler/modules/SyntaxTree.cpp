@@ -452,6 +452,8 @@ namespace sclc {
         return method;
     }
 
+    bool isPrimitiveIntegerType(std::string);
+
     TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
@@ -814,7 +816,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
@@ -1166,7 +1168,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
                     FPResult result;
                     result.message = "Invalid name for interface: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();

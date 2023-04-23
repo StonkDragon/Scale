@@ -494,7 +494,7 @@ namespace sclc {
         int scopeDepth = 0;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
-            if (c.getName() == "str" || c.getName() == "any" || c.getName() == "int" || c.getName() == "float") continue;
+            if (c.getName() == "str" || c.getName() == "any" || c.getName() == "int" || c.getName() == "float" || isPrimitiveIntegerType(c.getName())) continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
@@ -544,7 +544,7 @@ namespace sclc {
         if (result.structs.size() == 0) return;
         append("/* STRUCT TYPES */\n");
         for (Struct c : result.structs) {
-            if (c.getName() == "str" || c.getName() == "any" || c.getName() == "int" || c.getName() == "float") continue;
+            if (c.getName() == "str" || c.getName() == "any" || c.getName() == "int" || c.getName() == "float" || isPrimitiveIntegerType(c.getName())) continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
@@ -3931,33 +3931,33 @@ namespace sclc {
     }
 
     std::string sclFunctionNameToFriendlyString(std::string name) {
-        name = replaceAll(name, "operator$add", "+");
-        name = replaceAll(name, "operator$sub", "-");
-        name = replaceAll(name, "operator$mul", "*");
-        name = replaceAll(name, "operator$div", "/");
-        name = replaceAll(name, "operator$mod", "%");
-        name = replaceAll(name, "operator$logic_and", "&");
-        name = replaceAll(name, "operator$logic_or", "|");
-        name = replaceAll(name, "operator$logic_xor", "^");
-        name = replaceAll(name, "operator$logic_not", "~");
-        name = replaceAll(name, "operator$logic_lsh", "<<");
-        name = replaceAll(name, "operator$logic_rsh", ">>");
-        name = replaceAll(name, "operator$pow", "**");
-        name = replaceAll(name, "operator$dot", ".");
-        name = replaceAll(name, "operator$less", "<");
-        name = replaceAll(name, "operator$less_equal", "<=");
-        name = replaceAll(name, "operator$more", ">");
-        name = replaceAll(name, "operator$more_equal", ">=");
-        name = replaceAll(name, "operator$equal", "==");
-        name = replaceAll(name, "operator$not", "!");
-        name = replaceAll(name, "operator$assert_not_nil", "!!");
-        name = replaceAll(name, "operator$not_equal", "!=");
-        name = replaceAll(name, "operator$bool_and", "&&");
-        name = replaceAll(name, "operator$bool_or", "||");
-        name = replaceAll(name, "operator$inc", "++");
-        name = replaceAll(name, "operator$dec", "--");
-        name = replaceAll(name, "operator$at", "@");
-        name = replaceAll(name, "operator$wildcard", "?");
+        name = replaceAll(name, "operator\\$add", "+");
+        name = replaceAll(name, "operator\\$sub", "-");
+        name = replaceAll(name, "operator\\$mul", "*");
+        name = replaceAll(name, "operator\\$div", "/");
+        name = replaceAll(name, "operator\\$mod", "%");
+        name = replaceAll(name, "operator\\$logic_and", "&");
+        name = replaceAll(name, "operator\\$logic_or", "|");
+        name = replaceAll(name, "operator\\$logic_xor", "^");
+        name = replaceAll(name, "operator\\$logic_not", "~");
+        name = replaceAll(name, "operator\\$logic_lsh", "<<");
+        name = replaceAll(name, "operator\\$logic_rsh", ">>");
+        name = replaceAll(name, "operator\\$pow", "**");
+        name = replaceAll(name, "operator\\$dot", ".");
+        name = replaceAll(name, "operator\\$less", "<");
+        name = replaceAll(name, "operator\\$less_equal", "<=");
+        name = replaceAll(name, "operator\\$more", ">");
+        name = replaceAll(name, "operator\\$more_equal", ">=");
+        name = replaceAll(name, "operator\\$equal", "==");
+        name = replaceAll(name, "operator\\$not", "!");
+        name = replaceAll(name, "operator\\$assert_not_nil", "!!");
+        name = replaceAll(name, "operator\\$not_equal", "!=");
+        name = replaceAll(name, "operator\\$bool_and", "&&");
+        name = replaceAll(name, "operator\\$bool_or", "||");
+        name = replaceAll(name, "operator\\$inc", "++");
+        name = replaceAll(name, "operator\\$dec", "--");
+        name = replaceAll(name, "operator\\$at", "@");
+        name = replaceAll(name, "operator\\$wildcard", "?");
         name = replaceAll(name, "\\$", "::");
 
         if (strstarts(name, "::lambda")) {
