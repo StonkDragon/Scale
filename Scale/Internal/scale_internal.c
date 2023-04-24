@@ -147,10 +147,8 @@ scl_int _scl_check_allocated(scl_any ptr) {
 // the memory will always have a size of a multiple of sizeof(scl_int)
 scl_any _scl_alloc(scl_int size) {
 
-	// Make size be next biggest multiple of sizeof(scl_int)
-	if (size % sizeof(scl_any) != 0) {
-		size += size % sizeof(scl_any);
-	}
+	// Make size be next biggest multiple of 8
+	size = ((size + 7) >> 3) << 3;
 
 	// Allocate the memory
 	scl_any ptr = system_allocate(size);
@@ -276,7 +274,7 @@ void _scl_cleanup_post_func(scl_int depth) {
 }
 
 scl_int8* _scl_strndup(scl_int8* str, scl_int len) {
-	scl_int8* new = _scl_alloc(len);
+	scl_int8* new = _scl_alloc(len + 1);
 	strncpy(new, str, len);
 	return new;
 }
