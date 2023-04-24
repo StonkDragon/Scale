@@ -226,6 +226,10 @@ namespace sclc
         return i;
     }
 
+    bool hasVar(std::string name) {
+        return hasVar(Token(tok_identifier, name, 0, ""));
+    }
+
     bool hasVar(Token name) {
         for (std::vector<Variable> var : vars) {
             for (Variable v : var) {
@@ -235,6 +239,10 @@ namespace sclc
             }
         }
         return false;
+    }
+
+    Variable getVar(std::string name) {
+        return getVar(Token(tok_identifier, name, 0, ""));
     }
 
     Variable getVar(Token name) {
@@ -539,6 +547,10 @@ namespace sclc
             }
         }
         return Struct::Null;
+    }
+
+    bool hasFunction(TPResult result, std::string name) {
+        return hasFunction(result, Token(tok_identifier, name, 0, ""));
     }
 
     bool hasFunction(TPResult result, Token name) {

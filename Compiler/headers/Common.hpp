@@ -199,7 +199,9 @@ namespace sclc {
     std::string replaceAll(std::string src, std::string from, std::string to);
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
     int lastIndexOf(char* src, char c);
+    bool hasVar(std::string name);
     bool hasVar(Token name);
+    Variable getVar(std::string name);
     Variable getVar(Token name);
     hash hash1(char* data);
     FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth);
@@ -211,6 +213,7 @@ namespace sclc {
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
+    bool hasFunction(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasEnum(TPResult result, std::string name);
     Enum getEnumByName(TPResult result, std::string name);
