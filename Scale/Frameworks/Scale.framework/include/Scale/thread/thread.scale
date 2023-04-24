@@ -40,6 +40,16 @@ sealed struct Thread
         "Main Thread" => Thread::mainThread.name
     end
 
+    static function stackTrace() arr: Array
+        1 Array::new => arr
+        c!
+            for (scl_int i = 0; i < _callstack.ptr - 2; i++) {
+                Method_Array$push(str_of(_callstack.data[i].func), *arr);
+            }
+        end
+        return
+    end
+
     static function currentThread(): Thread
         __c_pthread_self => decl threadID
         foreach thread in Thread::threads do
@@ -67,9 +77,9 @@ sealed struct Thread
     cdecl "_scl_stack_free" private static expect function stack_free(): none
     cdecl "_scl_stack_new" private static expect function stack_new(): none
 
-    private static function execute(func: lambda(): none): none
+    private function run(): none
         Thread::stack_new
-        func:accept
+        self.func:accept
         Thread::stack_free
     end
 
@@ -78,7 +88,7 @@ sealed struct Thread
             "Thread started" ThreadException::new throw
         fi
         self Thread::threads:push
-        (ref self.tid) nil (ref Thread::execute as any) (self.func as any) __c_pthread_create
+        (ref self.tid) nil (ref self::run as any) (self as any) __c_pthread_create
     end
 
     function join(): none

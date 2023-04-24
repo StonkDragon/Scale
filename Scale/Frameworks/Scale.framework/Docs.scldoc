@@ -746,6 +746,9 @@ A reference to the main thread.
 ### static function Thread::currentThread(): Thread
 Returns a reference to the current thread.
 
+### static function Thread::stackTrace(): Array
+Returns the stack trace of the current thread.
+
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
 
