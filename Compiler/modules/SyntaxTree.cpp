@@ -1566,6 +1566,8 @@ namespace sclc {
                         errors.push_back(result); \
                         continue; \
                     } while (0)
+
+                    currentDeprecation[".name"] = "deprecated!";
                     
                     while (tokens[i].getType() != tok_bracket_close && i < tokens.size()) {
                         std::string key = tokens[i].getValue();
