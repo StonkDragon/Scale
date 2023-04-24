@@ -1425,6 +1425,14 @@ namespace sclc {
                 return;
             }
             generateCall(f, fp, result, warns, errors, body, i);
+        } else if (hasFunction(result, function->member_type + "$" + body[i].getValue())) {
+            Function* f = getFunctionByName(result, function->member_type + "$" + body[i].getValue());
+            if (f->isMethod) {
+                transpilerError("'" + f->getName() + "' is a method, not a function.", i);
+                errors.push_back(err);
+                return;
+            }
+            generateCall(f, fp, result, warns, errors, body, i);
         } else if (hasContainer(result, body[i])) {
             std::string containerName = body[i].getValue();
             ITER_INC;
@@ -1513,6 +1521,15 @@ namespace sclc {
         } else if (hasVar(body[i])) {
             std::string loadFrom = body[i].getValue();
             Variable v = getVar(body[i]);
+            if (removeTypeModifiers(v.getType()) == "float") {
+                append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
+            } else {
+                append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
+            }
+            typeStack.push(v.getType());
+        } else if (hasVar(function->member_type + "$" + body[i].getValue())) {
+            std::string loadFrom = function->member_type + "$" + body[i].getValue();
+            Variable v = getVar(loadFrom);
             if (removeTypeModifiers(v.getType()) == "float") {
                 append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
             } else {
@@ -2025,7 +2042,7 @@ namespace sclc {
                 return;
             }
         } else if (hasVar(body[i]) && body[i + 1].getType() == tok_double_column) {
-            Struct s = getVar(body[i]).getType();
+            Struct s = getStructByName(result, getVar(body[i]).getType());
             ITER_INC;
             ITER_INC;
             if (s != Struct::Null) {
@@ -2612,6 +2629,8 @@ namespace sclc {
                         v = getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""));
                         getStaticVar = s.getName();
                     }
+                } else if (hasVar(function->member_type + "$" + body[i].getValue())) {
+                    v = getVar(function->member_type + "$" + body[i].getValue());
                 } else if (body[i + 1].getType() == tok_double_column) {
                     ITER_INC;
                     Struct s = getStructByName(result, body[i - 1].getValue());
