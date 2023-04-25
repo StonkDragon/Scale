@@ -1769,17 +1769,6 @@ namespace sclc {
             result.type =  var.getType();
             warns.push_back(result);
         }
-        if (hasVar(var)) {
-            FPResult result;
-            result.message = "Variable '" + var.getValue() + "' is already declared and shadows it.";
-            result.success = false;
-            if (!Main.options.minify) result.line = var.getLine();
-            result.in = var.getFile();
-            if (!Main.options.minify) result.column = var.getColumn();
-            result.value = var.getValue();
-            result.type =  var.getType();
-            warns.push_back(result);
-        }
 
         if (!hasVar(var))
             varScopeTop().push_back(Variable(var.getValue(), "int"));
@@ -2410,13 +2399,6 @@ namespace sclc {
                     else errors.push_back(err);
                 }
             }
-            if (hasVar(body[i])) {
-                {
-                    transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i);
-                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                    else errors.push_back(err);
-                }
-            }
             std::string name = body[i].getValue();
             std::string type = "any";
             ITER_INC;
@@ -2695,11 +2677,6 @@ namespace sclc {
         }
         if (getStructByName(result, body[i].getValue()) != Struct::Null) {
             transpilerError("Variable '" + body[i].getValue() + "' shadowed by struct '" + body[i].getValue() + "'", i+1);
-            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-            else errors.push_back(err);
-        }
-        if (hasVar(body[i])) {
-            transpilerError("Variable '" + body[i].getValue() + "' is already declared and shadows it.", i+1);
             if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
             else errors.push_back(err);
         }
