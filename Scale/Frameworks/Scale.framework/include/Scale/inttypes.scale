@@ -11,6 +11,47 @@ typealias lambda "_scl_lambda"
 construct function inttypes_scale_init(): none
   0x8000000000000000 => int::minValue
   0x7fffffffffffffff => int::maxValue
+  0x80 => int8::minValue
+  0x7f => int8::maxValue
+end
+
+static sealed struct int8
+  decl minValue: const int8
+  decl maxValue: const int8
+
+  function toString(x: int8): str
+    2 malloc => decl out: [int8]
+    c!
+      sprintf(*out, "%c", *x);
+    end
+    out str::new return
+  end
+end
+
+static sealed struct int16
+  decl minValue: const int16
+  decl maxValue: const int16
+
+  function toString(x: int16): str
+    2 malloc => decl out: [int8]
+    c!
+      sprintf(*out, SCL_INT_FMT, *x);
+    end
+    out str::new return
+  end
+end
+
+static sealed struct int32
+  decl minValue: const int32
+  decl maxValue: const int32
+
+  function toString(x: int32): str
+    2 malloc => decl out: [int8]
+    c!
+      sprintf(*out, SCL_INT_FMT, *x);
+    end
+    out str::new return
+  end
 end
 
 static sealed struct int
