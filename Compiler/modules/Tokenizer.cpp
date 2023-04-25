@@ -41,6 +41,9 @@ namespace sclc
         return this->tokens;
     }
 
+    static bool additional;
+    static Token additionalToken;
+
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, begin);
@@ -194,19 +197,31 @@ namespace sclc
                     syntaxError("Expected '=' or '>' after '='");
                 }
             } else if (c == '*') {
-                if (source[current + 1] == '*') {
+                if (source[current + 1] == '*' || source[current + 1] == '>') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
+            } else if (c == '/') {
+                if (source[current + 1] == '>') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
+            } else if (c == '^') {
+                if (source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
                 }
             } else if (c == '-') {
-                if (source[current + 1] == '-') {
+                if (source[current + 1] == '-' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
                 }
             } else if (c == '+') {
-                if (source[current + 1] == '+') {
+                if (source[current + 1] == '+' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
@@ -224,19 +239,31 @@ namespace sclc
                     value += c;
                 }
             } else if (c == '&') {
-                if (source[current + 1] == '&') {
+                if (source[current + 1] == '&' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
                 }
             } else if (c == '|') {
-                if (source[current + 1] == '|') {
+                if (source[current + 1] == '|' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
                 }
             } else if (c == ':') {
                 if (source[current + 1] == ':') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
+            } else if (c == '~') {
+                if (source[current + 1] == '>') {
+                    c = source[++current];
+                    column++;
+                    value += c;
+                }
+            } else if (c == '%') {
+                if (source[current + 1] == '>') {
                     c = source[++current];
                     column++;
                     value += c;
@@ -345,6 +372,29 @@ namespace sclc
         TOKEN("enum",       tok_enum, line, filename);
         TOKEN("pragma!",    tok_identifier, line, filename);
         
+        if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
+            additional = true;
+            additionalToken = Token(tok_store, "=>", line, filename, begin);
+            if (value == "+>") {
+                return Token(tok_add, "+", line, filename, begin);
+            } else if (value == "->") {
+                return Token(tok_sub, "-", line, filename, begin);
+            } else if (value == "*>") {
+                return Token(tok_mul, "*", line, filename, begin);
+            } else if (value == "/>") {
+                return Token(tok_div, "/", line, filename, begin);
+            } else if (value == "&>") {
+                return Token(tok_land, "&", line, filename, begin);
+            } else if (value == "|>") {
+                return Token(tok_lor, "|", line, filename, begin);
+            } else if (value == "^>") {
+                return Token(tok_lxor, "^", line, filename, begin);
+            } else if (value == "%>") {
+                return Token(tok_mod, "%", line, filename, begin);
+            }
+            __builtin_unreachable();
+        }
+
         TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);
         TOKEN("(",          tok_paren_open, line, filename);
@@ -454,6 +504,10 @@ namespace sclc
         token = nextToken();
         while (token.getType() != tok_eof) {
             this->tokens.push_back(token);
+            if (additional) {
+                this->tokens.push_back(additionalToken);
+                additional = false;
+            }
             token = nextToken();
         }
 
