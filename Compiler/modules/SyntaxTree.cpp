@@ -911,8 +911,6 @@ namespace sclc {
                         currentStruct->toggleReferenceType();
                     if (m == "referencetype")
                         currentStruct->toggleValueType();
-                    if (m == "nowarn")
-                        currentStruct->toggleWarnings();
                     if (m == "static") {
                         currentStruct->toggleValueType();
                         currentStruct->toggleReferenceType();
