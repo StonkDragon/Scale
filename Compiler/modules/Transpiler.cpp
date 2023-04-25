@@ -117,9 +117,11 @@ namespace sclc {
         if (type == "int8") return "Function_int$toInt8";
         if (type == "int16") return "Function_int$toInt16";
         if (type == "int32") return "Function_int$toInt32";
+        if (type == "int64") return "";
         if (type == "uint8") return "Function_int$toUInt8";
         if (type == "uint16") return "Function_int$toUInt16";
         if (type == "uint32") return "Function_int$toUInt32";
+        if (type == "uint64") return "";
         return "never_happens";
     }
 
