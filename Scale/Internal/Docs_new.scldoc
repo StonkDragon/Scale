@@ -275,6 +275,8 @@ The <<BLUE>>break<<RESET>> keyword is used to immediately stop execution of the 
 The <<BLUE>>continue<<RESET>> keyword is used to immediately jump to the next iteration of the innermost loop.
 
 ### for
+The <<BLUE>>for<<RESET>> keyword is used to start the header of a for-loop.
+
 ### foreach
 ### step
 ### repeat
@@ -285,16 +287,41 @@ The <<BLUE>>continue<<RESET>> keyword is used to immediately jump to the next it
 
 ### none
 ### int
+The <<BLUE>>int<<RESET>> type is the generic integer type of Scale. It can store any signed 64-bit integer.
+
 ### float
+The <<BLUE>>float<<RESET>> type is the generic floating point type of Scale. It can store any 64-bit IEEE754 floating point number.
+
 ### int32
+The <<BLUE>>int32<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 32 bits.
+
 ### int16
+The <<BLUE>>int16<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 16 bits.
+
 ### int8
-### uint32
-### uint16
-### uint8
+The <<BLUE>>int8<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 8 bits.
+C Strings are just pointers to a collection of <<BLUE>>int8<<RESET>>s.
+
 ### uint
+The <<BLUE>>uint<<RESET>> type is the generic unsigned integer type of Scale. It can store any unsigned 64-bit integer.
+
+### uint32
+The <<BLUE>>uint32<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 32 bits.
+
+### uint16
+The <<BLUE>>uint16<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 16 bits.
+
+### uint8
+The <<BLUE>>uint8<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 8 bits.
+
 ### int64
+Unused.
+Same as <<BLUE>>int<<RESET>>.
+
 ### uint64
+Unused.
+Same as <<BLUE>>uint<<RESET>>.
+
 ### any
 ### str
 ### bool
