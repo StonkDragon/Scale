@@ -597,6 +597,11 @@ namespace sclc {
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
+                        if (contains<std::string>(nextAttributes, "expect")) {
+                            currentFunction->isExternC = true;
+                            extern_functions.push_back(currentFunction);
+                            currentFunction = nullptr;
+                        }
                         nextAttributes.clear();
                         continue;
                     }
@@ -606,6 +611,11 @@ namespace sclc {
                     currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
+                    }
+                    if (contains<std::string>(nextAttributes, "expect")) {
+                        currentFunction->isExternC = true;
+                        extern_functions.push_back(currentFunction);
+                        currentFunction = nullptr;
                     }
                     nextAttributes.clear();
                     continue;
@@ -667,11 +677,11 @@ namespace sclc {
                     if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
-                        result.value = tokens[i + 1].getValue();
-                        result.line = tokens[i + 1].getLine();
-                        result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i + 1].getType();
-                        result.column = tokens[i + 1].getColumn();
+                        result.value = func.getValue();
+                        result.line = func.getLine();
+                        result.in = func.getFile();
+                        result.type = func.getType();
+                        result.column = func.getColumn();
                         result.success = false;
                         errors.push_back(result);
                         nextAttributes.clear();
@@ -687,6 +697,11 @@ namespace sclc {
                 }
                 for (std::string s : nextAttributes) {
                     currentFunction->addModifier(s);
+                }
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    currentFunction->isExternC = true;
+                    extern_functions.push_back(currentFunction);
+                    currentFunction = nullptr;
                 }
                 nextAttributes.clear();
 
@@ -1199,110 +1214,6 @@ namespace sclc {
                 } else {
                     currentFunction->addToken(token);
                 }
-            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
-                Token extToken = token;
-                i++;
-                if (tokens[i].getValue() == "static") {
-                    nextAttributes.push_back("static");
-                    i++;
-                }
-                Token type = tokens[i];
-                if (type.getType() == tok_function) {
-                    if (currentStruct != nullptr) {
-                        if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
-                            std::string name = tokens[i + 1].getValue();
-                            Token func = tokens[i + 1];
-                            Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
-                            function->deprecated = currentDeprecation;
-                            currentDeprecation.clear();
-                            function->member_type = currentStruct->getName();
-                            function->isExternC = true;
-                            nextAttributes.clear();
-                            extern_functions.push_back(function);
-                            continue;
-                        }
-                        Token func = tokens[i + 1];
-                        std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
-                        function->isExternC = true;
-                        extern_functions.push_back(function);
-                        nextAttributes.clear();
-                        continue;
-                    }
-                    if (tokens[i + 2].getType() == tok_column) {
-                        std::string member_type = tokens[i + 1].getValue();
-                        i += 2;
-                        Token func = tokens[i + 1];
-                        std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
-                        function->isExternC = true;
-                        extern_functions.push_back(function);
-                    } else {
-                        std::string name = tokens[i + 1].getValue();
-                        Token funcTok = tokens[i + 1];
-                        Function* func = parseFunction(name, funcTok, errors, nextAttributes, i, tokens);
-                        func->deprecated = currentDeprecation;
-                        currentDeprecation.clear();
-                        func->isExternC = true;
-                        extern_functions.push_back(func);
-                    }
-                    nextAttributes.clear();
-                } else if (type.getType() == tok_declare) {
-                    i++;
-                    if (tokens[i].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected itentifier for variable name, but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    std::string name = tokens[i].getValue();
-                    std::string type = "any";
-                    i++;
-                    bool isConst = false;
-                    bool isMut = false;
-                    if (tokens[i].getType() == tok_column) {
-                        i++;
-                        FPResult r = parseType(tokens, &i);
-                        if (!r.success) {
-                            errors.push_back(r);
-                            continue;
-                        }
-                        type = r.value;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
-                        if (type == "none") {
-                            FPResult result;
-                            result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                    }
-                    Variable v = Variable(name, type, isConst, isMut);
-                    v.canBeNil = typeCanBeNil(v.getType());
-                    extern_globals.push_back(v);
-                } else {
-                    FPResult result;
-                    result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
-                    result.column = tokens[i].getColumn();
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
                 if (token.getValue() == "lambda" && (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
                 currentFunction->addToken(token);
@@ -1347,10 +1258,14 @@ namespace sclc {
                         continue;
                     }
                 }
-                nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
                 v.canBeNil = typeCanBeNil(v.getType());
-                globals.push_back(v);
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    extern_globals.push_back(v);
+                } else {
+                    globals.push_back(v);
+                }
+                nextAttributes.clear();
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
