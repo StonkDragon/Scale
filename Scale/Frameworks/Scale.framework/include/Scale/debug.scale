@@ -52,7 +52,7 @@ function throw(ex: Exception): none
   c!
     _extable.ptr--;
     if (_extable.ptr < 0) {
-      _scl_unreachable("Impossible state encountered trying to throw an exception!");
+      _extable.ptr = 0;
     }
     _extable.extable[_extable.ptr] = *ex;
     _callstack.ptr = _extable.callstk_ptr[_extable.ptr];
