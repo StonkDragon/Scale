@@ -1323,6 +1323,7 @@ namespace sclc
         if (Main.options.mainReturnsNone) {
             tmpFlags.push_back("-DSCL_MAIN_RETURN_NONE");
         }
+        tmpFlags.push_back("-DSCL_MAIN_ARG_COUNT=" + std::to_string(Main.options.mainArgCount));
 
     actAsCCompiler:
 

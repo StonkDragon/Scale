@@ -136,12 +136,14 @@
 #if defined(__wasm__)
 #define SCL_SYSTEM "WASM32"
 #define SCL_WASM32 1
+#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__arm__)
 #define SCL_SYSTEM "aarch32"
 #define SCL_ARM32  1
 #elif defined(__i386__)
 #define SCL_SYSTEM "x86"
 #define SCL_X86    1
+#define SCL_KNOWN_LITTLE_ENDIAN
 #else
 #define SCL_SYSTEM "unknown 32-bit"
 #define SCL_UNKNOWN_ARCH 1
@@ -152,16 +154,19 @@
 #define SCL_SYSTEM  "WASM64"
 #define SCL_WASM64  1
 #define SCL_WASM32	1
+#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__aarch64__)
 #define SCL_SYSTEM  "aarch64"
 #define SCL_AARCH64 1
 #define SCL_ARM64   1
 #define SCL_ARM32	1
+#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__x86_64__)
 #define SCL_SYSTEM  "x86_64"
 #define SCL_X64     1
 #define SCL_X86_64  1
 #define SCL_X86		1
+#define SCL_KNOWN_LITTLE_ENDIAN
 #else
 #define SCL_SYSTEM  "unknown 64-bit"
 #define SCL_UNKNOWN_ARCH 1
@@ -182,7 +187,7 @@ typedef void*				scl_any;
 typedef long				scl_int;
 #else
 #define SCL_INT_HEX_FMT 	"%llx"
-#define SCL_PTR_HEX_FMT 	"%016llx"
+#define SCL_PTR_HEX_FMT 	"0x%016llx"
 #define SCL_INT_FMT		 	"%lld"
 typedef long long			scl_int;
 #endif
@@ -279,15 +284,6 @@ typedef union {
 	scl_str		s;
 	scl_float	f;
 	scl_any		v;
-
-	scl_int8	i8;
-	scl_int16	i16;
-	scl_int32	i32;
-	scl_int64	i64;
-	scl_uint8	u8;
-	scl_uint16	u16;
-	scl_uint32	u32;
-	scl_uint64  u64;
 } _scl_frame_t;
 
 typedef struct {
@@ -297,24 +293,16 @@ typedef struct {
 } _scl_stack_t;
 
 typedef struct {
-	scl_int8* 		file;
-	scl_int8*		func;
-	scl_int			line;
-	scl_int 		col;
-	scl_int 		begin_stack_size;
-	scl_int 		begin_var_count;
-	scl_int 		sp;
-} _scl_callframe_t;
-
-typedef struct {
-	ssize_t				ptr;
-	_scl_callframe_t	data[EXCEPTION_DEPTH];
+	scl_int8*		func[EXCEPTION_DEPTH];
+	scl_int			ptr;
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
+_scl_no_return void _scl_callstack_overflow(scl_int8* func);
+_scl_no_return void	_scl_unreachable(scl_int8* msg);
 
 void				_scl_catch_final(scl_int sig_num);
 void				print_stacktrace(void);
@@ -355,12 +343,10 @@ void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
-void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
-void				_scl_cleanup_post_func(scl_int depth);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
@@ -372,11 +358,7 @@ void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
 
-void				_scl_reflect_call(hash func);
-void				_scl_reflect_call_method(hash func);
 scl_any				_scl_typeinfo_of(hash type);
-scl_int				_scl_reflect_find(hash func);
-scl_int				_scl_reflect_find_method(hash func);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 

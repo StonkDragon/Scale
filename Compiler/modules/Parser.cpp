@@ -58,6 +58,7 @@ namespace sclc
 
         if (mainFunction && !Main.options.noMain) {
             Main.options.mainReturnsNone = mainFunction->getReturnType() == "none";
+            Main.options.mainArgCount  = mainFunction->getArgs().size();
         }
 
         std::vector<Variable> defaultScope;

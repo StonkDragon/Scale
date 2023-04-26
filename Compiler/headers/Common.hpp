@@ -155,6 +155,7 @@ namespace sclc {
             size_t stackSize;
             bool assembleOnly;
             bool transpileOnly;
+            size_t mainArgCount;
             bool preprocessOnly;
             bool mainReturnsNone;
             bool noErrorLocation;

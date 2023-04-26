@@ -225,9 +225,6 @@ void _scl_free(scl_any ptr) {
 void _scl_assert(scl_int b, scl_int8* msg) {
 	if (!b) {
 		printf("\n");
-		if (_callstack.data[_callstack.ptr - 1].file) {
-			printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": ", _callstack.data[_callstack.ptr - 1].file, _callstack.data[_callstack.ptr - 1].line, _callstack.data[_callstack.ptr - 1].col);
-		}
 		printf("Assertion failed: %s\n", msg);
 		print_stacktrace();
 
@@ -268,11 +265,6 @@ _scl_no_return void _scl_security_safe_exit(int code) {
 	exit(code);
 }
 
-// Collect left-over garbage after a function is finished
-void _scl_cleanup_post_func(scl_int depth) {
-	_stack.ptr = _callstack.data[depth].begin_stack_size;
-}
-
 scl_int8* _scl_strndup(scl_int8* str, scl_int len) {
 	scl_int8* new = _scl_alloc(len + 1);
 	strncpy(new, str, len);
@@ -306,13 +298,9 @@ void print_stacktrace() {
 	printingStacktrace = 1;
 
 	for (signed long i = _callstack.ptr - 1; i >= 0; i--) {
-		if (_callstack.data[i].file) {
-			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
-		} else {
-			printf("  %s\n", (scl_int8*) _callstack.data[i].func);
-		}
-
+		printf("  %s\n", (scl_int8*) _callstack.func[i]);
 	}
+
 	printingStacktrace = 0;
 	printf("\n");
 }
@@ -321,17 +309,17 @@ void print_stacktrace() {
 void print_stacktrace_with_file(FILE* trace) {
 	printingStacktrace = 1;
 
+	if (_callstack.ptr == 0) {
+		printingStacktrace = 0;
+		return;
+	}
+
 	printf("Stacktrace:\n");
 	fprintf(trace, "Stacktrace:\n");
 
 	for (signed long i = _callstack.ptr - 1; i >= 0; i--) {
-		if (_callstack.data[i].file) {
-			printf("  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
-			fprintf(trace, "  %s -> %s:" SCL_INT_FMT ":" SCL_INT_FMT "\n", (scl_int8*) _callstack.data[i].func, _callstack.data[i].file, _callstack.data[i].line, _callstack.data[i].col);
-		} else {
-			printf("  %s\n", (scl_int8*) _callstack.data[i].func);
-			fprintf(trace, "  %s\n", (scl_int8*) _callstack.data[i].func);
-		}
+		printf("  %s\n", (scl_int8*) _callstack.func[i]);
+		fprintf(trace, "  %s\n", (scl_int8*) _callstack.func[i]);
 	}
 
 	printingStacktrace = 0;
@@ -409,13 +397,8 @@ void _scl_catch_final(scl_int sig_num) {
 	remove("scl_trace.log");
 	FILE* trace = fopen("scl_trace.log", "a");
 
-	if (_callstack.ptr == 0) {
-		printf("<native code>: Exception: %s\n", signalString);
-		fprintf(trace, "<native code>: Exception: %s\n", signalString);
-	} else {
-		printf("%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", _callstack.data[_callstack.ptr - 1].file, _callstack.data[_callstack.ptr - 1].line, _callstack.data[_callstack.ptr - 1].col, signalString);
-		fprintf(trace, "%s:" SCL_INT_FMT ":" SCL_INT_FMT ": Exception: %s\n", _callstack.data[_callstack.ptr - 1].file, _callstack.data[_callstack.ptr - 1].line, _callstack.data[_callstack.ptr - 1].col, signalString);
-	}
+	printf("Signal: %s\n", signalString);
+	fprintf(trace, "Signal: %s\n", signalString);
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 		fprintf(trace, "errno: %s\n", strerror(errno));
@@ -612,6 +595,10 @@ _scl_no_return void _scl_unreachable(char* msg) {
 #endif
 }
 
+_scl_no_return void _scl_callstack_overflow(scl_int8* func) {
+	_scl_security_throw(EX_STACK_OVERFLOW, "Call stack overflow in function '%s'", func);
+}
+
 // Returns a pointer to the typeinfo of the given struct
 // NULL if the struct does not exist
 scl_any _scl_typeinfo_of(hash type) {
@@ -773,14 +760,8 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 }
 
 void _scl_set_up_signal_handler() {
-#if defined(SIGHUP)
-	signal(SIGHUP, (void (*)(int)) _scl_catch_final);
-#endif
 #if defined(SIGINT)
 	signal(SIGINT, (void (*)(int)) _scl_catch_final);
-#endif
-#if defined(SIGQUIT)
-	signal(SIGQUIT, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGILL)
 	signal(SIGILL, (void (*)(int)) _scl_catch_final);
@@ -791,20 +772,11 @@ void _scl_set_up_signal_handler() {
 #if defined(SIGABRT)
 	signal(SIGABRT, (void (*)(int)) _scl_catch_final);
 #endif
-#if defined(SIGEMT)
-	signal(SIGEMT, (void (*)(int)) _scl_catch_final);
-#endif
-#if defined(SIGFPE)
-	signal(SIGFPE, (void (*)(int)) _scl_catch_final);
-#endif
 #if defined(SIGBUS)
 	signal(SIGBUS, (void (*)(int)) _scl_catch_final);
 #endif
 #if defined(SIGSEGV)
 	signal(SIGSEGV, (void (*)(int)) _scl_catch_final);
-#endif
-#if defined(SIGSYS)
-	signal(SIGSYS, (void (*)(int)) _scl_catch_final);
 #endif
 }
 
@@ -1026,22 +998,33 @@ extern genericFunc _scl_internal_init_functions[];
 extern genericFunc _scl_internal_destroy_functions[];
 
 #if !defined(SCL_COMPILER_NO_MAIN)
-const char __SCL_LICENSE[] = "MIT License\n\nCopyright (c) 2023 StonkDragon\n\n";
 
 int main(int argc, char** argv) {
 
+#if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
 	_scl_assert(byte[0], "Invalid byte order detected!");
+#endif
 
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
-	struct scl_Array* args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
-	struct scl_Array* env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+	struct scl_Array* args = NULL;
+	struct scl_Array* env = NULL;
+
+#if !defined(SCL_MAIN_ARG_COUNT)
+#define SCL_MAIN_ARG_COUNT 0
+#endif
+#if SCL_MAIN_ARG_COUNT > 0
+	args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
+#endif
+#if SCL_MAIN_ARG_COUNT > 1
+	env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+#endif
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
@@ -1050,10 +1033,12 @@ int main(int argc, char** argv) {
 // Initialize as library
 _scl_constructor void _scl_load() {
 
+#if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
 	_scl_assert(byte[0], "Invalid byte order detected!");
+#endif
 
 	_scl_create_stack();
 
@@ -1067,8 +1052,8 @@ _scl_constructor void _scl_load() {
 #if !defined(SCL_COMPILER_NO_MAIN)
 
 	int ret;
-	int jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr]);
-	_extable.jmp_buf_ptr++;
+	_scl_exception_push();
+	int jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
 	if (jmp != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
@@ -1085,8 +1070,7 @@ _scl_constructor void _scl_load() {
 			Struct _structData;
 			scl_str msg;
 		} exception;
-
-		_extable.jmp_buf_ptr--;
+		
 		scl_str msg = ((exception*) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
 		if (msg) {
 			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
@@ -1107,8 +1091,6 @@ _scl_destructor void _scl_destroy() {
 	for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
 		_scl_internal_destroy_functions[i]();
 	}
-
-	_scl_stack_free();
 
 #if !defined(SCL_COMPILER_NO_MAIN)
 	return ret;
