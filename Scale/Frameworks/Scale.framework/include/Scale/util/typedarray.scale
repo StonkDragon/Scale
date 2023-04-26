@@ -1,0 +1,25 @@
+import std.util.Array
+
+struct InvalidTypeException : Exception
+    function init(msg: str): none
+        msg => self.msg
+    end
+end
+
+sealed struct TypedArray : Array
+    private decl typeStr: str
+
+    function checkTypeOrThrow(val: any): none
+        unless typeStr then
+            typeof val => typeStr
+        fi
+        unless val typeStr builtinIsInstanceOf then
+            "Value '" val builtinToString +
+            "' not of type '" +
+            typeStr +
+            "'" +
+            InvalidTypeException::new
+            throw
+        fi
+    end
+end

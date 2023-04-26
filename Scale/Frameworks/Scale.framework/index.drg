@@ -51,6 +51,9 @@ framework: {
         std.util.Array: [
             "Scale/util/array.scale";
         ];
+        std.util.TypedArray: [
+            "Scale/util/typedarray.scale";
+        ];
         std.util.ImmutableArray: [
             "Scale/util/immutablearray.scale";
         ];
