@@ -349,7 +349,7 @@ namespace sclc {
                 symbolTable = fopen("scale-symbol-table.txt", "a");
         }
 
-        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_cleanup_post_func", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_reflect_call", "_scl_reflect_call_method", "_scl_typeinfo_of", "_scl_reflect_find", "_scl_reflect_find_method", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
+        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
 
         for (Function* function : result.functions) {
             std::string return_type = "void";
@@ -406,7 +406,7 @@ namespace sclc {
         if (result.extern_functions.size() == 0) return;
         append("/* EXTERN FUNCTIONS */\n");
 
-        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_cleanup_post_func", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_reflect_call", "_scl_reflect_call_method", "_scl_typeinfo_of", "_scl_reflect_find", "_scl_reflect_find_method", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
+        std::vector<std::string> forbidden_funcs_for_support_header({"sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_struct_is_type", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
 
         for (Function* function : result.extern_functions) {
             bool hasFunction = false;
@@ -785,6 +785,17 @@ namespace sclc {
         }
     }
 
+    bool hasImplementation(TPResult result, Function* func) {
+        for (Function* f : result.functions) {
+            if (*f == *func) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::string sclFunctionNameToFriendlyString(std::string);
+
     void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
         if (self->deprecated.size()) {
             Deprecation& depr = self->deprecated;
@@ -813,6 +824,20 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (self->isExternC && !hasImplementation(result, self)) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += ((Method*) self)->getMemberType() + ":" + self->getName() + "(";
+            for (size_t i = 0; i < self->getArgs().size() - 1; i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
+            }
+            functionDeclaration += "): " + self->getReturnType();
+            append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+        }
+        
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
@@ -839,6 +864,9 @@ namespace sclc {
             typeStack.push(self->getReturnType());
         } else {
             append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+        }
+        if (self->isExternC && !hasImplementation(result, self)) {
+            append("_callstack.ptr--;\n");
         }
     }
 
@@ -884,6 +912,20 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (self->isExternC && !hasImplementation(result, self)) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += self->getName() + "(";
+            for (size_t i = 0; i < self->getArgs().size(); i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
+            }
+            functionDeclaration += "): " + self->getReturnType();
+            append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+        }
+        
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
@@ -910,6 +952,9 @@ namespace sclc {
             typeStack.push(self->getReturnType());
         } else {
             append("Function_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+        }
+        if (self->isExternC && !hasImplementation(result, self)) {
+            append("_callstack.ptr--;\n");
         }
     }
 
@@ -1088,7 +1133,7 @@ namespace sclc {
             append("if (_scl_top()->i == 0) {\n");
             scopeDepth++;
             append("_callstack.ptr--;\n");
-            if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
+            if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_stack.ptr = __begin_stack_size;\n");
             if (function->getReturnType() == "none")
                 append("return;\n");
             else {
@@ -1814,7 +1859,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("%s %s = (%s) _scl_pop()->v;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+        append("%s %s = (%s) _scl_pop()->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         std::string type = typeStackTop;
         typePop;
 
@@ -2071,7 +2116,7 @@ namespace sclc {
         if (body[i].getType() == tok_paren_open) {
             append("{\n");
             scopeDepth++;
-            append("struct Struct_Array* tmp = (struct Struct_Array*) _scl_pop()->v;\n");
+            append("struct Struct_Array* tmp = (struct Struct_Array*) _scl_pop()->i;\n");
             typePop;
             ITER_INC;
             int destructureIndex = 0;
@@ -2596,7 +2641,7 @@ namespace sclc {
                     if (removeTypeModifiers(lastType) == "float")
                         append("%s = _scl_pop()->f;\n", path.c_str());
                     else
-                        append("%s = (%s) _scl_pop()->v;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("%s = (%s) _scl_pop()->i;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
                     scopeDepth--;
                     append("}\n");
                     return;
@@ -2654,7 +2699,7 @@ namespace sclc {
             if (removeTypeModifiers(lastType) == "float")
                 append("%s = _scl_pop()->f;\n", path.c_str());
             else
-                append("%s = (%s) _scl_pop()->v;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
+                append("%s = (%s) _scl_pop()->i;\n", path.c_str(), sclTypeToCType(result, lastType).c_str());
             typePop;
         }
     }
@@ -2933,16 +2978,13 @@ namespace sclc {
         noUnused;
         append("{// Start C\n");
         scopeDepth++;
-        append("_callstack.data[_callstack.ptr++].func = \"<%s:native code>\";\n", function->getName().c_str());
-        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", body[i].getLine());
-        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
+        append("_callstack.func[_callstack.ptr++] = \"<%s:native code>\";\n", function->getName().c_str());
         std::string file = body[i].getFile();
         if (strstarts(file, scaleFolder)) {
             file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
         } else {
             file = std::filesystem::path(file).relative_path();
         }
-        if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
         std::string ext = body[i].getValue();
         for (std::vector<Variable> lvl : vars) {
             for (Variable v : lvl) {
@@ -3286,7 +3328,7 @@ namespace sclc {
         if (function->getReturnType() != "none" && !function->hasNamedReturnValue)
             append("_scl_frame_t returnFrame = _stack.data[--_stack.ptr];\n");
         append("_callstack.ptr--;\n");
-        if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_scl_cleanup_post_func(_callstack.ptr);\n");
+        if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_stack.ptr = __begin_stack_size;\n");
 
         if (function->getReturnType() != "none") {
             if (!typeCanBeNil(function->getReturnType())) {
@@ -3690,15 +3732,12 @@ namespace sclc {
 
         if (body[i].getType() != tok_case) {
             if (currentFile != file) {
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
                 currentFile = file;
             }
             if (currentLine != body[i].getLine()) {
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", body[i].getLine());
                 currentLine = body[i].getLine();
             }
             if (currentCol != body[i].getColumn()) {
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", body[i].getColumn());
                 currentCol = body[i].getColumn();
             }
         }
@@ -4251,6 +4290,13 @@ namespace sclc {
                 std::string t = function->getReturnType();
                 return_type = sclTypeToCType(result, t);
             }
+
+            auto appendStackOverflowCheck = [fp, functionDeclaration]() {
+                append("  if (_scl_expect((_callstack.ptr + 1) >= EXCEPTION_DEPTH, 0)) {\n");
+                append("    _scl_callstack_overflow(\"%s\");\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                append("  }\n");
+            };
+
             if (function->isMethod) {
                 if (!(((Method*) function))->addAnyway() && getStructByName(result, (((Method*) function))->getMemberType()).isSealed()) {
                     FPResult result;
@@ -4265,6 +4311,7 @@ namespace sclc {
                     continue;
                 }
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
+                appendStackOverflowCheck();
                 scopeDepth++;
                 Method* m = ((Method*) function);
                 append("_scl_check_not_nil_argument(*(scl_int*) &Var_self, \"self\");\n");
@@ -4272,10 +4319,7 @@ namespace sclc {
                 scopeDepth++;
                 append("if (_scl_look_for_method) {\n");
                 scopeDepth++;
-                append("_callstack.data[_callstack.ptr++].func = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                append("_callstack.func[_callstack.ptr++] = \"<%s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
                 append("scl_any method = _scl_get_method_on_type(Var_self->$__type__, 0x%xU);\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
                 append("if (method) {\n");
                 scopeDepth++;
@@ -4298,9 +4342,9 @@ namespace sclc {
                 }
                 scopeDepth--;
                 append("}\n");
+                append("_callstack.ptr--;\n");
                 scopeDepth--;
                 append("}\n");
-                append("_callstack.ptr--;\n");
                 scopeDepth--;
                 append("}\n");
                 append("_scl_look_for_method = 1;\n");
@@ -4310,9 +4354,7 @@ namespace sclc {
                     append("_scl_no_return ");
                 }
                 append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].file = \"%s\";\n", file.c_str());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].line = %d;\n", function->getNameToken().getLine());
-                if (!Main.options.minify) append("_callstack.data[_callstack.ptr - 1].col = %d;\n", function->getNameToken().getColumn());
+                appendStackOverflowCheck();
             }
             
             scopeDepth++;
@@ -4321,14 +4363,15 @@ namespace sclc {
             if (body.size() == 0)
                 goto emptyFunction;
 
-            append("_callstack.data[_callstack.ptr++].func = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
             if (function->hasNamedReturnValue) {
                 append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
             }
-            append("_callstack.data[_callstack.ptr - 1].begin_stack_size = _stack.ptr;\n");
+            append("scl_int __begin_stack_size = _stack.ptr;\n");
 
             for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
                 Variable arg = function->getArgs()[a];
+                if (arg.getName().size() == 0) continue;
                 if (!typeCanBeNil(arg.getType())) {
                     append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
                 }
@@ -4341,7 +4384,7 @@ namespace sclc {
             if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
                 append("_callstack.ptr--;\n");
                 if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
-                    append("_scl_cleanup_post_func(_callstack.ptr);\n");
+                    append("_stack.ptr = __begin_stack_size;\n");
                 }
             }
 
