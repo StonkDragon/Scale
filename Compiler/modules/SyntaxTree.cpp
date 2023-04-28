@@ -1581,6 +1581,7 @@ namespace sclc {
                 Method* toString = new Method(s.getName(), std::string("toString"), t);
                 std::string stringify = s.getName() + " {";
                 toString->setReturnType("str");
+                toString->addModifier("<generated>");
                 toString->addArgument(Variable("self", "mut " + s.getName()));
                 toString->addToken(Token(tok_string_literal, stringify, 0, "<generated1>"));
 
@@ -1611,7 +1612,8 @@ namespace sclc {
                 return toString;
             };
             bool hasImplementedToString = false;
-            if (!getMethodByNameOnThisType(result, "toString", s.getName())) {
+            Method* toString = getMethodByName(result, "toString", s.getName());
+            if (!toString || contains<std::string>(toString->getModifiers(), "<generated>")) {
                 result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
             }
