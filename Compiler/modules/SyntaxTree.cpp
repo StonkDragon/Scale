@@ -518,7 +518,7 @@ namespace sclc {
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");
             builtinTypeEquals->addModifier("cdecl");
-            builtinTypeEquals->addModifier("_scl_struct_is_type");
+            builtinTypeEquals->addModifier("_scl_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
             builtinTypeEquals->addArgument(Variable("typeId", "int32"));
@@ -1603,7 +1603,6 @@ namespace sclc {
                         toString->addToken(Token(tok_identifier, "builtinToString", 0, "<generated10>"));
                     }
                     toString->addToken(Token(tok_add, "+", 0, "<generated11>"));
-
                 }
                 toString->addToken(Token(tok_string_literal, "}", 0, "<generated12>"));
                 toString->addToken(Token(tok_add, "+", 0, "<generated13>"));
