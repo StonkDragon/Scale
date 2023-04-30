@@ -131,19 +131,23 @@
 
 #define ssize_t signed long
 
+#if defined(__LITTLE_ENDIAN__)
+#if __LITTLE_ENDIAN__
+#define SCL_KNOWN_LITTLE_ENDIAN
+#endif
+#endif
+
 #if __SIZEOF_POINTER__ < 8
 // WASM or 32-bit system
 #if defined(__wasm__)
 #define SCL_SYSTEM "WASM32"
 #define SCL_WASM32 1
-#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__arm__)
 #define SCL_SYSTEM "aarch32"
 #define SCL_ARM32  1
 #elif defined(__i386__)
 #define SCL_SYSTEM "x86"
 #define SCL_X86    1
-#define SCL_KNOWN_LITTLE_ENDIAN
 #else
 #define SCL_SYSTEM "unknown 32-bit"
 #define SCL_UNKNOWN_ARCH 1
@@ -154,19 +158,16 @@
 #define SCL_SYSTEM  "WASM64"
 #define SCL_WASM64  1
 #define SCL_WASM32	1
-#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__aarch64__)
 #define SCL_SYSTEM  "aarch64"
 #define SCL_AARCH64 1
 #define SCL_ARM64   1
 #define SCL_ARM32	1
-#define SCL_KNOWN_LITTLE_ENDIAN
 #elif defined(__x86_64__)
 #define SCL_SYSTEM  "x86_64"
 #define SCL_X64     1
 #define SCL_X86_64  1
 #define SCL_X86		1
-#define SCL_KNOWN_LITTLE_ENDIAN
 #else
 #define SCL_SYSTEM  "unknown 64-bit"
 #define SCL_UNKNOWN_ARCH 1
@@ -350,7 +351,7 @@ const hash			hash1len(const scl_int8* data, size_t len);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
-scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);
+scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);

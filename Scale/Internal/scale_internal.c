@@ -707,7 +707,7 @@ scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo*
 }
 
 // Returns true, if the instance is of a given struct type
-scl_int _scl_struct_is_type(scl_any ptr, hash typeId) {
+scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
 	if (!isStruct) return 0;
 
