@@ -9,7 +9,7 @@
       80 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       77 Compiler/headers/Results.hpp
-     134 Compiler/headers/Struct.hpp
+     140 Compiler/headers/Struct.hpp
       50 Compiler/headers/Token.hpp
       93 Compiler/headers/TokenType.hpp
        9 Compiler/headers/TranspilerDefs.hpp
@@ -19,7 +19,7 @@
      136 Compiler/modules/Function.cpp
      113 Compiler/modules/InfoDumper.cpp
      156 Compiler/modules/Parser.cpp
-    1630 Compiler/modules/SyntaxTree.cpp
+    1657 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      645 Compiler/modules/Tokenizer.cpp
     4397 Compiler/modules/Transpiler.cpp
@@ -54,7 +54,7 @@
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       25 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
     1098 Scale/Internal/scale_internal.c
-     398 Scale/Internal/scale_internal.h
+     399 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -85,4 +85,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   15153 total
+   15187 total
