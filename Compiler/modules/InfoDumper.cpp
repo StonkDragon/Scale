@@ -29,7 +29,6 @@ namespace sclc {
             print("      END MEMBERS");
             print("      IS_SEALED: " << s.isSealed());
             print("      IS_STATIC: " << s.isStatic());
-            print("      IS_REFTYPE: " << s.heapAllocAllowed());
         }
         print("  END STRUCTS");
         print("  START FUNCTIONS");

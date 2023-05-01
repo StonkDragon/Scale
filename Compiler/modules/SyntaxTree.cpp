@@ -922,13 +922,7 @@ namespace sclc {
                 for (std::string m : nextAttributes) {
                     if (m == "sealed")
                         currentStruct->toggleSealed();
-                    if (m == "valuetype")
-                        currentStruct->toggleReferenceType();
-                    if (m == "referencetype")
-                        currentStruct->toggleValueType();
                     if (m == "static") {
-                        currentStruct->toggleValueType();
-                        currentStruct->toggleReferenceType();
                         currentStruct->toggleStatic();
                     }
                     if (m == "final") {
@@ -942,18 +936,6 @@ namespace sclc {
                     }
                 }
                 
-                if (!(currentStruct->heapAllocAllowed() || currentStruct->stackAllocAllowed()) && !currentStruct->isStatic()) {
-                    FPResult result;
-                    result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
                 if (tokens[i + 1].getType() == tok_column) {

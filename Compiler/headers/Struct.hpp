@@ -29,8 +29,6 @@ namespace sclc
             this->name_token = t;
             this->flags = 0;
             toggleWarnings();
-            toggleValueType();
-            toggleReferenceType();
         }
         void addMember(Variable member, bool inherited = false) {
             if (inherited) {
@@ -81,12 +79,6 @@ namespace sclc
         void setNameToken(Token t) {
             this->name_token = t;
         }
-        bool heapAllocAllowed() {
-            return (flags & 0b00000001) != 0;
-        }
-        bool stackAllocAllowed() {
-            return (flags & 0b00000010) != 0;
-        }
         bool isSealed() {
             return (flags & 0b00000100) != 0;
         }
@@ -101,12 +93,6 @@ namespace sclc
         }
         void toggleFinal() {
             flags ^= 0b00100000;
-        }
-        void toggleReferenceType() {
-            flags ^= 0b00000001;
-        }
-        void toggleValueType() {
-            flags ^= 0b00000010;
         }
         void toggleSealed() {
             flags ^= 0b00000100;
