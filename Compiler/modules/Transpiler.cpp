@@ -1477,6 +1477,22 @@ namespace sclc {
             scopeDepth++;
             append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
             varScopePush();
+        } else if (body[i].getValue() == "super" && function->isMethod && function->getName() == "init") {
+            Struct s = getStructByName(result, ((Method*) function)->getMemberType());
+            Struct super = getStructByName(result, s.extends());
+            Method* superInit = getMethodByName(result, "init", super.getName());
+
+            append("{\n");
+            scopeDepth++;
+            append("_scl_push()->v = (scl_any) Var_self;\n");
+            typeStack.push(getVar("self").getType());
+            append("scl_int __stack_size = _stack.ptr;\n");
+            append("_scl_look_for_method = 0;\n");
+            generateCall(superInit, fp, result, warns, errors, body, i);
+            append("_scl_look_for_method = 1;\n");
+            append("_stack.ptr = __stack_size;\n");
+            scopeDepth--;
+            append("}\n");
         } else if (body[i].getValue() == "catch") {
             handle(Catch);
         } else if (body[i].getValue() == "lambda") {
@@ -1772,6 +1788,10 @@ namespace sclc {
                     transpilerError("Expected number or '-', but got '" + body[i].getValue() + "'", i);
                     errors.push_back(err);
                 }
+            } else if (val == "++") {
+                iterator_direction = "++";
+            } else if (val == "--") {
+                iterator_direction = "--";
             } else if (val == "*") {
                 ITER_INC;
                 iterator_direction = " *= ";
@@ -4386,6 +4406,57 @@ namespace sclc {
                 scopeDepth--;
                 append("}\n");
                 append("_scl_look_for_method = 1;\n");
+                if (m->getName() == "init") {
+                    Struct s = getStructByName(result, m->getMemberType());
+                    Struct super = getStructByName(result, s.extends());
+                    Method* superInit = getMethodByName(result, "init", super.getName());
+                    
+                    auto body = m->getBody();
+                    if (superInit && superInit->getArgs().size() > 1 && !contains<Token>(body, Token(tok_identifier, "super", 0, ""))) {
+                        FPResult result;
+                        result.message = "Initializer must contain 'super' call, because super-constructor takes additional arguments!";
+                        result.value = function->getNameToken().getValue();
+                        result.line = function->getNameToken().getLine();
+                        result.in = function->getNameToken().getFile();
+                        result.column = function->getNameToken().getColumn();
+                        result.type = function->getNameToken().getType();
+                        result.success = false;
+                        errors.push_back(result);
+                        goto emptyFunction;
+                    } else if (superInit && superInit->getArgs().size() == 1) {
+                        if (contains<Token>(body, Token(tok_identifier, "super", 0, ""))) {
+                            FPResult result;
+                            result.message = "Explicit 'super' call is not allowed as the super constructor takes no arguments!";
+                            auto tok = std::find(body.begin(), body.end(), Token(tok_identifier, "super", 0, ""));
+                            result.value = tok->getValue();
+                            result.line = tok->getLine();
+                            result.in = tok->getFile();
+                            result.column = tok->getColumn();
+                            result.type = tok->getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            goto emptyFunction;
+                        }
+                        Struct s = getStructByName(result, ((Method*) function)->getMemberType());
+                        Struct super = getStructByName(result, s.extends());
+                        Method* superInit = getMethodByName(result, "init", super.getName());
+                        if (superInit && superInit->getMemberType() != "SclObject") {
+                            append("{\n");
+                            scopeDepth++;
+                            append("_scl_push()->v = (scl_any) Var_self;\n");
+                            typeStack.push(getVar("self").getType());
+                            append("scl_int __stack_size = _stack.ptr;\n");
+                            append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                            append("_scl_look_for_method = 0;\n");
+                            generateCall(superInit, fp, result, warns, errors, body, 0);
+                            append("_scl_look_for_method = 1;\n");
+                            append("_callstack.ptr--;\n");
+                            append("_stack.ptr = __stack_size;\n");
+                            scopeDepth--;
+                            append("}\n");
+                        }
+                    }
+                }
                 scopeDepth--;
             } else {
                 if (function->getName() == "throw") {
@@ -4397,32 +4468,34 @@ namespace sclc {
             
             scopeDepth++;
 
-            std::vector<Token> body = function->getBody();
-            if (body.size() == 0)
-                goto emptyFunction;
+            {
+                std::vector<Token> body = function->getBody();
+                if (body.size() == 0)
+                    goto emptyFunction;
 
-            append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-            if (function->hasNamedReturnValue) {
-                append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
-            }
-            append("scl_int __begin_stack_size = _stack.ptr;\n");
-
-            for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
-                Variable arg = function->getArgs()[a];
-                if (arg.getName().size() == 0) continue;
-                if (!typeCanBeNil(arg.getType())) {
-                    append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
+                append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                if (function->hasNamedReturnValue) {
+                    append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
                 }
-            }
+                append("scl_int __begin_stack_size = _stack.ptr;\n");
 
-            for (i = 0; i < body.size(); i++) {
-                handle(Token);
-            }
-            scopeDepth = 1;
-            if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
-                append("_callstack.ptr--;\n");
-                if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
-                    append("_stack.ptr = __begin_stack_size;\n");
+                for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
+                    Variable arg = function->getArgs()[a];
+                    if (arg.getName().size() == 0) continue;
+                    if (!typeCanBeNil(arg.getType())) {
+                        append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
+                    }
+                }
+
+                for (i = 0; i < body.size(); i++) {
+                    handle(Token);
+                }
+                scopeDepth = 1;
+                if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
+                    append("_callstack.ptr--;\n");
+                    if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
+                        append("_stack.ptr = __begin_stack_size;\n");
+                    }
                 }
             }
 
