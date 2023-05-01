@@ -1,4 +1,5 @@
 import std.io
+import std.threading.Thread
 
 cdecl "print_stacktrace"
 expect function trace(): none
@@ -46,6 +47,19 @@ end
 
 sealed struct Exception
   decl msg: str
+  decl stackTrace: const Array
+
+  function init(): none
+    Thread::stackTrace => self.stackTrace
+    "" => self.msg
+  end
+
+  export sealed function printStackTrace(): none
+    "Stacktrace of " typeof self + ":" + eputs
+    for i in self.stackTrace.count 1 - to -1 step -- do
+      "    " i self.stackTrace:get as str + eputs
+    done
+  end
 end
 
 function throw(ex: Exception): none

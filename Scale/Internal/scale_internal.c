@@ -981,6 +981,9 @@ void _scl_create_stack() {
 	instances = system_allocate(instances_cap * sizeof(Struct*));
 }
 
+// function Exception:printStackTrace(): none
+void _ZN9Exception15printStackTraceEP9Exception(scl_any self);
+
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
@@ -1064,14 +1067,16 @@ _scl_constructor void _scl_load() {
 		ret = (_scl_main ? _scl_main(args, env) : 0);
 #endif
 	} else {
-
-		// Scale exception reached here
+		
 		typedef struct {
 			Struct _structData;
 			scl_str msg;
-		} exception;
-		
-		scl_str msg = ((exception*) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+			struct scl_Array* stackTrace;
+		}* exception;
+
+		scl_str msg = ((exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+
+		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
 		if (msg) {
 			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
 		} else {
