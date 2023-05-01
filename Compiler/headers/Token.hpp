@@ -46,5 +46,17 @@ namespace sclc
         int getColumn() {
             return this->column;
         }
+        bool operator==(const Token& other) const {
+            return this->type == other.type && this->value == other.value;
+        }
+        bool operator!=(const Token& other) const {
+            return !(*this == other);
+        }
+        bool operator==(Token& other) {
+            return this->type == other.type && this->value == other.value;
+        }
+        bool operator!=(Token& other) {
+            return !(*this == other);
+        }
     };
 } // namespace sclc
