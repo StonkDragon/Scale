@@ -10,7 +10,7 @@
       30 Compiler/headers/Prototype.hpp
       77 Compiler/headers/Results.hpp
      126 Compiler/headers/Struct.hpp
-      50 Compiler/headers/Token.hpp
+      62 Compiler/headers/Token.hpp
       93 Compiler/headers/TokenType.hpp
        9 Compiler/headers/TranspilerDefs.hpp
       73 Compiler/headers/Variable.hpp
@@ -22,10 +22,10 @@
     1639 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      645 Compiler/modules/Tokenizer.cpp
-    4435 Compiler/modules/Transpiler.cpp
+    4508 Compiler/modules/Transpiler.cpp
       21 Scale/Frameworks/Scale.framework/include/Scale/any.scale
       86 Scale/Frameworks/Scale.framework/include/Scale/core.scale
-      69 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
+      83 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
       56 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       67 Scale/Frameworks/Scale.framework/include/Scale/float.scale
       60 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
@@ -53,7 +53,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       25 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
-    1098 Scale/Internal/scale_internal.c
+    1103 Scale/Internal/scale_internal.c
      399 Scale/Internal/scale_internal.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -85,4 +85,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   15192 total
+   15296 total
