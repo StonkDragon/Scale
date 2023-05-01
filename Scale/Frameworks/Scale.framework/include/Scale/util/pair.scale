@@ -1,4 +1,4 @@
-final referencetype sealed struct Pair
+final sealed struct Pair
 	decl a: any
 	decl b: any
 

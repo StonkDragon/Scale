@@ -664,22 +664,6 @@
 		],
 		"description": "private"
 	},
-	"Keyword referencetype": {
-		"scope": "source.scale",
-		"prefix": "referencetype",
-		"body": [
-			"referencetype",
-		],
-		"description": "referencetype"
-	},
-	"Keyword valuetype": {
-		"scope": "source.scale",
-		"prefix": "valuetype",
-		"body": [
-			"valuetype",
-		],
-		"description": "valuetype"
-	},
 	"Keyword const": {
 		"scope": "source.scale",
 		"prefix": "const",
