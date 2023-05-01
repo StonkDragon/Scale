@@ -562,9 +562,9 @@ namespace sclc {
                     Token t = c.nameToken();
                     res.success = false;
                     res.message = "Struct '" + c.getName() + "' implements unknown interface '" + i + "'";
-                    if (!Main.options.minify) res.line = t.getLine();
+                    res.line = t.getLine();
                     res.in = t.getFile();
-                    if (!Main.options.minify) res.column = t.getColumn();
+                    res.column = t.getColumn();
                     res.value = t.getValue();
                     res.type = t.getType();
                     errors.push_back(res);
@@ -576,9 +576,9 @@ namespace sclc {
                         Token t = c.nameToken();
                         res.success = false;
                         res.message = "No implementation for method '" + f->getName() + "' on struct '" + c.getName() + "'";
-                        if (!Main.options.minify) res.line = t.getLine();
+                        res.line = t.getLine();
                         res.in = t.getFile();
-                        if (!Main.options.minify) res.column = t.getColumn();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
@@ -590,9 +590,9 @@ namespace sclc {
                         Token t = m->getNameToken();
                         res.success = false;
                         res.message = "Arguments of method '" + c.getName() + ":" + m->getName() + "' do not match implemented method '" + f->getName() + "'";
-                        if (!Main.options.minify) res.line = t.getLine();
+                        res.line = t.getLine();
                         res.in = t.getFile();
-                        if (!Main.options.minify) res.column = t.getColumn();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
@@ -603,14 +603,52 @@ namespace sclc {
                         Token t = m->getNameToken();
                         res.success = false;
                         res.message = "Return type of method '" + c.getName() + ":" + m->getName() + "' does not match implemented method '" + f->getName() + "'. Return type should be: '" + f->getReturnType() + "'";
-                        if (!Main.options.minify) res.line = t.getLine();
+                        res.line = t.getLine();
                         res.in = t.getFile();
-                        if (!Main.options.minify) res.column = t.getColumn();
+                        res.column = t.getColumn();
                         res.value = t.getValue();
                         res.type = t.getType();
                         errors.push_back(res);
                         continue;
                     }
+                }
+            }
+
+            for (Function* f : result.functions) {
+                if (!f->isMethod) continue;
+                Method* m = (Method*) f;
+                if (m->member_type != c.getName()) continue;
+
+                Struct super = getStructByName(result, c.extends());
+                while (super != Struct::Null) {
+                    Method* other = getMethodByNameOnThisType(result, m->getName(), super.getName());
+                    if (!other) goto afterSealedCheck;
+                    if (contains<std::string>(other->getModifiers(), "sealed")) {
+                        FPResult res;
+                        Token t = m->getNameToken();
+                        res.success = false;
+                        res.message = "Method '" + f->getName() + "' overrides 'sealed' method on '" + super.getName() + "'";
+                        res.line = t.getLine();
+                        res.in = t.getFile();
+                        res.column = t.getColumn();
+                        res.value = t.getValue();
+                        res.type = t.getType();
+                        errors.push_back(res);
+                        FPResult res2;
+                        Token t2 = other->getNameToken();
+                        res2.success = false;
+                        res2.isNote = true;
+                        res2.message = "Declared here:";
+                        res2.line = t2.getLine();
+                        res2.in = t2.getFile();
+                        res2.column = t2.getColumn();
+                        res2.value = t2.getValue();
+                        res2.type = t2.getType();
+                        errors.push_back(res2);
+                        break;
+                    }
+                afterSealedCheck:
+                    super = getStructByName(result, super.extends());
                 }
             }
 
@@ -1798,9 +1836,9 @@ namespace sclc {
             FPResult result;
             result.message = "Variable '" + var.getValue() + "' shadowed by function '" + var.getValue() + "'";
             result.success = false;
-            if (!Main.options.minify) result.line = var.getLine();
+            result.line = var.getLine();
             result.in = var.getFile();
-            if (!Main.options.minify) result.column = var.getColumn();
+            result.column = var.getColumn();
             result.value = var.getValue();
             result.type =  var.getType();
             warns.push_back(result);
@@ -1809,9 +1847,9 @@ namespace sclc {
             FPResult result;
             result.message = "Variable '" + var.getValue() + "' shadowed by container '" + var.getValue() + "'";
             result.success = false;
-            if (!Main.options.minify) result.line = var.getLine();
+            result.line = var.getLine();
             result.in = var.getFile();
-            if (!Main.options.minify) result.column = var.getColumn();
+            result.column = var.getColumn();
             result.value = var.getValue();
             result.type =  var.getType();
             warns.push_back(result);
@@ -4250,9 +4288,9 @@ namespace sclc {
                 FPResult err;
                 err.success = false;
                 err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
-                if (!Main.options.minify) err.line = function->getNameToken().getLine();
+                err.line = function->getNameToken().getLine();
                 err.in = function->getNameToken().getFile();
-                if (!Main.options.minify) err.column = function->getNameToken().getColumn();
+                err.column = function->getNameToken().getColumn();
                 err.value = function->getNameToken().getValue();
                 err.type = function->getNameToken().getType();
                 if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
@@ -4302,9 +4340,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Struct '" + (((Method*) function))->getMemberType() + "' is sealed!";
                     result.value = function->getNameToken().getValue();
-                    if (!Main.options.minify) result.line = function->getNameToken().getLine();
+                    result.line = function->getNameToken().getLine();
                     result.in = function->getNameToken().getFile();
-                    if (!Main.options.minify) result.column = function->getNameToken().getColumn();
+                    result.column = function->getNameToken().getColumn();
                     result.type = function->getNameToken().getType();
                     result.success = false;
                     errors.push_back(result);
