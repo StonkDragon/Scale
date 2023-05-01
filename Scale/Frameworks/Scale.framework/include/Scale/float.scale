@@ -3,7 +3,7 @@ construct function float_scale_init(): none
     -1022 => float::minExponent
 end
 
-static sealed struct float
+final static sealed struct float
     decl maxExponent: const int
     decl minExponent: const int
 

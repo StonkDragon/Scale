@@ -1,6 +1,6 @@
 import std.util.Iterable
 
-sealed struct Range is IIterable
+final sealed struct Range is IIterable
   decl lower: int
   decl upper: int
   
@@ -62,7 +62,7 @@ sealed struct Range is IIterable
   end
 end
 
-sealed struct ReverseRange is IIterable
+final sealed struct ReverseRange is IIterable
   decl lower: int
   decl upper: int
   decl pos: int

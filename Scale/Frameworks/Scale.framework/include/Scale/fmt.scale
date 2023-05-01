@@ -1,5 +1,5 @@
 # Formatted IO
-static sealed struct ConsoleColor  
+final static sealed struct ConsoleColor  
   function reset(): str   "\033[0m"  return end
   function black(): str   "\033[30m" return end
   function red(): str     "\033[31m" return end
@@ -12,7 +12,7 @@ static sealed struct ConsoleColor
   function bold(): str    "\033[1m"  return end
 end
 
-static sealed struct FmtIO
+final static sealed struct FmtIO
   cdecl "putchar" private expect function putchar(char: int8): none
 
   private function printStrNoNewline(s: str): none

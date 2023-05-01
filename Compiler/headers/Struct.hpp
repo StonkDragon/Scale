@@ -96,6 +96,12 @@ namespace sclc
         bool isStatic() {
             return (flags & 0b00010000) != 0;
         }
+        bool isFinal() {
+            return (flags & 0b00100000) != 0;
+        }
+        void toggleFinal() {
+            flags ^= 0b00100000;
+        }
         void toggleReferenceType() {
             flags ^= 0b00000001;
         }

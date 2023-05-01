@@ -1,4 +1,4 @@
-static sealed struct any
+final static sealed struct any
     cdecl "_scl_alloc"  expect function new(size: int): any
     cdecl "_scl_free"   expect function delete(ptr: any): none
     cdecl "_scl_sizeof" expect function size(ptr: any) sz: int

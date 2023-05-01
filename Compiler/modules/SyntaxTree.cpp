@@ -931,6 +931,9 @@ namespace sclc {
                         currentStruct->toggleReferenceType();
                         currentStruct->toggleStatic();
                     }
+                    if (m == "final") {
+                        currentStruct->toggleFinal();
+                    }
                 }
                 for (size_t i = 0; i < nextAttributes.size(); i++) {
                     if (nextAttributes[i] == "autoimpl") {
@@ -1560,6 +1563,30 @@ namespace sclc {
                     oldSuper = super;
                     super = getStructByName(result, "SclObject");
                 }
+                if (super.isFinal()) {
+                    FPResult r;
+                    r.message = "Struct '" + super.getName() + "' is final";
+                    r.value = s.nameToken().getValue();
+                    r.line = s.nameToken().getLine();
+                    r.in = s.nameToken().getFile();
+                    r.type = s.nameToken().getType();
+                    r.column = s.nameToken().getColumn();
+                    r.column = s.nameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    FPResult r2;
+                    r2.message = "Declared here:";
+                    r2.value = super.nameToken().getValue();
+                    r2.line = super.nameToken().getLine();
+                    r2.in = super.nameToken().getFile();
+                    r2.type = super.nameToken().getType();
+                    r2.column = super.nameToken().getColumn();
+                    r2.column = super.nameToken().getColumn();
+                    r2.success = false;
+                    r2.isNote = true;
+                    result.errors.push_back(r2);
+                    goto nextIter;
+                }
                 std::vector<Variable> vars = super.getDefinedMembers();
                 for (ssize_t i = vars.size() - 1; i >= 0; i--) {
                     s.addMember(vars[i], true);
@@ -1568,6 +1595,7 @@ namespace sclc {
                 super = getStructByName(result, super.extends());
             }
             newStructs.push_back(s);
+        nextIter: (void) 0;
         }
         result.structs = newStructs;
         newStructs.clear();

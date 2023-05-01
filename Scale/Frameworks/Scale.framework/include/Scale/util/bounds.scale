@@ -1,4 +1,4 @@
-sealed struct IndexOutOfBoundsException : Exception
+final sealed struct IndexOutOfBoundsException : Exception
     function init(s: str): none
         s => self.msg
     end

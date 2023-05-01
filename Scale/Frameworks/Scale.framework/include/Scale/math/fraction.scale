@@ -1,4 +1,4 @@
-struct Fraction
+final struct Fraction
     decl numerator: int
     decl denominator: int
 

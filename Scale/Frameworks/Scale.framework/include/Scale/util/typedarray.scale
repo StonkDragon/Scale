@@ -1,12 +1,12 @@
 import std.util.Array
 
-struct InvalidTypeException : Exception
+final struct InvalidTypeException : Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
 
-sealed struct TypedArray : Array
+final sealed struct TypedArray : Array
     private decl typeStr: str
 
     function checkTypeOrThrow(val: any): none

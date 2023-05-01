@@ -1,10 +1,10 @@
-sealed struct ThreadException : Exception
+final sealed struct ThreadException : Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
 
-sealed struct AtomicOperationException : Exception
+final sealed struct AtomicOperationException : Exception
     function init(msg: str): none
         msg => self.msg
     end
@@ -22,7 +22,7 @@ cdecl "pthread_create"        expect function __c_pthread_create(tid: [pthread_t
 cdecl "pthread_join"          expect function __c_pthread_join(tid: pthread_t, _unused0_: any?): none
 cdecl "pthread_self"          expect function __c_pthread_self(): pthread_t
 
-sealed struct Thread
+final sealed struct Thread
     private static decl threads: Array
     private static decl nextID: int
 

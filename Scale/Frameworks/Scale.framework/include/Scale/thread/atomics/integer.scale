@@ -1,6 +1,6 @@
 import std.threading.Thread
 
-struct AtomicInteger
+final struct AtomicInteger
     private decl value: int
     private decl mutex: pthread_mutex_t
 

@@ -1,7 +1,7 @@
 import std.util.Iterable
 import std.debug
 
-sealed struct ImmutableArray is IIterable
+final sealed struct ImmutableArray is IIterable
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int

@@ -1,4 +1,4 @@
-referencetype sealed struct Triple
+final referencetype sealed struct Triple
   decl a: any
   decl b: any
   decl c: any

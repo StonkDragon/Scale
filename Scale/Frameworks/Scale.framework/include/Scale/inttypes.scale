@@ -15,7 +15,7 @@ construct function inttypes_scale_init(): none
   0x7fffffffffffffff => int::maxValue
 end
 
-static sealed struct int8
+final static sealed struct int8
   decl minValue: const int8
   decl maxValue: const int8
 
@@ -28,7 +28,7 @@ static sealed struct int8
   end
 end
 
-static sealed struct int
+final static sealed struct int
   decl minValue: const int
   decl maxValue: const int
 

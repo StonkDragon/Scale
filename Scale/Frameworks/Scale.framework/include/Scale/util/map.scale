@@ -1,7 +1,7 @@
 import std.util.Pair
 import std.util.Iterable
 
-sealed struct MapEntry
+final sealed struct MapEntry
   decl key: str
   decl value: any
 
