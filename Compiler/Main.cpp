@@ -718,8 +718,9 @@ namespace sclc
             cflags.push_back(compiler);
 
         if (Main.options.files.size() != 0) {
-            cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I" + scaleFolder + "/Internal");
+            cflags.push_back("-I" + scaleFolder + "/Frameworks");
+            cflags.push_back("-I.");
             cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
             cflags.push_back("-" + optimizer);
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
