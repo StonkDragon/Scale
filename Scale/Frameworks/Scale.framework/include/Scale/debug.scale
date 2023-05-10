@@ -3,6 +3,8 @@ import std.threading.Thread
 
 cdecl "print_stacktrace"
 expect function trace(): none
+cdecl "_scl_throw"
+expect function throw(ex: Exception): none
 
 cdecl "_scl_security_safe_exit"
 expect function __c_exit(i: int): none
@@ -50,8 +52,15 @@ sealed struct Exception
   decl stackTrace: const Array
 
   function init(): none
-    Thread::stackTrace => self.stackTrace
+    sanitizedStackTrace => self.stackTrace
     "" => self.msg
+  end
+
+  private sealed function sanitizedStackTrace() stackTrace: Array
+    Thread::stackTrace => stackTrace
+    stackTrace:pop
+    stackTrace:pop
+    return
   end
 
   export sealed function printStackTrace(): none
@@ -59,18 +68,6 @@ sealed struct Exception
     for i in self.stackTrace.count 1 - to -1 step -- do
       "    " i self.stackTrace:get as str + eputs
     done
-  end
-end
-
-function throw(ex: Exception): none
-  c!
-    _extable.ptr--;
-    if (_extable.ptr < 0) {
-      _extable.ptr = 0;
-    }
-    _extable.extable[_extable.ptr] = *ex;
-    _callstack.ptr = _extable.callstk_ptr[_extable.ptr];
-    longjmp(_extable.jmptable[_extable.ptr], 666);
   end
 end
 

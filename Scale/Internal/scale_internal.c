@@ -981,6 +981,16 @@ void _scl_create_stack() {
 	instances = system_allocate(instances_cap * sizeof(Struct*));
 }
 
+void _scl_throw(void* ex) {
+	_extable.jmp_buf_ptr--;
+    if (_extable.jmp_buf_ptr < 0) {
+      _extable.jmp_buf_ptr = 0;
+    }
+    _extable.exceptions[_extable.jmp_buf_ptr] = ex;
+    _callstack.ptr = _extable.cs_pointer[_extable.jmp_buf_ptr];
+    longjmp(_extable.jmp_buf[_extable.jmp_buf_ptr], 666);
+}
+
 // function Exception:printStackTrace(): none
 void _ZN9Exception15printStackTraceEP9Exception(scl_any self);
 
