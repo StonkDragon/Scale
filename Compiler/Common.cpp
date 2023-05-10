@@ -624,6 +624,10 @@ namespace sclc
         return false;
     }
 
+    bool hasContainer(TPResult result, std::string name) {
+        return hasContainer(result, Token(tok_identifier, name, 0, ""));
+    }
+
     bool hasGlobal(TPResult result, std::string name) {
         for (Variable v : result.globals) {
             if (v.getName() == name) {

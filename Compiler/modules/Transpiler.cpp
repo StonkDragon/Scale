@@ -4475,6 +4475,49 @@ namespace sclc {
 
                 append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
                 if (function->hasNamedReturnValue) {
+                    std::string nrvName = function->getNamedReturnValue().getName();
+                    if (hasFunction(result, nrvName)) {
+                        {
+                            FPResult err;
+                            err.message = "Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'";
+                            err.value = function->getNameToken().getValue();
+                            err.line = function->getNameToken().getLine();
+                            err.in = function->getNameToken().getFile();
+                            err.column = function->getNameToken().getColumn();
+                            err.type = function->getNameToken().getType();
+                            err.success = false;
+                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                            else errors.push_back(err);
+                        }
+                    }
+                    if (hasContainer(result, nrvName)) {
+                        {
+                            FPResult err;
+                            err.message = "Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'";
+                            err.value = function->getNameToken().getValue();
+                            err.line = function->getNameToken().getLine();
+                            err.in = function->getNameToken().getFile();
+                            err.column = function->getNameToken().getColumn();
+                            err.type = function->getNameToken().getType();
+                            err.success = false;
+                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                            else errors.push_back(err);
+                        }
+                    }
+                    if (getStructByName(result, nrvName) != Struct::Null) {
+                        {
+                            FPResult err;
+                            err.message = "Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'";
+                            err.value = function->getNameToken().getValue();
+                            err.line = function->getNameToken().getLine();
+                            err.in = function->getNameToken().getFile();
+                            err.column = function->getNameToken().getColumn();
+                            err.type = function->getNameToken().getType();
+                            err.success = false;
+                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                            else errors.push_back(err);
+                        }
+                    }
                     append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
                 }
                 append("scl_int __begin_stack_size = _stack.ptr;\n");

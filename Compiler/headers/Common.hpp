@@ -225,6 +225,7 @@ namespace sclc {
     bool hasMethod(TPResult result, Token name, std::string type);
     bool hasMethod(TPResult result, std::string name, std::string type);
     bool hasContainer(TPResult result, Token name);
+    bool hasContainer(TPResult result, std::string name);
     bool hasGlobal(TPResult result, std::string name);
     FPResult parseType(std::vector<Token> tokens, size_t* i);
     std::string sclConvertToStructType(std::string type);
