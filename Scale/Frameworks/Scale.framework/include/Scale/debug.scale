@@ -71,6 +71,13 @@ sealed struct Exception
   end
 end
 
+sealed struct Error: Exception
+  function init(msg: str): none
+    sanitizedStackTrace => self.stackTrace
+    msg => self.msg
+  end
+end
+
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]
   c!
