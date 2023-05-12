@@ -44,7 +44,7 @@ final sealed struct Thread
         1 Array::new => arr
         c!
             for (scl_int i = 0; i < _callstack.ptr - 2; i++) {
-                Method_Array$push(str_of(_callstack.func[i]), *arr);
+                Method_Array$push(*arr, str_of(_callstack.func[i]));
             }
         end
         return

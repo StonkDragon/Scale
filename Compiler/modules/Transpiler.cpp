@@ -127,9 +127,16 @@ namespace sclc {
 
     std::string generateArgumentsForFunction(TPResult result, Function *func) {
         std::string args = "";
-        for (size_t i = 0; i < func->getArgs().size(); i++) {
+        size_t maxValue = func->getArgs().size();
+        if (func->isMethod) {
+            args = "(" + sclTypeToCType(result, func->member_type) + ") _scl_positive_offset(" + std::to_string(func->getArgs().size() - 1) + ")->i";
+            maxValue--;
+        }
+        for (size_t i = 0; i < maxValue; i++) {
             Variable arg = func->getArgs()[i];
-            if (i) args += ", ";
+            if (func->isMethod || i)
+                args += ", ";
+
             if (removeTypeModifiers(arg.getType()) == "float") {
                 if (i) {
                     args += "_scl_positive_offset(" + std::to_string(i) + ")->f";
@@ -191,7 +198,7 @@ namespace sclc {
             type = type.substr(0, type.size() - 1);
         }
         if (type == "str") {
-            return std::string("P11_scl_string");
+            return std::string("P10Struct_str");
         } else if (type == "any") {
             return std::string("Pv");
         } else if (type == "int8") {
@@ -360,14 +367,27 @@ namespace sclc {
             }
             
             std::string arguments = "";
-            if (function->getArgs().size() > 0) {
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i) {
-                        arguments += ", ";
-                    }
-                    arguments += sclTypeToCType(result, function->getArgs()[i].getType());
+            if (function->isMethod) {
+                arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                    Variable var = function->getArgs()[i];
+                    std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                    arguments += ", " + type;
                     if (function->getArgs()[i].getName().size())
                         arguments += " Var_" + function->getArgs()[i].getName();
+                }
+            } else {
+                if (function->getArgs().size() > 0) {
+                    for (size_t i = 0; i < function->getArgs().size(); i++) {
+                        Variable var = function->getArgs()[i];
+                        std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                        if (i) {
+                            arguments += ", ";
+                        }
+                        arguments += type;
+                        if (function->getArgs()[i].getName().size())
+                            arguments += " Var_" + function->getArgs()[i].getName();
+                    }
                 }
             }
 
@@ -425,14 +445,27 @@ namespace sclc {
                 }
 
                 std::string arguments = "";
-                if (function->getArgs().size() > 0) {
-                    for (size_t i = 0; i < function->getArgs().size(); i++) {
-                        if (i) {
-                            arguments += ", ";
-                        }
-                        arguments += sclTypeToCType(result, function->getArgs()[i].getType());
+                if (function->isMethod) {
+                    arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                    for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                        Variable var = function->getArgs()[i];
+                        std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                        arguments += ", " + type;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
+                    }
+                } else {
+                    if (function->getArgs().size() > 0) {
+                        for (size_t i = 0; i < function->getArgs().size(); i++) {
+                            Variable var = function->getArgs()[i];
+                            std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                            if (i) {
+                                arguments += ", ";
+                            }
+                            arguments += type;
+                            if (function->getArgs()[i].getName().size())
+                                arguments += " Var_" + function->getArgs()[i].getName();
+                        }
                     }
                 }
                 std::string symbol = generateSymbolForFunction(result, function);
@@ -688,6 +721,9 @@ namespace sclc {
 #define wasIterate()    (whatWasIt.size() > 0 && whatWasIt.back() == 4)
 #define popIterate()    (whatWasIt.pop_back())
 #define pushIterate()   (whatWasIt.push_back(4))
+#define wasTry()        (whatWasIt.size() > 0 && whatWasIt.back() == 8)
+#define popTry()        (whatWasIt.pop_back())
+#define pushTry()       (whatWasIt.push_back(8))
 #define wasOther()      (whatWasIt.size() > 0 && whatWasIt.back() == 0)
 #define popOther()      (whatWasIt.pop_back())
 #define pushOther()     (whatWasIt.push_back(0))
@@ -1133,16 +1169,26 @@ namespace sclc {
         }
 
         std::string arguments = "";
-        if (f->getArgs().size() > 0) {
-            for (size_t i = 0; i < f->getArgs().size(); i++) {
+        if (f->isMethod) {
+            arguments = sclTypeToCType(result, f->member_type) + " Var_self";
+            for (size_t i = 0; i < f->getArgs().size() - 1; i++) {
+                Variable var = f->getArgs()[i];
                 std::string type = sclTypeToCType(result, f->getArgs()[i].getType());
-                if (i) {
-                    arguments += ", ";
-                }
-                if (f->getArgs()[i].getName().size()) {
-                    arguments += type + " Var_" + f->getArgs()[i].getName();
-                } else {
+                arguments += ", " + type;
+                if (f->getArgs()[i].getName().size())
+                    arguments += " Var_" + f->getArgs()[i].getName();
+            }
+        } else {
+            if (f->getArgs().size() > 0) {
+                for (size_t i = 0; i < f->getArgs().size(); i++) {
+                    Variable var = f->getArgs()[i];
+                    std::string type = sclTypeToCType(result, f->getArgs()[i].getType());
+                    if (i) {
+                        arguments += ", ";
+                    }
                     arguments += type;
+                    if (f->getArgs()[i].getName().size())
+                        arguments += " Var_" + f->getArgs()[i].getName();
                 }
             }
         }
@@ -1188,12 +1234,41 @@ namespace sclc {
         ITER_INC;
         if (body[i].getValue() == "typeof") {
             ITER_INC;
+            if (wasTry()) {
+                popTry();
+                append("} else if (_scl_is_instance_of(_extable.extable[_extable.ptr], %uU)) {\n", hash1((char*) "Error"));
+                append("  Function_throw(_extable.extable[_extable.ptr]);\n");
+            } else if (wasCatch()) {
+                popCatch();
+            }
+
             varScopeTop().clear();
             pushCatch();
             scopeDepth--;
             // TODO: Check for children of 'Exception'
-            if (getStructByName(result, body[i].getValue()) == Struct::Null) {
+            Struct s = getStructByName(result, body[i].getValue());
+            if (s == Struct::Null) {
                 transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            
+            auto extends = [result](Struct& s, std::string name) {
+                if (s.getName() == name) return true;
+
+                Struct super = getStructByName(result, s.extends());
+                Struct oldSuper = s;
+                while (super.getName().size()) {
+                    if (super.getName() == name)
+                        return true;
+                    oldSuper = super;
+                    super = getStructByName(result, super.extends());
+                }
+                return false;
+            };
+
+            if (extends(s, "Error")) {
+                transpilerError("Cannot catch Exceptions that extend 'Error'!", i);
                 errors.push_back(err);
                 return;
             }
@@ -1477,6 +1552,7 @@ namespace sclc {
             scopeDepth++;
             append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
             varScopePush();
+            pushTry();
         } else if (body[i].getValue() == "super" && function->isMethod && function->getName() == "init") {
             Struct s = getStructByName(result, ((Method*) function)->getMemberType());
             Struct super = getStructByName(result, s.extends());
@@ -2211,7 +2287,7 @@ namespace sclc {
                             ITER_INC;
                             return;
                         }
-                        append("*((scl_any*) Container_%s.%s) = Method_Array$get(%d, tmp);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
+                        append("*((scl_any*) Container_%s.%s) = Method_Array$get(tmp, %d);\n", containerName.c_str(), memberName.c_str(), destructureIndex);
                     } else {
                         if (body[i].getType() != tok_identifier) {
                             transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
@@ -2229,7 +2305,7 @@ namespace sclc {
                                         errors.push_back(err);
                                         return;
                                     }
-                                    append("*(scl_any*) Var_self->%s = Method_Array$get(%d, tmp);\n", body[i].getValue().c_str(), destructureIndex);
+                                    append("*(scl_any*) Var_self->%s = Method_Array$get(tmp, %d);\n", body[i].getValue().c_str(), destructureIndex);
                                     destructureIndex++;
                                     continue;
                                 } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
@@ -2239,7 +2315,7 @@ namespace sclc {
                                         errors.push_back(err);
                                         return;
                                     }
-                                    append("*(scl_any*) Var_%s$%s = Method_Array$get(%d, tmp);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
+                                    append("*(scl_any*) Var_%s$%s = Method_Array$get(tmp, %d);\n", s.getName().c_str(), body[i].getValue().c_str(), destructureIndex);
                                     destructureIndex++;
                                     continue;
                                 }
@@ -2260,7 +2336,7 @@ namespace sclc {
                             }
                             ITER_INC;
                             if (body[i].getType() != tok_dot) {
-                                append("*(scl_any*) Var_%s = Method_Array$get(%d, tmp);\n", loadFrom.c_str(), destructureIndex);
+                                append("*(scl_any*) Var_%s = Method_Array$get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
                                 destructureIndex++;
                                 continue;
                             }
@@ -2294,14 +2370,14 @@ namespace sclc {
                                     return;
                                 }
                             }
-                            append("*(scl_any*) Var_%s->%s = Method_Array$get(%d, tmp);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
+                            append("*(scl_any*) Var_%s->%s = Method_Array$get(tmp, %d);\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
                         } else {
                             if (!v.isWritableFrom(function, VarAccess::Dereference)) {
                                 transpilerError("Variable '" + body[i].getValue() + "' is const", i);
                                 errors.push_back(err);
                                 return;
                             }
-                            append("*(scl_any*) Var_%s = Method_Array$get(%d, tmp);\n", loadFrom.c_str(), destructureIndex);
+                            append("*(scl_any*) Var_%s = Method_Array$get(tmp, %d);\n", loadFrom.c_str(), destructureIndex);
                         }
                     }
                 } else {
@@ -2328,7 +2404,7 @@ namespace sclc {
                         }
                         append("{\n");
                         scopeDepth++;
-                        append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                        append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                         if (!typeCanBeNil(container.getMember(memberName).getType())) {
                             append("_scl_check_not_nil_store((scl_int) tmp%d, \"%s.%s\");\n", destructureIndex, containerName.c_str(), memberName.c_str());
                         }
@@ -2354,7 +2430,7 @@ namespace sclc {
                                     }
                                     append("{\n");
                                     scopeDepth++;
-                                    append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                                    append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                                     if (!typeCanBeNil(mem.getType())) {
                                         append("_scl_check_not_nil_store((scl_int) tmp%d, \"self.%s\");\n", destructureIndex, mem.getName().c_str());
                                     }
@@ -2371,7 +2447,7 @@ namespace sclc {
                                     }
                                     append("{\n");
                                     scopeDepth++;
-                                    append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                                    append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                                     if (!typeCanBeNil(getVar(Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, "")).getType())) {
                                         append("_scl_check_not_nil_store((scl_int) tmp%d, \"%s::%s\");\n", destructureIndex, s.getName().c_str(), body[i].getValue().c_str());
                                     }
@@ -2399,7 +2475,7 @@ namespace sclc {
                             if (body[i].getType() != tok_dot) {
                                 append("{\n");
                                 scopeDepth++;
-                                append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                                append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                                 if (!typeCanBeNil(v.getType())) {
                                     append("_scl_check_not_nil_store((scl_int) tmp%d, \"%s\");\n", destructureIndex, v.getName().c_str());
                                 }
@@ -2441,7 +2517,7 @@ namespace sclc {
                             }
                             append("{\n");
                             scopeDepth++;
-                            append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                            append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                             if (!typeCanBeNil(mem.getType())) {
                                 append("_scl_check_not_nil_store((scl_int) tmp%d, \"%s.%s\");\n", destructureIndex, s.getName().c_str(), mem.getName().c_str());
                             }
@@ -2456,7 +2532,7 @@ namespace sclc {
                             }
                             append("{\n");
                             scopeDepth++;
-                            append("scl_any tmp%d = Method_Array$get(%d, tmp);\n", destructureIndex, destructureIndex);
+                            append("scl_any tmp%d = Method_Array$get(tmp, %d);\n", destructureIndex, destructureIndex);
                             if (!typeCanBeNil(v.getType())) {
                                 append("_scl_check_not_nil_store((scl_int) tmp%d, \"%s\");\n", destructureIndex, v.getName().c_str());
                             }
@@ -2826,13 +2902,13 @@ namespace sclc {
         append("struct Struct_Array* tmp = _scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
-                append("_scl_push()->f = Method_Array$init(1, tmp);\n");
+                append("_scl_push()->f = Method_Array$init(tmp, 1);\n");
             } else {
-                append("_scl_push()->i = (scl_int) Method_Array$init(1, tmp);\n");
+                append("_scl_push()->i = (scl_int) Method_Array$init(tmp, 1);\n");
             }
             typeStack.push(f->getReturnType());
         } else {
-            append("Method_Array$init(1, tmp);\n");
+            append("Method_Array$init(tmp, 1);\n");
         }
         ITER_INC;
         while (body[i].getType() != tok_curly_close) {
@@ -2847,7 +2923,7 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("Method_Array$push(_scl_pop()->v, tmp);\n");
+                append("Method_Array$push(tmp, _scl_pop()->v);\n");
                 typePop;
             }
         }
@@ -2872,13 +2948,13 @@ namespace sclc {
         append("struct Struct_Map* tmp = _scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", %uU);\n", hash1((char*) std::string("SclObject").c_str()));
         if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
             if (f->getReturnType() == "float") {
-                append("_scl_push()->f = Method_Map$init(1, tmp);\n");
+                append("_scl_push()->f = Method_Map$init(tmp, 1);\n");
             } else {
-                append("_scl_push()->i = (scl_int) Method_Map$init(1, tmp);\n");
+                append("_scl_push()->i = (scl_int) Method_Map$init(tmp, 1);\n");
             }
             typeStack.push(f->getReturnType());
         } else {
-            append("Method_Map$init(1, tmp);\n");
+            append("Method_Map$init(tmp, 1);\n");
         }
         ITER_INC;
         while (body[i].getType() != tok_bracket_close) {
@@ -2906,7 +2982,7 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("Method_Map$set(_scl_create_string(\"%s\"), _scl_pop()->v, tmp);\n", key.c_str());
+                append("Method_Map$set(tmp, _scl_create_string(\"%s\"), _scl_pop()->v);\n", key.c_str());
                 typePop;
             }
         }
@@ -2961,13 +3037,13 @@ namespace sclc {
             typePop;
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
+                    append("_scl_push()->f = Method_Pair$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Pair$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_Pair$init(_scl_positive_offset(0)->v, _scl_positive_offset(1)->v, tmp);\n");
+                append("Method_Pair$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
             }
             append("_scl_push()->v = tmp;\n");
             typeStack.push("Pair");
@@ -2990,13 +3066,13 @@ namespace sclc {
             typePop;
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
                 if (f->getReturnType() == "float") {
-                    append("_scl_push()->f = Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
+                    append("_scl_push()->f = Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
                 } else {
-                    append("_scl_push()->i = (scl_int) Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
+                    append("_scl_push()->i = (scl_int) Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_Triple$init(_scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v, tmp);\n");
+                append("Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
             }
             append("_scl_push()->v = tmp;\n");
             typeStack.push("Triple");
@@ -4323,17 +4399,30 @@ namespace sclc {
             if (function->hasNamedReturnValue) {
                 varScopeTop().push_back(function->getNamedReturnValue());
             }
-            if (function->getArgs().size() > 0) {
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
+            if (function->isMethod) {
+                arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                varScopeTop().push_back(function->getArgs().back());
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
                     Variable var = function->getArgs()[i];
                     varScopeTop().push_back(var);
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                    if (i) {
-                        arguments += ", ";
-                    }
-                    arguments += type;
+                    arguments += ", " + type;
                     if (function->getArgs()[i].getName().size())
                         arguments += " Var_" + function->getArgs()[i].getName();
+                }
+            } else {
+                if (function->getArgs().size() > 0) {
+                    for (size_t i = 0; i < function->getArgs().size(); i++) {
+                        Variable var = function->getArgs()[i];
+                        varScopeTop().push_back(var);
+                        std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                        if (i) {
+                            arguments += ", ";
+                        }
+                        arguments += type;
+                        if (function->getArgs()[i].getName().size())
+                            arguments += " Var_" + function->getArgs()[i].getName();
+                    }
                 }
             }
 
@@ -4520,7 +4609,7 @@ namespace sclc {
                     }
                     append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
                 }
-                append("scl_int __begin_stack_size = _stack.ptr;\n");
+                append("const scl_int __begin_stack_size = _stack.ptr;\n");
 
                 for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
                     Variable arg = function->getArgs()[a];
