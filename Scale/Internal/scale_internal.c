@@ -277,7 +277,12 @@ scl_int8* _scl_strdup(scl_int8* str) {
 }
 
 scl_str _scl_create_string(scl_int8* data) {
-	scl_str self = _scl_alloc_struct(sizeof(struct _scl_string), "str", SclObjectHash);
+	struct Struct_str {
+		struct scaleString s;
+	};
+	assert(sizeof(struct Struct_str) == sizeof(struct scaleString));
+
+	scl_str self = NEW0(str);
 	if (self == NULL) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return NULL;
@@ -421,28 +426,33 @@ void _scl_catch_final(scl_int sig_num) {
 		fprintf(trace, "\n");
 	}
 	fprintf(trace, "Memory Dump:\n");
+	hash strHash = hash1("str");
 	for (scl_int i = 0; i < allocated_count; i++) {
 		if (_scl_find_index_of_struct(allocated[i]) != -1) {
 			fprintf(trace, "  Instance of struct '%s':\n", ((Struct*) allocated[i])->type_name);
 		} else {
 			fprintf(trace, "  " SCL_INT_FMT " bytes at %p:\n", memsizes[i], allocated[i]);
 		}
-		fprintf(trace, "    |");
-		for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
-			fprintf(trace, "%02x|", (char) ((col & 0xFF) + (((scl_int) allocated[i]) & 0xF)));
-		}
-		fprintf(trace, "\n");
-		fprintf(trace, "    |");
-		for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
-			fprintf(trace, "--|");
-		}
-		fprintf(trace, "\n");
-		for (scl_int sz = 0; sz < memsizes[i]; sz += 16) {
+		if (_scl_is_instance_of(allocated[i], strHash)) {
+			fprintf(trace, "    String value: '%s'\n", ((scl_str) allocated[i])->_data);
+		} else {
 			fprintf(trace, "    |");
 			for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
-				fprintf(trace, "%02x|", (*(char*) (allocated[i] + sz + col) & 0xFF));
+				fprintf(trace, "%02x|", (char) ((col & 0xFF) + (((scl_int) allocated[i]) & 0xF)));
 			}
 			fprintf(trace, "\n");
+			fprintf(trace, "    |");
+			for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
+				fprintf(trace, "--|");
+			}
+			fprintf(trace, "\n");
+			for (scl_int sz = 0; sz < memsizes[i]; sz += 16) {
+				fprintf(trace, "    |");
+				for (scl_int col = 0; col < (memsizes[i] < 16 ? memsizes[i] : 16); col++) {
+					fprintf(trace, "%02x|", (*(char*) (allocated[i] + sz + col) & 0xFF));
+				}
+				fprintf(trace, "\n");
+			}
 		}
 		fprintf(trace, "\n");
 	}
@@ -451,7 +461,7 @@ void _scl_catch_final(scl_int sig_num) {
 	exit(sig_num);
 }
 
-struct scl_Array {
+struct Struct_Array {
 	scl_int $__type__;
 	scl_int8* $__type_name__;
 	scl_any $__super_list__;
@@ -465,7 +475,7 @@ struct scl_Array {
 
 // Converts C NULL-terminated array to Array-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-	struct scl_Array* array = _scl_alloc_struct(sizeof(struct scl_Array), "Array", SclObjectHash);
+	struct Struct_Array* array = NEW0(Array);
 	scl_int cap = 0;
 	while (arr[cap] != NULL) {
 		cap++;
@@ -946,7 +956,7 @@ void _scl_debug_dump_stacks() {
 			printf("  Stack:\n");
 			for (scl_int j = 0; j < stacks[i]->ptr; j++) {
 				_scl_frame_t f = stacks[i]->data[j];
-				printf("    " SCL_INT_FMT ": " SCL_PTR_HEX_FMT " " SCL_INT_FMT "\n", j, f.i, f.i);
+				printf("	" SCL_INT_FMT ": " SCL_PTR_HEX_FMT " " SCL_INT_FMT "\n", j, f.i, f.i);
 			}
 		}
 	}
@@ -982,13 +992,17 @@ void _scl_create_stack() {
 }
 
 void _scl_throw(void* ex) {
-	_extable.jmp_buf_ptr--;
-    if (_extable.jmp_buf_ptr < 0) {
-      _extable.jmp_buf_ptr = 0;
-    }
-    _extable.exceptions[_extable.jmp_buf_ptr] = ex;
-    _callstack.ptr = _extable.cs_pointer[_extable.jmp_buf_ptr];
-    longjmp(_extable.jmp_buf[_extable.jmp_buf_ptr], 666);
+	if (_scl_is_instance_of(ex, hash1("Error"))) {
+		_extable.jmp_buf_ptr = 0;
+	} else {
+		_extable.jmp_buf_ptr--;
+		if (_extable.jmp_buf_ptr < 0) {
+			_extable.jmp_buf_ptr = 0;
+		}
+	}
+	_extable.exceptions[_extable.jmp_buf_ptr] = ex;
+	_callstack.ptr = _extable.cs_pointer[_extable.jmp_buf_ptr];
+	longjmp(_extable.jmp_buf[_extable.jmp_buf_ptr], 666);
 }
 
 // function Exception:printStackTrace(): none
@@ -997,7 +1011,7 @@ void _ZN9Exception15printStackTraceEP9Exception(scl_any self);
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
 scl_any _scl_get_main_addr();
-typedef int(*mainFunc)(struct scl_Array*, struct scl_Array*);
+typedef int(*mainFunc)(struct Struct_Array*, struct Struct_Array*);
 
 // __init__ and __destroy__
 typedef void(*genericFunc)();
@@ -1026,17 +1040,17 @@ int main(int argc, char** argv) {
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
-	struct scl_Array* args = NULL;
-	struct scl_Array* env = NULL;
+	struct Struct_Array* args = NULL;
+	struct Struct_Array* env = NULL;
 
 #if !defined(SCL_MAIN_ARG_COUNT)
 #define SCL_MAIN_ARG_COUNT 0
 #endif
 #if SCL_MAIN_ARG_COUNT > 0
-	args = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
+	args = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
 #endif
 #if SCL_MAIN_ARG_COUNT > 1
-	env = (struct scl_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+	env = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
 #endif
 
 	// Get the address of the main function
@@ -1081,7 +1095,7 @@ _scl_constructor void _scl_load() {
 		typedef struct {
 			Struct _structData;
 			scl_str msg;
-			struct scl_Array* stackTrace;
+			struct Struct_Array* stackTrace;
 		}* exception;
 
 		scl_str msg = ((exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
