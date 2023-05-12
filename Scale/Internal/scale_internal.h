@@ -92,7 +92,7 @@
 #define export
 
 #define str_of(_cstr) _scl_create_string((_cstr))
-#define cstr_of(_scl_string) ((_scl_string)->_data)
+#define cstr_of(Struct_str) ((Struct_str)->_data)
 
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
@@ -199,7 +199,7 @@ typedef size_t				scl_uint;
 typedef unsigned long long	scl_uint;
 #endif
 
-typedef struct _scl_string* scl_str;
+typedef struct scaleString* scl_str;
 typedef double 				scl_float;
 
 #define SCL_int64_MAX		INT64_MAX
@@ -228,7 +228,7 @@ typedef unsigned int 		scl_uint32;
 typedef unsigned short 		scl_uint16;
 typedef unsigned char 		scl_uint8;
 
-struct _scl_string {
+struct scaleString {
 	scl_int		$__type__;
 	scl_int8*	$__type_name__;
 	scl_int		$__super__;
@@ -299,6 +299,9 @@ typedef struct {
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
+
+#define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), (_super))
+#define NEW0(_type)				NEW(_type, SclObjectHash)
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
