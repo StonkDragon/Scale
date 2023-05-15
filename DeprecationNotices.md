@@ -25,3 +25,13 @@
 |`isNaN`|`float::isNaN`|
 |`isFinite`|`float::isFinite`|
 |`isNotNaN`|`float::isNotNaN`|
+|`fopen`|`File::new`|
+|`fwrite`|`File:writeBinary`|
+|`fwrites`|`File:append`|
+|`fputs`|`File:puts`|
+|`fputint`|none|
+|`fputfloat`|none|
+|`fread`|`File:read`|
+|`fseekstart`|`File:offsetFromBegin`|
+|`fseekend`|`File:offsetFromEnd`|
+|`fseekcur`|`File:offset`|
