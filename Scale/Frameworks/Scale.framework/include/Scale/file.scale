@@ -65,6 +65,10 @@ final struct File
     "" self:append
   end
 
+  static function exists(f: str): bool
+    f:view "r":view File::__c_fopen nil != return
+  end
+
   static expect cdecl "fopen"  function __c_fopen(_name_: [int8], _mode_: [int8]): __c_file?
   static expect cdecl "fwrite" function __c_fwrite(_buf_: any, _size_: int, _num_elem_: int, _file_: __c_file): none
   static expect cdecl "fread"  function __c_fread(_buf_: any, _num_elem_: int, _size_: int, _f_: __c_file): none
