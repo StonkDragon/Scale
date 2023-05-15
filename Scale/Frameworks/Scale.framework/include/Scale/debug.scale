@@ -12,6 +12,10 @@ cdecl "_scl_catch_final"
 expect function __c_scl_catch_final(_sig_: int): none
 cdecl "raise"
 expect function __c_raise(_sig_: int): int
+cdecl "_scl_errno"
+expect function errno(): int
+cdecl "_scl_errno_str"
+expect function strerror(): str
 
 function dumpStack(): none
   c!
@@ -50,8 +54,14 @@ end
 sealed struct Exception
   decl msg: str
   decl stackTrace: const Array
+  decl errnoStr: str
 
   function init(): none
+    if errno then
+      strerror
+    else
+      ""
+    fi => self.errnoStr
     sanitizedStackTrace => self.stackTrace
     "" => self.msg
   end
@@ -73,7 +83,6 @@ end
 
 sealed struct Error: Exception
   function init(msg: str): none
-    sanitizedStackTrace => self.stackTrace
     msg => self.msg
   end
 end

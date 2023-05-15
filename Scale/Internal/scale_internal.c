@@ -962,6 +962,18 @@ void _scl_debug_dump_stacks() {
 	}
 }
 
+scl_int _scl_errno() {
+	return errno;
+}
+
+scl_int8* _scl_errno_ptr() {
+	return strerror(errno);
+}
+
+scl_str _scl_errno_str() {
+	return str_of(_scl_errno_ptr());
+}
+
 void _scl_stack_free() {
 	system_free(_stack.data);
 	_stack.ptr = 0;
@@ -1096,6 +1108,7 @@ _scl_constructor void _scl_load() {
 			Struct _structData;
 			scl_str msg;
 			struct Struct_Array* stackTrace;
+			scl_str errno_str;
 		}* exception;
 
 		scl_str msg = ((exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
