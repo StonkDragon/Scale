@@ -43,6 +43,13 @@ typedef struct Struct {
 	scl_int		size;
 } Struct;
 
+typedef struct Struct_Exception {
+	Struct asSclObject;
+	scl_str msg;
+	struct Struct_Array* stackTrace;
+	scl_str errno_str;
+}* _scl_Exception;
+
 // table of instances
 static Struct** instances;
 static scl_int instances_count = 0;
@@ -220,15 +227,25 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
+void _ZN5Error4initEP10Struct_strP5Error(scl_any, scl_str);
 
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_int8* msg) {
 	if (!b) {
-		printf("\n");
-		printf("Assertion failed: %s\n", msg);
-		print_stacktrace();
+		// TODO: Make this throw an error, not just exit outright.
+		typedef struct Struct_AssertError {
+			Struct _structData;
+			scl_str msg;
+			struct Struct_Array* stackTrace;
+			scl_str errno_str;
+		} _scl_AssertError;
 
-		_scl_security_safe_exit(EX_ASSERTION_FAIL);
+		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) + 20);
+		sprintf(cmsg, "Assertion failed: %s\n", msg);
+		_scl_AssertError* err = NEW(AssertError, Error);
+		_ZN5Error4initEP10Struct_strP5Error(err, str_of(cmsg));
+
+		_scl_throw(err);
 	}
 }
 
@@ -334,7 +351,7 @@ void print_stacktrace_with_file(FILE* trace) {
 
 // final signal handler
 // if we get here, something has gone VERY wrong
-void _scl_catch_final(scl_int sig_num) {
+void _scl_default_signal_handler(scl_int sig_num) {
 	scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) signalString = NULL;
@@ -769,24 +786,66 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 	return -1;
 }
 
+typedef void (*_scl_sigHandler)(scl_int);
+
+void _ZN9Exception4initEP9Exception(_scl_Exception);
+
+void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
+	if (sig < 0 || sig >= 32) {
+		struct Struct_InvalidSignalException {
+			struct Struct_Exception self;
+			scl_int sig;
+		};
+		_scl_Exception e = NEW(InvalidSignalException, Exception);
+		_scl_push()->i = sig;
+		_ZN9Exception4initEP9Exception(e);
+
+		scl_int8* p = (scl_int8*) _scl_alloc(64);
+		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
+		e->msg = str_of(p);
+		
+		_scl_throw(e);
+	}
+	signal(sig, (void(*)(int)) handler);
+}
+
+void _scl_reset_signal_handler(scl_int sig) {
+	if (sig < 0 || sig >= 32) {
+		struct Struct_InvalidSignalException {
+			struct Struct_Exception self;
+			scl_int sig;
+		};
+		_scl_Exception e = NEW(InvalidSignalException, Exception);
+		_scl_push()->i = sig;
+		_ZN9Exception4initEP9Exception(e);
+
+		scl_int8* p = (scl_int8*) _scl_alloc(64);
+		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
+		e->msg = str_of(p);
+		
+		_scl_throw(e);
+	}
+	signal(sig, (void(*)(int)) _scl_default_signal_handler);
+}
+
 void _scl_set_up_signal_handler() {
 #if defined(SIGINT)
-	signal(SIGINT, (void (*)(int)) _scl_catch_final);
+	signal(SIGINT, (void (*)(int)) _scl_default_signal_handler);
 #endif
 #if defined(SIGILL)
-	signal(SIGILL, (void (*)(int)) _scl_catch_final);
+	signal(SIGILL, (void (*)(int)) _scl_default_signal_handler);
 #endif
 #if defined(SIGTRAP)
-	signal(SIGTRAP, (void (*)(int)) _scl_catch_final);
+	signal(SIGTRAP, (void (*)(int)) _scl_default_signal_handler);
 #endif
 #if defined(SIGABRT)
-	signal(SIGABRT, (void (*)(int)) _scl_catch_final);
+	signal(SIGABRT, (void (*)(int)) _scl_default_signal_handler);
 #endif
 #if defined(SIGBUS)
-	signal(SIGBUS, (void (*)(int)) _scl_catch_final);
+	signal(SIGBUS, (void (*)(int)) _scl_default_signal_handler);
 #endif
 #if defined(SIGSEGV)
-	signal(SIGSEGV, (void (*)(int)) _scl_catch_final);
+	signal(SIGSEGV, (void (*)(int)) _scl_default_signal_handler);
 #endif
 }
 
@@ -796,7 +855,7 @@ _scl_frame_t* _scl_push() {
 	if (_stack.ptr >= _stack.cap) {
 		_stack.cap += 64;
 		_scl_frame_t* tmp = system_realloc(_stack.data, sizeof(_scl_frame_t) * _stack.cap);
-		if (!tmp) {
+		if (_scl_expect(!tmp, 0)) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		} else {
 			_stack.data = tmp;
@@ -808,7 +867,7 @@ _scl_frame_t* _scl_push() {
 
 _scl_frame_t* _scl_pop() {
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_stack.ptr <= 0) {
+	if (_scl_expect(_stack.ptr <= 0, 0)) {
 		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
 	}
 #endif
@@ -826,7 +885,7 @@ _scl_frame_t* _scl_positive_offset(scl_int offset) {
 
 _scl_frame_t* _scl_top() {
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_stack.ptr <= 0) {
+	if (_scl_expect(_stack.ptr <= 0, 0)) {
 		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
 	}
 #endif
@@ -838,7 +897,7 @@ void _scl_popn(scl_int n) {
 	_stack.ptr -= n;
 
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_stack.ptr < 0) {
+	if (_scl_expect(_stack.ptr < 0, 0)) {
 		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
 	}
 #endif
@@ -1044,7 +1103,10 @@ int main(int argc, char** argv) {
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
-	_scl_assert(byte[0], "Invalid byte order detected!");
+	if (!byte[0]) {
+		fprintf(stderr, "Invalid byte order detected!");
+		exit(-1);
+	}
 #endif
 
 	// Register signal handler for all available signals
@@ -1076,7 +1138,10 @@ _scl_constructor void _scl_load() {
 	// Endian-ness detection
 	short word = 0x0001;
 	char *byte = (char*) &word;
-	_scl_assert(byte[0], "Invalid byte order detected!");
+	if (!byte[0]) {
+		fprintf(stderr, "Invalid byte order detected!");
+		exit(-1);
+	}
 #endif
 
 	_scl_create_stack();
@@ -1103,15 +1168,8 @@ _scl_constructor void _scl_load() {
 		ret = (_scl_main ? _scl_main(args, env) : 0);
 #endif
 	} else {
-		
-		typedef struct {
-			Struct _structData;
-			scl_str msg;
-			struct Struct_Array* stackTrace;
-			scl_str errno_str;
-		}* exception;
 
-		scl_str msg = ((exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
 
 		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
 		if (msg) {

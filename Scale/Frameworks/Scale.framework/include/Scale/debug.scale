@@ -8,14 +8,18 @@ expect function throw(ex: Exception): none
 
 cdecl "_scl_security_safe_exit"
 expect function __c_exit(i: int): none
-cdecl "_scl_catch_final"
-expect function __c_scl_catch_final(_sig_: int): none
+cdecl "_scl_default_signal_handler"
+expect function __c_scl_default_signal_handler(_sig_: int): none
 cdecl "raise"
 expect function __c_raise(_sig_: int): int
 cdecl "_scl_errno"
 expect function errno(): int
 cdecl "_scl_errno_str"
 expect function strerror(): str
+cdecl "_scl_set_signal_handler"
+expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+cdecl "_scl_reset_signal_handler"
+expect function resetSignalHandler(sig: int): none
 
 function dumpStack(): none
   c!
@@ -33,13 +37,13 @@ function crash(): none
 end
 
 function raise(_sig_: int): none
-  if _sig_ 2 != _sig_ 4 != && _sig_ 6 != _sig_ 8 != && && _sig_ 11 != && then
+  if _sig_ 2 != _sig_ 4 != && _sig_ 5 != _sig_ 6 != && && _sig_ 10 != _sig_ 11 != && && then
     _sig_ __c_raise => decl raised
     if raised ! then
-      _sig_ __c_scl_catch_final
+      _sig_ __c_scl_default_signal_handler
     fi
   else
-    _sig_ __c_scl_catch_final
+    _sig_ __c_scl_default_signal_handler
   fi
 end
 
@@ -54,7 +58,7 @@ end
 sealed struct Exception
   decl msg: str
   decl stackTrace: const Array
-  decl errnoStr: str
+  decl errnoStr: readonly str
 
   function init(): none
     if errno then
@@ -62,15 +66,9 @@ sealed struct Exception
     else
       ""
     fi => self.errnoStr
-    sanitizedStackTrace => self.stackTrace
+    Thread::stackTrace => self.stackTrace
+    self.stackTrace:pop
     "" => self.msg
-  end
-
-  private sealed function sanitizedStackTrace() stackTrace: Array
-    Thread::stackTrace => stackTrace
-    stackTrace:pop
-    stackTrace:pop
-    return
   end
 
   export sealed function printStackTrace(): none
@@ -81,11 +79,21 @@ sealed struct Exception
   end
 end
 
+final sealed struct InvalidSignalException: Exception
+  decl sig: readonly int
+
+  function init(sig: int): none
+    sig => self.sig
+  end
+end
+
 sealed struct Error: Exception
   function init(msg: str): none
     msg => self.msg
   end
 end
+
+final sealed struct AssertError: Error end
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]

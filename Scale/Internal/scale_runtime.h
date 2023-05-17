@@ -300,15 +300,19 @@ typedef struct {
 
 typedef void(*_scl_lambda)(void);
 
-#define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), (_super))
-#define NEW0(_type)				NEW(_type, SclObjectHash)
+// Create a new instance of a struct that does not directly extend SclObject
+#define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super))
+// Create a new instance of a struct
+#define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
+
+#undef NEW_
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 _scl_no_return void _scl_callstack_overflow(scl_int8* func);
 _scl_no_return void	_scl_unreachable(scl_int8* msg);
 
-void				_scl_catch_final(scl_int sig_num);
+void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 void				print_stacktrace_with_file(FILE* trace);
 
@@ -348,6 +352,7 @@ void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push();
+void				_scl_throw(void* ex);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
