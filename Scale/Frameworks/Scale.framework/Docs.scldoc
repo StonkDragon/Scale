@@ -771,8 +771,40 @@ Returns true, if both threads represent the same pthread instance.
 ### struct Exception
 Member types:
 - <<WHITE>>msg<<BLUE>>: str<<RESET>>
+- <<WHITE>>stackTrace<<BLUE>>: const <<WHITE>>Array<<RESET>>
+- <<WHITE>>errnoStr<<BLUE>>: readonly str<<RESET>>
 
 <<WHITE>>msg<<RESET>>: Contains the exception message.
+<<WHITE>>stackTrace<<RESET>>: Contains the stack trace.
+<<WHITE>>errnoStr<<RESET>>: Contains the string representation of errno at the time of initialization.
+
+### function Exception:printStackTrace(): none
+Prints the stack trace of this exception to stderr.
+
+### function Exception::new(): none
+Creates a new exception.
+
+## InvalidSignalException
+### struct InvalidSignalException : Exception
+Member types inherited from <<WHITE>>Exception<<RESET>>.
+This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+
+### function InvalidSignalException::new(signal: int): none
+Creates a new InvalidSignalException with the signal <<WHITE>>signal<<RESET>>.
+This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+
+## Error
+### struct Error : Exception
+Member types inherited from <<WHITE>>Exception<<RESET>>.
+Errors are not catchable in a try-catch and will always throw to the first try block (the try block in native code surrounding the call to <<WHITE>>main<<RESET>>).
+
+### function Error::new(message: str): none
+Creates a new Error with the given message.
+
+## AssertError
+### struct AssertError : Error
+Member types inherited from <<WHITE>>Error<<RESET>>.
+This error is only thrown when an assertion failed.
 
 ## Debug
 ### function trace(): none
@@ -789,6 +821,12 @@ Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> bloc
 
 ### function sysPrettyString(): str
 Returns a string containing the OS name and architecture.
+
+### function setSignalHandler(handlerFun: lambda(int): none, signal: int): none
+Sets the signal handler for the given signal.
+
+### function resetSignalHandler(sig: int): none
+Resets the signal handler for the given signal to the default signal handler.
 
 @std.io
 ## ConsoleColor
