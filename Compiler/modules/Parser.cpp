@@ -69,7 +69,7 @@ namespace sclc
 
         remove("scale_support.h");
         support_header = fopen("scale_support.h", "a");
-        fprintf(support_header, "#include <scale_internal.h>\n\n");
+        fprintf(support_header, "#include <scale_runtime.h>\n\n");
 
         if (
             featureEnabled("default-interface-implementation") ||
