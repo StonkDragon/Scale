@@ -452,11 +452,14 @@ namespace sclc {
         return method;
     }
 
+    bool isPrimitiveIntegerType(std::string);
+
     TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
         Interface* currentInterface = nullptr;
+        Deprecation currentDeprecation;
 
         bool isInLambda = false;
 
@@ -515,7 +518,7 @@ namespace sclc {
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");
             builtinTypeEquals->addModifier("cdecl");
-            builtinTypeEquals->addModifier("_scl_struct_is_type");
+            builtinTypeEquals->addModifier("_scl_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
             builtinTypeEquals->addArgument(Variable("typeId", "int32"));
@@ -530,7 +533,7 @@ namespace sclc {
 
             builtinToString->setReturnType("str");
 
-            // if val is SclObject then val as SclObject:toString return else val longToString return fi
+            // if val is SclObject then val as SclObject:toString return else val int::toString return fi
             builtinToString->addToken(Token(tok_if, "if", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_is, "is", 0, "<builtin>"));
@@ -544,7 +547,9 @@ namespace sclc {
             builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "longToString", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "int", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_double_column, "::", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtin>"));
             builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
 
             functions.push_back(builtinToString);
@@ -585,9 +590,17 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
+                        currentFunction->member_type = currentStruct->getName();
                         currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
+                        }
+                        if (contains<std::string>(nextAttributes, "expect")) {
+                            currentFunction->isExternC = true;
+                            extern_functions.push_back(currentFunction);
+                            currentFunction = nullptr;
                         }
                         nextAttributes.clear();
                         continue;
@@ -598,6 +611,11 @@ namespace sclc {
                     currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
+                    }
+                    if (contains<std::string>(nextAttributes, "expect")) {
+                        currentFunction->isExternC = true;
+                        extern_functions.push_back(currentFunction);
+                        currentFunction = nullptr;
                     }
                     nextAttributes.clear();
                     continue;
@@ -629,6 +647,8 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                        functionToImplement->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
                     }
                     nextAttributes.clear();
@@ -657,11 +677,11 @@ namespace sclc {
                     if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
-                        result.value = tokens[i + 1].getValue();
-                        result.line = tokens[i + 1].getLine();
-                        result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i + 1].getType();
-                        result.column = tokens[i + 1].getColumn();
+                        result.value = func.getValue();
+                        result.line = func.getLine();
+                        result.in = func.getFile();
+                        result.type = func.getType();
+                        result.column = func.getColumn();
                         result.success = false;
                         errors.push_back(result);
                         nextAttributes.clear();
@@ -672,9 +692,16 @@ namespace sclc {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                    currentFunction->deprecated = currentDeprecation;
+                    currentDeprecation.clear();
                 }
                 for (std::string s : nextAttributes) {
                     currentFunction->addModifier(s);
+                }
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    currentFunction->isExternC = true;
+                    extern_functions.push_back(currentFunction);
+                    currentFunction = nullptr;
                 }
                 nextAttributes.clear();
 
@@ -804,7 +831,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
@@ -879,44 +906,9 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "none") {
                     FPResult result;
-                    result.message = "Invalid name for struct: '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
-                for (std::string m : nextAttributes) {
-                    if (m == "sealed")
-                        currentStruct->toggleSealed();
-                    if (m == "valuetype")
-                        currentStruct->toggleReferenceType();
-                    if (m == "referencetype")
-                        currentStruct->toggleValueType();
-                    if (m == "nowarn")
-                        currentStruct->toggleWarnings();
-                    if (m == "static") {
-                        currentStruct->toggleValueType();
-                        currentStruct->toggleReferenceType();
-                        currentStruct->toggleStatic();
-                    }
-                }
-                for (size_t i = 0; i < nextAttributes.size(); i++) {
-                    if (nextAttributes[i] == "autoimpl") {
-                        i++;
-                        currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
-                    }
-                }
-                
-                if (!(currentStruct->heapAllocAllowed() || currentStruct->stackAllocAllowed()) && !currentStruct->isStatic()) {
-                    FPResult result;
-                    result.message = "Struct '" + tokens[i].getValue() + "' cannot be instanciated";
+                    result.message = "Invalid name for struct: '" + tokens[i].getValue() + "'";
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -926,6 +918,24 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
+                currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
+                for (std::string m : nextAttributes) {
+                    if (m == "sealed")
+                        currentStruct->toggleSealed();
+                    if (m == "static") {
+                        currentStruct->toggleStatic();
+                    }
+                    if (m == "final") {
+                        currentStruct->toggleFinal();
+                    }
+                }
+                for (size_t i = 0; i < nextAttributes.size(); i++) {
+                    if (nextAttributes[i] == "autoimpl") {
+                        i++;
+                        currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
+                    }
+                }
+                
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
                 if (tokens[i + 1].getType() == tok_column) {
@@ -1156,7 +1166,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any") {
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
                     FPResult result;
                     result.message = "Invalid name for interface: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
@@ -1188,105 +1198,6 @@ namespace sclc {
                     i++;
                 } else {
                     currentFunction->addToken(token);
-                }
-            } else if (token.getType() == tok_extern && currentFunction == nullptr && currentContainer == nullptr && currentInterface == nullptr) {
-                Token extToken = token;
-                i++;
-                if (tokens[i].getValue() == "static") {
-                    nextAttributes.push_back("static");
-                    i++;
-                }
-                Token type = tokens[i];
-                if (type.getType() == tok_function) {
-                    if (currentStruct != nullptr) {
-                        if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
-                            std::string name = tokens[i + 1].getValue();
-                            Token func = tokens[i + 1];
-                            Function* function = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
-                            function->isExternC = true;
-                            nextAttributes.clear();
-                            extern_functions.push_back(function);
-                            continue;
-                        }
-                        Token func = tokens[i + 1];
-                        std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
-                        function->isExternC = true;
-                        extern_functions.push_back(function);
-                        nextAttributes.clear();
-                        continue;
-                    }
-                    if (tokens[i + 2].getType() == tok_column) {
-                        std::string member_type = tokens[i + 1].getValue();
-                        i += 2;
-                        Token func = tokens[i + 1];
-                        std::string name = func.getValue();
-                        Function* function = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
-                        function->isExternC = true;
-                        extern_functions.push_back(function);
-                    } else {
-                        std::string name = tokens[i + 1].getValue();
-                        Token funcTok = tokens[i + 1];
-                        Function* func = parseFunction(name, funcTok, errors, nextAttributes, i, tokens);
-                        func->isExternC = true;
-                        extern_functions.push_back(func);
-                    }
-                    nextAttributes.clear();
-                } else if (type.getType() == tok_declare) {
-                    i++;
-                    if (tokens[i].getType() != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected itentifier for variable name, but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    std::string name = tokens[i].getValue();
-                    std::string type = "any";
-                    i++;
-                    bool isConst = false;
-                    bool isMut = false;
-                    if (tokens[i].getType() == tok_column) {
-                        i++;
-                        FPResult r = parseType(tokens, &i);
-                        if (!r.success) {
-                            errors.push_back(r);
-                            continue;
-                        }
-                        type = r.value;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
-                        if (type == "none") {
-                            FPResult result;
-                            result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                    }
-                    Variable v = Variable(name, type, isConst, isMut);
-                    v.canBeNil = typeCanBeNil(v.getType());
-                    extern_globals.push_back(v);
-                } else {
-                    FPResult result;
-                    result.message = "Expected 'function' or 'decl', but got '" + tokens[i].getValue() + "'";
-                    result.column = tokens[i].getColumn();
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
                 if (token.getValue() == "lambda" && (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
@@ -1332,10 +1243,14 @@ namespace sclc {
                         continue;
                     }
                 }
-                nextAttributes.clear();
                 Variable v = Variable(name, type, isConst, isMut);
                 v.canBeNil = typeCanBeNil(v.getType());
-                globals.push_back(v);
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    extern_globals.push_back(v);
+                } else {
+                    globals.push_back(v);
+                }
+                nextAttributes.clear();
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -1473,6 +1388,9 @@ namespace sclc {
 
                 auto validAttribute = [](Token& t) -> bool {
                     return t.getType()  == tok_string_literal ||
+                           t.getValue() == "sinceVersion:" ||
+                           t.getValue() == "replaceWith:" ||
+                           t.getValue() == "deprecated!" ||
                            t.getValue() == "no_cleanup" ||
                            t.getValue() == "construct" ||
                            t.getValue() == "autoimpl" ||
@@ -1506,7 +1424,78 @@ namespace sclc {
                     }
                     std::string replacement = tokens[i].getValue();
                     typealiases[type] = replacement;
+                } else if (tokens[i].getValue() == "deprecated!") {
+                    i++;
+                    if (tokens[i].getType() != tok_bracket_open) {
+                        FPResult result;
+                        result.message = "Expected '[', but got '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
+                    }
+                    i++;
+                    #define expect(value, ...) if (!(__VA_ARGS__)) { \
+                        FPResult result; \
+                        result.message = "Expected " + std::string(value) + ", but got '" + tokens[i].getValue() + "'"; \
+                        result.va ## lue = tokens[i].getValue(); \
+                        result.line = tokens[i].getLine(); \
+                        result.in = tokens[i].getFile(); \
+                        result.type = tokens[i].getType(); \
+                        result.column = tokens[i].getColumn(); \
+                        result.success = false; \
+                        errors.push_back(result); \
+                        continue; \
+                    }
+                    #define invalidKey(key, type) do {\
+                        FPResult result; \
+                        result.message = "Invalid key for '" + std::string(type) + "': '" + key + "'"; \
+                        result.value = tokens[i].getValue(); \
+                        result.line = tokens[i].getLine(); \
+                        result.in = tokens[i].getFile(); \
+                        result.ty ## pe = tokens[i].getType(); \
+                        result.column = tokens[i].getColumn(); \
+                        result.success = false; \
+                        errors.push_back(result); \
+                        continue; \
+                    } while (0)
+
+                    currentDeprecation[".name"] = "deprecated!";
+                    
+                    while (tokens[i].getType() != tok_bracket_close && i < tokens.size()) {
+                        std::string key = tokens[i].getValue();
+                        i++;
+
+                        expect("':'", tokens[i].getType() == tok_column);
+                        i++;
+
+                        if (key == "since" || key == "replacement") {
+                            expect("string", tokens[i].getType() == tok_string_literal);
+                        } else if (key == "forRemoval") {
+                            expect("boolean", tokens[i].getType() == tok_true || tokens[i].getType() == tok_false);
+                        } else {
+                            invalidKey(key, "deprecated!");
+                        }
+                        std::string value = tokens[i].getValue();
+                        currentDeprecation[key] = value;
+                        i++;
+                        if (tokens[i].getType() == tok_comma) {
+                            i++;
+                        }
+                    }
+
+                    #undef invalidKey
+                    #undef expect
                 } else if (validAttribute(tokens[i])) {
+                    if (tokens[i].getValue() == "construct" && currentStruct != nullptr) {
+                        nextAttributes.push_back("private");
+                        nextAttributes.push_back("static");
+                    }
                     nextAttributes.push_back(tokens[i].getValue());
                 }
             }
@@ -1556,6 +1545,30 @@ namespace sclc {
                     oldSuper = super;
                     super = getStructByName(result, "SclObject");
                 }
+                if (super.isFinal()) {
+                    FPResult r;
+                    r.message = "Struct '" + super.getName() + "' is final";
+                    r.value = s.nameToken().getValue();
+                    r.line = s.nameToken().getLine();
+                    r.in = s.nameToken().getFile();
+                    r.type = s.nameToken().getType();
+                    r.column = s.nameToken().getColumn();
+                    r.column = s.nameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    FPResult r2;
+                    r2.message = "Declared here:";
+                    r2.value = super.nameToken().getValue();
+                    r2.line = super.nameToken().getLine();
+                    r2.in = super.nameToken().getFile();
+                    r2.type = super.nameToken().getType();
+                    r2.column = super.nameToken().getColumn();
+                    r2.column = super.nameToken().getColumn();
+                    r2.success = false;
+                    r2.isNote = true;
+                    result.errors.push_back(r2);
+                    goto nextIter;
+                }
                 std::vector<Variable> vars = super.getDefinedMembers();
                 for (ssize_t i = vars.size() - 1; i >= 0; i--) {
                     s.addMember(vars[i], true);
@@ -1564,15 +1577,21 @@ namespace sclc {
                 super = getStructByName(result, super.extends());
             }
             newStructs.push_back(s);
+        nextIter: (void) 0;
         }
         result.structs = newStructs;
         newStructs.clear();
         for (Struct s : result.structs) {
+            if (s.isStatic()) {
+                newStructs.push_back(s);
+                continue;
+            }
             auto createToStringMethod = [](Struct& s) -> Method* {
                 Token t(tok_identifier, "toString", 0, "<generated>");
                 Method* toString = new Method(s.getName(), std::string("toString"), t);
                 std::string stringify = s.getName() + " {";
                 toString->setReturnType("str");
+                toString->addModifier("<generated>");
                 toString->addArgument(Variable("self", "mut " + s.getName()));
                 toString->addToken(Token(tok_string_literal, stringify, 0, "<generated1>"));
 
@@ -1594,7 +1613,6 @@ namespace sclc {
                         toString->addToken(Token(tok_identifier, "builtinToString", 0, "<generated10>"));
                     }
                     toString->addToken(Token(tok_add, "+", 0, "<generated11>"));
-
                 }
                 toString->addToken(Token(tok_string_literal, "}", 0, "<generated12>"));
                 toString->addToken(Token(tok_add, "+", 0, "<generated13>"));
@@ -1603,7 +1621,8 @@ namespace sclc {
                 return toString;
             };
             bool hasImplementedToString = false;
-            if (!getMethodByNameOnThisType(result, "toString", s.getName())) {
+            Method* toString = getMethodByName(result, "toString", s.getName());
+            if (!toString || contains<std::string>(toString->getModifiers(), "<generated>")) {
                 result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
             }

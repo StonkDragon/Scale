@@ -1,5 +1,5 @@
-#if !defined(_SCALE_INTERNAL_H_)
-#define _SCALE_INTERNAL_H_
+#if !defined(_SCALE_RUNTIME_H_)
+#define _SCALE_RUNTIME_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@
 #define export
 
 #define str_of(_cstr) _scl_create_string((_cstr))
-#define cstr_of(_scl_string) ((_scl_string)->_data)
+#define cstr_of(Struct_str) ((Struct_str)->_data)
 
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
@@ -130,6 +130,12 @@
 #define EX_UNREACHABLE			141
 
 #define ssize_t signed long
+
+#if defined(__LITTLE_ENDIAN__)
+#if __LITTLE_ENDIAN__
+#define SCL_KNOWN_LITTLE_ENDIAN
+#endif
+#endif
 
 #if __SIZEOF_POINTER__ < 8
 // WASM or 32-bit system
@@ -177,10 +183,12 @@ typedef void*				scl_any;
 
 #if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
+#define SCL_PTR_HEX_FMT 	"0x%016lx"
 #define SCL_INT_FMT		 	"%ld"
 typedef long				scl_int;
 #else
 #define SCL_INT_HEX_FMT 	"%llx"
+#define SCL_PTR_HEX_FMT 	"0x%016llx"
 #define SCL_INT_FMT		 	"%lld"
 typedef long long			scl_int;
 #endif
@@ -191,7 +199,7 @@ typedef size_t				scl_uint;
 typedef unsigned long long	scl_uint;
 #endif
 
-typedef struct _scl_string* scl_str;
+typedef struct scaleString* scl_str;
 typedef double 				scl_float;
 
 #define SCL_int64_MAX		INT64_MAX
@@ -220,7 +228,7 @@ typedef unsigned int 		scl_uint32;
 typedef unsigned short 		scl_uint16;
 typedef unsigned char 		scl_uint8;
 
-struct _scl_string {
+struct scaleString {
 	scl_int		$__type__;
 	scl_int8*	$__type_name__;
 	scl_int		$__super__;
@@ -228,6 +236,7 @@ struct _scl_string {
 	scl_int8*	_data;
 	scl_int		_len;
 	scl_int		_iter;
+	scl_int		_hash;
 };
 
 #if defined(__ANDROID__)
@@ -276,15 +285,6 @@ typedef union {
 	scl_str		s;
 	scl_float	f;
 	scl_any		v;
-
-	scl_int8	i8;
-	scl_int16	i16;
-	scl_int32	i32;
-	scl_int64	i64;
-	scl_uint8	u8;
-	scl_uint16	u16;
-	scl_uint32	u32;
-	scl_uint64  u64;
 } _scl_frame_t;
 
 typedef struct {
@@ -294,26 +294,25 @@ typedef struct {
 } _scl_stack_t;
 
 typedef struct {
-	scl_int8* 		file;
-	scl_int8*		func;
-	scl_int			line;
-	scl_int 		col;
-	scl_int 		begin_stack_size;
-	scl_int 		begin_var_count;
-	scl_int 		sp;
-} _scl_callframe_t;
-
-typedef struct {
-	ssize_t				ptr;
-	_scl_callframe_t	data[EXCEPTION_DEPTH];
+	scl_int8*		func[EXCEPTION_DEPTH];
+	scl_int			ptr;
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
 
+// Create a new instance of a struct that does not directly extend SclObject
+#define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super))
+// Create a new instance of a struct
+#define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
+
+#undef NEW_
+
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
+_scl_no_return void _scl_callstack_overflow(scl_int8* func);
+_scl_no_return void	_scl_unreachable(scl_int8* msg);
 
-void				_scl_catch_final(scl_int sig_num);
+void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 void				print_stacktrace_with_file(FILE* trace);
 
@@ -333,6 +332,8 @@ _scl_frame_t*		_scl_offset(scl_int offset);
 _scl_frame_t*		_scl_positive_offset(scl_int offset);
 void				_scl_popn(scl_int n);
 scl_str				_scl_create_string(scl_int8* data);
+void				_scl_stack_new();
+void				_scl_stack_free();
 
 void				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
@@ -342,6 +343,7 @@ scl_int				_scl_check_allocated(scl_any ptr);
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
+scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
 void				_scl_not_nil_cast(scl_int val, scl_int8* name);
@@ -349,24 +351,23 @@ void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
-void				_scl_unreachable(scl_int8* msg);
 void				_scl_exception_push();
+void				_scl_throw(void* ex);
 
 const hash			hash1(const scl_int8* data);
-void				_scl_cleanup_post_func(scl_int depth);
+const hash			hash1len(const scl_int8* data, size_t len);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
-scl_int				_scl_struct_is_type(scl_any ptr, hash typeId);
+scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
+void				_scl_remove_stack(_scl_stack_t* stack);
+scl_int				_scl_stack_index(_scl_stack_t* stack);
+void				_scl_remove_stack_at(scl_int index);
 
-void				_scl_reflect_call(hash func);
-void				_scl_reflect_call_method(hash func);
 scl_any				_scl_typeinfo_of(hash type);
-scl_int				_scl_reflect_find(hash func);
-scl_int				_scl_reflect_find_method(hash func);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 
@@ -403,4 +404,4 @@ inline void _scl_swap2() {
 	_scl_push()->v = c;
 }
 
-#endif // __SCALE_INTERNAL_H__
+#endif // __SCALE_RUNTIME_H__

@@ -1,8 +1,8 @@
-referencetype sealed struct Pair
+final sealed struct Pair
 	decl a: any
 	decl b: any
 
-	export function init(a: any, b: any): none
+	function init(a: any, b: any): none
 		a => self.a
 		b => self.b
 	end
@@ -11,12 +11,12 @@ referencetype sealed struct Pair
 		if a is SclObject then
 			a as SclObject:toString
 		else
-			a longToString
+			a int::toString
 		fi => decl aStr: str
 		if b is SclObject then
 			b as SclObject:toString
 		else
-			b longToString
+			b int::toString
 		fi => decl bStr: str
 		
 		"(" aStr + ", " + bStr + ")" + return

@@ -7,12 +7,18 @@ cdecl "ctrl_stack_size"
 expect function sizeofStack(): int
 cdecl "_scl_sleep"
 expect function sleep(_millis_: int): none
+cdecl "_scl_alloc"
+expect function malloc(_sz_: int): [any]
+cdecl "_scl_free"
+expect function free(_ptr_: [any]): none
+cdecl "_scl_realloc"
+expect function realloc(_ptr_: [any], _sz_: int): [any]
 
 cdecl "system"
 expect function __c_system(cmd: [int8]): int
 cdecl "getenv"
 expect function __c_getenv(cmd: [int8]): [int8]?
-cdecl "strdup"
+cdecl "_scl_strdup"
 expect function __c_strdup(s: [int8]): [int8]
 cdecl "strtok"
 expect function __c_strtok(s: any, delim: [int8]): [int8]?
@@ -20,10 +26,6 @@ cdecl "atoll"
 expect function __c_atoll(s: [int8]): int64
 cdecl "atof"
 expect function __c_atof(s: [int8]): float
-
-expect function _scl_alloc(_sz_: int): [any]
-expect function _scl_realloc(_ptr_: [any], _sz_: int): [any]
-expect function _scl_free(_ptr_: [any]): none
 
 function system(_cmd_: str): int
   _cmd_:view __c_system return
@@ -37,18 +39,6 @@ function getenv(_key_: str): str?
   nil return
 end
 
-function malloc(_size_: int): [any]
-  _size_ _scl_alloc return
-end
-
-function realloc(_size_: int, _ptr_: [any]): [any]
-  _ptr_ _size_ _scl_realloc return
-end
-
-function free(_ptr_: [any]): none
-  _ptr_ _scl_free
-end
-
 function time(): float
   decl secs: float
   c!
@@ -59,6 +49,7 @@ function time(): float
   secs return
 end
 
+deprecated![since: "23.5", replacement: "int::toString"]
 function longToString(_long_: int): str
   25 malloc => decl out: [int8]
   c!
@@ -67,10 +58,12 @@ function longToString(_long_: int): str
   out str::new return
 end
 
+deprecated![since: "23.5", replacement: "int::parse"]
 function stringToLong(_str_: str): int
   _str_:view __c_atoll as int return
 end
 
+deprecated![since: "23.5", replacement: "float::toString"]
 function stringToDouble(_str_: str): float
   c!
     _scl_push()->f = (scl_float) atof((*_str_)->_data);
@@ -78,6 +71,7 @@ function stringToDouble(_str_: str): float
   as float return
 end
 
+deprecated![since: "23.5", replacement: "float::parse"]
 function doubleToString(_double_: float): str
   100 malloc => decl out: [int8]
   c!
@@ -86,6 +80,7 @@ function doubleToString(_double_: float): str
   out str::new return
 end
 
+deprecated![since: "23.5"]
 function nop(): none
   0 sleep
 end

@@ -1,7 +1,7 @@
 import std.util.Pair
 import std.util.Iterable
 
-sealed struct MapEntry
+final sealed struct MapEntry
   decl key: str
   decl value: any
 
@@ -14,7 +14,7 @@ sealed struct MapEntry
     if value is SclObject then
       key ": " + value as SclObject:toString + return
     else
-      key ": " + value as int longToString + return
+      key ": " + value as int int::toString + return
     fi
   end
 end
@@ -54,6 +54,10 @@ sealed struct Map is IIterable
       fi
     done
     key value MapEntry::new self.data:push
+  end
+
+  function begin(): none
+    self.data:begin
   end
 
   function hasNext(): bool

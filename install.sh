@@ -65,5 +65,10 @@ for f in /opt/Scale/*; do
     fi
 done
 
+version=$(dragon config -get-key VERSION)
+
+sudo rm -f /opt/Scale/latest
+sudo ln -s /opt/Scale/$version /opt/Scale/latest
+
 echo "---------"
 echo "Done..."

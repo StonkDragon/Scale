@@ -1,6 +1,6 @@
 import std.threading.Thread
 
-struct AtomicInteger
+final struct AtomicInteger
     private decl value: int
     private decl mutex: pthread_mutex_t
 
@@ -100,7 +100,7 @@ struct AtomicInteger
     end
 
     function toString(): str
-        self.value longToString return
+        self.value int::toString return
     end
 
     function intValue(): int

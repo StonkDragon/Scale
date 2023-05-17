@@ -1,0 +1,7 @@
+function main(): none
+    64 any::new => decl val
+    val any::size puts
+    val any::delete
+    val any::size puts
+    any::default any::size puts
+end

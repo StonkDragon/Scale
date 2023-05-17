@@ -1,4 +1,591 @@
-# Scale Documentation
+# Scale Language Reference
+## Keywords: Functions, Structs, ...
+### function
+The keyword used to create a new function.
+Every function has a name, a return type, and 0 or more arguments.
+The syntax for creating a function is as follows:
+
+<<BLUE>>function <<WHITE>>foo<<BLUE>>(<<WHITE>>arg<<BLUE>>: int): int<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>end<<RESET>>
+
+Functions always end with the <<BLUE>>end<<RESET>> keyword.
+
+### lambda
+Lambdas are anonomous functions.
+A lambda specifies it's arguments and return type in the same way as a function:
+
+<<BLUE>>lambda(<<WHITE>>x<<BLUE>>: int): int<<RESET>>
+    <<CYAN>># body
+<<BLUE>>end<<RESET>>
+
+A lambda can be called by applying the `accept` method to it.
+
+### typealias
+This keyword is used to create a Scale alias for a C type.
+The syntax is as follows:
+
+<<BLUE>>typealias <<WHITE>>ScaleName <<GREEN>>"c_type_t"<<RESET>>
+
+Where the C type must be specified within quotes as it may contain special characters such as '*'
+The Scale name must be a valid identifier.
+
+### container
+Containers are a legacy feature allowing the grouping of multiple variables.
+It is advised to use a static struct (See: <<BLUE>>struct<<RESET>>) instead of a container as static structs offer more functionality.
+If you still wish to use a container, this is how the syntax works:
+
+<<BLUE>>container <<WHITE>>Container<<RESET>>
+    <<CYAN>># variable declarations<<RESET>>
+<<BLUE>>end<<RESET>>
+
+### struct
+The <<BLUE>>struct<<RESET>> keyword allows you to create your own complex data types.
+Structs can contain variables and functions:
+
+<<BLUE>>struct <<WHITE>>Foo<<RESET>>
+    <<BLUE>>decl <<WHITE>>x<<BLUE>>: int<<RESET>>
+
+    <<BLUE>>function <<WHITE>>foo<<BLUE>>(): none<<RESET>>
+        <<CYAN>># body<<RESET>>
+    <<BLUE>>end<<RESET>>
+
+<<BLUE>>end<<RESET>>
+
+Applying the <<BLUE>>static<<RESET>> modifier to a struct automatically makes every member of the struct a static member and disables initialization of the struct.
+
+### self
+The <<BLUE>>self<<RESET>> keyword is only available in member functions of structs.
+It is used to reference the current instance of the struct inside the function.
+
+### super
+<<BLUE>>super<<RESET>> is a special method that can only be called in a struct initializer to call the super-struct's initializer method.
+It may not be used, if the super-struct's initializer method takes no arguments. This is enforced by the compiler.
+
+### enum
+Enums are a collection of named integer constants.
+An enum can be created like this:
+
+<<BLUE>>enum <<WHITE>>Bar<<RESET>>
+    <<WHITE>>first<<CYAN>> # evaluates to 0<<RESET>>
+    <<WHITE>>second<<CYAN>> # evaluates to 1<<RESET>>
+    <<WHITE>>third<<CYAN>> # evaluates to 2<<RESET>>
+<<BLUE>>end<<RESET>>
+
+### interface
+Interfaces provide a way to group and name functionality of a struct.
+An interface can be defined like this:
+
+<<BLUE>>interface <<WHITE>>IRandom<<RESET>>
+    <<BLUE>>function <<WHITE>>random<<BLUE>>(): int<<RESET>>
+<<BLUE>>end<<RESET>>
+
+It is important to remember that functions in an interface may NOT have an implementation, unless the feature 'default-interface-implementation' is enabled.
+
+## Keywords: Modifiers, Visibility, ...
+### import
+The <<BLUE>>import<<RESET>> keyword is used to import a module (See: <<BLUE>>Frameworks/Modules<<RESET>>) from a Framework.
+The syntax is as follows:
+
+<<BLUE>>import <<WHITE>>module<<BLUE>>.<<WHITE>>foo<<RESET>>
+
+### export
+The <<BLUE>>export<<RESET>> keyword is used to export a function from the current translation context.
+This allows that function to be referenced in a different context using the <<BLUE>>expect<<RESET>> keyword.
+The syntax is as follows:
+
+<<BLUE>>export function <<WHITE>>random<<BLUE>>(): int<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>end<<RESET>>
+
+Using <<BLUE>>export<<RESET>> also has the side effect of making the function visible in C.
+
+### expect
+The <<BLUE>>expect<<RESET>> keyword is used to reference a function from a different translation context.
+The syntax is as follows:
+
+<<BLUE>>expect function <<WHITE>>random<<BLUE>>(): int<<RESET>>
+
+Functions marked with <<BLUE>>expect<<RESET>> do not have a body.
+
+A side effect of using <<BLUE>>expect<<RESET>> is, that it can reference C functions as well, allowing the use of C functions in scale.
+
+### construct
+The <<BLUE>>construct<<RESET>> modifier marks a function as a global constructor, which means that it will run before <<WHITE>>main<<RESET>> and is usually used to set up things before.
+
+### final
+The <<BLUE>>final<<RESET>> modifier marks a function as a global destructor, which means that it will run after <<WHITE>>main<<RESET>> and is usually used to clean up things after.
+
+### private
+The <<BLUE>>private<<RESET>> modifier is only effective in a struct.
+It hides members of the struct from other pieces of code, making them only accessible from other members of the struct.
+
+### cdecl
+The <<BLUE>>cdecl<<RESET>> modifier is used to change the symbol of the function.
+Together with <<BLUE>>expect<<RESET>> this makes it possible to reference C functions with a different name.
+
+### asm
+The <<BLUE>>cdecl<<RESET>> modifier is used to change the symbol of the function.
+Together with <<BLUE>>expect<<RESET>> this makes it possible to reference C functions with a different name.
+
+The only difference to <<BLUE>>cdecl<<RESET>> is, that it does not prepend the '_' to the symbol, which some C compilers do.
+
+### static
+The <<BLUE>>static<<RESET>> keyword is only effective in structs.
+It makes the member it is applied to a static member of the struct, meaning no instance is required to use it.
+Applying this modifier to the struct definition itself applies the modifier to every member of the struct.
+
+### decl
+The <<BLUE>>decl<<RESET>> keyword is used to create a new variable.
+The syntax is as follows:
+
+<<BLUE>>decl <<WHITE>>x<<BLUE>>: <<WHITE>>Type<<RESET>>
+
+Where <<WHITE>>x<<RESET>> is the name and <<WHITE>>Type<<RESET>> is the type of the variable.
+Type modifiers may be added immediately in front of the type after the <<BLUE>>:<<RESET>>
+
+### ref
+The <<BLUE>>ref<<RESET>> keyword is used to retreive the address of a variable or function.
+Taking the reference of a function has one additional feature as it returns a lambda.
+The syntax is as follows:
+
+Variable or function:
+<<BLUE>>ref<<WHITE>> name
+
+Nested variable:
+<<BLUE>>ref<<WHITE>> name<<BLUE>>.<<WHITE>>nested
+
+Struct static members:
+<<BLUE>>ref<<WHITE>> StructName<<BLUE>>::<<WHITE>>func
+
+Struct member functions:
+Getting the reference of a member function requires an instance.
+<<BLUE>>ref<<WHITE>> instance<<BLUE>>::<<WHITE>>func
+
+### typeof
+The <<BLUE>>typeof<<RESET>> keyword is used to retreive the type of a variable.
+It returns a string containing the type name.
+The string returned is the type name of the value stored in the variable and thus will only be fully available at runtime.
+
+<<BLUE>>typeof<<RESET>> can also be applied to functions, in which case the lambda type of the function will be returned.
+
+### nameof
+The <<BLUE>>nameof<<RESET>> keyword is used to retreive the name of a variable as a string.
+
+### sizeof
+The <<BLUE>>sizeof<<RESET>> keyword is used to retreive the size of a variable.
+It returns an <<BLUE>>int<<RESET>>.
+Due to most types being a reference type, this will almost certainly return <<GREEN>>8<<RESET>>.
+
+### as
+The <<BLUE>>as<<RESET>> keyword is used to cast the current top value on the stack to a different type.
+The syntax is as follows:
+
+<<BLUE>>as <<WHITE>>type<<RESET>>
+
+Where <<WHITE>>type<<RESET>> represents a valid scale type.
+
+### is
+The <<BLUE>>is<<RESET>> keyword is used to check the type of a given value at runtime.
+The syntax is as follows:
+
+<<BLUE>>is <<WHITE>>type<<RESET>>
+
+Where <<WHITE>>type<<RESET>> represents a valid scale type.
+This is only useful, if the type is a struct, as for value types this keyword will always return <<BLUE>>true<<RESET>>.
+
+### const
+The <<BLUE>>const<<RESET>> type modifier is used to make a variable immutable.
+If a variable is immutable, it can only ever be written to inside constructors.
+
+### mut
+The <<BLUE>>mut<<RESET>> type modifier is used to make a variable mutable.
+This allows it to be deref-written, which means you can write to nested variables using this variable.
+
+### readonly
+The <<BLUE>>readonly<<RESET>> type modifier is similar to the <<BLUE>>const<<RESET>> modifier.
+It makes it so that a variable can only be written to from inside of the same struct that it was declared in.
+This modifier is only effective in structs.
+
+## Keywords: Control flow
+### while
+The <<BLUE>>while<<RESET>> keyword starts the header of a while-loop.
+While-loop syntax is as follows:
+
+<<BLUE>>while <<WHITE>>condition <<BLUE>>do<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>done<<RESET>>
+
+### if & unless
+The <<BLUE>>if <<RESET>>and <<BLUE>>unless<<RESET>> keywords are used for if and unless-statements respectively.
+The syntax for an if-statement is as follows:
+
+<<BLUE>>if <<WHITE>>condition <<BLUE>>then<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>fi<<RESET>>
+
+The value of <<WHITE>>condition<<RESET>> will always be fully evaluated.
+
+For an unless-statement, replace the <<BLUE>>if<<RESET>> with an <<BLUE>>unless<<RESET>>.
+
+### elif & elunless
+The <<BLUE>>elif <<RESET>>and <<BLUE>>elunless<<RESET>> keywords are used to add extra control paths to an if or unless-statement.
+The syntax for an if-statement with <<BLUE>>elif<<RESET>> is as follows:
+
+<<BLUE>>if <<WHITE>>condition <<BLUE>>then<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>elif <<WHITE>>condition <<BLUE>>then<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>fi<<RESET>>
+
+The value of <<WHITE>>condition<<RESET>> will always be fully evaluated.
+
+For the inverse, replace <<BLUE>>elif<<RESET>> with <<BLUE>>elunless<<RESET>>
+
+### else
+The <<BLUE>>else<<RESET>> keyword is used to add a default control path to an if or unless-statement in case all previous checks fail.
+The syntax for an if-else-statement is as follows:
+
+<<BLUE>>if <<WHITE>>condition <<BLUE>>then<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>else<<RESET>>
+    <<CYAN>># body<<RESET>>
+<<BLUE>>fi<<RESET>>
+
+Adding an <<BLUE>>else<<RESET>> to an if-statement makes it an expression returning a single value.
+
+### switch, case, and default
+The <<BLUE>>switch<<RESET>> keyword is used to create more efficient control flow for different values.
+The syntax is as follows:
+
+<<WHITE>>value <<BLUE>>switch<<RESET>>
+    <<BLUE>>case <<GREEN>>1<<RESET>>
+        <<CYAN>># body
+    <<BLUE>>esac<<RESET>>
+
+    <<BLUE>>default<<RESET>>
+        <<CYAN>># body
+    <<BLUE>>esac<<RESET>>
+<<BLUE>>done<<RESET>>
+
+Switch-expressions can only work on integer values.
+
+### return
+The <<BLUE>>return<<RESET>> keyword is used to stop further execution of the current function, and if the function has a return type that is not <<BLUE>>none<<RESET>>,
+return the top value on the stack, or the value currently stored in the named return value of the function.
+
+### break
+The <<BLUE>>break<<RESET>> keyword is used to immediately stop execution of the innermost loop and jump after it.
+
+### continue
+The <<BLUE>>continue<<RESET>> keyword is used to immediately jump to the next iteration of the innermost loop.
+
+### for
+The <<BLUE>>for<<RESET>> keyword is used to start the header of a for-loop.
+The syntax is as follows:
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>do
+    <<CYAN>># body
+<<BLUE>>done
+
+### foreach
+The <<BLUE>>foreach<<RESET>> keyword is used to start the header of a foreach-loop.
+Foreach-loops are used to loop over an iterable.
+The syntax is as follows:
+
+<<BLUE>>foreach<<WHITE>> value<<BLUE>>in <<WHITE>>iterable <<BLUE>>do
+    <<CYAN>># body
+<<BLUE>>done
+
+### step
+The <<BLUE>>step<<RESET>> keyword is used to specify the direction of a for-loop.
+The syntax is as follows:
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step + <<GREEN>>2 <<BLUE>>do
+Increases <<WHITE>>i<<RESET>> by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step - <<GREEN>>2 <<BLUE>>do
+Decreases <<WHITE>>i<<RESET>> by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step * <<GREEN>>2 <<BLUE>>do
+Multiplies <<WHITE>>i<<RESET>> by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step / <<GREEN>>2 <<BLUE>>do
+Divides <<WHITE>>i<<RESET>> by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step ++ do
+Increases <<WHITE>>i<<RESET>> by <<GREEN>>1<<RESET>> every iteration. (This is the default)
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step -- do
+Decreases <<WHITE>>i<<RESET>> by <<GREEN>>1<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step >> <<GREEN>>2 <<BLUE>>do
+Shifts <<WHITE>>i<<RESET>> right by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step << <<GREEN>>2 <<BLUE>>do
+Shifts <<WHITE>>i<<RESET>> left by <<GREEN>>2<<RESET>> every iteration.
+
+<<BLUE>>for<<WHITE>> i<<BLUE>>in <<GREEN>>0 <<BLUE>>to <<GREEN>>10 <<BLUE>>step nop do
+Does not increase or decrease <<WHITE>>i<<RESET>>. (You have to do that manually)
+
+### repeat
+The <<BLUE>>repeat<<RESET>> keyword is used to create a repeat-block.
+Repeat blocks are like for-loops, with the difference that the iteration variable is not accessible.
+The syntax is as follows:
+
+<<BLUE>>repeat <<GREEN>>10 <<BLUE>>do
+
+Where the <<GREEN>>10<<RESET>> denotes the amount of iterations.
+
+### goto
+The <<BLUE>>goto<<RESET>> keyword is used to transfer execution to a label.
+
+### label
+The <<BLUE>>label<<RESET>> keyword is used to declare a new label
+
+### try
+The <<BLUE>>try<<RESET>> keyword is used to create a new try-catch block.
+The syntax is as follows:
+
+<<BLUE>>try
+    <<CYAN>># code that might throw
+<<BLUE>>catch typeof <<WHITE>>Exception <<BLUE>>as <<WHITE>>name
+    <<CYAN>># code to handle the exception
+<<BLUE>>done
+
+### none
+The <<BLUE>>none<<RESET>> type represents no value, it is equivalent to <<RED>>void<<RESET>> in C or C++.
+
+### int
+The <<BLUE>>int<<RESET>> type is the generic integer type of Scale. It can store any signed 64-bit integer.
+
+### float
+The <<BLUE>>float<<RESET>> type is the generic floating point type of Scale. It can store any 64-bit IEEE754 floating point number.
+
+### int32
+The <<BLUE>>int32<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 32 bits.
+
+### int16
+The <<BLUE>>int16<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 16 bits.
+
+### int8
+The <<BLUE>>int8<<RESET>> type is a specialization of the <<BLUE>>int<<RESET>> type that can only store 8 bits.
+C Strings are just pointers to a collection of <<BLUE>>int8<<RESET>>s.
+
+### uint
+The <<BLUE>>uint<<RESET>> type is the generic unsigned integer type of Scale. It can store any unsigned 64-bit integer.
+
+### uint32
+The <<BLUE>>uint32<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 32 bits.
+
+### uint16
+The <<BLUE>>uint16<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 16 bits.
+
+### uint8
+The <<BLUE>>uint8<<RESET>> type is a specialization of the <<BLUE>>uint<<RESET>> type that can only store 8 bits.
+
+### int64
+Unused.
+Same as <<BLUE>>int<<RESET>>.
+
+### uint64
+Unused.
+Same as <<BLUE>>uint<<RESET>>.
+
+### any
+The <<BLUE>>any<<RESET>> type represents a generic pointer. It typically has a bit width of 64 and is equivalent to a void pointer in C or C++.
+
+### str
+The <<BLUE>>str<<RESET>> type represents the Scale string type. Any string in Scale is actually an instance of the <<BLUE>>str<<RESET>> struct.
+For more information, see the documentation for the <<BLUE>>str<<RESET>> struct.
+
+### bool
+The <<BLUE>>bool<<RESET>> type represents a boolean value of <<BLUE>>true<<RESET>> or <<BLUE>>false<<RESET>>.
+
+### nil
+The <<BLUE>>nil<<RESET>> value represents missing data. It is equivalent to a null pointer in C or C++ and as such is equal to <<GREEN>>0<<RESET>>.
+
+### true
+The <<BLUE>>true<<RESET>> value represents a truthy boolean value.
+
+### false
+The <<BLUE>>false<<RESET>> value represents a falsey boolean value.
+
+### c!
+The <<BLUE>>c!<<RESET>> block represents inline-C code. Inline C only works in functions.
+Example:
+
+<<BLUE>>c!
+    <<CYAN>>// Now we are in C, even with the comments!
+    <<YELLOW>>printf<<WHITE>>(<<GREEN>>"Hello from inline C!"<<WHITE>>);
+<<BLUE>>end
+
+## Operators
+### Store operator
+This will store the top value on the stack in the (nested) variable after the operator:
+
+<<GREEN>>"Hello" <<BLUE>>=> <<WHITE>>message
+
+You can also declare a variable inline with the store operator:
+
+<<GREEN>>"Hello" <<BLUE>>=> decl <<WHITE>>message<<BLUE>>: str
+
+The type is optional here, if it is missing, it will be inferred:
+
+<<GREEN>>"Hello" <<BLUE>>=> decl <<WHITE>>message
+
+You can also store values in nested structures:
+
+<<GREEN>>"Hello" <<BLUE>>=> decl <<WHITE>>foo<<BLUE>>.<<WHITE>>bar<<BLUE>>.<<WHITE>>baz
+
+Dereferences are also possible:
+
+<<GREEN>>"Hello" <<BLUE>>=> @<<WHITE>>foo
+
+... and they can be nested as well:
+
+<<GREEN>>"Hello" <<BLUE>>=> <<WHITE>>foo<<BLUE>>.@<<WHITE>>bar
+This will dereference the field <<WHITE>>bar<<RESET>> on <<WHITE>>foo<<RESET>>.
+
+Computed pointers are also possible:
+
+<<GREEN>>"Hello" <<BLUE>>=> @(<<WHITE>>foo <<GREEN>>16 <<BLUE>>+)
+
+This will calculate <<WHITE>>foo<<RESET>> plus <<GREEN>>16<<RESET>> as the address to store to.
+
+Here, the <<BLUE>>=><<RESET>> can always be replaced with one of the following:
+- <<BLUE>>+><<RESET>>
+Adds the top two values together before storing.
+
+- <<BLUE>>-><<RESET>>
+Subtracts the top two values from each other before storing.
+
+- <<BLUE>>*><<RESET>>
+Multiplies the top two values before storing.
+
+- <<BLUE>>/><<RESET>>
+Divides the top two values before storing.
+
+- <<BLUE>>&><<RESET>>
+Ands the top two values before storing.
+
+- <<BLUE>>|><<RESET>>
+Ors the top two values before storing.
+
+- <<BLUE>>^><<RESET>>
+Xors the top two values before storing.
+
+- <<BLUE>>%><<RESET>>
+Modulos the top two values before storing.
+
+### Plus (+)
+Adds the top two values on the stack together and returns the result.
+
+### Minus (-)
+Subtracts the top two values on the stack from each other and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Multiply (*)
+Multiplies the top two values on the stack together and returns the result.
+
+### Divide (/)
+Divides the top two values on the stack and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Modulo (%)
+Calculates the Modulo of the top two values on the stack and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Bitwise And (&)
+Ands the top two values on the stack together and returns the result.
+
+### Bitwise Or (|)
+Ors the top to values on the stack together and returns the result.
+
+### Bitwise Xor (^)
+Xors the top to values on the stack together and returns the result.
+
+### Bitwise Not (~)
+Returns the bitwise not of the value on the stack.
+
+### Bitwise Shift left (<<)
+Shifts the second value on the stack by the top value to the left and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Bitwise Shift right (>>)
+Shifts the second value on the stack by the top value to the right and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Exponent (**)
+Raises the second value on the stack to the power of the top value and returns the result.
+The order is as if the value immediately before the operator was after the operator.
+
+### Less than (<)
+Returns <<BLUE>>true<<RESET>> if the second value is less than the top value.
+The order is as if the value immediately before the operator was after the operator.
+
+### Less than or equal (<=)
+Returns <<BLUE>>true<<RESET>> if the second value is less than or equal to the top value.
+The order is as if the value immediately before the operator was after the operator.
+
+### Greater than (>)
+Returns <<BLUE>>true<<RESET>> if the second value is greater than the top value.
+The order is as if the value immediately before the operator was after the operator.
+
+### Greater than or equal (>=)
+Returns <<BLUE>>true<<RESET>> if the second value is greater than or equal to the top value.
+The order is as if the value immediately before the operator was after the operator.
+
+### Equals (==)
+Returns <<BLUE>>true<<RESET>> if the second value equal to the top value.
+
+### Boolean Not (!)
+Returns <<BLUE>>true<<RESET>> if the second value is a falsey value (equal to <<GREEN>>0<<RESET>>).
+
+### Not Equals (!=)
+Returns <<BLUE>>true<<RESET>> if the second value is not equal to the top value.
+
+### Boolean And (&&)
+Returns <<BLUE>>true<<RESET>> if the second value and the top value are <<BLUE>>true<<RESET>>.
+
+### Boolean Or (||)
+Returns <<BLUE>>true<<RESET>> if the second value or the top value are <<BLUE>>true<<RESET>>.
+
+### Increment (++)
+Increments the top value by one.
+
+### Decrement (--)
+Decrements the top value by one.
+
+### Dereference (@)
+Dereferences the top value as a pointer.
+
+### Overriding Operators
+Operators can be overridden like this:<<WHITE>>
+<<BLUE>>struct <<WHITE>>Foo
+    <<BLUE>>function +(): Foo<<WHITE>>
+        <<CYAN>># do stuff to `self`<<WHITE>>
+        <<BLUE>>self return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+Operators don't have to return their member type:
+<<BLUE>>struct <<WHITE>>Bar
+    <<BLUE>>function <<(): <<WHITE>>Foo<<WHITE>>
+        <<WHITE>>Foo<<BLUE>>::new return<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+They don't even have to return anything:
+<<BLUE>>struct <<WHITE>>Baz
+    <<BLUE>>function !(): none<<WHITE>>
+        <<BLUE>>if self nil == then<<WHITE>>
+            <<WHITE>>abort<<WHITE>>
+        <<BLUE>>fi<<WHITE>>
+    <<BLUE>>end<<WHITE>>
+<<BLUE>>end<<WHITE>>
+<<RESET>>
+
 ## Conventions
 ### Argument notation and calling conventions
 Say we have following function:
@@ -28,354 +615,90 @@ Example:<<WHITE>>
 Strict constness is lifted in <<WHITE>>init<<RESET>>-methods.
 That means writing to <<BLUE>>const<<RESET>> variables is possible in constructors for const struct members and <<WHITE>>__init__<<RESET>> for global variables respectively
 
-## Keywords
-### function
-Define a new function.
-Example:<<WHITE>>
-<<BLUE>>function<<WHITE>> main<<BLUE>>(): none<<WHITE>>
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>end<<WHITE>><<RESET>>
-
-### end
-This keyword marks the end of a <<BLUE>>function<<RESET>>, <<BLUE>>struct<<RESET>>, <<BLUE>>container<<RESET>>, or <<BLUE>>interface<<RESET>>.
-
-### expect
-This keyword marks a <<BLUE>>function<<RESET>> or global variable as externally defined.
-Example:<<WHITE>>
-<<BLUE>>expect function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
-<<BLUE>>expect decl<<WHITE>> bar<<BLUE>>: int<<WHITE>><<RESET>>
-
-### while
-This keyword marks the begin of a <<BLUE>>while<<RESET>>-loop
-Example:<<WHITE>>
-<<CYAN>># loops infinetly<<WHITE>>
-<<BLUE>>while true do<<WHITE>>
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>done<<WHITE>><<RESET>>
-
-### if
-This keyword marks the begin of an <<BLUE>>if<<RESET>> statement.
-Example:<<WHITE>>
-<<BLUE>>if<<WHITE>> a <<BLUE>>then<<WHITE>>
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>fi<<WHITE>><<RESET>>
-
-### elif
-This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't execute, but only executes, if a condition is <<BLUE>>true<<RESET>>.
-Example:<<WHITE>>
-<<BLUE>>elif<<WHITE>> b <<BLUE>>then<<WHITE>>
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>fi<<WHITE>><<RESET>>
-
-### else
-This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't execute.
-Example:<<WHITE>>
-<<BLUE>>else<<WHITE>>
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>fi<<WHITE>><<RESET>>
-
-### fi
-This keyword marks the end of an <<BLUE>>if<<RESET>>-statement.
-
-### do
-This keyword marks the end of the looping condition of a <<BLUE>>while<<RESET>>, <<BLUE>>for<<RESET>>, or <<BLUE>>foreach<<RESET>>-loop.
-
-### done
-This keyword marks the end of a loop. If reached, the condition of the loop gets evaluated and if evaluated to <<BLUE>>true<<RESET>>, repeat.
-
-### return
-This keyword marks a return statement.
-This keyword marks a code block that only gets executed, if all preceeding <<BLUE>>if<<RESET>>s and <<BLUE>>elif<<RESET>>s didn't.
-Example:<<WHITE>>
-<<BLUE>>function<<WHITE>> foo<<BLUE>>(): str<<WHITE>>
-    <<GREEN>>"Hello" <<BLUE>>return<<WHITE>>
-<<BLUE>>end<<WHITE>><<RESET>>
-
-### break
-If control flow reaches this keyword, the innermost loop stops looping, regardless of the looping condition.
-
-### continue
-If control flow reaches this keyword, the innermost loop continues to the next iteration, if the looping condition is still true.
-
-### for
-This keyword marks the begin of a <<BLUE>>for<<RESET>>-loop.
-Example:<<WHITE>>
-<<CYAN>># Executes 10 times<<WHITE>>
-<<BLUE>>for<<WHITE>> i <<BLUE>>in<<YELLOW>> 0 <<BLUE>>to<<YELLOW>> 10 <<BLUE>>do
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>done<<WHITE>><<RESET>>
-
-### decl
-This keyword is used to declare a new variable.
-Example:<<WHITE>>
-<<BLUE>>decl<<WHITE>> i<<BLUE>>: int<<RESET>>
-
-### ref
-This keyword is used to grab a reference to a function or variable. Taking the reference to a function returns a lambda object
-Example:<<WHITE>>
-<<BLUE>>ref<<WHITE>> i<<RESET>>
-
-### container
-This keyword is used to declare a new container. Containers are used to group global variables of similar type or use together. An example of this is the <<WHITE>>MathConstants<<RESET>> container in Scale's math library.
-<<WHITE>>
-<<BLUE>>container<<WHITE>> Foo
-    <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
-    <<BLUE>>decl<<WHITE>> b<<BLUE>>: str
-    <<BLUE>>decl<<WHITE>> c<<BLUE>>: any
-<<BLUE>>end<<WHITE>><<RESET>>
-
-### repeat
-This keyword is used to repeat a certain action a fixed number of times
-Example:<<WHITE>>
-<<CYAN>># Executes 10 times<<WHITE>>
-<<BLUE>>repeat<<WHITE>> 10 <<BLUE>>do
-    <<CYAN>># code<<WHITE>>
-<<BLUE>>done<<WHITE>><<RESET>>
-
-### struct
-This keyword is used to declare a new struct. Structs can have member variables and functions, and static variables and static functions.
-Example:<<WHITE>>
-<<BLUE>>struct<<WHITE>> Foo
-    <<BLUE>>decl<<WHITE>> a<<BLUE>>: int
-    <<BLUE>>function<<WHITE>> foo<<BLUE>>(): none<<WHITE>>
-        <<CYAN>># code<<WHITE>>
-    <<BLUE>>end<<WHITE>>
-    <<BLUE>>static decl<<WHITE>> iCanBeAnything<<BLUE>>: any
-    <<BLUE>>static function<<WHITE>> bar<<BLUE>>(): none<<WHITE>>
-        <<CYAN>># code<<WHITE>>
-    <<BLUE>>end<<WHITE>>
-<<BLUE>>end<<WHITE>><<RESET>>
-
-### is
-This keyword is used to check if the value on the stack is of a certain struct type.
-
-### label
-This keyword is used to declare a new label that you can <<BLUE>>goto<<RESET>> to.
-
-### goto
-This keyword is used to go to a <<BLUE>>label<<RESET>>
-
-### self
-This keyword is used to reference the current instance inside of a non-static member function of a struct.
-
-### switch
-This keyword is used to create a switch statement.
-<<WHITE>>
-foo <<BLUE>>switch<<WHITE>>
-    <<BLUE>>case<<WHITE>> 1
-        <<CYAN>># code<<WHITE>>
-    <<BLUE>>esac<<WHITE>>
-    <<BLUE>>case<<WHITE>> 2
-        <<CYAN>># code<<WHITE>>
-    <<BLUE>>esac<<WHITE>>
-    <<BLUE>>default<<WHITE>>
-        <<CYAN>># code<<WHITE>>
-    <<BLUE>>esac<<WHITE>>
-<<BLUE>>done<<WHITE>><<RESET>>
-
-### case
-This keyword is used to create a new branch inside of a switch statement. A case branch ends when the <<BLUE>>esac<<RESET>> keyword is encountered.
-
-### default
-This keyword is used to create a branch inside of a switch statement that gets used if the value of the switch is not matched by any <<BLUE>>case<<RESET>> statements.
-
-### import
-This keyword is used to import the contents of other files into the current file.
-Example:
-<<BLUE>>import <<WHITE>>Scale<<BLUE>>.<<WHITE>>fmt<<RESET>>
-
-### const
-This keyword is used to make a variable immutable.
-Example:<<WHITE>>
-<<BLUE>>decl<<WHITE>> i<<BLUE>>: const int<<RESET>>
-
-### readonly
-This keyword is used to make a member variable of a struct not writable from outside of member functions of the struct.
-Example:<<WHITE>>
-<<BLUE>>decl<<WHITE>> i<<BLUE>>: readonly int<<RESET>>
-
-### mut
-This keyword is used to signify that the memory a variable points to can be changed
-Example:<<WHITE>>
-<<BLUE>>decl<<WHITE>> i<<BLUE>>: mut int<<RESET>>
-
-### try
-This keyword is used to denote the start of a try-catch block of code.
-Example:<<WHITE>>
-<<BLUE>>try
-<<CYAN>>  # code that might throw
-<<BLUE>>catch typeof <<WHITE>>Exception <<BLUE>>as <<WHITE>>ex
-<<CYAN>>  # handle exception here
-<<BLUE>>done
-
-### catch
-This keyword is used to denote the start of the catch part of a try-catch block. See <<BLUE>>try<<RESET>>.
-
-### lambda
-This keyword is used to create a new lambda object.
-Example:<<WHITE>>
-<<BLUE>>lambda(): none
-  <<YELLOW>>"Hello!" <<WHITE>>puts
-<<BLUE>>end
-
-## Operators
-### +
-The `+` operator returns the result of an addition of the top two values on the stack.
-
-### -
-The `-` operator returns the result of a subtraction of the top two values on the stack.
-
-### *
-The `*` operator returns the result of a multiplication of the top two values on the stack.
-
-### /
-The `/` operator returns the result of a division of the top two values on the stack.
-
-### %
-The `%` operator returns the remainder of a division of the top two values on the stack as integers.
-
-### &
-The `&` operator returns the logical AND of the top two values on the stack.
-
-### |
-The `|` operator returns the logical OR of the top two values on the stack.
-
-### ^
-The `^` operator returns the logical XOR of the top two values on the stack.
-
-### ~
-The `~` operator returns the logical NOT of the top value on the stack.
-
-### <<
-`a b <<`: The `<<` operator shifts <<WHITE>>a<<RESET>> <<WHITE>>b<<RESET>> times to the left.
-
-### >>
-`a b >>`: The `>>` operator shifts <<WHITE>>a<<RESET>> <<WHITE>>b<<RESET>> times to the right.
-
-### **
-`a b **`: Raises <<WHITE>>a<<RESET>> to the power of <<WHITE>>b<<RESET>>.
-
-### <
-`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is less than <<WHITE>>b<<RESET>>.
-
-### <=
-`a b <=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is less than or equal to <<WHITE>>b<<RESET>>.
-
-### >
-`a b >`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is greater than <<WHITE>>b<<RESET>>.
-
-### >=
-`a b >=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is greater than or equal to <<WHITE>>b<<RESET>>.
-
-### ==
-`a b ==`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is equal to <<WHITE>>b<<RESET>>.
-
-### !
-`a !`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is <<BLUE>>false<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
-
-### !!
-Asserts that the top value on the stack is not <<BLUE>>nil<<RESET>>. If it is <<BLUE>>nil<<RESET>>, abort execution.
-
-### !=
-`a b !=`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> is not equal to <<WHITE>>b<<RESET>>.
-
-### &&
-`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>> are <<BLUE>>true<<RESET>>.
-
-### ||
-`a b <`: Returns <<BLUE>>true<<RESET>> if <<WHITE>>a<<RESET>> or <<WHITE>>b<<RESET>> is <<BLUE>>true<<RESET>>.
-
-### ++
-Increments the top value on the stack by one.
-
-### --
-Decrements the top value on the stack by one.
-
-### =>
-Stores the top value of the stack into a variable.
-Example:<<WHITE>>
-<<YELLOW>>0 <<BLUE>>=><<WHITE>> i<<RESET>>
-
-### => @
-Stores the top value of the stack at the address stored in a variable.
-Example:<<WHITE>>
-<<YELLOW>>0 <<BLUE>>=><<WHITE>> @ j<<RESET>>
-
-### @
-This operator returns the value at the address on the stack.
-Example:<<WHITE>>
-i<<BLUE>> @<<WHITE>><<RESET>>
-
-### Overriding Operators
-Operators can be overridden like this:<<WHITE>>
-<<BLUE>>struct <<WHITE>>Foo
-    <<BLUE>>function +(): Foo<<WHITE>>
-        <<CYAN>># do stuff to `self`<<WHITE>>
-        <<BLUE>>self return<<WHITE>>
-    <<BLUE>>end<<WHITE>>
-<<BLUE>>end<<WHITE>>
-<<RESET>>
-Operators don't have to return their member type:
-<<BLUE>>struct <<WHITE>>Bar
-    <<BLUE>>function <<(): <<WHITE>>Foo<<WHITE>>
-        <<WHITE>>Foo<<BLUE>>::new return<<WHITE>>
-    <<BLUE>>end<<WHITE>>
-<<BLUE>>end<<WHITE>>
-<<RESET>>
-They don't even have to return anything:
-<<BLUE>>struct <<WHITE>>Baz
-    <<BLUE>>function !(): none<<WHITE>>
-        <<BLUE>>if self nil == then<<WHITE>>
-            <<WHITE>>abort<<WHITE>>
-        <<BLUE>>fi<<WHITE>>
-    <<BLUE>>end<<WHITE>>
-<<BLUE>>end<<WHITE>>
-<<RESET>>
-
-## Data types
-### str
-The <<BLUE>>str<<RESET>> data type represents a <<BLUE>>nil<<RESET>> terminated string.
-Example:
-<<GREEN>>"Hello, World!"<<RESET>>
-
-### int
-The <<BLUE>>int<<RESET>> data type represents a signed 64-bit number.
-Example:
-<<YELLOW>>0<<RESET>>
-<<YELLOW>>10<<RESET>>
-<<YELLOW>>-5<<RESET>>
-
-### float
-The <<BLUE>>float<<RESET>> data type represents a 64-bit floating point number.
-Example:
-<<YELLOW>>0.0<<RESET>>
-<<YELLOW>>1.1<<RESET>>
-<<YELLOW>>-2.8<<RESET>>
-<<YELLOW>>4.5<<RESET>>
-
-### any
-The <<BLUE>>any<<RESET>> data type can represent any value.
-Example:
-<<YELLOW>>0.0<<RESET>>
-<<YELLOW>>1<<RESET>>
-<<GREEN>>"Hello!"<<RESET>>
-<<BLUE>>addr <<WHITE>>foo<<RESET>>
-
-### pointers
-Pointers are denoted by wrapping a type inside of <<BLUE>>[]<<RESET>>.
-Example:
-<<BLUE>>[int]<<RESET>>
-<<BLUE>>[any]<<RESET>>
-
-Pointers can be nested to make pointers to pointers:
-<<BLUE>>[[str]]<<RESET>>
-
-## Built-in constants
-### true
-The <<BLUE>>true<<RESET>> constant is equal to <<YELLOW>>1<<RESET>>.
-
-### false
-The <<BLUE>>false<<RESET>> constant is equal to <<YELLOW>>0<<RESET>>.
-
-### nil
-The <<BLUE>>nil<<RESET>> constant represents a null pointer. It is equal to <<YELLOW>>0<<RESET>>.
+## Frameworks
+### scale.drg
+The scale.drg file is the project local compiler configuration file.
+A scale.drg file containing every valid entry would look something like this:
+
+<pre>
+outfile: "out.scl";
+compiler: "gcc";
+optimizer: "O2";
+frameworks: [
+    "A-Framework";
+];
+compilerFlags: [
+    "-pedantic";
+];
+includeFiles: [
+    "c_header.h";
+];
+featureFlags: [
+    "Feature-Flag";
+];
+modules: {
+    module.submodule: [
+        "module/submodule/submodule_impl.scale";
+    ];
+};
+</pre>
+
+Keys:
+<<CYAN>>outfile<<RESET>>: Specifies the output file name.
+<<CYAN>>compiler<<RESET>>: Specifies the compiler to use.
+<<CYAN>>optimizer<<RESET>>: Specifies the optimizer the compiler should use.
+<<CYAN>>frameworks<<RESET>>: A list of all frameworks to use.
+<<CYAN>>compilerFlags<<RESET>>: A list of all flags that should be passed to the compiler.
+<<CYAN>>includeFiles<<RESET>>: A list of C header files to include in the transpiled output.
+<<CYAN>>featureFlags<<RESET>>: A list of all feature flags that should be enabled.
+<<CYAN>>modules<<RESET>>: A compound containing the modules that should be defined.
+
+### index.drg
+The index.drg file contains the configuration for a Framework.
+The index.drg file of the Scale Framework looks like this:
+
+<pre>
+framework: {
+    version: "23.5";
+    headerDir: "include";
+    implDir: "impl";
+    implementers: [];
+    implHeaderDir: "impl";
+    implHeaders: [];
+    docfile: "Docs.scldoc";
+    docfile-format: "scldoc";
+    modules: {
+        std: [
+            "Scale/core.scale";
+            "Scale/string.scale";
+            "Scale/sclobject.scale";
+            "Scale/inttypes.scale";
+            "Scale/debug.scale";
+            "Scale/any.scale";
+            "Scale/float.scale";
+        ];
+        # other modules left out for size
+    };
+};
+</pre>
+
+All paths are relative to the Framework directory.
+
+Subkeys of <<CYAN>>framework<<RESET>>:
+<<CYAN>>version<<RESET>>: The minimum language version this framework supports.
+<<CYAN>>headerDir<<RESET>>: The directory name containing the framework's Scale files.
+<<CYAN>>implDir<<RESET>>: The directory containing any C files.
+<<CYAN>>implementers<<RESET>>: Any C files that should be included in the build.
+<<CYAN>>implHeaderDir<<RESET>>: The directory containing C headers that should be included in the transpiled output.
+<<CYAN>>implHeaders<<RESET>>: Any C headers that should be included in the transpiled output.
+<<CYAN>>docfile<<RESET>>: The name of the file containing the documentation for the Framework. If left empty, no documentation is available.
+<<CYAN>>docfile-format<<RESET>>: The format of the documentation file. Currenly the only valid value is 'scldoc'.
+<<CYAN>>modules<<RESET>>: A compound containing the modules that should be defined.
+<<CYAN>>compilerFlags<<RESET>>:  A list of all flags that should be passed to the compiler.
+
+### Modules
+A module is used to bundle certain files into a single package that can then be included in a Scale file.
+An example of this would be the <<CYAN>>std.threading.Thread<<RESET>> module which will include the file <<GREEN>>Scale/thread/thread.scale<<RESET>> from the Scale framework.
+
+Modules can be declared in the scale.drg or index.drg files by putting them in the <<CYAN>>modules<<RESET>> compound.
+See <<BLUE>>scale.drg<<RESET>> and <<BLUE>>index.drg<<RESET>> for more information.

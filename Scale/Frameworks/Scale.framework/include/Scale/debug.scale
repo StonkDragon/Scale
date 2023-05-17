@@ -1,14 +1,25 @@
 import std.io
+import std.threading.Thread
 
 cdecl "print_stacktrace"
 expect function trace(): none
+cdecl "_scl_throw"
+expect function throw(ex: Exception): none
 
 cdecl "_scl_security_safe_exit"
 expect function __c_exit(i: int): none
-cdecl "_scl_catch_final"
-expect function __c_scl_catch_final(_sig_: int): none
+cdecl "_scl_default_signal_handler"
+expect function __c_scl_default_signal_handler(_sig_: int): none
 cdecl "raise"
 expect function __c_raise(_sig_: int): int
+cdecl "_scl_errno"
+expect function errno(): int
+cdecl "_scl_errno_str"
+expect function strerror(): str
+cdecl "_scl_set_signal_handler"
+expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+cdecl "_scl_reset_signal_handler"
+expect function resetSignalHandler(sig: int): none
 
 function dumpStack(): none
   c!
@@ -26,13 +37,13 @@ function crash(): none
 end
 
 function raise(_sig_: int): none
-  if _sig_ 2 != _sig_ 4 != && _sig_ 6 != _sig_ 8 != && && _sig_ 11 != && then
+  if _sig_ 2 != _sig_ 4 != && _sig_ 5 != _sig_ 6 != && && _sig_ 10 != _sig_ 11 != && && then
     _sig_ __c_raise => decl raised
     if raised ! then
-      _sig_ __c_scl_catch_final
+      _sig_ __c_scl_default_signal_handler
     fi
   else
-    _sig_ __c_scl_catch_final
+    _sig_ __c_scl_default_signal_handler
   fi
 end
 
@@ -46,19 +57,43 @@ end
 
 sealed struct Exception
   decl msg: str
-end
+  decl stackTrace: const Array
+  decl errnoStr: readonly str
 
-function throw(ex: Exception): none
-  c!
-    _extable.ptr--;
-    if (_extable.ptr < 0) {
-      _scl_unreachable("Impossible state encountered trying to throw an exception!");
-    }
-    _extable.extable[_extable.ptr] = *ex;
-    _callstack.ptr = _extable.callstk_ptr[_extable.ptr];
-    longjmp(_extable.jmptable[_extable.ptr], 666);
+  function init(): none
+    if errno then
+      strerror
+    else
+      ""
+    fi => self.errnoStr
+    Thread::stackTrace => self.stackTrace
+    self.stackTrace:pop
+    "" => self.msg
+  end
+
+  export sealed function printStackTrace(): none
+    "Stacktrace of " typeof self + ":" + eputs
+    for i in self.stackTrace.count 1 - to -1 step -- do
+      "    " i self.stackTrace:get as str + eputs
+    done
   end
 end
+
+final sealed struct InvalidSignalException: Exception
+  decl sig: readonly int
+
+  function init(sig: int): none
+    sig => self.sig
+  end
+end
+
+sealed struct Error: Exception
+  function init(msg: str): none
+    msg => self.msg
+  end
+end
+
+final sealed struct AssertError: Error end
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]

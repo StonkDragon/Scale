@@ -51,7 +51,7 @@
 		"scope": "source.scale",
 		"prefix": "initmethod",
 		"body": [
-			"function ${1:type}:init($2): none",
+			"function init($2): none",
 			"\t$0",
 			"end"
 		],
@@ -400,6 +400,14 @@
 		],
 		"description": "ASM Symbol name"
 	},
+	"Deprecated": {
+		"scope": "source.scale",
+		"prefix": "deprecate",
+		"body": [
+			"deprecated![since: \"${1:version}\", replacement: \"${2:replacement}\", forRemoval: ${3:true}]",
+		],
+		"description": "Marks a function as deprecated, resulting in a warning at compile time"
+	},
 	"Keyword end": {
 		"scope": "source.scale",
 		"prefix": "end",
@@ -655,22 +663,6 @@
 			"private",
 		],
 		"description": "private"
-	},
-	"Keyword referencetype": {
-		"scope": "source.scale",
-		"prefix": "referencetype",
-		"body": [
-			"referencetype",
-		],
-		"description": "referencetype"
-	},
-	"Keyword valuetype": {
-		"scope": "source.scale",
-		"prefix": "valuetype",
-		"body": [
-			"valuetype",
-		],
-		"description": "valuetype"
 	},
 	"Keyword const": {
 		"scope": "source.scale",

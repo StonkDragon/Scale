@@ -1,9 +1,9 @@
-referencetype sealed struct Triple
+final sealed struct Triple
   decl a: any
   decl b: any
   decl c: any
 
-  export function init(a: any, b: any, c: any): none
+  function init(a: any, b: any, c: any): none
     a => self.a
     b => self.b
     c => self.c
@@ -13,17 +13,17 @@ referencetype sealed struct Triple
 		if a is SclObject then
 			a as SclObject:toString
 		else
-			a longToString
+			a int::toString
 		fi => decl aStr: str
 		if b is SclObject then
 			b as SclObject:toString
 		else
-			b longToString
+			b int::toString
 		fi => decl bStr: str
 		if c is SclObject then
 			c as SclObject:toString
 		else
-			c longToString
+			c int::toString
 		fi => decl cStr: str
 		
 		"(" aStr + ", " + bStr ", " + cStr + ")" + return

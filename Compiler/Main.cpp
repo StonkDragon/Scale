@@ -46,7 +46,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "23.4"
+#define FRAMEWORK_VERSION_REQ "23.5"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -153,11 +153,18 @@ namespace sclc
                 std::string key = line.substr(4);
                 docs[current].push_back(triple(key, std::string(""), nextFileName));
                 line = lines[++i];
+                std::string linePrefix = "";
                 while (i < lines.size() && !strstarts(line, "##") && !strstarts(line, "@")) {
                     while (strstarts(line, "<div")) {
                         line = lines[++i];
                     }
-                    docs[current].back().second += "  " + line + "\n";
+                    if (line == "<pre>" || strstarts(line, "<pre>")) {
+                        linePrefix = Color::CYAN + "  ";
+                    } else if (line == "</pre>" || strstarts(line, "</pre>")) {
+                        linePrefix = "";
+                    } else {
+                        docs[current].back().second += "  " + linePrefix + line + "\n";
+                    }
                     line = lines[++i];
                 }
                 std::string prev = docs[current].back().second;
@@ -351,9 +358,6 @@ namespace sclc
                                 std::string s = kv.second;
                                 std::smatch matches;
                                 std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                for (auto match : matches) {
-                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                }
                                 if (kv.third.size())
                                     std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 else
@@ -480,9 +484,6 @@ namespace sclc
                                 std::string s = kv.second;
                                 std::smatch matches;
                                 std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                for (auto match : matches) {
-                                    s = replaceAll(s, match.str(), Color::BOLDYELLOW + match.str() + Color::RESET + Color::GREEN);
-                                }
                                 std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
                                 if (kv.third.size())
                                     std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
@@ -510,7 +511,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "23.4");
+        framework->addString("version", "23.5");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -724,9 +725,10 @@ namespace sclc
             cflags.push_back(compiler);
 
         if (Main.options.files.size() != 0) {
-            cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I" + scaleFolder + "/Internal");
-            cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
+            cflags.push_back("-I" + scaleFolder + "/Frameworks");
+            cflags.push_back("-I.");
+            cflags.push_back(scaleFolder + "/Internal/scale_runtime.c");
             cflags.push_back("-" + optimizer);
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
             cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
@@ -984,6 +986,7 @@ namespace sclc
 
                 if (result.warns.size() > 0) {
                     for (FPResult error : result.warns) {
+                        if (error.type > tok_char_literal) continue;
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
@@ -1023,6 +1026,7 @@ namespace sclc
                 }
                 if (result.errors.size() > 0) {
                     for (FPResult error : result.errors) {
+                        if (error.type > tok_char_literal) continue;
                         std::string colorStr;
                         if (error.isNote) {
                             colorStr = Color::BOLDCYAN;
@@ -1097,6 +1101,7 @@ namespace sclc
 
             if (!Main.options.printCflags && result.warns.size() > 0) {
                 for (FPResult error : result.warns) {
+                    if (error.type > tok_char_literal) continue;
                     if (error.line == 0) {
                         std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                         continue;
@@ -1136,6 +1141,7 @@ namespace sclc
             }
             if (!Main.options.printCflags && result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
+                    if (error.type > tok_char_literal) continue;
                     std::string colorStr;
                     if (error.isNote) {
                         colorStr = Color::BOLDCYAN;
@@ -1195,6 +1201,7 @@ namespace sclc
                 FPResult parseResult = Main.parser->parse(source);
                 if (parseResult.warns.size() > 0) {
                     for (FPResult error : parseResult.warns) {
+                        if (error.type > tok_char_literal) continue;
                         if (error.line == 0) {
                             std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
                             continue;
@@ -1234,6 +1241,7 @@ namespace sclc
                 }
                 if (parseResult.errors.size() > 0) {
                     for (FPResult error : parseResult.errors) {
+                        if (error.type > tok_char_literal) continue;
                         std::string colorStr;
                         ssize_t addAtCol = -1;
                         std::string strToAdd = "";
@@ -1323,6 +1331,7 @@ namespace sclc
         if (Main.options.mainReturnsNone) {
             tmpFlags.push_back("-DSCL_MAIN_RETURN_NONE");
         }
+        tmpFlags.push_back("-DSCL_MAIN_ARG_COUNT=" + std::to_string(Main.options.mainArgCount));
 
     actAsCCompiler:
 

@@ -14,7 +14,7 @@
 		},
 		"heading": {
 			"name": "variable.name",
-			"begin": "#",
+			"begin": "^#",
 			"end": "\n",
 			"patterns": [{
 				"name": "variable.name",
@@ -23,7 +23,7 @@
 		},
 		"file": {
 			"name": "variable.name",
-			"begin": "@",
+			"begin": "^@",
 			"end": "\n",
 			"patterns": [{
 				"name": "variable.name",

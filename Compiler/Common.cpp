@@ -226,6 +226,10 @@ namespace sclc
         return i;
     }
 
+    bool hasVar(std::string name) {
+        return hasVar(Token(tok_identifier, name, 0, ""));
+    }
+
     bool hasVar(Token name) {
         for (std::vector<Variable> var : vars) {
             for (Variable v : var) {
@@ -235,6 +239,10 @@ namespace sclc
             }
         }
         return false;
+    }
+
+    Variable getVar(std::string name) {
+        return getVar(Token(tok_identifier, name, 0, ""));
     }
 
     Variable getVar(Token name) {
@@ -528,6 +536,8 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
+#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
+
     Struct getStructByName(TPResult result, std::string name) {
         name = removeTypeModifiers(name);
         name = sclConvertToStructType(name);
@@ -536,7 +546,11 @@ namespace sclc
                 return struct_;
             }
         }
-        return Struct("");
+        return Struct::Null;
+    }
+
+    bool hasFunction(TPResult result, std::string name) {
+        return hasFunction(result, Token(tok_identifier, name, 0, ""));
     }
 
     bool hasFunction(TPResult result, Token name) {
@@ -610,6 +624,10 @@ namespace sclc
         return false;
     }
 
+    bool hasContainer(TPResult result, std::string name) {
+        return hasContainer(result, Token(tok_identifier, name, 0, ""));
+    }
+
     bool hasGlobal(TPResult result, std::string name) {
         for (Variable v : result.globals) {
             if (v.getName() == name) {
@@ -640,8 +658,6 @@ namespace sclc
         return strstarts(f->getName(), "__destroy__") || contains<std::string>(f->getModifiers(), "final");
     }
 
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
-
     bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
         auto memberOfStruct = [this](Function* f) -> bool {
             if (f->isMethod) {
@@ -649,11 +665,16 @@ namespace sclc
                 if (m->getMemberType() == this->internalMutableFrom) {
                     return true;
                 }
+            } else if (strstarts(this->getName(), f->member_type + "$")) {
+                return true;
             }
             return false;
         };
 
         if (typeIsReadonly(getType())) {
+            if (strstarts(this->getName(), f->member_type + "$")) {
+                return true;
+            }
             return memberOfStruct(f);
         }
         if (typeIsConst(getType())) {
@@ -667,7 +688,7 @@ namespace sclc
     }
 
     std::string sclConvertToStructType(std::string type) {
-        while (typeCanBeNil(type))
+        while (type.size() > 1 && type.back() == '?')
             type = type.substr(0, type.size() - 1);
 
         type = removeTypeModifiers(type);

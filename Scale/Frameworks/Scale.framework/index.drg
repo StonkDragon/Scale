@@ -1,5 +1,5 @@
 framework: {
-    version: "23.4";
+    version: "23.5";
     headerDir: "include";
     implDir: "impl";
     implementers: [];
@@ -14,9 +14,17 @@ framework: {
             "Scale/sclobject.scale";
             "Scale/inttypes.scale";
             "Scale/debug.scale";
+            "Scale/any.scale";
+            "Scale/float.scale";
         ];
         std.Int: [
             "Scale/inttypes.scale";
+        ];
+        std.Any: [
+            "Scale/any.scale";
+        ];
+        std.Float: [
+            "Scale/float.scale";
         ];
         std.String: [
             "Scale/string.scale";
@@ -42,6 +50,9 @@ framework: {
         ];
         std.util.Array: [
             "Scale/util/array.scale";
+        ];
+        std.util.TypedArray: [
+            "Scale/util/typedarray.scale";
         ];
         std.util.ImmutableArray: [
             "Scale/util/immutablearray.scale";

@@ -1,7 +1,7 @@
 import std.util.Iterable
 import std.debug
 
-sealed struct ImmutableArray is IIterable
+final sealed struct ImmutableArray is IIterable
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
@@ -33,6 +33,10 @@ sealed struct ImmutableArray is IIterable
     0 => self.pos
   end
 
+  function begin(): none
+    0 => self.pos
+  end
+
   function hasNext(): bool
     self.pos self.count < return
   end
@@ -56,7 +60,7 @@ sealed struct ImmutableArray is IIterable
         if elem is SclObject then
           s elem as SclObject :toString + => s
         else
-          s elem as int longToString + => s
+          s elem as int int::toString + => s
         fi
       done
       s "}" + => s

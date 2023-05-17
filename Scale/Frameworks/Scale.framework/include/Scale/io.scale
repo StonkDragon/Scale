@@ -19,7 +19,7 @@ function puts(_val_: any): none
   if _val_ is SclObject then
     _val_ as SclObject:toString
   else
-    _val_ longToString
+    _val_ int::toString
   fi as str:view __c_puts drop
 end
 
@@ -27,7 +27,7 @@ function eputs(_val_: any): none
   if _val_ is SclObject then
     _val_ as SclObject:toString:view
   else
-    _val_ longToString:view
+    _val_ int::toString:view
   fi
   c!
     fprintf(stderr, "%s\n", (scl_int8*) _scl_pop()->v);

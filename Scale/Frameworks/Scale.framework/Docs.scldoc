@@ -21,7 +21,7 @@ This memory may not be <<GREEN>>0<<RESET>>-initialized.
 It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
 The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
 
-### function realloc(_size_: int, _ptr_: any): any
+### function realloc(_ptr_: any, _size_: int): any
 Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes.
 Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
 If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>.
@@ -42,67 +42,169 @@ Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RES
 Returns the current time in seconds as a float.
 
 ### function longToString(_long_: int): str
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toString<<RESET>>
 Converts <<WHITE>>_long_<<RESET>> to a string.
 
 ### function stringToLong(_str_: str): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>parse<<RESET>>
 Converts <<WHITE>>_str_<<RESET>> to an interger.
 Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
 If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
 
 ### function stringToDouble(_str_: str): float
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>toString<<RESET>>
 Converts <<WHITE>>_str_<<RESET>> to a float.
 Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
 Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
 
 ### function doubleToString(_double_: float): str
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>parse<<RESET>>
 Converts <<WHITE>>_double_<<RESET>> to a string.
 
 ### function nop(): none
+<<RED>>This function has been deprecated<<RESET>>
 Do nothing.
 
+@std.Any
+## Any
+### static function any::new(size: int): any
+Returns a pointer to <<WHITE>>size<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+It is undefined behavior to pass in a <<WHITE>>size<<RESET>> of <<GREEN>>0<<RESET>>.
+The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
+
+### static function any::default(): any
+Returns a pointer to <<BLUE>>sizeof any<<RESET>> bytes of memory.
+This memory may not be <<GREEN>>0<<RESET>>-initialized.
+
+### static function any::delete(ptr: any): none
+Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
+If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
+
+### static function any::size(ptr: any): int
+Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
+Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+
+### static function any::toString(x: any): int
+Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
+Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+
+### static function any::toHexString(x: any): int
+Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+
 @std.Int
+## Int
+### static function int::toString(i: int): str
+Converts <<WHITE>>i<<RESET>> to a string.
+
+### static function int::toHexString(i: int): str
+Returns the hexadecimal representation of <<WHITE>>i<<RESET>> as a string.
+
+### static function int::parse(s: str): int
+Converts <<WHITE>>s<<RESET>> to an interger.
+Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
+If <<WHITE>>s<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
+
+### static function int::toInt8(_val_: int): int8
+Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
+
+### static function int::toInt16(_val_: int): int16
+Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
+
+### static function int::toInt32(_val_: int): int32
+Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
+
+### static function int::toInt(_val_: any): int
+Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### static function int::toUInt8(_val_: int): int8
+Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
+
+### static function int::toUInt16(_val_: int): int16
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
+
+### static function int::toUInt32(_val_: int): int32
+Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
+
+### static function int::toUInt(_val_: any): uint
+Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
+32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+
+### static function int::isValidInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
+
+### static function int::isValidInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
+
+### static function int::isValidInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
+
+### static function int::isValidUInt8(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
+
+### static function int::isValidUInt16(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
+
+### static function int::isValidUInt32(_val_: any): bool
+Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
+
 ### function toInt8(_val_: int): int8
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt8<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
 
 ### function toInt16(_val_: int): int16
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt16<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
 
 ### function toInt32(_val_: int): int32
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt32<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
 
 ### function toInt(_val_: any): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
 32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
 
 ### function toUInt8(_val_: int): int8
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt8<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
 
 ### function toUInt16(_val_: int): int16
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt16<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
 
 ### function toUInt32(_val_: int): int32
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt32<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
 
 ### function toUInt(_val_: any): uint
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt<<RESET>>
 Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
 32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
 
 ### function isValidInt8(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt8<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
 
 ### function isValidInt16(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt16<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
 
 ### function isValidInt32(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt32<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
 
 ### function isValidUInt8(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt8<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
 
 ### function isValidUInt16(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt16<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
 
 ### function isValidUInt32(_val_: any): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt32<<RESET>>
 Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
 
 ### function isnil(x: any): bool
@@ -192,11 +294,11 @@ Returns the hyperbolic tangent of <<WHITE>>f<<RESET>>.
 Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
 ### function exp2(f: float): float
-Returns <<YELLOW>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
+Returns <<GREEN>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
 
 ### function expm1(f: float): float
-Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<YELLOW>>1<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<YELLOW>>1 <<BLUE>>-<<RESET>>.
+Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<GREEN>>1<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<GREEN>>1 <<BLUE>>-<<RESET>>.
 
 ### function log(f: float): float
 Returns the natural logarithm of <<WHITE>>f<<RESET>>.
@@ -208,8 +310,8 @@ Returns the common (base-10) logarithm of <<WHITE>>f<<RESET>>.
 Returns the binary logarithm of <<WHITE>>f<<RESET>>.
 
 ### function log1p(f: float): float
-Returns the natural logarithm of <<YELLOW>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<YELLOW>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
+Returns the natural logarithm of <<GREEN>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
+For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<GREEN>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
 
 ### function logb(f: float): float
 Returns the logarithm of the absolute value of <<WHITE>>f<<RESET>>.
@@ -275,25 +377,29 @@ Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<RESET>>.
 The function computes the result without losing precision in any intermediate result.
 
 ### function isInfinite(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isInfinite<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
 
 ### function isNaN(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNaN<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
 
 ### function isFinite(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isFinite<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
 
 ### function isNotNaN(x: float): bool
+<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNotNaN<<RESET>>
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
 
 ### function random(): int
 Returns a random <<BLUE>>int<<RESET>>.
 
 ### function iseven(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<YELLOW>>2<<RESET>>.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<GREEN>>2<<RESET>>.
 
 ### function isodd(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<YELLOW>>2<<RESET>>.
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<GREEN>>2<<RESET>>.
 
 ### function lrandom(lim: int): int
 Returns a random <<BLUE>>int<<RESET>> not exceeding <<WHITE>>lim<<RESET>>.
@@ -347,6 +453,37 @@ Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>f<<RE
 
 ### function fseekcur(f: any, _offset_: int): none
 Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>f<<RESET>>.
+
+@std.Float
+## Float
+### static function float::toString(x: float): str
+Converts <<WHITE>>x<<RESET>> to a string.
+
+### static function float::toPrecisionString(x: float): str
+Converts <<WHITE>>x<<RESET>> to a string with the highest precision available.
+
+### static function float::toHexString(x: float): str
+Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+
+### static function float::parse(s: str): float
+Converts <<WHITE>>s<<RESET>> to a float.
+Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
+Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+
+### static function float::bits(x: float) val: int
+Returns the bit representation of the float <<WHITE>>x<<RESET>>.
+
+### static function float::isInfinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
+
+### static function float::isNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
+
+### static function float::isFinite(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
+
+### static function float::isNotNaN(x: float): bool
+Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
 
 @std.math.Fraction
 ## Fraction
@@ -429,8 +566,12 @@ If the array has no more free slots, it will be resized accordingly.
 Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array.
 If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
 
+### function Array:indexOf(val: any): int
+Returns the index of the first occurence of <<WHITE>>val<<RESET>> in the array.
+Returns <<GREEN>>-1<<RESET>> if <<WHITE>>val<<RESET>> is not found in the array.
+
 ### function Array:contains(val: any): bool
-Returns <<BLUE>>true<<RESET>>, if the array contains val.
+Returns <<BLUE>>true<<RESET>>, if the array contains <<WHITE>>val<<RESET>>.
 
 ### function Array:toString(): str
 Returns a stringified version of the array.
@@ -438,11 +579,19 @@ Returns a stringified version of the array.
 ### function Array:immutableCopy(): ImmutableArray
 Returns an immutable copy of the array.
 
+### function Array:remove(val: any): none
+Removes the first occurence of <<WHITE>>val<<RESET>> from the array.
+This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+
+### function Array:removeAll(val: any): none
+Removes all occurences of <<WHITE>>val<<RESET>> in the array.
+This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+
 ### function Array:map(x: lambda(any): none): none
-Runs the lambda x for every element in the array.
+Runs the <<BLUE>>lambda <<WHITE>>x<<RESET>> for every element in the array.
 
 ### function Array:filter(x: lambda(any): bool): Array
-Returns a new array with only those elements in it for which the lambda x returns <<BLUE>>true<<RESET>>.
+Returns a new array with only those elements in it for which the <<BLUE>>lambda <<WHITE>>x<<RESET>> returns <<BLUE>>true<<RESET>>.
 
 ### function Array:reverse(): Array
 Reverses the order of the elements in the array.
@@ -591,6 +740,15 @@ TODO.
 
 @std.threading.Thread
 ## Thread
+### static decl Thread::mainThread: readonly Thread
+A reference to the main thread.
+
+### static function Thread::currentThread(): Thread
+Returns a reference to the current thread.
+
+### static function Thread::stackTrace(): Array
+Returns the stack trace of the current thread.
+
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
 
@@ -602,13 +760,51 @@ If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>joi
 Blocks the calling thread until the thread finishes execution.
 If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
 
+### function Thread:equals(other: Thread): bool
+Returns true, if both threads represent the same pthread instance.
+
+### function Thread:==(other: Thread): bool
+Returns true, if both threads represent the same pthread instance.
+
 @std.debug
 ## Exception
 ### struct Exception
 Member types:
 - <<WHITE>>msg<<BLUE>>: str<<RESET>>
+- <<WHITE>>stackTrace<<BLUE>>: const <<WHITE>>Array<<RESET>>
+- <<WHITE>>errnoStr<<BLUE>>: readonly str<<RESET>>
 
 <<WHITE>>msg<<RESET>>: Contains the exception message.
+<<WHITE>>stackTrace<<RESET>>: Contains the stack trace.
+<<WHITE>>errnoStr<<RESET>>: Contains the string representation of errno at the time of initialization.
+
+### function Exception:printStackTrace(): none
+Prints the stack trace of this exception to stderr.
+
+### function Exception::new(): none
+Creates a new exception.
+
+## InvalidSignalException
+### struct InvalidSignalException : Exception
+Member types inherited from <<WHITE>>Exception<<RESET>>.
+This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+
+### function InvalidSignalException::new(signal: int): none
+Creates a new InvalidSignalException with the signal <<WHITE>>signal<<RESET>>.
+This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+
+## Error
+### struct Error : Exception
+Member types inherited from <<WHITE>>Exception<<RESET>>.
+Errors are not catchable in a try-catch and will always throw to the first try block (the try block in native code surrounding the call to <<WHITE>>main<<RESET>>).
+
+### function Error::new(message: str): none
+Creates a new Error with the given message.
+
+## AssertError
+### struct AssertError : Error
+Member types inherited from <<WHITE>>Error<<RESET>>.
+This error is only thrown when an assertion failed.
 
 ## Debug
 ### function trace(): none
@@ -625,6 +821,12 @@ Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> bloc
 
 ### function sysPrettyString(): str
 Returns a string containing the OS name and architecture.
+
+### function setSignalHandler(handlerFun: lambda(int): none, signal: int): none
+Sets the signal handler for the given signal.
+
+### function resetSignalHandler(sig: int): none
+Resets the signal handler for the given signal to the default signal handler.
 
 @std.io
 ## ConsoleColor
@@ -698,3 +900,55 @@ Creates a new map entry with the given key and value.
 
 ### function MapEntry:toString(): str
 Returns a string representation of this map entry.
+
+@std.util.Cloneable
+## Cloneable
+### interface ICloneable
+Implementing this interface indicates that instances of this struct may be copied.
+
+### function ICloneable:clone(): ?
+The interface method to implement for cloning, where <<BLUE>>?<<RESET>> represents this struct.
+
+@std.util.Equatable
+## Equatable
+### interface IEquatable
+Implementing this interface indicates that instances of this struct implement a custom equality check.
+
+### function IEquatable:equals(other: ?): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
+The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+
+### function IEquatable:==(other: ?): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
+The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+
+@std.util.Hashable
+## Hashable
+### interface IHashable
+Implementing this interface indicates that instances of this struct implement a custom hashCode method.
+
+### function IHashable:hashCode(): int
+Implementations of this interface method should return a hash code value.
+
+@std.util.Iterable
+## Iterable
+### interface IIterable
+Implementing this interface enables it to be used in a <<BLUE>>foreach<<RESET>>-loop
+
+### function IIterable:begin(): none
+Implementations of this interface method should set the instance up to be iterated.
+
+### function IIterable:hasNext(): bool
+Implementations of this interface method should return <<BLUE>>true<<RESET>>, if <<WHITE>>next<<RESET>> would return a valid value.
+
+### function IIterable:next(): ?
+Implementations of this interface method should return the next value in the iteration.
+The <<BLUE>>?<<RESET>> should represent a meaningful type for the iteration.
+
+@std.util.Stringifyable
+## Stringifyable
+### interface IStringifyable
+Implementing this interface indicates that instances of this struct implement a custom <<WHITE>>toString<<RESET>> method.
+
+### function IStringifyable:toString(): str
+Implementations of this interface method should return a meaningful string representation of the instance.

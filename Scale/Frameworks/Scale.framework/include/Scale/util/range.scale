@@ -1,12 +1,12 @@
 import std.util.Iterable
 
-sealed struct Range is IIterable
+final sealed struct Range is IIterable
   decl lower: int
   decl upper: int
   
   private decl pos: int
 
-  export function init(_start: int, _end: int): none
+  function init(_start: int, _end: int): none
     if _start _end > then
       "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
     fi
@@ -16,21 +16,21 @@ sealed struct Range is IIterable
     0 => self.pos
   end
 
-  export function containsRange(other: Range): int
+  function containsRange(other: Range): int
     if other.lower self:contains other.upper self:contains && then
       true return
     fi
     false return
   end
 
-  export function overlaps(other: Range): int
+  function overlaps(other: Range): int
     if other.lower self:contains other.upper self:contains || then
       true return
     fi
     false return
   end
 
-  export function contains(pos: int): int
+  function contains(pos: int): int
     if pos self.lower >= then
       if pos self.upper <= then
         true return
@@ -40,7 +40,11 @@ sealed struct Range is IIterable
   end
 
   function toString(): str
-    lower longToString " .. " + upper longToString + return
+    lower int::toString " .. " + upper int::toString + return
+  end
+
+  function begin(): none
+    0 => self.pos
   end
 
   function hasNext(): bool
@@ -53,17 +57,17 @@ sealed struct Range is IIterable
     return
   end
 
-  export function toReverseRange(): ReverseRange
+  function toReverseRange(): ReverseRange
     self.upper self.lower ReverseRange::new return
   end
 end
 
-sealed struct ReverseRange is IIterable
+final sealed struct ReverseRange is IIterable
   decl lower: int
   decl upper: int
   decl pos: int
 
-  export function init(_start: int, _end: int): none
+  function init(_start: int, _end: int): none
     if _start _end < then
       "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
     fi
@@ -74,7 +78,11 @@ sealed struct ReverseRange is IIterable
   end
 
   function toString(): str
-    lower longToString " .. " + upper longToString + return
+    lower int::toString " .. " + upper int::toString + return
+  end
+
+  function begin(): none
+    0 => self.pos
   end
   
   function hasNext(): bool
@@ -87,7 +95,7 @@ sealed struct ReverseRange is IIterable
     return
   end
 
-  export function toRange(): Range
+  function toRange(): Range
     self.upper self.lower Range::new return
   end
 end
