@@ -51,7 +51,7 @@
 		"scope": "source.scale",
 		"prefix": "initmethod",
 		"body": [
-			"function ${1:type}:init($2): none",
+			"function init($2): none",
 			"\t$0",
 			"end"
 		],
