@@ -412,46 +412,108 @@ Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
 
 @std.fs
 ## File
+### struct File
+The <<WHITE>>File<<RESET>> struct represents a file.
+
+### static function File::new(name: str): File
+Creates a new File instance of the file with the given name as the path.
+
+### function File:name(): str
+Returns the name of the file.
+
+### function File:close(): none
+Closes the underlying file handle.
+
+### function File:append(s: str): none
+Appends the given string to the end of the file.
+
+### function File:puts(s: str): none
+Prints the given string to the end of the file and appends a new line.
+
+### function File:writeBinary(buf: any, sz: int): none
+Writes <<WHITE>>sz<<RESET>> bytes of the buffer <<WHITE>>buf<<RESET>> to the file.
+
+### function File:read(sz: int): any
+Returns up to <<WHITE>>sz<<RESET>> bytes of data from the file.
+
+### function File:offsetFromBegin(off: int): none
+Moves the current position in the file to <<WHITE>>off<<RESET>> bytes from the beginning of the file.
+
+### function File:offsetFromEnd(off: int): none
+Moves the current position in the file to <<WHITE>>off<<RESET>> bytes from the end of the file.
+
+### function File:offset(off: int): none
+Moves the current position in the file <<WHITE>>off<<RESET>> bytes forward.
+
+### function File:fileno(): int
+Returns the underlying file descriptor of this instance.
+
+### function File:pos(): int
+Returns the current position in the file.
+
+### function File:delete(): bool
+Deletes the file and returns <<BLUE>>true<<RESET>> if it was successful.
+
+### function File:create(): none
+Creates this file if it doesn't already exist.
+
+### static function File::exists(name: str): bool
+Returns <<BLUE>>true<<RESET>> if the file with the name <<WHITE>>name<<RESET>> exists.
+
 ### function fopen(_filename_: str, _mode_: str): any
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Opens a new file handle of file <<WHITE>>_filename_<<RESET>> in mode <<WHITE>>_mode_<<RESET>>.
 
 ### function fclose(_file_: any): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Closes the file handle <<WHITE>>_file_<<RESET>>.
 
 ### function ftell(_file_: any): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Returns the current position in the file <<WHITE>>_file_<<RESET>>.
 
 ### function fileno(_file_: any): int
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Returns the file descriptor of <<WHITE>>_file_<<RESET>>.
 
 ### function fseek(_file_: any, _whence_: int, _offset_: int): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Seeks to <<WHITE>>_offset_<<RESET>> in the <<WHITE>>_file_<<RESET>> from <<WHITE>>_whence_<<RESET>>.
 
 ### function fwrite(_buf_: any, _size_: int, _file_: any): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Writes <<WHITE>>_size_<<RESET>> bytes of buffer <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
 
 ### function fwrites(_buf_: str, _size_: int, _file_: any): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Writes <<WHITE>>_size_<<RESET>> bytes of string <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
 
 ### function fputs(_file_: any, _str_: str): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Prints the string <<WHITE>>_str_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 
 ### function fputs(_file_: any, _int_: int): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Prints the integer <<WHITE>>_int_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 
 ### function fputs(_file_: any, _float_: float): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Prints the float <<WHITE>>_float_<<RESET>> to <<WHITE>>_file_<<RESET>>.
 
 ### function fread(f: any, _size_: int): [any]?
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Reads <<WHITE>>_size_<<RESET>> bytes from file <<WHITE>>f<<RESET>>.
 
 ### function fseekstart(f: any, _offset_: int): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Seeks to position <<WHITE>>_offset_<<RESET>> from the start of file <<WHITE>>f<<RESET>>.
 
 ### function fseekend(f: any, _offset_: int): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>f<<RESET>>.
 
 ### function fseekcur(f: any, _offset_: int): none
+<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
 Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>f<<RESET>>.
 
 @std.Float
