@@ -1,4 +1,4 @@
-#include "scale_internal.h"
+#include "scale_runtime.h"
 
 const hash SclObjectHash = 0xC9CCFE34U;
 

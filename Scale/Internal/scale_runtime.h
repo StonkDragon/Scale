@@ -1,5 +1,5 @@
-#if !defined(_SCALE_INTERNAL_H_)
-#define _SCALE_INTERNAL_H_
+#if !defined(_SCALE_RUNTIME_H_)
+#define _SCALE_RUNTIME_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -399,4 +399,4 @@ inline void _scl_swap2() {
 	_scl_push()->v = c;
 }
 
-#endif // __SCALE_INTERNAL_H__
+#endif // __SCALE_RUNTIME_H__
