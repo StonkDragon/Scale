@@ -153,11 +153,18 @@ namespace sclc
                 std::string key = line.substr(4);
                 docs[current].push_back(triple(key, std::string(""), nextFileName));
                 line = lines[++i];
+                std::string linePrefix = "";
                 while (i < lines.size() && !strstarts(line, "##") && !strstarts(line, "@")) {
                     while (strstarts(line, "<div")) {
                         line = lines[++i];
                     }
-                    docs[current].back().second += "  " + line + "\n";
+                    if (line == "<pre>" || strstarts(line, "<pre>")) {
+                        linePrefix = Color::CYAN + "  ";
+                    } else if (line == "</pre>" || strstarts(line, "</pre>")) {
+                        linePrefix = "";
+                    } else {
+                        docs[current].back().second += "  " + linePrefix + line + "\n";
+                    }
                     line = lines[++i];
                 }
                 std::string prev = docs[current].back().second;
@@ -721,7 +728,7 @@ namespace sclc
             cflags.push_back("-I" + scaleFolder + "/Internal");
             cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I.");
-            cflags.push_back(scaleFolder + "/Internal/scale_internal.c");
+            cflags.push_back(scaleFolder + "/Internal/scale_runtime.c");
             cflags.push_back("-" + optimizer);
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
             cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
