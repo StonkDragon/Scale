@@ -335,7 +335,7 @@ namespace sclc {
 
         append("\n");
         append("/* HEADERS */\n");
-        append("#include <scale_internal.h>\n");
+        append("#include <scale_runtime.h>\n");
         for (std::string header : Main.frameworkNativeHeaders) {
             append("#include <%s>\n", header.c_str());
         }
@@ -356,7 +356,7 @@ namespace sclc {
                 symbolTable = fopen("scale-symbol-table.txt", "a");
         }
 
-        std::vector<std::string> forbidden_funcs_for_support_header({"malloc", "realloc", "free", "sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_is_instance_of", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
+        std::vector<std::string> forbidden_funcs_for_support_header({"malloc", "realloc", "free", "sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_default_signal_handler", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_is_instance_of", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
 
         for (Function* function : result.functions) {
             std::string return_type = "void";
@@ -426,7 +426,7 @@ namespace sclc {
         if (result.extern_functions.size() == 0) return;
         append("/* EXTERN FUNCTIONS */\n");
 
-        std::vector<std::string> forbidden_funcs_for_support_header({"malloc", "realloc", "free", "sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_catch_final", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_is_instance_of", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
+        std::vector<std::string> forbidden_funcs_for_support_header({"malloc", "realloc", "free", "sleep", "read", "write", "_scl_security_throw", "_scl_security_safe_exit", "_scl_default_signal_handler", "print_stacktrace", "print_stacktrace_with_file", "ctrl_push_string", "ctrl_push_long", "ctrl_push_double", "ctrl_push", "ctrl_pop_string", "ctrl_pop_double", "ctrl_pop_long", "ctrl_pop", "ctrl_stack_size", "_scl_push", "_scl_pop", "_scl_top", "_scl_popn", "_scl_create_string", "_scl_remove_ptr", "_scl_get_index_of_ptr", "_scl_remove_ptr_at_index", "_scl_add_ptr", "_scl_check_allocated", "_scl_realloc", "_scl_alloc", "_scl_free", "_scl_assert", "_scl_finalize", "_scl_unreachable", "_scl_exception_push", "hash1", "_scl_alloc_struct", "_scl_free_struct", "_scl_add_struct", "_scl_is_instance_of", "_scl_get_method_on_type", "_scl_find_index_of_struct", "_scl_free_struct_no_finalize", "_scl_typeinfo_of", "_scl_binary_search", "_scl_binary_search_method_index", "memcpy", "memset"});
 
         for (Function* function : result.extern_functions) {
             bool hasFunction = false;
@@ -2653,6 +2653,7 @@ namespace sclc {
                         path = containerBegin;
                     }
                     if (topLevelDeref) {
+                        append("_scl_nil_ptr_dereference(*(scl_int*) &(%s), \"%s\");\n", path.c_str(), sclPath.c_str());
                         path = "(*" + path + ")";
                         sclPath = "@" + sclPath;
                     }
@@ -2663,6 +2664,7 @@ namespace sclc {
                         } else {
                             nextType = "any";
                         }
+                        currentRoot = getStructByName(result, nextType);
                     }
                     if (!v2.isWritableFrom(function, VarAccess::Write)) {
                         transpilerError("Variable '" + body[*i].getValue() + "' is const", *i);
@@ -2679,6 +2681,8 @@ namespace sclc {
                 size_t last = *i;
                 while (body[*i].getType() == tok_dot) {
                     REF_INC;
+                    last++;
+                    append("_scl_nil_ptr_dereference(*(scl_int*) &(%s), \"%s\");\n", path.c_str(), sclPath.c_str());
                     bool deref = false;
                     sclPath += ".";
                     if (body[*i].getType() == tok_addr_of) {
@@ -2686,6 +2690,7 @@ namespace sclc {
                         nextType = notNilTypeOf(nextType);
                         sclPath += "@";
                         REF_INC;
+                        last++;
                     }
                     if (!currentRoot.hasMember(body[*i].getValue())) {
                         transpilerError("Struct '" + currentRoot.getName() + "' has no member named '" + body[*i].getValue() + "'", *i);
@@ -2694,7 +2699,7 @@ namespace sclc {
                         return path;
                     } else {
                         if (v2.getName().size() && !v2.isWritableFrom(function, VarAccess::Dereference)) {
-                            transpilerError("Variable '" + body[last].getValue() + "' is not mut", last);
+                            transpilerError("Variable '" + v2.getName() + "' is not mut", last);
                             errors.push_back(err);
                             (*lastType) = nextType;
                             return path;
@@ -2720,7 +2725,6 @@ namespace sclc {
                         currentRoot = getStructByName(result, nextType);
                     }
                     sclPath += body[*i].getValue();
-                    append("_scl_nil_ptr_dereference(*(scl_int*) &(%s), \"%s\");\n", path.c_str(), sclPath.c_str());
                     if (deref) {
                         append("_scl_nil_ptr_dereference(*(scl_int*) &(%s->%s), \"%s\");\n", path.c_str(), body[*i].getValue().c_str(), sclPath.c_str());
                         path = "(*(" + path + "->" + body[*i].getValue() + "))";
@@ -2884,7 +2888,12 @@ namespace sclc {
         Variable v = Variable(name, type, isConst, isMut);
         v.canBeNil = typeCanBeNil(type);
         varScopeTop().push_back(v);
-        append("%s Var_%s;\n", sclTypeToCType(result, v.getType()).c_str(), v.getName().c_str());
+        type = sclTypeToCType(result, v.getType());
+        if (type == "scl_float") {
+            append("%s Var_%s = 0.0;\n", type.c_str(), v.getName().c_str());
+        } else {
+            append("%s Var_%s = 0;\n", type.c_str(), v.getName().c_str());
+        }
     }
 
     handler(CurlyOpen) {
@@ -4535,11 +4544,9 @@ namespace sclc {
                             append("_scl_push()->v = (scl_any) Var_self;\n");
                             typeStack.push(getVar("self").getType());
                             append("scl_int __stack_size = _stack.ptr;\n");
-                            append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
                             append("_scl_look_for_method = 0;\n");
                             generateCall(superInit, fp, result, warns, errors, body, 0);
                             append("_scl_look_for_method = 1;\n");
-                            append("_callstack.ptr--;\n");
                             append("_stack.ptr = __stack_size;\n");
                             scopeDepth--;
                             append("}\n");
