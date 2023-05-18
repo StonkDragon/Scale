@@ -1,4 +1,4 @@
-VERSION: "23.5";
+VERSION: "23.5.1";
 
 build: {
   compiler: "g++";

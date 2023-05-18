@@ -1,5 +1,5 @@
 framework: {
-    version: "23.5";
+    version: "23.5.1";
     headerDir: "include";
     implDir: "impl";
     implementers: [];
@@ -53,6 +53,9 @@ framework: {
         ];
         std.util.TypedArray: [
             "Scale/util/typedarray.scale";
+        ];
+        std.util.ReadOnlyArray: [
+            "Scale/util/readonlyarray.scale";
         ];
         std.util.ImmutableArray: [
             "Scale/util/immutablearray.scale";
