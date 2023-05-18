@@ -4,6 +4,7 @@ import std.debug
 import std.util.InvalidArgumentException
 import std.util.IndexOutOfBoundsException
 import std.util.TypedArray
+import std.util.ReadOnlyArray
 
 sealed struct Array is IIterable
   decl values:  mut readonly [any]

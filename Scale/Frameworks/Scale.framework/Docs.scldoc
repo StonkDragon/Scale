@@ -664,6 +664,36 @@ Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> element
 ### static function Array::fromPointerCollection(count: int, values: [any]): Array
 Returns a new array that contains count elements of the c-style array values.
 
+@std.util.ReadOnlyArray
+## ReadOnlyArray
+### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
+Creates a new <<WHITE>>ReadOnlyArray<<RESET>> from the given <<WHITE>>Array<<RESET>>.
+
+### function ReadOnlyArray:sort(): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:set(index: int, value: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:push(value: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:pop(): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:reverse(): Array
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:remove(val: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:removeAll(val: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+## IllegalStateException
+### static function IllegalStateException::new(msg: str): IllegalStateException
+Creates a new <<WHITE>>IllegalStateException<<RESET>> with the given message.
+
 @std.String
 ## String
 ### function str:+(other: str): str
