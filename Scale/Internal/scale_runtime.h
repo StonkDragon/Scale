@@ -346,6 +346,7 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
+void				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
 void				_scl_not_nil_cast(scl_int val, scl_int8* name);
 void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);

@@ -232,7 +232,6 @@ void _ZN5Error4initEP10Struct_strP5Error(scl_any, scl_str);
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_int8* msg) {
 	if (!b) {
-		// TODO: Make this throw an error, not just exit outright.
 		typedef struct Struct_AssertError {
 			Struct _structData;
 			scl_str msg;
@@ -490,9 +489,13 @@ struct Struct_Array {
 	scl_int pos;
 };
 
-// Converts C NULL-terminated array to Array-instance
+struct Struct_ReadOnlyArray {
+	struct Struct_Array self;
+};
+
+// Converts C NULL-terminated array to ReadOnlyArray-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-	struct Struct_Array* array = NEW0(Array);
+	struct Struct_Array* array = NEW(ReadOnlyArray, Array);
 	scl_int cap = 0;
 	while (arr[cap] != NULL) {
 		cap++;
@@ -941,6 +944,24 @@ void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 		scl_int8* msg = (scl_int8*) system_allocate(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Argument %s is nil", name);
 		_scl_assert(0, msg);
+	}
+}
+
+void _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name) {
+	if (!_scl_is_instance_of(instance, target_type)) {
+		typedef struct Struct_CastError {
+			Struct _structData;
+			scl_str msg;
+			struct Struct_Array* stackTrace;
+			scl_str errno_str;
+		} _scl_CastError;
+
+		scl_int8* cmsg = (scl_int8*) _scl_alloc(64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name));
+		sprintf(cmsg, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
+		_scl_CastError* err = NEW(CastError, Error);
+		_ZN5Error4initEP10Struct_strP5Error(err, str_of(cmsg));
+
+		_scl_throw(err);
 	}
 }
 

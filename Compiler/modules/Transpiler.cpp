@@ -3674,6 +3674,10 @@ namespace sclc {
             if (typeCanBeNil(typeStackTop)) {
                 append("_scl_not_nil_cast(_scl_top()->i, \"%s\");\n", type.value.c_str());
             }
+            std::string typeStr = removeTypeModifiers(type.value);
+            if (getStructByName(result, typeStr) != Struct::Null) {
+                append("_scl_checked_cast(_scl_top()->v, %d, \"%s\");\n", hash1((char*) typeStr.c_str()), typeStr.c_str());
+            }
             typePop;
             typeStack.push(type.value);
         }
