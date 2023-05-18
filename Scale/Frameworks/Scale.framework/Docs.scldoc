@@ -898,6 +898,11 @@ Creates a new Error with the given message.
 Member types inherited from <<WHITE>>Error<<RESET>>.
 This error is only thrown when an assertion failed.
 
+## CastError
+### struct CastError : Error
+Member types inherited from <<WHITE>>Error<<RESET>>.
+This error is thrown when a cast fails.
+
 ## Debug
 ### function trace(): none
 Prints the current stack trace to stdout.

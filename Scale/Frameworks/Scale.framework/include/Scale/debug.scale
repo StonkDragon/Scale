@@ -95,6 +95,8 @@ end
 
 final sealed struct AssertError: Error end
 
+final sealed struct CastError: Error end
+
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]
   c!
