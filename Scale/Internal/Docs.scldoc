@@ -659,7 +659,7 @@ The index.drg file of the Scale Framework looks like this:
 
 <pre>
 framework: {
-    version: "23.5.1";
+    version: "23.6";
     headerDir: "include";
     implDir: "impl";
     implementers: [];
