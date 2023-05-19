@@ -514,6 +514,28 @@ namespace sclc {
             builtinHash->setReturnType("int32");
             extern_functions.push_back(builtinHash);
 
+            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtin>"));
+            builtinIdentityHash->isExternC = true;
+            builtinIdentityHash->addModifier("extern");
+            builtinIdentityHash->addModifier("cdecl");
+            builtinIdentityHash->addModifier("_scl_identity_hash");
+            
+            builtinIdentityHash->addArgument(Variable("obj", "any"));
+            
+            builtinIdentityHash->setReturnType("int");
+            extern_functions.push_back(builtinIdentityHash);
+
+            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtin>"));
+            builtinAtomicClone->isExternC = true;
+            builtinAtomicClone->addModifier("extern");
+            builtinAtomicClone->addModifier("cdecl");
+            builtinAtomicClone->addModifier("_scl_atomic_clone");
+            
+            builtinAtomicClone->addArgument(Variable("obj", "any"));
+            
+            builtinAtomicClone->setReturnType("any");
+            extern_functions.push_back(builtinAtomicClone);
+
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");

@@ -717,3 +717,9 @@ In almost all cases it is better to use <<WHITE>>builtinIsInstanceOf<<RESET>>.
 ### function builtinToString(obj: any): str
 Returns the string representation of the given value.
 If the value is a valid struct instance, it's <<WHITE>>toString<<RESET>> method will be called.
+
+### function builtinIdentityHash(obj: any): int
+Returns the identity hash of the given object.
+
+### function builtinAtomicClone(obj: any): any
+Returns an atomic clone of the given object.
