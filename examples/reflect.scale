@@ -11,22 +11,34 @@ struct Foo
 end
 
 function main(args: Array): none
+    # programmatically create a new instance of the struct Foo
     "Foo" Struct::getStructByName => decl s: Struct
     s:newInstance => decl f: Foo
 
+    # call some methods on the struct
     f "hello" s:getMethodByName:accept
     "Foo!" f "msg" s:getMethodByName:accept
 
+    # print a struct
     "FmtIO" Struct::getStructByName puts
 
+    # make sure trying to get non-existent structs throws an exception
     try
         "A" Struct::getStructByName
     catch typeof NullPointerException
         exception.msg puts
     done
 
+    # make sure instantiating a static struct throws an exception
     try
         "FmtIO" Struct::getStructByName:newInstance
+    catch typeof IllegalStateException
+        exception.msg puts
+    done
+
+    # make sure the struct Struct is not instantiatable even with reflection
+    try
+        "Struct" Struct::getStructByName:newInstance
     catch typeof IllegalStateException
         exception.msg puts
     done

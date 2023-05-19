@@ -1,0 +1,6 @@
+Hello, World!
+Foo!
+Struct {typeName: FmtIO, typeId: 268411564, superStruct: Struct {typeName: SclObject, typeId: 3385654836, superStruct: 0, binarySize: 32, isStatic: 0}, binarySize: 0, isStatic: 1}
+Couldn't find struct 'A'
+Can not instantiate static struct 'FmtIO'
+Direct instantiation of struct 'Struct' is disabled!
