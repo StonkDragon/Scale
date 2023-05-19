@@ -617,8 +617,10 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 }
 
 struct _scl_methodinfo {
-  scl_any  ptr;
-  scl_int  pure_name;
+  scl_any  	ptr;
+  scl_int  	pure_name;
+  scl_any  	actual_handle;
+  scl_int8*	actual_name;
 };
 
 struct _scl_typeinfo {
@@ -746,6 +748,18 @@ scl_any _scl_get_method_on_type(hash type, hash method) {
 		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);
 		if (index >= 0) {
 			return p->methods[index]->ptr;
+		}
+		p = _scl_find_typeinfo_of(p->super);
+	}
+	return NULL;
+}
+
+scl_any _scl_get_method_handle(hash type, hash method) {
+	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
+	while (p) {
+		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);
+		if (index >= 0) {
+			return p->methods[index]->actual_handle;
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
@@ -1225,6 +1239,10 @@ extern genericFunc _scl_internal_init_functions[];
 // last element is always NULL
 extern genericFunc _scl_internal_destroy_functions[];
 
+// Struct::structsCount: int
+extern scl_int Struct$structsCount
+	__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Struct$structsCount");
+
 #if !defined(SCL_COMPILER_NO_MAIN)
 
 int main(int argc, char** argv) {
@@ -1278,17 +1296,31 @@ _scl_constructor void _scl_load() {
 
 #endif
 
+	Struct$structsCount = _scl_types_count;
+
 	// Run __init__ functions
-	for (int i = 0; _scl_internal_init_functions[i]; i++) {
-		_scl_internal_init_functions[i]();
+	int init_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
+	if (init_jmp != 666) {
+		for (int i = 0; _scl_internal_init_functions[i]; i++) {
+			_scl_internal_init_functions[i]();
+		}
+	} else {
+		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+
+		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+		if (msg) {
+			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+		} else {
+			_scl_security_throw(EX_THROWN, "Uncaught exception");
+		}
 	}
 
 #if !defined(SCL_COMPILER_NO_MAIN)
 
 	int ret;
 	_scl_exception_push();
-	int jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
-	if (jmp != 666) {
+	int main_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
+	if (main_jmp != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
 #if defined(SCL_MAIN_RETURN_NONE)
@@ -1318,8 +1350,20 @@ _scl_destructor void _scl_destroy() {
 
 	// Run finalization:
 	// Run __destroy__ functions
-	for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
-		_scl_internal_destroy_functions[i]();
+	int destroy_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
+	if (destroy_jmp != 666) {
+		for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
+			_scl_internal_destroy_functions[i]();
+		}
+	} else {
+		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+
+		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+		if (msg) {
+			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+		} else {
+			_scl_security_throw(EX_THROWN, "Uncaught exception");
+		}
 	}
 
 #if !defined(SCL_COMPILER_NO_MAIN)

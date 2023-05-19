@@ -364,6 +364,7 @@ void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method);
+scl_any				_scl_get_method_handle(hash type, hash method);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);

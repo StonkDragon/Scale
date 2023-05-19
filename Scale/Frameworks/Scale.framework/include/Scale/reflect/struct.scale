@@ -4,6 +4,8 @@ final sealed struct Struct
     private decl superStruct: Struct?
     private decl binarySize: int
 
+    static decl structsCount: const int
+
     decl isStatic: readonly bool
 
     private function init(): none
@@ -31,7 +33,7 @@ final sealed struct Struct
 
     function getMethodByName(name: str) method: lambda
         c!
-            *method = _scl_get_method_on_type((*self)->typeId, (*name)->_hash);
+            *method = _scl_get_method_handle((*self)->typeId, (*name)->_hash);
         end
         unless method then
             NullPointerException::new => decl e: mut Exception
