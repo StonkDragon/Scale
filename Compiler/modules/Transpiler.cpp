@@ -1667,6 +1667,9 @@ namespace sclc {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
                     typeStack.push(struct_);
+                } else if (body[i].getValue() == "struct") {
+                    append("_scl_push()->v = Function_Struct$getStructByName(str_of(\"%s\"));\n", struct_.c_str());
+                    typeStack.push("Struct");
                 } else {
                     if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                         Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
@@ -3645,7 +3648,7 @@ namespace sclc {
             typeStack.push(type.value);
             return;
         }
-        if (type.value == "lambda" || strstarts(type.value, "lambda()")) {
+        if (type.value == "lambda" || strstarts(type.value, "lambda(")) {
             typePop;
             append("_scl_not_nil_cast(_scl_top()->i, \"%s\");\n", type.value.c_str());
             typeStack.push(type.value);
@@ -3824,17 +3827,19 @@ namespace sclc {
             if (op == "accept") {
                 append("{\n");
                 scopeDepth++;
-                append("scl_any lambda = _scl_pop()->v;\n");
                 if (removeTypeModifiers(returnType) == "none") {
+                    append("void(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("((void(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("lambda(%s);\n", argGet.c_str());
                 } else if (removeTypeModifiers(returnType) == "float") {
+                    append("scl_float(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("_scl_push()->f = ((scl_float(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("_scl_push()->f = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 } else {
+                    append("scl_any(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("_scl_push()->v = ((scl_any(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("_scl_push()->v = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 }
                 scopeDepth--;
@@ -4221,8 +4226,10 @@ namespace sclc {
         append("};\n");
         append("struct _scl_methodinfo {\n");
         scopeDepth++;;
-        append("scl_any  ptr;\n");
-        append("scl_int  pure_name;\n");
+        append("scl_any    ptr;\n");
+        append("scl_int    pure_name;\n");
+        append("scl_any    actual_handle;\n");
+        append("scl_int8*  actual_name;\n");
         scopeDepth--;
         append("};\n");
         append("struct _scl_typeinfo {\n");
@@ -4268,6 +4275,8 @@ namespace sclc {
             scopeDepth++;
             append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
             append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+            append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+            append(".actual_name = \"%s\",\n", f->getName().c_str());
             scopeDepth--;
             append("};\n");
         }
@@ -4278,6 +4287,8 @@ namespace sclc {
             scopeDepth++;
             append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
             append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+            append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+            append(".actual_name = \"%s\",\n", f->getName().c_str());
             scopeDepth--;
             append("};\n");
         }
