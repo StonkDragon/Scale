@@ -1332,11 +1332,6 @@ namespace sclc {
 
     handler(Identifier) {
         noUnused;
-        if (body[i].getValue() == "self" && !function->isMethod) {
-            transpilerError("'self' can only be used in methods, not in functions.", i);
-            errors.push_back(err);
-            return;
-        }
     #ifdef __APPLE__
     #pragma region Identifier functions
     #endif
@@ -1553,7 +1548,7 @@ namespace sclc {
             append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
             varScopePush();
             pushTry();
-        } else if (body[i].getValue() == "super" && function->isMethod && function->getName() == "init") {
+        } else if (body[i].getValue() == "super" && !hasVar(Token(tok_identifier, "super", 0, "")) && function->isMethod && function->getName() == "init") {
             Struct s = getStructByName(result, ((Method*) function)->getMemberType());
             Struct super = getStructByName(result, s.extends());
             Method* superInit = getMethodByName(result, "init", super.getName());
@@ -1706,6 +1701,91 @@ namespace sclc {
                         transpilerError("Unknown static member of struct '" + s.getName() + "'", i);
                         errors.push_back(err);
                     }
+                }
+            } else if (body[i + 1].getType() == tok_curly_open) {
+                ITER_INC;
+                append("{\n");
+                scopeDepth++;
+                size_t begin = i - 1;
+                Struct s = getStructByName(result, body[i - 1].getValue());
+                append("scl_%s tmp = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", s.getName().c_str(), s.getName().c_str(), s.getName().c_str(), hash1((char*) s.extends().c_str()));
+                append("_scl_struct_allocation_failure(*(scl_int*) &tmp, \"%s\");\n", s.getName().c_str());
+                append("scl_int stack_start = _stack.ptr;\n");
+                ITER_INC;
+                size_t count = 0;
+                varScopePush();
+                if (function->isMethod) {
+                    Variable v("super", getVar("self").getType());
+                    varScopeTop().push_back(v);
+                    append("scl_%s Var_super = Var_self;\n", removeTypeModifiers(getVar("self").getType()).c_str());
+                }
+                Variable v("self", "mut " + s.getName());
+                append("scl_%s Var_self = tmp;\n", s.getName().c_str());
+                varScopeTop().push_back(v);
+                std::vector<std::string> missedMembers;
+
+                for (auto v : s.getMembers()) {
+                    missedMembers.push_back(v.getName());
+                }
+
+                auto without = [&](std::vector<std::string> vec, std::string elem) {
+                    std::vector<std::string> newVec;
+                    for (auto member : vec) {
+                        if (member != elem) {
+                            newVec.push_back(member);
+                        }
+                    }
+                    return newVec;
+                };
+                while (body[i].getType() != tok_curly_close) {
+                    if (body[i].getType() == tok_paren_open) {
+                        handle(ParenOpen);
+                    } else {
+                        handle(Token);
+                    }
+                    ITER_INC;
+                    if (body[i].getType() != tok_store) {
+                        transpilerError("Expected store, but got '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    ITER_INC;
+                    if (body[i].getType() != tok_identifier) {
+                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+
+                    std::string lastType = typeStackTop;
+
+                    missedMembers = without(missedMembers, body[i].getValue());
+                    
+                    if (removeTypeModifiers(lastType) == "float")
+                        append("tmp->%s = _scl_pop()->f;\n", body[i].getValue().c_str());
+                    else
+                        append("tmp->%s = (%s) _scl_pop()->i;\n", body[i].getValue().c_str(), sclTypeToCType(result, lastType).c_str());
+                    typePop;
+                    append("_stack.ptr = stack_start;\n");
+                    ITER_INC;
+                    count++;
+                }
+                varScopePop();
+                append("_scl_push()->v = tmp;\n");
+                scopeDepth--;
+                append("}\n");
+                typeStack.push(s.getName());
+                if (count < s.getMembers().size()) {
+                    std::string missed = "{ ";
+                    for (size_t i = 0; i < missedMembers.size(); i++) {
+                        if (i) {
+                            missed += ", ";
+                        }
+                        missed += missedMembers[i];
+                    }
+                    missed += " }";
+                    transpilerError("Not every member was initialized! Missed: " + missed, begin);
+                    errors.push_back(err);
+                    return;
                 }
             }
         } else if (hasVar(body[i])) {
@@ -4232,14 +4312,24 @@ namespace sclc {
         append("scl_int8*  actual_name;\n");
         scopeDepth--;
         append("};\n");
+        append("struct _scl_membertype {\n");
+        scopeDepth++;;
+        append("scl_int    pure_name;\n");
+        append("scl_int8*  actual_name;\n");
+        append("scl_int8*  type_name;\n");
+        append("scl_int    offset;\n");
+        scopeDepth--;
+        append("};\n");
         append("struct _scl_typeinfo {\n");
         scopeDepth++;
         append("scl_int    type;\n");
         append("scl_int    super;\n");
         append("scl_int    alloc_size;\n");
         append("scl_int8*  name;\n");
+        append("scl_int    memberscount;\n");
+        append("struct _scl_membertype* members;\n");
         append("scl_int    methodscount;\n");
-        append("struct _scl_methodinfo** methods;\n");
+        append("struct _scl_methodinfo* methods;\n");
         scopeDepth--;
         append("};\n\n");
 
@@ -4266,33 +4356,50 @@ namespace sclc {
             }
         }
 
-        append("/* METHOD REFLECT */\n");
+        // append("/* METHOD REFLECT */\n");
         scopeDepth++;
-        for (Function* f : result.functions) {
-            if (!f->isMethod) continue;
-            Method* m = (Method*) f;
-            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-            scopeDepth++;
-            append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-            append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".actual_name = \"%s\",\n", f->getName().c_str());
-            scopeDepth--;
-            append("};\n");
-        }
-        for (Function* f : result.extern_functions) {
-            if (!f->isMethod) continue;
-            Method* m = (Method*) f;
-            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-            scopeDepth++;
-            append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-            append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".actual_name = \"%s\",\n", f->getName().c_str());
-            scopeDepth--;
-            append("};\n");
-        }
+        // for (Function* f : result.functions) {
+        //     if (!f->isMethod) continue;
+        //     Method* m = (Method*) f;
+        //     append("static struct _scl_methodinfo _scl_methods_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     scopeDepth++;
+        //     append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+        //     append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     append(".actual_name = \"%s\",\n", f->getName().c_str());
+        //     scopeDepth--;
+        //     append("};\n");
+        // }
+        // for (Function* f : result.extern_functions) {
+        //     if (!f->isMethod) continue;
+        //     Method* m = (Method*) f;
+        //     append("static struct _scl_methodinfo _scl_methods_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     scopeDepth++;
+        //     append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
+        //     append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
+        //     append(".actual_name = \"%s\",\n", f->getName().c_str());
+        //     scopeDepth--;
+        //     append("};\n");
+        // }
         scopeDepth--;
+
+        for (Struct s : result.structs) {
+            if (s.getMembers().size()) {
+                append("static struct _scl_membertype _scl_members_%s[] = {\n", s.getName().c_str());
+                scopeDepth++;
+                for (Variable v : s.getMembers()) {
+                    append("(struct _scl_membertype) {\n");
+                    append("  .pure_name = 0x%xU,\n", hash1((char*) v.getName().c_str()));
+                    append("  .actual_name = \"%s\",\n", v.getName().c_str());
+                    append("  .type_name = \"%s\",\n", removeTypeModifiers(v.getType()).c_str());
+                    append("  .offset = _scl_offsetof(struct Struct_%s, %s),\n", s.getName().c_str(), v.getName().c_str());
+                    append("},\n");
+                }
+                scopeDepth--;
+                append("};\n");
+            }
+        }
 
         append("/* TYPES */\n");
         for (Struct s : result.structs) {
@@ -4300,10 +4407,17 @@ namespace sclc {
             std::sort(methods.begin(), methods.end(), compare<Method*>);
             append("/* %s */\n", s.getName().c_str());
             if (methods.size()) {
-                append("static struct _scl_methodinfo* _scl_methodinfo_ptrs_%s[] = (struct _scl_methodinfo*[]) {\n", s.getName().c_str());
+                append("static struct _scl_methodinfo _scl_methods_%s[] = {\n", s.getName().c_str());
                 scopeDepth++;
                 for (Method* m : methods) {
-                    append("  &_scl_methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append("(struct _scl_methodinfo) {\n");
+                    scopeDepth++;
+                    append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append(".pure_name = 0x%xU,\n", hash1((char*) m->getName().c_str()));
+                    append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append(".actual_name = \"%s\",\n", m->getName().c_str());
+                    scopeDepth--;
+                    append("},\n");
                 }
                 scopeDepth--;
                 append("};\n");
@@ -4324,13 +4438,19 @@ namespace sclc {
                 append(".alloc_size = sizeof(struct Struct_%s),\n", s.getName().c_str());
             }
             append(".name = \"%s\",\n", s.getName().c_str());
+            append(".memberscount = %zu,\n", s.getMembers().size());
+            if (s.getMembers().size()) {
+                append(".members = _scl_members_%s,\n", s.getName().c_str());
+            } else {
+                append(".members = NULL,\n");
+            }
 
             std::vector<Method*> methods = methodsOnType(result, s.getName());
 
             append(".methodscount = %zu,\n", methods.size());
 
             if (methods.size()) {
-                append(".methods = (struct _scl_methodinfo**) _scl_methodinfo_ptrs_%s,\n", s.getName().c_str());
+                append(".methods = _scl_methods_%s,\n", s.getName().c_str());
             } else {
                 append(".methods = NULL,\n");
             }
