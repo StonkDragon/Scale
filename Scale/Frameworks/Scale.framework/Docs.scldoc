@@ -669,6 +669,9 @@ Returns a new array that contains count elements of the c-style array values.
 ### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
 Creates a new <<WHITE>>ReadOnlyArray<<RESET>> from the given <<WHITE>>Array<<RESET>>.
 
+### static function ReadOnlyArray::fromPointerCollection(count: int, values: [any]): ReadOnlyArray
+Creates a new <<WHITE>>ReadOnlyArray<<RESET>> containing <<WHITE>>count<<RESET>> elements from the given c-style array.
+
 ### function ReadOnlyArray:sort(): none
 Throws <<WHITE>>IllegalStateException<<RESET>>.
 
@@ -809,26 +812,6 @@ Returns a copy of this object.
 ### function SclObject:hashCode(): SclObject
 Returns the hash of this object.
 This method should be redefined by Structs as the default implementation returns the hash of the type name.
-
-@std.util.ImmutableArray
-## ImmutableArray
-### function ImmutableArray:get(index: int): any?
-TODO.
-
-### function ImmutableArray:top(): any?
-TODO.
-
-### function ImmutableArray:contains(val: any): bool
-TODO.
-
-### function ImmutableArray:toString(): str
-TODO.
-
-### function ImmutableArray:map(x: lambda(any): none): none
-TODO.
-
-### static function ImmutableArray::new(count: int, values: [any]): none
-TODO.
 
 @std.threading.Thread
 ## Thread

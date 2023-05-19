@@ -37,15 +37,25 @@ sealed struct ReadOnlyArray: Array
     end
 
     function removeAll(val: any): none
-        "Attempted to remove all values readonly array!"
+        "Attempted to remove all values from readonly array!"
         IllegalStateException::new throw
     end
 
     static function fromArray(arr: Array) out: ReadOnlyArray
-        arr.capacity ReadOnlyArray::new
+        arr.capacity ReadOnlyArray::new => out
         c!
             for (scl_int i = 0; i < (*arr)->capacity; i++) {
                 (*out)->values[i] = (*arr)->values[i];
+            }
+        end
+        return
+    end
+
+    static function fromPointerCollection(count: int, values: [any]) out: ReadOnlyArray
+        count ReadOnlyArray::new => out
+        c!
+            for (scl_int i = 0; i < (*count); i++) {
+                (*out)->values[i] = (*values)[i];
             }
         end
         return
