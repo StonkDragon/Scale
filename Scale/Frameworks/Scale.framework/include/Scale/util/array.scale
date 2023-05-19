@@ -232,6 +232,12 @@ sealed struct Array is IIterable
     return
   end
 
+  function clone(): Array
+    self builtinAtomicClone as Array => decl clone: mut Array
+    self.values builtinAtomicClone => clone.values
+    clone return
+  end
+
   static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do
