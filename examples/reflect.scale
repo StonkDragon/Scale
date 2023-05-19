@@ -16,8 +16,8 @@ function main(args: Array): none
     s:newInstance => decl f: Foo
 
     # call some methods on the struct
-    f "hello" s:getMethodByName:accept
-    "Foo!" f "msg" s:getMethodByName:accept
+    f "hello" s:getMethodByName as lambda(Foo): none :accept
+    f "Foo!" "msg" s:getMethodByName as lambda(Foo, str): none :accept
 
     # print a struct
     "FmtIO" Struct::getStructByName puts
