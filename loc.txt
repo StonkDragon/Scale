@@ -19,13 +19,13 @@
      136 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      156 Compiler/modules/Parser.cpp
-    1639 Compiler/modules/SyntaxTree.cpp
+    1661 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      645 Compiler/modules/Tokenizer.cpp
-    4651 Compiler/modules/Transpiler.cpp
+    4676 Compiler/modules/Transpiler.cpp
       21 Scale/Frameworks/Scale.framework/include/Scale/any.scale
-      86 Scale/Frameworks/Scale.framework/include/Scale/core.scale
-     106 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
+      88 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+     108 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
      133 Scale/Frameworks/Scale.framework/include/Scale/file.scale
       67 Scale/Frameworks/Scale.framework/include/Scale/float.scale
       60 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
@@ -33,29 +33,29 @@
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
      108 Scale/Frameworks/Scale.framework/include/Scale/math.scale
      153 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
-      33 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
+      32 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      147 Scale/Frameworks/Scale.framework/include/Scale/string.scale
      117 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/integer.scale
       48 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/object.scale
      109 Scale/Frameworks/Scale.framework/include/Scale/thread/thread.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/arg.scale
-     242 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
+     248 Scale/Frameworks/Scale.framework/include/Scale/util/array.scale
        4 Scale/Frameworks/Scale.framework/include/Scale/util/arrays.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/bounds.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/equatable.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/hashable.scale
-      76 Scale/Frameworks/Scale.framework/include/Scale/util/immutablearray.scale
+      82 Scale/Frameworks/Scale.framework/include/Scale/util/immutablearray.scale
        5 Scale/Frameworks/Scale.framework/include/Scale/util/iterable.scale
       82 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
       24 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
      101 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
-      53 Scale/Frameworks/Scale.framework/include/Scale/util/readonlyarray.scale
+      63 Scale/Frameworks/Scale.framework/include/Scale/util/readonlyarray.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       25 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
-    1219 Scale/Internal/scale_runtime.c
-     408 Scale/Internal/scale_runtime.h
+    1328 Scale/Internal/scale_runtime.c
+     411 Scale/Internal/scale_runtime.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -86,4 +86,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   15731 total
+   15915 total
