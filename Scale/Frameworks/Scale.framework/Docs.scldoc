@@ -799,19 +799,30 @@ For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> o
 Returns a string representation of this object.
 
 ### function SclObject:==(other: SclObject): bool
-Returns true if the objects are equal.
-This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the two object's hashes are equal.
 
 ### function SclObject:equals(other: SclObject): bool
-Returns true if the objects are equal.
-This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the two object's hashes are equal.
 
 ### function SclObject:clone(): SclObject
 Returns a copy of this object.
 
 ### function SclObject:hashCode(): SclObject
-Returns the hash of this object.
-This method should be redefined by Structs as the default implementation returns the hash of the type name.
+Returns the <<CYAN>>identity hash<<RESET>> of this object.
+
+### final function SclObject:getStruct(): Struct
+Returns the <<WHITE>>Struct<<RESET>> instance representing the struct of this object.
+This function cannot be overridden.
+
+@std.reflect.Struct
+## Struct
+### struct Struct
+Member types:
+- <<WHITE>>isStatic<<BLUE>>: readonly bool<<RESET>>
+
+<<WHITE>>isStatic<<RESET>>: <<BLUE>>true<<RESET>>, if this <<WHITE>>Struct<<RESET>> represents a static struct.
+
+### static function Struct::getStructByName(name: str): Struct
 
 @std.threading.Thread
 ## Thread

@@ -199,6 +199,7 @@ typedef size_t				scl_uint;
 typedef unsigned long long	scl_uint;
 #endif
 
+typedef scl_int				scl_bool;
 typedef struct scaleString* scl_str;
 typedef double 				scl_float;
 
@@ -357,6 +358,7 @@ void				_scl_throw(void* ex);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
+scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
@@ -368,6 +370,7 @@ void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
 
+scl_any				_scl_get_struct_by_id(scl_int id);
 scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);

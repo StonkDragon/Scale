@@ -59,6 +59,10 @@ static scl_int instances_cap = 64;
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
 static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
+	if (*array == NULL) {
+		(*array) = system_allocate(sizeof(scl_any) * (*cap));
+	}
+
 	scl_int i = 0;
 	if (*size) {
 		for (i = 0; i < *size; i++) {
@@ -227,7 +231,7 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
-void _ZN5Error4initEP10Struct_strP5Error(scl_any, scl_str);
+void _ZN5Error4initEP3strP5Error(scl_any, scl_str);
 
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_int8* msg) {
@@ -242,7 +246,7 @@ void _scl_assert(scl_int b, scl_int8* msg) {
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) + 20);
 		sprintf(cmsg, "Assertion failed: %s\n", msg);
 		_scl_AssertError* err = NEW(AssertError, Error);
-		_ZN5Error4initEP10Struct_strP5Error(err, str_of(cmsg));
+		_ZN5Error4initEP3strP5Error(err, str_of(cmsg));
 
 		_scl_throw(err);
 	}
@@ -579,6 +583,39 @@ const hash hash1(const char* data) {
 	return hash1len(data, strlen(data));
 }
 
+inline scl_uint _scl_rotl(const scl_uint value, int shift) {
+    return (value << shift) | (value >> ((sizeof(scl_uint) << 3) - shift));
+}
+
+inline scl_uint _scl_rotr(const scl_uint value, int shift) {
+    return (value >> shift) | (value << ((sizeof(scl_uint) << 3) - shift));
+}
+
+scl_int _scl_identity_hash(scl_any _obj) {
+	if (!_scl_is_instance_of(_obj, SclObjectHash)) {
+		return *(scl_int*) &_obj;
+	}
+	Struct* obj = (Struct*) _obj;
+	scl_int size = obj->size;
+	scl_int hash = (*(scl_int*) &obj) % 17;
+	for (scl_int i = 0; i < size; i++) {
+		hash = _scl_rotl(hash, 5) ^ ((char*) obj)[i];
+	}
+	return hash;
+}
+
+scl_any _scl_atomic_clone(scl_any ptr) {
+	scl_int size = _scl_sizeof(ptr);
+	scl_any clone = _scl_alloc(size);
+
+	if (_scl_is_instance_of(ptr, SclObjectHash)) {
+		_scl_add_struct(clone);
+	}
+
+	memcpy(clone, ptr, size);
+	return clone;
+}
+
 struct _scl_methodinfo {
   scl_any  ptr;
   scl_int  pure_name;
@@ -587,6 +624,8 @@ struct _scl_methodinfo {
 struct _scl_typeinfo {
   scl_int					type;
   scl_int					super;
+  scl_int					alloc_size;
+  scl_int8*					name;
   scl_int					methodscount;
   struct _scl_methodinfo**	methods;
 };
@@ -612,6 +651,63 @@ scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int c
 
 	return -1;
 }
+
+typedef struct Struct_Struct {
+	Struct structData;
+	scl_str typeName;
+	scl_int typeId;
+	struct Struct_Struct* super;
+	scl_int binarySize;
+	scl_bool isStatic;
+} _scl_Struct;
+
+static _scl_Struct** structs;
+static scl_int structs_count = 0;
+static scl_int structs_cap = 64;
+
+scl_int _scl_binary_search_struct_struct_index(_scl_Struct** structs, scl_int count, hash type) {
+	scl_int left = 0;
+	scl_int right = count - 1;
+
+	while (left <= right) {
+		scl_int mid = (left + right) / 2;
+		if (structs[mid]->typeId == type) {
+			return mid;
+		} else if (structs[mid]->typeId < type) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
+		}
+	}
+
+	return -1;
+}
+
+void _ZN9Exception4initEP9Exception(_scl_Exception);
+void _ZN9SclObject4initEP9SclObject(Struct* self);
+
+scl_any _scl_get_struct_by_id(scl_int id) {
+	scl_int index = _scl_binary_search_struct_struct_index(structs, structs_count, id);
+	if (index >= 0) return structs[index];
+	if (id == 0) return NULL;
+	index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, id);
+	if (index < 0) {
+		return NULL;
+	}
+	struct _scl_typeinfo t = _scl_types[index];
+	_scl_Struct* s = NEW0(Struct);
+	s->binarySize = t.alloc_size;
+	s->typeName = str_of(t.name);
+	s->typeId = id;
+	s->super = _scl_get_struct_by_id(t.super);
+	s->isStatic = s->binarySize == 0;
+	insert_sorted((scl_any**) &structs, &structs_count, s, &structs_cap);
+	return s;
+}
+
+typedef struct Struct_NullPointerException {
+	struct Struct_Exception self;
+} scl_NullPointerException;
 
 // Marks unreachable execution paths
 _scl_no_return void _scl_unreachable(char* msg) {
@@ -791,8 +887,6 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 
 typedef void (*_scl_sigHandler)(scl_int);
 
-void _ZN9Exception4initEP9Exception(_scl_Exception);
-
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 	if (sig < 0 || sig >= 32) {
 		struct Struct_InvalidSignalException {
@@ -959,8 +1053,7 @@ void _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name));
 		sprintf(cmsg, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
 		_scl_CastError* err = NEW(CastError, Error);
-		_ZN5Error4initEP10Struct_strP5Error(err, str_of(cmsg));
-
+		_ZN5Error4initEP3strP5Error(err, str_of(cmsg));
 		_scl_throw(err);
 	}
 }

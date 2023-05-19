@@ -1,0 +1,33 @@
+import std.io
+
+struct Foo
+    function hello(): none
+        "Hello, World!" puts
+    end
+
+    function msg(s: str): none
+        s puts
+    end
+end
+
+function main(args: Array): none
+    "Foo" Struct::getStructByName => decl s: Struct
+    s:newInstance => decl f: Foo
+
+    f "hello" s:getMethodByName:accept
+    "Foo!" f "msg" s:getMethodByName:accept
+
+    "FmtIO" Struct::getStructByName puts
+
+    try
+        "A" Struct::getStructByName
+    catch typeof NullPointerException
+        exception.msg puts
+    done
+
+    try
+        "FmtIO" Struct::getStructByName:newInstance
+    catch typeof IllegalStateException
+        exception.msg puts
+    done
+end

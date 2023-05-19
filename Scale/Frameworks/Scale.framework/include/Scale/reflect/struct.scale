@@ -1,0 +1,70 @@
+final sealed struct Struct
+    private decl typeName: str
+    private decl typeId: int
+    private decl superStruct: Struct?
+    private decl binarySize: int
+
+    decl isStatic: readonly bool
+
+    private function init(): none
+        "Direct instantiation of struct 'Struct' is disabled!"
+        IllegalStateException::new throw
+    end
+
+    function newInstance() inst: SclObject
+        if self.binarySize 0 == then
+            "Can not instantiate static struct '" self.typeName + "'" +
+            IllegalStateException::new throw
+        fi
+        c!
+            scl_int size = (*self)->binarySize;
+            (*inst) = _scl_alloc(size);
+            (*inst)->$__size__ = size;
+            (*inst)->$__super__ = (*self)->superStruct ? (*self)->superStruct->typeId : 0;
+            (*inst)->$__type__ = (*self)->typeId;
+            (*inst)->$__type_name__ = (*self)->typeName->_data;
+            _scl_add_struct(*inst);
+        end
+        inst:init
+        return
+    end
+
+    function getMethodByName(name: str) method: lambda
+        c!
+            *method = _scl_get_method_on_type((*self)->typeId, (*name)->_hash);
+        end
+        unless method then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find method '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+        return
+    end
+
+    function getName(): str
+        self.typeName return
+    end
+
+    function getSize(): int
+        self.binarySize return
+    end
+
+    function getSuper(): Struct?
+        self.superStruct return
+    end
+
+    static function getStructByName(name: str) theStruct: Struct
+        c!
+            *theStruct = _scl_get_struct_by_id((*name)->_hash);
+        end
+        unless theStruct then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find struct '" name + "'" + => e.msg
+            e throw
+        fi
+        return
+    end
+end

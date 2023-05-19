@@ -87,6 +87,8 @@ final sealed struct InvalidSignalException: Exception
   end
 end
 
+sealed struct NullPointerException: Exception end
+
 sealed struct Error: Exception
   function init(msg: str): none
     msg => self.msg

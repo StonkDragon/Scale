@@ -198,7 +198,7 @@ namespace sclc {
             type = type.substr(0, type.size() - 1);
         }
         if (type == "str") {
-            return std::string("P10Struct_str");
+            return std::string("P3str");
         } else if (type == "any") {
             return std::string("Pv");
         } else if (type == "int8") {
@@ -224,7 +224,7 @@ namespace sclc {
         } else if (type == "uint64") {
             return std::string("y");
         } else if (type == "lambda") {
-            return std::string("11_scl_lambda");
+            return std::string("6lambda");
         } else if (strstarts(type, "lambda(")) {
             std::string returnType = type.substr(type.find_last_of("):") + 1);
             std::string args = type.substr(type.find_first_of("(") + 1, type.find_last_of("):") - type.find_first_of("(") - 1);
@@ -1638,6 +1638,16 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
+                if (body[i].getValue() == "new" || body[i].getValue() == "default") {
+                    if (contains<std::string>(getMethodByName(result, "init", struct_)->getModifiers(), "private")) {
+                        transpilerError("Direct instantiation of struct '" + struct_ + "' is not allowed!", i);
+                        errors.push_back(err);
+                        append("_scl_pop();");
+                        scopeDepth--;
+                        append("}\n");
+                        return;
+                    }
+                }
                 if (body[i].getValue() == "new" && !s.isStatic()) {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
@@ -3635,6 +3645,12 @@ namespace sclc {
             typeStack.push(type.value);
             return;
         }
+        if (type.value == "lambda" || strstarts(type.value, "lambda()")) {
+            typePop;
+            append("_scl_not_nil_cast(_scl_top()->i, \"%s\");\n", type.value.c_str());
+            typeStack.push(type.value);
+            return;
+        }
         if (isPrimitiveIntegerType(type.value)) {
             if (typeStackTop == "float") {
                 append("_scl_top()->i = (scl_int) _scl_top()->f;\n");
@@ -4213,6 +4229,8 @@ namespace sclc {
         scopeDepth++;
         append("scl_int    type;\n");
         append("scl_int    super;\n");
+        append("scl_int    alloc_size;\n");
+        append("scl_int8*  name;\n");
         append("scl_int    methodscount;\n");
         append("struct _scl_methodinfo** methods;\n");
         scopeDepth--;
@@ -4289,6 +4307,13 @@ namespace sclc {
             append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
             append(".super = %uU,\n", hash1((char*) s.extends().c_str()));
 
+            if (s.isStatic()) {
+                append(".alloc_size = 0,\n");
+            } else {
+                append(".alloc_size = sizeof(struct Struct_%s),\n", s.getName().c_str());
+            }
+            append(".name = \"%s\",\n", s.getName().c_str());
+
             std::vector<Method*> methods = methodsOnType(result, s.getName());
 
             append(".methodscount = %zu,\n", methods.size());
@@ -4315,7 +4340,7 @@ namespace sclc {
         fclose(fp);
         fp = fopen(filename.c_str(), "a");
         
-        append("#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
+        // append("#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
         append("#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
         append("#ifdef __cplusplus\n");
         append("extern \"c\" {\n");

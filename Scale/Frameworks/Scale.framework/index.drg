@@ -105,5 +105,8 @@ framework: {
         std.threading.AtomicFloat: [
             "Scale/thread/atomics/float.scale";
         ];
+        std.reflect.Struct: [
+            "Scale/reflect/struct.scale";
+        ];
     };
 };
