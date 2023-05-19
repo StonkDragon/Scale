@@ -1,7 +1,9 @@
 import std.io
 import std.util.Array
 
+cdecl "_scl_memset"
 expect function memset(ptr: [any], val: int32, len: int): [any]
+cdecl "_scl_memcpy"
 expect function memcpy(dst: [any], src: [any], n: int): [any]
 cdecl "ctrl_stack_size"
 expect function sizeofStack(): int

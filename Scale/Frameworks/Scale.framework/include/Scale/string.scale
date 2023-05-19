@@ -6,9 +6,9 @@ cdecl "strcmp"
 expect function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
 cdecl "_scl_strdup"
 expect function __c_strdup(_str_: [int8]): [int8]
-cdecl "strncmp"
+cdecl "_scl_strncmp"
 expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
-cdecl "strcpy"
+cdecl "_scl_strcpy"
 expect function __c_strcpy(dest: [int8], src: [int8]): [int8]
 
 final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
