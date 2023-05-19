@@ -19,9 +19,6 @@ function main(args: Array): none
     f "hello" s:getMethodByName as lambda(Foo): none :accept
     f "Foo!" "msg" s:getMethodByName as lambda(Foo, str): none :accept
 
-    # print a struct
-    "FmtIO" Struct::getStructByName puts
-
     # make sure trying to get non-existent structs throws an exception
     try
         "A" Struct::getStructByName
