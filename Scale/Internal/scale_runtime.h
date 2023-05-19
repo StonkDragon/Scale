@@ -306,6 +306,8 @@ typedef void(*_scl_lambda)(void);
 // Create a new instance of a struct
 #define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
 
+#define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
+
 #undef NEW_
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);

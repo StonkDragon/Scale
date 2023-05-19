@@ -3,10 +3,12 @@ final sealed struct Struct
     private decl typeId: int
     private decl superStruct: Struct?
     private decl binarySize: int
-
-    static decl structsCount: const int
+    private decl membersCount: int
+    private decl members: [any]
 
     decl isStatic: readonly bool
+
+    static decl structsCount: const int
 
     private function init(): none
         "Direct instantiation of struct 'Struct' is disabled!"
@@ -29,6 +31,51 @@ final sealed struct Struct
         end
         inst:init
         return
+    end
+
+    function getMemberValue(instance: SclObject, name: str) val: any
+        false => decl found: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+        return
+    end
+
+    function setMemberValue(instance: SclObject, name: str, val: any): none
+        false => decl found: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
     end
 
     function getMethodByName(name: str) method: lambda

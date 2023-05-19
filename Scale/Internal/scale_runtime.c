@@ -623,13 +623,22 @@ struct _scl_methodinfo {
   scl_int8*	actual_name;
 };
 
+struct _scl_membertype {
+  scl_int  	pure_name;
+  scl_int8*	actual_name;
+  scl_int8*	type_name;
+  scl_int  	offset;
+};
+
 struct _scl_typeinfo {
   scl_int					type;
   scl_int					super;
   scl_int					alloc_size;
   scl_int8*					name;
+  scl_int					memberscount;
+  struct _scl_membertype*	members;
   scl_int					methodscount;
-  struct _scl_methodinfo**	methods;
+  struct _scl_methodinfo*	methods;
 };
 
 // Structs
@@ -660,8 +669,14 @@ typedef struct Struct_Struct {
 	scl_int typeId;
 	struct Struct_Struct* super;
 	scl_int binarySize;
+	scl_int members_count;
+	struct _scl_membertype* members;
 	scl_bool isStatic;
 } _scl_Struct;
+
+typedef struct Struct_Variable {
+	Struct structData;
+} _scl_Variable;
 
 static _scl_Struct** structs;
 static scl_int structs_count = 0;
@@ -703,6 +718,8 @@ scl_any _scl_get_struct_by_id(scl_int id) {
 	s->typeId = id;
 	s->super = _scl_get_struct_by_id(t.super);
 	s->isStatic = s->binarySize == 0;
+	s->members = t.members;
+	s->members_count = t.memberscount;
 	insert_sorted((scl_any**) &structs, &structs_count, s, &structs_cap);
 	return s;
 }
@@ -747,7 +764,7 @@ scl_any _scl_get_method_on_type(hash type, hash method) {
 	while (p) {
 		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);
 		if (index >= 0) {
-			return p->methods[index]->ptr;
+			return p->methods[index].ptr;
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
@@ -759,7 +776,7 @@ scl_any _scl_get_method_handle(hash type, hash method) {
 	while (p) {
 		scl_int index = _scl_binary_search_method_index((void**) p->methods, p->methodscount, method);
 		if (index >= 0) {
-			return p->methods[index]->actual_handle;
+			return p->methods[index].actual_handle;
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
@@ -883,13 +900,13 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 	scl_int left = 0;
 	scl_int right = count - 1;
 
-	struct _scl_methodinfo** methods_ = (struct _scl_methodinfo**) methods;
+	struct _scl_methodinfo* methods_ = (struct _scl_methodinfo*) methods;
 
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
-		if (methods_[mid]->pure_name == id) {
+		if (methods_[mid].pure_name == id) {
 			return mid;
-		} else if (methods_[mid]->pure_name < id) {
+		} else if (methods_[mid].pure_name < id) {
 			left = mid + 1;
 		} else {
 			right = mid - 1;
