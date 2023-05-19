@@ -246,8 +246,8 @@ namespace sclc
     }
 
     Variable getVar(Token name) {
-        for (std::vector<Variable> var : vars) {
-            for (Variable v : var) {
+        for (ssize_t i = vars.size() - 1; i >= 0; i--) {
+            for (Variable v : vars[i]) {
                 if (v.getName() == name.getValue()) {
                     return v;
                 }
