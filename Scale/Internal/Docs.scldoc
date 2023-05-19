@@ -702,3 +702,18 @@ An example of this would be the <<CYAN>>std.threading.Thread<<RESET>> module whi
 
 Modules can be declared in the scale.drg or index.drg files by putting them in the <<CYAN>>modules<<RESET>> compound.
 See <<BLUE>>scale.drg<<RESET>> and <<BLUE>>index.drg<<RESET>> for more information.
+
+## Builtin Functions
+### function builtinIsInstanceOf(obj: any, typeStr: str): int
+Returns <<BLUE>>true<<RESET>> if the given object's type matches the given type.
+
+### function builtinHash(data: [int8]): int32
+Returns the hash code of the given data.
+
+### function builtinTypeEquals(obj: any, typeId: int32): int
+Returns <<BLUE>>true<<RESET>> if the given object's type id matches the given type id.
+In almost all cases it is better to use <<WHITE>>builtinIsInstanceOf<<RESET>>.
+
+### function builtinToString(obj: any): str
+Returns the string representation of the given value.
+If the value is a valid struct instance, it's <<WHITE>>toString<<RESET>> method will be called.
