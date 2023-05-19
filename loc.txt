@@ -50,6 +50,7 @@
       82 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
       24 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
      101 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
+      53 Scale/Frameworks/Scale.framework/include/Scale/util/readonlyarray.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       25 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
@@ -85,4 +86,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   15678 total
+   15731 total
