@@ -481,8 +481,14 @@ namespace sclc
 
             // remove mid line comments
             char *c = buffer;
+            int inStr = 0;
+            int escaped = 0;
             while (*c != '\0') {
-                if (*c == '#') {
+                if (*c == '\\') {
+                    escaped = !escaped;
+                } else if (*c == '"' && !escaped) {
+                    inStr = !inStr;
+                } else if (*c == '#' && !inStr) {
                     *c = '\n';
                     c++;
                     *c = '\0';
