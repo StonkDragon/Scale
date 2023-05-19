@@ -1070,6 +1070,22 @@ void _scl_stack_free() {
 	_extable.capacity = 0;
 }
 
+scl_int _scl_strncmp(scl_int8* str1, scl_int8* str2, scl_int count) {
+	return strncmp(str1, str2, count);
+}
+
+scl_int8* _scl_strcpy(scl_int8* dest, scl_int8* src) {
+	return strcpy(dest, src);
+}
+
+scl_any _scl_memset(scl_any ptr, scl_int32 val, scl_int len) {
+	return memset(ptr, val, len);
+}
+
+scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
+	return memcpy(dest, src, n);
+}
+
 void _scl_create_stack() {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
