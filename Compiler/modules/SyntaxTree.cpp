@@ -866,7 +866,9 @@ namespace sclc {
                     continue;
                 }
                 currentContainer = new Container(tokens[i].getValue());
-            } else if (token.getType() == tok_struct_def) {
+            } else if (token.getType() == tok_struct_def && ((i - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
+                currentFunction->addToken(token);
+            } else if (token.getType() == tok_struct_def && (i == 0 || (((i - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
@@ -1222,7 +1224,13 @@ namespace sclc {
                     currentFunction->addToken(token);
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
-                if (token.getValue() == "lambda" && (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
+                if (
+                    token.getValue() == "lambda" &&
+                    (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_as) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_comma) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_paren_open)
+                ) isInLambda = true;
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
