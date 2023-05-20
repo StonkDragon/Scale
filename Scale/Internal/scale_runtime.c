@@ -628,6 +628,7 @@ struct _scl_membertype {
   scl_int8*	actual_name;
   scl_int8*	type_name;
   scl_int  	offset;
+  scl_int	access_flags;
 };
 
 struct _scl_typeinfo {
