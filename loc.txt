@@ -33,7 +33,7 @@
       53 Scale/Frameworks/Scale.framework/include/Scale/io.scale
      108 Scale/Frameworks/Scale.framework/include/Scale/math.scale
      153 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
-     202 Scale/Frameworks/Scale.framework/include/Scale/reflect/struct.scale
+     195 Scale/Frameworks/Scale.framework/include/Scale/reflect/struct.scale
       32 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      147 Scale/Frameworks/Scale.framework/include/Scale/string.scale
      117 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/integer.scale
@@ -88,4 +88,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   16431 total
+   16424 total
