@@ -1,3 +1,5 @@
+final sealed struct IllegalAccessException: Exception end
+
 final sealed struct Struct
     private decl typeName: str
     private decl typeId: int
@@ -35,11 +37,24 @@ final sealed struct Struct
 
     function getMemberValue(instance: SclObject, name: str) val: any
         false => decl found: bool
+        Thread::stackTrace => decl frame: Array
+        frame:pop
+        false => decl isInStruct: bool
+        if self.typeName ":" + frame:top as str :startsWith then
+            true => isInStruct
+        fi
+        decl readSuccessful: bool
         c!
             for (scl_int i = 0; i < (*self)->membersCount; i++) {
                 struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
                 if (member.pure_name == (*name)->_hash) {
-                    *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
+                    // private
+                    int canRead = (member.access_flags & 0b10000 ? *isInStruct : 1);
+
+                    if (canRead) {
+                        *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
+                        *readSuccessful = 1;
+                    }
                     *found = 1;
                     break;
                 }
@@ -53,27 +68,88 @@ final sealed struct Struct
             "'" + => e.msg
             e throw
         fi
+
+        unless readSuccessful then
+            IllegalAccessException::new => decl e: mut Exception
+            "Variable '" name +
+            "' is private!" + => e.msg
+            e throw
+        fi
         return
     end
 
-    function setMemberValue(instance: SclObject, name: str, val: any): none
+    unsafe function setAccessible(val: bool, name: str): none
         false => decl found: bool
         c!
             for (scl_int i = 0; i < (*self)->membersCount; i++) {
                 struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
                 if (member.pure_name == (*name)->_hash) {
-                    *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
+                    scl_int flags = ((struct _scl_membertype*) (*self)->members)[i].access_flags;
+                    if (*val) {
+                        flags &= 0b01111;
+                    } else {
+                        flags |= 0b10000;
+                    }
+                    ((struct _scl_membertype*) (*self)->members)[i].access_flags = flags;
+
                     *found = 1;
                     break;
                 }
             }
         end
+
         unless found then
             NullPointerException::new => decl e: mut Exception
             "Couldn't find variable '" name +
             "' on struct '" +
             self.typeName +
             "'" + => e.msg
+            e throw
+        fi
+    end
+
+    function setMemberValue(instance: SclObject, name: str, val: any): none
+        false => decl found: bool
+        Thread::stackTrace => decl frame: Array
+        frame:pop
+        false => decl isInStruct: bool
+        if self.typeName ":" + frame:top as str :startsWith then
+            true => isInStruct
+        fi
+        decl writeSuccessful: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    int canWrite =
+                        // const
+                        (member.access_flags & 0b01000) == 0 &&
+                        // readonly and private
+                        (member.access_flags & 0b10010 ? *isInStruct : 1);
+
+                    if (canWrite) {
+                        *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
+                        *writeSuccessful = 1;
+                    }
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+
+        unless writeSuccessful then
+            IllegalAccessException::new => decl e: mut Exception
+            "Variable '" name +
+            "' is not writable from the current scope!" + => e.msg
             e throw
         fi
     end
