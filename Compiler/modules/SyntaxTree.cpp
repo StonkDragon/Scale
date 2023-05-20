@@ -461,7 +461,8 @@ namespace sclc {
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
 
-        bool isInLambda = false;
+        int isInLambda = 0;
+        int isInUnsafe = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -730,7 +731,12 @@ namespace sclc {
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
-                        isInLambda = false;
+                        isInLambda--;
+                        currentFunction->addToken(token);
+                        continue;
+                    }
+                    if (isInUnsafe) {
+                        isInUnsafe--;
                         currentFunction->addToken(token);
                         continue;
                     }
@@ -1230,7 +1236,10 @@ namespace sclc {
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_as) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_comma) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_paren_open)
-                ) isInLambda = true;
+                ) isInLambda++;
+                if (token.getValue() == "unsafe") {
+                    isInUnsafe++;
+                }
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -1430,6 +1439,7 @@ namespace sclc {
                            t.getValue() == "export" ||
                            t.getValue() == "expect" ||
                            t.getValue() == "sealed" ||
+                           t.getValue() == "unsafe" ||
                            t.getValue() == "cdecl" ||
                            t.getValue() == "final" ||
                            t.getValue() == "asm";
