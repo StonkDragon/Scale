@@ -843,6 +843,10 @@ Returns the size in bytes needed to create a new instance of the struct represen
 Returns the super-struct of this struct.
 Only returns <<BLUE>>nil<<RESET>> when called on the <<WHITE>>Struct<<RESET>> representing <<WHITE>>SclObject<<RESET>>.
 
+### unsafe function Struct:setAccesible(accessible: bool, name: str): none
+Sets the private attribute of the member variable.
+This function is unsafe as it sets the flag globally for every object of this struct.
+
 @std.threading.Thread
 ## Thread
 ### static decl Thread::mainThread: readonly Thread
