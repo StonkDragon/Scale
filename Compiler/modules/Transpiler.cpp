@@ -738,6 +738,7 @@ namespace sclc {
     std::string currentFile = "";
     int currentLine = -1;
     int currentCol = -1;
+    int isInUnsafe = 0;
     std::stack<std::string> typeStack;
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
     std::string return_type = "";
@@ -898,6 +899,13 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (contains<std::string>(self->getModifiers(), "unsafe")) {
+            if (!isInUnsafe) {
+                transpilerError("Calling unsafe function requires unsafe block or function!", i);
+                errors.push_back(err);
+                return;
+            }
+        }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -986,6 +994,13 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (contains<std::string>(self->getModifiers(), "unsafe")) {
+            if (!isInUnsafe) {
+                transpilerError("Calling unsafe function requires unsafe block or function!", i);
+                errors.push_back(err);
+                return;
+            }
+        }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -1568,6 +1583,44 @@ namespace sclc {
             handle(Catch);
         } else if (body[i].getValue() == "lambda") {
             handle(Lambda);
+        } else if (body[i].getValue() == "unsafe") {
+            std::string functionDeclaration = "";
+
+            if (function->isMethod) {
+                functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                }
+                functionDeclaration += "): " + function->getReturnType();
+            } else {
+                functionDeclaration += function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size(); i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                }
+                functionDeclaration += "): " + function->getReturnType();
+            }
+
+            isInUnsafe++;
+            append("{\n");
+            scopeDepth++;
+            append("scl_int8* previousBlock = _callstack.func[_callstack.ptr - 1];\n");
+            append("_callstack.func[_callstack.ptr - 1] = \"<unsafe %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            ITER_INC;
+            while (body[i].getType() != tok_end) {
+                handle(Token);
+                ITER_INC;
+            }
+            isInUnsafe--;
+            append("_callstack.func[_callstack.ptr - 1] = previousBlock;\n");
+            scopeDepth--;
+            append("}\n");
+
         } else if (body[i].getValue() == "pragma!" || body[i].getValue() == "macro!") {
             handle(Pragma);
     #ifdef __APPLE__
@@ -4318,6 +4371,7 @@ namespace sclc {
         append("scl_int8*  actual_name;\n");
         append("scl_int8*  type_name;\n");
         append("scl_int    offset;\n");
+        append("scl_int    access_flags;\n");
         scopeDepth--;
         append("};\n");
         append("struct _scl_typeinfo {\n");
@@ -4356,34 +4410,6 @@ namespace sclc {
             }
         }
 
-        // append("/* METHOD REFLECT */\n");
-        scopeDepth++;
-        // for (Function* f : result.functions) {
-        //     if (!f->isMethod) continue;
-        //     Method* m = (Method*) f;
-        //     append("static struct _scl_methodinfo _scl_methods_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     scopeDepth++;
-        //     append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-        //     append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     append(".actual_name = \"%s\",\n", f->getName().c_str());
-        //     scopeDepth--;
-        //     append("};\n");
-        // }
-        // for (Function* f : result.extern_functions) {
-        //     if (!f->isMethod) continue;
-        //     Method* m = (Method*) f;
-        //     append("static struct _scl_methodinfo _scl_methods_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     scopeDepth++;
-        //     append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-        //     append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-        //     append(".actual_name = \"%s\",\n", f->getName().c_str());
-        //     scopeDepth--;
-        //     append("};\n");
-        // }
-        scopeDepth--;
-
         for (Struct s : result.structs) {
             if (s.getMembers().size()) {
                 append("static struct _scl_membertype _scl_members_%s[] = {\n", s.getName().c_str());
@@ -4394,6 +4420,24 @@ namespace sclc {
                     append("  .actual_name = \"%s\",\n", v.getName().c_str());
                     append("  .type_name = \"%s\",\n", removeTypeModifiers(v.getType()).c_str());
                     append("  .offset = _scl_offsetof(struct Struct_%s, %s),\n", s.getName().c_str(), v.getName().c_str());
+                    int accessFlags =
+                        ((int) v.isPrivate) << 4 |
+                        ((int) typeIsConst(v.getType())) << 3 |
+                        ((int) typeIsMut(v.getType())) << 2 |
+                        ((int) typeIsReadonly(v.getType())) << 1 |
+                        ((int) typeCanBeNil(v.getType())) << 0;
+                    #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+                    #define BYTE_TO_BINARY(byte)  \
+                        ((byte) & 0x80 ? '1' : '0'), \
+                        ((byte) & 0x40 ? '1' : '0'), \
+                        ((byte) & 0x20 ? '1' : '0'), \
+                        ((byte) & 0x10 ? '1' : '0'), \
+                        ((byte) & 0x08 ? '1' : '0'), \
+                        ((byte) & 0x04 ? '1' : '0'), \
+                        ((byte) & 0x02 ? '1' : '0'), \
+                        ((byte) & 0x01 ? '1' : '0')
+
+                    append("  .access_flags = 0b" BYTE_TO_BINARY_PATTERN ",\n", BYTE_TO_BINARY(accessFlags));
                     append("},\n");
                 }
                 scopeDepth--;
@@ -4471,7 +4515,6 @@ namespace sclc {
         fclose(fp);
         fp = fopen(filename.c_str(), "a");
         
-        // append("#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
         append("#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
         append("#ifdef __cplusplus\n");
         append("extern \"c\" {\n");
@@ -4785,10 +4828,19 @@ namespace sclc {
                         append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
                     }
                 }
+                
+                if (contains<std::string>(function->getModifiers(), "unsafe")) {
+                    isInUnsafe++;
+                }
 
                 for (i = 0; i < body.size(); i++) {
                     handle(Token);
                 }
+                
+                if (contains<std::string>(function->getModifiers(), "unsafe")) {
+                    isInUnsafe--;
+                }
+                
                 scopeDepth = 1;
                 if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
                     append("_callstack.ptr--;\n");
