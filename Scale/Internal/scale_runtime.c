@@ -1261,8 +1261,6 @@ extern genericFunc _scl_internal_destroy_functions[];
 extern scl_int Struct$structsCount
 	__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Struct$structsCount");
 
-#if !defined(SCL_COMPILER_NO_MAIN)
-
 int main(int argc, char** argv) {
 
 #if !defined(SCL_KNOWN_LITTLE_ENDIAN)
@@ -1295,50 +1293,31 @@ int main(int argc, char** argv) {
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
-#else
-
-// Initialize as library
-_scl_constructor void _scl_load() {
-
-#if !defined(SCL_KNOWN_LITTLE_ENDIAN)
-	// Endian-ness detection
-	short word = 0x0001;
-	char *byte = (char*) &word;
-	if (!byte[0]) {
-		fprintf(stderr, "Invalid byte order detected!");
-		exit(-1);
-	}
-#endif
-
-	_scl_create_stack();
-
-#endif
 
 	Struct$structsCount = _scl_types_count;
 
 	// Run __init__ functions
-	int init_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
-	if (init_jmp != 666) {
-		for (int i = 0; _scl_internal_init_functions[i]; i++) {
-			_scl_internal_init_functions[i]();
-		}
-	} else {
-		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
-
-		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
-		if (msg) {
-			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+	_scl_exception_push();
+	if (_scl_internal_init_functions[0]) {
+		if (setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]) != 666) {
+			for (int i = 0; _scl_internal_init_functions[i]; i++) {
+				_scl_internal_init_functions[i]();
+			}
 		} else {
-			_scl_security_throw(EX_THROWN, "Uncaught exception");
+			scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+
+			_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+			if (msg) {
+				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+			} else {
+				_scl_security_throw(EX_THROWN, "Uncaught exception");
+			}
 		}
 	}
 
-#if !defined(SCL_COMPILER_NO_MAIN)
-
 	int ret;
-	_scl_exception_push();
-	int main_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
-	if (main_jmp != 666) {
+	_extable.jmp_buf_ptr = 1;
+	if (setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]) != 666) {
 
 		// _scl_get_main_addr() returns NULL if compiled with --no-main
 #if defined(SCL_MAIN_RETURN_NONE)
@@ -1359,32 +1338,25 @@ _scl_constructor void _scl_load() {
 		}
 	}
 
-#else
-}
-
-// Uninitialize library
-_scl_destructor void _scl_destroy() {
-#endif
-
 	// Run finalization:
 	// Run __destroy__ functions
-	int destroy_jmp = setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]);
-	if (destroy_jmp != 666) {
-		for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
-			_scl_internal_destroy_functions[i]();
-		}
-	} else {
-		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
-
-		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
-		if (msg) {
-			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+	if (_scl_internal_destroy_functions[0]) {
+		_extable.jmp_buf_ptr = 1;
+		if (setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]) != 666) {
+			for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
+				_scl_internal_destroy_functions[i]();
+			}
 		} else {
-			_scl_security_throw(EX_THROWN, "Uncaught exception");
+			scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
+
+			_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+			if (msg) {
+				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
+			} else {
+				_scl_security_throw(EX_THROWN, "Uncaught exception");
+			}
 		}
 	}
 
-#if !defined(SCL_COMPILER_NO_MAIN)
 	return ret;
-#endif
 }
