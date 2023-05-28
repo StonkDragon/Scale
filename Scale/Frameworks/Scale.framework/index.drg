@@ -102,8 +102,8 @@ framework: {
         std.threading.AtomicInteger: [
             "Scale/thread/atomics/integer.scale";
         ];
-        std.threading.AtomicFloat: [
-            "Scale/thread/atomics/float.scale";
+        std.threading.AtomicObject: [
+            "Scale/thread/atomics/object.scale";
         ];
         std.reflect.Struct: [
             "Scale/reflect/struct.scale";
