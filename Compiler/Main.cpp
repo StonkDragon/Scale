@@ -596,7 +596,7 @@ namespace sclc
                 if (!fileExists(args[i])) {
                     continue;
                 }
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), args[i]) == Main.options.files.end())
+                if (!contains(Main.options.files, args[i]))
                     Main.options.files.push_back(args[i]);
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
@@ -728,6 +728,8 @@ namespace sclc
             cflags.push_back("-I" + scaleFolder + "/Internal");
             cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I.");
+            if (!Main.options.noMain)
+                cflags.push_back(scaleFolder + "/Internal/runtime_vars.c");
             cflags.push_back(scaleFolder + "/Internal/scale_runtime.c");
             cflags.push_back("-" + optimizer);
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
@@ -944,7 +946,7 @@ namespace sclc
                 auto mod = findModule("std");
                 if (mod) {
                     for (auto file : *mod) {
-                        if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                        if (!contains(Main.options.files, file)) {
                             Main.options.files.push_back(file);
                         }
                     }

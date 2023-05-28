@@ -609,14 +609,14 @@ namespace sclc {
                     continue;
                 }
                 if (currentStruct != nullptr) {
-                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
+                    if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
-                        currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                        currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -631,7 +631,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
-                    currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
@@ -697,7 +697,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
-                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
+                    if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
                         result.value = func.getValue();
@@ -727,7 +727,6 @@ namespace sclc {
                     currentFunction = nullptr;
                 }
                 nextAttributes.clear();
-
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
@@ -1405,18 +1404,18 @@ namespace sclc {
                     }
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
-                        v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                        v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                         v.canBeNil = typeCanBeNil(v.getType());
                         currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
-                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
-                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         }

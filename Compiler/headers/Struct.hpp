@@ -7,8 +7,6 @@
 #include <regex>
 #include <map>
 
-// #include "Results.hpp"
-
 namespace sclc
 {
     class Struct {
