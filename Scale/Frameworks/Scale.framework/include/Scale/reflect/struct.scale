@@ -18,7 +18,7 @@ final sealed struct Struct
     end
 
     function newInstance() inst: SclObject
-        if self.binarySize 0 == then
+        if self.isStatic then
             "Can not instantiate static struct '" self.typeName + "'" +
             IllegalStateException::new throw
         fi
