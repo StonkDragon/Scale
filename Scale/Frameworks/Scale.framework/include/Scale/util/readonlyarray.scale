@@ -28,7 +28,6 @@ sealed struct ReadOnlyArray: Array
     function reverse(): Array
         "Attempted to reverse readonly array!"
         IllegalStateException::new throw
-        nil!! return
     end
 
     function remove(val: any): none
