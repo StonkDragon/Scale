@@ -91,6 +91,8 @@
 // This function was declared in Scale code
 #define export
 
+#define nil NULL
+
 #define str_of(_cstr) _scl_create_string((_cstr))
 #define cstr_of(Struct_str) ((Struct_str)->_data)
 
@@ -181,24 +183,12 @@
 
 typedef void*				scl_any;
 
-#if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
 #define SCL_PTR_HEX_FMT 	"0x%016lx"
 #define SCL_INT_FMT		 	"%ld"
+
 typedef long				scl_int;
-#else
-#define SCL_INT_HEX_FMT 	"%llx"
-#define SCL_PTR_HEX_FMT 	"0x%016llx"
-#define SCL_INT_FMT		 	"%lld"
-typedef long long			scl_int;
-#endif
-
-#if __SIZEOF_SIZE_T__ == __SIZEOF_LONG_LONG__
 typedef size_t				scl_uint;
-#else
-typedef unsigned long long	scl_uint;
-#endif
-
 typedef scl_int				scl_bool;
 typedef struct scaleString* scl_str;
 typedef double 				scl_float;

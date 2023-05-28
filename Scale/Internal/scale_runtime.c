@@ -19,22 +19,6 @@ __thread struct _exception_handling {
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
-static _scl_stack_t** stacks;
-static scl_int stacks_count = 0;
-static scl_int stacks_cap = 64;
-
-static scl_any*	allocated;				// List of allocated pointers
-static scl_int	allocated_count = 0;	// Length of the list
-static scl_int	allocated_cap = 64;		// Capacity of the list
-
-static scl_str*	strings;				// List of allocated string instances
-static scl_int	strings_count = 0;		// Length of the list
-static scl_int	strings_cap = 64;		// Capacity of the list
-
-static scl_int*	memsizes;				// List of pointer sizes
-static scl_int	memsizes_count = 0;		// Length of the list
-static scl_int	memsizes_cap = 64;		// Capacity of the list
-
 // generic struct
 typedef struct Struct {
 	scl_int		type;
@@ -50,16 +34,31 @@ typedef struct Struct_Exception {
 	scl_str errno_str;
 }* _scl_Exception;
 
-// table of instances
-static Struct** instances;
-static scl_int instances_count = 0;
-static scl_int instances_cap = 64;
+extern _scl_stack_t**	stacks;
+extern scl_int			stacks_count;
+extern scl_int			stacks_cap;
+
+extern scl_any*			allocated;
+extern scl_int			allocated_count;
+extern scl_int			allocated_cap;
+
+extern scl_str*			strings;
+extern scl_int			strings_count;
+extern scl_int			strings_cap;
+
+extern scl_int*			memsizes;
+extern scl_int			memsizes_count;
+extern scl_int			memsizes_cap;
+
+extern Struct**			instances;
+extern scl_int			instances_count;
+extern scl_int			instances_cap;
 
 // Inserts value into array at it's sorted position
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
-static scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
-	if (*array == NULL) {
+scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
+	if (*array == nil) {
 		(*array) = system_allocate(sizeof(scl_any) * (*cap));
 	}
 
@@ -111,7 +110,6 @@ void _scl_remove_ptr(scl_any ptr) {
 	// Finds all indices of the pointer in the table and removes them
 	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
 		_scl_remove_ptr_at_index(index);
-		memsizes[index] = 0;
 	}
 }
 
@@ -125,8 +123,10 @@ scl_int _scl_get_index_of_ptr(scl_any ptr) {
 void _scl_remove_ptr_at_index(scl_int index) {
 	for (scl_int i = index; i < allocated_count - 1; i++) {
 		allocated[i] = allocated[i + 1];
+		memsizes[i] = memsizes[i + 1];
 	}
 	allocated_count--;
+	memsizes_count--;
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
@@ -160,6 +160,7 @@ scl_any _scl_alloc(scl_int size) {
 
 	// Make size be next biggest multiple of 8
 	size = ((size + 7) >> 3) << 3;
+	if (size == 0) size = 8;
 
 	// Allocate the memory
 	scl_any ptr = system_allocate(size);
@@ -167,7 +168,7 @@ scl_any _scl_alloc(scl_int size) {
 	// Hard-throw if memory allocation failed
 	if (!ptr) {
 		_scl_security_throw(EX_BAD_PTR, "allocate() failed!");
-		return NULL;
+		return nil;
 	}
 
 	// Set memory to zero
@@ -203,7 +204,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	// Hard-throw if memory allocation failed
 	if (!ptr) {
 		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
-		return NULL;
+		return nil;
 	}
 
 	// Add the pointer to the table
@@ -216,7 +217,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 }
 
 // Frees a pointer
-// Will do nothing, if the pointer is NULL, or wasn't allocated with _scl_alloc()
+// Will do nothing, if the pointer is nil, or wasn't allocated with _scl_alloc()
 void _scl_free(scl_any ptr) {
 	if (ptr && _scl_check_allocated(ptr)) {
 		// If this is an instance, call it's finalizer
@@ -303,13 +304,13 @@ scl_str _scl_create_string(scl_int8* data) {
 	assert(sizeof(struct Struct_str) == sizeof(struct scaleString));
 
 	scl_str self = NEW0(str);
-	if (self == NULL) {
+	if (self == nil) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
-		return NULL;
+		return nil;
 	}
 	if (_scl_find_index_of_struct(self) == -1) {
-		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT "\n", data, _scl_find_index_of_struct(self));
-		return NULL;
+		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT ". Pointer is: %p\n", data, _scl_find_index_of_struct(self), self);
+		return nil;
 	}
 	self->_len = strlen(data);
 	self->_hash = hash1len(data, self->_len);
@@ -317,7 +318,7 @@ scl_str _scl_create_string(scl_int8* data) {
 	return self;
 }
 
-static int printingStacktrace = 0;
+extern int printingStacktrace;
 
 void print_stacktrace() {
 	printingStacktrace = 1;
@@ -329,7 +330,6 @@ void print_stacktrace() {
 	printingStacktrace = 0;
 	printf("\n");
 }
-
 
 void print_stacktrace_with_file(FILE* trace) {
 	printingStacktrace = 1;
@@ -357,7 +357,7 @@ void print_stacktrace_with_file(FILE* trace) {
 void _scl_default_signal_handler(scl_int sig_num) {
 	scl_int8* signalString;
 	// Signals
-	if (sig_num == -1) signalString = NULL;
+	if (sig_num == -1) signalString = nil;
 #if defined(SIGHUP)
 	else if (sig_num == SIGHUP) signalString = "hangup";
 #endif
@@ -497,11 +497,11 @@ struct Struct_ReadOnlyArray {
 	struct Struct_Array self;
 };
 
-// Converts C NULL-terminated array to ReadOnlyArray-instance
+// Converts C nil-terminated array to ReadOnlyArray-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	struct Struct_Array* array = NEW(ReadOnlyArray, Array);
 	scl_int cap = 0;
-	while (arr[cap] != NULL) {
+	while (arr[cap] != nil) {
 		cap++;
 	}
 
@@ -515,55 +515,55 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	return array;
 }
 
-inline _scl_frame_t* ctrl_push_frame() {
+_scl_frame_t* ctrl_push_frame() {
 	return &_stack.data[_stack.ptr++];
 }
 
-inline _scl_frame_t* ctrl_pop_frame() {
+_scl_frame_t* ctrl_pop_frame() {
 	return &_stack.data[--_stack.ptr];
 }
 
-inline void ctrl_push_string(scl_str c) {
+void ctrl_push_string(scl_str c) {
 	_scl_push()->s = c;
 }
 
-inline void ctrl_push_c_string(scl_int8* c) {
+void ctrl_push_c_string(scl_int8* c) {
 	_scl_push()->v = c;
 }
 
-inline void ctrl_push_double(scl_float d) {
+void ctrl_push_double(scl_float d) {
 	_scl_push()->f = d;
 }
 
-inline void ctrl_push_long(scl_int n) {
+void ctrl_push_long(scl_int n) {
 	_scl_push()->i = n;
 }
 
-inline void ctrl_push(scl_any n) {
+void ctrl_push(scl_any n) {
 	_scl_push()->v = n;
 }
 
-inline scl_int ctrl_pop_long() {
+scl_int ctrl_pop_long() {
 	return _scl_pop()->i;
 }
 
-inline scl_float ctrl_pop_double() {
+scl_float ctrl_pop_double() {
 	return _scl_pop()->f;
 }
 
-inline scl_str ctrl_pop_string() {
+scl_str ctrl_pop_string() {
 	return _scl_pop()->s;
 }
 
-inline scl_int8* ctrl_pop_c_string() {
+scl_int8* ctrl_pop_c_string() {
 	return _scl_pop()->v;
 }
 
-inline scl_any ctrl_pop() {
+scl_any ctrl_pop() {
 	return _scl_pop()->v;
 }
 
-inline scl_int ctrl_stack_size(void) {
+scl_int ctrl_stack_size(void) {
 	return _stack.ptr;
 }
 
@@ -583,11 +583,11 @@ const hash hash1(const char* data) {
 	return hash1len(data, strlen(data));
 }
 
-inline scl_uint _scl_rotl(const scl_uint value, int shift) {
+scl_uint _scl_rotl(const scl_uint value, scl_int shift) {
     return (value << shift) | (value >> ((sizeof(scl_uint) << 3) - shift));
 }
 
-inline scl_uint _scl_rotr(const scl_uint value, int shift) {
+scl_uint _scl_rotr(const scl_uint value, scl_int shift) {
     return (value >> shift) | (value << ((sizeof(scl_uint) << 3) - shift));
 }
 
@@ -679,9 +679,9 @@ typedef struct Struct_Variable {
 	Struct structData;
 } _scl_Variable;
 
-static _scl_Struct** structs;
-static scl_int structs_count = 0;
-static scl_int structs_cap = 64;
+extern _scl_Struct** structs;
+extern scl_int structs_count;
+extern scl_int structs_cap;
 
 scl_int _scl_binary_search_struct_struct_index(_scl_Struct** structs, scl_int count, hash type) {
 	scl_int left = 0;
@@ -707,10 +707,10 @@ void _ZN9SclObject4initEP9SclObject(Struct* self);
 scl_any _scl_get_struct_by_id(scl_int id) {
 	scl_int index = _scl_binary_search_struct_struct_index(structs, structs_count, id);
 	if (index >= 0) return structs[index];
-	if (id == 0) return NULL;
+	if (id == 0) return nil;
 	index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, id);
 	if (index < 0) {
-		return NULL;
+		return nil;
 	}
 	struct _scl_typeinfo t = _scl_types[index];
 	_scl_Struct* s = NEW0(Struct);
@@ -746,13 +746,13 @@ _scl_no_return void _scl_callstack_overflow(scl_int8* func) {
 }
 
 // Returns a pointer to the typeinfo of the given struct
-// NULL if the struct does not exist
+// nil if the struct does not exist
 scl_any _scl_typeinfo_of(hash type) {
 	scl_int index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, type);
 	if (index >= 0) {
 		return (scl_any) _scl_types + (index * sizeof(struct _scl_typeinfo));
 	}
-	return NULL;
+	return nil;
 }
 
 struct _scl_typeinfo* _scl_find_typeinfo_of(hash type) {
@@ -769,7 +769,7 @@ scl_any _scl_get_method_on_type(hash type, hash method) {
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
-	return NULL;
+	return nil;
 }
 
 scl_any _scl_get_method_handle(hash type, hash method) {
@@ -781,7 +781,7 @@ scl_any _scl_get_method_handle(hash type, hash method) {
 		}
 		p = _scl_find_typeinfo_of(p->super);
 	}
-	return NULL;
+	return nil;
 }
 
 // adds an instance to the table of tracked instances
@@ -796,7 +796,7 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
 
-	if (ptr == NULL) return NULL;
+	if (ptr == nil) return nil;
 
 	// Type name hash
 	((Struct*) ptr)->type = hash1(type_name);
@@ -812,12 +812,12 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 
 	// Add struct to allocated table
 	scl_int index = insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
-	if (index == -1) return NULL;
+	if (index == -1) return nil;
 	return instances[index];
 }
 
 // Removes an instance from the allocated table by index
-static void _scl_struct_map_remove(scl_int index) {
+void _scl_struct_map_remove(scl_int index) {
 	for (scl_int i = index; i < instances_count - 1; i++) {
 	   instances[i] = instances[i + 1];
 	}
@@ -827,7 +827,7 @@ static void _scl_struct_map_remove(scl_int index) {
 // Returns the next index of an instance in the allocated table
 // Returns -1, if not in table
 scl_int _scl_find_index_of_struct(scl_any ptr) {
-	if (ptr == NULL) return -1;
+	if (ptr == nil) return -1;
 	return _scl_binary_search((void**) instances, instances_count, ptr);
 }
 
@@ -1250,11 +1250,11 @@ typedef int(*mainFunc)(struct Struct_Array*, struct Struct_Array*);
 typedef void(*genericFunc)();
 
 // __init__
-// last element is always NULL
+// last element is always nil
 extern genericFunc _scl_internal_init_functions[];
 
 // __destroy__
-// last element is always NULL
+// last element is always nil
 extern genericFunc _scl_internal_destroy_functions[];
 
 // Struct::structsCount: int
@@ -1278,8 +1278,8 @@ int main(int argc, char** argv) {
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
-	struct Struct_Array* args = NULL;
-	struct Struct_Array* env = NULL;
+	struct Struct_Array* args = nil;
+	struct Struct_Array* env = nil;
 
 #if !defined(SCL_MAIN_ARG_COUNT)
 #define SCL_MAIN_ARG_COUNT 0
@@ -1319,7 +1319,7 @@ int main(int argc, char** argv) {
 	_extable.jmp_buf_ptr = 1;
 	if (setjmp(_extable.jmp_buf[_extable.jmp_buf_ptr - 1]) != 666) {
 
-		// _scl_get_main_addr() returns NULL if compiled with --no-main
+		// _scl_get_main_addr() returns nil if compiled with --no-main
 #if defined(SCL_MAIN_RETURN_NONE)
 		ret = 0;
 		(_scl_main ? _scl_main(args, env) : 0);
