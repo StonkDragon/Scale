@@ -21,11 +21,7 @@ struct SclObject is ICloneable, IEquatable, IHashable
     end
 
     final function getStruct() selfStruct: Struct
-        decl name: str
-        c!
-            (*name) = str_of((*self)->$__type_name__);
-        end
-        name Struct::getStructByName return
+        typeof self Struct::getStructByName return
     end
 
     function init(): none end
