@@ -87,7 +87,7 @@ final sealed struct InvalidSignalException: Exception
   end
 end
 
-sealed struct NullPointerException: Exception end
+sealed open struct NullPointerException: Exception
 
 sealed struct Error: Exception
   function init(msg: str): none
@@ -95,9 +95,8 @@ sealed struct Error: Exception
   end
 end
 
-final sealed struct AssertError: Error end
-
-final sealed struct CastError: Error end
+final sealed open struct AssertError: Error
+final sealed open struct CastError: Error
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]
