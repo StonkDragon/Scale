@@ -143,9 +143,17 @@ The syntax for unsafe blocks is as follows:
 
 ### construct
 The <<BLUE>>construct<<RESET>> modifier marks a function as a global constructor, which means that it will run before <<WHITE>>main<<RESET>> and is usually used to set up things before.
+<<BLUE>>construct<<RESET>> functions are impossible to call.
 
 ### final
 The <<BLUE>>final<<RESET>> modifier marks a function as a global destructor, which means that it will run after <<WHITE>>main<<RESET>> and is usually used to clean up things after.
+Adding the <<BLUE>>final<<RESET>> modifier to a struct makes it impossible to inherit from that struct.
+
+### sealed
+The <<BLUE>>sealed<<RESET>> modifier seals a struct, making it impossible to add methods to it after declaration.
+
+### open
+The <<BLUE>>open<<RESET>> modifier is used as a shorthand to declare structs without any members.
 
 ### private
 The <<BLUE>>private<<RESET>> modifier is only effective in a struct.
