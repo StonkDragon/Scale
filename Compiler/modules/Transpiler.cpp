@@ -922,6 +922,11 @@ namespace sclc {
                 return;
             }
         }
+        if (contains<std::string>(self->getModifiers(), "construct")) {
+            transpilerError("Calling construct function is not supported!", i);
+            errors.push_back(err);
+            return;
+        }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -1016,6 +1021,11 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
+        }
+        if (contains<std::string>(self->getModifiers(), "construct")) {
+            transpilerError("Calling construct function is not supported!", i);
+            errors.push_back(err);
+            return;
         }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
