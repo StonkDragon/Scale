@@ -1083,10 +1083,6 @@ namespace sclc
                 std::vector<Token> theseTokens = Main.tokenizer->getTokens();
                 
                 tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
-
-                remove((filename + ".c").c_str());
-                remove((filename + ".h").c_str());
-                remove((filename + ".typeinfo.h").c_str());
             }
 
             if (Main.options.preprocessOnly) {
@@ -1301,9 +1297,7 @@ namespace sclc
                         if (!Main.options.noErrorLocation) std::cerr << std::endl;
                         free(line);
                     }
-                    remove(source.c_str());
-                    remove((source.substr(0, source.size() - 2) + ".h").c_str());
-                    remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
+                    std::filesystem::remove(source);
                     std::cout << "Failed!" << std::endl;
                     return parseResult.errors.size();
                 }
