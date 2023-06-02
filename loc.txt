@@ -1,5 +1,5 @@
      772 Compiler/Common.cpp
-    1410 Compiler/Main.cpp
+    1404 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      238 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -19,10 +19,10 @@
      136 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      156 Compiler/modules/Parser.cpp
-    1678 Compiler/modules/SyntaxTree.cpp
+    1684 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      655 Compiler/modules/Tokenizer.cpp
-    4900 Compiler/modules/Transpiler.cpp
+    4894 Compiler/modules/Transpiler.cpp
       21 Scale/Frameworks/Scale.framework/include/Scale/any.scale
       88 Scale/Frameworks/Scale.framework/include/Scale/core.scale
      108 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
@@ -34,7 +34,7 @@
      108 Scale/Frameworks/Scale.framework/include/Scale/math.scale
      153 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
      195 Scale/Frameworks/Scale.framework/include/Scale/reflect/struct.scale
-      32 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
+      28 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
      185 Scale/Frameworks/Scale.framework/include/Scale/string.scale
      117 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/integer.scale
       48 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/object.scale
@@ -55,6 +55,7 @@
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       31 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       25 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
+      27 Scale/Internal/runtime_vars.c
     1362 Scale/Internal/scale_runtime.c
      404 Scale/Internal/scale_runtime.h
       11 examples/arguments.scale
@@ -88,4 +89,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   16450 total
+   16467 total
