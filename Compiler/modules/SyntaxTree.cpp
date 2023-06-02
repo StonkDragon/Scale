@@ -581,8 +581,6 @@ namespace sclc {
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 
-            // std::cout << token.tostring() << std::endl;
-
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
@@ -964,6 +962,8 @@ namespace sclc {
                         currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
                     }
                 }
+
+                bool open = contains<std::string>(nextAttributes, "open");
                 
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
@@ -1035,6 +1035,11 @@ namespace sclc {
                             break;
                         }
                     }
+                }
+
+                if (open) {
+                    structs.push_back(*currentStruct);
+                    currentStruct = nullptr;
                 }
             } else if (token.getType() == tok_enum) {
                 if (currentContainer != nullptr) {
@@ -1441,6 +1446,7 @@ namespace sclc {
                            t.getValue() == "unsafe" ||
                            t.getValue() == "cdecl" ||
                            t.getValue() == "final" ||
+                           t.getValue() == "open" ||
                            t.getValue() == "asm";
                 };
 
