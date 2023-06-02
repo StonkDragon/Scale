@@ -748,6 +748,12 @@ Returns the hash of the string.
 Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results.
 Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
 
+### function str:endsWith(suffix: str): bool
+Returns <<BLUE>>true<<RESET>> if the string ends with <<WHITE>>suffix<<RESET>>.
+
+### function str:subString(start: str): str
+Returns a substring of the string starting at <<WHITE>>start<<RESET>>.
+
 @std.util.Pair
 ## Pair
 ### static function Pair::new(a: any, b: any): none
