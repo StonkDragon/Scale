@@ -198,7 +198,7 @@ namespace sclc {
             type = type.substr(0, type.size() - 1);
         }
         if (type == "str") {
-            return std::string("P10Struct_str");
+            return std::string("P3str");
         } else if (type == "any") {
             return std::string("Pv");
         } else if (type == "int8") {
@@ -224,7 +224,7 @@ namespace sclc {
         } else if (type == "uint64") {
             return std::string("y");
         } else if (type == "lambda") {
-            return std::string("11_scl_lambda");
+            return std::string("6lambda");
         } else if (strstarts(type, "lambda(")) {
             std::string returnType = type.substr(type.find_last_of("):") + 1);
             std::string args = type.substr(type.find_first_of("(") + 1, type.find_last_of("):") - type.find_first_of("(") - 1);
@@ -394,6 +394,9 @@ namespace sclc {
             std::string symbol = generateSymbolForFunction(result, function);
 
             if (!function->isMethod) {
+                if (function->getName() == "throw") {
+                    append("_scl_no_return ");
+                }
                 append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
                 append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
@@ -483,6 +486,9 @@ namespace sclc {
 
                 if (!function->isMethod) {
                     append("// [Import: function %s(%s): %s]\n", function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
+                    if (function->getName() == "throw") {
+                        append("_scl_no_return ");
+                    }
                     append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
                     append("// [Import: function %s:%s(%s): %s]\n", (((Method*) function))->getMemberType().c_str(), function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
@@ -711,6 +717,7 @@ namespace sclc {
     size_t i = 0;
     size_t condCount = 0;
     std::vector<char> whatWasIt;
+    Function* currentFunction;
 
 #define wasRepeat()     (whatWasIt.size() > 0 && whatWasIt.back() == 1)
 #define popRepeat()     (whatWasIt.pop_back())
@@ -728,9 +735,18 @@ namespace sclc {
 #define popOther()      (whatWasIt.pop_back())
 #define pushOther()     (whatWasIt.push_back(0))
 
-#define varScopePush()  do { std::vector<Variable> _vec; vars.push_back(_vec); } while (0)
-#define varScopePop()   do { vars.pop_back(); } while (0)
-#define varScopeTop()   vars.back()
+#define varScopePush()              \
+    do                              \
+    {                               \
+        std::vector<Variable> _vec; \
+        vars.push_back(_vec);       \
+    } while (0)
+#define varScopePop()                                                                       \
+    do                                                                                      \
+    {                                                                                       \
+        vars.pop_back();                                                                    \
+    } while (0)
+#define varScopeTop() vars.back()
 
     char repeat_depth = 0;
     int iterator_count = 0;
@@ -738,6 +754,7 @@ namespace sclc {
     std::string currentFile = "";
     int currentLine = -1;
     int currentCol = -1;
+    int isInUnsafe = 0;
     std::stack<std::string> typeStack;
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
     std::string return_type = "";
@@ -898,6 +915,18 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (contains<std::string>(self->getModifiers(), "unsafe")) {
+            if (!isInUnsafe) {
+                transpilerError("Calling unsafe function requires unsafe block or function!", i);
+                errors.push_back(err);
+                return;
+            }
+        }
+        if (contains<std::string>(self->getModifiers(), "construct")) {
+            transpilerError("Calling construct function is not supported!", i);
+            errors.push_back(err);
+            return;
+        }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -986,6 +1015,18 @@ namespace sclc {
             warns.push_back(err);
         }
     notDeprecated:
+        if (contains<std::string>(self->getModifiers(), "unsafe")) {
+            if (!isInUnsafe) {
+                transpilerError("Calling unsafe function requires unsafe block or function!", i);
+                errors.push_back(err);
+                return;
+            }
+        }
+        if (contains<std::string>(self->getModifiers(), "construct")) {
+            transpilerError("Calling construct function is not supported!", i);
+            errors.push_back(err);
+            return;
+        }
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -1234,6 +1275,7 @@ namespace sclc {
         ITER_INC;
         if (body[i].getValue() == "typeof") {
             ITER_INC;
+            varScopePop();
             if (wasTry()) {
                 popTry();
                 append("} else if (_scl_is_instance_of(_extable.extable[_extable.ptr], %uU)) {\n", hash1((char*) "Error"));
@@ -1242,10 +1284,9 @@ namespace sclc {
                 popCatch();
             }
 
-            varScopeTop().clear();
+            varScopePush();
             pushCatch();
             scopeDepth--;
-            // TODO: Check for children of 'Exception'
             Struct s = getStructByName(result, body[i].getValue());
             if (s == Struct::Null) {
                 transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
@@ -1332,11 +1373,6 @@ namespace sclc {
 
     handler(Identifier) {
         noUnused;
-        if (body[i].getValue() == "self" && !function->isMethod) {
-            transpilerError("'self' can only be used in methods, not in functions.", i);
-            errors.push_back(err);
-            return;
-        }
     #ifdef __APPLE__
     #pragma region Identifier functions
     #endif
@@ -1553,7 +1589,7 @@ namespace sclc {
             append("_extable.callstk_ptr[_extable.ptr - 1] = _callstack.ptr;\n");
             varScopePush();
             pushTry();
-        } else if (body[i].getValue() == "super" && function->isMethod && function->getName() == "init") {
+        } else if (body[i].getValue() == "super" && !hasVar(Token(tok_identifier, "super", 0, "")) && function->isMethod && function->getName() == "init") {
             Struct s = getStructByName(result, ((Method*) function)->getMemberType());
             Struct super = getStructByName(result, s.extends());
             Method* superInit = getMethodByName(result, "init", super.getName());
@@ -1573,6 +1609,44 @@ namespace sclc {
             handle(Catch);
         } else if (body[i].getValue() == "lambda") {
             handle(Lambda);
+        } else if (body[i].getValue() == "unsafe") {
+            std::string functionDeclaration = "";
+
+            if (function->isMethod) {
+                functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                }
+                functionDeclaration += "): " + function->getReturnType();
+            } else {
+                functionDeclaration += function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size(); i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                }
+                functionDeclaration += "): " + function->getReturnType();
+            }
+
+            isInUnsafe++;
+            append("{\n");
+            scopeDepth++;
+            append("scl_int8* previousBlock = _callstack.func[_callstack.ptr - 1];\n");
+            append("_callstack.func[_callstack.ptr - 1] = \"<unsafe %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            ITER_INC;
+            while (body[i].getType() != tok_end) {
+                handle(Token);
+                ITER_INC;
+            }
+            isInUnsafe--;
+            append("_callstack.func[_callstack.ptr - 1] = previousBlock;\n");
+            scopeDepth--;
+            append("}\n");
+
         } else if (body[i].getValue() == "pragma!" || body[i].getValue() == "macro!") {
             handle(Pragma);
     #ifdef __APPLE__
@@ -1638,6 +1712,16 @@ namespace sclc {
                 ITER_INC;
                 ITER_INC;
                 Struct s = getStructByName(result, struct_);
+                if (body[i].getValue() == "new" || body[i].getValue() == "default") {
+                    if (contains<std::string>(getMethodByName(result, "init", struct_)->getModifiers(), "private")) {
+                        transpilerError("Direct instantiation of struct '" + struct_ + "' is not allowed!", i);
+                        errors.push_back(err);
+                        append("_scl_pop();");
+                        scopeDepth--;
+                        append("}\n");
+                        return;
+                    }
+                }
                 if (body[i].getValue() == "new" && !s.isStatic()) {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
@@ -1657,6 +1741,9 @@ namespace sclc {
                     append("_scl_push()->v = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", struct_.c_str(), struct_.c_str(), hash1((char*) s.extends().c_str()));
                     append("_scl_struct_allocation_failure(_scl_top()->i, \"%s\");\n", struct_.c_str());
                     typeStack.push(struct_);
+                } else if (body[i].getValue() == "struct") {
+                    append("_scl_push()->v = Function_Struct$getStructByName(str_of(\"%s\"));\n", struct_.c_str());
+                    typeStack.push("Struct");
                 } else {
                     if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                         Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
@@ -1693,6 +1780,91 @@ namespace sclc {
                         transpilerError("Unknown static member of struct '" + s.getName() + "'", i);
                         errors.push_back(err);
                     }
+                }
+            } else if (body[i + 1].getType() == tok_curly_open) {
+                ITER_INC;
+                append("{\n");
+                scopeDepth++;
+                size_t begin = i - 1;
+                Struct s = getStructByName(result, body[i - 1].getValue());
+                append("scl_%s tmp = _scl_alloc_struct(sizeof(struct Struct_%s), \"%s\", %uU);\n", s.getName().c_str(), s.getName().c_str(), s.getName().c_str(), hash1((char*) s.extends().c_str()));
+                append("_scl_struct_allocation_failure(*(scl_int*) &tmp, \"%s\");\n", s.getName().c_str());
+                append("scl_int stack_start = _stack.ptr;\n");
+                ITER_INC;
+                size_t count = 0;
+                varScopePush();
+                if (function->isMethod) {
+                    Variable v("super", getVar("self").getType());
+                    varScopeTop().push_back(v);
+                    append("scl_%s Var_super = Var_self;\n", removeTypeModifiers(getVar("self").getType()).c_str());
+                }
+                Variable v("self", "mut " + s.getName());
+                append("scl_%s Var_self = tmp;\n", s.getName().c_str());
+                varScopeTop().push_back(v);
+                std::vector<std::string> missedMembers;
+
+                for (auto v : s.getMembers()) {
+                    missedMembers.push_back(v.getName());
+                }
+
+                auto without = [&](std::vector<std::string> vec, std::string elem) {
+                    std::vector<std::string> newVec;
+                    for (auto member : vec) {
+                        if (member != elem) {
+                            newVec.push_back(member);
+                        }
+                    }
+                    return newVec;
+                };
+                while (body[i].getType() != tok_curly_close) {
+                    if (body[i].getType() == tok_paren_open) {
+                        handle(ParenOpen);
+                    } else {
+                        handle(Token);
+                    }
+                    ITER_INC;
+                    if (body[i].getType() != tok_store) {
+                        transpilerError("Expected store, but got '" + body[i].getValue() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    ITER_INC;
+                    if (body[i].getType() != tok_identifier) {
+                        transpilerError("'" + body[i].getValue() + "' is not an identifier!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+
+                    std::string lastType = typeStackTop;
+
+                    missedMembers = without(missedMembers, body[i].getValue());
+                    
+                    if (removeTypeModifiers(lastType) == "float")
+                        append("tmp->%s = _scl_pop()->f;\n", body[i].getValue().c_str());
+                    else
+                        append("tmp->%s = (%s) _scl_pop()->i;\n", body[i].getValue().c_str(), sclTypeToCType(result, lastType).c_str());
+                    typePop;
+                    append("_stack.ptr = stack_start;\n");
+                    ITER_INC;
+                    count++;
+                }
+                varScopePop();
+                append("_scl_push()->v = tmp;\n");
+                scopeDepth--;
+                append("}\n");
+                typeStack.push(s.getName());
+                if (count < s.getMembers().size()) {
+                    std::string missed = "{ ";
+                    for (size_t i = 0; i < missedMembers.size(); i++) {
+                        if (i) {
+                            missed += ", ";
+                        }
+                        missed += missedMembers[i];
+                    }
+                    missed += " }";
+                    transpilerError("Not every member was initialized! Missed: " + missed, begin);
+                    errors.push_back(err);
+                    return;
                 }
             }
         } else if (hasVar(body[i])) {
@@ -1951,8 +2123,9 @@ namespace sclc {
             warns.push_back(result);
         }
 
-        if (!hasVar(var))
+        if (!hasVar(var)) {
             varScopeTop().push_back(Variable(var.getValue(), "int"));
+        }
         pushOther();
     }
 
@@ -2024,8 +2197,9 @@ namespace sclc {
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok).getType());
         append("{\n");
         scopeDepth++;
-        if (var_prefix.size())
+        if (var_prefix.size()) {
             append("%sVar_%s;\n", var_prefix.c_str(), iter_var_tok.getValue().c_str());
+        }
         append("Method_%s$begin(%s);\n", beginMethod->getMemberType().c_str(), iterator_name.c_str());
         append("while (Method_%s$hasNext(%s)) {\n", hasNextMethod->getMemberType().c_str(), iterator_name.c_str());
         scopeDepth++;
@@ -3366,8 +3540,8 @@ namespace sclc {
             typePop;
         }
         noUnused;
-        scopeDepth--;
         varScopePop();
+        scopeDepth--;
         append("} else {\n");
         scopeDepth++;
         varScopePush();
@@ -3378,8 +3552,8 @@ namespace sclc {
             typePop;
         }
         noUnused;
-        scopeDepth--;
         varScopePop();
+        scopeDepth--;
         
         append("}\n");
         ITER_INC;
@@ -3400,8 +3574,8 @@ namespace sclc {
             typePop;
         }
         noUnused;
-        scopeDepth--;
         varScopePop();
+        scopeDepth--;
         
         append("}\n");
         ITER_INC;
@@ -3419,12 +3593,12 @@ namespace sclc {
 
     handler(Fi) {
         noUnused;
+        varScopePop();
         scopeDepth--;
         append("}\n");
         scopeDepth--;
         append("}\n");
         condCount--;
-        varScopePop();
     }
 
     handler(While) {
@@ -3446,8 +3620,8 @@ namespace sclc {
 
     handler(DoneLike) {
         noUnused;
-        scopeDepth--;
         varScopePop();
+        scopeDepth--;
         if (wasCatch()) {
             append("} else {\n");
             append("  Function_throw(_extable.extable[_extable.ptr]);\n");
@@ -3560,8 +3734,8 @@ namespace sclc {
     handler(Esac) {
         noUnused;
         append("break;\n");
-        scopeDepth--;
         varScopePop();
+        scopeDepth--;
         append("}\n");
     }
 
@@ -3635,6 +3809,12 @@ namespace sclc {
             typeStack.push(type.value);
             return;
         }
+        if (type.value == "lambda" || strstarts(type.value, "lambda(")) {
+            typePop;
+            append("_scl_not_nil_cast(_scl_top()->i, \"%s\");\n", type.value.c_str());
+            typeStack.push(type.value);
+            return;
+        }
         if (isPrimitiveIntegerType(type.value)) {
             if (typeStackTop == "float") {
                 append("_scl_top()->i = (scl_int) _scl_top()->f;\n");
@@ -3673,6 +3853,10 @@ namespace sclc {
         } else {
             if (typeCanBeNil(typeStackTop)) {
                 append("_scl_not_nil_cast(_scl_top()->i, \"%s\");\n", type.value.c_str());
+            }
+            std::string typeStr = removeTypeModifiers(type.value);
+            if (getStructByName(result, typeStr) != Struct::Null) {
+                append("_scl_checked_cast(_scl_top()->v, %d, \"%s\");\n", hash1((char*) typeStr.c_str()), typeStr.c_str());
             }
             typePop;
             typeStack.push(type.value);
@@ -3804,17 +3988,19 @@ namespace sclc {
             if (op == "accept") {
                 append("{\n");
                 scopeDepth++;
-                append("scl_any lambda = _scl_pop()->v;\n");
                 if (removeTypeModifiers(returnType) == "none") {
+                    append("void(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("((void(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("lambda(%s);\n", argGet.c_str());
                 } else if (removeTypeModifiers(returnType) == "float") {
+                    append("scl_float(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("_scl_push()->f = ((scl_float(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("_scl_push()->f = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 } else {
+                    append("scl_any(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("_scl_push()->v = ((scl_any(*)(%s)) lambda)(%s);\n", argTypes.c_str(), argGet.c_str());
+                    append("_scl_push()->v = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 }
                 scopeDepth--;
@@ -4201,16 +4387,31 @@ namespace sclc {
         append("};\n");
         append("struct _scl_methodinfo {\n");
         scopeDepth++;;
-        append("scl_any  ptr;\n");
-        append("scl_int  pure_name;\n");
+        append("scl_any    ptr;\n");
+        append("scl_int    pure_name;\n");
+        append("scl_any    actual_handle;\n");
+        append("scl_int8*  actual_name;\n");
+        scopeDepth--;
+        append("};\n");
+        append("struct _scl_membertype {\n");
+        scopeDepth++;;
+        append("scl_int    pure_name;\n");
+        append("scl_int8*  actual_name;\n");
+        append("scl_int8*  type_name;\n");
+        append("scl_int    offset;\n");
+        append("scl_int    access_flags;\n");
         scopeDepth--;
         append("};\n");
         append("struct _scl_typeinfo {\n");
         scopeDepth++;
         append("scl_int    type;\n");
         append("scl_int    super;\n");
+        append("scl_int    alloc_size;\n");
+        append("scl_int8*  name;\n");
+        append("scl_int    memberscount;\n");
+        append("struct _scl_membertype* members;\n");
         append("scl_int    methodscount;\n");
-        append("struct _scl_methodinfo** methods;\n");
+        append("struct _scl_methodinfo* methods;\n");
         scopeDepth--;
         append("};\n\n");
 
@@ -4237,29 +4438,40 @@ namespace sclc {
             }
         }
 
-        append("/* METHOD REFLECT */\n");
-        scopeDepth++;
-        for (Function* f : result.functions) {
-            if (!f->isMethod) continue;
-            Method* m = (Method*) f;
-            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-            scopeDepth++;
-            append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-            scopeDepth--;
-            append("};\n");
+        for (Struct s : result.structs) {
+            if (s.getMembers().size()) {
+                append("static struct _scl_membertype _scl_members_%s[] = {\n", s.getName().c_str());
+                scopeDepth++;
+                for (Variable v : s.getMembers()) {
+                    append("(struct _scl_membertype) {\n");
+                    append("  .pure_name = 0x%xU,\n", hash1((char*) v.getName().c_str()));
+                    append("  .actual_name = \"%s\",\n", v.getName().c_str());
+                    append("  .type_name = \"%s\",\n", removeTypeModifiers(v.getType()).c_str());
+                    append("  .offset = _scl_offsetof(struct Struct_%s, %s),\n", s.getName().c_str(), v.getName().c_str());
+                    int accessFlags =
+                        ((int) v.isPrivate) << 4 |
+                        ((int) typeIsConst(v.getType())) << 3 |
+                        ((int) typeIsMut(v.getType())) << 2 |
+                        ((int) typeIsReadonly(v.getType())) << 1 |
+                        ((int) typeCanBeNil(v.getType())) << 0;
+                    #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+                    #define BYTE_TO_BINARY(byte)  \
+                        ((byte) & 0x80 ? '1' : '0'), \
+                        ((byte) & 0x40 ? '1' : '0'), \
+                        ((byte) & 0x20 ? '1' : '0'), \
+                        ((byte) & 0x10 ? '1' : '0'), \
+                        ((byte) & 0x08 ? '1' : '0'), \
+                        ((byte) & 0x04 ? '1' : '0'), \
+                        ((byte) & 0x02 ? '1' : '0'), \
+                        ((byte) & 0x01 ? '1' : '0')
+
+                    append("  .access_flags = 0b" BYTE_TO_BINARY_PATTERN ",\n", BYTE_TO_BINARY(accessFlags));
+                    append("},\n");
+                }
+                scopeDepth--;
+                append("};\n");
+            }
         }
-        for (Function* f : result.extern_functions) {
-            if (!f->isMethod) continue;
-            Method* m = (Method*) f;
-            append("static struct _scl_methodinfo _scl_methodinfo_method_%s_function_%s = (struct _scl_methodinfo) {\n", m->getMemberType().c_str(), f->finalName().c_str());
-            scopeDepth++;
-            append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), f->finalName().c_str());
-            append(".pure_name = 0x%xU,\n", hash1((char*) f->getName().c_str()));
-            scopeDepth--;
-            append("};\n");
-        }
-        scopeDepth--;
 
         append("/* TYPES */\n");
         for (Struct s : result.structs) {
@@ -4267,10 +4479,17 @@ namespace sclc {
             std::sort(methods.begin(), methods.end(), compare<Method*>);
             append("/* %s */\n", s.getName().c_str());
             if (methods.size()) {
-                append("static struct _scl_methodinfo* _scl_methodinfo_ptrs_%s[] = (struct _scl_methodinfo*[]) {\n", s.getName().c_str());
+                append("static struct _scl_methodinfo _scl_methods_%s[] = {\n", s.getName().c_str());
                 scopeDepth++;
                 for (Method* m : methods) {
-                    append("  &_scl_methodinfo_method_%s_function_%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append("(struct _scl_methodinfo) {\n");
+                    scopeDepth++;
+                    append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append(".pure_name = 0x%xU,\n", hash1((char*) m->getName().c_str()));
+                    append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                    append(".actual_name = \"%s\",\n", m->getName().c_str());
+                    scopeDepth--;
+                    append("},\n");
                 }
                 scopeDepth--;
                 append("};\n");
@@ -4285,12 +4504,25 @@ namespace sclc {
             append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
             append(".super = %uU,\n", hash1((char*) s.extends().c_str()));
 
+            if (s.isStatic()) {
+                append(".alloc_size = 0,\n");
+            } else {
+                append(".alloc_size = sizeof(struct Struct_%s),\n", s.getName().c_str());
+            }
+            append(".name = \"%s\",\n", s.getName().c_str());
+            append(".memberscount = %zu,\n", s.getMembers().size());
+            if (s.getMembers().size()) {
+                append(".members = _scl_members_%s,\n", s.getName().c_str());
+            } else {
+                append(".members = NULL,\n");
+            }
+
             std::vector<Method*> methods = methodsOnType(result, s.getName());
 
             append(".methodscount = %zu,\n", methods.size());
 
             if (methods.size()) {
-                append(".methods = (struct _scl_methodinfo**) _scl_methodinfo_ptrs_%s,\n", s.getName().c_str());
+                append(".methods = _scl_methods_%s,\n", s.getName().c_str());
             } else {
                 append(".methods = NULL,\n");
             }
@@ -4302,6 +4534,13 @@ namespace sclc {
         append("size_t _scl_types_count = %zu;\n\n", result.structs.size());
         append("static __thread int _scl_look_for_method = 1;\n\n");
 
+        append("scl_any* _scl_internal_globals[] = {\n");
+        for (auto g : result.globals) {
+            append("  (scl_any*) &Var_%s,\n", g.getName().c_str());
+        }
+        append("  0\n");
+        append("};\n\n");
+
         append("extern const hash hash1(const char*);\n\n");
 
         append("#ifdef __cplusplus\n");
@@ -4311,7 +4550,6 @@ namespace sclc {
         fclose(fp);
         fp = fopen(filename.c_str(), "a");
         
-        append("#include \"%s.h\"\n", filename.substr(0, filename.size() - 2).c_str());
         append("#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
         append("#ifdef __cplusplus\n");
         append("extern \"c\" {\n");
@@ -4342,14 +4580,14 @@ namespace sclc {
         }
 
         for (size_t f = 0; f < result.functions.size(); f++) {
-            Function* function = result.functions[f];
-            std::vector<Variable> def;
+            Function* function = currentFunction = result.functions[f];
+            for (long t = typeStack.size() - 1; t >= 0; t--) {
+                typePop;
+            }
+            vars.clear();
             varScopePush();
             for (Variable g : globals) {
                 varScopeTop().push_back(g);
-            }
-            for (long t = typeStack.size() - 1; t >= 0; t--) {
-                typePop;
             }
 
             scopeDepth = 0;
@@ -4405,15 +4643,10 @@ namespace sclc {
             return_type = "void";
 
             std::string arguments = "";
-            if (function->hasNamedReturnValue) {
-                varScopeTop().push_back(function->getNamedReturnValue());
-            }
             if (function->isMethod) {
                 arguments = sclTypeToCType(result, function->member_type) + " Var_self";
-                varScopeTop().push_back(function->getArgs().back());
                 for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
                     Variable var = function->getArgs()[i];
-                    varScopeTop().push_back(var);
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                     arguments += ", " + type;
                     if (function->getArgs()[i].getName().size())
@@ -4423,7 +4656,6 @@ namespace sclc {
                 if (function->getArgs().size() > 0) {
                     for (size_t i = 0; i < function->getArgs().size(); i++) {
                         Variable var = function->getArgs()[i];
-                        varScopeTop().push_back(var);
                         std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                         if (i) {
                             arguments += ", ";
@@ -4542,7 +4774,7 @@ namespace sclc {
                             append("{\n");
                             scopeDepth++;
                             append("_scl_push()->v = (scl_any) Var_self;\n");
-                            typeStack.push(getVar("self").getType());
+                            typeStack.push(function->getArgs()[0].getType());
                             append("scl_int __stack_size = _stack.ptr;\n");
                             append("_scl_look_for_method = 0;\n");
                             generateCall(superInit, fp, result, warns, errors, body, 0);
@@ -4568,6 +4800,17 @@ namespace sclc {
                 std::vector<Token> body = function->getBody();
                 if (body.size() == 0)
                     goto emptyFunction;
+
+                varScopePush();
+                if (function->hasNamedReturnValue) {
+                    varScopeTop().push_back(function->getNamedReturnValue());
+                }
+                if (function->getArgs().size() > 0) {
+                    for (size_t i = 0; i < function->getArgs().size(); i++) {
+                        Variable var = function->getArgs()[i];
+                        varScopeTop().push_back(var);
+                    }
+                }
 
                 append("_callstack.func[_callstack.ptr++] = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
                 if (function->hasNamedReturnValue) {
@@ -4622,14 +4865,29 @@ namespace sclc {
                     Variable arg = function->getArgs()[a];
                     if (arg.getName().size() == 0) continue;
                     if (!typeCanBeNil(arg.getType())) {
+                        if (function->isMethod && arg.getName() == "self") continue;
                         append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
                     }
+                }
+                
+                if (contains<std::string>(function->getModifiers(), "unsafe")) {
+                    isInUnsafe++;
                 }
 
                 for (i = 0; i < body.size(); i++) {
                     handle(Token);
                 }
+                
+                if (contains<std::string>(function->getModifiers(), "unsafe")) {
+                    isInUnsafe--;
+                }
+                
                 scopeDepth = 1;
+
+                while (vars.size() > 1) {
+                    varScopePop();
+                }
+
                 if (body.size() == 0 || body[body.size() - 1].getType() != tok_return) {
                     append("_callstack.ptr--;\n");
                     if (!contains<std::string>(function->getModifiers(), "no_cleanup")) {
@@ -4641,7 +4899,6 @@ namespace sclc {
         emptyFunction:
             scopeDepth = 0;
             append("}\n\n");
-            varScopePop();
         }
     }
 } // namespace sclc

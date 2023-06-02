@@ -91,6 +91,8 @@
 // This function was declared in Scale code
 #define export
 
+#define nil NULL
+
 #define str_of(_cstr) _scl_create_string((_cstr))
 #define cstr_of(Struct_str) ((Struct_str)->_data)
 
@@ -181,24 +183,13 @@
 
 typedef void*				scl_any;
 
-#if __SIZEOF_LONG__ == __SIZEOF_LONG_LONG__
 #define SCL_INT_HEX_FMT 	"%lx"
 #define SCL_PTR_HEX_FMT 	"0x%016lx"
 #define SCL_INT_FMT		 	"%ld"
+
 typedef long				scl_int;
-#else
-#define SCL_INT_HEX_FMT 	"%llx"
-#define SCL_PTR_HEX_FMT 	"0x%016llx"
-#define SCL_INT_FMT		 	"%lld"
-typedef long long			scl_int;
-#endif
-
-#if __SIZEOF_SIZE_T__ == __SIZEOF_LONG_LONG__
 typedef size_t				scl_uint;
-#else
-typedef unsigned long long	scl_uint;
-#endif
-
+typedef scl_int				scl_bool;
 typedef struct scaleString* scl_str;
 typedef double 				scl_float;
 
@@ -305,6 +296,8 @@ typedef void(*_scl_lambda)(void);
 // Create a new instance of a struct
 #define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
 
+#define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
+
 #undef NEW_
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
@@ -346,6 +339,7 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
+void				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
 void				_scl_not_nil_cast(scl_int val, scl_int8* name);
 void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
@@ -356,17 +350,20 @@ void				_scl_throw(void* ex);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
+scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method);
+scl_any				_scl_get_method_handle(hash type, hash method);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
 
+scl_any				_scl_get_struct_by_id(scl_int id);
 scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);

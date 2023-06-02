@@ -35,7 +35,7 @@ final sealed struct Thread
 
     construct function __privateInit(): none
         0 => Thread::nextID
-        1 Array::new => Thread::threads
+        1 TypedArray::new => Thread::threads
         Thread::currentThread => Thread::mainThread
         "Main Thread" => Thread::mainThread.name
     end
@@ -79,7 +79,9 @@ final sealed struct Thread
 
     private function run(): none
         Thread::stack_new
+        self Thread::threads:push
         self.func:accept
+        self Thread::threads:remove
         Thread::stack_free
     end
 
@@ -87,7 +89,6 @@ final sealed struct Thread
         if tid then
             "Thread started" ThreadException::new throw
         fi
-        self Thread::threads:push
         (ref self.tid) nil (ref self::run as any) (self as any) __c_pthread_create
     end
 
@@ -96,7 +97,6 @@ final sealed struct Thread
             "Thread ended" ThreadException::new throw
         fi
         self.tid nil __c_pthread_join
-        self Thread::threads:remove
         nil => self.tid
     end
 

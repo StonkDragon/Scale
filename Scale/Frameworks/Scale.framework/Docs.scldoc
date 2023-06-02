@@ -664,6 +664,39 @@ Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> element
 ### static function Array::fromPointerCollection(count: int, values: [any]): Array
 Returns a new array that contains count elements of the c-style array values.
 
+@std.util.ReadOnlyArray
+## ReadOnlyArray
+### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
+Creates a new <<WHITE>>ReadOnlyArray<<RESET>> from the given <<WHITE>>Array<<RESET>>.
+
+### static function ReadOnlyArray::fromPointerCollection(count: int, values: [any]): ReadOnlyArray
+Creates a new <<WHITE>>ReadOnlyArray<<RESET>> containing <<WHITE>>count<<RESET>> elements from the given c-style array.
+
+### function ReadOnlyArray:sort(): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:set(index: int, value: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:push(value: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:pop(): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:reverse(): Array
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:remove(val: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+### function ReadOnlyArray:removeAll(val: any): none
+Throws <<WHITE>>IllegalStateException<<RESET>>.
+
+## IllegalStateException
+### static function IllegalStateException::new(msg: str): IllegalStateException
+Creates a new <<WHITE>>IllegalStateException<<RESET>> with the given message.
+
 @std.String
 ## String
 ### function str:+(other: str): str
@@ -714,6 +747,12 @@ Returns the hash of the string.
 ### function str:split(_delim_: str): Array
 Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results.
 Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
+
+### function str:endsWith(suffix: str): bool
+Returns <<BLUE>>true<<RESET>> if the string ends with <<WHITE>>suffix<<RESET>>.
+
+### function str:subString(start: str): str
+Returns a substring of the string starting at <<WHITE>>start<<RESET>>.
 
 @std.util.Pair
 ## Pair
@@ -766,39 +805,53 @@ For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> o
 Returns a string representation of this object.
 
 ### function SclObject:==(other: SclObject): bool
-Returns true if the objects are equal.
-This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the two object's hashes are equal.
 
 ### function SclObject:equals(other: SclObject): bool
-Returns true if the objects are equal.
-This method should be redefined by Structs as the default implementation returns the pointer equality.
+Returns true if the two object's hashes are equal.
 
 ### function SclObject:clone(): SclObject
 Returns a copy of this object.
 
 ### function SclObject:hashCode(): SclObject
-Returns the hash of this object.
-This method should be redefined by Structs as the default implementation returns the hash of the type name.
+Returns the <<CYAN>>identity hash<<RESET>> of this object.
 
-@std.util.ImmutableArray
-## ImmutableArray
-### function ImmutableArray:get(index: int): any?
-TODO.
+### final function SclObject:getStruct(): Struct
+Returns the <<WHITE>>Struct<<RESET>> instance representing the struct of this object.
+This function cannot be overridden.
 
-### function ImmutableArray:top(): any?
-TODO.
+@std.reflect.Struct
+## Struct
+### struct Struct
+Member types:
+- <<WHITE>>isStatic<<BLUE>>: readonly bool<<RESET>>
 
-### function ImmutableArray:contains(val: any): bool
-TODO.
+<<WHITE>>isStatic<<RESET>>: <<BLUE>>true<<RESET>>, if this <<WHITE>>Struct<<RESET>> represents a static struct.
 
-### function ImmutableArray:toString(): str
-TODO.
+### static function Struct::getStructByName(name: str): Struct
+Returns an instance of <<WHITE>>Struct<<RESET>> representing the struct with the given name.
+A <<WHITE>>NullPointerException<<RESET>> is thrown if no such struct exists.
 
-### function ImmutableArray:map(x: lambda(any): none): none
-TODO.
+### function Struct:newInstance(): SclObject
+Creates a new instance of the struct represented by this object.
 
-### static function ImmutableArray::new(count: int, values: [any]): none
-TODO.
+### function Struct:getMethodByName(name: str): lambda
+Returns a generic <<BLUE>>lambda<<RESET>> for the method with the given name.
+The returned lambda <<BOLDRED>>MUST<<RESET>> be cast to a non generic <<BLUE>>lambda<<RESET>> before it may be used.
+
+### function Struct:getName(): str
+Returns the name of this struct.
+
+### function Struct:getSize(): int
+Returns the size in bytes needed to create a new instance of the struct represented by this object.
+
+### function Struct:getSuper(): Struct?
+Returns the super-struct of this struct.
+Only returns <<BLUE>>nil<<RESET>> when called on the <<WHITE>>Struct<<RESET>> representing <<WHITE>>SclObject<<RESET>>.
+
+### unsafe function Struct:setAccesible(accessible: bool, name: str): none
+Sets the private attribute of the member variable.
+This function is unsafe as it sets the flag globally for every object of this struct.
 
 @std.threading.Thread
 ## Thread
@@ -867,6 +920,11 @@ Creates a new Error with the given message.
 ### struct AssertError : Error
 Member types inherited from <<WHITE>>Error<<RESET>>.
 This error is only thrown when an assertion failed.
+
+## CastError
+### struct CastError : Error
+Member types inherited from <<WHITE>>Error<<RESET>>.
+This error is thrown when a cast fails.
 
 ## Debug
 ### function trace(): none

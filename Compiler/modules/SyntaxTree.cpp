@@ -461,7 +461,8 @@ namespace sclc {
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
 
-        bool isInLambda = false;
+        int isInLambda = 0;
+        int isInUnsafe = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -514,6 +515,28 @@ namespace sclc {
             builtinHash->setReturnType("int32");
             extern_functions.push_back(builtinHash);
 
+            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtin>"));
+            builtinIdentityHash->isExternC = true;
+            builtinIdentityHash->addModifier("extern");
+            builtinIdentityHash->addModifier("cdecl");
+            builtinIdentityHash->addModifier("_scl_identity_hash");
+            
+            builtinIdentityHash->addArgument(Variable("obj", "any"));
+            
+            builtinIdentityHash->setReturnType("int");
+            extern_functions.push_back(builtinIdentityHash);
+
+            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtin>"));
+            builtinAtomicClone->isExternC = true;
+            builtinAtomicClone->addModifier("extern");
+            builtinAtomicClone->addModifier("cdecl");
+            builtinAtomicClone->addModifier("_scl_atomic_clone");
+            
+            builtinAtomicClone->addArgument(Variable("obj", "any"));
+            
+            builtinAtomicClone->setReturnType("any");
+            extern_functions.push_back(builtinAtomicClone);
+
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");
@@ -558,8 +581,6 @@ namespace sclc {
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 
-            // std::cout << token.tostring() << std::endl;
-
             if (token.getType() == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
@@ -586,14 +607,14 @@ namespace sclc {
                     continue;
                 }
                 if (currentStruct != nullptr) {
-                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "static") != nextAttributes.end() || currentStruct->isStatic()) {
+                    if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
-                        currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                        currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -608,7 +629,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
-                    currentFunction->isPrivate = std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end();
+                    currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
@@ -674,7 +695,7 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
-                    if (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end()) {
+                    if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
                         result.value = func.getValue();
@@ -704,11 +725,15 @@ namespace sclc {
                     currentFunction = nullptr;
                 }
                 nextAttributes.clear();
-
             } else if (token.getType() == tok_end) {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
-                        isInLambda = false;
+                        isInLambda--;
+                        currentFunction->addToken(token);
+                        continue;
+                    }
+                    if (isInUnsafe) {
+                        isInUnsafe--;
                         currentFunction->addToken(token);
                         continue;
                     }
@@ -844,7 +869,9 @@ namespace sclc {
                     continue;
                 }
                 currentContainer = new Container(tokens[i].getValue());
-            } else if (token.getType() == tok_struct_def) {
+            } else if (token.getType() == tok_struct_def && ((i - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
+                currentFunction->addToken(token);
+            } else if (token.getType() == tok_struct_def && (i == 0 || (((i - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
@@ -935,6 +962,8 @@ namespace sclc {
                         currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
                     }
                 }
+
+                bool open = contains<std::string>(nextAttributes, "open");
                 
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
@@ -1006,6 +1035,11 @@ namespace sclc {
                             break;
                         }
                     }
+                }
+
+                if (open) {
+                    structs.push_back(*currentStruct);
+                    currentStruct = nullptr;
                 }
             } else if (token.getType() == tok_enum) {
                 if (currentContainer != nullptr) {
@@ -1200,7 +1234,16 @@ namespace sclc {
                     currentFunction->addToken(token);
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
-                if (token.getValue() == "lambda" && (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare)) isInLambda = true;
+                if (
+                    token.getValue() == "lambda" &&
+                    (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_as) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_comma) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_paren_open)
+                ) isInLambda++;
+                if (token.getValue() == "unsafe") {
+                    isInUnsafe++;
+                }
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -1366,18 +1409,18 @@ namespace sclc {
                     }
                     if (isConst) {
                         Variable v = Variable(name, type, isConst, isMut);
-                        v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                        v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                         v.canBeNil = typeCanBeNil(v.getType());
                         currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
                             Variable v = Variable(name, type, isConst, isMut, currentStruct->getName());
-                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         } else {
                             Variable v = Variable(name, type, isConst, isMut);
-                            v.isPrivate = (std::find(nextAttributes.begin(), nextAttributes.end(), "private") != nextAttributes.end() || isPrivate);
+                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         }
@@ -1400,8 +1443,10 @@ namespace sclc {
                            t.getValue() == "export" ||
                            t.getValue() == "expect" ||
                            t.getValue() == "sealed" ||
+                           t.getValue() == "unsafe" ||
                            t.getValue() == "cdecl" ||
                            t.getValue() == "final" ||
+                           t.getValue() == "open" ||
                            t.getValue() == "asm";
                 };
 

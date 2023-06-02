@@ -4,6 +4,7 @@ import std.debug
 import std.util.InvalidArgumentException
 import std.util.IndexOutOfBoundsException
 import std.util.TypedArray
+import std.util.ReadOnlyArray
 
 sealed struct Array is IIterable
   decl values:  mut readonly [any]
@@ -229,6 +230,12 @@ sealed struct Array is IIterable
       fi
     done
     return
+  end
+
+  function clone(): Array
+    self builtinAtomicClone as Array => decl clone: mut Array
+    self.values builtinAtomicClone => clone.values
+    clone return
   end
 
   static function fromPointerCollection(count: int, values: [any]) arr: Array

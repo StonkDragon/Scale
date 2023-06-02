@@ -481,8 +481,14 @@ namespace sclc
 
             // remove mid line comments
             char *c = buffer;
+            int inStr = 0;
+            int escaped = 0;
             while (*c != '\0') {
-                if (*c == '#') {
+                if (*c == '\\') {
+                    escaped = !escaped;
+                } else if (*c == '"' && !escaped) {
+                    inStr = !inStr;
+                } else if (*c == '#' && !inStr) {
                     *c = '\n';
                     c++;
                     *c = '\0';
@@ -539,6 +545,10 @@ namespace sclc
                 continue;
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
+                if (tokens[i].getType() == tok_function) {
+                    i--;
+                    continue;
+                }
                 std::string moduleName = tokens[i].getValue();
                 while (i + 1 < (long long) tokens.size() && tokens[i + 1].getType() == tok_dot) {
                     i += 2;
@@ -565,7 +575,7 @@ namespace sclc
                                     return r;
                                 }
                                 auto file = find.in;
-                                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                                if (!contains(Main.options.files, file)) {
                                     Main.options.files.push_back(file);
                                 }
                             }
@@ -613,7 +623,7 @@ namespace sclc
                     return r;
                 }
                 file = find.in;
-                if (std::find(Main.options.files.begin(), Main.options.files.end(), file) == Main.options.files.end()) {
+                if (!contains(Main.options.files, file)) {
                     Main.options.files.push_back(file);
                 }
             }

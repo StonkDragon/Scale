@@ -54,6 +54,28 @@ Structs can contain variables and functions:
 
 Applying the <<BLUE>>static<<RESET>> modifier to a struct automatically makes every member of the struct a static member and disables initialization of the struct.
 
+Creating a new instance of a struct:
+Standard initialization:
+
+<<WHITE>>Foo<<BLUE>>::new<<RESET>>
+
+Allocates a new instance on the heap and calls the <<WHITE>>init<<RESET>> method on the new instance.
+
+Default initialization:
+
+<<WHITE>>Foo<<BLUE>>::default<<RESET>>
+
+Allocates a new instance on the heap, but does not call the <<WHITE>>init<<RESET>> method.
+
+List initialization:
+
+<<WHITE>>Foo<<BLUE>> {<<RESET>>
+    <<CYAN>>value<<BLUE>> => <<WHITE>>x<<RESET>>
+<<BLUE>>}<<RESET>>
+
+The initializer list must always initialize every member of the struct.
+<<CYAN>>value<<RESET>> can be either a single literal like a number or string, or a lisp-style expression.
+
 ### self
 The <<BLUE>>self<<RESET>> keyword is only available in member functions of structs.
 It is used to reference the current instance of the struct inside the function.
@@ -110,11 +132,28 @@ Functions marked with <<BLUE>>expect<<RESET>> do not have a body.
 
 A side effect of using <<BLUE>>expect<<RESET>> is, that it can reference C functions as well, allowing the use of C functions in scale.
 
+### unsafe
+The <<BLUE>>unsafe<<RESET>> keyword is used to start an unsafe-block or mark a function as unsafe.
+Unsafe functions can only be called from unsafe blocks or other unsafe functions.
+The syntax for unsafe blocks is as follows:
+
+<<BLUE>>unsafe<<RESET>>
+    <<CYAN>># your unsafe code here<<RESET>>
+<<BLUE>>end<<RESET>>
+
 ### construct
 The <<BLUE>>construct<<RESET>> modifier marks a function as a global constructor, which means that it will run before <<WHITE>>main<<RESET>> and is usually used to set up things before.
+<<BLUE>>construct<<RESET>> functions are impossible to call.
 
 ### final
 The <<BLUE>>final<<RESET>> modifier marks a function as a global destructor, which means that it will run after <<WHITE>>main<<RESET>> and is usually used to clean up things after.
+Adding the <<BLUE>>final<<RESET>> modifier to a struct makes it impossible to inherit from that struct.
+
+### sealed
+The <<BLUE>>sealed<<RESET>> modifier seals a struct, making it impossible to add methods to it after declaration.
+
+### open
+The <<BLUE>>open<<RESET>> modifier is used as a shorthand to declare structs without any members.
 
 ### private
 The <<BLUE>>private<<RESET>> modifier is only effective in a struct.
@@ -659,7 +698,7 @@ The index.drg file of the Scale Framework looks like this:
 
 <pre>
 framework: {
-    version: "23.5";
+    version: "23.6";
     headerDir: "include";
     implDir: "impl";
     implementers: [];
@@ -702,3 +741,71 @@ An example of this would be the <<CYAN>>std.threading.Thread<<RESET>> module whi
 
 Modules can be declared in the scale.drg or index.drg files by putting them in the <<CYAN>>modules<<RESET>> compound.
 See <<BLUE>>scale.drg<<RESET>> and <<BLUE>>index.drg<<RESET>> for more information.
+
+## Builtin Functions
+### function builtinIsInstanceOf(obj: any, typeStr: str): int
+Returns <<BLUE>>true<<RESET>> if the given object's type matches the given type.
+
+### function builtinHash(data: [int8]): int32
+Returns the hash code of the given data.
+
+### function builtinTypeEquals(obj: any, typeId: int32): int
+Returns <<BLUE>>true<<RESET>> if the given object's type id matches the given type id.
+In almost all cases it is better to use <<WHITE>>builtinIsInstanceOf<<RESET>>.
+
+### function builtinToString(obj: any): str
+Returns the string representation of the given value.
+If the value is a valid struct instance, it's <<WHITE>>toString<<RESET>> method will be called.
+
+### function builtinIdentityHash(obj: any): int
+Returns the identity hash of the given object.
+
+### function builtinAtomicClone(obj: any): any
+Returns an atomic clone of the given object.
+
+## Literals
+### Array literal
+Array literals look like this:
+
+<<BLUE>>{<<GREEN>>"Apple"<<BLUE>>, <<GREEN>>"Banana"<<BLUE>>, <<GREEN>>"Pineapple"<<BLUE>>}
+
+This literal will return a new instance of <<WHITE>>Array<<RESET>> with 3 elements, where the element <<GREEN>>"Apple"<<RESET>> is the first element.
+
+They follow the following pattern:
+
+<<BLUE>>{<<CYAN>>element1<<BLUE>>, <<CYAN>>element2<<BLUE>>, ..., <<CYAN>>elementN<<BLUE>>}
+
+### Map literal
+Map literals look like this:
+
+<<BLUE>>[<<GREEN>>"A"<<BLUE>>: <<GREEN>>"Apple"<<BLUE>>, <<GREEN>>"B"<<BLUE>>: <<GREEN>>"Banana"<<BLUE>>]
+
+This literal will return a new instance of <<WHITE>>Map<<RESET>>.
+
+They follow the following pattern:
+
+<<BLUE>>[<<CYAN>>key<<BLUE>>: <<CYAN>>value<<BLUE>>, ...]
+
+Where <<CYAN>>key<<RESET>> must be a string literal and <<CYAN>>value<<RESET>> can be any amount of tokens.
+
+### Pair and Triple literals
+Pair and Triple literals look like this:
+
+<<BLUE>>(<<GREEN>>"a"<<BLUE>>, <<GREEN>>"b"<<BLUE>>)<<RESET>>
+<<BLUE>>(<<GREEN>>"a"<<BLUE>>, <<GREEN>>"b"<<BLUE>>, <<GREEN>>"c"<<BLUE>>)<<RESET>>
+
+The literals will return a new instance of <<WHITE>>Pair<<RESET>> or <<WHITE>>Triple<<RESET>> respectively.
+
+They follow the following pattern:
+<<BLUE>>(<<CYAN>>expression<<BLUE>>, <<CYAN>>expression<<BLUE>>)<<RESET>>
+<<BLUE>>(<<CYAN>>expression<<BLUE>>, <<CYAN>>expression<<BLUE>>, <<CYAN>>expression<<BLUE>>)<<RESET>>
+
+Where <<CYAN>>expression<<RESET>> can each be any amount of tokens that are not <<BLUE>>,<<RESET>>.
+
+### Lisp-style expressions
+Lisp-style expressions are standard expressions that are delimited by parentheses.
+
+<<BLUE>>(<<CYAN>>expression<<BLUE>>)<<RESET>>
+
+Lisp-style expressions always have an effective stack change of none or 1 element more.
+This makes them perfect to calculate function arguments where the calculation requires many stack changes and some garbage might be left over at the end.

@@ -4,17 +4,10 @@
 #include <execinfo.h>
 #endif
 
+#include <unordered_set>
+
 namespace sclc
 {
-
-    std::regex flatcase_regex("^[a-z]+$");
-    std::regex UPPERCASE_regex("^[A-Z]+$");
-    std::regex camelCase_regex("^[a-z]+([A-Z][a-z]*)*$");
-    std::regex PascalCase_regex("^([A-Z][a-z]*)+$");
-    std::regex IPascalCase_regex("^I([A-Z][a-z]*)+$");
-    std::regex snake_case_regex("^[a-z]+(_[a-z]+)*$");
-    std::regex SCREAMING_SNAKE_CASE_regex("^[A-Z]+(_[A-Z]+)*$");
-
     #ifdef _WIN32
     const std::string Color::RESET = "";
     const std::string Color::BLACK = "";
@@ -246,8 +239,8 @@ namespace sclc
     }
 
     Variable getVar(Token name) {
-        for (std::vector<Variable> var : vars) {
-            for (Variable v : var) {
+        for (ssize_t i = vars.size() - 1; i >= 0; i--) {
+            for (Variable v : vars[i]) {
                 if (v.getName() == name.getValue()) {
                     return v;
                 }

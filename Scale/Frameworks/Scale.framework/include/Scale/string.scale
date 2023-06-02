@@ -6,9 +6,9 @@ cdecl "strcmp"
 expect function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
 cdecl "_scl_strdup"
 expect function __c_strdup(_str_: [int8]): [int8]
-cdecl "strncmp"
+cdecl "_scl_strncmp"
 expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
-cdecl "strcpy"
+cdecl "_scl_strcpy"
 expect function __c_strcpy(dest: [int8], src: [int8]): [int8]
 
 final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
@@ -22,7 +22,7 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function clone(): str
-    self:view str::new return
+    self._data str::new return
   end
 
   function append(other: str): str
@@ -47,7 +47,10 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
   function at(i: int): int
     if i 0 < i self:size >= || then
-      nameof i " is out of bounds" + IndexOutOfBoundsException::new throw
+      "Index " i int::toString +
+      " is out of bounds for string with length " self:size int::toString +
+      +
+      IndexOutOfBoundsException::new throw
     fi
     self._data i + @ int::toInt8 as int return
   end
@@ -71,7 +74,9 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
       }
       (*out)[len] = '\0';
     end
-    out str::new return
+    out str::new
+    out free
+    return
   end
 
   function toChars() _arr_: Array
@@ -93,11 +98,44 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
       line!! str::new arr:push
       nil cDelim __c_strtok => line
     done
+
+    string free
+    cDelim free
+
     arr return
   end
 
   function startsWith(_s_: str): bool
     self._data _s_._data _s_:size __c_strncmp 0 == return
+  end
+
+  function endsWith(_s_: str): bool
+    if self._len _s_._len < then
+      false return
+    fi
+    self._len _s_._len - self:subString => decl substr: str
+    substr _s_ ==
+    
+    substr free
+
+    return
+  end
+
+  function subString(start: int): str
+    if start 0 == then
+      self return
+    fi
+    if start self._len >= start 0 < || then
+      "Index " start int::toString +
+      " is out of bounds for string with length " self:size int::toString +
+      +
+      IndexOutOfBoundsException::new throw
+    fi
+
+    self._data => decl tmp: any
+
+    tmp start + => tmp
+    tmp as [int8] str::new return
   end
 
   function view(): [int8]

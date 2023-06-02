@@ -384,6 +384,26 @@
 		],
 		"description": "Inline C"
 	},
+	"Unsafe block": {
+		"scope": "source.scale",
+		"prefix": "unsafe",
+		"body": [
+			"unsafe",
+			"\t$0",
+			"end",
+		],
+		"description": "Unsafe block"
+	},
+	"Unsafe function": {
+		"scope": "source.scale",
+		"prefix": "unsafe function",
+		"body": [
+			"unsafe function ${1:name}($2): ${3:none}",
+			"\t$0",
+			"end"
+		],
+		"description": "Unsafe function"
+	},
 	"C Symbol": {
 		"scope": "source.scale",
 		"prefix": "cdecl",
