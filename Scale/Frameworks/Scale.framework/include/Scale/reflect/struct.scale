@@ -1,4 +1,4 @@
-final sealed struct IllegalAccessException: Exception end
+final sealed open struct IllegalAccessException: Exception
 
 final sealed struct Struct
     private decl typeName: str
@@ -78,25 +78,10 @@ final sealed struct Struct
         return
     end
 
-    unsafe function setAccessible(accessible: bool, name: str): none
-        false => decl found: bool
-        c!
-            for (scl_int i = 0; i < (*self)->membersCount; i++) {
-                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
-                if (member.pure_name == (*name)->_hash) {
-                    scl_int flags = ((struct _scl_membertype*) (*self)->members)[i].access_flags;
-                    if (*accessible) {
-                        flags &= 0b01111;
-                    } else {
-                        flags |= 0b10000;
-                    }
-                    ((struct _scl_membertype*) (*self)->members)[i].access_flags = flags;
+    private expect unsafe function setAccessible0(accessible: bool, name: str): bool
 
-                    *found = 1;
-                    break;
-                }
-            }
-        end
+    unsafe function setAccessible(accessible: bool, name: str): none
+        accessible name setAccessible0 => decl found: bool
 
         unless found then
             NullPointerException::new => decl e: mut Exception
@@ -154,9 +139,11 @@ final sealed struct Struct
         fi
     end
 
+    private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int): lambda
+
     function getMethodByName(name: str) method: lambda
-        c!
-            *method = _scl_get_method_handle((*self)->typeId, (*name)->_hash);
+        unsafe
+            self.typeId name:hashCode getMethodByName0 => method
         end
         unless method then
             NullPointerException::new => decl e: mut Exception
@@ -181,15 +168,19 @@ final sealed struct Struct
         self.superStruct return
     end
 
-    static function getStructByName(name: str) theStruct: Struct
-        c!
-            *theStruct = _scl_get_struct_by_id((*name)->_hash);
+    private expect static unsafe cdecl "_scl_get_struct_by_id" function getStructByName0(:int): Struct
+
+    static function getStructByName(name: str): Struct
+        decl theStruct: Struct?
+        unsafe
+            name:hashCode getStructByName0 => theStruct
         end
+        
         unless theStruct then
             NullPointerException::new => decl e: mut Exception
             "Couldn't find struct '" name + "'" + => e.msg
             e throw
         fi
-        return
+        theStruct!! return
     end
 end

@@ -7,7 +7,7 @@ final static sealed struct float
     decl maxExponent: const int
     decl minExponent: const int
 
-    function toString(x: float): str
+    intrinsic function toString(x: float): str
         100 malloc => decl out: [int8]
         c!
             sprintf(*out, "%f", *x);
@@ -15,7 +15,7 @@ final static sealed struct float
         out str::new return
     end
 
-    function toPrecisionString(x: float): str
+    intrinsic function toPrecisionString(x: float): str
         100 malloc => decl out: [int8]
         c!
             sprintf(*out, "%.17f", *x);
@@ -23,7 +23,7 @@ final static sealed struct float
         out str::new return
     end
 
-    function toHexString(x: float): str
+    intrinsic function toHexString(x: float): str
         19 malloc => decl out: [int8]
         c!
             sprintf(*out, SCL_PTR_HEX_FMT, *(scl_int*) x);

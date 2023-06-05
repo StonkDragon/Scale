@@ -131,7 +131,7 @@ void _scl_remove_ptr_at_index(scl_int index) {
 
 scl_int _scl_sizeof(scl_any ptr) {
 	scl_int index = _scl_get_index_of_ptr(ptr);
-	if (index == -1) return -1;
+	if (_scl_expect(index == -1, 0)) return -1;
 	return memsizes[index];
 }
 
@@ -166,7 +166,7 @@ scl_any _scl_alloc(scl_int size) {
 	scl_any ptr = system_allocate(size);
 
 	// Hard-throw if memory allocation failed
-	if (!ptr) {
+	if (_scl_expect(ptr == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "allocate() failed!");
 		return nil;
 	}
@@ -202,7 +202,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	ptr = system_realloc(ptr, size);
 
 	// Hard-throw if memory allocation failed
-	if (!ptr) {
+	if (_scl_expect(ptr == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 		return nil;
 	}
@@ -297,23 +297,50 @@ scl_int8* _scl_strdup(scl_int8* str) {
 	return _scl_strndup(str, len);
 }
 
+extern const scl_int _scl_internal_string_literals_count;
+extern struct scaleString _scl_internal_string_literals[];
+
+scl_int _scl_find_string_in_literals(hash h) {
+	scl_int left = 0;
+	scl_int right = _scl_internal_string_literals_count - 1;
+
+	while (left <= right) {
+		scl_int mid = (left + right) / 2;
+		if (_scl_internal_string_literals[mid]._hash == h) {
+			return mid;
+		} else if (_scl_internal_string_literals[mid]._hash < h) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
+		}
+	}
+
+	return -1;
+}
+
 scl_str _scl_create_string(scl_int8* data) {
 	struct Struct_str {
 		struct scaleString s;
 	};
-	assert(sizeof(struct Struct_str) == sizeof(struct scaleString));
+
+	scl_int len = strlen(data);
+	hash h = hash1len(data, len);
+
+	scl_int index = _scl_find_string_in_literals(h);
+
+	if (index != -1) {
+		scl_str s = (scl_str) &(_scl_internal_string_literals[index]);
+		_scl_add_struct(s);
+		return s;
+	}
 
 	scl_str self = NEW0(str);
-	if (self == nil) {
+	if (_scl_expect(self == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return nil;
 	}
-	if (_scl_find_index_of_struct(self) == -1) {
-		_scl_security_throw(EX_BAD_PTR, "Could not create string instance for cstr '%s'. Index is: " SCL_INT_FMT ". Pointer is: %p\n", data, _scl_find_index_of_struct(self), self);
-		return nil;
-	}
-	self->_len = strlen(data);
-	self->_hash = hash1len(data, self->_len);
+	self->_len = len;
+	self->_hash = h;
 	self->_data = _scl_strndup(data, self->_len);
 	return self;
 }
@@ -707,9 +734,9 @@ void _ZN9SclObject4initEP9SclObject(Struct* self);
 scl_any _scl_get_struct_by_id(scl_int id) {
 	scl_int index = _scl_binary_search_struct_struct_index(structs, structs_count, id);
 	if (index >= 0) return structs[index];
-	if (id == 0) return nil;
+	if (_scl_expect(id == 0, 0)) return nil;
 	index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, id);
-	if (index < 0) {
+	if (_scl_expect(index < 0, 0)) {
 		return nil;
 	}
 	struct _scl_typeinfo t = _scl_types[index];
@@ -786,8 +813,8 @@ scl_any _scl_get_method_handle(hash type, hash method) {
 
 // adds an instance to the table of tracked instances
 scl_any _scl_add_struct(scl_any ptr) {
-	insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
-	return ptr;
+	scl_int index = insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
+	return index == -1 ? nil : instances[index];
 }
 
 // creates a new instance with a size of 'size'
@@ -796,7 +823,7 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
 
-	if (ptr == nil) return nil;
+	if (_scl_expect(ptr == nil, 0)) return nil;
 
 	// Type name hash
 	((Struct*) ptr)->type = hash1(type_name);
@@ -811,9 +838,7 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 	((Struct*) ptr)->size = size;
 
 	// Add struct to allocated table
-	scl_int index = insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
-	if (index == -1) return nil;
-	return instances[index];
+	return _scl_add_struct(ptr);
 }
 
 // Removes an instance from the allocated table by index
@@ -827,7 +852,7 @@ void _scl_struct_map_remove(scl_int index) {
 // Returns the next index of an instance in the allocated table
 // Returns -1, if not in table
 scl_int _scl_find_index_of_struct(scl_any ptr) {
-	if (ptr == nil) return -1;
+	if (_scl_expect(ptr == nil, 0)) return -1;
 	return _scl_binary_search((void**) instances, instances_count, ptr);
 }
 
@@ -842,7 +867,7 @@ void _scl_free_struct_no_finalize(scl_any ptr) {
 
 // Removes an instance from the allocated table and call the finalzer
 void _scl_free_struct(scl_any ptr) {
-	if (_scl_find_index_of_struct(ptr) == -1)
+	if (_scl_expect(_scl_find_index_of_struct(ptr) == -1, 0))
 		return;
 
 	scl_int i = _scl_find_index_of_struct(ptr);
@@ -854,7 +879,7 @@ void _scl_free_struct(scl_any ptr) {
 
 // Returns true if the given type is a child of the other type
 scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo* extends) {
-	if (!type || !extends) return 0;
+	if (_scl_expect(!type || !extends, 0)) return 0;
 	do {
 		if (type->type == extends->type) {
 			return 1;
@@ -867,7 +892,7 @@ scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo*
 // Returns true, if the instance is of a given struct type
 scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
-	if (!isStruct) return 0;
+	if (_scl_expect(!isStruct, 0)) return 0;
 
 	Struct* ptrStruct = (Struct*) ptr;
 
@@ -920,7 +945,7 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 typedef void (*_scl_sigHandler)(scl_int);
 
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
-	if (sig < 0 || sig >= 32) {
+	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
 		struct Struct_InvalidSignalException {
 			struct Struct_Exception self;
 			scl_int sig;
@@ -939,7 +964,7 @@ void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 }
 
 void _scl_reset_signal_handler(scl_int sig) {
-	if (sig < 0 || sig >= 32) {
+	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
 		struct Struct_InvalidSignalException {
 			struct Struct_Exception self;
 			scl_int sig;
@@ -1039,15 +1064,15 @@ void _scl_exception_push() {
 		scl_any* tmp;
 
 		tmp = system_realloc(_extable.cs_pointer, _extable.capacity * sizeof(scl_int));
-		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		if (_scl_expect(tmp == nil, 0)) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.cs_pointer = (scl_int*) tmp;
 
 		tmp = system_realloc(_extable.exceptions, _extable.capacity * sizeof(scl_any));
-		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		if (_scl_expect(tmp == nil, 0)) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.exceptions = tmp;
 
 		tmp = system_realloc(_extable.jmp_buf, _extable.capacity * sizeof(jmp_buf));
-		if (!tmp) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
+		if (_scl_expect(tmp == nil, 0)) _scl_security_throw(EX_BAD_PTR, "realloc() failed");
 		_extable.jmp_buf = (jmp_buf*) tmp;
 	}
 }
@@ -1210,6 +1235,169 @@ scl_any _scl_memset(scl_any ptr, scl_int32 val, scl_int len) {
 scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 	return memcpy(dest, src, n);
 }
+
+// Region: intrinsics
+
+#define TO(type, name) scl_ ## type int$to ## name (scl_int val) { return (scl_ ## type) (val & ((1ULL << (sizeof(scl_ ## type) * 8)) - 1)); }
+#define VALID(type, name) scl_bool int$isValid ## name (scl_int val) { return val >= SCL_ ## type ## _MIN && val <= SCL_ ## type ## _MAX; }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#endif
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-count-overflow"
+#endif
+
+TO(int8, Int8)
+TO(int16, Int16)
+TO(int32, Int32)
+TO(int64, Int64)
+TO(int, Int)
+TO(uint8, UInt8)
+TO(uint16, UInt16)
+TO(uint32, UInt32)
+TO(uint64, UInt64)
+TO(uint, UInt)
+
+VALID(int8, Int8)
+VALID(int16, Int16)
+VALID(int32, Int32)
+VALID(int64, Int64)
+VALID(int, Int)
+VALID(uint8, UInt8)
+VALID(uint16, UInt16)
+VALID(uint32, UInt32)
+VALID(uint64, UInt64)
+VALID(uint, UInt)
+
+scl_str int$toString(scl_int val) {
+	scl_int8* str = system_allocate(32);
+	snprintf(str, 32, SCL_INT_FMT, val);
+	scl_str s = str_of(str);
+	system_free(str);
+	return s;
+}
+
+scl_str int$toHexString(scl_int val) {
+	scl_int8* str = system_allocate(19);
+	snprintf(str, 19, SCL_INT_HEX_FMT, val);
+	scl_str s = str_of(str);
+	system_free(str);
+	return s;
+}
+
+scl_str int8$toString(scl_int8 val) {
+	scl_int8* str = system_allocate(5);
+	snprintf(str, 5, "%c", val);
+	scl_str s = str_of(str);
+	system_free(str);
+	return s;
+}
+
+scl_str _ZN9SclObject8toStringEP9SclObject(Struct*);
+
+void _scl_puts(scl_any val) {
+	scl_str s = _scl_is_instance_of(val, SclObjectHash) ?
+		_ZN9SclObject8toStringEP9SclObject(val) :
+		int$toString((scl_int) val);
+	printf("%s\n", s->_data);
+}
+
+void _scl_eputs(scl_any val) {
+	scl_str s = _scl_is_instance_of(val, SclObjectHash) ?
+		_ZN9SclObject8toStringEP9SclObject(val) :
+		int$toString((scl_int) val);
+	fprintf(stderr, "%s\n", s->_data);
+}
+
+void _scl_write(scl_int fd, scl_str str) {
+	write(fd, str->_data, str->_len);
+}
+
+scl_str _scl_read(scl_int fd, scl_int len) {
+	scl_int8* buf = system_allocate(len + 1);
+	read(fd, buf, len);
+	scl_str str = str_of(buf);
+	system_free(buf);
+	return str;
+}
+
+scl_int _scl_system(scl_str cmd) {
+	return system(cmd->_data);
+}
+
+scl_str _scl_getenv(scl_str name) {
+	scl_int8* val = getenv(name->_data);
+	return val ? str_of(val) : nil;
+}
+
+scl_float _scl_time() {
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	return (scl_float) tv.tv_sec + (scl_float) tv.tv_usec / 1000000.0;
+}
+
+scl_str float$toString(scl_float val) {
+	scl_int8* str = system_allocate(64);
+	snprintf(str, 64, "%f", val);
+	scl_str s = str_of(str);
+	system_free(str);
+	return s;
+}
+
+scl_str float$toPrecisionString(scl_float val) {
+	scl_int8* str = system_allocate(256);
+	snprintf(str, 256, "%.17f", val);
+	scl_str s = str_of(str);
+	system_free(str);
+	return s;
+}
+
+scl_str float$toHexString(scl_float val) {
+	return int$toHexString(*(scl_int*) &val);
+}
+
+struct Struct_Array* Thread$stackTrace() {
+	struct Struct_Array* arr = NEW0(Array);
+	
+	arr->capacity = (scl_any) (_callstack.ptr - 2);
+	arr->initCapacity = _callstack.ptr - 2;
+	arr->count = 0;
+	arr->values = _scl_alloc((_callstack.ptr - 2) * sizeof(scl_str));
+	
+	for (scl_int i = 0; i < _callstack.ptr - 2; i++) {
+		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(_callstack.func[i]);
+	}
+	return arr;
+}
+
+scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str name) {
+	for (scl_int i = 0; i < (self)->members_count; i++) {
+		struct _scl_membertype member = ((struct _scl_membertype*) (self)->members)[i];
+		if (member.pure_name == (name)->_hash) {
+			scl_int flags = ((struct _scl_membertype*) (self)->members)[i].access_flags;
+			if (accessible) {
+				flags &= 0b01111;
+			} else {
+				flags |= 0b10000;
+			}
+			((struct _scl_membertype*) (self)->members)[i].access_flags = flags;
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 void _scl_create_stack() {
 	// These use C's malloc, keep it that way

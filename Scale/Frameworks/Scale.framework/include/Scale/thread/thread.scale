@@ -14,12 +14,12 @@ typealias pthread_t "pthread_t"
 typealias pthread_mutex_t "pthread_mutex_t"
 typealias pthread_mutexattr_t "pthread_mutexattr_t"
 
-cdecl "pthread_mutex_init"    expect function __c_pthread_mutex_init(mutex: [pthread_mutex_t], attr: [pthread_mutexattr_t]?): int32
-cdecl "pthread_mutex_lock"    expect function __c_pthread_mutex_lock(mutex: [pthread_mutex_t]): int32
-cdecl "pthread_mutex_unlock"  expect function __c_pthread_mutex_unlock(mutex: [pthread_mutex_t]): int32
-cdecl "pthread_mutex_destroy" expect function __c_pthread_mutex_destroy(mutex: [pthread_mutex_t]): int32
-cdecl "pthread_create"        expect function __c_pthread_create(tid: [pthread_t?], _unused0_: any?, func: any, arg: any?): none
-cdecl "pthread_join"          expect function __c_pthread_join(tid: pthread_t, _unused0_: any?): none
+cdecl "pthread_mutex_init"    expect function __c_pthread_mutex_init(:[pthread_mutex_t], :[pthread_mutexattr_t]?): int32
+cdecl "pthread_mutex_lock"    expect function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
+cdecl "pthread_mutex_unlock"  expect function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+cdecl "pthread_mutex_destroy" expect function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+cdecl "pthread_create"        expect function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+cdecl "pthread_join"          expect function __c_pthread_join(:pthread_t, :any?): none
 cdecl "pthread_self"          expect function __c_pthread_self(): pthread_t
 
 final sealed struct Thread
@@ -40,7 +40,7 @@ final sealed struct Thread
         "Main Thread" => Thread::mainThread.name
     end
 
-    static function stackTrace() arr: Array
+    intrinsic static function stackTrace() arr: Array
         1 Array::new => arr
         c!
             for (scl_int i = 0; i < _callstack.ptr - 2; i++) {

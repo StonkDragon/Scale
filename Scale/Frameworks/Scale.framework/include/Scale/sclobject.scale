@@ -12,13 +12,9 @@ struct SclObject is ICloneable, IEquatable, IHashable
         self:hashCode other:hashCode == return
     end
 
-    function clone(): SclObject
-        self builtinAtomicClone as SclObject return
-    end
+    expect cdecl "_scl_atomic_clone" function clone(): SclObject
 
-    function hashCode(): int
-        self builtinIdentityHash return
-    end
+    expect cdecl "_scl_identity_hash" function hashCode(): int
 
     final function getStruct() selfStruct: Struct
         typeof self Struct::getStructByName return

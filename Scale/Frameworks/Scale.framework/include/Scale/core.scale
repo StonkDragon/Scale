@@ -29,11 +29,11 @@ expect function __c_atoll(s: [int8]): int64
 cdecl "atof"
 expect function __c_atof(s: [int8]): float
 
-function system(_cmd_: str): int
+intrinsic cdecl "_scl_system" function system(_cmd_: str): int
   _cmd_:view __c_system return
 end
 
-function getenv(_key_: str): str?
+intrinsic cdecl "_scl_getenv" function getenv(_key_: str): str?
   _key_:view __c_getenv => decl ptr
   if ptr then
     ptr!! str::new return
@@ -41,7 +41,7 @@ function getenv(_key_: str): str?
   nil return
 end
 
-function time(): float
+intrinsic cdecl "_scl_time" function time(): float
   decl secs: float
   c!
     struct timeval tv;

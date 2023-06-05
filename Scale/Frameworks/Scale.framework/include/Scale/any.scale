@@ -8,14 +8,10 @@ final static sealed struct any
     end
 
     function toString(x: any): str
-        x as int int::toString return
+        x as int:toString return
     end
 
     function toHexString(x: any): str
-        19 malloc => decl out: [int8]
-        c!
-            sprintf(*out, SCL_PTR_HEX_FMT, *(scl_int*) x);
-        end
-        out str::new return
+        x as int:toHexString return
     end
 end
