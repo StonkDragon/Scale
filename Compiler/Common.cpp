@@ -277,15 +277,6 @@ namespace sclc
         return num;
     }
 
-    hash hash1(char* data) {
-        if (strlen(data) == 0) return 0;
-        hash h = 7;
-        for (size_t i = 0; i < strlen(data); i++) {
-            h = h * 31 + data[i];
-        }
-        return h;
-    }
-
     FPResult parseType(std::vector<Token> body, size_t* i) {
         // int, str, any, none, Struct
         FPResult r;

@@ -183,7 +183,6 @@ namespace sclc {
     bool hasVar(Token name);
     Variable getVar(std::string name);
     Variable getVar(Token name);
-    hash hash1(char* data);
     FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
@@ -224,15 +223,17 @@ namespace sclc {
         return std::find(v.begin(), v.end(), val) != v.end();
     }
 
-    template<typename T>
-    struct Hasher {
-        size_t operator()(T& t) const {
-            if constexpr(std::is_pointer<T>::value) {
-                return hash1((char*) t->getName().c_str());
-            } else {
-                return hash1((char*) t.getName().c_str());
-            }
+    constexpr size_t const_strlen(const char* str) {
+        return *str ? 1 + const_strlen(str + 1) : 0;
+    }
+    
+    inline constexpr hash hash1(const char* data)  {
+        if (const_strlen(data) == 0) return 0;
+        hash h = 7;
+        for (size_t i = 0; i < const_strlen(data); i++) {
+            h = h * 31 + data[i];
         }
-    };
+        return h;
+    }
 }
 #endif // COMMON_H
