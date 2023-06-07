@@ -1,15 +1,15 @@
 import std.util.Stringifyable
 
 cdecl "strlen"
-expect function __c_strlen(_str_: [int8]): int
+expect unsafe function __c_strlen(_str_: [int8]): int
 cdecl "strcmp"
-expect function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
+expect unsafe function __c_strcmp(_str1_: [int8], _str2_: [int8]): int
 cdecl "_scl_strdup"
-expect function __c_strdup(_str_: [int8]): [int8]
+expect unsafe function __c_strdup(_str_: [int8]): [int8]
 cdecl "_scl_strncmp"
-expect function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
+expect unsafe function __c_strncmp(_str1_: [int8], _str2_: [int8], _n_: int): int
 cdecl "_scl_strcpy"
-expect function __c_strcpy(dest: [int8], src: [int8]): [int8]
+expect unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
 
 final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   private decl _data: [int8]
@@ -26,15 +26,21 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function append(other: str): str
-    self._data other._data concat str::new return
+    unsafe
+      self._data other._data concat str::new return
+    end
   end
 
   function prepend(other: str): str
-    other._data self._data concat str::new return
+    unsafe
+      other._data self._data concat str::new return
+    end
   end
 
   function equals(other: str): bool
-    self._data other._data __c_strcmp 0 == return
+    unsafe
+      self._data other._data __c_strcmp 0 == return
+    end
   end
 
   function ==(other: str): bool
@@ -47,12 +53,12 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
   function at(i: int): int
     if i 0 < i self:size >= || then
-      "Index " i int::toString +
-      " is out of bounds for string with length " self:size int::toString +
+      "Index " i:toString +
+      " is out of bounds for string with length " self:size:toString +
       +
       IndexOutOfBoundsException::new throw
     fi
-    self._data i + @ int::toInt8 as int return
+    self._data i + @:toInt8 as int return
   end
 
   function toString(): str
@@ -92,12 +98,14 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     10 Array::new => decl arr: Array
     self:view => decl string
     _delim_:view => decl cDelim
-    string cDelim __c_strtok => decl line
+    unsafe
+      string cDelim __c_strtok => decl line
 
-    while line do
-      line!! str::new arr:push
-      nil cDelim __c_strtok => line
-    done
+      while line do
+        line!! str::new arr:push
+        nil cDelim __c_strtok => line
+      done
+    end
 
     string free
     cDelim free
@@ -106,7 +114,9 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function startsWith(_s_: str): bool
-    self._data _s_._data _s_:size __c_strncmp 0 == return
+    unsafe
+      self._data _s_._data _s_:size __c_strncmp 0 == return
+    end
   end
 
   function endsWith(_s_: str): bool
@@ -126,8 +136,8 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
       self return
     fi
     if start self._len >= start 0 < || then
-      "Index " start int::toString +
-      " is out of bounds for string with length " self:size int::toString +
+      "Index " start:toString +
+      " is out of bounds for string with length " self:size:toString +
       +
       IndexOutOfBoundsException::new throw
     fi
@@ -139,13 +149,17 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
   end
 
   function view(): [int8]
-    self._data __c_strdup return
+    unsafe
+      self._data __c_strdup return
+    end
   end
 
   function init(data: [int8]): none
-    data __c_strdup => data
+    unsafe
+      data __c_strdup => data
+      data __c_strlen => self._len
+    end
     data => self._data
-    data __c_strlen => self._len
     0 => self._iter
     data builtinHash => self._hash
   end
@@ -168,7 +182,7 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     self._hash return
   end
 
-  private function concat(_str1_: [int8], _str2_: [int8]): [int8]
+  private unsafe function concat(_str1_: [int8], _str2_: [int8]): [int8]
     decl out: [int8]
     _str1_ __c_strlen => decl len: int
     _str2_ __c_strlen => decl len2: int

@@ -2,9 +2,9 @@ import std.io
 import std.util.Array
 
 cdecl "_scl_memset"
-expect function memset(ptr: [any], val: int32, len: int): [any]
+expect unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "_scl_memcpy"
-expect function memcpy(dst: [any], src: [any], n: int): [any]
+expect unsafe function memcpy(dst: [any], src: [any], n: int): [any]
 cdecl "ctrl_stack_size"
 expect function sizeofStack(): int
 cdecl "_scl_sleep"
@@ -17,24 +17,31 @@ cdecl "_scl_realloc"
 expect function realloc(_ptr_: [any], _sz_: int): [any]
 
 cdecl "system"
-expect function __c_system(cmd: [int8]): int
+expect unsafe function __c_system(cmd: [int8]): int
 cdecl "getenv"
-expect function __c_getenv(cmd: [int8]): [int8]?
+expect unsafe function __c_getenv(cmd: [int8]): [int8]?
 cdecl "_scl_strdup"
-expect function __c_strdup(s: [int8]): [int8]
+expect unsafe function __c_strdup(s: [int8]): [int8]
 cdecl "strtok"
-expect function __c_strtok(s: any, delim: [int8]): [int8]?
+expect unsafe function __c_strtok(s: any, delim: [int8]): [int8]?
 cdecl "atoll"
-expect function __c_atoll(s: [int8]): int64
+expect unsafe function __c_atoll(s: [int8]): int64
 cdecl "atof"
-expect function __c_atof(s: [int8]): float
+expect unsafe function __c_atof(s: [int8]): float
+
+typealias varargs "..."
 
 intrinsic cdecl "_scl_system" function system(_cmd_: str): int
-  _cmd_:view __c_system return
+  unsafe
+    _cmd_:view __c_system return
+  end
 end
 
 intrinsic cdecl "_scl_getenv" function getenv(_key_: str): str?
-  _key_:view __c_getenv => decl ptr
+  decl ptr: [int8]?
+  unsafe
+    _key_:view __c_getenv => ptr
+  end
   if ptr then
     ptr!! str::new return
   fi
@@ -62,7 +69,9 @@ end
 
 deprecated![since: "23.5", replacement: "int::parse"]
 function stringToLong(_str_: str): int
-  _str_:view __c_atoll as int return
+  unsafe
+    _str_:view __c_atoll as int return
+  end
 end
 
 deprecated![since: "23.5", replacement: "float::toString"]

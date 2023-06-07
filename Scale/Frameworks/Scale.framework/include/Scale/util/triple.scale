@@ -10,22 +10,6 @@ final sealed struct Triple
   end
 
 	function toString(): str
-		if a is SclObject then
-			a as SclObject:toString
-		else
-			a int::toString
-		fi => decl aStr: str
-		if b is SclObject then
-			b as SclObject:toString
-		else
-			b int::toString
-		fi => decl bStr: str
-		if c is SclObject then
-			c as SclObject:toString
-		else
-			c int::toString
-		fi => decl cStr: str
-		
-		"(" aStr + ", " + bStr ", " + cStr + ")" + return
+		"(" a:toString + ", " + b:toString ", " + c:toString + ")" + return
 	end
 end

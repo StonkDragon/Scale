@@ -49,7 +49,9 @@ final static sealed struct int
   end
 
   function parse(s: str): int
-    s:view __c_atoll as int return
+    unsafe
+      s:view __c_atoll as int return
+    end
   end
 
   intrinsic function toInt8(_val_: any): int8
@@ -85,98 +87,98 @@ final static sealed struct int
   end
 
   intrinsic function isValidInt8(val: any): bool
-    val val int::toInt8 == return
+    val val:toInt8 == return
   end
 
   intrinsic function isValidInt16(val: any): bool
-    val val int::toInt16 == return
+    val val:toInt16 == return
   end
 
   intrinsic function isValidInt32(val: any): bool
-    val val int::toInt32 == return
+    val val:toInt32 == return
   end
 
   intrinsic function isValidUInt8(val: any): bool
-    val val int::toUInt8 == return
+    val val:toUInt8 == return
   end
 
   intrinsic function isValidUInt16(val: any): bool
-    val val int::toUInt16 == return
+    val val:toUInt16 == return
   end
 
   intrinsic function isValidUInt32(val: any): bool
-    val val int::toUInt32 == return
+    val val:toUInt32 == return
   end
 end
 
 deprecated![since: "23.5", replacement: "int::toInt8"]
 function toInt8(_val_: any): int8
-  _val_ int::toInt8 return
+  _val_:toInt8 return
 end
 
 deprecated![since: "23.5", replacement: "int::toInt16"]
 function toInt16(_val_: any): int16
-  _val_ int::toInt16 return
+  _val_:toInt16 return
 end
 
 deprecated![since: "23.5", replacement: "int::toInt32"]
 function toInt32(_val_: any): int32
-  _val_ int::toInt32 return
+  _val_:toInt32 return
 end
 
 deprecated![since: "23.5", replacement: "int::toInt"]
 function toInt(_val_: any): int
-  _val_ int::toInt return
+  _val_:toInt return
 end
 
 deprecated![since: "23.5", replacement: "int::toUInt8"]
 function toUInt8(_val_: any): uint8
-  _val_ int::toUInt8 return
+  _val_:toUInt8 return
 end
 
 deprecated![since: "23.5", replacement: "int::toUInt16"]
 function toUInt16(_val_: any): uint16
-  _val_ int::toUInt16 return
+  _val_:toUInt16 return
 end
 
 deprecated![since: "23.5", replacement: "int::toUInt32"]
 function toUInt32(_val_: any): uint32
-  _val_ int::toUInt32 return
+  _val_:toUInt32 return
 end
 
 deprecated![since: "23.5", replacement: "int::toUInt"]
 function toUInt(_val_: any): uint
-  _val_ int::toUInt return
+  _val_:toUInt return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidInt8"]
 function isValidInt8(val: any): bool
-  val int::isValidInt8 return
+  val:isValidInt8 return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidInt16"]
 function isValidInt16(val: any): bool
-  val int::isValidInt16 return
+  val:isValidInt16 return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidInt32"]
 function isValidInt32(val: any): bool
-  val int::isValidInt32 return
+  val:isValidInt32 return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidUInt8"]
 function isValidUInt8(val: any): bool
-  val int::isValidUInt8 return
+  val:isValidUInt8 return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidUInt16"]
 function isValidUInt16(val: any): bool
-  val int::isValidUInt16 return
+  val:isValidUInt16 return
 end
 
 deprecated![since: "23.5", replacement: "int::isValidUInt32"]
 function isValidUInt32(val: any): bool
-  val int::isValidUInt32 return
+  val:isValidUInt32 return
 end
 
 function isnil(x: any): bool

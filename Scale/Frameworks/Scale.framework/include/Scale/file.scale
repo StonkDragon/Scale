@@ -5,7 +5,9 @@ final struct File
   private decl _file: __c_file
 
   function init(name: str): none
-    name:view "ab+":view File::__c_fopen => self._file
+    unsafe
+      name:view "ab+":view File::__c_fopen => self._file
+    end
     name => self._name
   end
 
@@ -14,11 +16,15 @@ final struct File
   end
 
   function close(): none
-    _file File::__c_fclose
+    unsafe
+      _file File::__c_fclose
+    end
   end
 
   function append(s: str): none
-    s:view 1 s:size _file File::__c_fwrite
+    unsafe
+      s:view 1 s:size _file File::__c_fwrite
+    end
   end
 
   function puts(s: any): none
@@ -28,37 +34,53 @@ final struct File
   end
 
   function writeBinary(buf: any, sz: int): none
-    buf 1 sz _file File::__c_fwrite
+    unsafe
+      buf 1 sz _file File::__c_fwrite
+    end
   end
 
   function read(sz: int): any
     sz malloc => decl _buf_: [any]?
-    _buf_ 1 sz _file File::__c_fread
+    unsafe
+      _buf_ 1 sz _file File::__c_fread
+    end
     _buf_ return
   end
 
   function offsetFromBegin(_offset_: int): none
-    _file _offset_ 0 File::__c_fseek
+    unsafe
+      _file _offset_ 0 File::__c_fseek
+    end
   end
 
   function offsetFromEnd(_offset_: int): none
-    _file _offset_ 2 File::__c_fseek
+    unsafe
+      _file _offset_ 2 File::__c_fseek
+    end
   end
 
   function offset(_offset_: int): none
-    _file _offset_ 1 File::__c_fseek
+    unsafe
+      _file _offset_ 1 File::__c_fseek
+    end
   end
 
   function fileno(): int
-    _file File::__c_fileno return
+    unsafe
+      _file File::__c_fileno return
+    end
   end
 
   function pos(): int
-    _file File::__c_ftell return
+    unsafe
+      _file File::__c_ftell return
+    end
   end
 
   function delete(): bool
-    self._name:view __c_remove 0 == return
+    unsafe
+      self._name:view __c_remove 0 == return
+    end
   end
 
   function create(): none
@@ -66,7 +88,9 @@ final struct File
   end
 
   static function exists(f: str): bool
-    f:view "r":view File::__c_fopen nil != return
+    unsafe
+      f:view "r":view File::__c_fopen nil != return
+    end
   end
 
   static expect cdecl "fopen"  function __c_fopen(_name_: [int8], _mode_: [int8]): __c_file?

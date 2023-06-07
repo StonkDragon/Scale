@@ -8,7 +8,7 @@ final sealed struct Range is IIterable
 
   function init(_start: int, _end: int): none
     if _start _end > then
-      "start must not be bigger than end! Use ReverseRange if you want that" eputs trace 1 exit
+      "start must not be bigger than end!" InvalidArgumentException::new throw
     fi
 
     _start => self.lower
@@ -40,7 +40,7 @@ final sealed struct Range is IIterable
   end
 
   function toString(): str
-    lower int::toString " .. " + upper int::toString + return
+    lower:toString " .. " + upper:toString + return
   end
 
   function begin(): none
@@ -69,16 +69,15 @@ final sealed struct ReverseRange is IIterable
 
   function init(_start: int, _end: int): none
     if _start _end < then
-      "end must not be bigger than start! Use Range if you want that" eputs trace 1 exit
+      "end must not be bigger than start!" InvalidArgumentException::new throw
     fi
-      
     _start => self.lower
     _end => self.upper
     0 => self.pos
   end
 
   function toString(): str
-    lower int::toString " .. " + upper int::toString + return
+    lower:toString " .. " + upper:toString + return
   end
 
   function begin(): none

@@ -1,11 +1,15 @@
 cdecl "write"
-expect function __c_write(_fd_: int, _str_: [int8], _len_: int): int32
+expect unsafe function __c_write(_fd_: int, _str_: [int8], _len_: int): int32
 cdecl "read"
-expect function __c_read(_fd_: int, _buf_: [int8], _n_: int): int32
+expect unsafe function __c_read(_fd_: int, _buf_: [int8], _n_: int): int32
 cdecl "puts"
-expect function __c_puts(_str_: [int8]): int32
+expect unsafe function __c_puts(_str_: [int8]): int32
+cdecl "fprintf"
+expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+cdecl "printf"
+expect unsafe function __c_printf(fp: any, fmt: [int8], :varargs): int32
 
-intrinsic cdecl "_scl_write" function write(_fd_: int, _str_: str): none
+intrinsic cdecl "_scl_write" unsafe function write(_fd_: int, _str_: str): none
   _fd_ _str_:view _str_:size __c_write drop
 end
 
@@ -16,34 +20,31 @@ intrinsic cdecl "_scl_read" function read(_fd_: int, _n_: int): str?
 end
 
 intrinsic cdecl "_scl_puts" function puts(_val_: any): none
-  if _val_ is SclObject then
-    _val_ as SclObject:toString
-  else
-    _val_ int::toString
-  fi as str:view __c_puts drop
+  _val_:toString:view
+  unsafe
+    __c_puts drop
+  end
 end
 
 intrinsic cdecl "_scl_eputs" function eputs(_val_: any): none
-  if _val_ is SclObject then
-    _val_ as SclObject:toString:view
-  else
-    _val_ int::toString:view
-  fi
   c!
-    fprintf(stderr, "%s\n", (scl_int8*) _scl_pop()->v);
+    _scl_push()->v = stderr;
   end
+  "%s\n":view
+
+  _val_:toString:view
+  unsafe
+    __c_fprintf! 1
+  end
+  drop
 end
 
 function putint(_int_: int): none
-  c!
-    printf(SCL_INT_FMT "\n", *_int_);
-  end
+  _int_ puts
 end
 
 function putfloat(_f_: float): none
-  c!
-    printf("%f\n", *_f_);
-  end
+  _f_:toString puts
 end
 
 function throwerr(_err_: str): none

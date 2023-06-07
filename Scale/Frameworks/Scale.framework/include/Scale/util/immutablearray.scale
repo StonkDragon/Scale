@@ -62,11 +62,7 @@ final sealed struct ImmutableArray is IIterable
         if i then
           s ", " + => s
         fi
-        if elem is SclObject then
-          s elem as SclObject :toString + => s
-        else
-          s elem as int int::toString + => s
-        fi
+        s elem:toString + => s
       done
       s "}" + => s
     fi

@@ -11,11 +11,7 @@ final sealed struct MapEntry
   end
 
   function toString(): str
-    if value is SclObject then
-      key ": " + value as SclObject:toString + return
-    else
-      key ": " + value as int int::toString + return
-    fi
+    key ": " + value:toString + return
   end
 end
 

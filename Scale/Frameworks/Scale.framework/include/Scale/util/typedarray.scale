@@ -9,7 +9,7 @@ end
 final sealed struct TypedArray : Array
     private decl typeStr: str
 
-    function checkTypeOrThrow(val: any): none
+    private function checkTypeOrThrow(val: any): none
         unless typeStr then
             typeof val => typeStr
         fi
@@ -21,5 +21,9 @@ final sealed struct TypedArray : Array
             InvalidTypeException::new
             throw
         fi
+    end
+
+    function getType(): str
+        typeStr return
     end
 end

@@ -2,16 +2,17 @@ import std.io
 import std.threading.Thread
 
 cdecl "print_stacktrace"
+deprecated![since: "23.7", replacement: "Thread::stackTrace", forRemoval: true]
 expect function trace(): none
 cdecl "_scl_throw"
 expect function throw(ex: Exception): none
 
 cdecl "_scl_security_safe_exit"
-expect function __c_exit(i: int): none
+expect unsafe function __c_exit(i: int): none
 cdecl "_scl_default_signal_handler"
-expect function __c_scl_default_signal_handler(_sig_: int): none
+expect unsafe function __c_scl_default_signal_handler(_sig_: int): none
 cdecl "raise"
-expect function __c_raise(_sig_: int): int
+expect unsafe function __c_raise(_sig_: int): int
 cdecl "_scl_errno"
 expect function errno(): int
 cdecl "_scl_errno_str"
@@ -21,7 +22,7 @@ expect function setSignalHandler(fun: lambda(int): none, sig: int): none
 cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
-function dumpStack(): none
+intrinsic function dumpStack(): none
   c!
     printf("Dump:\n");
     for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
@@ -33,26 +34,28 @@ function dumpStack(): none
 end
 
 function crash(): none
-  1 __c_exit
+  unsafe
+    1 __c_exit
+  end
 end
 
 function raise(_sig_: int): none
-  if _sig_ 2 != _sig_ 4 != && _sig_ 5 != _sig_ 6 != && && _sig_ 10 != _sig_ 11 != && && then
+  unsafe
     _sig_ __c_raise => decl raised
     if raised ! then
       _sig_ __c_scl_default_signal_handler
     fi
-  else
-    _sig_ __c_scl_default_signal_handler
-  fi
+  end
 end
 
 cdecl "getchar"
-expect function __c_getchar(): int8
+expect unsafe function __c_getchar(): int8
 
 function breakPoint(): none
   "Hit breakPoint. Press enter to continue." puts
-  __c_getchar
+  unsafe
+    __c_getchar
+  end
 end
 
 sealed struct Exception
@@ -67,13 +70,12 @@ sealed struct Exception
       ""
     fi => self.errnoStr
     Thread::stackTrace => self.stackTrace
-    self.stackTrace:pop
     "" => self.msg
   end
 
   export sealed function printStackTrace(): none
     "Stacktrace of " typeof self + ":" + eputs
-    for i in self.stackTrace.count 1 - to -1 step -- do
+    for i in self.stackTrace.count 3 - to -1 step -- do
       "    " i self.stackTrace:get as str + eputs
     done
   end
@@ -97,6 +99,7 @@ end
 
 final sealed open struct AssertError: Error
 final sealed open struct CastError: Error
+final sealed open struct UnreachableError: Error
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]

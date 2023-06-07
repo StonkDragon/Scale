@@ -6,9 +6,11 @@ final struct AtomicInteger
 
     function init(val: int): none
         val => self.value
-        if ref self.mutex nil as [pthread_mutexattr_t] __c_pthread_mutex_init 0 != then
-            "Failed to create mutex" AtomicOperationException::new throw
-        fi
+        unsafe
+            if ref self.mutex nil as [pthread_mutexattr_t] __c_pthread_mutex_init 0 != then
+                "Failed to create mutex" AtomicOperationException::new throw
+            fi
+        end
     end
 
     function get(): int
@@ -20,87 +22,121 @@ final struct AtomicInteger
     end
 
     function getAndSet(val: int): none
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value => decl tmp
         val => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         tmp return
     end
 
     function compareAndSet(expected: int, val: int): bool
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         if self.value expected == then
             val => self.value
-            ref self.mutex __c_pthread_mutex_unlock
+            unsafe
+                ref self.mutex __c_pthread_mutex_unlock
+            end
             true return
         fi
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         false return
     end
 
     function getAndIncrement(): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value => decl tmp
         self.value ++ => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         tmp return
     end
 
     function getAndDecrement(): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value => decl tmp
         self.value -- => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         tmp return
     end
 
     function getAndAdd(val: int): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value => decl tmp
         self.value val + => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         tmp return
     end
     
     function incrementAndGet(): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value ++ => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         self.value return
     end
 
     function decrementAndGet(): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value -- => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         self.value return
     end
 
     function addAndGet(val: int): int
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value val + => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         self.value return
     end
 
     function toString(): str
-        self.value int::toString return
+        self.value:toString return
     end
 
     function intValue(): int

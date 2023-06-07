@@ -3,14 +3,12 @@ final struct Fraction
     decl denominator: int
 
     function init(numerator: int, denominator: int): none
-        numerator denominator Fraction::gcd => decl div
-
-        numerator div / => self.numerator
-        denominator div / => self.denominator
+        numerator => self.numerator
+        denominator => self.denominator
     end
 
     function toString(): str
-        numerator int::toString "/" + denominator int::toString + return
+        numerator:toString "/" + denominator:toString + return
     end
 
     function toFloat(): float
@@ -76,78 +74,64 @@ final struct Fraction
     static function fromFloat(d: float): Fraction
         0 => decl num: int
         0 => decl den: int
-        d float::toString:view => decl s
+        d float::toString => decl s
 
-        c!
-            if (isnan(*d)) {
-                *num = 0;
-                *den = 0;
-            } else if (isinf(*d)) {
-                *num = 1;
-                *den = 0;
-            } else {
-                char whole[strlen(*s)];
-                char decimal[strlen(*s)];
-                int whole_ptr = 0;
-                int decimal_ptr = 0;
+        if d:isNaN then
+            0 0 Fraction::new return
+        elif d:isInfinite then
+            1 0 Fraction::new return
+        else
+            s:size => decl size: int
+            size any::new => decl whole: [int8]
+            size any::new => decl decimal: [int8]
+            0 => decl wholePtr: int
+            0 => decl decimalPtr: int
 
-                int hasWholePart = 1;
-                int hasDecimalPart = 0;
-                int sign = 1;
+            true => decl inWholePart: bool
+            false => decl hasDecimalPart: bool
+            1 => decl sign: int
 
-                for (int i = 0; i < strlen(*s); i++) {
-                    if ((*s)[i] == '.') {
-                        hasWholePart = 0;
-                        hasDecimalPart = 1;
-                        continue;
-                    }
-                    if ((*s)[i] == '-') {
-                        sign = -1;
-                        continue;
-                    }
-            
-                    if (hasWholePart)
-                        whole[whole_ptr++] = (*s)[i];
-            
-                    if (hasDecimalPart)
-                        decimal[decimal_ptr++] = (*s)[i];
-                }
+            for i in 0 to size do
+                if i s @ '.' == then
+                    false => inWholePart
+                    true => hasDecimalPart
+                    continue
+                fi
+                if i s @ '-' == then
+                    -1 => sign
+                    continue
+                fi
 
-                int num_whole = strtol(whole, NULL, 10);
-                int num_decimal = 0;
-            
-                if (strlen(decimal) != 0)
-                    num_decimal = strtol(decimal, NULL, 10);
+                unsafe
+                    if inWholePart then
+                        i s @ => @(whole wholePtr +)
+                        wholePtr 1 + => wholePtr
+                    else
+                        i s @ => @(decimal decimalPtr +)
+                        decimalPtr 1 + => decimalPtr
+                    fi
+                end
+            done
 
-                int numerator = num_whole * pow(10, strlen(decimal)) + num_decimal;
-                numerator *= sign;
-            
-                int denominator = pow(10, strlen(decimal));
-            
-                int gd = Function_Fraction$gcd(numerator, denominator);
+            whole str::new int::parse => decl numWhole: int
+            0 => decl numDecimal: int
+            0 => decl decimalLen: int
 
-                *num = numerator / gd;
-                *den = denominator / gd;
-            }
-        end
-
-        num den Fraction::new return
-    end
-
-    private static function gcd(a: int, b: int): int
-        if a 0 == then b return fi
-        if b 0 == then a return fi
-        if a 0 < then a -1 * => a fi
-        if b 0 < then b -1 * => b fi
-
-        while a b != do
-            if a b > then
-                a b - => a
-            else
-                b a - => b
+            if hasDecimalPart then
+                decimal str::new => decl decimalStr: str
+                decimalStr int::parse => numDecimal
+                decimalStr:size => decimalLen
+                decimalStr any::delete
             fi
-        done
 
-        a return
+            numWhole (10 decimalLen **) * numDecimal + => num
+            num sign * => num
+
+            10 decimalLen ** => den
+
+            num den Fraction::new return
+        fi
+
+        builtinUnreachable
     end
 end

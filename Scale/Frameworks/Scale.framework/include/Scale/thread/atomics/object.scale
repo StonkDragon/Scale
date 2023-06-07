@@ -6,9 +6,11 @@ final struct AtomicObject
 
     function init(val: SclObject): none
         val => self.value
-        if ref self.mutex nil as [pthread_mutexattr_t] __c_pthread_mutex_init 0 != then
-            "Failed to create mutex" AtomicOperationException::new throw
-        fi
+        unsafe
+            if ref self.mutex nil as [pthread_mutexattr_t] __c_pthread_mutex_init 0 != then
+                "Failed to create mutex" AtomicOperationException::new throw
+            fi
+        end
     end
 
     function get(): SclObject
@@ -20,25 +22,35 @@ final struct AtomicObject
     end
 
     function getAndSet(val: SclObject): none
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         self.value => decl tmp
         val => self.value
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         tmp return
     end
 
     function compareAndSet(expected: SclObject, val: SclObject): bool
-        ref self.mutex __c_pthread_mutex_lock
+        unsafe
+            ref self.mutex __c_pthread_mutex_lock
+        end
 
         if self.value expected == then
             val => self.value
-            ref self.mutex __c_pthread_mutex_unlock
+            unsafe
+                ref self.mutex __c_pthread_mutex_unlock
+            end
             true return
         fi
 
-        ref self.mutex __c_pthread_mutex_unlock
+        unsafe
+            ref self.mutex __c_pthread_mutex_unlock
+        end
         false return
     end
 

@@ -13,6 +13,8 @@ sealed struct Array is IIterable
   decl initCap:     readonly int
 
   private decl pos: readonly int
+
+  private function checkTypeOrThrow(value: any): none end
   
   function sort(): none
     0 => decl i
@@ -37,9 +39,9 @@ sealed struct Array is IIterable
   function get(index: int): any?
     if index 0 < index self.count >= || then
       "Index "
-      index int::toString +
+      index:toString +
       " is out of bounds for Array of length " +
-      self.count int::toString +
+      self.count:toString +
       "!" +
       IndexOutOfBoundsException::new throw
     fi
@@ -47,14 +49,12 @@ sealed struct Array is IIterable
   end
 
   function set(index: int, value: any): none
-    if self is TypedArray then
-      value self as TypedArray:checkTypeOrThrow
-    fi
+    value self:checkTypeOrThrow
     if index 0 < index self.capacity >= || then
       "Index "
-      index int::toString +
+      index:toString +
       " is out of bounds for Array of capacity " +
-      self.capacity int::toString +
+      self.capacity:toString +
       "!" +
       IndexOutOfBoundsException::new throw
     fi
@@ -63,7 +63,9 @@ sealed struct Array is IIterable
       index 1 + => self.count
     fi
 
-    value => @(self.values index sizeof any * +)
+    unsafe
+      value => @(self.values index sizeof any * +)
+    end
   end
 
   function top(): any?
@@ -74,9 +76,7 @@ sealed struct Array is IIterable
   end
 
   function push(value: any): none
-    if self is TypedArray then
-      value self as TypedArray:checkTypeOrThrow
-    fi
+    value self:checkTypeOrThrow
 
     if self.count self.capacity >= then
       self.capacity self.initCap + => self.capacity
@@ -84,7 +84,9 @@ sealed struct Array is IIterable
       => self.values
     fi
 
-    value => @(self.values self.count sizeof any * +)
+    unsafe
+      value => @(self.values self.count sizeof any * +)
+    end
     self.count 1 + => self.count
   end
 
@@ -96,9 +98,7 @@ sealed struct Array is IIterable
   end
 
   function indexOf(val: any): int
-    if self is TypedArray then
-      val self as TypedArray:checkTypeOrThrow
-    fi
+    val self:checkTypeOrThrow
     for i in 0 to self.count do
       if i self:get is SclObject then
         if val is SclObject then
@@ -120,9 +120,7 @@ sealed struct Array is IIterable
   end
 
   function contains(val: any): bool
-    if self is TypedArray then
-      val self as TypedArray:checkTypeOrThrow
-    fi
+    val self:checkTypeOrThrow
     val self:indexOf -1 != return
   end
 
@@ -178,11 +176,7 @@ sealed struct Array is IIterable
         if i then
           s ", " + => s
         fi
-        if elem is SclObject then
-          s elem as SclObject :toString + => s
-        else
-          s elem as int int::toString + => s
-        fi
+        s elem:toString + => s
       done
       s "}" + => s
     fi
@@ -191,16 +185,16 @@ sealed struct Array is IIterable
 
   function immutableCopy(): ImmutableArray
     self.count sizeof any * malloc => decl newVals: [any]
-    newVals self.values self.count sizeof any * memcpy => newVals
+    unsafe
+      newVals self.values self.count sizeof any * memcpy => newVals
+    end
     self.count => decl newCount: int
 
     newCount newVals ImmutableArray::new return
   end
 
   function remove(val: any): none
-    if self is TypedArray then
-      val self as TypedArray:checkTypeOrThrow
-    fi
+    val self:checkTypeOrThrow
     val self:indexOf => decl index
     for i in index to self.count 1 - do
       i (i 1 + self:get) self:set
@@ -208,9 +202,7 @@ sealed struct Array is IIterable
   end
 
   function removeAll(val: any): none
-    if self is TypedArray then
-      val self as TypedArray:checkTypeOrThrow
-    fi
+    val self:checkTypeOrThrow
     while val self:indexOf -1 != do
       val self:remove
     done
