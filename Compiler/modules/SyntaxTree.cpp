@@ -614,6 +614,12 @@ namespace sclc {
             builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
 
             functions.push_back(builtinToString);
+
+            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "<builtin>"));
+            builtinUnreachable->addModifier("extern");
+            builtinUnreachable->setReturnType("none");
+
+            extern_functions.push_back(builtinUnreachable);
         }
         
         for (size_t i = 0; i < tokens.size(); i++) {
