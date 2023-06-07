@@ -253,6 +253,20 @@ void _scl_assert(scl_int b, scl_int8* msg) {
 	}
 }
 
+void builtinUnreachable() {
+	typedef struct Struct_UnreachableError {
+		Struct _structData;
+		scl_str msg;
+		struct Struct_Array* stackTrace;
+		scl_str errno_str;
+	} _scl_UnreachableError;
+
+	_scl_UnreachableError* err = NEW(UnreachableError, Error);
+	_ZN5Error4initEP3strP5Error(err, str_of("Unreachable!"));
+
+	_scl_throw(err);
+}
+
 // Hard-throw an exception
 _scl_no_return void _scl_security_throw(int code, scl_int8* msg, ...) {
 	remove("scl_trace.log");
@@ -1360,14 +1374,14 @@ scl_str float$toHexString(scl_float val) {
 }
 
 struct Struct_Array* Thread$stackTrace() {
-	struct Struct_Array* arr = NEW0(Array);
+	struct Struct_Array* arr = NEW(ReadOnlyArray, Array);
 	
-	arr->capacity = (scl_any) (_callstack.ptr - 2);
-	arr->initCapacity = _callstack.ptr - 2;
+	arr->capacity = (scl_any) (_callstack.ptr);
+	arr->initCapacity = _callstack.ptr;
 	arr->count = 0;
-	arr->values = _scl_alloc((_callstack.ptr - 2) * sizeof(scl_str));
+	arr->values = _scl_alloc((_callstack.ptr) * sizeof(scl_str));
 	
-	for (scl_int i = 0; i < _callstack.ptr - 2; i++) {
+	for (scl_int i = 0; i < _callstack.ptr; i++) {
 		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(_callstack.func[i]);
 	}
 	return arr;
@@ -1390,6 +1404,15 @@ scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str n
 	}
 
 	return 0;
+}
+
+void dumpStack() {
+	printf("Dump:\n");
+	for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
+		scl_int v = _stack.data[i].i;
+		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+	}
+	printf("\n");
 }
 
 #if defined(__GNUC__)
