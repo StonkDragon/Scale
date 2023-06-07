@@ -96,6 +96,11 @@ namespace sclc {
                         i++;
                         continue;
                     }
+                    if (type == "varargs" && name.size()) {
+                        Variable v = Variable(name, "int", isConst, isMut);
+                        v.canBeNil = typeCanBeNil(v.getType());
+                        func->addArgument(v);
+                    }
                     Variable v = Variable(name, type, isConst, isMut);
                     v.canBeNil = typeCanBeNil(v.getType());
                     func->addArgument(v);

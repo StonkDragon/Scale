@@ -52,6 +52,7 @@ namespace sclc
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
         virtual bool isCVarArgs();
+        virtual Variable& varArgsParam();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator==(const Function* other) const;

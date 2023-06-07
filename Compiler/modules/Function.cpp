@@ -137,3 +137,9 @@ void Function::clearArgs() {
 bool Function::isCVarArgs() {
     return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args.at(this->args.size() - (1 + ((size_t) this->isMethod))).getType() == "varargs";
 }
+Variable& Function::varArgsParam() {
+    if (this->isCVarArgs()) {
+        return this->args.at(this->args.size() - (1 + ((size_t) this->isMethod)));
+    }
+    throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
+}

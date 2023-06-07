@@ -74,6 +74,7 @@ namespace sclc {
         if (t == "uint") return "scl_uint";
         if (t == "float") return "scl_float";
         if (t == "bool") return "scl_int";
+        if (t == "varargs") return "...";
         if (!(getStructByName(result, t) == Struct::Null)) {
             return "scl_" + getStructByName(result, t).getName();
         }
@@ -207,6 +208,8 @@ namespace sclc {
             return std::string("y");
         } else if (type == "lambda") {
             return std::string("6lambda");
+        } else if (type == "varargs") {
+            return std::string("2va");
         } else if (strstarts(type, "lambda(")) {
             std::string returnType = type.substr(type.find_last_of("):") + 1);
             std::string args = type.substr(type.find_first_of("(") + 1, type.find_last_of("):") - type.find_first_of("(") - 1);
@@ -355,7 +358,7 @@ namespace sclc {
                     Variable var = function->getArgs()[i];
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                     arguments += ", " + type;
-                    if (type == "varargs") continue;
+                    if (type == "varargs" || type == "...") continue;
                     if (function->getArgs()[i].getName().size())
                         arguments += " Var_" + function->getArgs()[i].getName();
                 }
@@ -368,7 +371,7 @@ namespace sclc {
                             arguments += ", ";
                         }
                         arguments += type;
-                        if (type == "varargs") continue;
+                        if (type == "varargs" || type == "...") continue;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
                     }
@@ -438,7 +441,7 @@ namespace sclc {
                         Variable var = function->getArgs()[i];
                         std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                         arguments += ", " + type;
-                        if (type == "varargs") continue;
+                        if (type == "varargs" || type == "...") continue;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
                     }
@@ -451,7 +454,7 @@ namespace sclc {
                                 arguments += ", ";
                             }
                             arguments += type;
-                            if (type == "varargs") continue;
+                            if (type == "varargs" || type == "...") continue;
                             if (function->getArgs()[i].getName().size())
                                 arguments += " Var_" + function->getArgs()[i].getName();
                         }
@@ -1186,7 +1189,7 @@ namespace sclc {
                 Variable var = f->getArgs()[i];
                 std::string type = sclTypeToCType(result, f->getArgs()[i].getType());
                 arguments += ", " + type;
-                if (type == "varargs") continue;
+                if (type == "varargs" || type == "...") continue;
                 if (f->getArgs()[i].getName().size())
                     arguments += " Var_" + f->getArgs()[i].getName();
             }
@@ -1199,7 +1202,7 @@ namespace sclc {
                         arguments += ", ";
                     }
                     arguments += type;
-                    if (type == "varargs") continue;
+                    if (type == "varargs" || type == "...") continue;
                     if (f->getArgs()[i].getName().size())
                         arguments += " Var_" + f->getArgs()[i].getName();
                 }
@@ -1341,6 +1344,75 @@ namespace sclc {
                       << body[i].getValue()
                       << std::endl;
         }
+    }
+
+    void createVariadicCall(Function* f, FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
+        i++;
+        if (body[i].getValue() != "!") {
+            transpilerError("Expected '!' for variadic call, but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        i++;
+        if (body[i].getType() != tok_number) {
+            transpilerError("Amount of variadic arguments needs to be specified for variadic function call", i);
+            errors.push_back(err);
+            return;
+        }
+
+        append("{\n");
+        scopeDepth++;
+        size_t amountOfVarargs = std::stoi(body[i].getValue());
+        
+        if (f->isExternC && !hasImplementation(result, f)) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += f->getName() + "(";
+            for (size_t i = 0; i < f->getArgs().size(); i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += f->getArgs()[i].getName() + ": " + f->getArgs()[i].getType();
+            }
+            functionDeclaration += "): " + f->getReturnType();
+            append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+        }
+
+        append("_scl_popn(%zu);\n", amountOfVarargs);
+
+        for (size_t i = 0; i < amountOfVarargs; i++) {
+            append("scl_any vararg%zu = _scl_positive_offset(%zu)->v;\n", i, i);
+        }
+
+        std::string args = generateArgumentsForFunction(result, f);
+
+        for (size_t i = 0; i < amountOfVarargs; i++) {
+            args += ", vararg" + std::to_string(i);
+        }
+
+        if (f->varArgsParam().getName().size()) {
+            append("_scl_push()->i = %zu;\n", amountOfVarargs);
+            typeStack.push("int");
+        }
+
+        if (f->getArgs().size() > 1)
+            append("_scl_popn(%zu);\n", f->getArgs().size() - 1);
+
+        for (size_t i = 0; i < (amountOfVarargs + f->getArgs().size()); i++) {
+            typePop;
+        }
+
+        if (f->getReturnType() == "none") {
+            append("Function_%s(%s);\n", f->getName().c_str(), args.c_str());
+        } else {
+            if (f->getReturnType() == "float") {
+                append("_scl_push()->f = Function_%s(%s);\n", f->getName().c_str(), args.c_str());
+            } else {
+                append("_scl_push()->v = (scl_any) Function_%s(%s);\n", f->getName().c_str(), args.c_str());
+            }
+        }
+        scopeDepth--;
+        append("}\n");
     }
 
     handler(Identifier) {
@@ -1646,64 +1718,7 @@ namespace sclc {
         } else if (hasFunction(result, body[i])) {
             Function* f = getFunctionByName(result, body[i].getValue());
             if (f->isCVarArgs()) {
-                if (!isInUnsafe) {
-                    transpilerError("Pragma 'varargs' can only be used in unsafe functions or blocks", i);
-                    errors.push_back(err);
-                    i += 2;
-                    return;
-                }
-                i++;
-                if (body[i].getType() != tok_identifier && body[i].getValue() != "!") {
-                    transpilerError("Expected '!' for variadic call, but got '" + body[i].getValue() + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                i++;
-                if (body[i].getType() != tok_number) {
-                    transpilerError("Amount of variadic arguments needs to be specified for variadic function call", i);
-                    errors.push_back(err);
-                    return;
-                }
-                size_t amountOfVarargs = std::stoi(body[i].getValue());
-                
-                if (f->isExternC && !hasImplementation(result, f)) {
-                    std::string functionDeclaration = "";
-
-                    functionDeclaration += f->getName() + "(";
-                    for (size_t i = 0; i < f->getArgs().size(); i++) {
-                        if (i != 0) {
-                            functionDeclaration += ", ";
-                        }
-                        functionDeclaration += f->getArgs()[i].getName() + ": " + f->getArgs()[i].getType();
-                    }
-                    functionDeclaration += "): " + f->getReturnType();
-                    append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-                }
-
-                append("_scl_popn(%zu);\n", amountOfVarargs);
-
-                for (size_t i = 0; i < amountOfVarargs; i++) {
-                    append("scl_any vararg%zu = _scl_positive_offset(%zu)->v;\n", i, i);
-                }
-
-                std::string args = generateArgumentsForFunction(result, f);
-
-                for (size_t i = 0; i < amountOfVarargs; i++) {
-                    args += ", vararg" + std::to_string(i);
-                }
-
-                if (f->getArgs().size() > 1)
-                    append("_scl_popn(%zu);\n", f->getArgs().size() - 1);
-
-                if (f->getReturnType() == "none") {
-                    append("Function_%s(%s);\n", f->getName().c_str(), args.c_str());
-                } else {
-                    if (f->getReturnType() == "float") {
-                        append("_scl_push()->f = Function_%s(%s);\n", f->getName().c_str(), args.c_str());
-                    } else {
-                        append("_scl_push()->v = (scl_any) Function_%s(%s);\n", f->getName().c_str(), args.c_str());
-                    }
-                }
+                createVariadicCall(f, fp, result, errors, body, i);
                 return;
             }
             if (f->isMethod) {
@@ -1714,6 +1729,10 @@ namespace sclc {
             generateCall(f, fp, result, warns, errors, body, i);
         } else if (hasFunction(result, function->member_type + "$" + body[i].getValue())) {
             Function* f = getFunctionByName(result, function->member_type + "$" + body[i].getValue());
+            if (f->isCVarArgs()) {
+                createVariadicCall(f, fp, result, errors, body, i);
+                return;
+            }
             if (f->isMethod) {
                 transpilerError("'" + f->getName() + "' is a method, not a function.", i);
                 errors.push_back(err);
@@ -1783,6 +1802,10 @@ namespace sclc {
                 } else {
                     if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
                         Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
+                        if (f->isCVarArgs()) {
+                            createVariadicCall(f, fp, result, errors, body, i);
+                            return;
+                        }
                         if (f->isMethod) {
                             transpilerError("'" + f->getName() + "' is not static!", i);
                             errors.push_back(err);
@@ -1919,7 +1942,7 @@ namespace sclc {
                 append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
             }
             typeStack.push(v.getType());
-        } else if (contains<std::string>(function->getModifiers(), "@getter") || contains<std::string>(function->getModifiers(), "@setter")) {
+        } else if (body[i].getValue() == "field" && (contains<std::string>(function->getModifiers(), "@getter") || contains<std::string>(function->getModifiers(), "@setter"))) {
             Struct s = getStructByName(result, function->member_type);
             std::string attribute = "";
             if (contains<std::string>(function->getModifiers(), "@getter")) {
@@ -1953,16 +1976,17 @@ namespace sclc {
                 generateCall(f, fp, result, warns, errors, body, i);
             } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                 std::string struct_ = s.getName();
-                i++;
-                if (hasFunction(result, Token(tok_identifier, struct_ + "$" + body[i].getValue(), 0, ""))) {
-                    Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
-                    if (f->isMethod) {
-                        transpilerError("'" + f->getName() + "' is not static!", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    generateCall(f, fp, result, warns, errors, body, i);
+                Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
+                if (f->isCVarArgs()) {
+                    createVariadicCall(f, fp, result, errors, body, i);
+                    return;
                 }
+                if (f->isMethod) {
+                    transpilerError("'" + f->getName() + "' is not static!", i);
+                    errors.push_back(err);
+                    return;
+                }
+                generateCall(f, fp, result, warns, errors, body, i);
             } else if (s.hasMember(body[i].getValue())) {
                 Variable mem = s.getMember(body[i].getValue());
                 auto hasAttributeAccessor = [&](std::string struct_, std::string member) -> bool {
@@ -2398,6 +2422,11 @@ namespace sclc {
 
         if (hasFunction(result, toGet)) {
             Function* f = getFunctionByName(result, toGet.getValue());
+            if (f->isCVarArgs()) {
+                transpilerError("Cannot take reference of varargs function '" + f->getName() + "'", i);
+                errors.push_back(err);
+                return;
+            }
             append("_scl_push()->i = (scl_int) &Function_%s;\n", f->finalName().c_str());
             std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
             typeStack.push(lambdaType);
@@ -2411,6 +2440,11 @@ namespace sclc {
                 if (s != Struct::Null) {
                     if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                         Function* f = getFunctionByName(result, s.getName() + "$" + body[i].getValue());
+                        if (f->isCVarArgs()) {
+                            transpilerError("Cannot take reference of varargs function '" + f->getName() + "'", i);
+                            errors.push_back(err);
+                            return;
+                        }
                         if (f->isMethod) {
                             transpilerError("'" + f->getName() + "' is not static!", i);
                             errors.push_back(err);
@@ -4705,6 +4739,21 @@ namespace sclc {
             }
         }
 
+        append("#if defined(__GNUC__)\n");
+        append("#pragma GCC diagnostic push\n");
+        append("#pragma GCC diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        append("#pragma GCC diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        append("#pragma GCC diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        append("#pragma GCC diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#endif\n");
+        append("#if defined(__clang__)\n");
+        append("#pragma clang diagnostic push\n");
+        append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#endif\n");
+
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
             for (long t = typeStack.size() - 1; t >= 0; t--) {
@@ -4775,7 +4824,7 @@ namespace sclc {
                     Variable var = function->getArgs()[i];
                     std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
                     arguments += ", " + type;
-                    if (type == "varargs") continue;
+                    if (type == "varargs" || type == "...") continue;
                     if (function->getArgs()[i].getName().size())
                         arguments += " Var_" + function->getArgs()[i].getName();
                 }
@@ -4788,7 +4837,7 @@ namespace sclc {
                             arguments += ", ";
                         }
                         arguments += type;
-                        if (type == "varargs") continue;
+                        if (type == "varargs" || type == "...") continue;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
                     }
@@ -5003,6 +5052,26 @@ namespace sclc {
                     isInUnsafe++;
                 }
 
+                if (function->isCVarArgs()) {
+                    if (function->varArgsParam().getName().size()) {
+                        append("va_list _cvarargs;\n");
+                        append("va_start(_cvarargs, Var_%s);\n", function->varArgsParam().getName().c_str());
+                        append("scl_int _cvarargs_count = Var_%s;\n", function->varArgsParam().getName().c_str());
+                        append("scl_Array Var_varargs = _scl_alloc_struct(sizeof(struct Struct_ReadOnlyArray), \"ReadOnlyArray\", 0x%xU);\n", hash1((char*) "Array"));
+                        append("_scl_struct_allocation_failure(*(scl_int*) &Var_varargs, \"ReadOnlyArray\");\n");
+                        append("Method_Array$init(Var_varargs, _cvarargs_count);\n");
+                        append("for (scl_int _cvarargs_i = 0; _cvarargs_i < _cvarargs_count; _cvarargs_i++) {\n");
+                        scopeDepth++;
+                        append("Var_varargs->values[_cvarargs_i] = va_arg(_cvarargs, scl_any);\n");
+                        scopeDepth--;
+                        append("}\n");
+                        append("Var_varargs->count = _cvarargs_count;\n");
+                        append("va_end(_cvarargs);\n");
+                        Variable v("varargs", "const ReadOnlyArray");
+                        varScopeTop().push_back(v);
+                    }
+                }
+
                 for (i = 0; i < body.size(); i++) {
                     handle(Token);
                 }
@@ -5029,6 +5098,13 @@ namespace sclc {
             scopeDepth = 0;
             append("}\n\n");
         }
+
+        append("#if defined(__GNUC__)\n");
+        append("#pragma GCC diagnostic pop\n");
+        append("#endif\n");
+        append("#if defined(__clang__)\n");
+        append("#pragma clang diagnostic pop\n");
+        append("#endif\n");
 
         append("struct Struct_str _scl_internal_string_literals[] = {\n");
         scopeDepth++;

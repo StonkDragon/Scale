@@ -7,7 +7,7 @@ expect unsafe function __c_puts(_str_: [int8]): int32
 cdecl "fprintf"
 expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
-expect unsafe function __c_printf(fp: any, fmt: [int8], :varargs): int32
+expect unsafe function __c_printf(fmt: [int8], :varargs): int32
 
 intrinsic cdecl "_scl_write" unsafe function write(_fd_: int, _str_: str): none
   _fd_ _str_:view _str_:size __c_write drop
