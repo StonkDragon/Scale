@@ -134,3 +134,6 @@ bool Function::belongsToType(std::string typeName) {
 void Function::clearArgs() {
     this->args = std::vector<Variable>();
 }
+bool Function::isCVarArgs() {
+    return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args.at(this->args.size() - (1 + ((size_t) this->isMethod))).getType() == "varargs";
+}

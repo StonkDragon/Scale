@@ -51,6 +51,7 @@ namespace sclc
         virtual void setNamedReturnValue(Variable v);
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
+        virtual bool isCVarArgs();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator==(const Function* other) const;
