@@ -50,10 +50,12 @@ end
 
 intrinsic cdecl "_scl_time" function time(): float
   decl secs: float
-  c!
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
+  unsafe
+    c!
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
+    end
   end
   secs return
 end
@@ -61,8 +63,10 @@ end
 deprecated![since: "23.5", replacement: "int::toString"]
 function longToString(_long_: int): str
   25 malloc => decl out: [int8]
-  c!
-	  sprintf(*out, SCL_INT_FMT, *_long_);
+  unsafe
+    c!
+      sprintf(*out, SCL_INT_FMT, *_long_);
+    end
   end
   out str::new return
 end
@@ -76,8 +80,10 @@ end
 
 deprecated![since: "23.5", replacement: "float::toString"]
 function stringToDouble(_str_: str): float
-  c!
-    _scl_push()->f = (scl_float) atof((*_str_)->_data);
+  unsafe
+    c!
+      _scl_push()->f = (scl_float) atof((*_str_)->_data);
+    end
   end
   as float return
 end
@@ -85,8 +91,10 @@ end
 deprecated![since: "23.5", replacement: "float::parse"]
 function doubleToString(_double_: float): str
   100 malloc => decl out: [int8]
-  c!
-	  sprintf(*out, "%f", *_double_);
+  unsafe
+    c!
+      sprintf(*out, "%f", *_double_);
+    end
   end
   out str::new return
 end

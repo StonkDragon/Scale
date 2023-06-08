@@ -2254,8 +2254,18 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+
+        auto structImplements = [&](Struct s, std::string interface) {
+            do {
+                if (s.implements(interface)) {
+                    return true;
+                }
+                s = getStructByName(result, s.extends());
+            } while (s.getName().size());
+            return false;
+        };
         
-        if (!getStructByName(result, typeStackTop).implements("IIterable")) {
+        if (!structImplements(getStructByName(result, typeStackTop), "IIterable")) {
             transpilerError("Struct '" + typeStackTop + "' is not iterable!", i);
             errors.push_back(err);
             return;
@@ -3420,6 +3430,11 @@ namespace sclc {
 
     handler(ExternC) {
         noUnused;
+        if (!isInUnsafe) {
+            transpilerError("'c!' is only allowed in unsafe blocks!", i);
+            errors.push_back(err);
+            return;
+        }
         append("{// Start C\n");
         scopeDepth++;
         append("_callstack.func[_callstack.ptr++] = \"<%s:native code>\";\n", function->getName().c_str());
@@ -4745,6 +4760,7 @@ namespace sclc {
         append("#pragma GCC diagnostic ignored \"-Wint-to-pointer-cast\"\n");
         append("#pragma GCC diagnostic ignored \"-Wpointer-to-int-cast\"\n");
         append("#pragma GCC diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#pragma GCC diagnostic ignored \"-Wincompatible-pointer-types\"\n");
         append("#endif\n");
         append("#if defined(__clang__)\n");
         append("#pragma clang diagnostic push\n");
@@ -4752,6 +4768,7 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
         append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
         append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
         append("#endif\n");
 
         for (size_t f = 0; f < result.functions.size(); f++) {
@@ -4985,6 +5002,7 @@ namespace sclc {
                 if (function->getArgs().size() > 0) {
                     for (size_t i = 0; i < function->getArgs().size(); i++) {
                         Variable var = function->getArgs()[i];
+                        if (var.getType() == "varargs") continue;
                         varScopeTop().push_back(var);
                     }
                 }
@@ -5055,19 +5073,19 @@ namespace sclc {
                 if (function->isCVarArgs()) {
                     if (function->varArgsParam().getName().size()) {
                         append("va_list _cvarargs;\n");
-                        append("va_start(_cvarargs, Var_%s);\n", function->varArgsParam().getName().c_str());
-                        append("scl_int _cvarargs_count = Var_%s;\n", function->varArgsParam().getName().c_str());
-                        append("scl_Array Var_varargs = _scl_alloc_struct(sizeof(struct Struct_ReadOnlyArray), \"ReadOnlyArray\", 0x%xU);\n", hash1((char*) "Array"));
-                        append("_scl_struct_allocation_failure(*(scl_int*) &Var_varargs, \"ReadOnlyArray\");\n");
-                        append("Method_Array$init(Var_varargs, _cvarargs_count);\n");
+                        append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().getName().c_str());
+                        append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().getName().c_str());
+                        append("scl_Array Var_%s = _scl_alloc_struct(sizeof(struct Struct_ReadOnlyArray), \"ReadOnlyArray\", 0x%xU);\n", function->varArgsParam().getName().c_str(), hash1((char*) "Array"));
+                        append("_scl_struct_allocation_failure(*(scl_int*) &Var_%s, \"ReadOnlyArray\");\n", function->varArgsParam().getName().c_str());
+                        append("Method_Array$init(Var_%s, _cvarargs_count);\n", function->varArgsParam().getName().c_str());
                         append("for (scl_int _cvarargs_i = 0; _cvarargs_i < _cvarargs_count; _cvarargs_i++) {\n");
                         scopeDepth++;
-                        append("Var_varargs->values[_cvarargs_i] = va_arg(_cvarargs, scl_any);\n");
+                        append("Var_%s->values[_cvarargs_i] = va_arg(_cvarargs, scl_any);\n", function->varArgsParam().getName().c_str());
                         scopeDepth--;
                         append("}\n");
-                        append("Var_varargs->count = _cvarargs_count;\n");
+                        append("Var_%s->count = _cvarargs_count;\n", function->varArgsParam().getName().c_str());
                         append("va_end(_cvarargs);\n");
-                        Variable v("varargs", "const ReadOnlyArray");
+                        Variable v(function->varArgsParam().getName(), "const ReadOnlyArray");
                         varScopeTop().push_back(v);
                     }
                 }

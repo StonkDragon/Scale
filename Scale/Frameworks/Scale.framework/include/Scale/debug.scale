@@ -23,13 +23,15 @@ cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
 intrinsic function dumpStack(): none
-  c!
-    printf("Dump:\n");
-    for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
-      scl_int v = _stack.data[i].i;
-      printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
-    }
-	  printf("\n");
+  unsafe
+    c!
+      printf("Dump:\n");
+      for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
+        scl_int v = _stack.data[i].i;
+        printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+      }
+      printf("\n");
+    end
   end
 end
 
@@ -103,8 +105,10 @@ final sealed open struct UnreachableError: Error
 
 function sysPrettyString(): str
   40 malloc => decl sPtr: [int8]
-  c!
-    snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+  unsafe
+    c!
+      snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+    end
   end
   sPtr str::new return
 end

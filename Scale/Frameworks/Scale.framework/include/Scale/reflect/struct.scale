@@ -22,14 +22,16 @@ final sealed struct Struct
             "Can not instantiate static struct '" self.typeName + "'" +
             IllegalStateException::new throw
         fi
-        c!
-            scl_int size = (*self)->binarySize;
-            (*inst) = _scl_alloc(size);
-            (*inst)->$__size__ = size;
-            (*inst)->$__super__ = (*self)->superStruct ? (*self)->superStruct->typeId : 0;
-            (*inst)->$__type__ = (*self)->typeId;
-            (*inst)->$__type_name__ = (*self)->typeName->_data;
-            _scl_add_struct(*inst);
+        unsafe
+            c!
+                scl_int size = (*self)->binarySize;
+                (*inst) = _scl_alloc(size);
+                (*inst)->$__size__ = size;
+                (*inst)->$__super__ = (*self)->superStruct ? (*self)->superStruct->typeId : 0;
+                (*inst)->$__type__ = (*self)->typeId;
+                (*inst)->$__type_name__ = (*self)->typeName->_data;
+                _scl_add_struct(*inst);
+            end
         end
         inst:init
         return
@@ -44,21 +46,23 @@ final sealed struct Struct
             true => isInStruct
         fi
         decl readSuccessful: bool
-        c!
-            for (scl_int i = 0; i < (*self)->membersCount; i++) {
-                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
-                if (member.pure_name == (*name)->_hash) {
-                    // private
-                    int canRead = (member.access_flags & 0b10000 ? *isInStruct : 1);
+        unsafe
+            c!
+                for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                    struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                    if (member.pure_name == (*name)->_hash) {
+                        // private
+                        int canRead = (member.access_flags & 0b10000 ? *isInStruct : 1);
 
-                    if (canRead) {
-                        *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
-                        *readSuccessful = 1;
+                        if (canRead) {
+                            *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
+                            *readSuccessful = 1;
+                        }
+                        *found = 1;
+                        break;
                     }
-                    *found = 1;
-                    break;
                 }
-            }
+            end
         end
         unless found then
             NullPointerException::new => decl e: mut Exception
@@ -102,24 +106,26 @@ final sealed struct Struct
             true => isInStruct
         fi
         decl writeSuccessful: bool
-        c!
-            for (scl_int i = 0; i < (*self)->membersCount; i++) {
-                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
-                if (member.pure_name == (*name)->_hash) {
-                    int canWrite =
-                        // const
-                        (member.access_flags & 0b01000) == 0 &&
-                        // readonly and private
-                        (member.access_flags & 0b10010 ? *isInStruct : 1);
+        unsafe
+            c!
+                for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                    struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                    if (member.pure_name == (*name)->_hash) {
+                        int canWrite =
+                            // const
+                            (member.access_flags & 0b01000) == 0 &&
+                            // readonly and private
+                            (member.access_flags & 0b10010 ? *isInStruct : 1);
 
-                    if (canWrite) {
-                        *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
-                        *writeSuccessful = 1;
+                        if (canWrite) {
+                            *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
+                            *writeSuccessful = 1;
+                        }
+                        *found = 1;
+                        break;
                     }
-                    *found = 1;
-                    break;
                 }
-            }
+            end
         end
 
         unless found then

@@ -21,8 +21,10 @@ final static sealed struct int8
 
   intrinsic function toString(x: int8): str
     2 malloc => decl out: [int8]
-    c!
-      sprintf(*out, "%c", *x);
+    unsafe
+      c!
+        sprintf(*out, "%c", *x);
+      end
     end
     out str::new return
   end
@@ -34,16 +36,20 @@ final static sealed struct int
 
   intrinsic function toString(x: int): str
     25 malloc => decl out: [int8]
-    c!
-      sprintf(*out, SCL_INT_FMT, *x);
+    unsafe
+      c!
+        sprintf(*out, SCL_INT_FMT, *x);
+      end
     end
     out str::new return
   end
 
   intrinsic function toHexString(x: int): str
     19 malloc => decl out: [int8]
-    c!
-      sprintf(*out, SCL_PTR_HEX_FMT, *x);
+    unsafe
+      c!
+        sprintf(*out, SCL_PTR_HEX_FMT, *x);
+      end
     end
     out str::new return
   end

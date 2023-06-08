@@ -27,8 +27,10 @@ intrinsic cdecl "_scl_puts" function puts(_val_: any): none
 end
 
 intrinsic cdecl "_scl_eputs" function eputs(_val_: any): none
-  c!
-    _scl_push()->v = stderr;
+  unsafe
+    c!
+      _scl_push()->v = stderr;
+    end
   end
   "%s\n":view
 
