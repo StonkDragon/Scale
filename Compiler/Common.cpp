@@ -533,6 +533,21 @@ namespace sclc
         return Struct::Null;
     }
 
+    Layout getLayout(TPResult result, std::string name) {
+        name = removeTypeModifiers(name);
+        name = sclConvertToStructType(name);
+        for (Layout layout : result.layouts) {
+            if (layout.getName() == name) {
+                return layout;
+            }
+        }
+        return Layout("");
+    }
+
+    bool hasLayout(TPResult result, std::string name) {
+        return getLayout(result, name).getName().size() != 0;
+    }
+
     bool hasFunction(TPResult result, std::string name) {
         return hasFunction(result, Token(tok_identifier, name, 0, ""));
     }

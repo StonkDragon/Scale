@@ -85,6 +85,9 @@ namespace sclc {
         if (hasTypealias(result, t)) {
             return getTypealias(result, t);
         }
+        if (hasLayout(result, t)) {
+            return "scl_" + getLayout(result, t).getName();
+        }
 
         return "scl_any";
     }
@@ -527,6 +530,17 @@ namespace sclc {
             if (c.getName() == "str" || c.getName() == "any" || c.getName() == "int" || c.getName() == "float" || isPrimitiveIntegerType(c.getName())) continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
             fprintf(support_header, "typedef struct %s* scl_%s;\n", c.getName().c_str(), c.getName().c_str());
+        }
+        append("\n");
+        for (Layout c : result.layouts) {
+            append("typedef struct Layout_%s {\n", c.getName().c_str());
+            fprintf(support_header, "typedef struct Layout_%s {\n", c.getName().c_str());
+            for (Variable s : c.getMembers()) {
+                append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+                fprintf(support_header, "  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+            }
+            append("}* scl_%s;\n", c.getName().c_str());
+            fprintf(support_header, "} scl_%s;\n", c.getName().c_str());
         }
         append("\n");
         if (result.containers.size() == 0) return;
@@ -1619,10 +1633,13 @@ namespace sclc {
                 append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i]).getType()).c_str());
                 typeStack.push("int");
             } else if (getStructByName(result, body[i].getValue()) != Struct::Null) {
-                append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+                append("_scl_push()->i = sizeof(struct Struct_%s);\n", body[i].getValue().c_str());
                 typeStack.push("int");
             } else if (hasTypealias(result, body[i].getValue())) {
                 append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, body[i].getValue()).c_str());
+                typeStack.push("int");
+            } else if (hasLayout(result, body[i].getValue())) {
+                append("_scl_push()->i = sizeof(struct Layout_%s);\n", body[i].getValue().c_str());
                 typeStack.push("int");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
@@ -3068,17 +3085,21 @@ namespace sclc {
                         i++;
                     }
                     Struct s = getStructByName(result, currentType);
-                    if (s == Struct::Null) {
+                    Layout l = getLayout(result, currentType);
+                    if (s == Struct::Null && l.getName().size() == 0) {
                         transpilerError("Struct '" + currentType + "' does not exist!", i);
                         errors.push_back(err);
                         return std::string("(void) 0");
                     }
-                    if (!s.hasMember(body[i].getValue())) {
+                    if (!s.hasMember(body[i].getValue()) && !l.hasMember(body[i].getValue())) {
                         transpilerError("Struct '" + currentType + "' has no member named '" + body[i].getValue() + "'", i);
                         errors.push_back(err);
                         return std::string("(void) 0");
+                    } else if (!s.hasMember(body[i].getValue())) {
+                        v = l.getMember(body[i].getValue());
+                    } else {
+                        v = s.getMember(body[i].getValue());
                     }
-                    v = s.getMember(body[i].getValue());
                     currentType = v.getType();
                     if (deref) {
                         currentType = typePointedTo(currentType);
@@ -3188,7 +3209,11 @@ namespace sclc {
         if (type == "scl_float") {
             append("%s Var_%s = 0.0;\n", type.c_str(), v.getName().c_str());
         } else {
-            append("%s Var_%s = 0;\n", type.c_str(), v.getName().c_str());
+            if (hasTypealias(result, v.getType()) || hasLayout(result, v.getType())) {
+                append("%s Var_%s;\n", type.c_str(), v.getName().c_str());
+            } else {
+                append("%s Var_%s = 0;\n", type.c_str(), v.getName().c_str());
+            }
         }
     }
 
@@ -3978,6 +4003,11 @@ namespace sclc {
             typeStack.push(type.value);
             return;
         }
+        if (hasLayout(result, type.value)) {
+            typePop;
+            typeStack.push(type.value);
+            return;
+        }
         if (getStructByName(result, type.value) == Struct::Null) {
             transpilerError("Use of undeclared Struct '" + type.value + "'", i);
             errors.push_back(err);
@@ -4007,6 +4037,35 @@ namespace sclc {
 
     handler(Dot) {
         noUnused;
+        std::string type = typeStackTop;
+        // auto pointingTo = [&](std::string& type) -> std::string {
+        //     if (type.size() < 2) return "any";
+        //     if (type.at(0) == '[' && type.at(type.size() - 1) == ']') {
+        //         return type.substr(1, type.size() - 2);
+        //     }
+        //     return "any";
+        // };
+
+        if (hasLayout(result, type)) {
+            Layout l = getLayout(result, type);
+            i++;
+            std::string member = body[i].getValue();
+            if (!l.hasMember(member)) {
+                transpilerError("No layout for '" + member + "' in '" + type + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            Variable v = l.getMember(member);
+
+            if (removeTypeModifiers(v.getType()) == "float") {
+                append("_scl_top()->f = ((%s) _scl_top()->i)->%s;\n", sclTypeToCType(result, l.getName()).c_str(), member.c_str());
+            } else {
+                append("_scl_top()->i = (scl_int) ((%s) _scl_top()->i)->%s;\n", sclTypeToCType(result, l.getName()).c_str(), member.c_str());
+            }
+            typePop;
+            typeStack.push(l.getMember(member).getType());
+            return;
+        }
         Struct s = getStructByName(result, typeStackTop);
         if (s == Struct::Null) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);

@@ -192,6 +192,8 @@ namespace sclc {
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
+    Layout getLayout(TPResult result, std::string name);
+    bool hasLayout(TPResult result, std::string name);
     bool hasFunction(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasEnum(TPResult result, std::string name);

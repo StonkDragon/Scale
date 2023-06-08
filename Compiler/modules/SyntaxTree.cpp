@@ -510,6 +510,7 @@ namespace sclc {
         std::vector<Variable> globals;
         std::vector<Container> containers;
         std::vector<Struct> structs;
+        std::vector<Layout> layouts;
         std::vector<Interface*> interfaces;
         std::vector<Enum> enums;
         std::unordered_map<std::string, std::string> typealiases;
@@ -1111,6 +1112,118 @@ namespace sclc {
                     structs.push_back(*currentStruct);
                     currentStruct = nullptr;
                 }
+            } else if (token.getType() == tok_identifier && token.getValue() == "layout") {
+                if (currentContainer != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a layout inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentStruct != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a layout inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a layout inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
+                    result.value = token.getValue();
+                    result.line = token.getLine();
+                    result.in = token.getFile();
+                    result.type = token.getType();
+                    result.column = token.getColumn();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                std::string name = tokens[i].getValue();
+                i++;
+                Layout layout(name);
+
+                while (tokens[i].getType() != tok_end) {
+                    if (tokens[i].getType() != tok_declare) {
+                        FPResult result;
+                        result.message = "Only declarations are allowed inside of a layout.";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.type = tokens[i].getType();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        break;
+                    }
+                    i++;
+                    if (tokens[i].getType() != tok_identifier) {
+                        FPResult result;
+                        result.message = "Expected itentifier for variable name, but got '" + tokens[i].getValue() + "'";
+                        result.value = tokens[i].getValue();
+                        result.line = tokens[i].getLine();
+                        result.in = tokens[i].getFile();
+                        result.column = tokens[i].getColumn();
+                        result.success = false;
+                        errors.push_back(result);
+                        break;
+                    }
+                    Token nameToken = tokens[i];
+                    std::string name = tokens[i].getValue();
+                    std::string type = "any";
+                    i++;
+                    if (tokens[i].getType() == tok_column) {
+                        i++;
+                        FPResult r = parseType(tokens, &i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                        if (type == "none") {
+                            FPResult result;
+                            result.message = "Type 'none' is only valid for function return types.";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            break;
+                        }
+                    }
+                    
+                    Variable v(name, type);
+                    layout.addMember(v);
+                    i++;
+                }
+
+                layouts.push_back(layout);
             } else if (token.getType() == tok_enum) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -1669,6 +1782,7 @@ namespace sclc {
         result.globals = globals;
         result.containers = containers;
         result.structs = structs;
+        result.layouts = layouts;
         result.errors = errors;
         result.warns = warns;
         result.interfaces = interfaces;
@@ -1676,7 +1790,7 @@ namespace sclc {
         result.enums = enums;
 
         std::vector<Struct> newStructs;
-        
+
         for (Struct s : result.structs) {
             Struct super = getStructByName(result, s.extends());
             Struct oldSuper = s;

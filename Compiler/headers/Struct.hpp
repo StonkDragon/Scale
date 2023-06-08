@@ -121,4 +121,49 @@ namespace sclc
         }
         void setName(const std::string& name) { this->name = name; }
     };
+
+    class Layout {
+        std::string name;
+        Token name_token;
+        std::vector<Variable> members;
+    public:
+    
+        Layout(std::string name) : Layout(name, Token(tok_identifier, name, 0, "")) {}
+        Layout(std::string name, Token t) {
+            this->name = name;
+            this->name_token = t;
+        }
+        void addMember(Variable member) {
+            members.push_back(member);
+        }
+        bool hasMember(std::string member) {
+            for (Variable v : members) {
+                if (v.getName() == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        Variable getMember(std::string name) {
+            for (Variable v : members) {
+                if (v.getName() == name) {
+                    return v;
+                }
+            }
+            return Variable("", "");
+        }
+        void setName(const std::string& name) { this->name = name; }
+        Token getNameToken() {
+            return name_token;
+        }
+        void setNameToken(Token t) {
+            this->name_token = t;
+        }
+        std::string getName() {
+            return name;
+        }
+        std::vector<Variable> getMembers() {
+            return members;
+        }
+    };
 } // namespace sclc

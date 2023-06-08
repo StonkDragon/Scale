@@ -1,5 +1,12 @@
 final sealed open struct IllegalAccessException: Exception
 
+layout StructBaseLayout
+    decl type: int
+    decl typeName: [int8]
+    decl superStruct: int
+    decl binarySize: int
+end
+
 final sealed struct Struct
     private decl typeName: str
     private decl typeId: int
@@ -17,21 +24,29 @@ final sealed struct Struct
         IllegalStateException::new throw
     end
 
+    private expect static unsafe cdecl "_scl_add_struct" function addStruct0(:any): none
+
     function newInstance() inst: SclObject
         if self.isStatic then
             "Can not instantiate static struct '" self.typeName + "'" +
             IllegalStateException::new throw
         fi
+
+        self.binarySize any::new => inst
+        inst as StructBaseLayout => decl instanceLayout: mut StructBaseLayout
+
+        self.binarySize => instanceLayout.binarySize
+        if self.superStruct then
+            self.superStruct!!.typeId
+        else
+            0
+        fi => instanceLayout.superStruct
+
+        self.typeId => instanceLayout.type
+        self.typeName:view => instanceLayout.typeName
+
         unsafe
-            c!
-                scl_int size = (*self)->binarySize;
-                (*inst) = _scl_alloc(size);
-                (*inst)->$__size__ = size;
-                (*inst)->$__super__ = (*self)->superStruct ? (*self)->superStruct->typeId : 0;
-                (*inst)->$__type__ = (*self)->typeId;
-                (*inst)->$__type_name__ = (*self)->typeName->_data;
-                _scl_add_struct(*inst);
-            end
+            inst addStruct0
         end
         inst:init
         return
