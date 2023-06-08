@@ -22,20 +22,20 @@
     1800 Compiler/modules/SyntaxTree.cpp
      299 Compiler/modules/TokenHandlers.cpp
      655 Compiler/modules/Tokenizer.cpp
-    5134 Compiler/modules/Transpiler.cpp
+    5152 Compiler/modules/Transpiler.cpp
       17 Scale/Frameworks/Scale.framework/include/Scale/any.scale
-      97 Scale/Frameworks/Scale.framework/include/Scale/core.scale
-     110 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
+     105 Scale/Frameworks/Scale.framework/include/Scale/core.scale
+     114 Scale/Frameworks/Scale.framework/include/Scale/debug.scale
      157 Scale/Frameworks/Scale.framework/include/Scale/file.scale
-      67 Scale/Frameworks/Scale.framework/include/Scale/float.scale
+      81 Scale/Frameworks/Scale.framework/include/Scale/float.scale
       60 Scale/Frameworks/Scale.framework/include/Scale/fmt.scale
-     190 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
-      54 Scale/Frameworks/Scale.framework/include/Scale/io.scale
-     108 Scale/Frameworks/Scale.framework/include/Scale/math.scale
+     196 Scale/Frameworks/Scale.framework/include/Scale/inttypes.scale
+      56 Scale/Frameworks/Scale.framework/include/Scale/io.scale
+     112 Scale/Frameworks/Scale.framework/include/Scale/math.scale
      137 Scale/Frameworks/Scale.framework/include/Scale/math/fraction.scale
-     186 Scale/Frameworks/Scale.framework/include/Scale/reflect/struct.scale
+     192 Scale/Frameworks/Scale.framework/include/Scale/reflect/struct.scale
       24 Scale/Frameworks/Scale.framework/include/Scale/sclobject.scale
-     199 Scale/Frameworks/Scale.framework/include/Scale/string.scale
+     201 Scale/Frameworks/Scale.framework/include/Scale/string.scale
      153 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/integer.scale
       60 Scale/Frameworks/Scale.framework/include/Scale/thread/atomics/object.scale
      109 Scale/Frameworks/Scale.framework/include/Scale/thread/thread.scale
@@ -51,7 +51,7 @@
       78 Scale/Frameworks/Scale.framework/include/Scale/util/map.scale
       13 Scale/Frameworks/Scale.framework/include/Scale/util/pair.scale
      100 Scale/Frameworks/Scale.framework/include/Scale/util/range.scale
-      62 Scale/Frameworks/Scale.framework/include/Scale/util/readonlyarray.scale
+      66 Scale/Frameworks/Scale.framework/include/Scale/util/readonlyarray.scale
        3 Scale/Frameworks/Scale.framework/include/Scale/util/stringifyable.scale
       15 Scale/Frameworks/Scale.framework/include/Scale/util/triple.scale
       29 Scale/Frameworks/Scale.framework/include/Scale/util/typedarray.scale
@@ -61,7 +61,7 @@
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
-      12 examples/cdecl.scale
+      14 examples/cdecl.scale
       14 examples/container.scale
       27 examples/data-type-literals.scale
       11 examples/enum.scale
@@ -86,7 +86,8 @@
       27 examples/switch.scale
       22 examples/try-catch.scale
        7 examples/variables.scale
+       8 examples/variadics.scale
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   17076 total
+   17154 total
