@@ -6,13 +6,13 @@ final sealed struct Range is IIterable
   
   private decl pos: int
 
-  function init(_start: int, _end: int): none
-    if _start _end > then
+  function init(theStart: int, theEnd: int): none
+    if theStart theEnd > then
       "start must not be bigger than end!" InvalidArgumentException::new throw
     fi
 
-    _start => self.lower
-    _end => self.upper
+    theStart => self.lower
+    theEnd => self.upper
     0 => self.pos
   end
 
@@ -67,12 +67,12 @@ final sealed struct ReverseRange is IIterable
   decl upper: int
   decl pos: int
 
-  function init(_start: int, _end: int): none
-    if _start _end < then
+  function init(theStart: int, theEnd: int): none
+    if theStart theEnd < then
       "end must not be bigger than start!" InvalidArgumentException::new throw
     fi
-    _start => self.lower
-    _end => self.upper
+    theStart => self.lower
+    theEnd => self.upper
     0 => self.pos
   end
 

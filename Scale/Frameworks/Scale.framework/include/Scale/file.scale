@@ -40,28 +40,28 @@ final struct File
   end
 
   function read(sz: int): any
-    sz malloc => decl _buf_: [any]?
+    sz malloc => decl buffer: [any]?
     unsafe
-      _buf_ 1 sz _file File::__c_fread
+      buffer 1 sz _file File::__c_fread
     end
-    _buf_ return
+    buffer return
   end
 
-  function offsetFromBegin(_offset_: int): none
+  function offsetFromBegin(offset: int): none
     unsafe
-      _file _offset_ 0 File::__c_fseek
-    end
-  end
-
-  function offsetFromEnd(_offset_: int): none
-    unsafe
-      _file _offset_ 2 File::__c_fseek
+      _file offset 0 File::__c_fseek
     end
   end
 
-  function offset(_offset_: int): none
+  function offsetFromEnd(offset: int): none
     unsafe
-      _file _offset_ 1 File::__c_fseek
+      _file offset 2 File::__c_fseek
+    end
+  end
+
+  function offset(offset: int): none
+    unsafe
+      _file offset 1 File::__c_fseek
     end
   end
 
@@ -93,65 +93,65 @@ final struct File
     end
   end
 
-  static expect cdecl "fopen"  function __c_fopen(_name_: [int8], _mode_: [int8]): __c_file?
-  static expect cdecl "fwrite" function __c_fwrite(_buf_: any, _size_: int, _num_elem_: int, _file_: __c_file): none
-  static expect cdecl "fread"  function __c_fread(_buf_: any, _num_elem_: int, _size_: int, _f_: __c_file): none
-  static expect cdecl "fclose" function __c_fclose(_file_: __c_file): none
-  static expect cdecl "ftell"  function __c_ftell(_file_: __c_file): int
-  static expect cdecl "fileno" function __c_fileno(_file_: __c_file): int
-  static expect cdecl "remove" function __c_remove(_name_: [int8]): int
-  static expect cdecl "fseek"  function __c_fseek(_file_: __c_file, _offset_: int, _whence_: int): none
+  static expect cdecl "fopen"  function __c_fopen(fileName: [int8], mode: [int8]): __c_file?
+  static expect cdecl "fwrite" function __c_fwrite(buffer: any, elemSize: int, numElems: int, filePtr: __c_file): none
+  static expect cdecl "fread"  function __c_fread(buffer: any, numElems: int, elemSize: int, filePtr: __c_file): none
+  static expect cdecl "fclose" function __c_fclose(filePtr: __c_file): none
+  static expect cdecl "ftell"  function __c_ftell(filePtr: __c_file): int
+  static expect cdecl "fileno" function __c_fileno(filePtr: __c_file): int
+  static expect cdecl "remove" function __c_remove(fileName: [int8]): int
+  static expect cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
 end
 
 deprecated![since: "23.5", replacement: "File::new", forRemoval: true]
-function fopen(_filename_: str, _mode_: str): __c_file?
-  _filename_:view _mode_:view File::__c_fopen return
+function fopen(fileName: str, mode: str): __c_file?
+  fileName:view mode:view File::__c_fopen return
 end
 
 deprecated![since: "23.5", replacement: "File:writeBinary", forRemoval: true]
-function fwrite(_buf_: any, _size_: int, _file_: __c_file): none
-  _buf_ 1 _size_ _file_ File::__c_fwrite
+function fwrite(buffer: any, elemSize: int, filePtr: __c_file): none
+  buffer 1 elemSize filePtr File::__c_fwrite
 end
 
 deprecated![since: "23.5", replacement: "File:append", forRemoval: true]
-function fwrites(_buf_: str, _size_: int, _file_: __c_file): none
-  _buf_:view 1 _size_ _file_ File::__c_fwrite
+function fwrites(buffer: str, elemSize: int, filePtr: __c_file): none
+  buffer:view 1 elemSize filePtr File::__c_fwrite
 end
 
 deprecated![since: "23.5", replacement: "File:puts", forRemoval: true]
-function fputs(_file_: __c_file, _str_: str): none
-  _str_:view 1 _str_:size _file_ File::__c_fwrite
-  "\n":view 1 1 _file_ File::__c_fwrite
+function fputs(filePtr: __c_file, _str_: str): none
+  _str_:view 1 _str_:size filePtr File::__c_fwrite
+  "\n":view 1 1 filePtr File::__c_fwrite
 end
 
 deprecated![since: "23.5", forRemoval: true]
-function fputint(_file_: __c_file, _int_: int): none
-  _file_ _int_ int::toString fputs
+function fputint(filePtr: __c_file, _int_: int): none
+  filePtr _int_ int::toString fputs
 end
 
 deprecated![since: "23.5", forRemoval: true]
-function fputfloat(_file_: __c_file, _float_: float): none
-  _file_ _float_ float::toString fputs
+function fputfloat(filePtr: __c_file, _float_: float): none
+  filePtr _float_ float::toString fputs
 end
 
 deprecated![since: "23.5", replacement: "File:read", forRemoval: true]
-function fread(_f_: __c_file, _size_: int): [any]?
-  _size_ malloc => decl _buf_: [any]?
-  _buf_ 1 _size_ _f_ File::__c_fread
-  _buf_ return
+function fread(filePtr: __c_file, elemSize: int): [any]?
+  elemSize malloc => decl buffer: [any]?
+  buffer 1 elemSize filePtr File::__c_fread
+  buffer return
 end
 
 deprecated![since: "23.5", replacement: "File:offsetFromBegin", forRemoval: true]
-function fseekstart(_f_: __c_file, _offset_: int): none
-  _f_ _offset_ 0 File::__c_fseek
+function fseekstart(filePtr: __c_file, offset: int): none
+  filePtr offset 0 File::__c_fseek
 end
 
 deprecated![since: "23.5", replacement: "File:offsetFromEnd", forRemoval: true]
-function fseekend(_f_: __c_file, _offset_: int): none
-  _f_ _offset_ 2 File::__c_fseek
+function fseekend(filePtr: __c_file, offset: int): none
+  filePtr offset 2 File::__c_fseek
 end
 
 deprecated![since: "23.5", replacement: "File:offset", forRemoval: true]
-function fseekcur(_f_: __c_file, _offset_: int): none
-  _f_ _offset_ 1 File::__c_fseek
+function fseekcur(filePtr: __c_file, offset: int): none
+  filePtr offset 1 File::__c_fseek
 end

@@ -1,32 +1,32 @@
 cdecl "write"
-expect unsafe function __c_write(_fd_: int, _str_: [int8], _len_: int): int32
+expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
 cdecl "read"
-expect unsafe function __c_read(_fd_: int, _buf_: [int8], _n_: int): int32
+expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], _n_: int): int32
 cdecl "puts"
-expect unsafe function __c_puts(_str_: [int8]): int32
+expect unsafe function __c_puts(cstr: [int8]): int32
 cdecl "fprintf"
 expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
 expect unsafe function __c_printf(fmt: [int8], :varargs): int32
 
-intrinsic cdecl "_scl_write" unsafe function write(_fd_: int, _str_: str): none
-  _fd_ _str_:view _str_:size __c_write drop
+intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
+  fileDescriptor string:view string:size __c_write drop
 end
 
-intrinsic cdecl "_scl_read" function read(_fd_: int, _n_: int): str?
+intrinsic cdecl "_scl_read" function read(fileDescriptor: int, _n_: int): str?
   _n_ malloc => decl buf: [int8]
-  _fd_ buf _n_ __c_read drop
+  fileDescriptor buf _n_ __c_read drop
   buf str::new return
 end
 
-intrinsic cdecl "_scl_puts" function puts(_val_: any): none
-  _val_:toString:view
+intrinsic cdecl "_scl_puts" function puts(value: any): none
+  value:toString:view
   unsafe
     __c_puts drop
   end
 end
 
-intrinsic cdecl "_scl_eputs" function eputs(_val_: any): none
+intrinsic cdecl "_scl_eputs" function eputs(value: any): none
   unsafe
     c!
       _scl_push()->v = stderr;
@@ -34,23 +34,23 @@ intrinsic cdecl "_scl_eputs" function eputs(_val_: any): none
   end
   "%s\n":view
 
-  _val_:toString:view
+  value:toString:view
   unsafe
     __c_fprintf! 1
   end
   drop
 end
 
-function putint(_int_: int): none
-  _int_ puts
+function putint(number: int): none
+  number puts
 end
 
-function putfloat(_f_: float): none
-  _f_:toString puts
+function putfloat(number: float): none
+  number:toString puts
 end
 
-function throwerr(_err_: str): none
+function throwerr(errorString: str): none
   Exception::new => decl e: mut Exception
-  _err_ => e.msg
+  errorString => e.msg
   e throw
 end

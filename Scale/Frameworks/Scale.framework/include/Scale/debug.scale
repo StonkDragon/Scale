@@ -10,9 +10,9 @@ expect function throw(ex: Exception): none
 cdecl "_scl_security_safe_exit"
 expect unsafe function __c_exit(i: int): none
 cdecl "_scl_default_signal_handler"
-expect unsafe function __c_scl_default_signal_handler(_sig_: int): none
+expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
 cdecl "raise"
-expect unsafe function __c_raise(_sig_: int): int
+expect unsafe function __c_raise(sigNum: int): int
 cdecl "_scl_errno"
 expect function errno(): int
 cdecl "_scl_errno_str"
@@ -41,11 +41,11 @@ function crash(): none
   end
 end
 
-function raise(_sig_: int): none
+function raise(sigNum: int): none
   unsafe
-    _sig_ __c_raise => decl raised
+    sigNum __c_raise => decl raised
     if raised ! then
-      _sig_ __c_scl_default_signal_handler
+      sigNum __c_scl_default_signal_handler
     fi
   end
 end

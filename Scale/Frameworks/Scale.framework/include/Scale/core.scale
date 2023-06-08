@@ -8,39 +8,45 @@ expect unsafe function memcpy(dst: [any], src: [any], n: int): [any]
 cdecl "ctrl_stack_size"
 expect function sizeofStack(): int
 cdecl "_scl_sleep"
-expect function sleep(_millis_: int): none
+expect function sleep(millis: int): none
 cdecl "_scl_alloc"
-expect function malloc(_sz_: int): [any]
+expect function malloc(size: int): [any]
 cdecl "_scl_free"
-expect function free(_ptr_: [any]): none
+expect function free(pointer: [any]): none
 cdecl "_scl_realloc"
-expect function realloc(_ptr_: [any], _sz_: int): [any]
+expect function realloc(pointer: [any], size: int): [any]
 
 cdecl "system"
-expect unsafe function __c_system(cmd: [int8]): int
+expect unsafe function __c_system(:[int8]): int
 cdecl "getenv"
-expect unsafe function __c_getenv(cmd: [int8]): [int8]?
+expect unsafe function __c_getenv(:[int8]): [int8]?
 cdecl "_scl_strdup"
-expect unsafe function __c_strdup(s: [int8]): [int8]
+expect unsafe function __c_strdup(:[int8]): [int8]
 cdecl "strtok"
-expect unsafe function __c_strtok(s: any, delim: [int8]): [int8]?
+expect unsafe function __c_strtok(:any, :[int8]): [int8]?
 cdecl "atoll"
-expect unsafe function __c_atoll(s: [int8]): int64
+expect unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
-expect unsafe function __c_atof(s: [int8]): float
+expect unsafe function __c_atof(:[int8]): float
+cdecl "rand"
+expect unsafe function __c_rand(): int32
+cdecl "srand"
+expect unsafe function __c_srand(:int): none
+cdecl "time"
+expect unsafe function __c_time(:[int]): int
 
 typealias varargs "..."
 
-intrinsic cdecl "_scl_system" function system(_cmd_: str): int
+intrinsic cdecl "_scl_system" function system(command: str): int
   unsafe
-    _cmd_:view __c_system return
+    command:view __c_system return
   end
 end
 
-intrinsic cdecl "_scl_getenv" function getenv(_key_: str): str?
+intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
   decl ptr: [int8]?
   unsafe
-    _key_:view __c_getenv => ptr
+    environKey:view __c_getenv => ptr
   end
   if ptr then
     ptr!! str::new return
@@ -48,52 +54,62 @@ intrinsic cdecl "_scl_getenv" function getenv(_key_: str): str?
   nil return
 end
 
+layout timeval
+  decl seconds: int
+  decl microseconds: int32
+end
+
+cdecl "gettimeofday"
+expect unsafe function __c_gettimeofday(:timeval, :any): int
+
 intrinsic cdecl "_scl_time" function time(): float
-  decl secs: float
+  sizeof timeval any::new => decl tv: timeval
+  
   unsafe
-    c!
-      struct timeval tv;
-      gettimeofday(&tv, NULL);
-      *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
-    end
+    tv nil __c_gettimeofday drop
   end
-  secs return
+
+  tv.seconds => decl seconds: int
+  tv.microseconds => decl microseconds: int
+
+  tv any::delete
+  microseconds as float 1000000.0 / seconds + return
 end
 
 deprecated![since: "23.5", replacement: "int::toString"]
-function longToString(_long_: int): str
+function longToString(theNumber: int): str
   25 malloc => decl out: [int8]
   unsafe
     c!
-      sprintf(*out, SCL_INT_FMT, *_long_);
+      sprintf(*out, SCL_INT_FMT, *theNumber);
     end
   end
   out str::new return
 end
 
 deprecated![since: "23.5", replacement: "int::parse"]
-function stringToLong(_str_: str): int
+function stringToLong(theString: str): int
   unsafe
-    _str_:view __c_atoll as int return
+    theString:view __c_atoll as int return
   end
 end
 
 deprecated![since: "23.5", replacement: "float::toString"]
-function stringToDouble(_str_: str): float
+function stringToDouble(theString: str): float
   unsafe
     c!
-      _scl_push()->f = (scl_float) atof((*_str_)->_data);
+      _scl_push()->f = (scl_float) atof((*theString)->_data);
     end
   end
   as float return
 end
 
 deprecated![since: "23.5", replacement: "float::parse"]
-function doubleToString(_double_: float): str
+function doubleToString(theNumber: float): str
   100 malloc => decl out: [int8]
   unsafe
     c!
-      sprintf(*out, "%f", *_double_);
+      sprintf(*out, "%f", *theNumber);
     end
   end
   out str::new return
