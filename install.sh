@@ -47,10 +47,10 @@ if ! which dragon >/dev/null; then
     echo "Installing dragon. This may require root privileges..."
 
     make compile
-    sudo cp build/dragon /usr/local/bin/dragon
+    build/dragon build
     cd ..
-    rm -rf Dragon
 fi
+rm -rf Dragon
 
 echo "---------"
 echo "Installing..."
