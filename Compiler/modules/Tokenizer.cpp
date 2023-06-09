@@ -533,22 +533,9 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
-        bool inFunction = false;
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
-            if (tokens[i].getType() == tok_function && (i - 1 >= 0 ? tokens[i - 1].getValue() != "expect" : true)) {
-                inFunction = true;
-            } else if (tokens[i].getType() == tok_end) {
-                inFunction = false;
-            }
-
-            if (inFunction)
-                continue;
             if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
                 i++;
-                if (tokens[i].getType() == tok_function) {
-                    i--;
-                    continue;
-                }
                 std::string moduleName = tokens[i].getValue();
                 while (i + 1 < (long long) tokens.size() && tokens[i + 1].getType() == tok_dot) {
                     i += 2;
