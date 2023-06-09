@@ -9,104 +9,104 @@ framework: {
     docfile-format: "scldoc";
     modules: {
         std: [
-            "Scale/core.scale";
-            "Scale/string.scale";
-            "Scale/sclobject.scale";
-            "Scale/inttypes.scale";
-            "Scale/debug.scale";
-            "Scale/any.scale";
-            "Scale/float.scale";
+            "std/lang/Core.scale";
+            "std/lang/String.scale";
+            "std/lang/SclObject.scale";
+            "std/lang/Int.scale";
+            "std/lang/Debug.scale";
+            "std/lang/Any.scale";
+            "std/lang/Float.scale";
         ];
         std.Int: [
-            "Scale/inttypes.scale";
+            "std/lang/Int.scale";
         ];
         std.Any: [
-            "Scale/any.scale";
+            "std/lang/Any.scale";
         ];
         std.Float: [
-            "Scale/float.scale";
+            "std/lang/Float.scale";
         ];
         std.String: [
-            "Scale/string.scale";
+            "std/lang/String.scale";
         ];
         std.SclObject: [
-            "Scale/sclobject.scale";
+            "std/lang/SclObject.scale";
         ];
         std.debug: [
-            "Scale/debug.scale";
+            "std/lang/Debug.scale";
         ];
         std.math: [
-            "Scale/math.scale";
+            "std/lang/Math.scale";
         ];
         std.math.Fraction: [
-            "Scale/math/fraction.scale";
+            "std/math/Fraction.scale";
         ];
         std.io: [
-            "Scale/fmt.scale";
-            "Scale/io.scale";
+            "std/lang/Fmt.scale";
+            "std/lang/IO.scale";
         ];
         std.fs: [
-            "Scale/file.scale";
+            "std/lang/File.scale";
         ];
         std.util.Array: [
-            "Scale/util/array.scale";
+            "std/util/Array.scale";
         ];
         std.util.TypedArray: [
-            "Scale/util/typedarray.scale";
+            "std/util/TypedArray.scale";
         ];
         std.util.ReadOnlyArray: [
-            "Scale/util/readonlyarray.scale";
+            "std/util/ReadOnlyArray.scale";
         ];
         std.util.ImmutableArray: [
-            "Scale/util/immutablearray.scale";
+            "std/util/ImmutableArray.scale";
         ];
         std.util.InvalidArgumentException: [
-            "Scale/util/arg.scale";
+            "std/util/InvalidArgumentException.scale";
         ];
         std.util.Pair: [
-            "Scale/util/pair.scale";
+            "std/util/Pair.scale";
         ];
         std.util.IndexOutOfBoundsException: [
-            "Scale/util/bounds.scale";
+            "std/util/IndexOutOfBoundsException.scale";
         ];
         std.util.Cloneable: [
-            "Scale/util/cloneable.scale";
+            "std/util/ICloneable.scale";
         ];
         std.util.Equatable: [
-            "Scale/util/equatable.scale";
+            "std/util/IEquatable.scale";
         ];
         std.util.Hashable: [
-            "Scale/util/hashable.scale";
+            "std/util/IHashable.scale";
         ];
         std.util.Iterable: [
-            "Scale/util/iterable.scale";
+            "std/util/IIterable.scale";
         ];
         std.util.Map: [
-            "Scale/util/map.scale";
+            "std/util/Map.scale";
         ];
         std.util.Range: [
-            "Scale/util/range.scale";
+            "std/util/Range.scale";
         ];
         std.util.ReverseRange: [
-            "Scale/util/range.scale";
+            "std/util/Range.scale";
         ];
         std.util.Stringifyable: [
-            "Scale/util/stringifyable.scale";
+            "std/util/IStringifyable.scale";
         ];
         std.util.Triple: [
-            "Scale/util/triple.scale";
+            "std/util/Triple.scale";
         ];
         std.threading.Thread: [
-            "Scale/thread/thread.scale";
+            "std/thread/Thread.scale";
         ];
         std.threading.AtomicInteger: [
-            "Scale/thread/atomics/integer.scale";
+            "std/thread/atomics/Integer.scale";
         ];
         std.threading.AtomicObject: [
-            "Scale/thread/atomics/object.scale";
+            "std/thread/atomics/Object.scale";
         ];
         std.reflect.Struct: [
-            "Scale/reflect/struct.scale";
+            "std/reflect/Struct.scale";
         ];
     };
 };
