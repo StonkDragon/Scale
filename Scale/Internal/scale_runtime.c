@@ -1036,7 +1036,7 @@ _scl_frame_t* _scl_push() {
 _scl_frame_t* _scl_pop() {
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
 	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+		_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
 	}
 #endif
 
@@ -1054,7 +1054,7 @@ _scl_frame_t* _scl_positive_offset(scl_int offset) {
 _scl_frame_t* _scl_top() {
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
 	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+		_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
 	}
 #endif
 
@@ -1066,7 +1066,7 @@ void _scl_popn(scl_int n) {
 
 #if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
 	if (_scl_expect(_stack.ptr < 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "Not enough data on the stack!");
+		_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
 	}
 #endif
 }
