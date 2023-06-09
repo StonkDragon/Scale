@@ -67,29 +67,32 @@ namespace sclc {
         }
         t = removeTypeModifiers(t);
 
-        if (strstarts(t, "lambda(")) return "_scl_lambda";
-        if (t == "any") return "scl_any";
-        if (t == "none") return "void";
-        if (t == "int") return "scl_int";
-        if (t == "uint") return "scl_uint";
-        if (t == "float") return "scl_float";
-        if (t == "bool") return "scl_int";
-        if (t == "varargs") return "...";
+        if (strstarts(t, "lambda(")) return "/* " + t + " */ _scl_lambda";
+        if (t == "any") return "/* any */ scl_any";
+        if (t == "none") return "/* none */ void";
+        if (t == "int") return "/* int */ scl_int";
+        if (t == "uint") return "/* uint */ scl_uint";
+        if (t == "float") return "/* float */ scl_float";
+        if (t == "bool") return "/* bool */ scl_bool";
+        if (t == "varargs") return "/* varargs */ ...";
         if (!(getStructByName(result, t) == Struct::Null)) {
-            return "scl_" + getStructByName(result, t).getName();
+            return "/* " + t + " */ scl_" + getStructByName(result, t).getName();
         }
         if (t.size() > 2 && t.at(0) == '[') {
             std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
             return type + "*";
         }
+        if (getInterfaceByName(result, t)) {
+            return "/* " + t + " */ scl_any";
+        }
         if (hasTypealias(result, t)) {
-            return getTypealias(result, t);
+            return "/* " + t + " */" + getTypealias(result, t);
         }
         if (hasLayout(result, t)) {
-            return "scl_" + getLayout(result, t).getName();
+            return "/*" + t + "*/ scl_" + getLayout(result, t).getName();
         }
 
-        return "scl_any";
+        return "/* ERROR: unable to deduce type, treating as 'any' */ scl_any";
     }
 
     bool isPrimitiveIntegerType(std::string type);
@@ -1642,9 +1645,14 @@ namespace sclc {
                 append("_scl_push()->i = sizeof(struct Layout_%s);\n", body[i].getValue().c_str());
                 typeStack.push("int");
             } else {
-                transpilerError("Unknown Variable: '" + body[i].getValue() + "'", i);
-                errors.push_back(err);
-                return;
+                FPResult type = parseType(body, &i);
+                if (!type.success) {
+                    transpilerError("Unknown Type: '" + body[i].getValue() + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("_scl_push()->i = sizeof(%s);\n", sclTypeToCType(result, type.value).c_str());
+                typeStack.push("int");
             }
         } else if (body[i].getValue() == "try") {
             append("_scl_exception_push();\n");
@@ -4972,7 +4980,7 @@ namespace sclc {
                 append("_callstack.ptr--;\n");
                 append("((void(*)()) method)();\n");
                 append("_scl_look_for_method = 1;\n");
-                if (sclTypeToCType(result, m->getReturnType()) != "void") {
+                if (sclTypeToCType(result, m->getReturnType()) != "/* none */ void") {
                     if (function->getReturnType() == "float") {
                         append("return _scl_pop()->f;\n");
                     } else {
