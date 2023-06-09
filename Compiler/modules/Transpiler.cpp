@@ -1772,7 +1772,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            if (container.getMemberType(memberName) == "float") {
+            if (removeTypeModifiers(container.getMemberType(memberName)) == "float") {
                 append("_scl_push()->f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
             } else {
                 append("_scl_push()->i = (scl_int) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
@@ -1846,7 +1846,7 @@ namespace sclc {
                                 return;
                             }
                         }
-                        if (v.getType() == "float") {
+                        if (removeTypeModifiers(v.getType()) == "float") {
                             append("_scl_push()->f = Var_%s;\n", loadFrom.c_str());
                         } else {
                             append("_scl_push()->i = (scl_int) Var_%s;\n", loadFrom.c_str());
@@ -4213,16 +4213,16 @@ namespace sclc {
             return;
         }
         i++;
-        if (!s.isStatic() && !hasMethod(result, body[i], typeStackTop)) {
+        if (!s.isStatic() && !hasMethod(result, body[i], removeTypeModifiers(typeStackTop))) {
             std::string help = "";
             if (s.hasMember(body[i].getValue())) {
                 help = ". Maybe you meant to use '.' instead of ':' here";
             }
-            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + typeStackTop + "'" + help, i);
+            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + removeTypeModifiers(typeStackTop) + "'" + help, i);
             errors.push_back(err);
             return;
-        } else if (s.isStatic() && s.getName() != "any" && s.getName() != "int" && !hasFunction(result, typeStackTop + "$" + body[i].getValue())) {
-            transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + typeStackTop + "'", i);
+        } else if (s.isStatic() && s.getName() != "any" && s.getName() != "int" && !hasFunction(result, removeTypeModifiers(typeStackTop) + "$" + body[i].getValue())) {
+            transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + removeTypeModifiers(typeStackTop) + "'", i);
             errors.push_back(err);
             return;
         }
@@ -4257,7 +4257,7 @@ namespace sclc {
             return;
         }
         if (s.isStatic()) {
-            Function* f = getFunctionByName(result, typeStackTop + "$" + body[i].getValue());
+            Function* f = getFunctionByName(result, removeTypeModifiers(typeStackTop) + "$" + body[i].getValue());
             generateCall(f, fp, result, warns, errors, body, i);
         } else {
             if (typeCanBeNil(typeStackTop)) {
@@ -4270,7 +4270,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            Method* f = getMethodByName(result, body[i].getValue(), typeStackTop);
+            Method* f = getMethodByName(result, body[i].getValue(), removeTypeModifiers(typeStackTop));
             if (f->isPrivate && (!function->isMethod || ((Method*) function)->getMemberType() != s.getName())) {
                 if (f->getMemberType() != function->member_type) {
                     transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);

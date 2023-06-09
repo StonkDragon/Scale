@@ -1,16 +1,18 @@
-container MathConstants
-  const decl e: float
-  const decl pi: float
-  const decl nan: float
-  const decl infinity: float
+static final sealed struct MathConstants
+  decl e: const float
+  decl pi: const float
+  decl nan: const float
+  decl infinity: const float
+  decl negativeInfinity: const float
 end
 
 construct function mathInitialization(): none
-  2.71828182845904523536028747135266250 => MathConstants.e
-  3.14159265358979323846264338327950288 => MathConstants.pi
+  2.71828182845904523536028747135266250 => MathConstants::e
+  3.14159265358979323846264338327950288 => MathConstants::pi
 
-  0.0 0.0 / => MathConstants.nan
-  1.0 0.0 / => MathConstants.infinity
+  0.0 0.0 / => MathConstants::nan
+  1.0 0.0 / => MathConstants::infinity
+  -1.0 0.0 / => MathConstants::negativeInfinity
 
   unsafe
     nil __c_time __c_srand
@@ -81,7 +83,9 @@ function isNotNaN(x: float): bool
 end
 
 function random(): int
-  rand 32 << rand | return
+  unsafe
+    __c_rand 32 << __c_rand | return
+  end
 end
 
 function iseven(number: int): int

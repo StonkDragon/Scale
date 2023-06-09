@@ -33,7 +33,7 @@ expect unsafe function __c_rand(): int32
 cdecl "srand"
 expect unsafe function __c_srand(:int): none
 cdecl "time"
-expect unsafe function __c_time(:[int]): int
+expect unsafe function __c_time(:[int]?): int
 
 typealias varargs "..."
 
