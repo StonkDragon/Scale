@@ -20,15 +20,14 @@ This will install all necessary dependencies and the Scale compiler.
 
 Scale by default will install itself to the `/opt/Scale` directory.
 
+Windows is not supported.
+
 ### Install a specific release
 Download the source code zip archive from the [releases tab](https://github.com/StonkDragon/Scale/releases) for the release you want to install. Then, extract the archive and run the following command:
 ```shell
 $ sh install.sh
 ```
 This will install all necessary dependencies and the Scale compiler.
-
-### Windows
-Windows is not supported directly. To use Scale, follow the [Linux](#linux--macos) install instructions inside of WSL.
 
 ## Dependencies
   Scale has the following dependencies:
