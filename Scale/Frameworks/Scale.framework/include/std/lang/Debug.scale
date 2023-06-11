@@ -1,8 +1,8 @@
 import std.io
-import std.threading.Thread
+import std.runtime.Process
 
 cdecl "print_stacktrace"
-deprecated![since: "23.7", replacement: "Thread::stackTrace", forRemoval: true]
+deprecated![since: "23.7", replacement: "Process::stackTrace", forRemoval: true]
 expect function trace(): none
 cdecl "_scl_throw"
 expect function throw(ex: Exception): none
@@ -23,6 +23,7 @@ cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
 intrinsic function dumpStack(): none
+  Process::lock
   unsafe
     c!
       printf("Dump:\n");
@@ -33,6 +34,7 @@ intrinsic function dumpStack(): none
       printf("\n");
     end
   end
+  Process::unlock
 end
 
 function crash(): none
@@ -71,7 +73,7 @@ sealed struct Exception
     else
       ""
     fi => self.errnoStr
-    Thread::stackTrace => self.stackTrace
+    Process::stackTrace => self.stackTrace
     "" => self.msg
   end
 

@@ -10,6 +10,7 @@ final sealed struct TypedArray : Array
     private decl typeStr: str
 
     private function checkTypeOrThrow(val: any): none
+        self Process::lock
         unless typeStr then
             typeof val => typeStr
         fi
@@ -19,8 +20,10 @@ final sealed struct TypedArray : Array
             typeStr +
             "'" +
             InvalidTypeException::new
+            self Process::unlock
             throw
         fi
+        self Process::unlock
     end
 
     function getType(): str

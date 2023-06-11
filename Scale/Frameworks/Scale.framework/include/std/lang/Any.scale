@@ -8,10 +8,12 @@ final static sealed struct any
     end
 
     function toString(x: any): str
-        x as int:toString return
+        x as int:toString
+        return
     end
 
     function toHexString(x: any): str
-        x as int:toHexString return
+        x as int:toHexString
+        return
     end
 end

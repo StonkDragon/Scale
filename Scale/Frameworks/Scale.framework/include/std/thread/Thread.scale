@@ -18,8 +18,8 @@ cdecl "pthread_mutex_init"    expect unsafe function __c_pthread_mutex_init(:[pt
 cdecl "pthread_mutex_lock"    expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
 cdecl "pthread_mutex_unlock"  expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
 cdecl "pthread_mutex_destroy" expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
-cdecl "pthread_create"        expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
-cdecl "pthread_join"          expect unsafe function __c_pthread_join(:pthread_t, :any?): none
+cdecl "GC_pthread_create"     expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+cdecl "GC_pthread_join"       expect unsafe function __c_pthread_join(:pthread_t, :any?): none
 cdecl "pthread_self"          expect unsafe function __c_pthread_self(): pthread_t
 
 final sealed struct Thread
@@ -36,32 +36,15 @@ final sealed struct Thread
     construct function __privateInit(): none
         0 => Thread::nextID
         1 TypedArray::new => Thread::threads
-        Thread::currentThread => Thread::mainThread
-        "Main Thread" => Thread::mainThread.name
     end
 
-    expect static function stackTrace() arr: Array
+    static function stackTrace(): Array
+        Process::stackTrace return
+    end
 
     private static expect unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
 
-    static function currentThread(): Thread
-        decl threadID: pthread_t
-        unsafe
-            __c_pthread_self => threadID
-        end
-        foreach thread in Thread::threads do
-            if thread as Thread.tid as int threadID as int == then
-                thread as Thread return
-            fi
-        done
-        Thread::default => decl tmp: mut Thread
-        threadID => tmp.tid
-        unsafe
-            mainAddress => tmp.func
-        end
-        tmp Thread::threads:push
-        tmp return
-    end
+    expect static function currentThread(): Thread
 
     function init(func: lambda(): none): none
         func => self.func
@@ -70,41 +53,57 @@ final sealed struct Thread
         Thread::nextID 1 + => Thread::nextID
     end
 
-    cdecl "_scl_stack_free" private static expect function stack_free(): none
-    cdecl "_scl_stack_new" private static expect function stack_new(): none
-
-    private function run(): none
-        Thread::stack_new
-        self Thread::threads:push
-        self.func:accept
-        self Thread::threads:remove
-        Thread::stack_free
-    end
+    private expect unsafe function start0(): int
+    private expect unsafe function stop0(): int
+    private expect unsafe function run(): none
 
     function start(): none
+        self Process::lock
         if tid then
-            "Thread started" ThreadException::new throw
+            "Thread started" ThreadException::new
+            self Process::unlock
+            throw
         fi
         unsafe
-            (ref self.tid) nil (ref self::run as any) (self as any) __c_pthread_create
+            self:start0 => decl res: int
+            if res 0 != then
+                "Thread start failed" ThreadException::new
+                self Process::unlock
+                throw
+            fi
         end
+        self Process::unlock
     end
 
     function join(): none
         unless tid then
-            "Thread ended" ThreadException::new throw
+            "Thread ended" ThreadException::new
+            self Process::unlock
+            throw
         fi
         unsafe
-            self.tid nil __c_pthread_join
+            self:stop0 => decl res: int
+            if res 0 != then
+                "Thread join failed" ThreadException::new
+                self Process::unlock
+                throw
+            fi
         end
         nil => self.tid
+        self Process::unlock
     end
 
     function equals(other: Thread): bool
-        self other == return
+        self Process::lock other Process::lock
+        self other ==
+        self Process::unlock other Process::unlock
+        return
     end
 
     function ==(other: Thread): bool
-        self.tid other.tid == return
+        self Process::lock other Process::lock
+        self.tid other.tid ==
+        self Process::unlock other Process::unlock
+        return
     end
 end

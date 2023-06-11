@@ -30,7 +30,7 @@ const std::vector<std::string> intrinsics({
     "F:float$toString",
     "F:float$toPrecisionString",
     "F:float$toHexString",
-    "F:Thread$stackTrace",
+    "F:Process$stackTrace",
     "F:system",
     "F:getenv",
     "F:time",

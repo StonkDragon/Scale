@@ -5,6 +5,7 @@ layout StructBaseLayout
     decl typeName: [int8]
     decl superStruct: int
     decl binarySize: int
+    decl refCount: int
 end
 
 final sealed struct Struct
@@ -44,6 +45,7 @@ final sealed struct Struct
 
         self.typeId => instanceLayout.type
         self.typeName:view => instanceLayout.typeName
+        1 => instanceLayout.refCount
 
         unsafe
             inst addStruct0
@@ -54,10 +56,9 @@ final sealed struct Struct
 
     function getMemberValue(instance: SclObject, name: str) val: any
         false => decl found: bool
-        Thread::stackTrace => decl frame: Array
-        frame:pop
+        Process::stackTrace => decl frame: Array
         false => decl isInStruct: bool
-        if self.typeName ":" + frame:top as str :startsWith then
+        if self.typeName ":" + frame.count 2 - frame:get as str :startsWith then
             true => isInStruct
         fi
         decl readSuccessful: bool
@@ -114,10 +115,9 @@ final sealed struct Struct
 
     function setMemberValue(instance: SclObject, name: str, val: any): none
         false => decl found: bool
-        Thread::stackTrace => decl frame: Array
-        frame:pop
+        Process::stackTrace => decl frame: Array
         false => decl isInStruct: bool
-        if self.typeName ":" + frame:top as str :startsWith then
+        if self.typeName ":" + frame.count 2 - frame:get as str :startsWith then
             true => isInStruct
         fi
         decl writeSuccessful: bool
@@ -163,6 +163,7 @@ final sealed struct Struct
     private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int): lambda
 
     function getMethodByName(name: str) method: lambda
+        self Process::lock
         unsafe
             self.typeId name:hashCode getMethodByName0 => method
         end
@@ -172,8 +173,11 @@ final sealed struct Struct
             "' on struct '" +
             self.typeName +
             "'" + => e.msg
-            e throw
+            e
+            self Process::lock
+            throw
         fi
+        self Process::lock
         return
     end
 
@@ -192,6 +196,7 @@ final sealed struct Struct
     private expect static unsafe cdecl "_scl_get_struct_by_id" function getStructByName0(:int): Struct
 
     static function getStructByName(name: str): Struct
+        Struct::struct Process::lock
         decl theStruct: Struct?
         unsafe
             name:hashCode getStructByName0 => theStruct
@@ -200,8 +205,12 @@ final sealed struct Struct
         unless theStruct then
             NullPointerException::new => decl e: mut Exception
             "Couldn't find struct '" name + "'" + => e.msg
-            e throw
+            e
+            Struct::struct Process::lock
+            throw
         fi
-        theStruct!! return
+        theStruct!!
+        Struct::struct Process::lock
+        return
     end
 end

@@ -5,7 +5,7 @@ cdecl "_scl_memset"
 expect unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "_scl_memcpy"
 expect unsafe function memcpy(dst: [any], src: [any], n: int): [any]
-cdecl "ctrl_stack_size"
+cdecl "_scl_stack_size"
 expect function sizeofStack(): int
 cdecl "_scl_sleep"
 expect function sleep(millis: int): none
@@ -35,11 +35,12 @@ expect unsafe function __c_srand(:int): none
 cdecl "time"
 expect unsafe function __c_time(:[int]?): int
 
-typealias varargs "..."
+typealias varargs "/* varargs */ ..."
 
 intrinsic cdecl "_scl_system" function system(command: str): int
   unsafe
-    command:view __c_system return
+    command:view __c_system
+    return
   end
 end
 
@@ -49,9 +50,11 @@ intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
     environKey:view __c_getenv => ptr
   end
   if ptr then
-    ptr!! str::new return
+    ptr!! str::new
+    return
   fi
-  nil return
+  nil
+  return
 end
 
 layout timeval
@@ -73,7 +76,8 @@ intrinsic cdecl "_scl_time" function time(): float
   tv.microseconds => decl microseconds: int
 
   tv any::delete
-  microseconds as float 1000000.0 / seconds + return
+  microseconds as float 1000000.0 / seconds +
+  return
 end
 
 deprecated![since: "23.5", replacement: "int::toString"]

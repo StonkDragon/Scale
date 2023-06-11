@@ -13,6 +13,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
+#include <dlfcn.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -25,8 +26,15 @@
 #endif
 #else
 #include <unistd.h>
-#include <pthread.h>
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
+#endif
+
+#define GC_DL
+#define GC_THREADS
+#if __has_include(<gc/gc.h>)
+#include <gc/gc.h>
+#else
+#error <gc/gc.h> not found, which is required for Scale!
 #endif
 
 #if !defined(_WIN32) && !defined(__wasm__)
@@ -71,19 +79,14 @@
 
 #define nullable __nullable
 #define nonnull  __nonnull
+#define tls __thread
 
 #define _scl_macro_to_string_(x) # x
 #define _scl_macro_to_string(x) _scl_macro_to_string_(x)
 
-#if defined(SCL_FEATURE_STATIC_ALLOCATOR)
-#define system_allocate(size)		malloc(size)
-#define system_free(ptr)			free(ptr)
-#define system_realloc(ptr, size)	realloc(ptr, size)
-#else
-#define system_allocate(size)		malloc(size)
-#define system_free(ptr)			free(ptr)
-#define system_realloc(ptr, size)	realloc(ptr, size)
-#endif
+#define system_allocate(size)				({_callstack.func[_callstack.ptr++] = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.ptr--; tmp; })
+#define system_free(_ptr)					({_callstack.func[_callstack.ptr++] = "<libc free()>"; free(_ptr); _callstack.ptr--; })
+#define system_realloc(_ptr, size)			({_callstack.func[_callstack.ptr++] = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.ptr--; tmp; })
 
 // Scale expects this function
 #define expect
@@ -192,6 +195,7 @@ typedef size_t				scl_uint;
 typedef scl_int				scl_bool;
 typedef struct scaleString* scl_str;
 typedef double 				scl_float;
+typedef pthread_mutex_t*	mutex_t;
 
 #define SCL_int64_MAX		INT64_MAX
 #define SCL_int64_MIN		INT64_MIN
@@ -224,6 +228,7 @@ struct scaleString {
 	scl_int8*	$__type_name__;
 	scl_int		$__super__;
 	scl_int		$__size__;
+	mutex_t		$__mutex__;
 	scl_int8*	_data;
 	scl_int		_len;
 	scl_int		_iter;
@@ -295,6 +300,8 @@ typedef void(*_scl_lambda)(void);
 #define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super))
 // Create a new instance of a struct
 #define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
+// Create a new instance of SclObject
+#define NEWOBJ()				_scl_alloc_struct(sizeof(struct Struct_SclObject), "SclObject", 0)
 
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
@@ -309,15 +316,7 @@ void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 void				print_stacktrace_with_file(FILE* trace);
 
-void				ctrl_push_string(scl_str c);
-void				ctrl_push_long(scl_int n);
-void				ctrl_push_double(scl_float d);
-void				ctrl_push(scl_any n);
-scl_str				ctrl_pop_string(void);
-scl_float			ctrl_pop_double(void);
-scl_int				ctrl_pop_long(void);
-scl_any				ctrl_pop(void);
-scl_int				ctrl_stack_size(void);
+scl_int				_scl_stack_size(void);
 _scl_frame_t*		_scl_push();
 _scl_frame_t*		_scl_pop();
 _scl_frame_t*		_scl_top();
@@ -367,6 +366,9 @@ scl_any				_scl_get_struct_by_id(scl_int id);
 scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+
+void				Process$lock(Struct* obj);
+void				Process$unlock(Struct* obj);
 
 inline void _scl_swap() {
 	scl_any b = _scl_pop()->v;

@@ -16,8 +16,6 @@ namespace sclc
         return result;
     }
 
-    extern FILE* support_header;
-
     template<typename T>
     bool compare(T& a, T& b) {
         if constexpr(std::is_pointer<T>::value) {
@@ -67,10 +65,6 @@ namespace sclc
         vars.clear();
         vars.push_back(defaultScope);
 
-        remove("scale_support.h");
-        support_header = fopen("scale_support.h", "a");
-        fprintf(support_header, "#include <scale_runtime.h>\n\n");
-
         if (
             featureEnabled("default-interface-implementation") ||
             featureEnabled("default-interface-impl")
@@ -111,8 +105,6 @@ namespace sclc
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
         ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
-
-        fclose(support_header);
 
         append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {

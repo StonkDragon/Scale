@@ -728,6 +728,7 @@ namespace sclc
             cflags.push_back("-I" + scaleFolder + "/Internal");
             cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I.");
+            cflags.push_back("-lgc");
             if (!Main.options.noMain)
                 cflags.push_back(scaleFolder + "/Internal/runtime_vars.c");
             cflags.push_back(scaleFolder + "/Internal/scale_runtime.c");

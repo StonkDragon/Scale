@@ -16,75 +16,103 @@ final struct File
   end
 
   function close(): none
+    self Process::lock
     unsafe
       _file File::__c_fclose
     end
+    self Process::unlock
   end
 
   function append(s: str): none
+    self Process::lock
     unsafe
       s:view 1 s:size _file File::__c_fwrite
     end
+    self Process::unlock
   end
 
   function puts(s: any): none
+    self Process::lock
     s builtinToString => decl val: str
     val self:append
     "\n" self:append
+    self Process::unlock
   end
 
   function writeBinary(buf: any, sz: int): none
+    self Process::lock
     unsafe
       buf 1 sz _file File::__c_fwrite
     end
+    self Process::unlock
   end
 
   function read(sz: int): any
+    self Process::lock
     sz malloc => decl buffer: [any]?
     unsafe
       buffer 1 sz _file File::__c_fread
     end
-    buffer return
+    buffer
+    self Process::unlock
+    return
   end
 
   function offsetFromBegin(offset: int): none
+    self Process::lock
     unsafe
       _file offset 0 File::__c_fseek
     end
+    self Process::unlock
   end
 
   function offsetFromEnd(offset: int): none
+    self Process::lock
     unsafe
       _file offset 2 File::__c_fseek
     end
+    self Process::unlock
   end
 
   function offset(offset: int): none
+    self Process::lock
     unsafe
       _file offset 1 File::__c_fseek
     end
+    self Process::unlock
   end
 
   function fileno(): int
+    self Process::lock
     unsafe
-      _file File::__c_fileno return
+      _file File::__c_fileno
+      self Process::unlock
+      return
     end
   end
 
   function pos(): int
+    self Process::lock
     unsafe
-      _file File::__c_ftell return
+      _file File::__c_ftell
+      self Process::unlock
+      return
     end
   end
 
   function delete(): bool
+    self Process::lock
     unsafe
-      self._name:view __c_remove 0 == return
+      self._name:view __c_remove 0 ==
+      self Process::unlock
+      return
     end
   end
 
   function create(): none
+    self Process::lock
     "" self:append
+    self Process::unlock
   end
 
   static function exists(f: str): bool

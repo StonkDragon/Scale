@@ -96,17 +96,20 @@ framework: {
         std.util.Triple: [
             "std/util/Triple.scale";
         ];
-        std.threading.Thread: [
-            "std/thread/Thread.scale";
-        ];
-        std.threading.AtomicInteger: [
-            "std/thread/atomics/Integer.scale";
-        ];
-        std.threading.AtomicObject: [
-            "std/thread/atomics/Object.scale";
-        ];
         std.reflect.Struct: [
             "std/reflect/Struct.scale";
+        ];
+        std.runtime.Process: [
+            "std/runtime/Process.scale";
+        ];
+        std.runtime.GarbageCollector: [
+            "std/runtime/GarbageCollector.scale";
+        ];
+        std.runtime.Library: [
+            "std/runtime/Library.scale";
+        ];
+        std.thread.Thread: [
+            "std/thread/Thread.scale";
         ];
     };
 };

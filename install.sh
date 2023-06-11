@@ -27,6 +27,11 @@ if ! which make >/dev/null; then
     failedACommand=1
 fi
 
+if ! which cmake >/dev/null; then
+    echo "Please install cmake"
+    failedACommand=1
+fi
+
 if [ "$failedACommand" = "1" ]; then
     exit 1
 fi
@@ -54,6 +59,17 @@ rm -rf Dragon
 
 echo "---------"
 echo "Installing..."
+
+install-boehm-gc() {
+    git clone https://github.com/ivmai/bdwgc.git bdwgc
+    cd bdwgc
+    mkdir out
+    cd out
+    cmake -Dbuild_tests=ON ..
+    cmake --build .
+    ctest
+    sudo make install
+}
 
 dragon build -conf install
 

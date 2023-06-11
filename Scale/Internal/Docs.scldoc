@@ -737,7 +737,7 @@ Subkeys of <<CYAN>>framework<<RESET>>:
 
 ### Modules
 A module is used to bundle certain files into a single package that can then be included in a Scale file.
-An example of this would be the <<CYAN>>std.threading.Thread<<RESET>> module which will include the file <<GREEN>>Scale/thread/thread.scale<<RESET>> from the Scale framework.
+An example of this would be the <<CYAN>>std.util.TypedArray<<RESET>> module which will include the file <<GREEN>>std/util/TypedArray.scale<<RESET>> from the Scale framework.
 
 Modules can be declared in the scale.drg or index.drg files by putting them in the <<CYAN>>modules<<RESET>> compound.
 See <<BLUE>>scale.drg<<RESET>> and <<BLUE>>index.drg<<RESET>> for more information.
