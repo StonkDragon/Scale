@@ -186,14 +186,15 @@
 
 typedef void*				scl_any;
 
-#define SCL_INT_HEX_FMT 	"%lx"
-#define SCL_PTR_HEX_FMT 	"0x%016lx"
-#define SCL_INT_FMT		 	"%ld"
+#define SCL_INT_HEX_FMT		"%lx"
+#define SCL_PTR_HEX_FMT		"0x%016lx"
+#define SCL_INT_FMT			"%ld"
+#define SCL_UINT_FMT		"%lu"
 
 typedef long				scl_int;
 typedef size_t				scl_uint;
 typedef scl_int				scl_bool;
-typedef struct scaleString* scl_str;
+typedef struct scaleString*	scl_str;
 typedef double 				scl_float;
 typedef pthread_mutex_t*	mutex_t;
 
@@ -214,14 +215,14 @@ typedef pthread_mutex_t*	mutex_t;
 #define SCL_uint8_MAX		UINT8_MAX
 #define SCL_uint8_MIN		((scl_uint8) 0)
 
-typedef long long 			scl_int64;
-typedef int		 			scl_int32;
-typedef short		 		scl_int16;
-typedef char		 		scl_int8;
+typedef long long			scl_int64;
+typedef int					scl_int32;
+typedef short				scl_int16;
+typedef char				scl_int8;
 typedef unsigned long long	scl_uint64;
-typedef unsigned int 		scl_uint32;
-typedef unsigned short 		scl_uint16;
-typedef unsigned char 		scl_uint8;
+typedef unsigned int		scl_uint32;
+typedef unsigned short		scl_uint16;
+typedef unsigned char		scl_uint8;
 
 struct scaleString {
 	scl_int		$__type__;
@@ -367,8 +368,9 @@ scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
 
-void				Process$lock(Struct* obj);
-void				Process$unlock(Struct* obj);
+void				Process$lock(volatile scl_any obj);
+void				Process$unlock(volatile scl_any obj);
+mutex_t				_scl_mutex_new();
 
 inline void _scl_swap() {
 	scl_any b = _scl_pop()->v;
