@@ -86,7 +86,7 @@ volatile Struct* binarySearchLock = nil;
 // returns the index at which the value was inserted
 // will not insert value, if it is already present in the array
 scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	if (*array == nil) {
 		(*array) = system_allocate(sizeof(scl_any) * (*cap));
 	}
@@ -99,7 +99,7 @@ scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* ca
 			}
 		}
 	}
-	if ((*array)[i] == value) return (Process$unlock(runtimeModifierLock), i);
+	if ((*array)[i] == value) return (Process$unlock((volatile scl_any) runtimeModifierLock), i);
 
 	if ((*size) + 1 >= (*cap)) {
 		(*cap) += 64;
@@ -117,17 +117,17 @@ scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* ca
 	(*array)[i] = value;
 
 	(*size)++;
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 	return i;
 }
 
 void _scl_remove_stack(_scl_stack_t* stack) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	scl_int index;
 	while ((index = _scl_stack_index(stack)) != -1) {
 		_scl_remove_stack_at(index);
 	}
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 }
 
 scl_int _scl_stack_index(_scl_stack_t* stack) {
@@ -136,22 +136,22 @@ scl_int _scl_stack_index(_scl_stack_t* stack) {
 }
 
 void _scl_remove_stack_at(scl_int index) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	for (scl_int i = index; i < stacks_count - 1; i++) {
 		stacks[i] = stacks[i + 1];
 	}
 	stacks_count--;
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 }
 
 void _scl_remove_ptr(scl_any ptr) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	scl_int index;
 	// Finds all indices of the pointer in the table and removes them
 	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
 		_scl_remove_ptr_at_index(index);
 	}
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 }
 
 // Returns the next index of a given pointer in the allocated-pointers array
@@ -162,14 +162,14 @@ scl_int _scl_get_index_of_ptr(scl_any ptr) {
 
 // Removes the pointer at the given index and shift everything after left
 void _scl_remove_ptr_at_index(scl_int index) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	for (scl_int i = index; i < allocated_count - 1; i++) {
 		allocated[i] = allocated[i + 1];
 		memsizes[i] = memsizes[i + 1];
 	}
 	allocated_count--;
 	memsizes_count--;
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
@@ -179,7 +179,7 @@ scl_int _scl_sizeof(scl_any ptr) {
 }
 
 scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, scl_any value) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	if (*array == nil) {
 		(*array) = system_allocate(sizeof(scl_any) * (*cap));
 	}
@@ -189,7 +189,7 @@ scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, 
 		(*array) = system_realloc((*array), (*cap) * sizeof(scl_any*));
 		if ((*array) == nil) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
-			Process$unlock(runtimeModifierLock);
+			Process$unlock((volatile scl_any) runtimeModifierLock);
 			return -1;
 		}
 	}
@@ -201,7 +201,7 @@ scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, 
 	(*array)[index] = value;
 
 	(*count)++;
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 	return index;
 }
 
@@ -652,13 +652,13 @@ scl_int _scl_identity_hash(scl_any _obj) {
 		return *(scl_int*) &_obj;
 	}
 	Struct* obj = (Struct*) _obj;
-	Process$lock(obj);
+	Process$lock((volatile scl_any) obj);
 	scl_int size = obj->size;
 	scl_int hash = (*(scl_int*) &obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((char*) obj)[i];
 	}
-	Process$unlock(obj);
+	Process$unlock((volatile scl_any) obj);
 	return hash;
 }
 
@@ -705,14 +705,14 @@ extern struct _scl_typeinfo		_scl_types[];
 extern scl_int 					_scl_types_count;
 
 scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	scl_int left = 0;
 	scl_int right = count - 1;
 
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
 		if (types[mid].type == type) {
-			Process$unlock(runtimeModifierLock);
+			Process$unlock((volatile scl_any) runtimeModifierLock);
 			return mid;
 		} else if (types[mid].type < type) {
 			left = mid + 1;
@@ -721,7 +721,7 @@ scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int c
 		}
 	}
 
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 	return -1;
 }
 
@@ -745,14 +745,14 @@ extern scl_int structs_count;
 extern scl_int structs_cap;
 
 scl_int _scl_binary_search_struct_struct_index(_scl_Struct** structs, scl_int count, hash type) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	scl_int left = 0;
 	scl_int right = count - 1;
 
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
 		if (structs[mid]->typeId == type) {
-			Process$unlock(runtimeModifierLock);
+			Process$unlock((volatile scl_any) runtimeModifierLock);
 			return mid;
 		} else if (structs[mid]->typeId < type) {
 			left = mid + 1;
@@ -761,7 +761,7 @@ scl_int _scl_binary_search_struct_struct_index(_scl_Struct** structs, scl_int co
 		}
 	}
 
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 	return -1;
 }
 
@@ -849,7 +849,10 @@ scl_any _scl_add_struct(scl_any ptr) {
 
 mutex_t _scl_mutex_new() {
 	mutex_t m = GC_malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(m, nil);
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(m, &attr);
 	return m;
 }
 
@@ -887,12 +890,12 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 
 // Removes an instance from the allocated table by index
 void _scl_struct_map_remove(scl_int index) {
-	Process$lock(runtimeModifierLock);
+	Process$lock((volatile scl_any) runtimeModifierLock);
 	for (scl_int i = index; i < instances_count - 1; i++) {
 	   instances[i] = instances[i + 1];
 	}
 	instances_count--;
-	Process$unlock(runtimeModifierLock);
+	Process$unlock((volatile scl_any) runtimeModifierLock);
 }
 
 // Returns the next index of an instance in the allocated table
@@ -938,6 +941,7 @@ scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo*
 
 // Returns true, if the instance is of a given struct type
 scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
+	if (_scl_expect(!ptr, 0)) return 0;
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
 	if (_scl_expect(!isStruct, 0)) return 0;
 
@@ -952,14 +956,14 @@ scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
 }
 
 scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
-	Process$lock(binarySearchLock);
+	Process$lock((volatile scl_any) binarySearchLock);
 	scl_int left = 0;
 	scl_int right = count - 1;
 
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
 		if (arr[mid] == val) {
-			Process$unlock(binarySearchLock);
+			Process$unlock((volatile scl_any) binarySearchLock);
 			return mid;
 		} else if (arr[mid] < val) {
 			left = mid + 1;
@@ -968,12 +972,12 @@ scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
 		}
 	}
 
-	Process$unlock(binarySearchLock);
+	Process$unlock((volatile scl_any) binarySearchLock);
 	return -1;
 }
 
 scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id) {
-	Process$lock(binarySearchLock);
+	Process$lock((volatile scl_any) binarySearchLock);
 	scl_int left = 0;
 	scl_int right = count - 1;
 
@@ -982,7 +986,7 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 	while (left <= right) {
 		scl_int mid = (left + right) / 2;
 		if (methods_[mid].pure_name == id) {
-			Process$unlock(binarySearchLock);
+			Process$unlock((volatile scl_any) binarySearchLock);
 			return mid;
 		} else if (methods_[mid].pure_name < id) {
 			left = mid + 1;
@@ -991,7 +995,7 @@ scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id
 		}
 	}
 
-	Process$unlock(binarySearchLock);
+	Process$unlock((volatile scl_any) binarySearchLock);
 	return -1;
 }
 
@@ -1407,7 +1411,7 @@ scl_str float$toHexString(scl_float val) {
 }
 
 scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str name) {
-	Process$lock(self);
+	Process$lock((volatile scl_any) self);
 	for (scl_int i = 0; i < (self)->members_count; i++) {
 		struct _scl_membertype member = ((struct _scl_membertype*) (self)->members)[i];
 		if (member.pure_name == (name)->_hash) {
@@ -1419,12 +1423,12 @@ scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str n
 			}
 			((struct _scl_membertype*) (self)->members)[i].access_flags = flags;
 
-			Process$unlock(self);
+			Process$unlock((volatile scl_any) self);
 			return 1;
 		}
 	}
 
-	Process$unlock(self);
+	Process$unlock((volatile scl_any) self);
 	return 0;
 }
 
@@ -1494,13 +1498,23 @@ struct Struct_Array* Process$stackTrace() {
 scl_bool Process$gcEnabled() {
 	return !GC_is_disabled();
 }
-
-void Process$lock(Struct* obj) {
-	pthread_mutex_lock(obj->mutex);
+void Process$lock0(mutex_t mutex) {
+	_callstack.func[_callstack.ptr++] = "<runtime Process::lock0(mutex: mutex_t): none>";
+	pthread_mutex_lock(mutex);
+	_callstack.ptr--;
 }
-
-void Process$unlock(Struct* obj) {
-	pthread_mutex_unlock(obj->mutex);
+void Process$lock(volatile scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	Process$lock0(((volatile Struct*) obj)->mutex);
+}
+void Process$unlock0(mutex_t mutex) {
+	_callstack.func[_callstack.ptr++] = "<runtime Process::unlock0(mutex: mutex_t): none>";
+	pthread_mutex_unlock(mutex);
+	_callstack.ptr--;
+}
+void Process$unlock(volatile scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	Process$unlock0(((volatile Struct*) obj)->mutex);
 }
 
 scl_str GarbageCollector$getImplementation0() {
@@ -1553,16 +1567,12 @@ void Thread$run(scl_Thread self) {
 }
 
 scl_int Thread$start0(scl_Thread self) {
-	Process$lock(self);
 	int ret = GC_pthread_create(&self->nativeThread, 0, (scl_any) Thread$run, self);
-	Process$unlock(self);
 	return ret;
 }
 
 scl_int Thread$stop0(scl_Thread self) {
-	Process$lock(self);
 	int ret = GC_pthread_join(self->nativeThread, 0);
-	Process$unlock(self);
 	return ret;
 }
 
@@ -1630,8 +1640,8 @@ extern genericFunc _scl_internal_init_functions[];
 // last element is always nil
 extern genericFunc _scl_internal_destroy_functions[];
 
-void* _scl_oom(scl_int size) {
-	fprintf(stderr, "Out of memory! Tried to allocate %d bytes.\n", size);
+void* _scl_oom(scl_uint size) {
+	fprintf(stderr, "Out of memory! Tried to allocate " SCL_UINT_FMT " bytes.\n", size);
 	return nil;
 }
 
@@ -1652,12 +1662,15 @@ int main(int argc, char** argv) {
 #endif
 
 	GC_init();
-	GC_set_oom_fn(_scl_oom);
+	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
 	argv0 = argv[0];
 
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
+
+	runtimeModifierLock = NEWOBJ();
+	binarySearchLock = NEWOBJ();
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
@@ -1676,8 +1689,6 @@ int main(int argc, char** argv) {
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
-	runtimeModifierLock = NEWOBJ();
-	binarySearchLock = NEWOBJ();
 	_scl_exception_push();
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 
