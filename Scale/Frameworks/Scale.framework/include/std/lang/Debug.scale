@@ -23,7 +23,6 @@ cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
 intrinsic function dumpStack(): none
-  Process::lock
   unsafe
     c!
       printf("Dump:\n");
@@ -34,7 +33,6 @@ intrinsic function dumpStack(): none
       printf("\n");
     end
   end
-  Process::unlock
 end
 
 function crash(): none
