@@ -8,105 +8,105 @@ final struct Fraction
     end
 
     function toString(): str
-        self Process::lock
+        self:lock
         numerator:toString "/" + denominator:toString +
-        self Process::unlock
+        self:unlock
         return
     end
 
     function toFloat(): float
-        self Process::lock
+        self:lock
         numerator as float denominator as float /
-        self Process::unlock
+        self:unlock
         return
     end
 
     function +(other: Fraction): Fraction
-        self Process::lock
+        self:lock
         self.denominator other.numerator *
         self.numerator other.denominator *
         +
         self.denominator other.denominator *
         Fraction::new
-        self Process::unlock
+        self:unlock
         return
     end
 
     function -(other: Fraction): Fraction
-        self Process::lock
+        self:lock
         self.denominator other.numerator *
         self.numerator other.denominator *
         -
         self.denominator other.denominator *
         Fraction::new
-        self Process::unlock
+        self:unlock
         return
     end
 
     function ++(): Fraction
-        self Process::lock
+        self:lock
         self.numerator self.denominator + => self.numerator
         self
-        self Process::unlock
+        self:unlock
         return
     end
 
     function --(): Fraction
-        self Process::lock
+        self:lock
         self.numerator self.denominator - => self.numerator
         self
-        self Process::unlock
+        self:unlock
         return
     end
 
     function *(other: Fraction): Fraction
-        self Process::lock
+        self:lock
         self.numerator other.numerator *
         self.denominator other.denominator *
         Fraction::new
-        self Process::unlock
+        self:unlock
         return
     end
 
     function inverse(): Fraction
-        self Process::lock
+        self:lock
         self.denominator self.numerator Fraction::new
-        self Process::unlock
+        self:unlock
         return
     end
 
     function /(other: Fraction): Fraction
-        self Process::lock
+        self:lock
         other self:inverse *
-        self Process::unlock
+        self:unlock
         return
     end
 
     function isNan(): bool
-        self Process::lock
+        self:lock
         self.numerator 0 == self.denominator 0 == &&
-        self Process::unlock
+        self:unlock
         return
     end
 
     function isInfinite(): bool
-        self Process::lock
+        self:lock
         self.denominator 0 ==
-        self Process::unlock
+        self:unlock
         return
     end
 
     function isFinite(): bool
-        self Process::lock
+        self:lock
         self:isInfinite !
-        self Process::unlock
+        self:unlock
         return
     end
 
     function isNotNan(): bool
-        self Process::lock
+        self:lock
         self:isNan !
-        self Process::unlock
+        self:unlock
         return
     end
 

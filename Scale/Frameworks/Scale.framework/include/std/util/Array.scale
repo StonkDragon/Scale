@@ -17,7 +17,7 @@ sealed struct Array is IIterable
   private function checkTypeOrThrow(value: any): none end
   
   function sort(): none
-    self Process::lock
+    self:lock
     0 => decl i
 
     while i self.count < do
@@ -35,7 +35,7 @@ sealed struct Array is IIterable
       done
       i++ => i
     done
-    self Process::unlock
+    self:unlock
   end
 
   function get(index: int): any?
@@ -51,7 +51,7 @@ sealed struct Array is IIterable
   end
 
   function set(index: int, value: any): none
-    self Process::lock
+    self:lock
     value self:checkTypeOrThrow
     if index 0 < index self.capacity >= || then
       "Index "
@@ -60,7 +60,7 @@ sealed struct Array is IIterable
       self.capacity:toString +
       "!" +
       IndexOutOfBoundsException::new
-      self Process::unlock
+      self:unlock
       throw
     fi
     
@@ -71,7 +71,7 @@ sealed struct Array is IIterable
     unsafe
       value => @(self.values index sizeof any * +)
     end
-    self Process::unlock
+    self:unlock
   end
 
   function top(): any?
@@ -82,7 +82,7 @@ sealed struct Array is IIterable
   end
 
   function push(value: any): none
-    self Process::lock
+    self:lock
     value self:checkTypeOrThrow
 
     if self.count self.capacity >= then
@@ -95,22 +95,22 @@ sealed struct Array is IIterable
       value => @(self.values self.count sizeof any * +)
     end
     self.count 1 + => self.count
-    self Process::unlock
+    self:unlock
   end
 
   function pop(): none
-    self Process::lock
+    self:lock
     if self.count 0 <= then
       "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new
-      self Process::unlock
+      self:unlock
       throw
     fi
     self.count 1 - => self.count
-    self Process::unlock
+    self:unlock
   end
 
   function indexOf(val: any): int
-    self Process::lock
+    self:lock
     val self:checkTypeOrThrow
     for i in 0 to self.count do
       if i self:get is SclObject then
@@ -120,18 +120,18 @@ sealed struct Array is IIterable
             val as SclObject
             ==
           then
-            self Process::unlock
+            self:unlock
             i return
           fi
         fi
       else
         if i self:get val == then
-          self Process::unlock
+          self:unlock
           i return
         fi
       fi
     done
-    self Process::unlock
+    self:unlock
     -1 return
   end
 
@@ -167,7 +167,7 @@ sealed struct Array is IIterable
   end
 
   function reverse(): Array
-    self Process::lock
+    self:lock
     if self.count 0 <= then self return fi
     
     self.count Array::new => decl tmp
@@ -181,12 +181,12 @@ sealed struct Array is IIterable
       tmp:pop
     done
     tmp free
-    self Process::unlock
+    self:unlock
     self return
   end
 
   function toString() s: str
-    self Process::lock
+    self:lock
     if self.count 0 == then
       "{}" => s
     else
@@ -200,12 +200,12 @@ sealed struct Array is IIterable
       done
       s "}" + => s
     fi
-    self Process::unlock
+    self:unlock
     return
   end
 
   function immutableCopy(): ImmutableArray
-    self Process::lock
+    self:lock
     self.count sizeof any * malloc => decl newVals: [any]
     unsafe
       newVals self.values self.count sizeof any * memcpy => newVals
@@ -213,19 +213,19 @@ sealed struct Array is IIterable
     self.count => decl newCount: int
 
     newCount newVals ImmutableArray::new
-    self Process::unlock
+    self:unlock
     return
   end
 
   function remove(val: any): none
     val self:checkTypeOrThrow
     val self:indexOf => decl index
-    self Process::lock
+    self:lock
     for i in index to self.count 1 - do
       i (i 1 + self:get) self:set
     done
     self.count 1 - => self.count
-    self Process::unlock
+    self:unlock
   end
 
   function removeAll(val: any): none
@@ -236,39 +236,39 @@ sealed struct Array is IIterable
   end
 
   function map(x: lambda(any): none): none
-    self Process::lock
+    self:lock
     foreach elem in self do
       elem x:accept
     done
-    self Process::unlock
+    self:unlock
   end
 
   function filter(x: lambda(any): bool) arr: Array
-    self Process::lock
+    self:lock
     self.capacity Array::new => arr
     foreach elem in self do
       if elem x:accept then
         elem arr:push
       fi
     done
-    self Process::unlock
+    self:unlock
     return
   end
 
   function clone(): Array
-    self Process::lock
+    self:lock
     self builtinAtomicClone as Array => decl clone: mut Array
     self.values builtinAtomicClone => clone.values
-    self Process::unlock
+    self:unlock
     clone return
   end
 
   function *(): none
-    self Process::lock
+    self:lock
     foreach elem in self do
       elem
     done
-    self Process::unlock
+    self:unlock
     unsafe
       c!
         scl_int* begin_sp = (scl_int*) &__begin_stack_size;

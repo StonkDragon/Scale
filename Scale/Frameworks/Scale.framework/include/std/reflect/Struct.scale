@@ -9,6 +9,12 @@ layout StructBaseLayout
 end
 
 final sealed struct Struct
+    private static decl structLock: SclObject
+
+    construct function StructCInit(): none
+        SclObject::new => structLock
+    end
+
     private decl typeName: str
     private decl typeId: int
     private decl superStruct: Struct?
@@ -163,7 +169,7 @@ final sealed struct Struct
     private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int): lambda
 
     function getMethodByName(name: str) method: lambda
-        self Process::lock
+        self:lock
         unsafe
             self.typeId name:hashCode getMethodByName0 => method
         end
@@ -174,10 +180,10 @@ final sealed struct Struct
             self.typeName +
             "'" + => e.msg
             e
-            self Process::lock
+            self:lock
             throw
         fi
-        self Process::lock
+        self:lock
         return
     end
 
@@ -196,7 +202,7 @@ final sealed struct Struct
     private expect static unsafe cdecl "_scl_get_struct_by_id" function getStructByName0(:int): Struct
 
     static function getStructByName(name: str): Struct
-        Struct::struct Process::lock
+        Struct::structLock:lock
         decl theStruct: Struct?
         unsafe
             name:hashCode getStructByName0 => theStruct
@@ -206,11 +212,11 @@ final sealed struct Struct
             NullPointerException::new => decl e: mut Exception
             "Couldn't find struct '" name + "'" + => e.msg
             e
-            Struct::struct Process::lock
+            Struct::structLock:lock
             throw
         fi
         theStruct!!
-        Struct::struct Process::lock
+        Struct::structLock:lock
         return
     end
 end

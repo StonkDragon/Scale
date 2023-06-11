@@ -26,37 +26,37 @@ sealed struct Map is IIterable
   end
 
   function get(key: str): any?
-    self Process::lock
+    self:lock
     foreach entry in self.data do
       if entry nil == then continue fi
 
       entry => decl notNilEntry: MapEntry
       if notNilEntry.key nil == then continue fi
       if key notNilEntry.key == then
-        self Process::unlock
+        self:unlock
         notNilEntry.value return
       fi
     done
-    self Process::unlock
+    self:unlock
     nil return
   end
 
   function set(key: str, value: any): none
-    self Process::lock
+    self:lock
     for i in 0 to self.data.count do
       i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
         i key value MapEntry::new self.data:set
-        self Process::unlock
+        self:unlock
         return
       elif entry as MapEntry.key key:equals then
         value => entry.value
-        self Process::unlock
+        self:unlock
         return
       fi
     done
     key value MapEntry::new self.data:push
-    self Process::unlock
+    self:unlock
   end
 
   function begin(): none
@@ -76,12 +76,12 @@ sealed struct Map is IIterable
   end
 
   function map(x: lambda(MapEntry): none): none
-    self Process::lock
+    self:lock
     foreach value in self.data do
       if value then
         value x:accept
       fi
     done
-    self Process::unlock
+    self:unlock
   end
 end

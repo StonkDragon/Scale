@@ -20,5 +20,13 @@ struct SclObject is ICloneable, IEquatable, IHashable
         typeof self Struct::getStructByName return
     end
 
+    final function lock(): none
+        self Process::lock
+    end
+
+    final function unlock(): none
+        self Process::unlock
+    end
+
     function init(): none end
 end

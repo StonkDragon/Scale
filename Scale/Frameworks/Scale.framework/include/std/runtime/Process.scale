@@ -1,4 +1,5 @@
 import std.runtime.Library
+import std.thread.Thread
 
 static final sealed struct Process
     cdecl "_scl_security_safe_exit"
@@ -12,9 +13,9 @@ static final sealed struct Process
     expect function gcEnabled(): bool
 
     function isOnMainThread(): bool
-        Thread::currentThread Process::lock
+        Thread::currentThread:lock
         Thread::currentThread Thread::mainThread ==
-        Thread::currentThread Process::unlock
+        Thread::currentThread:unlock
         return
     end
 

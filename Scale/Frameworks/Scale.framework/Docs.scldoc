@@ -820,6 +820,12 @@ Returns the <<CYAN>>identity hash<<RESET>> of this object.
 Returns the <<WHITE>>Struct<<RESET>> instance representing the struct of this object.
 This function cannot be overridden.
 
+### final function SclObject:lock(): none
+Locks this object.
+
+### final function SclObject:unlock(): none
+Unlocks this object.
+
 @std.reflect.Struct
 ## Struct
 ### struct Struct

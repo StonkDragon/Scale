@@ -41,7 +41,7 @@ sealed struct ReadOnlyArray: Array
     end
 
     static function fromArray(arr: Array) out: ReadOnlyArray
-        arr Process::lock
+        arr:lock
         arr.capacity ReadOnlyArray::new => out
         unsafe
             c!
@@ -50,7 +50,7 @@ sealed struct ReadOnlyArray: Array
                 }
             end
         end
-        arr Process::unlock
+        arr:unlock
         return
     end
 

@@ -5,42 +5,42 @@ static final sealed struct GarbageCollector
     private expect unsafe function getImplementation0(): [int8]
 
     function collect(): none
-        self Process::lock
+        self:lock
         unsafe
             self:run0
         end
     end
 
     function pause(): none
-        self Process::lock
+        self:lock
         unsafe
             true setPaused0
         end
-        self Process::unlock
+        self:unlock
     end
 
     function resume(): none
-        self Process::lock
+        self:lock
         unsafe
             false setPaused0
         end
-        self Process::unlock
+        self:unlock
     end
 
     function isPaused(): bool
-        self Process::lock
+        self:lock
         unsafe
             isPaused0 
-            self Process::unlock
+            self:unlock
             return
         end
     end
 
     function implementation(): str
-        self Process::lock
+        self:lock
         unsafe
             getImplementation0 str::new 
-            self Process::unlock
+            self:unlock
             return
         end
     end

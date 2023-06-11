@@ -58,52 +58,52 @@ final sealed struct Thread
     private expect unsafe function run(): none
 
     function start(): none
-        self Process::lock
+        self:lock
         if tid then
             "Thread started" ThreadException::new
-            self Process::unlock
+            self:unlock
             throw
         fi
         unsafe
             self:start0 => decl res: int
             if res 0 != then
                 "Thread start failed" ThreadException::new
-                self Process::unlock
+                self:unlock
                 throw
             fi
         end
-        self Process::unlock
+        self:unlock
     end
 
     function join(): none
         unless tid then
             "Thread ended" ThreadException::new
-            self Process::unlock
+            self:unlock
             throw
         fi
         unsafe
             self:stop0 => decl res: int
             if res 0 != then
                 "Thread join failed" ThreadException::new
-                self Process::unlock
+                self:unlock
                 throw
             fi
         end
         nil => self.tid
-        self Process::unlock
+        self:unlock
     end
 
     function equals(other: Thread): bool
-        self Process::lock other Process::lock
+        self:lock other:lock
         self other ==
-        self Process::unlock other Process::unlock
+        self:unlock other:unlock
         return
     end
 
     function ==(other: Thread): bool
-        self Process::lock other Process::lock
+        self:lock other:lock
         self.tid other.tid ==
-        self Process::unlock other Process::unlock
+        self:unlock other:unlock
         return
     end
 end
