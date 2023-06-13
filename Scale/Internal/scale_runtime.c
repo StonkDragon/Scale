@@ -390,22 +390,17 @@ scl_int8* _scl_strdup(scl_int8* str) {
 extern const scl_int _scl_internal_string_literals_count;
 extern struct scaleString _scl_internal_string_literals[];
 
-scl_int _scl_find_string_in_literals(hash h) {
-	scl_int left = 0;
-	scl_int right = _scl_internal_string_literals_count - 1;
+scl_int _scl_find_string_in_literals(scl_int8* str, scl_int len) {
+	scl_int index = -1;
 
-	while (left <= right) {
-		scl_int mid = (left + right) / 2;
-		if (_scl_internal_string_literals[mid]._hash == h) {
-			return mid;
-		} else if (_scl_internal_string_literals[mid]._hash < h) {
-			left = mid + 1;
-		} else {
-			right = mid - 1;
+	for (scl_int i = 0; i < _scl_internal_string_literals_count; i++) {
+		if (_scl_internal_string_literals[i]._len != len) continue;
+		if (strncmp(_scl_internal_string_literals[i]._data, str, len) == 0) {
+			index = i;
+			break;
 		}
 	}
-
-	return -1;
+	return index;
 }
 
 scl_str _scl_create_string(scl_int8* data) {
@@ -414,14 +409,13 @@ scl_str _scl_create_string(scl_int8* data) {
 	};
 
 	scl_int len = strlen(data);
-	hash h = hash1len(data, len);
-
-	scl_int index = _scl_find_string_in_literals(h);
+	scl_int index = _scl_find_string_in_literals(data, len);
 
 	if (index != -1) {
 		scl_str s = (scl_str) &(_scl_internal_string_literals[index]);
 		if (!s->$__mutex__) {
 			s->$__mutex__ = _scl_mutex_new();
+			s->_hash = hash1len(data, len);
 		}
 		_scl_add_struct(s);
 		return s;
@@ -433,7 +427,7 @@ scl_str _scl_create_string(scl_int8* data) {
 		return nil;
 	}
 	self->_len = len;
-	self->_hash = h;
+	self->_hash = hash1len(data, len);
 	self->_data = _scl_strndup(data, self->_len);
 	return self;
 }
@@ -1535,6 +1529,54 @@ void GarbageCollector$setPaused0(scl_bool paused) {
 
 void GarbageCollector$run0() {
 	GC_gcollect();
+}
+
+scl_int GarbageCollector$heapSize() {
+	scl_uint heapSize;
+	GC_get_heap_usage_safe(
+		&heapSize,
+		nil,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) heapSize;
+}
+
+scl_int GarbageCollector$freeBytesEstimate() {
+	scl_uint freeBytes;
+	GC_get_heap_usage_safe(
+		nil,
+		&freeBytes,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) freeBytes;
+}
+
+scl_int GarbageCollector$bytesSinceLastCollect() {
+	scl_uint bytesSinceLastCollect;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		&bytesSinceLastCollect,
+		nil,
+		nil
+	);
+	return (scl_int) bytesSinceLastCollect;
+}
+
+scl_int GarbageCollector$totalMemory() {
+	scl_uint totalMemory;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		nil,
+		&totalMemory,
+		nil
+	);
+	return (scl_int) totalMemory;
 }
 
 typedef struct Struct_Thread {
