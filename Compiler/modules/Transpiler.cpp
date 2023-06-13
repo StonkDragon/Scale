@@ -5145,9 +5145,9 @@ namespace sclc {
             append(".$__size__ = sizeof(struct Struct_str),\n");
             append(".$__mutex__ = nil,\n");
             append("._data = \"%s\",\n", str.c_str());
-            append("._len = %zu,\n", str.size());
+            append("._len = sizeof(\"%s\") - 1,\n", str.c_str());
             append("._iter = 0,\n");
-            append("._hash = 0x%x\n", hash1((char*) str.c_str()));
+            append("._hash = 0\n");
             scopeDepth--;
             append("},\n");
         }
