@@ -5,7 +5,7 @@ layout StructBaseLayout
     decl typeName: [int8]
     decl superStruct: int
     decl binarySize: int
-    decl refCount: int
+    decl mutex: any
 end
 
 final sealed struct Struct
@@ -32,6 +32,7 @@ final sealed struct Struct
     end
 
     private expect static unsafe cdecl "_scl_add_struct" function addStruct0(:any): none
+    private expect static unsafe cdecl "_scl_mutex_new" function mutexNew0(): any
 
     function newInstance() inst: SclObject
         if self.isStatic then
@@ -51,9 +52,9 @@ final sealed struct Struct
 
         self.typeId => instanceLayout.type
         self.typeName:view => instanceLayout.typeName
-        1 => instanceLayout.refCount
 
         unsafe
+            mutexNew0 => instanceLayout.mutex
             inst addStruct0
         end
         inst:init
