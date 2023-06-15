@@ -1141,6 +1141,15 @@ scl_int8** _scl_platform_get_env() {
 	return env;
 }
 
+void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout) {
+	scl_int size = _scl_sizeof(ptr);
+	if (size < layoutSize) {
+		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(layout) + 256);
+		snprintf(msg, 256 + strlen(layout), "Layout '%s' requires more memory than the pointer has available (required: " SCL_INT_FMT " found: " SCL_INT_FMT ")", layout, layoutSize, size);
+		_scl_assert(0, msg);
+	}
+}
+
 void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
