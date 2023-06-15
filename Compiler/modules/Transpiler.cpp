@@ -1195,8 +1195,10 @@ namespace sclc {
         if (body[i].getValue() == "typeof") {
             i++;
             varScopePop();
+            scopeDepth--;
             if (wasTry()) {
                 popTry();
+                append("  _extable.ptr--;\n");
                 append("} else if (_scl_is_instance_of(_extable.extable[_extable.ptr], 0x%xU)) {\n", hash1((char*) "Error"));
                 append("  Function_throw(_extable.extable[_extable.ptr]);\n");
             } else if (wasCatch()) {
@@ -1205,7 +1207,6 @@ namespace sclc {
 
             varScopePush();
             pushCatch();
-            scopeDepth--;
             Struct s = getStructByName(result, body[i].getValue());
             if (s == Struct::Null) {
                 transpilerError("Trying to catch unknown Exception of type '" + body[i].getValue() + "'", i);
@@ -3950,6 +3951,7 @@ namespace sclc {
             return;
         }
         if (hasLayout(result, type.value)) {
+            append("_scl_check_layout_size(_scl_top()->v, sizeof(struct Layout_%s), \"%s\");\n", type.value.c_str(), type.value.c_str());
             typePop;
             typeStack.push(type.value);
             return;
