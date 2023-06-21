@@ -91,5 +91,6 @@ install: {
     "sudo rm -f /usr/local/bin/sclc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
     "rm -rf target";
+    "sh install_post.sh";
   ];
 };
