@@ -36,7 +36,7 @@ if [ "$failedACommand" = "1" ]; then
     exit 1
 fi
 
-set -e
+set -xe
 
 if ! which dragon >/dev/null; then
     echo "---------"
