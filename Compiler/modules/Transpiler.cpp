@@ -715,6 +715,32 @@ namespace sclc {
         return extend;
     }
 
+    bool typeEquals(std::string a, std::string b);
+
+    std::string lambdaReturnType(std::string lambda) {
+        if (strstarts(lambda, "lambda("))
+            return lambda.substr(lambda.find_last_of("):") + 1);
+        return "";
+    }
+
+    size_t lambdaArgCount(std::string lambda) {
+        if (strstarts(lambda, "lambda(")) {
+            std::string args = lambda.substr(lambda.find_first_of("(") + 1, lambda.find_last_of("):") - lambda.find_first_of("(") - 1);
+            return std::stoi(args);
+        }
+        return -1;
+    }
+
+    bool lambdasEqual(std::string a, std::string b) {
+        std::string returnTypeA = lambdaReturnType(a);
+        std::string returnTypeB = lambdaReturnType(b);
+
+        size_t argAmountA = lambdaArgCount(a);
+        size_t argAmountB = lambdaArgCount(b);
+
+        return argAmountA == argAmountB && typeEquals(returnTypeA, returnTypeB);
+    }
+
     bool typeEquals(std::string a, std::string b) {
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
             return true;
@@ -722,6 +748,8 @@ namespace sclc {
             if (b.size() > 2 && b.at(0) == '[') {
                 return typeEquals(a.substr(1, a.size() - 1), b.substr(1, b.size() - 1));
             }
+        } else if (strstarts(a, "lambda(") && strstarts(b, "lambda(")) {
+            return lambdasEqual(a, b);
         }
         return false;
     }
@@ -744,37 +772,43 @@ namespace sclc {
 
         bool typesMatch = true;
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
-            std::string typeA = removeTypeModifiers(tmp.at(i));
-            if (typeA == "bool") typeA = "int";
+            std::string stackType = removeTypeModifiers(tmp.at(i));
+            bool stackTypeIsNilable = typeCanBeNil(tmp.at(i));
+            if (stackType == "bool") stackType = "int";
             
-            while (typeA.size() && typeA.at(typeA.size() - 1) == '?') {
-                typeA = typeA.substr(0, typeA.size() - 1);
+            while (stackType.size() && stackType.at(stackType.size() - 1) == '?') {
+                stackType = stackType.substr(0, stackType.size() - 1);
             }
 
-            if (strstarts(typeA, "lambda(")) typeA = "lambda";
+            if (strstarts(stackType, "lambda(")) stackType = "lambda";
 
-            bool nillableB = typeCanBeNil(args.at(i).getType());
-            std::string typeB = removeTypeModifiers(args.at(i).getType());
-            if (typeB == "bool") typeB = "int";
+            bool argIsNilable = typeCanBeNil(args.at(i).getType());
+            std::string argType = removeTypeModifiers(args.at(i).getType());
+            if (argType == "bool") argType = "int";
             
-            while (typeB.size() && typeB.at(typeB.size() - 1) == '?') {
-                typeB = typeB.substr(0, typeB.size() - 1);
+            while (argType.size() && argType.at(argType.size() - 1) == '?') {
+                argType = argType.substr(0, argType.size() - 1);
             }
 
-            if (strstarts(typeB, "lambda(")) typeB = "lambda";
+            if (strstarts(argType, "lambda(")) argType = "lambda";
 
-            if (typeB == "any" || typeB == "[any]" || ((typeCanBeNil(typeB) || nillableB) && (typeA == "any" || typeA == "[any]"))) {
+            if (argType == "any" || argType == "[any]" || (argIsNilable && (stackType == "any" || stackType == "[any]"))) {
                 continue;
             }
 
-            if (isPrimitiveIntegerType(typeA) && isPrimitiveIntegerType(typeB)) {
-                continue;
+            if (isPrimitiveIntegerType(stackType)) {
+                stackType = "int";
+            }
+            if (isPrimitiveIntegerType(argType)) {
+                argType = "int";
             }
 
-            if (!typeEquals(typeA, typeB)) {
-                Struct a = getStructByName(result, typeA);
-                Struct b = getStructByName(result, typeB);
-                if (a.getName() != "" && b.getName() != "") {
+            if (stackTypeIsNilable && !argIsNilable) {
+                typesMatch = false;
+            } else if (!typeEquals(stackType, argType)) {
+                Struct a = getStructByName(result, stackType);
+                Struct b = getStructByName(result, argType);
+                if (a != Struct::Null && b != Struct::Null) {
                     if (!canBeCastTo(result, a, b)) {
                         typesMatch = false;
                     }
@@ -797,13 +831,13 @@ namespace sclc {
 
         std::string arg = "";
         for (size_t i = 0; i < amount; i++) {
-            std::string typeA = tmp.at(i);
+            std::string stackType = tmp.at(i);
             
             if (i) {
                 arg += ", ";
             }
 
-            arg += typeA;
+            arg += stackType;
         }
         return arg;
     }
