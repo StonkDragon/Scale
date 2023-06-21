@@ -17,6 +17,8 @@ for f in /opt/Scale/*; do
     fi
 done
 
+echo $(pwd)
+
 version=$(dragon config -get-key VERSION)
 
 sudo rm -f /opt/Scale/latest
