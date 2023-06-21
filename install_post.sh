@@ -8,6 +8,7 @@ cmake -Dbuild_tests=ON ..
 cmake --build .
 ctest
 sudo make install
+cd ../..
 
 for f in /opt/Scale/*; do
     if [ -e $f/sclc ] && [ $f != "/opt/Scale/latest" ]; then
