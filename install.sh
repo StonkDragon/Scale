@@ -54,8 +54,8 @@ if ! which dragon >/dev/null; then
     make compile
     build/dragon build
     cd ..
+    rm -rf Dragon
 fi
-rm -rf Dragon
 
 echo "---------"
 echo "Installing..."
