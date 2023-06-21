@@ -1,4 +1,4 @@
-set +xe
+set -xe
 
 git clone https://github.com/ivmai/bdwgc.git bdwgc
 cd bdwgc
