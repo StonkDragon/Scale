@@ -16,6 +16,11 @@ $ git clone https://github.com/StonkDragon/Scale
 $ cd Scale
 $ sh install.sh
 ```
+Alternatively, if you have `dragon` version 6.0 or newer installed, you can run the following command:
+```shell
+$ dragon package install StonkDragon/Scale
+```
+
 This will install all necessary dependencies and the Scale compiler.
 
 Scale by default will install itself to the `/opt/Scale` directory.
@@ -27,14 +32,20 @@ Download the source code zip archive from the [releases tab](https://github.com/
 ```shell
 $ sh install.sh
 ```
+
+Alternatively, if you have `dragon` version 6.0 or newer installed, you can run the following command:
+```shell
+$ dragon package install StonkDragon/Scale <version-tag>
+```
+
 This will install all necessary dependencies and the Scale compiler.
 
 ## Dependencies
-  Scale has the following dependencies:
+Scale has the following dependencies:
 
-Required:
 - `gcc` (or similar C compiler)
-- [`dragon`](https://github.com/StonkDragon/Dragon) (The [install.sh](./install.sh) script will install this for you)
+- [`dragon`](https://github.com/StonkDragon/Dragon) (installed by [install.sh](./install.sh))
+- [`bdwgc`](https://github.com/ivmai/bdwgc) (installed by [install_post.sh](./install_post.sh))
 
 # Documentation
 
