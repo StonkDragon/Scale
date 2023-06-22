@@ -1362,6 +1362,10 @@ void _scl_puts(scl_any val) {
 	printf("%s\n", s->_data);
 }
 
+void __puts_str_impl(scl_str str) {
+	printf("%s\n", str->_data);
+}
+
 void _scl_eputs(scl_any val) {
 	scl_str s = _scl_is_instance_of(val, SclObjectHash) ?
 		_ZN9SclObject8toStringEP9SclObject(val) :

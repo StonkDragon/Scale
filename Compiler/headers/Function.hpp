@@ -29,6 +29,7 @@ namespace sclc
         bool isPrivate;
         bool hasNamedReturnValue;
         Deprecation deprecated;
+        std::vector<std::string> overloads;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}

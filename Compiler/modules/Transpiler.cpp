@@ -704,6 +704,9 @@ namespace sclc {
         if (one == other || other.getName() == "SclObject") {
             return true;
         }
+        if ((one.isStatic() && !other.isStatic()) || (!one.isStatic() && other.isStatic())) {
+            return false;
+        }
         Struct super = getStructByName(r, one.extends());
         bool extend = false;
         while (!extend) {
@@ -755,7 +758,7 @@ namespace sclc {
     }
 
     bool checkStackType(TPResult result, std::vector<Variable> args) {
-        if (typeStack.size() == 0 || args.size() == 0) {
+        if (args.size() == 0) {
             return true;
         }
         if (typeStack.size() < args.size()) {
@@ -774,7 +777,6 @@ namespace sclc {
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
             std::string stackType = removeTypeModifiers(tmp.at(i));
             bool stackTypeIsNilable = typeCanBeNil(tmp.at(i));
-            if (stackType == "bool") stackType = "int";
             
             while (stackType.size() && stackType.at(stackType.size() - 1) == '?') {
                 stackType = stackType.substr(0, stackType.size() - 1);
@@ -784,35 +786,31 @@ namespace sclc {
 
             bool argIsNilable = typeCanBeNil(args.at(i).getType());
             std::string argType = removeTypeModifiers(args.at(i).getType());
-            if (argType == "bool") argType = "int";
             
             while (argType.size() && argType.at(argType.size() - 1) == '?') {
                 argType = argType.substr(0, argType.size() - 1);
             }
 
             if (strstarts(argType, "lambda(")) argType = "lambda";
+            
+            if (stackType == argType && stackTypeIsNilable == argIsNilable) {
+                continue;
+            }
 
             if (argType == "any" || argType == "[any]" || (argIsNilable && (stackType == "any" || stackType == "[any]"))) {
                 continue;
             }
 
-            if (isPrimitiveIntegerType(stackType)) {
-                stackType = "int";
-            }
-            if (isPrimitiveIntegerType(argType)) {
-                argType = "int";
-            }
-
             if (stackTypeIsNilable && !argIsNilable) {
                 typesMatch = false;
             } else if (!typeEquals(stackType, argType)) {
-                Struct a = getStructByName(result, stackType);
-                Struct b = getStructByName(result, argType);
-                if (a != Struct::Null && b != Struct::Null) {
-                    if (!canBeCastTo(result, a, b)) {
-                        typesMatch = false;
-                    }
-                } else {
+                Struct givenType = getStructByName(result, stackType);
+                Struct requiredType = getStructByName(result, argType);
+                if (givenType == Struct::Null) {
+                    typesMatch = false;
+                } else if (requiredType == Struct::Null) {
+                    typesMatch = false;
+                } else if (!canBeCastTo(result, givenType, requiredType)) {
                     typesMatch = false;
                 }
             }
@@ -910,10 +908,30 @@ namespace sclc {
         return true;
     }
 
-    void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
+    void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
+
+        std::vector<std::string>& overloads = self->overloads;
+        bool argsEqual = ignoreArgs || checkStackType(result, self->getArgs());
+        if (overloads.size() && !argsEqual && !ignoreArgs) {
+            for (std::string& overload : overloads) {
+                Method* overloadFunc = getMethodByName(result, overload, self->getMemberType());
+                if (overloadFunc == nullptr) {
+                    transpilerError("Overload '" + overload + "' not found!", i);
+                    errors.push_back(err);
+                    return;
+                }
+
+                bool argsEqual = checkStackType(result, overloadFunc->getArgs());
+                if (argsEqual) {
+                    generateCall(overloadFunc, fp, result, warns, errors, body, i, true);
+                    return;
+                }
+            }
+        }
+
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -931,10 +949,10 @@ namespace sclc {
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
-        bool argsCorrect = checkStackType(result, self->getArgs());
-        if (!argsCorrect) {
+        argsEqual = checkStackType(result, self->getArgs());
+        if (!argsEqual && !ignoreArgs) {
             {
-                transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
+                transpilerError("Arguments for method '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
             }
             transpilerError("Expected: [ " + argVectorToString(self->getArgs()) + " ], but got: [ " + stackSliceToString(self->getArgs().size()) + " ]", i);
@@ -942,8 +960,10 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        for (size_t m = 0; m < self->getArgs().size(); m++) {
-            typePop;
+        if (doActualPop) {
+            for (size_t m = 0; m < self->getArgs().size(); m++) {
+                typePop;
+            }
         }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
@@ -978,6 +998,26 @@ namespace sclc {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
+
+        std::vector<std::string>& overloads = self->overloads;
+        bool argsEqual = checkStackType(result, self->getArgs());
+        if (overloads.size() && !argsEqual) {
+            for (std::string& overload : overloads) {
+                Function* overloadFunc = getFunctionByName(result, overload);
+                if (overloadFunc == nullptr) {
+                    transpilerError("Overload '" + overload + "' not found!", i);
+                    errors.push_back(err);
+                    return;
+                }
+
+                bool argsEqual = checkStackType(result, overloadFunc->getArgs());
+                if (argsEqual) {
+                    generateCall(overloadFunc, fp, result, warns, errors, body, i);
+                    return;
+                }
+            }
+        }
+
         if (self->isExternC && !hasImplementation(result, self)) {
             std::string functionDeclaration = "";
 
@@ -995,8 +1035,8 @@ namespace sclc {
         if (self->getArgs().size() > 0) {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
-        bool argsCorrect = checkStackType(result, self->getArgs());
-        if (!argsCorrect) {
+        argsEqual = checkStackType(result, self->getArgs());
+        if (!argsEqual) {
             {
                 transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
@@ -3404,6 +3444,21 @@ namespace sclc {
                         return;
                     }
                 }
+            } else if (body[i + 1].getType() == tok_identifier) {
+            stringLiteral_IdentifierAfter:
+                if (body[i + 1].getValue() == "puts") {
+                    append("puts(\"%s\");\n", body[i].getValue().c_str());
+                    i++;
+                    return;
+                } else if (body[i + 1].getValue() == "eputs") {
+                    append("fprintf(stderr, \"%s\\n\");\n", body[i].getValue().c_str());
+                    i++;
+                    return;
+                }
+            }
+        } else if (i + 1 < body.size()) {
+            if (body[i + 1].getType() == tok_identifier) {
+                goto stringLiteral_IdentifierAfter;
             }
         }
         append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
@@ -4222,7 +4277,10 @@ namespace sclc {
                 if (objMethod) {
                     append("if (_scl_is_instance_of(_scl_top()->v, 0x%xU)) {\n", hash1((char*) "SclObject"));
                     scopeDepth++;
-                    generateCall(objMethod, fp, result, warns, errors, body, i);
+                    generateCall(objMethod, fp, result, warns, errors, body, i, true, false);
+                    if (objMethod->getReturnType() != "none") {
+                        typeStack.pop();
+                    }
                     scopeDepth--;
                     append("} else {\n");
                     scopeDepth++;
@@ -4540,6 +4598,7 @@ namespace sclc {
         name = replaceAll(name, "operator\\$dec", "--");
         name = replaceAll(name, "operator\\$at", "@");
         name = replaceAll(name, "operator\\$wildcard", "?");
+        name = replaceAll(name, "\\$\\$ol\\d+", "");
         name = replaceAll(name, "\\$", "::");
 
         if (strstarts(name, "::lambda")) {
@@ -5009,7 +5068,7 @@ namespace sclc {
                             append("{\n");
                             scopeDepth++;
                             append("_scl_push()->v = (scl_any) Var_self;\n");
-                            typeStack.push(function->getArgs()[0].getType());
+                            typeStack.push(function->getArgs().back().getType());
                             append("scl_int __stack_size = _stack.ptr;\n");
                             append("_scl_look_for_method = 0;\n");
                             generateCall(superInit, fp, result, warns, errors, body, 0);

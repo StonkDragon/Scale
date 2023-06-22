@@ -2,8 +2,6 @@ cdecl "write"
 expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
 cdecl "read"
 expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], _n_: int): int32
-cdecl "puts"
-expect unsafe function __c_puts(cstr: [int8]): int32
 cdecl "fprintf"
 expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
@@ -19,11 +17,14 @@ intrinsic cdecl "_scl_read" function read(fileDescriptor: int, _n_: int): str?
   buf str::new return
 end
 
-intrinsic cdecl "_scl_puts" function puts(value: any): none
-  value:toString:view
-  unsafe
-    __c_puts drop
-  end
+cdecl "__puts_str_impl"
+expect function puts(:str): none
+expect function puts(:[int8]): none
+function puts(value: any): none
+  value:toString puts
+end
+function puts(f: float): none
+  f:toString puts
 end
 
 intrinsic cdecl "_scl_eputs" function eputs(value: any): none

@@ -495,15 +495,26 @@ namespace sclc {
 
     bool isPrimitiveIntegerType(std::string);
 
+    template<typename T>
+    auto joinVecs(std::vector<T> a, std::vector<T> b) {
+        std::vector<T> c;
+        c.reserve(a.size() + b.size());
+        c.insert(c.end(), a.begin(), a.end());
+        c.insert(c.end(), b.begin(), b.end());
+        return c;
+    };
+
     TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
+        std::vector<std::string> currentOverloads;
 
         int isInLambda = 0;
         int isInUnsafe = 0;
+        int overloadedFunctions = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -522,7 +533,7 @@ namespace sclc {
 
         // Builtins
         {
-            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "<builtin>"));
+            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "<builtinIsInstanceOf>"));
             builtinIsInstanceOf->addModifier("export");
 
             builtinIsInstanceOf->addArgument(Variable("obj", "any"));
@@ -531,24 +542,24 @@ namespace sclc {
             builtinIsInstanceOf->setReturnType("int");
             
             // if typeStr "any" == then true return
-            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtin>"));
+            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtinIsInstanceOf>"));
             functions.push_back(builtinIsInstanceOf);
 
-            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "<builtin>"));
+            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "<builtinHash>"));
             builtinHash->isExternC = true;
             builtinHash->addModifier("extern");
             builtinHash->addModifier("cdecl");
@@ -559,7 +570,7 @@ namespace sclc {
             builtinHash->setReturnType("int32");
             extern_functions.push_back(builtinHash);
 
-            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtin>"));
+            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtinIdentityHash>"));
             builtinIdentityHash->isExternC = true;
             builtinIdentityHash->addModifier("extern");
             builtinIdentityHash->addModifier("cdecl");
@@ -570,7 +581,7 @@ namespace sclc {
             builtinIdentityHash->setReturnType("int");
             extern_functions.push_back(builtinIdentityHash);
 
-            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtin>"));
+            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtinAtomicClone>"));
             builtinAtomicClone->isExternC = true;
             builtinAtomicClone->addModifier("extern");
             builtinAtomicClone->addModifier("cdecl");
@@ -581,7 +592,7 @@ namespace sclc {
             builtinAtomicClone->setReturnType("any");
             extern_functions.push_back(builtinAtomicClone);
 
-            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtin>"));
+            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtinTypeEquals>"));
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");
             builtinTypeEquals->addModifier("cdecl");
@@ -593,7 +604,7 @@ namespace sclc {
             builtinTypeEquals->setReturnType("int");
             extern_functions.push_back(builtinTypeEquals);
 
-            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "<builtin>"));
+            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "<builtinToString>"));
             builtinToString->addModifier("export");
             
             builtinToString->addArgument(Variable("val", "any"));
@@ -601,32 +612,73 @@ namespace sclc {
             builtinToString->setReturnType("str");
 
             // if val is SclObject then val as SclObject:toString return else val int::toString return fi
-            builtinToString->addToken(Token(tok_if, "if", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_is, "is", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_then, "then", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_as, "as", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_column, ":", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "int", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_double_column, "::", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtin>"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "<builtin>"));
+            builtinToString->addToken(Token(tok_if, "if", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_is, "is", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_then, "then", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_as, "as", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_column, ":", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "int", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_double_column, "::", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "<builtinToString>"));
 
             functions.push_back(builtinToString);
 
-            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "<builtin>"));
+            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "<builtinUnreachable>"));
             builtinUnreachable->addModifier("extern");
             builtinUnreachable->setReturnType("none");
 
             extern_functions.push_back(builtinUnreachable);
         }
+
+
+        auto findFunctionByName = [&](std::string name) {
+            for (size_t i = 0; i < functions.size(); i++) {
+                if (functions.at(i)->isMethod) {
+                    continue;
+                }
+                if (functions.at(i)->getName() == name) {
+                    return functions.at(i);
+                }
+            }
+            for (size_t i = 0; i < extern_functions.size(); i++) {
+                if (extern_functions.at(i)->isMethod) {
+                    continue;
+                }
+                if (extern_functions.at(i)->getName() == name) {
+                    return extern_functions.at(i);
+                }
+            }
+            return (Function*) nullptr;
+        };
+
+        auto findMethodByName = [&](std::string name, std::string memberType) {
+            for (size_t i = 0; i < functions.size(); i++) {
+                if (!functions.at(i)->isMethod) {
+                    continue;
+                }
+                if (functions.at(i)->getName() == name && ((Method*) functions.at(i))->getMemberType() == memberType) {
+                    return (Method*) functions.at(i);
+                }
+            }
+            for (size_t i = 0; i < extern_functions.size(); i++) {
+                if (!extern_functions.at(i)->isMethod) {
+                    continue;
+                }
+                if (extern_functions.at(i)->getName() == name && ((Method*) extern_functions.at(i))->getMemberType() == memberType) {
+                    return (Method*) extern_functions.at(i);
+                }
+            }
+            return (Method*) nullptr;
+        };
         
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
@@ -661,12 +713,23 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                        currentFunction->overloads = currentOverloads;
+                        currentOverloads.clear();
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
                         currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
+                        }
+                        Function* f;
+                        if (currentFunction->isMethod) {
+                            f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                        } else {
+                            f = findFunctionByName(currentFunction->getName());
+                        }
+                        if (f) {
+                            currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
                         }
                         if (contains<std::string>(nextAttributes, "expect")) {
                             currentFunction->isExternC = true;
@@ -685,9 +748,20 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
+                    currentFunction->overloads = currentOverloads;
+                    currentOverloads.clear();
                     currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
+                    }
+                    Function* f;
+                    if (currentFunction->isMethod) {
+                        f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                    } else {
+                        f = findFunctionByName(currentFunction->getName());
+                    }
+                    if (f) {
+                        currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
                     }
                     if (contains<std::string>(nextAttributes, "expect")) {
                         currentFunction->isExternC = true;
@@ -708,6 +782,8 @@ namespace sclc {
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
                         currentFunction = parseMethod(name, func, "", errors, nextAttributes, i, tokens);
+                        currentFunction->overloads = currentOverloads;
+                        currentOverloads.clear();
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -730,6 +806,8 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                        functionToImplement->overloads = currentOverloads;
+                        currentOverloads.clear();
                         functionToImplement->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
@@ -757,6 +835,8 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
+                    currentFunction->overloads = currentOverloads;
+                    currentOverloads.clear();
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
@@ -775,11 +855,22 @@ namespace sclc {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                    currentFunction->overloads = currentOverloads;
+                    currentOverloads.clear();
                     currentFunction->deprecated = currentDeprecation;
                     currentDeprecation.clear();
                 }
                 for (std::string s : nextAttributes) {
                     currentFunction->addModifier(s);
+                }
+                Function* f;
+                if (currentFunction->isMethod) {
+                    f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                } else {
+                    f = findFunctionByName(currentFunction->getName());
+                }
+                if (f) {
+                    currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
                     currentFunction->isExternC = true;
@@ -807,11 +898,60 @@ namespace sclc {
                             currentFunction->addToken(token);
                         continue;
                     }
-                    bool containsB = false;
-                    for (size_t i = 0; i < functions.size(); i++) {
-                        if (*(functions.at(i)) == *currentFunction) {
-                            containsB = true;
-                            break;
+
+                    bool functionWasOverloaded = false;
+
+                    if (currentInterface == nullptr) {
+                        Function* f;
+                        if (currentFunction->isMethod) {
+                            f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                        } else {
+                            f = findFunctionByName(currentFunction->getName());
+                        }
+                        if (f) {
+                            if (!contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
+                                if (currentFunction->getArgs() == f->getArgs()) {
+                                    FPResult result;
+                                    result.message = "Function " + currentFunction->getName() + " is already defined!";
+                                    result.value = currentFunction->getName();
+                                    result.line = currentFunction->getNameToken().getLine();
+                                    result.in = currentFunction->getNameToken().getFile();
+                                    result.type = currentFunction->getNameToken().getType();
+                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                    nextAttributes.clear();
+                                    currentFunction = nullptr;
+                                    continue;
+                                }
+                                currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
+                                functionWasOverloaded = true;
+                            } else if (currentFunction != f) {
+                                if (contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
+                                    FPResult result;
+                                    result.message = "Cannot overload intrinsic function " + currentFunction->getName() + "!";
+                                    result.value = currentFunction->getName();
+                                    result.line = currentFunction->getNameToken().getLine();
+                                    result.in = currentFunction->getNameToken().getFile();
+                                    result.type = currentFunction->getNameToken().getType();
+                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                } else if (contains<std::string>(f->getModifiers(), "intrinsic")) {
+                                    FPResult result;
+                                    result.message = "Cannot overload function " + currentFunction->getName() + " with intrinsic function!";
+                                    result.value = currentFunction->getName();
+                                    result.line = currentFunction->getNameToken().getLine();
+                                    result.in = currentFunction->getNameToken().getFile();
+                                    result.type = currentFunction->getNameToken().getType();
+                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.success = false;
+                                    errors.push_back(result);
+                                }
+                                nextAttributes.clear();
+                                currentFunction = nullptr;
+                                continue;
+                            }
                         }
                     }
 
@@ -829,19 +969,9 @@ namespace sclc {
                             result.success = false;
                             errors.push_back(result);
                         }
-                    } else if (currentFunction->isMethod || !containsB) {
-                        if (!contains<Function*>(extern_functions, currentFunction))
-                            functions.push_back(currentFunction);
                     } else {
-                        FPResult result;
-                        result.message = "Function " + currentFunction->getName() + " already exists! Try renaming this function";
-                        result.value = currentFunction->getNameToken().getValue();
-                        result.line = currentFunction->getNameToken().getLine();
-                        result.in = currentFunction->getNameToken().getFile();
-                        result.type = currentFunction->getNameToken().getType();
-                        result.column = currentFunction->getNameToken().getColumn();
-                        result.success = false;
-                        errors.push_back(result);
+                        if (functionWasOverloaded || !contains<Function*>(extern_functions, currentFunction))
+                            functions.push_back(currentFunction);
                     }
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
@@ -1624,6 +1754,7 @@ namespace sclc {
                            t.getValue() == "replaceWith:" ||
                            t.getValue() == "deprecated!" ||
                            t.getValue() == "no_cleanup" ||
+                           t.getValue() == "overload!" ||
                            t.getValue() == "construct" ||
                            t.getValue() == "intrinsic" ||
                            t.getValue() == "autoimpl" ||
@@ -1764,13 +1895,43 @@ namespace sclc {
                     }
 
                     #undef invalidKey
-                    #undef expect
                 } else if (validAttribute(tokens[i])) {
                     if (tokens[i].getValue() == "construct" && currentStruct != nullptr) {
                         nextAttributes.push_back("private");
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].getValue());
+                }
+            }
+        }
+
+        for (Function* f : joinVecs(functions, extern_functions)) {
+            if (f->isMethod) continue;
+            Function* self = f;
+            std::string name = self->getName();
+            if (name.find("$$ol") != std::string::npos) {
+                name = name.substr(0, name.find("$$ol"));
+            }
+            for (Function* f : joinVecs(functions, extern_functions)) {
+                if (f == self) continue;
+                if (f->isMethod) continue;
+                if (strstarts(f->getName(), name + "$$ol") || f->getName() == name) {
+                    self->overloads.push_back(f->getName());
+                }
+            }
+        }
+        for (Function* f : joinVecs(functions, extern_functions)) {
+            if (!f->isMethod) continue;
+            Method* self = (Method*) f;
+            std::string name = self->getName();
+            if (name.find("$$ol") != std::string::npos) {
+                name = name.substr(0, name.find("$$ol"));
+            }
+            for (Function* f : joinVecs(functions, extern_functions)) {
+                if (f == self) continue;
+                if (!f->isMethod) continue;
+                if ((strstarts(f->getName(), name + "$$ol") || f->getName() == name) && ((Method*)f)->getMemberType() == self->getMemberType()) {
+                    self->overloads.push_back(f->getName());
                 }
             }
         }

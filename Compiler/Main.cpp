@@ -1298,7 +1298,6 @@ namespace sclc
                         if (!Main.options.noErrorLocation) std::cerr << std::endl;
                         free(line);
                     }
-                    std::filesystem::remove(source);
                     std::cout << "Failed!" << std::endl;
                     return parseResult.errors.size();
                 }
@@ -1356,14 +1355,14 @@ namespace sclc
             return 0;
         } else if (!Main.options.transpileOnly) {
             int ret = system(cmd.c_str());
-            remove(source.c_str());
-            remove((source.substr(0, source.size() - 2) + ".h").c_str());
-            remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
-            remove("scale_support.h");
             if (ret) {
                 std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
                 return ret;
             }
+            remove(source.c_str());
+            remove((source.substr(0, source.size() - 2) + ".h").c_str());
+            remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
+            remove("scale_support.h");
         }
 
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
