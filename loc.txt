@@ -1,11 +1,11 @@
      778 Compiler/Common.cpp
-    1405 Compiler/Main.cpp
+    1404 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      241 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
      107 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
-     103 Compiler/headers/Function.hpp
+     105 Compiler/headers/Function.hpp
       80 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       78 Compiler/headers/Results.hpp
@@ -19,10 +19,10 @@
      145 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      148 Compiler/modules/Parser.cpp
-    1914 Compiler/modules/SyntaxTree.cpp
+    2191 Compiler/modules/SyntaxTree.cpp
      321 Compiler/modules/TokenHandlers.cpp
      642 Compiler/modules/Tokenizer.cpp
-    5179 Compiler/modules/Transpiler.cpp
+    5253 Compiler/modules/Transpiler.cpp
       19 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      125 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      114 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
@@ -56,7 +56,7 @@
       15 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
       32 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       23 Scale/Internal/runtime_vars.c
-    1812 Scale/Internal/scale_runtime.c
+    1816 Scale/Internal/scale_runtime.c
      409 Scale/Internal/scale_runtime.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   17708 total
+   18064 total
