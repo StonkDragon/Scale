@@ -5,7 +5,7 @@
       49 Compiler/headers/Container.hpp
      107 Compiler/headers/DragonConfig.hpp
       39 Compiler/headers/Enum.hpp
-     105 Compiler/headers/Function.hpp
+     104 Compiler/headers/Function.hpp
       80 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
       78 Compiler/headers/Results.hpp
@@ -19,7 +19,7 @@
      145 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      148 Compiler/modules/Parser.cpp
-    2191 Compiler/modules/SyntaxTree.cpp
+    2075 Compiler/modules/SyntaxTree.cpp
      321 Compiler/modules/TokenHandlers.cpp
      642 Compiler/modules/Tokenizer.cpp
     5253 Compiler/modules/Transpiler.cpp
@@ -29,7 +29,7 @@
      185 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
       81 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       60 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
-      56 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
+      57 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      196 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      109 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       32 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   18064 total
+   17948 total
