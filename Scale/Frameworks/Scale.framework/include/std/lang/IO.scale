@@ -17,7 +17,7 @@ intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
   buf str::new return
 end
 
-cdecl "__puts_str_impl"
+cdecl "_scl_puts_str"
 expect function puts(:str): none
 expect function puts(:[int8]): none
 function puts(value: any): none

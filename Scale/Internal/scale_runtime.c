@@ -1362,7 +1362,7 @@ void _scl_puts(scl_any val) {
 	printf("%s\n", s->_data);
 }
 
-void __puts_str_impl(scl_str str) {
+void _scl_puts_str(scl_str str) {
 	printf("%s\n", str->_data);
 }
 
