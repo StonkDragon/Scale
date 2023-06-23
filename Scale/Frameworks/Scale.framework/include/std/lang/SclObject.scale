@@ -16,15 +16,15 @@ struct SclObject is ICloneable, IEquatable, IHashable
 
     expect cdecl "_scl_identity_hash" function hashCode(): int
 
-    final function getStruct() selfStruct: Struct
+    sealed function getStruct() selfStruct: Struct
         typeof self Struct::getStructByName return
     end
 
-    final function lock(): none
+    sealed function lock(): none
         self Process::lock
     end
 
-    final function unlock(): none
+    sealed function unlock(): none
         self Process::unlock
     end
 
