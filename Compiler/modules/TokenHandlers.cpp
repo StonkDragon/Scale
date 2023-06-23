@@ -102,7 +102,7 @@ namespace sclc {
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
-    bool checkStackType(TPResult result, std::vector<Variable> args);
+    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
     std::string argVectorToString(std::vector<Variable> args);
     std::string stackSliceToString(size_t amount);
 

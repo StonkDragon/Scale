@@ -909,7 +909,20 @@ namespace sclc {
                             f = findFunctionByName(currentFunction->getName());
                         }
                         if (f) {
-                            if (!contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
+                            if (f->isCVarArgs()) {
+                                FPResult result;
+                                result.message = "Cannot overload varargs function " + f->getName() + "!";
+                                result.value = f->getName();
+                                result.line = f->getNameToken().getLine();
+                                result.in = f->getNameToken().getFile();
+                                result.type = f->getNameToken().getType();
+                                result.column = f->getNameToken().getColumn();
+                                result.success = false;
+                                errors.push_back(result);
+                                nextAttributes.clear();
+                                currentFunction = nullptr;
+                                continue;
+                            } else if (!contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
                                 if (currentFunction->getArgs() == f->getArgs()) {
                                     FPResult result;
                                     result.message = "Function " + currentFunction->getName() + " is already defined!";

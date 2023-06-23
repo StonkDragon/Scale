@@ -1,7 +1,7 @@
 cdecl "write"
 expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
 cdecl "read"
-expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], _n_: int): int32
+expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
 cdecl "fprintf"
 expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
@@ -11,9 +11,9 @@ intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: 
   fileDescriptor string:view string:size __c_write drop
 end
 
-intrinsic cdecl "_scl_read" function read(fileDescriptor: int, _n_: int): str?
-  _n_ malloc => decl buf: [int8]
-  fileDescriptor buf _n_ __c_read drop
+intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str?
+  amount malloc => decl buf: [int8]
+  fileDescriptor buf amount __c_read drop
   buf str::new return
 end
 

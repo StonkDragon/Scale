@@ -707,13 +707,15 @@ namespace sclc {
         if ((one.isStatic() && !other.isStatic()) || (!one.isStatic() && other.isStatic())) {
             return false;
         }
-        Struct super = getStructByName(r, one.extends());
+        Struct oneParent = getStructByName(r, one.extends());
         bool extend = false;
         while (!extend) {
-            if (super == other || super.getName() == "SclObject") {
+            if (oneParent == other) {
                 extend = true;
+            } else if (oneParent.getName() == "SclObject") {
+                return false;
             }
-            super = getStructByName(r, super.extends());
+            oneParent = getStructByName(r, oneParent.extends());
         }
         return extend;
     }
@@ -757,7 +759,27 @@ namespace sclc {
         return false;
     }
 
-    bool checkStackType(TPResult result, std::vector<Variable> args) {
+    bool typeIsUnsigned(std::string s) {
+        s = removeTypeModifiers(s);
+        return isPrimitiveIntegerType(s) && s.front() == 'u';
+    }
+
+    bool typeIsSigned(std::string s) {
+        s = removeTypeModifiers(s);
+        return isPrimitiveIntegerType(s) && s.front() == 'i';
+    }
+
+    size_t intBitWidth(std::string s) {
+        std::string type = removeTypeModifiers(s);
+        if (type == "int" || type == "uint") return 64;
+        if (type == "int8" || type == "uint8") return 8;
+        if (type == "int16" || type == "uint16") return 16;
+        if (type == "int32" || type == "uint32") return 32;
+        if (type == "int64" || type == "uint64") return 64;
+        return 0;
+    }
+
+    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false) {
         if (args.size() == 0) {
             return true;
         }
@@ -771,12 +793,12 @@ namespace sclc {
 
         auto end = &typeStack.top() + 1;
         auto begin = end - args.size();
-        std::vector<std::string> tmp(begin, end);
+        std::vector<std::string> stack(begin, end);
 
         bool typesMatch = true;
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
-            std::string stackType = removeTypeModifiers(tmp.at(i));
-            bool stackTypeIsNilable = typeCanBeNil(tmp.at(i));
+            std::string stackType = removeTypeModifiers(stack.at(i));
+            bool stackTypeIsNilable = typeCanBeNil(stack.at(i));
             
             while (stackType.size() && stackType.at(stackType.size() - 1) == '?') {
                 stackType = stackType.substr(0, stackType.size() - 1);
@@ -784,8 +806,8 @@ namespace sclc {
 
             if (strstarts(stackType, "lambda(")) stackType = "lambda";
 
-            bool argIsNilable = typeCanBeNil(args.at(i).getType());
             std::string argType = removeTypeModifiers(args.at(i).getType());
+            bool argIsNilable = typeCanBeNil(args.at(i).getType());
             
             while (argType.size() && argType.at(argType.size() - 1) == '?') {
                 argType = argType.substr(0, argType.size() - 1);
@@ -795,6 +817,23 @@ namespace sclc {
             
             if (stackType == argType && stackTypeIsNilable == argIsNilable) {
                 continue;
+            }
+
+            if (allowIntPromotion) {
+                if (isPrimitiveIntegerType(argType) && isPrimitiveIntegerType(stackType)) {
+                    continue;
+                }
+            } else {
+                if (isPrimitiveIntegerType(argType) && isPrimitiveIntegerType(stackType)) {
+                    if (typeIsUnsigned(argType) && typeIsSigned(stackType)) {
+                        typesMatch = false;
+                    } else if (typeIsSigned(argType) && typeIsUnsigned(stackType)) {
+                        typesMatch = false;
+                    } else if (intBitWidth(argType) != intBitWidth(stackType)) {
+                        typesMatch = false;
+                    }
+                    continue;
+                }
             }
 
             if (argType == "any" || argType == "[any]" || (argIsNilable && (stackType == "any" || stackType == "[any]"))) {
@@ -908,26 +947,33 @@ namespace sclc {
         return true;
     }
 
-    void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true) {
+    std::vector<bool> bools{false, true};
+
+    void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true, bool withIntPromotion = false) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
 
         std::vector<std::string>& overloads = self->overloads;
-        bool argsEqual = ignoreArgs || checkStackType(result, self->getArgs());
+        bool argsEqual = ignoreArgs || checkStackType(result, self->getArgs(), withIntPromotion);
         if (overloads.size() && !argsEqual && !ignoreArgs) {
-            for (std::string& overload : overloads) {
-                Method* overloadFunc = getMethodByName(result, overload, self->getMemberType());
-                if (overloadFunc == nullptr) {
-                    transpilerError("Overload '" + overload + "' not found!", i);
-                    errors.push_back(err);
-                    return;
-                }
+            std::cout << "Stack: " << stackSliceToString(self->getArgs().size()) << std::endl;
+            for (bool b : bools) {
+                for (std::string& overload : overloads) {
+                    Method* overloadFunc = getMethodByName(result, overload, self->getMemberType());
+                    if (overloadFunc == nullptr) {
+                        transpilerError("Overload '" + overload + "' not found!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    std::cout << "Checking overload " << overloadFunc->getName() << (b ? " with int promotion" : "") << std::endl;
 
-                bool argsEqual = checkStackType(result, overloadFunc->getArgs());
-                if (argsEqual) {
-                    generateCall(overloadFunc, fp, result, warns, errors, body, i, true);
-                    return;
+                    bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
+                    if (argsEqual) {
+                        std::cout << "Found overload " << overloadFunc->getName() << " with [ " << argVectorToString(overloadFunc->getArgs()) << " ]" << std::endl;
+                        generateCall(overloadFunc, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
+                        return;
+                    }
                 }
             }
         }
@@ -994,26 +1040,37 @@ namespace sclc {
         }
     }
 
-    void generateCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
+    bool argsContainsIntType(std::vector<Variable> args) {
+        for (auto&& arg : args) {
+            if (isPrimitiveIntegerType(arg.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void generateCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
 
         std::vector<std::string>& overloads = self->overloads;
-        bool argsEqual = checkStackType(result, self->getArgs());
+        bool argsEqual = checkStackType(result, self->getArgs(), withIntPromotion);
         if (overloads.size() && !argsEqual) {
-            for (std::string& overload : overloads) {
-                Function* overloadFunc = getFunctionByName(result, overload);
-                if (overloadFunc == nullptr) {
-                    transpilerError("Overload '" + overload + "' not found!", i);
-                    errors.push_back(err);
-                    return;
-                }
-
-                bool argsEqual = checkStackType(result, overloadFunc->getArgs());
-                if (argsEqual) {
-                    generateCall(overloadFunc, fp, result, warns, errors, body, i);
-                    return;
+            for (bool b : bools) {
+                for (std::string& overload : overloads) {
+                    Function* overloadFunc = getFunctionByName(result, overload);
+                    if (overloadFunc == nullptr) {
+                        transpilerError("Overload '" + overload + "' not found!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+        
+                    bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
+                    if (argsEqual) {
+                        generateCall(overloadFunc, fp, result, warns, errors, body, i, b);
+                        return;
+                    }
                 }
             }
         }
@@ -1036,6 +1093,9 @@ namespace sclc {
             append("_scl_popn(%zu);\n", self->getArgs().size());
         }
         argsEqual = checkStackType(result, self->getArgs());
+        if (!argsEqual && argsContainsIntType(self->getArgs())) {
+            argsEqual = checkStackType(result, self->getArgs(), true);
+        }
         if (!argsEqual) {
             {
                 transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
@@ -4006,6 +4066,9 @@ namespace sclc {
         }
         if (type.value == "float" && typeStackTop != "float") {
             append("_scl_top()->f = (float) _scl_top()->i;\n");
+            typePop;
+            typeStack.push("float");
+            return;
         }
         if (type.value == "int" || type.value == "float" || type.value == "any") {
             typePop;
@@ -4243,23 +4306,28 @@ namespace sclc {
             }
             return;
         }
-        Struct s = getStructByName(result, typeStackTop);
+        std::string type = typeStackTop;
+        Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
-            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
-            errors.push_back(err);
-            return;
+            if (isPrimitiveIntegerType(type)) {
+                s = getStructByName(result, "int");
+            } else {
+                transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + type + "'", i);
+                errors.push_back(err);
+                return;
+            }
         }
         i++;
-        if (!s.isStatic() && !hasMethod(result, body[i], removeTypeModifiers(typeStackTop))) {
+        if (!s.isStatic() && !hasMethod(result, body[i], removeTypeModifiers(type))) {
             std::string help = "";
             if (s.hasMember(body[i].getValue())) {
                 help = ". Maybe you meant to use '.' instead of ':' here";
             }
-            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + removeTypeModifiers(typeStackTop) + "'" + help, i);
+            transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + removeTypeModifiers(type) + "'" + help, i);
             errors.push_back(err);
             return;
-        } else if (s.isStatic() && s.getName() != "any" && s.getName() != "int" && !hasFunction(result, removeTypeModifiers(typeStackTop) + "$" + body[i].getValue())) {
-            transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + removeTypeModifiers(typeStackTop) + "'", i);
+        } else if (s.isStatic() && s.getName() != "any" && s.getName() != "int" && !hasFunction(result, removeTypeModifiers(type) + "$" + body[i].getValue())) {
+            transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + removeTypeModifiers(type) + "'", i);
             errors.push_back(err);
             return;
         }
@@ -4291,26 +4359,26 @@ namespace sclc {
                     append("}\n");
                 }
             } else {
-                transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + typeStackTop + "'", i);
+                transpilerError("Unknown static function '" + body[i].getValue() + "' on type '" + type + "'", i);
                 errors.push_back(err);
             }
             return;
         }
         if (s.isStatic()) {
-            Function* f = getFunctionByName(result, removeTypeModifiers(typeStackTop) + "$" + body[i].getValue());
+            Function* f = getFunctionByName(result, removeTypeModifiers(type) + "$" + body[i].getValue());
             generateCall(f, fp, result, warns, errors, body, i);
         } else {
-            if (typeCanBeNil(typeStackTop)) {
+            if (typeCanBeNil(type)) {
                 {
-                    transpilerError("Calling method on maybe-nil type '" + typeStackTop + "'", i);
+                    transpilerError("Calling method on maybe-nil type '" + type + "'", i);
                     errors.push_back(err);
                 }
-                transpilerError("If you know '" + typeStackTop + "' can't be nil at this location, add '!!' before this ':'\\insertText;!!;" + std::to_string(err.line) + ":" + std::to_string(err.column), i - 1);
+                transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this ':'\\insertText;!!;" + std::to_string(err.line) + ":" + std::to_string(err.column), i - 1);
                 err.isNote = true;
                 errors.push_back(err);
                 return;
             }
-            Method* f = getMethodByName(result, body[i].getValue(), removeTypeModifiers(typeStackTop));
+            Method* f = getMethodByName(result, body[i].getValue(), removeTypeModifiers(type));
             if (f->isPrivate && (!function->isMethod || ((Method*) function)->getMemberType() != s.getName())) {
                 if (f->getMemberType() != function->member_type) {
                     transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);

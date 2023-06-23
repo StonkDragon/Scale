@@ -41,7 +41,7 @@ final static sealed struct FmtIO
     fmtArgs:reverse
 
     for i in 0 to fmt:size do
-      i fmt @ => decl char
+      i fmt @ => decl char: int8
       if char '%' == then
         fmtArgs:top => decl arg
         fmtArgs:pop
