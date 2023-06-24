@@ -20,14 +20,10 @@ end
 cdecl "_scl_puts_str"
 expect function puts(:str): none
 expect function puts(:[int8]): none
-function puts(value: any): none
-  value:toString puts
-end
-function puts(f: float): none
-  f:toString puts
-end
+function puts(value: any): none value:toString puts end
+function puts(f: float): none   f:toString puts end
 
-intrinsic cdecl "_scl_eputs" function eputs(value: any): none
+function eputs(s: [int8]): none
   unsafe
     c!
       _scl_push()->v = stderr;
@@ -35,21 +31,21 @@ intrinsic cdecl "_scl_eputs" function eputs(value: any): none
   end
   "%s\n":view
 
-  value:toString:view
+  s:toString:view
   unsafe
     __c_fprintf! 1
   end
   drop
 end
+function eputs(s: str): none     s:toString:view eputs end
+function eputs(f: float): none   f:toString:view eputs end
+function eputs(value: any): none value:toString:view eputs end
 
-function putint(number: int): none
-  number puts
-end
+function putint(number: int): none number puts end
 
-function putfloat(number: float): none
-  number:toString puts
-end
+function putfloat(number: float): none number:toString puts end
 
+deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
 function throwerr(errorString: str): none
   Exception::new => decl e: mut Exception
   errorString => e.msg

@@ -35,3 +35,9 @@
 |`fseekstart`|`File:offsetFromBegin`|
 |`fseekend`|`File:offsetFromEnd`|
 |`fseekcur`|`File:offset`|
+
+## Since Version 23.7
+|Function|Replacement|
+|-|-|
+|`trace`|`Process::stackTrace`|
+|`throwerr`|`Exception`|
