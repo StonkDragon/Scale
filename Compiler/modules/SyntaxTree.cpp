@@ -1083,9 +1083,9 @@ namespace sclc {
                     continue;
                 }
                 currentContainer = new Container(tokens[i].getValue());
-            } else if (token.getType() == tok_struct_def && ((i - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
+            } else if (token.getType() == tok_struct_def && ((((long) i) - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
                 currentFunction->addToken(token);
-            } else if (token.getType() == tok_struct_def && (i == 0 || (((i - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
+            } else if (token.getType() == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();

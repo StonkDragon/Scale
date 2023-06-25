@@ -60,8 +60,8 @@ typedef struct Struct_ReadOnlyArray {
 	struct Struct_Array self;
 }* scl_ReadOnlyArray;
 
-void _ZN9Exception4initEP9Exception(_scl_Exception);
-void _ZN9SclObject4initEP9SclObject(Struct*);
+void _ZN9Exception4initEv(_scl_Exception);
+void _ZN9SclObject4initEv(Struct*);
 
 extern _scl_stack_t**	stacks;
 extern scl_int			stacks_count;
@@ -255,7 +255,7 @@ scl_any _scl_alloc(scl_int size) {
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (size == 0) {
 		scl_NullPointerException* ex = NEW(NullPointerException, Exception);
-		_ZN9Exception4initEP9Exception((_scl_Exception) ex);
+		_ZN9Exception4initEv((_scl_Exception) ex);
 		ex->self.msg = str_of("realloc() called with size 0");
 		_scl_throw(ex);
 	}
@@ -308,7 +308,7 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
-void _ZN5Error4initEP3strP5Error(scl_any, scl_str);
+void _ZN5Error4initE3str(scl_any, scl_str);
 
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_int8* msg) {
@@ -323,7 +323,7 @@ void _scl_assert(scl_int b, scl_int8* msg) {
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) + 20);
 		sprintf(cmsg, "Assertion failed: %s\n", msg);
 		_scl_AssertError* err = NEW(AssertError, Error);
-		_ZN5Error4initEP3strP5Error(err, str_of(cmsg));
+		_ZN5Error4initE3str(err, str_of(cmsg));
 
 		_scl_throw(err);
 	}
@@ -338,7 +338,7 @@ void builtinUnreachable() {
 	} _scl_UnreachableError;
 
 	_scl_UnreachableError* err = NEW(UnreachableError, Error);
-	_ZN5Error4initEP3strP5Error(err, str_of("Unreachable!"));
+	_ZN5Error4initE3str(err, str_of("Unreachable!"));
 
 	_scl_throw(err);
 }
@@ -1003,7 +1003,7 @@ void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 		};
 		_scl_Exception e = NEW(InvalidSignalException, Exception);
 		_scl_push()->i = sig;
-		_ZN9Exception4initEP9Exception(e);
+		_ZN9Exception4initEv(e);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
@@ -1022,7 +1022,7 @@ void _scl_reset_signal_handler(scl_int sig) {
 		};
 		_scl_Exception e = NEW(InvalidSignalException, Exception);
 		_scl_push()->i = sig;
-		_ZN9Exception4initEP9Exception(e);
+		_ZN9Exception4initEv(e);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
@@ -1170,7 +1170,7 @@ void _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name));
 		sprintf(cmsg, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
 		_scl_CastError* err = NEW(CastError, Error);
-		_ZN5Error4initEP3strP5Error(err, str_of(cmsg));
+		_ZN5Error4initE3str(err, str_of(cmsg));
 		_scl_throw(err);
 	}
 }
@@ -1353,11 +1353,11 @@ scl_str int8$toString(scl_int8 val) {
 	return s;
 }
 
-scl_str _ZN9SclObject8toStringEP9SclObject(Struct*);
+scl_str _ZN9SclObject8toStringEv(Struct*);
 
 void _scl_puts(scl_any val) {
 	scl_str s = _scl_is_instance_of(val, SclObjectHash) ?
-		_ZN9SclObject8toStringEP9SclObject(val) :
+		_ZN9SclObject8toStringEv(val) :
 		int$toString((scl_int) val);
 	printf("%s\n", s->_data);
 }
@@ -1368,7 +1368,7 @@ void _scl_puts_str(scl_str str) {
 
 void _scl_eputs(scl_any val) {
 	scl_str s = _scl_is_instance_of(val, SclObjectHash) ?
-		_ZN9SclObject8toStringEP9SclObject(val) :
+		_ZN9SclObject8toStringEv(val) :
 		int$toString((scl_int) val);
 	fprintf(stderr, "%s\n", s->_data);
 }
@@ -1452,7 +1452,7 @@ scl_any Library$self0() {
 	scl_any lib = dlopen(nil, RTLD_LAZY);
 	if (!lib) {
 		scl_NullPointerException* e = NEW(NullPointerException, Exception);
-		_ZN9Exception4initEP9Exception((_scl_Exception) e);
+		_ZN9Exception4initEv((_scl_Exception) e);
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
 	}
@@ -1467,7 +1467,7 @@ scl_any Library$open0(scl_int8* name) {
 	scl_any lib = dlopen(name, RTLD_LAZY);
 	if (!lib) {
 		scl_NullPointerException* e = NEW(NullPointerException, Exception);
-		_ZN9Exception4initEP9Exception((_scl_Exception) e);
+		_ZN9Exception4initEv((_scl_Exception) e);
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
 	}
@@ -1599,8 +1599,8 @@ typedef struct Struct_Thread {
 	scl_str name;
 }* scl_Thread;
 
-void _ZN5Array4pushEPvP5Array(scl_Array self, scl_any value);
-void _ZN5Array6removeEPvP5Array(scl_Array self, scl_any value);
+void _ZN5Array4pushEPv(scl_Array self, scl_any value);
+void _ZN5Array6removeEPv(scl_Array self, scl_any value);
 extern scl_Array Var_Thread$threads;
 extern scl_Thread Var_Thread$mainThread;
 static tls scl_Thread _currentThread = nil;
@@ -1610,11 +1610,11 @@ void Thread$run(scl_Thread self) {
 	_currentThread = self;
 	_scl_stack_new();
 
-	_ZN5Array4pushEPvP5Array(Var_Thread$threads, self);
+	_ZN5Array4pushEPv(Var_Thread$threads, self);
 	
 	self->function();
 
-	_ZN5Array6removeEPvP5Array(Var_Thread$threads, self);
+	_ZN5Array6removeEPv(Var_Thread$threads, self);
 	
 	_scl_stack_free();
 	_currentThread = nil;
@@ -1678,7 +1678,7 @@ void _scl_throw(scl_any ex) {
 }
 
 // function Exception:printStackTrace(): none
-void _ZN9Exception15printStackTraceEP9Exception(scl_any self);
+void _ZN9Exception15printStackTraceEv(scl_any self);
 
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
@@ -1759,7 +1759,7 @@ int main(int argc, char** argv) {
 		} else {
 			scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
 
-			_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+			_ZN9Exception15printStackTraceEv(_extable.exceptions[_extable.jmp_buf_ptr]);
 			if (msg) {
 				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
 			} else {
@@ -1783,7 +1783,7 @@ int main(int argc, char** argv) {
 
 		scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
 
-		_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+		_ZN9Exception15printStackTraceEv(_extable.exceptions[_extable.jmp_buf_ptr]);
 		if (msg) {
 			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
 		} else {
@@ -1802,7 +1802,7 @@ int main(int argc, char** argv) {
 		} else {
 			scl_str msg = ((_scl_Exception) _extable.exceptions[_extable.jmp_buf_ptr])->msg;
 
-			_ZN9Exception15printStackTraceEP9Exception(_extable.exceptions[_extable.jmp_buf_ptr]);
+			_ZN9Exception15printStackTraceEv(_extable.exceptions[_extable.jmp_buf_ptr]);
 			if (msg) {
 				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
 			} else {

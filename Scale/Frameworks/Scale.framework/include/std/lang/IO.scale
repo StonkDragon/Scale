@@ -28,12 +28,7 @@ function eputs(s: [int8]): none
     c!
       _scl_push()->v = stderr;
     end
-  end
-  "%s\n":view
-
-  s:toString:view
-  unsafe
-    __c_fprintf! 1
+    "%s\n":view s __c_fprintf! 1
   end
   drop
 end

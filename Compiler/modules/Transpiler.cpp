@@ -185,7 +185,7 @@ namespace sclc {
             type = type.substr(0, type.size() - 1);
         }
         if (type == "str") {
-            return std::string("P3str");
+            return std::string("3str");
         } else if (type == "any") {
             return std::string("Pv");
         } else if (type == "int8") {
@@ -213,17 +213,17 @@ namespace sclc {
         } else if (type == "lambda") {
             return std::string("6lambda");
         } else if (type == "varargs") {
-            return std::string("2va");
+            return std::string("z");
         } else if (strstarts(type, "lambda(")) {
             std::string returnType = type.substr(type.find_last_of("):") + 1);
             std::string args = type.substr(type.find_first_of("(") + 1, type.find_last_of("):") - type.find_first_of("(") - 1);
-            return "PF" + convertToMangledType(result, returnType) + "4argsE";
+            return "PF" + convertToMangledType(result, returnType) + std::to_string(args.size() + 3) + "num" + args + "E";
         } else if (type.size() && type.at(0) == '[') {
             return "P" + convertToMangledType(result, type.substr(1, type.length() - 2));
         } else if (getStructByName(result, type) != Struct::Null) {
-            return "P" + std::to_string(type.size()) + type;
+            return std::to_string(type.size()) + type;
         } else if (hasTypealias(result, type)) {
-            return std::to_string(type.size() + 3) + "TA_" + type;
+            return std::to_string(type.size()) + type;
         }
         return "v";
     }
@@ -249,36 +249,48 @@ namespace sclc {
         }
 
         std::string symbol = f->finalName();
-        if (f->isMethod) {
-            Method* m = ((Method*)f);
-            symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + std::to_string(f->finalName().size()) + f->finalName() + "E";
-            if (f->getArgs().size() == 0) {
-                symbol += "v";
-            } else {
-                for (size_t x = 0; x < f->getArgs().size(); x++) {
-                    std::string type = removeTypeModifiers(f->getArgs()[x].getType());
-                    symbol += convertToMangledType(result, type);
-                }
-            }
-            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
-                symbol = m->getMemberType() + "$" + f->finalName();
-            }
-        } else {
-            symbol = "_Z" + std::to_string(f->finalName().size()) + f->finalName();
-            if (f->getArgs().size() == 0) {
-                symbol += "v";
-            } else {
-                for (size_t x = 0; x < f->getArgs().size(); x++) {
-                    std::string type = removeTypeModifiers(f->getArgs()[x].getType());
-                    symbol += convertToMangledType(result, type);
-                }
-            }
-            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
-                symbol = f->finalName();
-            }
+        if (symbol.find("$$ol") != std::string::npos) {
+            symbol = symbol.substr(0, symbol.find("$$ol"));
         }
+
         if (contains<std::string>(f->getModifiers(), "<lambda>")) {
             symbol = "$scl_lambda_" + std::string(f->finalName().c_str() + 7);
+        } else if (f->isMethod) {
+            Method* m = ((Method*) f);
+            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+                symbol = m->getMemberType() + "$" + f->finalName();
+            } else {
+                symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + std::to_string(f->finalName().size()) + f->finalName() + "E";
+                if (f->getArgs().size() <= 1) {
+                    symbol += "v";
+                } else {
+                    for (size_t x = 0; x < f->getArgs().size() - 1; x++) {
+                        std::string type = removeTypeModifiers(f->getArgs()[x].getType());
+                        symbol += convertToMangledType(result, type);
+                    }
+                }
+            }
+        } else {
+            std::string finalName = symbol;
+            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+                symbol = finalName;
+            } else {
+                if (finalName.find("$") != std::string::npos && !contains<std::string>(f->getModifiers(), "construct") && !contains<std::string>(f->getModifiers(), "final")) {
+                    std::string member = finalName.substr(0, finalName.find("$"));
+                    finalName = finalName.substr(finalName.find("$") + 1);
+                    symbol = "_ZN" + std::to_string(member.size()) + member + std::to_string(finalName.size()) + finalName + "E";
+                } else {
+                    symbol = "_Z" + std::to_string(finalName.size()) + finalName;
+                }
+                if (f->getArgs().size() == 0) {
+                    symbol += "v";
+                } else {
+                    for (size_t x = 0; x < f->getArgs().size(); x++) {
+                        std::string type = removeTypeModifiers(f->getArgs()[x].getType());
+                        symbol += convertToMangledType(result, type);
+                    }
+                }
+            }
         }
 
         return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + symbol + "\"";
