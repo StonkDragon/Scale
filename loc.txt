@@ -33,7 +33,7 @@
      224 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      109 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       32 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
-     207 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
+     215 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
      223 Scale/Frameworks/Scale.framework/include/std/reflect/Struct.scale
       59 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   18410 total
+   18418 total
