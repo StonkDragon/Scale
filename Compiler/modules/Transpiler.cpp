@@ -216,7 +216,7 @@ namespace sclc {
             return std::string("z");
         } else if (strstarts(type, "lambda(")) {
             std::string returnType = type.substr(type.find_last_of("):") + 1);
-            std::string args = type.substr(type.find("(") + 1, type.find("):") - type.find("("));
+            std::string args = type.substr(type.find("(") + 1, type.find("):") - type.find("(") - 1);
             return "PF" + convertToMangledType(result, returnType) + std::to_string(args.size() + 3) + "num" + args + "E";
         } else if (type.size() && type.at(0) == '[') {
             return "P" + convertToMangledType(result, type.substr(1, type.length() - 2));
