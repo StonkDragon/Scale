@@ -229,6 +229,9 @@ namespace sclc {
     }
 
     std::string toCPPOperator(std::string func) {
+        if (func.find("$$ol") != std::string::npos) {
+            func =  func.substr(0, func.find("$$ol"));
+        }
         if (func == "operator$add") return "pl";
         if (func == "operator$sub") return "mi";
         if (func == "operator$mul") return "ml";
@@ -1001,7 +1004,40 @@ namespace sclc {
 
     std::vector<bool> bools{false, true};
 
-    void generateCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true, bool withIntPromotion = false) {
+    bool opFunc(std::string name) {
+        return (name == "+") || (name == "operator$add") ||
+               (name == "-") || (name == "operator$sub") ||
+               (name == "*") || (name == "operator$mul") ||
+               (name == "/") || (name == "operator$div") ||
+               (name == "%") || (name == "operator$mod") ||
+               (name == "&") || (name == "operator$logic_and") ||
+               (name == "|") || (name == "operator$logic_or") ||
+               (name == "^") || (name == "operator$logic_xor") ||
+               (name == "~") || (name == "operator$logic_not") ||
+               (name == "<<") || (name == "operator$logic_lsh") ||
+               (name == ">>") || (name == "operator$logic_rsh") ||
+               (name == "**") || (name == "operator$pow");
+    }
+
+    std::string opToString(std::string op) {
+        if (strstarts(op, "add")) return "+";
+        if (strstarts(op, "sub")) return "-";
+        if (strstarts(op, "mul")) return "*";
+        if (strstarts(op, "div")) return "/";
+        if (strstarts(op, "pow")) return "**";
+        if (op == "mod") return "%";
+        if (op == "land") return "&";
+        if (op == "lor") return "|";
+        if (op == "lxor") return "^";
+        if (op == "lnot") return "~";
+        if (op == "lsl") return "<<";
+        if (op == "lsr") return ">>";
+        return "???";
+    }
+
+    void functionCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false, bool hasToCallStatic = false);
+
+    void methodCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true, bool withIntPromotion = false) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -1020,32 +1056,23 @@ namespace sclc {
 
                     bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
                     if (argsEqual) {
-                        generateCall(overloadFunc, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
+                        methodCall(overloadFunc, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
                         return;
                     }
                 }
             }
         }
 
-        if (self->isExternC && !hasImplementation(result, self)) {
-            std::string functionDeclaration = "";
-
-            functionDeclaration += ((Method*) self)->getMemberType() + ":" + self->getName() + "(";
-            for (size_t i = 0; i < self->getArgs().size() - 1; i++) {
-                if (i != 0) {
-                    functionDeclaration += ", ";
-                }
-                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
-            }
-            functionDeclaration += "): " + self->getReturnType();
-            append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-        }
-        
-        if (self->getArgs().size() > 0) {
-            append("_scl_popn(%zu);\n", self->getArgs().size());
-        }
         argsEqual = checkStackType(result, self->getArgs());
         if (!argsEqual && !ignoreArgs) {
+            if (opFunc(self->getName())) {
+                Function* f = getFunctionByName(result, self->getName());
+                if (f) {
+                    functionCall(f, fp, result, warns, errors, body, i, false, true);
+                    return;
+                }
+            }
+
             {
                 transpilerError("Arguments for method '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
@@ -1069,6 +1096,24 @@ namespace sclc {
             err.isNote = true;
             errors.push_back(err);
             return;
+        }
+
+        if (self->isExternC && !hasImplementation(result, self)) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += ((Method*) self)->getMemberType() + ":" + self->getName() + "(";
+            for (size_t i = 0; i < self->getArgs().size() - 1; i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
+            }
+            functionDeclaration += "): " + self->getReturnType();
+            append("_callstack.func[_callstack.ptr++] = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+        }
+        
+        if (self->getArgs().size() > 0) {
+            append("_scl_popn(%zu);\n", self->getArgs().size());
         }
         if (doActualPop) {
             for (size_t m = 0; m < self->getArgs().size(); m++) {
@@ -1123,38 +1168,7 @@ namespace sclc {
         return -1;
     }
 
-    bool opFunc(std::string name) {
-        return (name == "+") || (name == "operator$add") ||
-               (name == "-") || (name == "operator$sub") ||
-               (name == "*") || (name == "operator$mul") ||
-               (name == "/") || (name == "operator$div") ||
-               (name == "%") || (name == "operator$mod") ||
-               (name == "&") || (name == "operator$logic_and") ||
-               (name == "|") || (name == "operator$logic_or") ||
-               (name == "^") || (name == "operator$logic_xor") ||
-               (name == "~") || (name == "operator$logic_not") ||
-               (name == "<<") || (name == "operator$logic_lsh") ||
-               (name == ">>") || (name == "operator$logic_rsh") ||
-               (name == "**") || (name == "operator$pow");
-    }
-
-    std::string opToString(std::string op) {
-        if (strstarts(op, "add")) return "+";
-        if (strstarts(op, "sub")) return "-";
-        if (strstarts(op, "mul")) return "*";
-        if (strstarts(op, "div")) return "/";
-        if (strstarts(op, "pow")) return "**";
-        if (op == "mod") return "%";
-        if (op == "land") return "&";
-        if (op == "lor") return "|";
-        if (op == "lxor") return "^";
-        if (op == "lnot") return "~";
-        if (op == "lsl") return "<<";
-        if (op == "lsr") return ">>";
-        return "???";
-    }
-
-    void generateCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false) {
+    void functionCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion, bool hasToCallStatic) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -1174,7 +1188,7 @@ namespace sclc {
 
                     bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
                     if (argsEqual) {
-                        generateCall(overloadFunc, fp, result, warns, errors, body, i, b);
+                        functionCall(overloadFunc, fp, result, warns, errors, body, i, b);
                         return;
                     }
                 }
@@ -1192,9 +1206,9 @@ namespace sclc {
             if (!strstarts(op, "op$"))
                 goto notOperatorFunction;
             
-            if (hasMethod(result, self->getName(), typeStackTop)) {
+            if (!hasToCallStatic && hasMethod(result, self->getName(), typeStackTop)) {
                 Method* method = getMethodByName(result, self->getName(), typeStackTop);
-                generateCall(method, fp, result, warns, errors, body, i);
+                methodCall(method, fp, result, warns, errors, body, i);
                 return;
             }
 
@@ -1334,9 +1348,9 @@ namespace sclc {
         
     notOperatorFunction:
 
-        if (opFunc(self->getName()) && hasMethod(result, self->getName(), typeStackTop)) {
+        if (!hasToCallStatic && opFunc(self->getName()) && hasMethod(result, self->getName(), typeStackTop)) {
             Method* method = getMethodByName(result, self->getName(), typeStackTop);
-            generateCall(method, fp, result, warns, errors, body, i);
+            methodCall(method, fp, result, warns, errors, body, i);
             return;
         }
 
@@ -2014,7 +2028,7 @@ namespace sclc {
             typeStack.push(getVar("self").getType());
             append("scl_int __stack_size = _stack.ptr;\n");
             append("_scl_look_for_method = 0;\n");
-            generateCall(superInit, fp, result, warns, errors, body, i);
+            methodCall(superInit, fp, result, warns, errors, body, i);
             append("_scl_look_for_method = 1;\n");
             append("_stack.ptr = __stack_size;\n");
             scopeDepth--;
@@ -2093,7 +2107,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            generateCall(f, fp, result, warns, errors, body, i);
+            functionCall(f, fp, result, warns, errors, body, i);
         } else if (hasFunction(result, function->member_type + "$" + body[i].getValue())) {
             Function* f = getFunctionByName(result, function->member_type + "$" + body[i].getValue());
             if (f->isCVarArgs()) {
@@ -2105,7 +2119,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            generateCall(f, fp, result, warns, errors, body, i);
+            functionCall(f, fp, result, warns, errors, body, i);
         } else if (hasContainer(result, body[i])) {
             std::string containerName = body[i].getValue();
             i++;
@@ -2153,7 +2167,7 @@ namespace sclc {
                         scopeDepth++;
                         Method* f = getMethodByName(result, "init", struct_);
                         append("%s tmp = (%s) _scl_top()->v;\n", sclTypeToCType(result, struct_).c_str(), sclTypeToCType(result, struct_).c_str());
-                        generateCall(f, fp, result, warns, errors, body, i);
+                        methodCall(f, fp, result, warns, errors, body, i);
                         append("_scl_push()->v = tmp;\n");
                         typeStack.push(struct_);
                         scopeDepth--;
@@ -2185,7 +2199,7 @@ namespace sclc {
                                 return;
                             }
                         }
-                        generateCall(f, fp, result, warns, errors, body, i);
+                        functionCall(f, fp, result, warns, errors, body, i);
                     } else if (hasGlobal(result, struct_ + "$" + body[i].getValue())) {
                         std::string loadFrom = struct_ + "$" + body[i].getValue();
                         Variable v = getVar(Token(tok_identifier, loadFrom, 0, ""));
@@ -2340,7 +2354,7 @@ namespace sclc {
                 Method* f = getMethodByName(result, body[i].getValue(), s.getName());
                 append("_scl_push()->i = (scl_int) Var_self;\n");
                 typeStack.push(f->getMemberType());
-                generateCall(f, fp, result, warns, errors, body, i);
+                methodCall(f, fp, result, warns, errors, body, i);
             } else if (hasFunction(result, Token(tok_identifier, s.getName() + "$" + body[i].getValue(), 0, ""))) {
                 std::string struct_ = s.getName();
                 Function* f = getFunctionByName(result, struct_ + "$" + body[i].getValue());
@@ -2353,7 +2367,7 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                generateCall(f, fp, result, warns, errors, body, i);
+                functionCall(f, fp, result, warns, errors, body, i);
             } else if (s.hasMember(body[i].getValue())) {
                 Variable mem = s.getMember(body[i].getValue());
                 auto hasAttributeAccessor = [&](std::string struct_, std::string member) -> bool {
@@ -2365,7 +2379,7 @@ namespace sclc {
                     Method* f = getMethodByName(result, "attribute_accessor$" + body[i].getValue(), s.getName());
                     append("_scl_push()->i = (scl_int) Var_self;\n");
                     typeStack.push(f->getMemberType());
-                    generateCall(f, fp, result, warns, errors, body, i);
+                    methodCall(f, fp, result, warns, errors, body, i);
                     return;
                 }
                 if (mem.getType() == "float") {
@@ -4467,7 +4481,7 @@ namespace sclc {
                 append("_scl_push()->v = tmp;\n");
                 scopeDepth--;
                 append("}\n");
-                generateCall(f, fp, result, warns, errors, body, i);
+                methodCall(f, fp, result, warns, errors, body, i);
                 return;
             }
             std::string help = "";
@@ -4505,7 +4519,7 @@ namespace sclc {
         if (hasAttributeAccessor(s.getName(), body[i].getValue())) {
             Method* f = getMethodByName(result, "attribute_accessor$" + body[i].getValue(), s.getName());
             typeStack.push(type);
-            generateCall(f, fp, result, warns, errors, body, i);
+            methodCall(f, fp, result, warns, errors, body, i);
             return;
         }
         if (dot.getValue() == "?.") {
@@ -4617,7 +4631,7 @@ namespace sclc {
                 if (objMethod) {
                     append("if (_scl_is_instance_of(_scl_top()->v, 0x%xU)) {\n", hash1((char*) "SclObject"));
                     scopeDepth++;
-                    generateCall(objMethod, fp, result, warns, errors, body, i, true, false);
+                    methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
                     if (objMethod->getReturnType() != "none") {
                         typeStack.pop();
                     }
@@ -4625,7 +4639,7 @@ namespace sclc {
                     append("} else {\n");
                     scopeDepth++;
                 }
-                generateCall(anyMethod, fp, result, warns, errors, body, i);
+                functionCall(anyMethod, fp, result, warns, errors, body, i);
                 if (objMethod) {
                     scopeDepth--;
                     append("}\n");
@@ -4638,7 +4652,7 @@ namespace sclc {
         }
         if (s.isStatic()) {
             Function* f = getFunctionByName(result, removeTypeModifiers(type) + "$" + body[i].getValue());
-            generateCall(f, fp, result, warns, errors, body, i);
+            functionCall(f, fp, result, warns, errors, body, i);
         } else {
             if (typeCanBeNil(type)) {
                 {
@@ -4658,7 +4672,7 @@ namespace sclc {
                     return;
                 }
             }
-            generateCall(f, fp, result, warns, errors, body, i);
+            methodCall(f, fp, result, warns, errors, body, i);
         }
     }
 
@@ -5411,7 +5425,7 @@ namespace sclc {
                             typeStack.push(function->getArgs().back().getType());
                             append("scl_int __stack_size = _stack.ptr;\n");
                             append("_scl_look_for_method = 0;\n");
-                            generateCall(superInit, fp, result, warns, errors, body, 0);
+                            methodCall(superInit, fp, result, warns, errors, body, 0);
                             append("_scl_look_for_method = 1;\n");
                             append("_stack.ptr = __stack_size;\n");
                             scopeDepth--;
