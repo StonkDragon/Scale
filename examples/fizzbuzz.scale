@@ -13,6 +13,8 @@ function main(): none
       # can't infer types from different scopes
       as int dup putint
     fi
-    1 +
+    # this magic cast is here so the compiler doesn't segfault
+    # needs to be fixed asap
+    as int 1 +
   done drop
 end

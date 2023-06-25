@@ -228,6 +228,38 @@ namespace sclc {
         return "v";
     }
 
+    std::string toCPPOperator(std::string func) {
+        if (func == "operator$add") return "pl";
+        if (func == "operator$sub") return "mi";
+        if (func == "operator$mul") return "ml";
+        if (func == "operator$div") return "dv";
+        if (func == "operator$mod") return "rm";
+        if (func == "operator$logic_and") return "an";
+        if (func == "operator$logic_or") return "or";
+        if (func == "operator$logic_xor") return "eo";
+        if (func == "operator$logic_not") return "co";
+        if (func == "operator$logic_lsh") return "ls";
+        if (func == "operator$logic_rsh") return "rs";
+        if (func == "operator$pow") return "pw";
+        if (func == "operator$dot") return "pt";
+        if (func == "operator$less") return "lt";
+        if (func == "operator$less_equal") return "le";
+        if (func == "operator$more") return "gt";
+        if (func == "operator$more_equal") return "ge";
+        if (func == "operator$equal") return "eq";
+        if (func == "operator$not") return "nt";
+        if (func == "operator$assert_not_nil") return "nn";
+        if (func == "operator$not_equal") return "ne";
+        if (func == "operator$bool_and") return "aa";
+        if (func == "operator$bool_or") return "oo";
+        if (func == "operator$inc") return "pp";
+        if (func == "operator$dec") return "mm";
+        if (func == "operator$at") return "ix";
+        if (func == "operator$wildcard") return "de";
+
+        return func;
+    }
+
     std::string generateSymbolForFunction(TPResult result, Function* f) {
         auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
             for (size_t i = 0; i < v.size(); i++) {
@@ -260,7 +292,15 @@ namespace sclc {
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = m->getMemberType() + "$" + f->finalName();
             } else {
-                symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + std::to_string(f->finalName().size()) + f->finalName() + "E";
+                std::string name = f->finalName();
+
+                bool op = false;
+                if (strstarts(name, "operator$")) {
+                    name = toCPPOperator(name);
+                    op = true;
+                }
+
+                symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + (!op ? std::to_string(name.size()) : "") + name + "E";
                 if (f->getArgs().size() <= 1) {
                     symbol += "v";
                 } else {
@@ -969,7 +1009,6 @@ namespace sclc {
         std::vector<std::string>& overloads = self->overloads;
         bool argsEqual = ignoreArgs || checkStackType(result, self->getArgs(), withIntPromotion);
         if (overloads.size() && !argsEqual && !ignoreArgs) {
-            std::cout << "Stack: " << stackSliceToString(self->getArgs().size()) << std::endl;
             for (bool b : bools) {
                 for (std::string& overload : overloads) {
                     Method* overloadFunc = getMethodByName(result, overload, self->getMemberType());
@@ -978,11 +1017,9 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    std::cout << "Checking overload " << overloadFunc->getName() << (b ? " with int promotion" : "") << std::endl;
 
                     bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
                     if (argsEqual) {
-                        std::cout << "Found overload " << overloadFunc->getName() << " with [ " << argVectorToString(overloadFunc->getArgs()) << " ]" << std::endl;
                         generateCall(overloadFunc, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
                         return;
                     }
@@ -1013,7 +1050,22 @@ namespace sclc {
                 transpilerError("Arguments for method '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
             }
-            transpilerError("Expected: [ " + argVectorToString(self->getArgs()) + " ], but got: [ " + stackSliceToString(self->getArgs().size()) + " ]", i);
+
+            std::string overloadedMatches = "";
+            if (overloads.size()) {
+                for (auto overload : overloads) {
+                    Method* overloadFunc = getMethodByName(result, overload, self->getMemberType());
+                    if (overloadFunc == self) continue;
+                    if (overloadFunc == nullptr) {
+                        transpilerError("Overload '" + overload + "' not found!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    overloadedMatches += ", or [ " + Color::BLUE + argVectorToString(overloadFunc->getArgs()) + Color::RESET + " ]";
+                }
+            }
+
+            transpilerError("Expected: [ " + Color::BLUE + argVectorToString(self->getArgs()) + Color::RESET + " ]" + overloadedMatches + ", but got: [ " + Color::RED + stackSliceToString(self->getArgs().size()) + Color::RESET + " ]", i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -1061,13 +1113,55 @@ namespace sclc {
         return false;
     }
 
+    template<typename T>
+    size_t indexInVec(std::vector<T> vec, T elem) {
+        for (size_t i = 0; i < vec.size(); i++) {
+            if (vec[i] == elem) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    bool opFunc(std::string name) {
+        return (name == "+") || (name == "operator$add") ||
+               (name == "-") || (name == "operator$sub") ||
+               (name == "*") || (name == "operator$mul") ||
+               (name == "/") || (name == "operator$div") ||
+               (name == "%") || (name == "operator$mod") ||
+               (name == "&") || (name == "operator$logic_and") ||
+               (name == "|") || (name == "operator$logic_or") ||
+               (name == "^") || (name == "operator$logic_xor") ||
+               (name == "~") || (name == "operator$logic_not") ||
+               (name == "<<") || (name == "operator$logic_lsh") ||
+               (name == ">>") || (name == "operator$logic_rsh") ||
+               (name == "**") || (name == "operator$pow");
+    }
+
+    std::string opToString(std::string op) {
+        if (strstarts(op, "add")) return "+";
+        if (strstarts(op, "sub")) return "-";
+        if (strstarts(op, "mul")) return "*";
+        if (strstarts(op, "div")) return "/";
+        if (strstarts(op, "pow")) return "**";
+        if (op == "mod") return "%";
+        if (op == "land") return "&";
+        if (op == "lor") return "|";
+        if (op == "lxor") return "^";
+        if (op == "lnot") return "~";
+        if (op == "lsl") return "<<";
+        if (op == "lsr") return ">>";
+        return "???";
+    }
+
     void generateCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
 
-        std::vector<std::string>& overloads = self->overloads;
+        std::vector<std::string> overloads = self->overloads;
         bool argsEqual = checkStackType(result, self->getArgs(), withIntPromotion);
+
         if (overloads.size() && !argsEqual) {
             for (bool b : bools) {
                 for (std::string& overload : overloads) {
@@ -1077,7 +1171,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-        
+
                     bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
                     if (argsEqual) {
                         generateCall(overloadFunc, fp, result, warns, errors, body, i, b);
@@ -1085,6 +1179,165 @@ namespace sclc {
                     }
                 }
             }
+        }
+
+        if (contains<std::string>(self->getModifiers(), "cdecl")) {
+            size_t sym = indexInVec<std::string>(self->getModifiers(), "cdecl") + 1;
+
+            if (sym == 0)
+                goto notOperatorFunction;
+            
+            std::string op = self->getModifiers()[sym];
+            
+            if (!strstarts(op, "op$"))
+                goto notOperatorFunction;
+            
+            if (hasMethod(result, self->getName(), typeStackTop)) {
+                Method* method = getMethodByName(result, self->getName(), typeStackTop);
+                generateCall(method, fp, result, warns, errors, body, i);
+                return;
+            }
+
+            op = op.substr(3);
+
+            if (typeStack.size() < (1 + (op != "lnot"))) {
+                transpilerError("Cannot deduce type for operation '" + opToString(op) +  "'!", i);
+                errors.push_back(err);
+                return;
+            }
+
+            if (op != "lnot") {
+                typeStack.pop();
+                typeStack.pop();
+            } else {
+                
+                typeStack.pop();
+            }
+
+            if (op == "add_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i + _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "add_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) + _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "add_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f + ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("float");
+            } else if (op == "add_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f + _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "sub_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i - _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "sub_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) - _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "sub_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f - ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("float");
+            } else if (op == "sub_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f - _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "mul_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i * _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "mul_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) * _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "mul_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f * ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("float");
+            } else if (op == "mul_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f * _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "div_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i / _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "div_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) / _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+            } else if (op == "div_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f / ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("float");
+            } else if (op == "div_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = _scl_positive_offset(0)->f / _scl_positive_offset(1)->f;\n");
+                typeStack.push("float");
+
+            } else if (op == "pow_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = (scl_int) pow((scl_float) _scl_positive_offset(0)->i, (scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("int");
+            } else if (op == "pow_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = pow((scl_float) _scl_positive_offset(0)->i, _scl_positive_offset(1)->f);\n");
+                typeStack.push("float");
+            } else if (op == "pow_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = pow(_scl_positive_offset(0)->f, (scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("float");
+            } else if (op == "pow_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->f = pow(_scl_positive_offset(0)->f, _scl_positive_offset(1)->f);\n");
+                typeStack.push("float");
+
+            } else if (op == "mod") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i %% _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "land") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i & _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "lor") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i | _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "lxor") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i ^ _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "lnot") {
+                append("_scl_pop();\n");
+                append("_scl_push()->i = ~_scl_positive_offset(0)->i;\n");
+                typeStack.push("int");
+            } else if (op == "lsr") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i >> _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else if (op == "lsl") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i << _scl_positive_offset(1)->i;\n");
+                typeStack.push("int");
+            } else {
+                transpilerError("Unknown operator: " + op, i);
+                errors.push_back(err);
+            }
+
+            return;
+        }
+        
+    notOperatorFunction:
+
+        if (opFunc(self->getName()) && hasMethod(result, self->getName(), typeStackTop)) {
+            Method* method = getMethodByName(result, self->getName(), typeStackTop);
+            generateCall(method, fp, result, warns, errors, body, i);
+            return;
         }
 
         if (self->isExternC && !hasImplementation(result, self)) {
@@ -1113,7 +1366,22 @@ namespace sclc {
                 transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
             }
-            transpilerError("Expected: [ " + argVectorToString(self->getArgs()) + " ], but got: [ " + stackSliceToString(self->getArgs().size()) + " ]", i);
+
+            std::string overloadedMatches = "";
+            if (overloads.size()) {
+                for (auto overload : overloads) {
+                    Function* overloadFunc = getFunctionByName(result, overload);
+                    if (overloadFunc == self) continue;
+                    if (overloadFunc == nullptr) {
+                        transpilerError("Overload '" + overload + "' not found!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    overloadedMatches += ", or [ " + Color::BLUE + argVectorToString(overloadFunc->getArgs()) + Color::RESET + " ]";
+                }
+            }
+
+            transpilerError("Expected: [ " + Color::BLUE + argVectorToString(self->getArgs()) + Color::RESET + " ]" + overloadedMatches + ", but got: [ " + Color::RED + stackSliceToString(self->getArgs().size()) + Color::RESET + " ]", i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -2116,7 +2384,7 @@ namespace sclc {
                 }
                 typeStack.push(v.getType());
             } else {
-                transpilerError("Unknown member: '" + body[i].getValue() + "'", i);
+                transpilerError("Unknown member of struct '" + m->getMemberType() + "': '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
             }
         } else {
@@ -4150,13 +4418,7 @@ namespace sclc {
     handler(Dot) {
         noUnused;
         std::string type = typeStackTop;
-        // auto pointingTo = [&](std::string& type) -> std::string {
-        //     if (type.size() < 2) return "any";
-        //     if (type.at(0) == '[' && type.at(type.size() - 1) == ']') {
-        //         return type.substr(1, type.size() - 2);
-        //     }
-        //     return "any";
-        // };
+        typePop;
 
         if (hasLayout(result, type)) {
             Layout l = getLayout(result, type);
@@ -4174,13 +4436,12 @@ namespace sclc {
             } else {
                 append("_scl_top()->i = (scl_int) ((%s) _scl_top()->i)->%s;\n", sclTypeToCType(result, l.getName()).c_str(), member.c_str());
             }
-            typePop;
             typeStack.push(l.getMember(member).getType());
             return;
         }
-        Struct s = getStructByName(result, typeStackTop);
+        Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
-            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + typeStackTop + "'", i);
+            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + type + "'", i);
             errors.push_back(err);
             return;
         }
@@ -4198,8 +4459,7 @@ namespace sclc {
                 append("{\n");
                 scopeDepth++;
                 append("scl_any tmp = _scl_pop()->v;\n");
-                std::string t = typeStackTop;
-                typeStack.pop();
+                std::string t = type;
                 append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
                 addIfAbsent(stringLiterals, body[i].getValue());
                 typeStack.push(t);
@@ -4226,12 +4486,12 @@ namespace sclc {
                 return;
             }
         }
-        if (typeCanBeNil(typeStackTop) && dot.getValue() != "?.") {
+        if (typeCanBeNil(type) && dot.getValue() != "?.") {
             {
-                transpilerError("Member access on maybe-nil type '" + typeStackTop + "'", i);
+                transpilerError("Member access on maybe-nil type '" + type + "'", i);
                 errors.push_back(err);
             }
-            transpilerError("If you know '" + typeStackTop + "' can't be nil at this location, add '!!' before this '.'\\insertText;!!;" + std::to_string(err.line) + ":" + std::to_string(err.column), i);
+            transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this '.'\\insertText;!!;" + std::to_string(err.line) + ":" + std::to_string(err.column), i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -4244,6 +4504,7 @@ namespace sclc {
 
         if (hasAttributeAccessor(s.getName(), body[i].getValue())) {
             Method* f = getMethodByName(result, "attribute_accessor$" + body[i].getValue(), s.getName());
+            typeStack.push(type);
             generateCall(f, fp, result, warns, errors, body, i);
             return;
         }
@@ -4260,7 +4521,6 @@ namespace sclc {
                 append("_scl_top()->v = (scl_any) ((%s) _scl_top()->v)->%s;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
             }
         }
-        typePop;
         typeStack.push(mem.getType());
     }
 

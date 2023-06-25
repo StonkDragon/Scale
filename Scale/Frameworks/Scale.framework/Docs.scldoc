@@ -700,7 +700,19 @@ Creates a new <<WHITE>>IllegalStateException<<RESET>> with the given message.
 @std.String
 ## String
 ### function str:+(other: str): str
-Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
+Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended to the string.
+
+### function str:+(number: int): str
+Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+
+### function str:+(number: float): str
+Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+
+### function +(s: str, num: int): str
+Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
+
+### function +(s: str, num: float): str
+Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
 
 ### function str:++(c: int): str
 Returns a new string with the character stored in <<WHITE>>c<<RESET>> appended to the end of the string.

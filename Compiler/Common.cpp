@@ -395,6 +395,34 @@ namespace sclc
     }
 
     Function* getFunctionByName(TPResult result, std::string name) {
+        if (name == "+") name = "operator$add";
+        if (name == "-") name = "operator$sub";
+        if (name == "*") name = "operator$mul";
+        if (name == "/") name = "operator$div";
+        if (name == "%") name = "operator$mod";
+        if (name == "&") name = "operator$logic_and";
+        if (name == "|") name = "operator$logic_or";
+        if (name == "^") name = "operator$logic_xor";
+        if (name == "~") name = "operator$logic_not";
+        if (name == "<<") name = "operator$logic_lsh";
+        if (name == ">>") name = "operator$logic_rsh";
+        if (name == "**") name = "operator$pow";
+        if (name == ".") name = "operator$dot";
+        if (name == "<") name = "operator$less";
+        if (name == "<=") name = "operator$less_equal";
+        if (name == ">") name = "operator$more";
+        if (name == ">=") name = "operator$more_equal";
+        if (name == "==") name = "operator$equal";
+        if (name == "!") name = "operator$not";
+        if (name == "!!") name = "operator$assert_not_nil";
+        if (name == "!=") name = "operator$not_equal";
+        if (name == "&&") name = "operator$bool_and";
+        if (name == "||") name = "operator$bool_or";
+        if (name == "++") name = "operator$inc";
+        if (name == "--") name = "operator$dec";
+        if (name == "@") name = "operator$at";
+        if (name == "?") name = "operator$wildcard";
+
         for (Function* func : result.functions) {
             if (func == nullptr) continue;
             if (func->isMethod) continue;
@@ -549,23 +577,59 @@ namespace sclc
     }
 
     bool hasFunction(TPResult result, std::string name) {
-        return hasFunction(result, Token(tok_identifier, name, 0, ""));
-    }
+        if (name == "+") name = "operator$add";
+        if (name == "-") name = "operator$sub";
+        if (name == "*") name = "operator$mul";
+        if (name == "/") name = "operator$div";
+        if (name == "%") name = "operator$mod";
+        if (name == "&") name = "operator$logic_and";
+        if (name == "|") name = "operator$logic_or";
+        if (name == "^") name = "operator$logic_xor";
+        if (name == "~") name = "operator$logic_not";
+        if (name == "<<") name = "operator$logic_lsh";
+        if (name == ">>") name = "operator$logic_rsh";
+        if (name == "**") name = "operator$pow";
+        if (name == ".") name = "operator$dot";
+        if (name == "<") name = "operator$less";
+        if (name == "<=") name = "operator$less_equal";
+        if (name == ">") name = "operator$more";
+        if (name == ">=") name = "operator$more_equal";
+        if (name == "==") name = "operator$equal";
+        if (name == "!") name = "operator$not";
+        if (name == "!!") name = "operator$assert_not_nil";
+        if (name == "!=") name = "operator$not_equal";
+        if (name == "&&") name = "operator$bool_and";
+        if (name == "||") name = "operator$bool_or";
+        if (name == "++") name = "operator$inc";
+        if (name == "--") name = "operator$dec";
+        if (name == "@") name = "operator$at";
+        if (name == "?") name = "operator$wildcard";
 
-    bool hasFunction(TPResult result, Token name) {
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
-            if (func->getName() == name.getValue()) {
+            std::string funcName = func->getName();
+            if (funcName.find("$$ol") != std::string::npos) {
+                funcName = funcName.substr(0, funcName.find("$$ol"));
+            }
+            if (funcName == name) {
                 return true;
             }
         }
         for (Function* func : result.extern_functions) {
             if (func->isMethod) continue;
-            if (func->getName() == name.getValue()) {
+            std::string funcName = func->getName();
+            if (funcName.find("$$ol") != std::string::npos) {
+                funcName = funcName.substr(0, funcName.find("$$ol"));
+            }
+            if (funcName == name) {
                 return true;
             }
         }
         return false;
+    }
+
+    bool hasFunction(TPResult result, Token name) {
+        return hasFunction(result, name.getValue());
     }
 
 

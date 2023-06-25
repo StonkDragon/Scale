@@ -42,6 +42,34 @@ const std::vector<std::string> intrinsics({
 
 namespace sclc {
     Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+        if (name == "+") name = "operator$add";
+        if (name == "-") name = "operator$sub";
+        if (name == "*") name = "operator$mul";
+        if (name == "/") name = "operator$div";
+        if (name == "%") name = "operator$mod";
+        if (name == "&") name = "operator$logic_and";
+        if (name == "|") name = "operator$logic_or";
+        if (name == "^") name = "operator$logic_xor";
+        if (name == "~") name = "operator$logic_not";
+        if (name == "<<") name = "operator$logic_lsh";
+        if (name == ">>") name = "operator$logic_rsh";
+        if (name == "**") name = "operator$pow";
+        if (name == ".") name = "operator$dot";
+        if (name == "<") name = "operator$less";
+        if (name == "<=") name = "operator$less_equal";
+        if (name == ">") name = "operator$more";
+        if (name == ">=") name = "operator$more_equal";
+        if (name == "==") name = "operator$equal";
+        if (name == "!") name = "operator$not";
+        if (name == "!!") name = "operator$assert_not_nil";
+        if (name == "!=") name = "operator$not_equal";
+        if (name == "&&") name = "operator$bool_and";
+        if (name == "||") name = "operator$bool_or";
+        if (name == "++") name = "operator$inc";
+        if (name == "--") name = "operator$dec";
+        if (name == "@") name = "operator$at";
+        if (name == "?") name = "operator$wildcard";
+
         Function* func = new Function(name, nameToken);
         func->setFile(nameToken.getFile());
         for (std::string m : nextAttributes) {
@@ -815,19 +843,6 @@ namespace sclc {
                     nextAttributes.clear();
                     continue;
                 }
-                if (tokens[i + 1].getType() != tok_identifier) {
-                    FPResult result;
-                    result.message = "Expected itentifier for function name keyword";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
-                    result.success = false;
-                    errors.push_back(result);
-                    nextAttributes.clear();
-                    continue;
-                }
                 i++;
                 if (tokens[i + 1].getType() == tok_column) {
                     std::string member_type = tokens[i].getValue();
@@ -1059,7 +1074,7 @@ namespace sclc {
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for container name, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for container name, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1136,7 +1151,7 @@ namespace sclc {
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for struct name, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for struct name, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1325,7 +1340,7 @@ namespace sclc {
                     i++;
                     if (tokens[i].getType() != tok_identifier) {
                         FPResult result;
-                        result.message = "Expected itentifier for variable name, but got '" + tokens[i].getValue() + "'";
+                        result.message = "Expected identifier for variable name, but got '" + tokens[i].getValue() + "'";
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1419,7 +1434,7 @@ namespace sclc {
                 i++;
                 if (tokens[i].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for enum name, but got '" + tokens[i].getValue() + "'";
+                    result.message = "Expected identifier for enum name, but got '" + tokens[i].getValue() + "'";
                     result.value = tokens[i].getValue();
                     result.line = tokens[i].getLine();
                     result.in = tokens[i].getFile();
@@ -1436,7 +1451,7 @@ namespace sclc {
 
                     if (tokens[i].getType() != tok_identifier) {
                         FPResult result;
-                        result.message = "Expected itentifier for enum member, but got '" + tokens[i].getValue() + "'";
+                        result.message = "Expected identifier for enum member, but got '" + tokens[i].getValue() + "'";
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -1515,7 +1530,7 @@ namespace sclc {
                 }
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for interface declaration, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for interface declaration, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1576,7 +1591,7 @@ namespace sclc {
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1625,7 +1640,7 @@ namespace sclc {
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1671,7 +1686,7 @@ namespace sclc {
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected itentifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
                     result.line = tokens[i + 1].getLine();
                     result.in = tokens[i + 1].getFile();
@@ -1918,13 +1933,13 @@ namespace sclc {
             }
         }
 
-        for (Function* f : joinVecs(functions, extern_functions)) {
-            if (f->isMethod) continue;
-            Function* self = f;
+        for (Function* self : joinVecs(functions, extern_functions)) {
+            if (self->isMethod) continue;
             std::string name = self->getName();
             if (name.find("$$ol") != std::string::npos) {
                 name = name.substr(0, name.find("$$ol"));
             }
+            self->overloads.push_back(self->getName());
             for (Function* f : joinVecs(functions, extern_functions)) {
                 if (f == self) continue;
                 if (f->isMethod) continue;
@@ -1933,13 +1948,14 @@ namespace sclc {
                 }
             }
         }
-        for (Function* f : joinVecs(functions, extern_functions)) {
-            if (!f->isMethod) continue;
-            Method* self = (Method*) f;
+        for (Function* selfF : joinVecs(functions, extern_functions)) {
+            if (!selfF->isMethod) continue;
+            Method* self = (Method*) selfF;
             std::string name = self->getName();
             if (name.find("$$ol") != std::string::npos) {
                 name = name.substr(0, name.find("$$ol"));
             }
+            self->overloads.push_back(self->getName());
             for (Function* f : joinVecs(functions, extern_functions)) {
                 if (f == self) continue;
                 if (!f->isMethod) continue;

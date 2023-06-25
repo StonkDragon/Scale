@@ -376,21 +376,21 @@ namespace sclc
             additional = true;
             additionalToken = Token(tok_store, "=>", line, filename, begin);
             if (value == "+>") {
-                return Token(tok_add, "+", line, filename, begin);
+                return Token(tok_identifier, "+", line, filename, begin);
             } else if (value == "->") {
-                return Token(tok_sub, "-", line, filename, begin);
+                return Token(tok_identifier, "-", line, filename, begin);
             } else if (value == "*>") {
-                return Token(tok_mul, "*", line, filename, begin);
+                return Token(tok_identifier, "*", line, filename, begin);
             } else if (value == "/>") {
-                return Token(tok_div, "/", line, filename, begin);
+                return Token(tok_identifier, "/", line, filename, begin);
             } else if (value == "&>") {
-                return Token(tok_land, "&", line, filename, begin);
+                return Token(tok_identifier, "&", line, filename, begin);
             } else if (value == "|>") {
-                return Token(tok_lor, "|", line, filename, begin);
+                return Token(tok_identifier, "|", line, filename, begin);
             } else if (value == "^>") {
-                return Token(tok_lxor, "^", line, filename, begin);
+                return Token(tok_identifier, "^", line, filename, begin);
             } else if (value == "%>") {
-                return Token(tok_mod, "%", line, filename, begin);
+                return Token(tok_identifier, "%", line, filename, begin);
             }
             __builtin_unreachable();
         }
@@ -406,18 +406,18 @@ namespace sclc
         TOKEN(",",          tok_comma, line, filename);
         TOKEN(":",          tok_column, line, filename);
         TOKEN("::",         tok_double_column, line, filename);
-        TOKEN("+",          tok_add, line, filename);
-        TOKEN("-",          tok_sub, line, filename);
-        TOKEN("*",          tok_mul, line, filename);
-        TOKEN("/",          tok_div, line, filename);
-        TOKEN("%",          tok_mod, line, filename);
-        TOKEN("&",          tok_land, line, filename);
-        TOKEN("|",          tok_lor, line, filename);
-        TOKEN("^",          tok_lxor, line, filename);
-        TOKEN("~",          tok_lnot, line, filename);
-        TOKEN("<<",         tok_lsh, line, filename);
-        TOKEN(">>",         tok_rsh, line, filename);
-        TOKEN("**",         tok_pow, line, filename);
+        TOKEN("+",          tok_identifier, line, filename);
+        TOKEN("-",          tok_identifier, line, filename);
+        TOKEN("*",          tok_identifier, line, filename);
+        TOKEN("/",          tok_identifier, line, filename);
+        TOKEN("%",          tok_identifier, line, filename);
+        TOKEN("&",          tok_identifier, line, filename);
+        TOKEN("|",          tok_identifier, line, filename);
+        TOKEN("^",          tok_identifier, line, filename);
+        TOKEN("~",          tok_identifier, line, filename);
+        TOKEN("<<",         tok_identifier, line, filename);
+        TOKEN(">>",         tok_identifier, line, filename);
+        TOKEN("**",         tok_identifier, line, filename);
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("?.",         tok_dot, line, filename);
         TOKEN("<",          tok_identifier, line, filename);

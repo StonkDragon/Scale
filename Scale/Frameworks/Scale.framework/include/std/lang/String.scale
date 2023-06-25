@@ -23,6 +23,14 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     other self:prepend return
   end
 
+  function +(number: int): str
+    number:toString self:prepend return
+  end
+
+  function +(number: float): str
+    number:toString self:prepend return
+  end
+
   function clone(): str
     self._data str::new return
   end
@@ -60,7 +68,7 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
       +
       IndexOutOfBoundsException::new throw
     fi
-    self._data i + @:toInt8 as int return
+    self._data as int i + @:toInt8 as int return
   end
 
   function toString(): str
@@ -148,7 +156,7 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
     self._data => decl tmp: any
 
-    tmp start + => tmp
+    tmp as int start + => tmp
     tmp as [int8] str::new return
   end
 
@@ -196,4 +204,12 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
     out return
   end
+end
+
+function +(s: str, i: int): str
+  s i:toString + return
+end
+
+function +(s: str, f: float): str
+  s f:toString + return
 end

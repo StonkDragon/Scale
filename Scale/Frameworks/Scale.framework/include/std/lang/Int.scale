@@ -117,6 +117,34 @@ final static sealed struct int
   end
 end
 
+expect cdecl "op$add_ii" function +(:int, :int): int
+expect cdecl "op$add_if" function +(:int, :float): float
+expect cdecl "op$add_fi" function +(:float, :int): float
+expect cdecl "op$add_ff" function +(:float, :float): float
+expect cdecl "op$sub_ii" function -(:int, :int): int
+expect cdecl "op$sub_if" function -(:int, :float): float
+expect cdecl "op$sub_fi" function -(:float, :int): float
+expect cdecl "op$sub_ff" function -(:float, :float): float
+expect cdecl "op$mul_ii" function *(:int, :int): int
+expect cdecl "op$mul_if" function *(:int, :float): float
+expect cdecl "op$mul_fi" function *(:float, :int): float
+expect cdecl "op$mul_ff" function *(:float, :float): float
+expect cdecl "op$div_ii" function /(:int, :int): int
+expect cdecl "op$div_if" function /(:int, :float): float
+expect cdecl "op$div_fi" function /(:float, :int): float
+expect cdecl "op$div_ff" function /(:float, :float): float
+expect cdecl "op$pow_ii" function **(:int, :int): int
+expect cdecl "op$pow_if" function **(:int, :float): float
+expect cdecl "op$pow_fi" function **(:float, :int): float
+expect cdecl "op$pow_ff" function **(:float, :float): float
+expect cdecl "op$mod" function %(:int, :int): int
+expect cdecl "op$land" function &(:int, :int): int
+expect cdecl "op$lor" function |(:int, :int): int
+expect cdecl "op$lxor" function ^(:int, :int): int
+expect cdecl "op$lnot" function ~(:int): int
+expect cdecl "op$lsl" function <<(:int, :int): int
+expect cdecl "op$lsr" function >>(:int, :int): int
+
 deprecated![since: "23.5", replacement: "int::toInt8"]
 function toInt8(value: any): int8
   value:toInt8 return
