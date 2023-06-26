@@ -81,6 +81,10 @@ This memory may not be <<GREEN>>0<<RESET>>-initialized.
 Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
 If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
 
+### static function any::resize(size: int, ptr: any): any
+Reallocates the memory pointed to by <<WHITE>>ptr<<RESET>> with a new size of <<WHITE>>size<<RESET>> bytes.
+Any call to <<WHITE>>any::resize<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
+
 ### static function any::size(ptr: any): int
 Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
 Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.

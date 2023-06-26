@@ -1,7 +1,13 @@
 final static sealed struct any
     cdecl "_scl_alloc"  expect function new(size: int): any
     cdecl "_scl_free"   expect function delete(ptr: any): none
-    cdecl "_scl_sizeof" expect function size(ptr: any) sz: int
+    cdecl "_scl_sizeof" expect function size(ptr: any): int
+
+    function resize(newSize: int, ptr: any): any
+        unsafe
+            ptr newSize __c_realloc return
+        end
+    end
 
     function default(): any
         sizeof any any::new return
@@ -16,4 +22,6 @@ final static sealed struct any
         x as int:toHexString
         return
     end
+
+    cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
 end
