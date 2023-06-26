@@ -1,18 +1,18 @@
 cdecl "write"
-expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+private expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
 cdecl "read"
-expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
+private expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
 cdecl "fprintf"
-expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
-expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
 
 intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
 end
 
 intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str?
-  amount malloc => decl buf: [int8]
+  amount any::new => decl buf: [int8]
   fileDescriptor buf amount __c_read drop
   buf str::new return
 end
@@ -20,8 +20,8 @@ end
 cdecl "_scl_puts_str"
 expect function puts(:str): none
 expect function puts(:[int8]): none
-function puts(value: any): none value:toString puts end
 function puts(f: float): none   f:toString puts end
+function puts(value: any): none value:toString puts end
 
 function eputs(s: [int8]): none
   unsafe

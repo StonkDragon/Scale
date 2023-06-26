@@ -55,7 +55,7 @@ namespace sclc
         }
 
         if (mainFunction && !Main.options.noMain) {
-            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none";
+            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none" || mainFunction->getReturnType() == "nothing";
             Main.options.mainArgCount  = mainFunction->getArgs().size();
         }
 

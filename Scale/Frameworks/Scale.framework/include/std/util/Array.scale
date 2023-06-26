@@ -87,7 +87,7 @@ sealed struct Array is IIterable
 
     if self.count self.capacity >= then
       self.capacity self.initCap + => self.capacity
-      self.values self.capacity sizeof any * realloc
+      self.values self.capacity sizeof any * any::resize
       => self.values
     fi
 
@@ -144,7 +144,7 @@ sealed struct Array is IIterable
     if size 1 < then
       "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
-    size sizeof any * malloc
+    size sizeof any * any::new
     => self.values
     0 => self.count
     0 => self.pos
@@ -180,7 +180,7 @@ sealed struct Array is IIterable
       tmp:top self:push
       tmp:pop
     done
-    tmp free
+    tmp any::delete
     self:unlock
     self return
   end
@@ -206,7 +206,7 @@ sealed struct Array is IIterable
 
   function immutableCopy(): ImmutableArray
     self:lock
-    self.count sizeof any * malloc => decl newVals: [any]
+    self.count sizeof any * any::new => decl newVals: [any]
     unsafe
       newVals self.values self.count sizeof any * memcpy => newVals
     end

@@ -8,34 +8,27 @@ const std::vector<std::string> intrinsics({
     "F:int$toInt8",
     "F:int$toInt16",
     "F:int$toInt32",
-    "F:int$toInt64",
     "F:int$toInt",
     "F:int$toUInt8",
     "F:int$toUInt16",
     "F:int$toUInt32",
-    "F:int$toUInt64",
     "F:int$toUInt",
     "F:int$isValidInt8",
     "F:int$isValidInt16",
     "F:int$isValidInt32",
-    "F:int$isValidInt64",
-    "F:int$isValidInt",
     "F:int$isValidUInt8",
     "F:int$isValidUInt16",
     "F:int$isValidUInt32",
-    "F:int$isValidUInt64",
-    "F:int$isValidUInt",
     "F:int$toString",
     "F:int$toHexString",
+    "F:int8$toString",
     "F:float$toString",
     "F:float$toPrecisionString",
     "F:float$toHexString",
-    "F:Process$stackTrace",
+    "F:float$fromBits",
     "F:system",
     "F:getenv",
     "F:time",
-    "F:puts",
-    "F:eputs",
     "F:read",
     "F:write",
 });
@@ -99,7 +92,7 @@ namespace sclc {
                         type = r.value;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].getValue();
@@ -170,7 +163,7 @@ namespace sclc {
                         type = r.value;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].getValue();
@@ -341,7 +334,7 @@ namespace sclc {
                         type = r.value;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].getValue();
@@ -407,7 +400,7 @@ namespace sclc {
                         type = r.value;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].getValue();
@@ -1085,7 +1078,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
+                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "nothing" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
                     result.value = tokens[i + 1].getValue();
@@ -1361,7 +1354,7 @@ namespace sclc {
                             continue;
                         }
                         type = r.value;
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].getValue();
@@ -1616,7 +1609,7 @@ namespace sclc {
                     type = r.value;
                     isConst = typeIsConst(type);
                     isMut = typeIsMut(type);
-                    if (type == "none") {
+                    if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].getValue();
@@ -1665,7 +1658,7 @@ namespace sclc {
                     type = r.value;
                     isConst = typeIsConst(type);
                     isMut = typeIsMut(type);
-                    if (type == "none") {
+                    if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].getValue();
@@ -1716,7 +1709,7 @@ namespace sclc {
                     isMut = typeIsMut(type);
                     isInternalMut = typeIsReadonly(type);
                     isPrivate = contains<std::string>(nextAttributes, "private");
-                    if (type == "none") {
+                    if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].getValue();

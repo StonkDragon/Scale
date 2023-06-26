@@ -539,6 +539,9 @@ Undefined behavior is invoked if the number is out of range for a 64-Bit floatin
 ### static function float::bits(x: float) val: int
 Returns the bit representation of the float <<WHITE>>x<<RESET>>.
 
+### static function float::fromBits(x: any): float
+Returns <<BLUE>>x<<RESET>> interpreted as a float.
+
 ### static function float::isInfinite(x: float): bool
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
 

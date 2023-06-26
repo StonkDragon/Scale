@@ -49,7 +49,7 @@ final struct File
 
   function read(sz: int): any
     self:lock
-    sz malloc => decl buffer: [any]?
+    sz any::new => decl buffer: [any]?
     unsafe
       buffer 1 sz _file File::__c_fread
     end
@@ -121,14 +121,14 @@ final struct File
     end
   end
 
-  static expect cdecl "fopen"  function __c_fopen(fileName: [int8], mode: [int8]): __c_file?
-  static expect cdecl "fwrite" function __c_fwrite(buffer: any, elemSize: int, numElems: int, filePtr: __c_file): none
-  static expect cdecl "fread"  function __c_fread(buffer: any, numElems: int, elemSize: int, filePtr: __c_file): none
-  static expect cdecl "fclose" function __c_fclose(filePtr: __c_file): none
-  static expect cdecl "ftell"  function __c_ftell(filePtr: __c_file): int
-  static expect cdecl "fileno" function __c_fileno(filePtr: __c_file): int
-  static expect cdecl "remove" function __c_remove(fileName: [int8]): int
-  static expect cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
+  private static expect cdecl "fopen"  function __c_fopen(fileName: [int8], mode: [int8]): __c_file?
+  private static expect cdecl "fwrite" function __c_fwrite(buffer: any, elemSize: int, numElems: int, filePtr: __c_file): none
+  private static expect cdecl "fread"  function __c_fread(buffer: any, numElems: int, elemSize: int, filePtr: __c_file): none
+  private static expect cdecl "fclose" function __c_fclose(filePtr: __c_file): none
+  private static expect cdecl "ftell"  function __c_ftell(filePtr: __c_file): int
+  private static expect cdecl "fileno" function __c_fileno(filePtr: __c_file): int
+  private static expect cdecl "remove" function __c_remove(fileName: [int8]): int
+  private static expect cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
 end
 
 deprecated![since: "23.5", replacement: "File::new", forRemoval: true]
@@ -164,7 +164,7 @@ end
 
 deprecated![since: "23.5", replacement: "File:read", forRemoval: true]
 function fread(filePtr: __c_file, elemSize: int): [any]?
-  elemSize malloc => decl buffer: [any]?
+  elemSize any::new => decl buffer: [any]?
   buffer 1 elemSize filePtr File::__c_fread
   buffer return
 end

@@ -10,30 +10,31 @@ expect function sizeofStack(): int
 cdecl "_scl_sleep"
 expect function sleep(millis: int): none
 cdecl "_scl_alloc"
+deprecated![since: "23.7", replacement: "any::new", forRemoval: true]
 expect function malloc(size: int): [any]
 cdecl "_scl_free"
+deprecated![since: "23.7", replacement: "any::delete", forRemoval: true]
 expect function free(pointer: [any]): none
 cdecl "_scl_realloc"
+deprecated![since: "23.7", replacement: "any::resize", forRemoval: true]
 expect function realloc(pointer: [any], size: int): [any]
 
 cdecl "system"
-expect unsafe function __c_system(:[int8]): int
+private expect unsafe function __c_system(:[int8]): int
 cdecl "getenv"
-expect unsafe function __c_getenv(:[int8]): [int8]?
+private expect unsafe function __c_getenv(:[int8]): [int8]?
 cdecl "_scl_strdup"
-expect unsafe function __c_strdup(:[int8]): [int8]
-cdecl "strtok"
-expect unsafe function __c_strtok(:any, :[int8]): [int8]?
+private expect unsafe function __c_strdup(:[int8]): [int8]
 cdecl "atoll"
-expect unsafe function __c_atoll(:[int8]): int64
+private expect unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
-expect unsafe function __c_atof(:[int8]): float
+private expect unsafe function __c_atof(:[int8]): float
 cdecl "rand"
-expect unsafe function __c_rand(): int32
+private expect unsafe function __c_rand(): int32
 cdecl "srand"
-expect unsafe function __c_srand(:int): none
+private expect unsafe function __c_srand(:int): none
 cdecl "time"
-expect unsafe function __c_time(:[int]?): int
+private expect unsafe function __c_time(:[int]?): int
 
 typealias varargs "/* varargs */ ..."
 
@@ -63,7 +64,7 @@ layout timeval
 end
 
 cdecl "gettimeofday"
-expect unsafe function __c_gettimeofday(:timeval, :any): int
+private expect unsafe function __c_gettimeofday(:timeval, :any): int
 
 intrinsic cdecl "_scl_time" function time(): float
   sizeof timeval any::new => decl tv: timeval
@@ -82,7 +83,7 @@ end
 
 deprecated![since: "23.5", replacement: "int::toString"]
 function longToString(theNumber: int): str
-  25 malloc => decl out: [int8]
+  25 any::new => decl out: [int8]
   unsafe
     c!
       sprintf(*out, SCL_INT_FMT, *theNumber);
@@ -110,7 +111,7 @@ end
 
 deprecated![since: "23.5", replacement: "float::parse"]
 function doubleToString(theNumber: float): str
-  100 malloc => decl out: [int8]
+  100 any::new => decl out: [int8]
   unsafe
     c!
       sprintf(*out, "%f", *theNumber);

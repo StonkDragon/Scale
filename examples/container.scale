@@ -8,7 +8,7 @@ function main(): none
   "load/store" => Foo.bar
   Foo.bar puts
   
-  8 malloc => Foo.baz
+  8 any::new => Foo.baz
   "ref/deref" => @ Foo.baz
   Foo.baz @ puts
 end

@@ -68,6 +68,7 @@ namespace sclc {
         if (strstarts(t, "lambda(")) return "/* " + t + " */ _scl_lambda";
         if (t == "any") return "/* any */ scl_any";
         if (t == "none") return "/* none */ void";
+        if (t == "nothing") return "/* nothing */ _scl_no_return void";
         if (t == "int") return "/* int */ scl_int";
         if (t == "uint") return "/* uint */ scl_uint";
         if (t == "float") return "/* float */ scl_float";
@@ -84,7 +85,7 @@ namespace sclc {
             return "/* " + t + " */ scl_any";
         }
         if (hasTypealias(result, t)) {
-            return "/* " + t + " */" + getTypealias(result, t);
+            return "/* " + t + " */ " + getTypealias(result, t);
         }
         if (hasLayout(result, t)) {
             return "/*" + t + "*/ scl_" + getLayout(result, t).getName();
@@ -181,9 +182,7 @@ namespace sclc {
     }
 
     std::string convertToMangledType(TPResult result, std::string type) {
-        if (type.size() && type != "?" && type.at(type.size() - 1) == '?') {
-            type = type.substr(0, type.size() - 1);
-        }
+        type = removeTypeModifiers(type);
         if (type == "str") {
             return std::string("3str");
         } else if (type == "any") {
@@ -285,7 +284,7 @@ namespace sclc {
 
         std::string symbol = f->finalName();
         if (symbol.find("$$ol") != std::string::npos) {
-            symbol = symbol.substr(0, symbol.find("$$ol"));
+            symbol = replaceAll(symbol, "\\$\\$ol\\d+", "");
         }
 
         if (contains<std::string>(f->getModifiers(), "<lambda>")) {
@@ -318,7 +317,7 @@ namespace sclc {
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = finalName;
             } else {
-                if (finalName.find("$") != std::string::npos && !contains<std::string>(f->getModifiers(), "construct") && !contains<std::string>(f->getModifiers(), "final")) {
+                if (finalName.find("$") != std::string::npos && !contains<std::string>(f->getModifiers(), "construct") && !contains<std::string>(f->getModifiers(), "final") && !contains<std::string>(f->getModifiers(), "private")) {
                     std::string member = finalName.substr(0, finalName.find("$"));
                     finalName = finalName.substr(finalName.find("$") + 1);
                     symbol = "_ZN" + std::to_string(member.size()) + member + std::to_string(finalName.size()) + finalName + "E";
@@ -854,19 +853,11 @@ namespace sclc {
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
             std::string stackType = removeTypeModifiers(stack.at(i));
             bool stackTypeIsNilable = typeCanBeNil(stack.at(i));
-            
-            while (stackType.size() && stackType.at(stackType.size() - 1) == '?') {
-                stackType = stackType.substr(0, stackType.size() - 1);
-            }
 
             if (strstarts(stackType, "lambda(")) stackType = "lambda";
 
             std::string argType = removeTypeModifiers(args.at(i).getType());
             bool argIsNilable = typeCanBeNil(args.at(i).getType());
-            
-            while (argType.size() && argType.at(argType.size() - 1) == '?') {
-                argType = argType.substr(0, argType.size() - 1);
-            }
 
             if (strstarts(argType, "lambda(")) argType = "lambda";
             
@@ -891,7 +882,7 @@ namespace sclc {
                 }
             }
 
-            if (argType == "any" || argType == "[any]" || (argIsNilable && (stackType == "any" || stackType == "[any]"))) {
+            if (argType == "any" || argType == "[any]" || (argIsNilable && argType != "float" && (stackType == "any" || stackType == "[any]"))) {
                 continue;
             }
 
@@ -937,7 +928,7 @@ namespace sclc {
     void generateUnsafeCall(Method* self, FILE* fp, TPResult result) {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
-        if (removeTypeModifiers(self->getReturnType()) == "none") {
+        if (removeTypeModifiers(self->getReturnType()) == "none" || removeTypeModifiers(self->getReturnType()) == "nothing") {
             append("Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
@@ -1016,7 +1007,16 @@ namespace sclc {
                (name == "~") || (name == "operator$logic_not") ||
                (name == "<<") || (name == "operator$logic_lsh") ||
                (name == ">>") || (name == "operator$logic_rsh") ||
-               (name == "**") || (name == "operator$pow");
+               (name == "**") || (name == "operator$pow") ||
+               (name == "==") || (name == "operator$equal") ||
+               (name == "!=") || (name == "operator$not_equal") ||
+               (name == "<") || (name == "operator$less") ||
+               (name == ">") || (name == "operator$more") ||
+               (name == "<=") || (name == "operator$less_equal") ||
+               (name == ">=") || (name == "operator$more_equal") ||
+               (name == "&&") || (name == "operator$bool_and") ||
+               (name == "||") || (name == "operator$bool_or") ||
+               (name == "!") || (name == "operator$not");
     }
 
     std::string opToString(std::string op) {
@@ -1037,9 +1037,74 @@ namespace sclc {
 
     void functionCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false, bool hasToCallStatic = false);
 
+    template<typename T>
+    std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
+        std::vector<T> ret;
+        for (T& t : a) {
+            ret.push_back(t);
+        }
+        for (T& t : b) {
+            ret.push_back(t);
+        }
+        return ret;
+    }
+
+    Method* findMethodLocally(Method* self, TPResult result) {
+        for (Function* f : joinVecs<Function*>(result.functions, result.extern_functions)) {
+            if (!f->isMethod) continue;
+            Method* m = (Method*) f;
+            if ((m->getName() == self->getName() || strstarts(m->getName(), self->getName() + "$$ol")) && m->getMemberType() == self->getMemberType()) {
+                if (currentFunction) {
+                    if (m->getNameToken().getFile() == currentFunction->getNameToken().getFile()) {
+                        return m;
+                    }
+                }
+                return m;
+            }
+        }
+        return nullptr;
+    }
+
+    Function* findFunctionLocally(Function* self, TPResult result) {
+        for (Function* f : joinVecs<Function*>(result.functions, result.extern_functions)) {
+            if (f->isMethod) continue;
+            if (f->getName() == self->getName() || strstarts(f->getName(), self->getName() + "$$ol")) {
+                if (currentFunction) {
+                    if (f->getNameToken().getFile() == currentFunction->getNameToken().getFile()) {
+                        return f;
+                    }
+                } else {
+                    return f;
+                }
+            }
+        }
+        return nullptr;
+    }
+
     void methodCall(Method* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool ignoreArgs = false, bool doActualPop = true, bool withIntPromotion = false) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
+        }
+        if (currentFunction) {
+            if (contains<std::string>(self->getModifiers(), "private")) {
+                Token selfNameToken = self->getNameToken();
+                Token fromNameToken = currentFunction->getNameToken();
+                if (selfNameToken.getFile() != fromNameToken.getFile()) {
+                    Method* method = findMethodLocally(self, result);
+                    if (!method) {
+                        transpilerError("Calling private method from another file is not allowed!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    methodCall(method, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, withIntPromotion);
+                    return;
+                }
+            }
+        }
+
+        Method* tmp = findMethodLocally(self, result);
+        if (tmp) {
+            self = tmp;
         }
 
         std::vector<std::string>& overloads = self->overloads;
@@ -1120,7 +1185,7 @@ namespace sclc {
                 typePop;
             }
         }
-        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
+        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none" && removeTypeModifiers(self->getReturnType()) != "nothing") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Method_%s$%s(%s);\n", self->getMemberType().c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
@@ -1138,7 +1203,7 @@ namespace sclc {
     void generateUnsafeCall(Function* self, FILE* fp, TPResult result) {
         if (self->getArgs().size() > 0)
             append("_scl_popn(%zu);\n", self->getArgs().size());
-        if (removeTypeModifiers(self->getReturnType()) == "none") {
+        if (removeTypeModifiers(self->getReturnType()) == "none" || removeTypeModifiers(self->getReturnType()) == "nothing") {
             append("Function_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
@@ -1171,6 +1236,27 @@ namespace sclc {
     void functionCall(Function* self, FILE* fp, TPResult result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion, bool hasToCallStatic) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
+        }
+        if (currentFunction) {
+            if (contains<std::string>(self->getModifiers(), "private")) {
+                Token selfNameToken = self->getNameToken();
+                Token fromNameToken = currentFunction->getNameToken();
+                if (selfNameToken.getFile() != fromNameToken.getFile()) {
+                    Function* function = findFunctionLocally(self, result);
+                    if (!function) {
+                        transpilerError("Calling private function from another file is not allowed!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    functionCall(function, fp, result, warns, errors, body, i, withIntPromotion, hasToCallStatic);
+                    return;
+                }
+            }
+        }
+
+        Function* function = findFunctionLocally(self, result);
+        if (function) {
+            self = function;
         }
 
         std::vector<std::string> overloads = self->overloads;
@@ -1214,17 +1300,16 @@ namespace sclc {
 
             op = op.substr(3);
 
-            if (typeStack.size() < (1 + (op != "lnot"))) {
+            if (typeStack.size() < (1 + (op != "lnot" && op != "not"))) {
                 transpilerError("Cannot deduce type for operation '" + opToString(op) +  "'!", i);
                 errors.push_back(err);
                 return;
             }
 
-            if (op != "lnot") {
+            if (op != "lnot" && op != "not") {
                 typeStack.pop();
                 typeStack.pop();
             } else {
-                
                 typeStack.pop();
             }
 
@@ -1309,7 +1394,6 @@ namespace sclc {
                 append("_scl_popn(2);\n");
                 append("_scl_push()->f = pow(_scl_positive_offset(0)->f, _scl_positive_offset(1)->f);\n");
                 typeStack.push("float");
-
             } else if (op == "mod") {
                 append("_scl_popn(2);\n");
                 append("_scl_push()->i = _scl_positive_offset(0)->i %% _scl_positive_offset(1)->i;\n");
@@ -1338,6 +1422,115 @@ namespace sclc {
                 append("_scl_popn(2);\n");
                 append("_scl_push()->i = _scl_positive_offset(0)->i << _scl_positive_offset(1)->i;\n");
                 typeStack.push("int");
+
+            } else if (op == "eq_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i == _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "eq_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) == _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "eq_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f == ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "eq_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f == _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "ne_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i != _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "ne_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) != _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "ne_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f != ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "ne_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f != _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "gt_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i > _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "gt_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) > _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "gt_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f > ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "gt_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f > _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "ge_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i >= _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "ge_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) >= _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "ge_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f >= ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "ge_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f >= _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "lt_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i < _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "lt_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) < _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "lt_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f < ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "lt_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f < _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "le_ii") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i <= _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "le_if") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) <= _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "le_fi") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f <= ((scl_float) _scl_positive_offset(1)->i);\n");
+                typeStack.push("bool");
+            } else if (op == "le_ff") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->f <= _scl_positive_offset(1)->f;\n");
+                typeStack.push("bool");
+            } else if (op == "and") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i && _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "or") {
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i || _scl_positive_offset(1)->i;\n");
+                typeStack.push("bool");
+            } else if (op == "not") {
+                append("_scl_pop();\n");
+                append("_scl_push()->i = !_scl_positive_offset(0)->i;\n");
+                typeStack.push("bool");
             } else {
                 transpilerError("Unknown operator: " + op, i);
                 errors.push_back(err);
@@ -1403,7 +1596,7 @@ namespace sclc {
         for (size_t m = 0; m < self->getArgs().size(); m++) {
             typePop;
         }
-        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none") {
+        if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none" && removeTypeModifiers(self->getReturnType()) != "nothing") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
             } else {
@@ -1505,7 +1698,7 @@ namespace sclc {
                         type = r.value;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
-                        if (type == "none") {
+                        if (type == "none" || type == "nothing") {
                             transpilerError("Type 'none' is only valid for function return types.", i);
                             errors.push_back(err);
                             continue;
@@ -1595,6 +1788,11 @@ namespace sclc {
             std::string type = typeStackTop;
             typePop;
             typeStack.push(type.substr(0, type.size() - 1));
+        }
+        if (function->getReturnType() == "nothing") {
+            transpilerError("Returning from a function with return type 'nothing' is not allowed.", i);
+            errors.push_back(err);
+            return;
         }
         if (!typeCanBeNil(function->getReturnType()) && function->getReturnType() != "none") {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
@@ -1762,6 +1960,7 @@ namespace sclc {
         for (size_t i = 0; i < amountOfVarargs; i++) {
             args += ", vararg" + std::to_string(i);
         }
+        // args += ", NULL";
 
         if (f->varArgsParam().getName().size()) {
             append("_scl_push()->i = %zu;\n", amountOfVarargs);
@@ -1775,7 +1974,7 @@ namespace sclc {
             typePop;
         }
 
-        if (f->getReturnType() == "none") {
+        if (f->getReturnType() == "none" || f->getReturnType() == "nothing") {
             append("Function_%s(%s);\n", f->getName().c_str(), args.c_str());
         } else {
             if (f->getReturnType() == "float") {
@@ -1844,18 +2043,18 @@ namespace sclc {
             for (long t = typeStack.size() - 1; t >= 0; t--) {
                 typePop;
             }
-        } else if (body[i].getValue() == "&&") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i && _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == "!") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "!", typeStackTop)) return;
-            append("_scl_top()->i = !_scl_top()->i;\n");
-            typePop;
-            typeStack.push("bool");
+        // } else if (body[i].getValue() == "&&") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "&&", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i && _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == "!") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "!", typeStackTop)) return;
+        //     append("_scl_top()->i = !_scl_top()->i;\n");
+        //     typePop;
+        //     typeStack.push("bool");
         } else if (body[i].getValue() == "!!") {
             if (typeCanBeNil(typeStackTop)) {
                 std::string type = typeStackTop;
@@ -1870,55 +2069,55 @@ namespace sclc {
             }
         } else if (body[i].getValue() == "?") {
             handle(ReturnOnNil);
-        } else if (body[i].getValue() == "||") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i || _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == "<") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i < _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == ">") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i > _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == "==") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i == _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == "<=") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i <= _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == ">=") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i >= _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
-        } else if (body[i].getValue() == "!=") {
-            if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
-            append("_scl_popn(2);\n");
-            append("_scl_push()->i = _scl_positive_offset(0)->i != _scl_positive_offset(1)->i;\n");
-            typePop;
-            typePop;
-            typeStack.push("bool");
+        // } else if (body[i].getValue() == "||") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "||", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i || _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == "<") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "<", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i < _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == ">") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, ">", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i > _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == "==") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "==", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i == _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == "<=") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "<=", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i <= _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == ">=") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, ">=", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i >= _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
+        // } else if (body[i].getValue() == "!=") {
+        //     if (handleOverriddenOperator(result, fp, scopeDepth, "!=", typeStackTop)) return;
+        //     append("_scl_popn(2);\n");
+        //     append("_scl_push()->i = _scl_positive_offset(0)->i != _scl_positive_offset(1)->i;\n");
+        //     typePop;
+        //     typePop;
+        //     typeStack.push("bool");
         } else if (body[i].getValue() == "++") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
             append("_scl_top()->i++;\n");
@@ -1983,7 +2182,7 @@ namespace sclc {
                 append("_scl_push()->i = sizeof(scl_any);\n");
                 typeStack.push("int");
                 return;
-            } else if (body[i].getValue() == "none") {
+            } else if (body[i].getValue() == "none" || body[i].getValue() == "nothing") {
                 append("_scl_push()->i = 0;\n");
                 typeStack.push("int");
                 return;
@@ -3598,7 +3797,7 @@ namespace sclc {
         Method* f = getMethodByName(result, "init", struct_);
         Struct arr = getStructByName(result, "Array");
         append("struct Struct_Array* tmp = _scl_alloc_struct(sizeof(struct Struct_Array), \"Array\", 0x%xU);\n", hash1((char*) std::string("SclObject").c_str()));
-        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+        if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
             if (f->getReturnType() == "float") {
                 append("_scl_push()->f = Method_Array$init(tmp, 1);\n");
             } else {
@@ -3644,7 +3843,7 @@ namespace sclc {
         Method* f = getMethodByName(result, "init", struct_);
         Struct map = getStructByName(result, "Map");
         append("struct Struct_Map* tmp = _scl_alloc_struct(sizeof(struct Struct_Map), \"Map\", 0x%xU);\n", hash1((char*) std::string("SclObject").c_str()));
-        if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+        if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
             if (f->getReturnType() == "float") {
                 append("_scl_push()->f = Method_Map$init(tmp, 1);\n");
             } else {
@@ -3734,7 +3933,7 @@ namespace sclc {
             Method* f = getMethodByName(result, "init", "Pair");
             typePop;
             typePop;
-            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_Pair$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
                 } else {
@@ -3763,7 +3962,7 @@ namespace sclc {
             typePop;
             typePop;
             typePop;
-            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
                 } else {
@@ -4197,14 +4396,22 @@ namespace sclc {
 
     handler(Return) {
         noUnused;
+
+        if (function->getReturnType() == "nothing") {
+            transpilerError("Cannot return from a function with return type 'nothing'", i);
+            errors.push_back(err);
+            return;
+        }
+
         append("{\n");
         scopeDepth++;
+
         if (function->getReturnType() != "none" && !function->hasNamedReturnValue)
             append("_scl_frame_t returnFrame = _stack.data[--_stack.ptr];\n");
         append("_callstack.ptr--;\n");
         if (!contains<std::string>(function->getModifiers(), "no_cleanup")) append("_stack.ptr = __begin_stack_size;\n");
 
-        if (function->getReturnType() != "none") {
+        if (function->getReturnType() != "none" && function->getReturnType() != "nothing") {
             if (!typeCanBeNil(function->getReturnType())) {
                 if (function->hasNamedReturnValue) {
                     if (typeCanBeNil(function->getNamedReturnValue().getType())) {
@@ -4569,7 +4776,7 @@ namespace sclc {
             if (op == "accept") {
                 append("{\n");
                 scopeDepth++;
-                if (removeTypeModifiers(returnType) == "none") {
+                if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
                     append("void(*lambda)(%s) = _scl_pop()->v;\n", argTypes.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
                     append("lambda(%s);\n", argGet.c_str());
@@ -4618,7 +4825,6 @@ namespace sclc {
             return;
         }
         if (s.getName() == "any" || s.getName() == "int") {
-            Method* objMethod = getMethodByName(result, body[i].getValue(), "SclObject");
             Function* anyMethod = getFunctionByName(result, s.getName() + "$" + body[i].getValue());
             if (!anyMethod) {
                 if (s.getName() == "any") {
@@ -4628,11 +4834,12 @@ namespace sclc {
                 }
             }
             if (anyMethod) {
+                Method* objMethod = getMethodByName(result, body[i].getValue(), "SclObject");
                 if (objMethod) {
                     append("if (_scl_is_instance_of(_scl_top()->v, 0x%xU)) {\n", hash1((char*) "SclObject"));
                     scopeDepth++;
                     methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
-                    if (objMethod->getReturnType() != "none") {
+                    if (objMethod->getReturnType() != "none" && objMethod->getReturnType() != "nothing") {
                         typeStack.pop();
                     }
                     scopeDepth--;

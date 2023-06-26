@@ -127,7 +127,7 @@ namespace sclc {
                 if (typeStack.size())
                     typeStack.pop();
             }
-            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 } else {

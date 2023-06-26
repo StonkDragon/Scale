@@ -1417,6 +1417,10 @@ scl_str float$toHexString(scl_float val) {
 	return int$toHexString(*(scl_int*) &val);
 }
 
+scl_float float$fromBits(scl_any bits) {
+	return *(scl_float*) &bits;
+}
+
 scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str name) {
 	Process$lock((volatile scl_any) self);
 	for (scl_int i = 0; i < (self)->members_count; i++) {

@@ -8,6 +8,9 @@ typealias uint16 "scl_uint16"
 typealias uint8 "scl_uint8"
 typealias lambda "_scl_lambda"
 
+cdecl "atoll"
+private expect unsafe function __c_atoll(:[int8]): int64
+
 construct function inttypes_scale_init(): none
   0x80 => int8::minValue
   0x7f => int8::maxValue
@@ -20,7 +23,7 @@ final static sealed struct int8
   decl maxValue: const int8
 
   intrinsic function toString(x: int8): str
-    2 malloc => decl out: [int8]
+    2 any::new => decl out: [int8]
     unsafe
       c!
         sprintf(*out, "%c", *x);
@@ -35,7 +38,7 @@ final static sealed struct int
   decl maxValue: const int
 
   intrinsic function toString(x: int): str
-    25 malloc => decl out: [int8]
+    25 any::new => decl out: [int8]
     unsafe
       c!
         sprintf(*out, SCL_INT_FMT, *x);
@@ -45,7 +48,7 @@ final static sealed struct int
   end
 
   intrinsic function toHexString(x: int): str
-    19 malloc => decl out: [int8]
+    19 any::new => decl out: [int8]
     unsafe
       c!
         sprintf(*out, SCL_PTR_HEX_FMT, *x);
@@ -118,25 +121,61 @@ final static sealed struct int
 end
 
 expect cdecl "op$add_ii" function +(:int, :int): int
-expect cdecl "op$add_if" function +(:int, :float): float
-expect cdecl "op$add_fi" function +(:float, :int): float
-expect cdecl "op$add_ff" function +(:float, :float): float
 expect cdecl "op$sub_ii" function -(:int, :int): int
-expect cdecl "op$sub_if" function -(:int, :float): float
-expect cdecl "op$sub_fi" function -(:float, :int): float
-expect cdecl "op$sub_ff" function -(:float, :float): float
 expect cdecl "op$mul_ii" function *(:int, :int): int
-expect cdecl "op$mul_if" function *(:int, :float): float
-expect cdecl "op$mul_fi" function *(:float, :int): float
-expect cdecl "op$mul_ff" function *(:float, :float): float
 expect cdecl "op$div_ii" function /(:int, :int): int
-expect cdecl "op$div_if" function /(:int, :float): float
-expect cdecl "op$div_fi" function /(:float, :int): float
-expect cdecl "op$div_ff" function /(:float, :float): float
 expect cdecl "op$pow_ii" function **(:int, :int): int
+
+expect cdecl "op$add_if" function +(:int, :float): float
+expect cdecl "op$sub_if" function -(:int, :float): float
+expect cdecl "op$mul_if" function *(:int, :float): float
+expect cdecl "op$div_if" function /(:int, :float): float
 expect cdecl "op$pow_if" function **(:int, :float): float
+
+expect cdecl "op$add_fi" function +(:float, :int): float
+expect cdecl "op$sub_fi" function -(:float, :int): float
+expect cdecl "op$mul_fi" function *(:float, :int): float
+expect cdecl "op$div_fi" function /(:float, :int): float
 expect cdecl "op$pow_fi" function **(:float, :int): float
+
+expect cdecl "op$add_ff" function +(:float, :float): float
+expect cdecl "op$sub_ff" function -(:float, :float): float
+expect cdecl "op$mul_ff" function *(:float, :float): float
+expect cdecl "op$div_ff" function /(:float, :float): float
 expect cdecl "op$pow_ff" function **(:float, :float): float
+
+expect cdecl "op$eq_if" function ==(:int, :float): bool
+expect cdecl "op$ne_if" function !=(:int, :float): bool
+expect cdecl "op$gt_if" function >(:int, :float): bool
+expect cdecl "op$ge_if" function >=(:int, :float): bool
+expect cdecl "op$lt_if" function <(:int, :float): bool
+expect cdecl "op$le_if" function <=(:int, :float): bool
+
+expect cdecl "op$eq_fi" function ==(:float, :int): bool
+expect cdecl "op$ne_fi" function !=(:float, :int): bool
+expect cdecl "op$gt_fi" function >(:float, :int): bool
+expect cdecl "op$ge_fi" function >=(:float, :int): bool
+expect cdecl "op$lt_fi" function <(:float, :int): bool
+expect cdecl "op$le_fi" function <=(:float, :int): bool
+
+expect cdecl "op$eq_ff" function ==(:float, :float): bool
+expect cdecl "op$ne_ff" function !=(:float, :float): bool
+expect cdecl "op$gt_ff" function >(:float, :float): bool
+expect cdecl "op$ge_ff" function >=(:float, :float): bool
+expect cdecl "op$lt_ff" function <(:float, :float): bool
+expect cdecl "op$le_ff" function <=(:float, :float): bool
+
+expect cdecl "op$eq_ii" function ==(:any, :any): bool
+expect cdecl "op$ne_ii" function !=(:any, :any): bool
+expect cdecl "op$gt_ii" function >(:any, :any): bool
+expect cdecl "op$ge_ii" function >=(:any, :any): bool
+expect cdecl "op$lt_ii" function <(:any, :any): bool
+expect cdecl "op$le_ii" function <=(:any, :any): bool
+
+expect cdecl "op$and" function &&(:bool, :bool): bool
+expect cdecl "op$or" function ||(:bool, :bool): bool
+expect cdecl "op$not" function !(:bool): bool
+
 expect cdecl "op$mod" function %(:int, :int): int
 expect cdecl "op$land" function &(:int, :int): int
 expect cdecl "op$lor" function |(:int, :int): int

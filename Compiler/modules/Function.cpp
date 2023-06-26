@@ -44,18 +44,22 @@ std::string Function::getName() {
     return name;
 }
 std::string Function::finalName() {
-    return (!isMethod && (isInitFunction(this) || isDestroyFunction(this))
-        ?
-            name +
-            "$" +
-            std::to_string(hash1((char*) name.c_str())) +
-            "$" +
-            std::to_string(hash1((char*) nameToken.getFile().c_str())) +
-            "$" +
-            std::to_string(nameToken.getLine())
-        :
-            name
-        );
+    if (
+        (!isMethod && (isInitFunction(this) || isDestroyFunction(this))) ||
+        contains<std::string>(this->getModifiers(), "private")
+    ) {
+        if (this->isExternC || contains<std::string>(this->getModifiers(), "extern")) {
+            return name;
+        }
+        return name +
+               "$" +
+               std::to_string(hash1((char*) name.c_str())) +
+               "$" +
+               std::to_string(hash1((char*) nameToken.getFile().c_str())) +
+               "$" +
+               std::to_string(nameToken.getLine());
+    }
+    return name;
 }
 std::vector<Token> Function::getBody() {
     return body;
