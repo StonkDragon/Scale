@@ -464,6 +464,7 @@ namespace sclc
     
     Method* getMethodByName(TPResult result, std::string name, std::string type) {
         type = sclConvertToStructType(type);
+
         if (name == "+") name = "operator$add";
         if (name == "-") name = "operator$sub";
         if (name == "*") name = "operator$mul";
@@ -509,6 +510,9 @@ namespace sclc
             }
         }
         Struct s = getStructByName(result, type);
+        if (getInterfaceByName(result, type)) {
+            return nullptr;
+        }
         return getMethodByName(result, name, s.extends());
     }
 

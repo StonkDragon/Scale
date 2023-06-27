@@ -167,12 +167,12 @@ final sealed struct Struct
         fi
     end
 
-    private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int): lambda
+    private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int, :int): lambda
 
     function getMethodByName(name: str) method: lambda
         self:lock
         unsafe
-            self.typeId name:hashCode getMethodByName0 => method
+            self.typeId name:hashCode 0 getMethodByName0 => method
         end
         unless method then
             NullPointerException::new => decl e: mut Exception
@@ -213,11 +213,11 @@ final sealed struct Struct
             NullPointerException::new => decl e: mut Exception
             "Couldn't find struct '" name + "'" + => e.msg
             e
-            Struct::structLock:lock
+            Struct::structLock:unlock
             throw
         fi
         theStruct!!
-        Struct::structLock:lock
+        Struct::structLock:unlock
         return
     end
 end

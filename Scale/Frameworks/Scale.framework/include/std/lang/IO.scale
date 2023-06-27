@@ -17,11 +17,15 @@ intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
   buf str::new return
 end
 
+cdecl "puts"
+private expect function puts0(:[int8]): none
 cdecl "_scl_puts_str"
-expect function puts(:str): none
-expect function puts(:[int8]): none
-function puts(f: float): none   f:toString puts end
-function puts(value: any): none value:toString puts end
+private expect function puts1(:str): none
+
+function puts(val: str): none    val puts1 end
+function puts(val: [int8]): none val puts0 end
+function puts(f: float): none    f:toString puts end
+function puts(value: any): none  value:toString puts end
 
 function eputs(s: [int8]): none
   unsafe

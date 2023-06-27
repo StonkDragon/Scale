@@ -87,7 +87,7 @@ sealed struct Array is IIterable
 
     if self.count self.capacity >= then
       self.capacity self.initCap + => self.capacity
-      self.values self.capacity sizeof any * any::resize
+       self.capacity sizeof any * self.values as any:resize
       => self.values
     fi
 

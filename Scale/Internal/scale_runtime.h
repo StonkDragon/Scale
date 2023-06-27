@@ -84,9 +84,9 @@
 #define _scl_macro_to_string_(x) # x
 #define _scl_macro_to_string(x) _scl_macro_to_string_(x)
 
-#define system_allocate(size)				({_callstack.func[_callstack.ptr++] = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.ptr--; tmp; })
-#define system_free(_ptr)					({_callstack.func[_callstack.ptr++] = "<libc free()>"; free(_ptr); _callstack.ptr--; })
-#define system_realloc(_ptr, size)			({_callstack.func[_callstack.ptr++] = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.ptr--; tmp; })
+#define system_allocate(size)				({_callstack.func[_callstack.ptr++] = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.func[--_callstack.ptr] = NULL; tmp; })
+#define system_free(_ptr)					({_callstack.func[_callstack.ptr++] = "<libc free()>"; free(_ptr); _callstack.func[--_callstack.ptr] = NULL; })
+#define system_realloc(_ptr, size)			({_callstack.func[_callstack.ptr++] = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.func[--_callstack.ptr] = NULL; tmp; })
 
 // Scale expects this function
 #define expect
@@ -315,7 +315,6 @@ _scl_no_return void	_scl_unreachable(scl_int8* msg);
 
 void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
-void				print_stacktrace_with_file(FILE* trace);
 
 scl_int				_scl_stack_size(void);
 _scl_frame_t*		_scl_push();
@@ -337,7 +336,7 @@ scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
-void				_scl_assert(scl_int b, scl_int8* msg);
+void				_scl_assert(scl_int b, scl_int8* msg, ...);
 void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
 void				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
@@ -356,8 +355,9 @@ scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
-scl_any				_scl_get_method_on_type(hash type, hash method);
-scl_any				_scl_get_method_handle(hash type, hash method);
+scl_any				_scl_get_method_on_type(hash type, hash method, hash signature);
+scl_any				_scl_get_method_handle(hash type, hash method, hash signature);
+void				_scl_call_method_or_throw(scl_any instance, hash method, hash signature, int on_super, scl_int8* method_name);
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
@@ -367,7 +367,7 @@ void				_scl_remove_stack_at(scl_int index);
 scl_any				_scl_get_struct_by_id(scl_int id);
 scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id);
+scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id, hash sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);

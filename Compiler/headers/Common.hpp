@@ -10,7 +10,7 @@
 #include <unordered_set>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); fflush(fp); } while (0)
 
 #undef INT_MAX
 #undef INT_MIN

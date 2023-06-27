@@ -62,7 +62,7 @@ namespace sclc
     class Method : public Function {
         bool force_add;
     public:
-        Method(std::string member_type, std::string name, Token& nameToken) : Function(name, true, nameToken) {
+        Method(std::string member_type, std::string name, Token nameToken) : Function(name, true, nameToken) {
             this->member_type = member_type;
             this->isMethod = true;
             this->force_add = false;

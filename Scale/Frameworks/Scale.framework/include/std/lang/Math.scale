@@ -6,6 +6,13 @@ static final sealed struct MathConstants
   decl negativeInfinity: const float
 end
 
+cdecl "rand"
+private expect unsafe function __c_rand(): int32
+cdecl "srand"
+private expect unsafe function __c_srand(:int): none
+cdecl "time"
+private expect unsafe function __c_time(:[int]?): int
+
 construct function mathInitialization(): none
   2.71828182845904523536028747135266250 => MathConstants::e
   3.14159265358979323846264338327950288 => MathConstants::pi

@@ -45,8 +45,11 @@ std::string Function::getName() {
 }
 std::string Function::finalName() {
     if (
-        (!isMethod && (isInitFunction(this) || isDestroyFunction(this))) ||
-        contains<std::string>(this->getModifiers(), "private")
+        !isMethod && 
+        (
+            (isInitFunction(this) || isDestroyFunction(this)) ||
+            contains<std::string>(this->getModifiers(), "private")
+        )
     ) {
         if (this->isExternC || contains<std::string>(this->getModifiers(), "extern")) {
             return name;

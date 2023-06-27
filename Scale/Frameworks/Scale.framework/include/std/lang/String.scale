@@ -110,8 +110,12 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
   function split(delimiter: str): Array
     10 Array::new => decl arr: Array
-    self:view => decl string
-    delimiter:view => decl cDelim
+    decl string: [int8]
+    decl cDelim: [int8]
+    unsafe  
+      self:view __c_strdup => string
+      delimiter:view __c_strdup => cDelim
+    end
     unsafe
       string cDelim __c_strtok => decl line
 

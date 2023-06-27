@@ -25,6 +25,9 @@ namespace sclc
         }
     }
 
+    std::string sclFunctionToFriendlyString(Function*);
+    std::string argsToGenericString(Function*);
+
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
         std::vector<FPResult> errors;

@@ -808,21 +808,19 @@ namespace sclc {
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        if (!(
-                            featureEnabled("default-interface-implementation") ||
-                            featureEnabled("default-interface-impl")
-                        )) {
-                            FPResult warn;
-                            warn.message = "Default implementations are locked behind the 'default-interface-impl' feature flag. Treating as standard interface method declaration";
-                            warn.value = currentFunction->getNameToken().getValue();
-                            warn.line = currentFunction->getNameToken().getLine();
-                            warn.in = currentFunction->getNameToken().getFile();
-                            warn.type = currentFunction->getNameToken().getType();
-                            warn.column = currentFunction->getNameToken().getColumn();
-                            warn.success = true;
-                            warns.push_back(warn);
-                            currentInterface->addToImplement(currentFunction);
+                        currentInterface->addToImplement(currentFunction);
+                        Method* m = new Method(currentInterface->getName(), name, func);
+                        for (Variable v : currentFunction->getArgs()) {
+                            m->addArgument(v);
                         }
+                        Variable self = Variable("self", "mut " + currentInterface->getName());
+                        self.canBeNil = false;
+                        m->addArgument(self);
+                        m->setReturnType(currentFunction->getReturnType());
+                        for (std::string s : currentFunction->getModifiers()) {
+                            m->addModifier(s);
+                        }
+                        functions.push_back(m);
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
@@ -832,6 +830,19 @@ namespace sclc {
                         functionToImplement->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
+
+                        Method* m = new Method(currentInterface->getName(), name, func);
+                        for (Variable v : functionToImplement->getArgs()) {
+                            m->addArgument(v);
+                        }
+                        Variable self = Variable("self", "mut " + currentInterface->getName());
+                        self.canBeNil = false;
+                        m->addArgument(self);
+                        m->setReturnType(functionToImplement->getReturnType());
+                        for (std::string s : functionToImplement->getModifiers()) {
+                            m->addModifier(s);
+                        }
+                        functions.push_back(m);
                     }
                     nextAttributes.clear();
                     continue;

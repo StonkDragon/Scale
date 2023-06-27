@@ -29,12 +29,6 @@ cdecl "atoll"
 private expect unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
 private expect unsafe function __c_atof(:[int8]): float
-cdecl "rand"
-private expect unsafe function __c_rand(): int32
-cdecl "srand"
-private expect unsafe function __c_srand(:int): none
-cdecl "time"
-private expect unsafe function __c_time(:[int]?): int
 
 typealias varargs "/* varargs */ ..."
 
