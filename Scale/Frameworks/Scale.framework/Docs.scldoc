@@ -859,6 +859,7 @@ A <<WHITE>>NullPointerException<<RESET>> is thrown if no such struct exists.
 
 ### function Struct:newInstance(): SclObject
 Creates a new instance of the struct represented by this object.
+This method does NOT call the initialization method of the struct.
 
 ### function Struct:getMethodByName(name: str): lambda
 Returns a generic <<BLUE>>lambda<<RESET>> for the method with the given name.

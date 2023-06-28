@@ -57,7 +57,6 @@ final sealed struct Struct
             mutexNew0 => instanceLayout.mutex
             inst addStruct0
         end
-        inst:init
         return
     end
 

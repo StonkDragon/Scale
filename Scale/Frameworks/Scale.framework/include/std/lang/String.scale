@@ -33,19 +33,31 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     number:toString self:prepend return
   end
 
+  function +(cStr: [int8]): str
+    cStr str::new self:prepend return
+  end
+
   function clone(): str
     self._data str::new return
   end
 
   function append(other: str): str
-    unsafe
-      self._data other._data concat str::new return
-    end
+    other._data self:append return
   end
 
   function prepend(other: str): str
+    other._data self:prepend return
+  end
+
+  function prepend(cStr: [int8]): str
     unsafe
-      other._data self._data concat str::new return
+      cStr self._data concat str::new return
+    end
+  end
+
+  function append(cStr: [int8]): str
+    unsafe
+      self._data cStr concat str::new return
     end
   end
 
@@ -57,6 +69,16 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
   function ==(other: str): bool
     other self:equals return
+  end
+
+  function ==(cStr: [int8]): bool
+    cStr self:equals return
+  end
+
+  function equals(cStr: [int8]): bool
+    unsafe
+      self._data cStr __c_strcmp 0 == return
+    end
   end
 
   function size(): int

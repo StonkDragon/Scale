@@ -1220,7 +1220,7 @@ namespace sclc {
                 append("// invokedynamic %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
             }
         }
-        append("_scl_call_method_or_throw(_scl_top()->v, 0x%xU, 0x%xU, %d, \"%s\");\n", hash1((char*) sclFunctionNameToFriendlyString(self).c_str()), hash1((char*) argsToRTSignature(self).c_str()), onSuperType, sclFunctionNameToFriendlyString(self).c_str());
+        append("_scl_call_method_or_throw(_scl_top()->v, 0x%xU, 0x%xU, %d, \"%s\", \"%s\");\n", hash1((char*) sclFunctionNameToFriendlyString(self).c_str()), hash1((char*) argsToRTSignature(self).c_str()), onSuperType, sclFunctionNameToFriendlyString(self).c_str(), argsToRTSignature(self).c_str());
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none" && removeTypeModifiers(self->getReturnType()) != "nothing") {
             typeStack.push(self->getReturnType());
         }
@@ -5192,28 +5192,41 @@ namespace sclc {
         }
     }
 
+    std::string typeToRTSig(std::string type) {
+        type = removeTypeModifiers(type);
+        if (type == "any") return "a;";
+        if (type == "int" || type == "bool") return "i;";
+        if (type == "float") return "f;";
+        if (type == "str") return "s;";
+        if (type == "none") return "V;";
+        if (type == "[int8]") return "cs;";
+        if (type == "[any]") return "p;";
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            return "[" + typeToRTSig(type.substr(1, type.size() - 2)) + ";";
+        }
+        if (type == "int8") return "int8;";
+        if (type == "int16") return "int16;";
+        if (type == "int32") return "int32;";
+        if (type == "int64") return "int64;";
+        if (type == "uint8") return "uint8;";
+        if (type == "uint16") return "uint16;";
+        if (type == "uint32") return "uint32;";
+        if (type == "uint64") return "uint64;";
+        if (type == "uint") return "u;";
+        return "L" + type + ";";
+    }
+
     std::string argsToRTSignature(Function* f) {
-        std::string args = std::to_string(f->getArgs().size()) + ";";
+        std::string args = "(";
         for (Variable v : f->getArgs()) {
             std::string type = removeTypeModifiers(v.getType());
             if (v.getName() == "self" && f->isMethod) {
-                args += "O;";
                 continue;
             }
-            if (type == "any") args += "a;";
-            else if (type == "int8") args += "c;";
-            else if (type == "int16") args += "s;";
-            else if (type == "int32") args += "i;";
-            else if (type == "int64") args += "x;";
-            else if (type == "int") args += "l;";
-            else if (type == "uint8") args += "h;";
-            else if (type == "uint16") args += "t;";
-            else if (type == "uint32") args += "j;";
-            else if (type == "uint64") args += "y;";
-            else if (type == "uint") args += "m;";
-            else if (type == "float") args += "d;";
-            else args += "L" + removeTypeModifiers(type) + ";";
+            args += typeToRTSig(type);
         }
+        args += ")";
+        args += typeToRTSig(f->getReturnType());
         return args;
     }
 
@@ -5246,6 +5259,7 @@ namespace sclc {
         append("scl_any    actual_handle;\n");
         append("scl_int8*  actual_name;\n");
         append("scl_int    signature;\n");
+        append("scl_int8*  signature_str;\n");
         scopeDepth--;
         append("};\n");
         append("struct _scl_membertype {\n");
@@ -5282,20 +5296,14 @@ namespace sclc {
         append("extern \"c\" {\n");
         append("#endif\n\n");
 
-        for (Function* function : result.functions) {
+        for (Function* function : joinVecs(result.functions, result.extern_functions)) {
             if (function->isMethod) {
                 if (getInterfaceByName(result, function->member_type)) {
                     continue;
                 }
                 append("static void _scl_caller_func_%s$%s();\n", (((Method*) function))->getMemberType().c_str(), function->finalName().c_str());
-            }
-        }
-        for (Function* function : result.extern_functions) {
-            if (function->isMethod) {
-                if (getInterfaceByName(result, function->member_type)) {
-                    continue;
-                }
-                append("static void _scl_caller_func_%s$%s();\n", (((Method*) function))->getMemberType().c_str(), function->finalName().c_str());
+            } else {
+                append("static void _scl_call_reflect_%s();\n", function->finalName().c_str());
             }
         }
 
@@ -5334,6 +5342,25 @@ namespace sclc {
             }
         }
 
+        append("static struct _scl_methodinfo _scl_functions[] = {\n");
+        scopeDepth++;
+        for (Function* f : joinVecs(result.functions, result.extern_functions)) {
+            if (f->isMethod) continue;
+            std::string signature = argsToRTSignature(f);
+            append("(struct _scl_methodinfo) {\n");
+            scopeDepth++;
+            append(".ptr = (scl_any) _scl_call_reflect_%s,\n", f->finalName().c_str());
+            append(".pure_name = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(f).c_str()));
+            append(".actual_handle = (scl_any) Function_%s,\n", f->finalName().c_str());
+            append(".actual_name = \"%s\",\n", f->getName().c_str());
+            append(".signature = 0x%xU,\n", hash1((char*) signature.c_str()));
+            append(".signature_str = \"%s\",\n", signature.c_str());
+            scopeDepth--;
+            append("},\n");
+        }
+        append("{0, 0, 0, 0, 0, 0}\n");
+        scopeDepth--;
+        append("};\n");
         append("/* TYPES */\n");
         for (Struct s : result.structs) {
             std::vector<Method*> methods = methodsOnType(result, s.getName());
@@ -5343,13 +5370,15 @@ namespace sclc {
                 append("static struct _scl_methodinfo _scl_methods_%s[] = {\n", s.getName().c_str());
                 scopeDepth++;
                 for (Method* m : methods) {
+                    std::string signature = argsToRTSignature(m);
                     append("(struct _scl_methodinfo) {\n");
                     scopeDepth++;
                     append(".ptr = (scl_any) _scl_caller_func_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
                     append(".pure_name = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
                     append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
                     append(".actual_name = \"%s\",\n", m->getName().c_str());
-                    append(".signature = 0x%xU,\n", hash1((char*) argsToRTSignature(m).c_str()));
+                    append(".signature = 0x%xU,\n", hash1((char*) signature.c_str()));
+                    append(".signature_str = \"%s\",\n", signature.c_str());
                     scopeDepth--;
                     append("},\n");
                 }
@@ -5439,6 +5468,12 @@ namespace sclc {
                 append("static void _scl_caller_func_%s$%s() {\n", m->getMemberType().c_str(), f->finalName().c_str());
                 scopeDepth++;
                 generateUnsafeCall(m, fp, result);
+                scopeDepth--;
+                append("}\n");
+            } else {
+                append("static void _scl_call_reflect_%s() {\n", f->finalName().c_str());
+                scopeDepth++;
+                generateUnsafeCall(f, fp, result);
                 scopeDepth--;
                 append("}\n");
             }

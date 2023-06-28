@@ -13,7 +13,7 @@ end
 function main(args: Array): none
     # programmatically create a new instance of the struct Foo
     "Foo" Struct::getStructByName => decl s: Struct
-    s:newInstance => decl f: Foo
+    s:newInstance dup:init => decl f: Foo
 
     # call some methods on the struct
     f "hello" s:getMethodByName as lambda(Foo): none :accept
@@ -28,14 +28,14 @@ function main(args: Array): none
 
     # make sure instantiating a static struct throws an exception
     try
-        "FmtIO" Struct::getStructByName:newInstance
+        "FmtIO" Struct::getStructByName:newInstance:init
     catch typeof IllegalStateException
         exception.msg puts
     done
 
     # make sure the struct Struct is not instantiatable even with reflection
     try
-        "Struct" Struct::getStructByName:newInstance
+        "Struct" Struct::getStructByName:newInstance:init
     catch typeof IllegalStateException
         exception.msg puts
     done
