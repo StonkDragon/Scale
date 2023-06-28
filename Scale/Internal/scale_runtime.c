@@ -1656,6 +1656,10 @@ scl_str typesToRTSignature(scl_str returnType, scl_Array args) {
 	return sig;
 }
 
+scl_str Struct$convertToSignature(scl_str returnType, scl_Array args) {
+	return typesToRTSignature(returnType, args);
+}
+
 void Thread$run(scl_Thread self) {
 	_callstack.func[_callstack.ptr++] = "<extern Thread:run(): none>";
 	_currentThread = self;
