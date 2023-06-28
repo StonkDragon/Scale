@@ -1637,6 +1637,7 @@ scl_str typeArrayToRTSig(scl_Array arr) {
 	}
 }
 
+
 scl_str typesToRTSignature(scl_str returnType, scl_Array args) {
 	scl_int8* retType = typeToRTSig(returnType->_data);
 	scl_str argTypes = typeArrayToRTSig(args);
