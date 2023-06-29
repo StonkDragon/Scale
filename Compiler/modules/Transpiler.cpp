@@ -15,6 +15,7 @@
 namespace sclc {
 
     std::string sclFunctionNameToFriendlyString(Function* f);
+    std::string sclFunctionNameToFriendlyString(std::string name);
 
     bool hasTypealias(TPResult r, std::string t) {
         if (t.size() && t != "?" && t.at(t.size() - 1) == '?') t = t.substr(0, t.size() - 1);
@@ -169,110 +170,16 @@ namespace sclc {
         return args;
     }
 
-    std::string typeToASCII(std::string v) {
-        bool canBeNil = false;
-        if (v.size() && v != "?" && v.at(v.size() - 1) == '?') {
-            v = v.substr(0, v.size() - 1);
-            canBeNil = true;
+    std::string argsToRTSignature(Function* f);
+
+    size_t indexOf(std::vector<std::string> v, std::string s) {
+        for (size_t i = 0; i < v.size(); i++) {
+            if (v.at(i) == s) return i;
         }
-        if (v.size() && v.at(0) == '[') {
-            return ".ptrType" + typeToASCII(v.substr(1, v.length() - 2)) + (canBeNil ? ".nilable" : "");
-        }
-        if (v == "?") {
-            return std::string(".sclWildcard") + (canBeNil ? ".nilable" : "");
-        }
-        return v;
+        return -1;
     }
 
-    std::string convertToMangledType(TPResult result, std::string type) {
-        type = removeTypeModifiers(type);
-        if (type == "str") {
-            return std::string("3str");
-        } else if (type == "any") {
-            return std::string("Pv");
-        } else if (type == "int8") {
-            return std::string("c");
-        } else if (type == "float") {
-            return std::string("d");
-        } else if (type == "uint8") {
-            return std::string("h");
-        } else if (type == "int32") {
-            return std::string("i");
-        } else if (type == "uint32") {
-            return std::string("j");
-        } else if (type == "int" || type == "bool") {
-            return std::string("l");
-        } else if (type == "uint") {
-            return std::string("m");
-        } else if (type == "int16") {
-            return std::string("s");
-        } else if (type == "uint16") {
-            return std::string("t");
-        } else if (type == "int64") {
-            return std::string("x");
-        } else if (type == "uint64") {
-            return std::string("y");
-        } else if (type == "lambda") {
-            return std::string("6lambda");
-        } else if (type == "varargs") {
-            return std::string("z");
-        } else if (strstarts(type, "lambda(")) {
-            std::string returnType = type.substr(type.find_last_of("):") + 1);
-            std::string args = type.substr(type.find("(") + 1, type.find("):") - type.find("(") - 1);
-            return "PF" + convertToMangledType(result, returnType) + std::to_string(args.size() + 3) + "num" + args + "E";
-        } else if (type.size() && type.at(0) == '[') {
-            return "P" + convertToMangledType(result, type.substr(1, type.length() - 2));
-        } else if (getStructByName(result, type) != Struct::Null) {
-            return std::to_string(type.size()) + type;
-        } else if (hasTypealias(result, type)) {
-            return std::to_string(type.size()) + type;
-        }
-        return "v";
-    }
-
-    std::string toCPPOperator(std::string func) {
-        if (func.find("$$ol") != std::string::npos) {
-            func =  func.substr(0, func.find("$$ol"));
-        }
-        if (func == "operator$add") return "pl";
-        if (func == "operator$sub") return "mi";
-        if (func == "operator$mul") return "ml";
-        if (func == "operator$div") return "dv";
-        if (func == "operator$mod") return "rm";
-        if (func == "operator$logic_and") return "an";
-        if (func == "operator$logic_or") return "or";
-        if (func == "operator$logic_xor") return "eo";
-        if (func == "operator$logic_not") return "co";
-        if (func == "operator$logic_lsh") return "ls";
-        if (func == "operator$logic_rsh") return "rs";
-        if (func == "operator$pow") return "pw";
-        if (func == "operator$dot") return "pt";
-        if (func == "operator$less") return "lt";
-        if (func == "operator$less_equal") return "le";
-        if (func == "operator$more") return "gt";
-        if (func == "operator$more_equal") return "ge";
-        if (func == "operator$equal") return "eq";
-        if (func == "operator$not") return "nt";
-        if (func == "operator$assert_not_nil") return "nn";
-        if (func == "operator$not_equal") return "ne";
-        if (func == "operator$bool_and") return "aa";
-        if (func == "operator$bool_or") return "oo";
-        if (func == "operator$inc") return "pp";
-        if (func == "operator$dec") return "mm";
-        if (func == "operator$at") return "ix";
-        if (func == "operator$wildcard") return "de";
-
-        return func;
-    }
-
-    std::string generateSymbolForFunction(TPResult result, Function* f) {
-        auto indexOf = [](std::vector<std::string> v, std::string s) -> size_t {
-            for (size_t i = 0; i < v.size(); i++) {
-                if (v.at(i) == s) return i;
-            }
-            return -1;
-        };
-
+    std::string generateSymbolForFunction(Function* f) {
         if (contains<std::string>(f->getModifiers(), "asm")) {
             std::string label = f->getModifiers().at(indexOf(f->getModifiers(), "asm") + 1);
 
@@ -282,11 +189,10 @@ namespace sclc {
         if (contains<std::string>(f->getModifiers(), "cdecl")) {
             std::string cLabel = f->getModifiers().at(indexOf(f->getModifiers(), "cdecl") + 1);
 
-            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + cLabel + "\"";
+            return std::string("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"") + cLabel + "\"";
         }
 
         std::string symbol = f->finalName();
-        symbol = replaceAll(symbol, "\\$\\$ol\\d+", "");
 
         if (contains<std::string>(f->getModifiers(), "<lambda>")) {
             symbol = "$scl_lambda_" + std::string(f->finalName().c_str() + 7);
@@ -296,48 +202,25 @@ namespace sclc {
                 symbol = m->getMemberType() + "$" + f->finalName();
             } else {
                 std::string name = f->finalName();
-                name = replaceAll(name, "\\$\\$ol\\d+", "");
+                name = sclFunctionNameToFriendlyString(name);
 
-                bool op = false;
-                if (strstarts(name, "operator$")) {
-                    name = toCPPOperator(name);
-                    op = true;
-                }
-
-                symbol = "_ZN" + std::to_string(m->getMemberType().size()) + m->getMemberType() + (!op ? std::to_string(name.size()) : "") + name + "E";
-                if (f->getArgs().size() <= 1) {
-                    symbol += "v";
-                } else {
-                    for (size_t x = 0; x < f->getArgs().size() - 1; x++) {
-                        std::string type = removeTypeModifiers(f->getArgs()[x].getType());
-                        symbol += convertToMangledType(result, type);
-                    }
-                }
+                symbol = m->getMemberType() + ":" + name;
+                symbol += argsToRTSignature(f);
             }
         } else {
             std::string finalName = symbol;
             if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
                 symbol = finalName;
             } else {
-                if (finalName.find("$") != std::string::npos && !contains<std::string>(f->getModifiers(), "construct") && !contains<std::string>(f->getModifiers(), "final") && !contains<std::string>(f->getModifiers(), "private")) {
-                    std::string member = finalName.substr(0, finalName.find("$"));
-                    finalName = finalName.substr(finalName.find("$") + 1);
-                    symbol = "_ZN" + std::to_string(member.size()) + member + std::to_string(finalName.size()) + finalName + "E";
-                } else {
-                    symbol = "_Z" + std::to_string(finalName.size()) + finalName;
-                }
-                if (f->getArgs().size() == 0) {
-                    symbol += "v";
-                } else {
-                    for (size_t x = 0; x < f->getArgs().size(); x++) {
-                        std::string type = removeTypeModifiers(f->getArgs()[x].getType());
-                        symbol += convertToMangledType(result, type);
-                    }
-                }
+                symbol = sclFunctionNameToFriendlyString(f);
+                symbol += argsToRTSignature(f);
             }
         }
 
-        return "_scl_macro_to_string(__USER_LABEL_PREFIX__) " + std::string("\"") + symbol + "\"";
+        if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
+        }
+        return "\"" + symbol + "\"";
     }
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
@@ -425,19 +308,30 @@ namespace sclc {
                 }
             }
 
-            std::string symbol = generateSymbolForFunction(result, function);
+            std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
                 if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
                     append("_scl_no_return ");
                 }
-                append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Function_%s(%s)\n        __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
             } else {
-                append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Method_%s$%s(%s)\n        __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
             }
         }
 
         append("\n");
+    }
+
+    std::string scaleArgs(std::vector<Variable> args) {
+        std::string result = "";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i) {
+                result += ", ";
+            }
+            result += args[i].getName() + ": " + args[i].getType();
+        }
+        return result;
     }
 
     void ConvertC::writeExternHeaders(FILE* fp, TPResult result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -492,28 +386,17 @@ namespace sclc {
                         }
                     }
                 }
-                std::string symbol = generateSymbolForFunction(result, function);
-
-                auto scaleArgs = [](std::vector<Variable> args) -> std::string {
-                    std::string result = "";
-                    for (size_t i = 0; i < args.size(); i++) {
-                        if (i) {
-                            result += ", ";
-                        }
-                        result += args[i].getName() + ": " + args[i].getType();
-                    }
-                    return result;
-                };
+                std::string symbol = generateSymbolForFunction(function);
 
                 if (!function->isMethod) {
                     append("// [Import: function %s(%s): %s]\n", function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
                     if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
                         append("_scl_no_return ");
                     }
-                    append("%s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Function_%s(%s)\n        __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
                 } else {
                     append("// [Import: function %s:%s(%s): %s]\n", (((Method*) function))->getMemberType().c_str(), function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
-                    append("%s Method_%s$%s(%s) __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Method_%s$%s(%s)\n        __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
@@ -1826,7 +1709,7 @@ namespace sclc {
 
         std::string lambdaType = "lambda(" + std::to_string(f->getArgs().size()) + "):" + f->getReturnType();
 
-        append("%s Function_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(result, f).c_str());
+        append("%s Function_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->getReturnType()).c_str(), lambdaCount - 1, function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         append("_scl_push()->v = Function_$lambda%d$%s;\n", lambdaCount - 1, function->finalName().c_str());
         typeStack.push(lambdaType);
         result.functions.push_back(f);
@@ -1864,6 +1747,20 @@ namespace sclc {
         }
     }
 
+    bool structExtends(TPResult result, Struct& s, std::string name) {
+        if (s.getName() == name) return true;
+
+        Struct super = getStructByName(result, s.extends());
+        Struct oldSuper = s;
+        while (super.getName().size()) {
+            if (super.getName() == name)
+                return true;
+            oldSuper = super;
+            super = getStructByName(result, super.extends());
+        }
+        return false;
+    }
+
     handler(Catch) {
         noUnused;
         std::string ex = "Exception";
@@ -1889,22 +1786,8 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            
-            auto extends = [result](Struct& s, std::string name) {
-                if (s.getName() == name) return true;
 
-                Struct super = getStructByName(result, s.extends());
-                Struct oldSuper = s;
-                while (super.getName().size()) {
-                    if (super.getName() == name)
-                        return true;
-                    oldSuper = super;
-                    super = getStructByName(result, super.extends());
-                }
-                return false;
-            };
-
-            if (extends(s, "Error")) {
+            if (structExtends(result, s, "Error")) {
                 transpilerError("Cannot catch Exceptions that extend 'Error'!", i);
                 errors.push_back(err);
                 return;
@@ -2036,6 +1919,16 @@ namespace sclc {
         scopeDepth--;
         append("}\n");
     }
+
+    std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem) {
+        std::vector<std::string> newVec;
+        for (auto member : vec) {
+            if (member != elem) {
+                newVec.push_back(member);
+            }
+        }
+        return newVec;
+    };
 
     handler(Identifier) {
         noUnused;
@@ -2419,15 +2312,6 @@ namespace sclc {
                     missedMembers.push_back(v.getName());
                 }
 
-                auto without = [&](std::vector<std::string> vec, std::string elem) {
-                    std::vector<std::string> newVec;
-                    for (auto member : vec) {
-                        if (member != elem) {
-                            newVec.push_back(member);
-                        }
-                    }
-                    return newVec;
-                };
                 while (body[i].getType() != tok_curly_close) {
                     if (body[i].getType() == tok_paren_open) {
                         handle(ParenOpen);
@@ -2449,7 +2333,7 @@ namespace sclc {
 
                     std::string lastType = typeStackTop;
 
-                    missedMembers = without(missedMembers, body[i].getValue());
+                    missedMembers = vecWithout(missedMembers, body[i].getValue());
                     
                     if (hasMethod(result, "attribute_mutator$" + body[i].getValue(), s.getName())) {
                         if (removeTypeModifiers(lastType) == "float")
@@ -5153,6 +5037,7 @@ namespace sclc {
         name = replaceAll(name, "operator\\$at", "@");
         name = replaceAll(name, "operator\\$wildcard", "?");
         name = replaceAll(name, "\\$\\$ol\\d+", "");
+        name = replaceAll(name, "\\$\\d+", "");
         name = replaceAll(name, "\\$", "::");
 
         if (strstarts(name, "::lambda")) {
@@ -5192,6 +5077,34 @@ namespace sclc {
         }
     }
 
+    std::string rtTypeToSclType(std::string rtType) {
+        if (rtType.size() == 0) return "";
+        if (rtType == "a") return "any";
+        if (rtType == "i") return "int";
+        if (rtType == "f") return "float";
+        if (rtType == "s") return "str";
+        if (rtType == "V") return "none";
+        if (rtType == "cs") return "[int8]";
+        if (rtType == "p") return "[any]";
+        if (rtType == "F") return "lambda";
+        if (rtType.front() == '[') {
+            return "[" + rtTypeToSclType(rtType.substr(1, rtType.size() - 1)) + "]";
+        }
+        if (rtType == "u") return "uint";
+        if (rtType == "i8") return "int8";
+        if (rtType == "u8") return "uint8";
+        if (rtType == "i16") return "int16";
+        if (rtType == "u16") return "uint16";
+        if (rtType == "i32") return "int32";
+        if (rtType == "u32") return "uint32";
+        if (rtType == "i64") return "int64";
+        if (rtType == "u64") return "uint64";
+        if (rtType.front() == 'L') {
+            return rtType.substr(1, rtType.size() - 1);
+        }
+        return "<" + rtType + ">";
+    }
+
     std::string typeToRTSig(std::string type) {
         type = removeTypeModifiers(type);
         if (type == "any") return "a;";
@@ -5205,15 +5118,15 @@ namespace sclc {
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "[" + typeToRTSig(type.substr(1, type.size() - 2)) + ";";
         }
-        if (type == "int8") return "int8;";
-        if (type == "int16") return "int16;";
-        if (type == "int32") return "int32;";
-        if (type == "int64") return "int64;";
-        if (type == "uint8") return "uint8;";
-        if (type == "uint16") return "uint16;";
-        if (type == "uint32") return "uint32;";
-        if (type == "uint64") return "uint64;";
         if (type == "uint") return "u;";
+        if (type == "int8") return "i8;";
+        if (type == "int16") return "i16;";
+        if (type == "int32") return "i32;";
+        if (type == "int64") return "i64;";
+        if (type == "uint8") return "u8;";
+        if (type == "uint16") return "u16;";
+        if (type == "uint32") return "u32;";
+        if (type == "uint64") return "u64;";
         return "L" + type + ";";
     }
 
@@ -5480,14 +5393,6 @@ namespace sclc {
             }
         }
 
-        append("#if defined(__GNUC__)\n");
-        append("#pragma GCC diagnostic push\n");
-        append("#pragma GCC diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
-        append("#pragma GCC diagnostic ignored \"-Wint-to-pointer-cast\"\n");
-        append("#pragma GCC diagnostic ignored \"-Wpointer-to-int-cast\"\n");
-        append("#pragma GCC diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
-        append("#pragma GCC diagnostic ignored \"-Wincompatible-pointer-types\"\n");
-        append("#endif\n");
         append("#if defined(__clang__)\n");
         append("#pragma clang diagnostic push\n");
         append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
@@ -5791,9 +5696,6 @@ namespace sclc {
             append("}\n\n");
         }
 
-        append("#if defined(__GNUC__)\n");
-        append("#pragma GCC diagnostic pop\n");
-        append("#endif\n");
         append("#if defined(__clang__)\n");
         append("#pragma clang diagnostic pop\n");
         append("#endif\n");

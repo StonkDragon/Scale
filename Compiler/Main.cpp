@@ -30,7 +30,7 @@
 #endif
 
 #ifndef COMPILER
-#define COMPILER "gcc"
+#define COMPILER "clang"
 #endif
 
 #ifndef C_VERSION
@@ -56,6 +56,9 @@
 #define SCL_ROOT_DIR getenv("HOME")
 #endif
 #endif
+
+#define TO_STRING2(x) #x
+#define TO_STRING(x) TO_STRING2(x)
 
 namespace sclc
 {
@@ -536,6 +539,39 @@ namespace sclc
         return 0;
     }
 
+    std::string rtTypeToSclType(std::string rtType);
+
+    std::string demangleSymbol(std::string sym) {
+        std::string varPrefix = TO_STRING(__USER_LABEL_PREFIX__) + std::string("Var_");
+        if (strstarts(sym, varPrefix) || strstarts(sym, "Var_")) {
+            if (strstarts(sym, varPrefix))
+                sym = sym.substr(varPrefix.size());
+            else
+                sym = sym.substr(4);
+            
+            sym = replaceAll(sym, "\\$", "::");
+            return sym;
+        }
+        if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
+            return sym;
+        }
+        std::string name = "";
+        if (!strstarts(sym, "(")) {
+            name = sym.substr(0, sym.find("("));
+        }
+        std::string returnType = sym.substr(sym.find(")") + 1, sym.size() - sym.find(")") - 2);
+        std::string args = sym.substr(sym.find("(") + 1, sym.find(")") - sym.find("(") - 1);
+        std::vector<std::string> argTypes = split(args, ";");
+        std::string demangled = name + "(";
+        for (size_t i = 0; i < argTypes.size() - 1; i++) {
+            if (i)
+                demangled += ", ";
+            demangled += ":" + rtTypeToSclType(argTypes[i]);
+        }
+        demangled += "): " + rtTypeToSclType(returnType);
+        return demangled;
+    }
+
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
@@ -672,6 +708,17 @@ namespace sclc
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
+                } else if (args[i] == "-demangle-symbol") {
+                    std::string sym;
+                    if (i + 1 < args.size()) {
+                        std::cout << demangleSymbol(args[i + 1]) << std::endl;
+                    } else {
+                        while (std::cin) {
+                            std::getline(std::cin, sym);
+                            std::cout << demangleSymbol(sym) << std::endl;
+                        }
+                    }
+                    return 0;
                 } else if (args[i] == "-create-framework") {
                     if (i + 1 < args.size()) {
                         std::string name = args[i + 1];
