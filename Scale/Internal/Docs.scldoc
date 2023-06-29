@@ -661,7 +661,7 @@ A scale.drg file containing every valid entry would look something like this:
 
 <pre>
 outfile: "out.scl";
-compiler: "gcc";
+compiler: "clang";
 optimizer: "O2";
 frameworks: [
     "A-Framework";

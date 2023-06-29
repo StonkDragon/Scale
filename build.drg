@@ -1,7 +1,7 @@
 VERSION: "23.7";
 
 build: {
-  compiler: "g++";
+  compiler: "clang++";
   sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
@@ -49,7 +49,7 @@ build: {
 };
 
 install: {
-  compiler: "g++";
+  compiler: "clang++";
   sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";

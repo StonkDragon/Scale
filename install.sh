@@ -1,5 +1,5 @@
 if [ `uname` = "Darwin" ]; then
-    if ! which gcc >/dev/null; then
+    if ! which clang >/dev/null; then
         echo "Please install the Xcode command line tools"
         exit 1
     fi
@@ -12,8 +12,8 @@ fi
 
 failedACommand=0
 
-if ! which g++ >/dev/null; then
-    echo "Please install g++"
+if ! which clang++ >/dev/null; then
+    echo "Please install clang++"
     failedACommand=1
 fi
 

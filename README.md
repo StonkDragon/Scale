@@ -4,7 +4,7 @@
 
   Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_support.h`, which will be generated when compiling a scale file with the `-t` option. If you have any scale functions marked with the `export` modifier, C-declarations for those functions will appear in the file. Functions marked with the `expect` keyword are expected to be implemented in a different translation unit, i.e. your C-code.
 
-  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [GCC](https://en.wikipedia.org/wiki/GNU_Compiler_Collection).
+  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
   Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
 
@@ -43,7 +43,7 @@ This will install all necessary dependencies and the Scale compiler.
 ## Dependencies
 Scale has the following dependencies:
 
-- `gcc` (or similar C compiler)
+- `clang`
 - [`dragon`](https://github.com/StonkDragon/Dragon) (installed by [install.sh](./install.sh))
 - [`bdwgc`](https://github.com/ivmai/bdwgc) (installed by [install_post.sh](./install_post.sh))
 
