@@ -1,6 +1,10 @@
 import std.io
 
 struct Foo
+    function init(): none
+        "Foo:init" puts
+    end
+
     function hello(): none
         "Hello, World!" puts
     end
@@ -10,14 +14,14 @@ struct Foo
     end
 end
 
-function main(args: Array): none
+function main(): none
     # programmatically create a new instance of the struct Foo
     "Foo" Struct::getStructByName => decl s: Struct
-    s:newInstance dup:init => decl f: Foo
+    {} s:newInstance => decl f: Foo
 
     # call some methods on the struct
-    f "hello" s:getMethodByName as lambda(Foo): none :accept
-    f "Foo!" "msg" s:getMethodByName as lambda(Foo, str): none :accept
+    f "hello" "none" {} s:getMethodByName:accept
+    "Foo!" f "msg" "none" {"str"} s:getMethodByName:accept
 
     # make sure trying to get non-existent structs throws an exception
     try
@@ -28,14 +32,14 @@ function main(args: Array): none
 
     # make sure instantiating a static struct throws an exception
     try
-        "FmtIO" Struct::getStructByName:newInstance:init
+        {} "FmtIO" Struct::getStructByName:newInstance
     catch typeof IllegalStateException
         exception.msg puts
     done
 
     # make sure the struct Struct is not instantiatable even with reflection
     try
-        "Struct" Struct::getStructByName:newInstance:init
+        {} "Struct" Struct::getStructByName:newInstance
     catch typeof IllegalStateException
         exception.msg puts
     done

@@ -84,9 +84,9 @@
 #define _scl_macro_to_string_(x) # x
 #define _scl_macro_to_string(x) _scl_macro_to_string_(x)
 
-#define system_allocate(size)				({_callstack.func[_callstack.ptr++] = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.func[--_callstack.ptr] = NULL; tmp; })
-#define system_free(_ptr)					({_callstack.func[_callstack.ptr++] = "<libc free()>"; free(_ptr); _callstack.func[--_callstack.ptr] = NULL; })
-#define system_realloc(_ptr, size)			({_callstack.func[_callstack.ptr++] = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.func[--_callstack.ptr] = NULL; tmp; })
+#define system_allocate(size)				({*(_scl_callstack_push()) = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.ptr--; tmp; })
+#define system_free(_ptr)					({*(_scl_callstack_push()) = "<libc free()>"; free(_ptr); _callstack.ptr--; })
+#define system_realloc(_ptr, size)			({*(_scl_callstack_push()) = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.ptr--; tmp; })
 
 // Scale expects this function
 #define expect
@@ -105,12 +105,6 @@
 
 #if !defined(EXCEPTION_DEPTH)
 #define EXCEPTION_DEPTH		1024
-#endif
-
-#if __has_attribute(aligned)
-#define _scl_align __attribute__((aligned(16)))
-#else
-#define _scl_align
 #endif
 
 #if __has_builtin(__builtin_expect)
@@ -291,8 +285,9 @@ typedef struct {
 } _scl_stack_t;
 
 typedef struct {
-	scl_int8*		func[EXCEPTION_DEPTH];
+	scl_int8**		func;
 	scl_int			ptr;
+	scl_int			cap;
 } _scl_callstack_t;
 
 typedef void(*_scl_lambda)(void);
@@ -358,6 +353,13 @@ scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
 scl_any				_scl_get_method_on_type(hash type, hash method, hash signature);
 scl_any				_scl_get_method_handle(hash type, hash method, hash signature);
 void				_scl_call_method_or_throw(scl_any instance, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
+scl_int8**			_scl_callstack_push();
+
+scl_any				_scl_msg_send(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_any				_scl_msg_send_super(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_float			_scl_msg_sendf(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_float			_scl_msg_send_superf(scl_any instance, scl_int8* methodIdentifier, ...);
+
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);

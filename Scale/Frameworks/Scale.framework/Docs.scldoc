@@ -857,13 +857,12 @@ Member types:
 Returns an instance of <<WHITE>>Struct<<RESET>> representing the struct with the given name.
 A <<WHITE>>NullPointerException<<RESET>> is thrown if no such struct exists.
 
-### function Struct:newInstance(): SclObject
+### function Struct:newInstance(argumentTypes: Array): SclObject
 Creates a new instance of the struct represented by this object.
-This method does NOT call the initialization method of the struct.
+The <<WHITE>>argumentTypes<<RESET>> array must contain the types of the arguments to the constructor.
 
-### function Struct:getMethodByName(name: str): lambda
-Returns a generic <<BLUE>>lambda<<RESET>> for the method with the given name.
-The returned lambda <<BOLDRED>>MUST<<RESET>> be cast to a non generic <<BLUE>>lambda<<RESET>> before it may be used.
+### function Struct:getMethodByName(name: str, returnType: str, argumentTypes: Array): lambda
+Returns a lambda representing the method with the given name, return type and argument types.
 
 ### function Struct:getName(): str
 Returns the name of this struct.

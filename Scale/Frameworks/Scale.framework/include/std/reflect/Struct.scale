@@ -34,7 +34,7 @@ final sealed struct Struct
     private expect static unsafe cdecl "_scl_add_struct" function addStruct0(:any): none
     private expect static unsafe cdecl "_scl_mutex_new" function mutexNew0(): any
 
-    function newInstance() inst: SclObject
+    function newInstance(argumentTypes: Array) inst: SclObject
         if self.isStatic then
             "Can not instantiate static struct '" self.typeName + "'" +
             IllegalStateException::new throw
@@ -57,6 +57,9 @@ final sealed struct Struct
             mutexNew0 => instanceLayout.mutex
             inst addStruct0
         end
+
+        inst ("init" "none" argumentTypes self:getMethodByName):accept
+
         return
     end
 
@@ -166,12 +169,14 @@ final sealed struct Struct
         fi
     end
 
-    private expect static unsafe cdecl "_scl_get_method_handle" function getMethodByName0(:int, :int, :int): lambda
+    private expect static unsafe cdecl "_scl_get_method_on_type" function getMethodByName0(typeID: int, nameHash: int, signatureHash: int): lambda(): none
+    private expect static unsafe cdecl "_scl_types_to_rt_signature" function createSignature(returnType: str, argumentTypes: Array): str
 
-    function getMethodByName(name: str) method: lambda
+    function getMethodByName(name: str, returnType: str, argumentTypes: Array) method: lambda(): none
         self:lock
         unsafe
-            self.typeId name:hashCode 0 getMethodByName0 => method
+            returnType argumentTypes createSignature => decl signature: str
+            self.typeId name:hashCode signature:hashCode getMethodByName0 => method
         end
         unless method then
             NullPointerException::new => decl e: mut Exception
