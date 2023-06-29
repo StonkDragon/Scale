@@ -19,10 +19,10 @@
      152 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      151 Compiler/modules/Parser.cpp
-    2108 Compiler/modules/SyntaxTree.cpp
+    2107 Compiler/modules/SyntaxTree.cpp
      321 Compiler/modules/TokenHandlers.cpp
      642 Compiler/modules/Tokenizer.cpp
-    5803 Compiler/modules/Transpiler.cpp
+    5827 Compiler/modules/Transpiler.cpp
       27 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      120 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      116 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
@@ -33,9 +33,9 @@
      263 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      116 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       32 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
-     221 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
+     243 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
-     222 Scale/Frameworks/Scale.framework/include/std/reflect/Struct.scale
+     228 Scale/Frameworks/Scale.framework/include/std/reflect/Struct.scale
       59 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
       55 Scale/Frameworks/Scale.framework/include/std/runtime/Library.scale
       24 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
@@ -56,8 +56,8 @@
       15 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
       32 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       23 Scale/Internal/runtime_vars.c
-    1800 Scale/Internal/scale_runtime.c
-     409 Scale/Internal/scale_runtime.h
+    2002 Scale/Internal/scale_runtime.c
+     411 Scale/Internal/scale_runtime.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -79,7 +79,7 @@
       28 examples/oop.scale
       55 examples/operator-overloading.scale
       46 examples/operators.scale
-      42 examples/reflect.scale
+      47 examples/reflect.scale
        6 examples/repeat.scale
       11 examples/sizeof.scale
        7 examples/std-any.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   18694 total
+   18954 total
