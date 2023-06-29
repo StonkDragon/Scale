@@ -1359,10 +1359,6 @@ scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 #define TO(type, name) scl_ ## type int$to ## name (scl_int val) { return (scl_ ## type) (val & ((1ULL << (sizeof(scl_ ## type) * 8)) - 1)); }
 #define VALID(type, name) scl_bool int$isValid ## name (scl_int val) { return val >= SCL_ ## type ## _MIN && val <= SCL_ ## type ## _MAX; }
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshift-count-overflow"
-#endif
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshift-count-overflow"
@@ -1765,9 +1761,6 @@ scl_Thread Thread$currentThread() {
 	return _currentThread;
 }
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
