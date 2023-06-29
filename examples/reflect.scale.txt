@@ -1,3 +1,4 @@
+Foo:init
 Hello, World!
 Foo!
 Couldn't find struct 'A'
