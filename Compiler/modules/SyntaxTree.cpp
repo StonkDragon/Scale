@@ -1785,7 +1785,6 @@ namespace sclc {
                            t.getValue() == "sinceVersion:" ||
                            t.getValue() == "replaceWith:" ||
                            t.getValue() == "deprecated!" ||
-                           t.getValue() == "no_cleanup" ||
                            t.getValue() == "overload!" ||
                            t.getValue() == "construct" ||
                            t.getValue() == "intrinsic" ||
