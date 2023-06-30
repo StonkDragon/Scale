@@ -553,6 +553,7 @@ namespace sclc
             return sym;
         }
         if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
+            std::cerr << "Invalid symbol: " << sym << std::endl;
             return sym;
         }
         std::string name = "";
@@ -704,6 +705,7 @@ namespace sclc
                 } else if (args[i] == "-debug") {
                     Main.options.debugBuild = true;
                     Main.options.minify = false;
+                    tmpFlags.push_back("-DSCL_DEBUG=1");
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
                 } else if (args[i] == "--dump-parsed-data") {

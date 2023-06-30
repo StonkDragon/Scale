@@ -1,10 +1,4 @@
 static final sealed struct GarbageCollector
-    private decl gcLock: const SclObject
-
-    construct function GarbageCollectorCInit(): none
-        SclObject::new => gcLock
-    end
-
     private expect unsafe function run0(): none
     private expect unsafe function setPaused0(:bool): none
     private expect unsafe function isPaused0(): bool
@@ -15,45 +9,33 @@ static final sealed struct GarbageCollector
     expect function bytesSinceLastCollect(): int
     expect function totalMemory(): int
 
-    function collect(): none
-        gcLock:lock
+    restrict function collect(): none
         unsafe
             run0
         end
-        gcLock:unlock
     end
 
-    function pause(): none
-        gcLock:lock
+    restrict function pause(): none
         unsafe
             true setPaused0
         end
-        gcLock:unlock
     end
 
-    function resume(): none
-        gcLock:lock
+    restrict function resume(): none
         unsafe
             false setPaused0
         end
-        gcLock:unlock
     end
 
-    function isPaused(): bool
-        gcLock:lock
+    restrict function isPaused(): bool
         unsafe
-            isPaused0 
-            gcLock:unlock
-            return
+            isPaused0 return
         end
     end
 
-    function implementation(): str
-        gcLock:lock
+    restrict function implementation(): str
         unsafe
-            getImplementation0 str::new 
-            gcLock:unlock
-            return
+            getImplementation0 str::new return
         end
     end
 end

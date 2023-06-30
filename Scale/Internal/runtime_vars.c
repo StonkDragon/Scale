@@ -1,4 +1,6 @@
+#define _SCL_NO_STACK_OPS
 #include <scale_runtime.h>
+#undef _SCL_NO_STACK_OPS
 
 _scl_stack_t**  stacks = nil;
 scl_int         stacks_count = 0;

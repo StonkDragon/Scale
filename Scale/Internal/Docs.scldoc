@@ -141,6 +141,11 @@ The syntax for unsafe blocks is as follows:
     <<CYAN>># your unsafe code here<<RESET>>
 <<BLUE>>end<<RESET>>
 
+### restrict
+The <<BLUE>>restrict<<RESET>> keyword is used to mark a function as a restrict function.
+Restrict functions are guaranteed to only execute on one thread at a time.
+Restrict methods are guaranteed to only execute on one thread at a time on that instance.
+
 ### construct
 The <<BLUE>>construct<<RESET>> modifier marks a function as a global constructor, which means that it will run before <<WHITE>>main<<RESET>> and is usually used to set up things before.
 <<BLUE>>construct<<RESET>> functions are impossible to call.

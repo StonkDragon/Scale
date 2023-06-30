@@ -1106,58 +1106,14 @@ void _scl_set_up_signal_handler() {
 #endif
 }
 
-_scl_frame_t* _scl_push() {
-	_stack.ptr++;
-
-	if (_stack.ptr >= _stack.cap) {
-		_stack.cap += 64;
-		_scl_frame_t* tmp = GC_realloc(_stack.data, sizeof(_scl_frame_t) * _stack.cap);
-		if (_scl_expect(!tmp, 0)) {
-			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
-		} else {
-			_stack.data = tmp;
-		}
+void _scl_resize_stack() {
+	_stack.cap += 64;
+	_scl_frame_t* tmp = GC_realloc(_stack.data, sizeof(_scl_frame_t) * _stack.cap);
+	if (_scl_expect(!tmp, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "realloc() failed");
+	} else {
+		_stack.data = tmp;
 	}
-
-	return &(_stack.data[_stack.ptr - 1]);
-}
-
-_scl_frame_t* _scl_pop() {
-#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
-#endif
-
-	return &(_stack.data[--_stack.ptr]);
-}
-
-_scl_frame_t* _scl_offset(scl_int offset) {
-	return &(_stack.data[offset]);
-}
-
-_scl_frame_t* _scl_positive_offset(scl_int offset) {
-	return &(_stack.data[_stack.ptr + offset]);
-}
-
-_scl_frame_t* _scl_top() {
-#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
-#endif
-
-	return &_stack.data[_stack.ptr - 1];
-}
-
-void _scl_popn(scl_int n) {
-	_stack.ptr -= n;
-
-#if !defined(SCL_FEATURE_UNSAFE_STACK_ACCESSES)
-	if (_scl_expect(_stack.ptr < 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
-#endif
 }
 
 void _scl_exception_push() {
@@ -1269,7 +1225,7 @@ void _scl_not_nil_return(scl_int val, scl_int8* name) {
 }
 
 #if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
-#define SCL_DEFAULT_STACK_FRAME_COUNT 16
+#define SCL_DEFAULT_STACK_FRAME_COUNT 64
 #endif
 
 void _scl_stack_new() {
@@ -1511,7 +1467,7 @@ void dumpStack() {
 }
 
 scl_any Library$self0() {
-	scl_any lib = dlopen(nil, RTLD_LAZY);
+	scl_any lib = dlopen(nil, RTLD_NOW | RTLD_GLOBAL);
 	if (!lib) {
 		scl_NullPointerException* e = NEW(NullPointerException, Exception);
 		_scl_msg_send(e, "init()V;");
@@ -1526,7 +1482,7 @@ scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
 }
 
 scl_any Library$open0(scl_int8* name) {
-	scl_any lib = dlopen(name, RTLD_LAZY);
+	scl_any lib = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
 	if (!lib) {
 		scl_NullPointerException* e = NEW(NullPointerException, Exception);
 		_scl_msg_send(e, "init()V;");

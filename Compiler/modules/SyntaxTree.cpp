@@ -1789,6 +1789,7 @@ namespace sclc {
                            t.getValue() == "construct" ||
                            t.getValue() == "intrinsic" ||
                            t.getValue() == "autoimpl" ||
+                           t.getValue() == "restrict" ||
                            t.getValue() == "default" ||
                            t.getValue() == "private" ||
                            t.getValue() == "static" ||

@@ -25,38 +25,31 @@ sealed struct Map is IIterable
     done
   end
 
-  function get(key: str): any?
-    self:lock
+  restrict function get(key: str): any?
     foreach entry in self.data do
       if entry nil == then continue fi
 
       entry => decl notNilEntry: MapEntry
       if notNilEntry.key nil == then continue fi
       if key notNilEntry.key == then
-        self:unlock
         notNilEntry.value return
       fi
     done
-    self:unlock
     nil return
   end
 
-  function set(key: str, value: any): none
-    self:lock
+  restrict function set(key: str, value: any): none
     for i in 0 to self.data.count do
       i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
         i key value MapEntry::new self.data:set
-        self:unlock
         return
       elif entry as MapEntry.key key:equals then
         value => entry.value
-        self:unlock
         return
       fi
     done
     key value MapEntry::new self.data:push
-    self:unlock
   end
 
   function begin(): none
@@ -75,13 +68,11 @@ sealed struct Map is IIterable
     self.data:toString return
   end
 
-  function map(x: lambda(MapEntry): none): none
-    self:lock
+  restrict function map(x: lambda(MapEntry): none): none
     foreach value in self.data do
       if value then
         value x:accept
       fi
     done
-    self:unlock
   end
 end

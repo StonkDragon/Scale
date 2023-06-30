@@ -103,10 +103,6 @@
 #define STACK_SIZE			131072
 #endif
 
-#if !defined(EXCEPTION_DEPTH)
-#define EXCEPTION_DEPTH		1024
-#endif
-
 #if __has_builtin(__builtin_expect)
 #define _scl_expect(expr, c) __builtin_expect((expr), (c))
 #else
@@ -303,6 +299,8 @@ typedef void(*_scl_lambda)(void);
 
 #undef NEW_
 
+extern tls _scl_stack_t _stack;
+
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 _scl_no_return void _scl_callstack_overflow(scl_int8* func);
@@ -312,12 +310,6 @@ void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
-_scl_frame_t*		_scl_push();
-_scl_frame_t*		_scl_pop();
-_scl_frame_t*		_scl_top();
-_scl_frame_t*		_scl_offset(scl_int offset);
-_scl_frame_t*		_scl_positive_offset(scl_int offset);
-void				_scl_popn(scl_int n);
 scl_str				_scl_create_string(scl_int8* data);
 void				_scl_stack_new();
 void				_scl_stack_free();
@@ -375,14 +367,64 @@ void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
 mutex_t				_scl_mutex_new();
 
-inline void _scl_swap() {
+void				_scl_resize_stack();
+
+static inline _scl_frame_t* _scl_push() {
+	_stack.ptr++;
+
+	if (_scl_expect(_stack.ptr >= _stack.cap, 0)) {
+		_scl_resize_stack();
+	}
+
+	return &(_stack.data[_stack.ptr - 1]);
+}
+
+static inline _scl_frame_t* _scl_pop() {
+#if defined(SCL_DEBUG)
+	if (_scl_expect(_stack.ptr <= 0, 0)) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
+	}
+#endif
+
+	return &(_stack.data[--_stack.ptr]);
+}
+
+static inline _scl_frame_t* _scl_offset(scl_int offset) {
+	return &(_stack.data[offset]);
+}
+
+static inline _scl_frame_t* _scl_positive_offset(scl_int offset) {
+	return &(_stack.data[_stack.ptr + offset]);
+}
+
+static inline _scl_frame_t* _scl_top() {
+#if defined(SCL_DEBUG)
+	if (_scl_expect(_stack.ptr <= 0, 0)) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
+	}
+#endif
+
+	return &_stack.data[_stack.ptr - 1];
+}
+
+static inline void _scl_popn(scl_int n) {
+	_stack.ptr -= n;
+
+#if defined(SCL_DEBUG)
+	if (_scl_expect(_stack.ptr < 0, 0)) {
+		_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
+	}
+#endif
+}
+
+static inline void _scl_swap() {
 	scl_any b = _scl_pop()->v;
 	scl_any a = _scl_pop()->v;
 	_scl_push()->v = b;
 	_scl_push()->v = a;
 }
 
-inline void _scl_over() {
+static inline void _scl_over() {
 	scl_any c = _scl_pop()->v;
 	scl_any b = _scl_pop()->v;
 	scl_any a = _scl_pop()->v;
@@ -391,7 +433,7 @@ inline void _scl_over() {
 	_scl_push()->v = a;
 }
 
-inline void _scl_sdup2() {
+static inline void _scl_sdup2() {
 	scl_any b = _scl_pop()->v;
 	scl_any a = _scl_pop()->v;
 	_scl_push()->v = a;
@@ -399,7 +441,7 @@ inline void _scl_sdup2() {
 	_scl_push()->v = a;
 }
 
-inline void _scl_swap2() {
+static inline void _scl_swap2() {
 	scl_any c = _scl_pop()->v;
 	scl_any b = _scl_pop()->v;
 	scl_any a = _scl_pop()->v;

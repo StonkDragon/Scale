@@ -15,104 +15,80 @@ final struct File
     self._name return
   end
 
-  function close(): none
-    self:lock
+  restrict function close(): none
     unsafe
       _file File::__c_fclose
     end
-    self:unlock
   end
 
-  function append(s: str): none
-    self:lock
+  restrict function append(s: str): none
     unsafe
       s:view 1 s:size _file File::__c_fwrite
     end
-    self:unlock
   end
 
-  function puts(s: any): none
-    self:lock
+  restrict function puts(s: any): none
     s builtinToString => decl val: str
     val self:append
     "\n" self:append
-    self:unlock
   end
 
-  function writeBinary(buf: any, sz: int): none
-    self:lock
+  restrict function writeBinary(buf: any, sz: int): none
     unsafe
       buf 1 sz _file File::__c_fwrite
     end
-    self:unlock
   end
 
-  function read(sz: int): any
-    self:lock
+  restrict function read(sz: int): any
     sz any::new => decl buffer: [any]?
     unsafe
       buffer 1 sz _file File::__c_fread
     end
     buffer
-    self:unlock
     return
   end
 
-  function offsetFromBegin(offset: int): none
-    self:lock
+  restrict function offsetFromBegin(offset: int): none
     unsafe
       _file offset 0 File::__c_fseek
     end
-    self:unlock
   end
 
-  function offsetFromEnd(offset: int): none
-    self:lock
+  restrict function offsetFromEnd(offset: int): none
     unsafe
       _file offset 2 File::__c_fseek
     end
-    self:unlock
   end
 
-  function offset(offset: int): none
-    self:lock
+  restrict function offset(offset: int): none
     unsafe
       _file offset 1 File::__c_fseek
     end
-    self:unlock
   end
 
-  function fileno(): int
-    self:lock
+  restrict function fileno(): int
     unsafe
       _file File::__c_fileno
-      self:unlock
       return
     end
   end
 
-  function pos(): int
-    self:lock
+  restrict function pos(): int
     unsafe
       _file File::__c_ftell
-      self:unlock
       return
     end
   end
 
-  function delete(): bool
-    self:lock
+  restrict function delete(): bool
     unsafe
       self._name:view __c_remove 0 ==
-      self:unlock
       return
     end
   end
 
-  function create(): none
-    self:lock
+  restrict function create(): none
     "" self:append
-    self:unlock
   end
 
   static function exists(f: str): bool

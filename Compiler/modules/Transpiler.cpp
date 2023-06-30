@@ -198,7 +198,7 @@ namespace sclc {
             symbol = "$scl_lambda_" + std::string(f->finalName().c_str() + 7);
         } else if (f->isMethod) {
             Method* m = ((Method*) f);
-            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect") || contains<std::string>(f->getModifiers(), "export")) {
                 symbol = m->getMemberType() + "$" + f->finalName();
             } else {
                 std::string name = f->finalName();
@@ -209,7 +209,7 @@ namespace sclc {
             }
         } else {
             std::string finalName = symbol;
-            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+            if (f->isExternC || contains<std::string>(f->getModifiers(), "expect") || contains<std::string>(f->getModifiers(), "export")) {
                 symbol = finalName;
             } else {
                 symbol = sclFunctionNameToFriendlyString(f);
@@ -217,7 +217,7 @@ namespace sclc {
             }
         }
 
-        if (f->isExternC || contains<std::string>(f->getModifiers(), "expect")) {
+        if (f->isExternC || contains<std::string>(f->getModifiers(), "expect") || contains<std::string>(f->getModifiers(), "export")) {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
         }
         return "\"" + symbol + "\"";
@@ -314,9 +314,11 @@ namespace sclc {
                 if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
                     append("_scl_no_return ");
                 }
-                append("%s Function_%s(%s)\n        __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Function_%s(%s)\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
+                append("    __asm(%s);\n", symbol.c_str());
             } else {
-                append("%s Method_%s$%s(%s)\n        __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                append("%s Method_%s$%s(%s)\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
+                append("    __asm(%s);\n", symbol.c_str());
             }
         }
 
@@ -393,10 +395,12 @@ namespace sclc {
                     if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
                         append("_scl_no_return ");
                     }
-                    append("%s Function_%s(%s)\n        __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Function_%s(%s)\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
+                    append("    __asm(%s);\n", symbol.c_str());
                 } else {
                     append("// [Import: function %s:%s(%s): %s]\n", (((Method*) function))->getMemberType().c_str(), function->getName().c_str(), scaleArgs(function->getArgs()).c_str(), function->getReturnType().c_str());
-                    append("%s Method_%s$%s(%s)\n        __asm(%s);\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    append("%s Method_%s$%s(%s)\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
+                    append("    __asm(%s);\n", symbol.c_str());
                 }
             }
         }
@@ -1173,12 +1177,6 @@ namespace sclc {
         std::vector<std::string> overloads = self->overloads;
         bool argsEqual = checkStackType(result, self->getArgs(), withIntPromotion);
 
-        // std::cout << "Call to " << self->getName() << std::endl;
-        // std::cout << "Overloads: " << std::endl;
-        // for (std::string& overload : overloads) {
-        //    std::cout << "  " << overload << std::endl;
-        // }
-
         if (overloads.size() && !argsEqual) {
             for (bool b : bools) {
                 for (std::string& overload : overloads) {
@@ -1188,14 +1186,9 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    // std::cout << "Checking overload: " << overload << std::endl;
-                    // std::cout << "Stack: " << stackSliceToString(overloadFunc->getArgs().size()) << std::endl;
-                    // std::cout << "Args: " << argVectorToString(overloadFunc->getArgs()) << std::endl;
-            
+
                     bool argsEqual = checkStackType(result, overloadFunc->getArgs(), b);
-                    // std::cout << "equal: " << argsEqual << std::endl;
                     if (argsEqual) {
-                        // std::cout << "calling..." << std::endl;
                         functionCall(overloadFunc, fp, result, warns, errors, body, i, b);
                         return;
                     }
@@ -1213,17 +1206,6 @@ namespace sclc {
             
             if (!strstarts(op, "op$"))
                 goto notOperatorFunction;
-
-            // std::cout << "Operator function: " << op << std::endl;
-            // if (currentFunction->isMethod) {
-            //     std::cout << "From: " << currentFunction->member_type << ":" << currentFunction->getName() << std::endl;
-            // } else {
-            //     std::cout << "From: " << currentFunction->getName() << std::endl;
-            // }
-            // std::cout << "Stack: " << stackSliceToString(self->getArgs().size()) << std::endl;
-            // std::cout << "Args: " << argVectorToString(self->getArgs()) << std::endl;
-            // std::cout << "equal: " << argsEqual << std::endl;
-            // debugDump(overloads.size());
 
             if (!hasToCallStatic && hasMethod(result, self->getName(), typeStackTop)) {
                 Method* method = getMethodByName(result, self->getName(), typeStackTop);
@@ -1530,6 +1512,15 @@ namespace sclc {
             typePop;
         }
         append("// invokestatic %s\n", self->finalName().c_str());
+        if (self->getName() == "throw" || self->getName() == "builtinUnreachable") {
+            if (contains<std::string>(currentFunction->getModifiers(), "restrict")) {
+                if (currentFunction->isMethod) {
+                    append("Function_Process$unlock((scl_SclObject) Var_self);\n");
+                } else {
+                    append("Function_Process$unlock(function_lock$%s);\n", currentFunction->finalName().c_str());
+                }
+            }
+        }
         if (self->getReturnType().size() > 0 && removeTypeModifiers(self->getReturnType()) != "none" && removeTypeModifiers(self->getReturnType()) != "nothing") {
             if (removeTypeModifiers(self->getReturnType()) == "float") {
                 append("_scl_push()->f = Function_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
@@ -1735,6 +1726,13 @@ namespace sclc {
         } else {
             append("if (_scl_top()->i == 0) {\n");
             scopeDepth++;
+            if (contains<std::string>(function->getModifiers(), "restrict")) {
+                if (function->isMethod) {
+                    append("Function_Process$unlock((scl_SclObject) Var_self);\n");
+                } else {
+                    append("Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
+                }
+            }
             append("_callstack.ptr--\n");
             append("_stack.ptr = __begin_stack_size;\n");
             if (function->getReturnType() == "none")
@@ -4238,6 +4236,13 @@ namespace sclc {
         scopeDepth--;
         if (wasCatch()) {
             append("} else {\n");
+            if (contains<std::string>(function->getModifiers(), "restrict")) {
+                if (function->isMethod) {
+                    append("  Function_Process$unlock((scl_SclObject) Var_self);\n");
+                } else {
+                    append("  Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
+                }
+            }
             append("  Function_throw(_extable.exception_table[_extable.current_pointer]);\n");
         } else if (wasIterate()) {
             append("}\n");
@@ -4264,8 +4269,16 @@ namespace sclc {
         append("{\n");
         scopeDepth++;
 
-        if (function->getReturnType() != "none" && !function->hasNamedReturnValue)
+        if (function->getReturnType() != "none" && !function->hasNamedReturnValue) {
             append("_scl_frame_t* returnFrame = _scl_pop();\n");
+        }
+        if (contains<std::string>(function->getModifiers(), "restrict")) {
+            if (function->isMethod) {
+                append("Function_Process$unlock((scl_SclObject) Var_self);\n");
+            } else {
+                append("Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
+            }
+        }
         append("_callstack.ptr--;\n");
         append("_stack.ptr = __begin_stack_size;\n");
 
@@ -5508,12 +5521,6 @@ namespace sclc {
                 return_type = sclTypeToCType(result, t);
             }
 
-            auto appendStackOverflowCheck = [fp, functionDeclaration]() {
-                append("  if (_scl_expect((_callstack.ptr + 1) >= EXCEPTION_DEPTH, 0)) {\n");
-                append("    _scl_callstack_overflow(\"%s\");\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-                append("  }\n");
-            };
-
             if (function->isMethod) {
                 if (!(((Method*) function))->addAnyway() && getStructByName(result, (((Method*) function))->getMemberType()).isSealed()) {
                     FPResult result;
@@ -5528,7 +5535,6 @@ namespace sclc {
                     continue;
                 }
                 append("%s Method_%s$%s(%s) {\n", return_type.c_str(), (((Method*) function))->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
-                appendStackOverflowCheck();
                 if (function->getName() == "init") {
                     Method* thisMethod = (Method*) function;
                     Struct s = getStructByName(result, thisMethod->getMemberType());
@@ -5556,11 +5562,16 @@ namespace sclc {
                     }
                 }
             } else {
+                if (contains<std::string>(function->getModifiers(), "restrict")) {
+                    append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->finalName().c_str());
+                }
                 if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
                     append("_scl_no_return ");
                 }
                 append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
-                appendStackOverflowCheck();
+                if (contains<std::string>(function->getModifiers(), "restrict")) {
+                    append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = NEWOBJ();\n", function->finalName().c_str(), function->finalName().c_str());
+                }
             }
             
             scopeDepth++;
@@ -5652,6 +5663,13 @@ namespace sclc {
                 if (contains<std::string>(function->getModifiers(), "unsafe")) {
                     isInUnsafe++;
                 }
+                if (contains<std::string>(function->getModifiers(), "restrict")) {
+                    if (function->isMethod) {
+                        append("Function_Process$lock((scl_SclObject) Var_self);\n");
+                    } else {
+                        append("Function_Process$lock(function_lock$%s);\n", function->finalName().c_str());
+                    }
+                }
 
                 if (function->isCVarArgs()) {
                     if (function->varArgsParam().getName().size()) {
@@ -5679,6 +5697,13 @@ namespace sclc {
                 
                 if (contains<std::string>(function->getModifiers(), "unsafe")) {
                     isInUnsafe--;
+                }
+                if (contains<std::string>(function->getModifiers(), "restrict")) {
+                    if (function->isMethod) {
+                        append("Function_Process$unlock((scl_SclObject) Var_self);\n");
+                    } else {
+                        append("Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
+                    }
                 }
                 
                 scopeDepth = 1;
