@@ -553,7 +553,6 @@ namespace sclc
             return sym;
         }
         if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
-            std::cerr << "Invalid symbol: " << sym << std::endl;
             return sym;
         }
         std::string name = "";
@@ -717,7 +716,8 @@ namespace sclc
                     } else {
                         while (std::cin) {
                             std::getline(std::cin, sym);
-                            std::cout << demangleSymbol(sym) << std::endl;
+                            if (sym.size())
+                                std::cout << demangleSymbol(sym) << std::endl;
                         }
                     }
                     return 0;

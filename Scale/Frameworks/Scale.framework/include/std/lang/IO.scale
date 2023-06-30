@@ -6,6 +6,8 @@ cdecl "fprintf"
 private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
 private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+cdecl "getchar"
+private expect unsafe function __c_getchar(): int8
 
 intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
@@ -15,6 +17,13 @@ intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
   amount any::new => decl buf: [int8]
   fileDescriptor buf amount __c_read drop
   buf str::new return
+end
+
+function getchar(): int8
+  unsafe
+    __c_getchar
+    return
+  end
 end
 
 cdecl "puts"

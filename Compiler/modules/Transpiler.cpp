@@ -1457,33 +1457,21 @@ namespace sclc {
     notOperatorFunction:
 
         if (!hasToCallStatic && opFunc(self->getName()) && hasMethod(result, self->getName(), typeStackTop)) {
+        makeMethodCallInstead:
             Method* method = getMethodByName(result, self->getName(), typeStackTop);
             methodCall(method, fp, result, warns, errors, body, i);
             return;
         }
 
-        if (self->isExternC && !hasImplementation(result, self)) {
-            std::string functionDeclaration = "";
-
-            functionDeclaration += self->getName() + "(";
-            for (size_t i = 0; i < self->getArgs().size(); i++) {
-                if (i != 0) {
-                    functionDeclaration += ", ";
-                }
-                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
-            }
-            functionDeclaration += "): " + self->getReturnType();
-            append("*(_scl_callstack_push()) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
-        }
-        
-        if (self->getArgs().size() > 0) {
-            append("_scl_popn(%zu);\n", self->getArgs().size());
-        }
         argsEqual = checkStackType(result, self->getArgs());
         if (!argsEqual && argsContainsIntType(self->getArgs())) {
             argsEqual = checkStackType(result, self->getArgs(), true);
         }
         if (!argsEqual) {
+            if (hasMethod(result, self->getName(), typeStackTop)) {
+                goto makeMethodCallInstead;
+            }
+
             {
                 transpilerError("Arguments for function '" + sclFunctionNameToFriendlyString(self) + "' do not equal inferred stack!", i);
                 errors.push_back(err);
@@ -1507,6 +1495,24 @@ namespace sclc {
             err.isNote = true;
             errors.push_back(err);
             return;
+        }
+
+        if (self->isExternC && !hasImplementation(result, self)) {
+            std::string functionDeclaration = "";
+
+            functionDeclaration += self->getName() + "(";
+            for (size_t i = 0; i < self->getArgs().size(); i++) {
+                if (i != 0) {
+                    functionDeclaration += ", ";
+                }
+                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
+            }
+            functionDeclaration += "): " + self->getReturnType();
+            append("*(_scl_callstack_push()) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+        }
+        
+        if (self->getArgs().size() > 0) {
+            append("_scl_popn(%zu);\n", self->getArgs().size());
         }
         for (size_t m = 0; m < self->getArgs().size(); m++) {
             typePop;

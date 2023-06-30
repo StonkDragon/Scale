@@ -22,25 +22,25 @@
     2108 Compiler/modules/SyntaxTree.cpp
      321 Compiler/modules/TokenHandlers.cpp
      642 Compiler/modules/Tokenizer.cpp
-    5754 Compiler/modules/Transpiler.cpp
+    5760 Compiler/modules/Transpiler.cpp
       27 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      120 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      116 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
-     185 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
+     161 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
       85 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       60 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
-      52 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
+      61 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      263 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      116 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       32 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
      243 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
-     233 Scale/Frameworks/Scale.framework/include/std/reflect/Struct.scale
-      59 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
+     224 Scale/Frameworks/Scale.framework/include/std/reflect/Struct.scale
+      41 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
       55 Scale/Frameworks/Scale.framework/include/std/runtime/Library.scale
       24 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
-     109 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
-     287 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
+     102 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
+     257 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/ICloneable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/IEquatable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/IHashable.scale
@@ -49,7 +49,7 @@
       78 Scale/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale
        5 Scale/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale
        5 Scale/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale
-      87 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
+      78 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
       13 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
      100 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   18928 total
+   18846 total
