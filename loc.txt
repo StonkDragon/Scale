@@ -1,4 +1,4 @@
-     846 Compiler/Common.cpp
+     860 Compiler/Common.cpp
     1453 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      241 Compiler/headers/Common.hpp
@@ -16,13 +16,13 @@
       73 Compiler/headers/Variable.hpp
       77 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
-     152 Compiler/modules/Function.cpp
+     154 Compiler/modules/Function.cpp
      112 Compiler/modules/InfoDumper.cpp
      151 Compiler/modules/Parser.cpp
-    2108 Compiler/modules/SyntaxTree.cpp
+    2136 Compiler/modules/SyntaxTree.cpp
      321 Compiler/modules/TokenHandlers.cpp
      642 Compiler/modules/Tokenizer.cpp
-    5760 Compiler/modules/Transpiler.cpp
+    6011 Compiler/modules/Transpiler.cpp
       27 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      120 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      116 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
@@ -40,7 +40,7 @@
       55 Scale/Frameworks/Scale.framework/include/std/runtime/Library.scale
       24 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
      102 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
-     257 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
+     261 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/ICloneable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/IEquatable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/IHashable.scale
@@ -49,15 +49,15 @@
       78 Scale/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale
        5 Scale/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale
        5 Scale/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale
-      78 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
+      86 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
       13 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
      100 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
       15 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
       32 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
-      25 Scale/Internal/runtime_vars.c
-    1951 Scale/Internal/scale_runtime.c
-     453 Scale/Internal/scale_runtime.h
+      30 Scale/Internal/runtime_vars.c
+    2036 Scale/Internal/scale_runtime.c
+     460 Scale/Internal/scale_runtime.h
       11 examples/arguments.scale
       14 examples/array-destructuring.scale
       24 examples/arraysort.scale
@@ -91,4 +91,4 @@
       11 examples/while.scale
        9 interop-example/foo.c
       14 interop-example/main.scale
-   18846 total
+   19250 total
