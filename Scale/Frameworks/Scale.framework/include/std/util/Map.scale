@@ -25,6 +25,10 @@ sealed struct Map is IIterable
     done
   end
 
+  function [](key: str): any?
+    key self:get return
+  end
+
   restrict function get(key: str): any?
     foreach entry in self.data do
       if entry nil == then continue fi
@@ -36,6 +40,10 @@ sealed struct Map is IIterable
       fi
     done
     nil return
+  end
+
+  function =>[](key: str, value: any): none
+    key value self:set
   end
 
   restrict function set(key: str, value: any): none

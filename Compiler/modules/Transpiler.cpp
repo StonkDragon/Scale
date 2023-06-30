@@ -633,6 +633,12 @@ namespace sclc {
 #define wasTry()        (whatWasIt.size() > 0 && whatWasIt.back() == 8)
 #define popTry()        (whatWasIt.pop_back())
 #define pushTry()       (whatWasIt.push_back(8))
+#define wasSwitch()     (whatWasIt.size() > 0 && whatWasIt.back() == 16)
+#define popSwitch()     (whatWasIt.pop_back())
+#define pushSwitch()    (whatWasIt.push_back(16))
+#define wasCase()       (whatWasIt.size() > 0 && whatWasIt.back() == 32)
+#define popCase()       (whatWasIt.pop_back())
+#define pushCase()      (whatWasIt.push_back(32))
 #define wasOther()      (whatWasIt.size() > 0 && whatWasIt.back() == 0)
 #define popOther()      (whatWasIt.pop_back())
 #define pushOther()     (whatWasIt.push_back(0))
@@ -929,6 +935,8 @@ namespace sclc {
                (name == ">=") || (name == "operator$more_equal") ||
                (name == "&&") || (name == "operator$bool_and") ||
                (name == "||") || (name == "operator$bool_or") ||
+               (name == "[]") || (name == "operator$get") ||
+               (name == "=>[]") || (name == "operator$set") ||
                (name == "!") || (name == "operator$not");
     }
 
@@ -1851,6 +1859,24 @@ namespace sclc {
                       << ": "
                       << body[i].getValue()
                       << std::endl;
+        } else if (body[i].getValue() == "stackalloc") {
+            i++;
+            std::string length = body[i].getValue();
+            long long len = std::stoll(length);
+            if (len <= 0) {
+                transpilerError("Can only stackalloc a positive amount of stack frames, but got '" + length + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("{\n");
+            scopeDepth++;
+            append("scl_any* _stackalloc_ptr = &(_stack.data[_stack.ptr]);\n");
+            append("_scl_stack_resize_fit(%s);\n", length.c_str());
+            append("_scl_add_stackallocation(_stackalloc_ptr, %s);\n", length.c_str());
+            append("_scl_push()->v = _stackalloc_ptr;\n");
+            scopeDepth--;
+            append("}\n");
+            typeStack.push("[any]");
         }
     }
 
@@ -3433,6 +3459,8 @@ namespace sclc {
                 }
             }
 
+            int start = i;
+
             if (hasVar(body[i].getValue())) {
             normalVar:
                 v = getVar(body[i].getValue());
@@ -3576,6 +3604,100 @@ namespace sclc {
             };
 
             std::string path = makePath(variablePrefix);
+            if (body[i + 1].getType() == tok_bracket_open) {
+                i = start;
+                append("{\n");
+                scopeDepth++;
+                append("scl_any value = _scl_pop()->v;\n");
+                std::string valueType = removeTypeModifiers(typeStackTop);
+                typePop;
+
+                append("{\n");
+                scopeDepth++;
+                while (body[i].getType() != tok_bracket_open) {
+                    handle(Token);
+                    i++;
+                }
+                scopeDepth--;
+                append("}\n");
+                int openBracket = i;
+                i++;
+                append("scl_any* array = _scl_pop()->v;\n");
+                std::string arrayType = removeTypeModifiers(typeStackTop);
+                std::string indexingType = "";
+                if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                    indexingType = "int";
+                } else if (hasMethod(result, "=>[]", arrayType)) {
+                    Method* m = getMethodByName(result, "=>[]", arrayType);
+                    indexingType = m->getArgs()[0].getType();
+                }
+
+                typePop;
+
+                append("{\n");
+                scopeDepth++;
+                while (body[i].getType() != tok_bracket_close) {
+                    handle(Token);
+                    i++;
+                }
+                scopeDepth--;
+                append("}\n");
+                append("%s index = (%s) _scl_pop()->i;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
+                std::string indexType = removeTypeModifiers(typeStackTop);
+                if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
+                    transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                // indexType and indexingType are the same type
+                typePop;
+                
+                if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                    if (!typeEquals(valueType, arrayType.substr(1, arrayType.size() - 2))) {
+                        transpilerError("Array of type '" + arrayType + "' cannot contain '" + valueType + "'", start - 1);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("if (_scl_expect(!_scl_stackalloc_check_bounds(array, index), 0)) {\n");
+                    scopeDepth++;
+                    append("_scl_assert(0, \"Tried indexing stack allocated array out of bounds! Index was \" SCL_INT_FMT, index);\n");
+                    scopeDepth--;
+                    append("}\n");
+                    append("if (_scl_expect(index < 0, 0)) {\n");
+                    scopeDepth++;
+                    append("_scl_assert(0, \"Tried indexing array with negative index! Index was: \" SCL_INT_FMT, index);\n");
+                    scopeDepth--;
+                    append("}\n");
+                    append("array[index] = value;\n");
+                } else {
+                    if (hasMethod(result, "=>[]", arrayType)) {
+                        Method* m = getMethodByName(result, "=>[]", arrayType);
+                        if (m->getArgs().size() != 3) {
+                            transpilerError("Method '=>[]' of type '" + arrayType + "' does not take 2 arguments! Signature should be: '=>[](index: " + indexType + ", value: " + valueType + ")'", openBracket);
+                            errors.push_back(err);
+                            return;
+                        }
+                        if (removeTypeModifiers(m->getReturnType()) != "none") {
+                            transpilerError("Method '=>[]' of type '" + arrayType + "' should not return anything!", openBracket);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("_scl_push()->i = index;\n");
+                        typeStack.push(indexType);
+                        append("_scl_push()->v = value;\n");
+                        typeStack.push(valueType);
+                        append("_scl_push()->v = array;\n");
+                        typeStack.push(arrayType);
+                        methodCall(m, fp, result, warns, errors, body, i);
+                    } else {
+                        transpilerError("Type '" + arrayType + "' does not have a method '=>[]'!", openBracket);
+                        errors.push_back(err);
+                    }
+                }
+                scopeDepth--;
+                append("}\n");
+                return;
+            }
 
             append("{\n");
             scopeDepth++;
@@ -3693,6 +3815,105 @@ namespace sclc {
 
     handler(BracketOpen) {
         noUnused;
+        std::string type = removeTypeModifiers(typeStackTop);
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            if ((i + 2) < body.size()) {
+                if (body[i + 1].getType() == tok_number && body[i + 2].getType() == tok_bracket_close) {
+                    i += 2;
+                    long long index = std::stoll(body[i - 1].getValue());
+                    if (index < 0) {
+                        transpilerError("Array subscript cannot be negative!", i - 1);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("_scl_top()->v = ((scl_any*) _scl_top()->v)[%s];\n", body[i - 1].getValue().c_str());
+                    typePop;
+                    typeStack.push(type.substr(1, type.size() - 2));
+                    return;
+                }
+            }
+            i++;
+            if (body[i].getType() == tok_bracket_close) {
+                transpilerError("Array subscript required!", i);
+                errors.push_back(err);
+                return;
+            }
+            append("{\n");
+            scopeDepth++;
+            append("scl_any* tmp = (scl_any*) _scl_top()->v;\n");
+            typePop;
+            varScopePush();
+            while (body[i].getType() != tok_bracket_close) {
+                handle(Token);
+                i++;
+            }
+            varScopePop();
+            if (!isPrimitiveIntegerType(typeStackTop)) {
+                transpilerError("'" + type + "' cannot be indexed with '" + typeStackTop + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            typePop;
+            append("scl_int index = _scl_pop()->i;\n");
+            append("if (_scl_expect(!_scl_stackalloc_check_bounds(tmp, index), 0)) {\n");
+            scopeDepth++;
+            append("_scl_assert(0, \"Tried indexing stack allocated array out of bounds! Index was \" SCL_INT_FMT, index);\n");
+            scopeDepth--;
+            append("}\n");
+            append("if (_scl_expect(index < 0, 0)) {\n");
+            scopeDepth++;
+            append("_scl_assert(0, \"Tried indexing array with negative index! Index was: \" SCL_INT_FMT, index);\n");
+            scopeDepth--;
+            append("}\n");
+            append("_scl_push()->v = tmp[index];\n");
+            typeStack.push(type.substr(1, type.size() - 2));
+            scopeDepth--;
+            append("}\n");
+            return;
+        }
+        if (hasMethod(result, "[]", typeStackTop)) {
+            Method* m = getMethodByName(result, "[]", typeStackTop);
+            std::string type = typeStackTop;
+            if (m->getArgs().size() != 2) {
+                transpilerError("Method '[]' of type '" + type + "' must have exactly 1 argument! Signature should be: '[](index: " + m->getArgs()[0].getType() + ")'", i);
+                errors.push_back(err);
+                return;
+            }
+            if (removeTypeModifiers(m->getReturnType()) == "none" || removeTypeModifiers(m->getReturnType()) == "nothing") {
+                transpilerError("Method '[]' of type '" + type + "' must return a value!", i);
+                errors.push_back(err);
+                return;
+            }
+            append("{\n");
+            scopeDepth++;
+            append("scl_any instance = _scl_pop()->v;\n");
+            std::string indexType = typeStackTop;
+            typePop;
+
+            varScopePush();
+            i++;
+            if (body[i].getType() == tok_bracket_close) {
+                transpilerError("Empty array subscript!", i);
+                errors.push_back(err);
+                return;
+            }
+            while (body[i].getType() != tok_bracket_close) {
+                handle(Token);
+                i++;
+            }
+            varScopePop();
+            if (!typeEquals(removeTypeModifiers(typeStackTop), removeTypeModifiers(m->getArgs()[0].getType()))) {
+                transpilerError("'" + m->getMemberType() + "' cannot be indexed with '" + removeTypeModifiers(typeStackTop) + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("_scl_push()->v = instance;\n");
+            typeStack.push(type);
+            methodCall(m, fp, result, warns, errors, body, i);
+            scopeDepth--;
+            append("}\n");
+            return;
+        }
         std::string struct_ = "Map";
         if (getStructByName(result, struct_) == Struct::Null) {
             transpilerError("Struct definition for 'Map' not found!", i);
@@ -4258,9 +4479,7 @@ namespace sclc {
         if (repeat_depth > 0 && wasRepeat()) {
             repeat_depth--;
         }
-        if (wasCatch()) popCatch();
-        if (wasRepeat()) popRepeat();
-        if (wasIterate()) popIterate();
+        popOther();
     }
 
     handler(Return) {
@@ -4362,8 +4581,13 @@ namespace sclc {
     handler(Case) {
         noUnused;
         i++;
+        if (!wasSwitch()) {
+            transpilerError("Unexpected 'case' statement", i);
+            errors.push_back(err);
+            return;
+        }
         if (body[i].getType() == tok_string_literal) {
-            transpilerError("String literal in case statement detected!", i);
+            transpilerError("String literal in case statement is not supported", i);
             errors.push_back(err);
         } else {
             append("case %s: {\n", body[i].getValue().c_str());
@@ -4374,6 +4598,11 @@ namespace sclc {
 
     handler(Esac) {
         noUnused;
+        if (!wasSwitch()) {
+            transpilerError("Unexpected 'esac'", i);
+            errors.push_back(err);
+            return;
+        }
         append("break;\n");
         varScopePop();
         scopeDepth--;
@@ -4382,6 +4611,11 @@ namespace sclc {
 
     handler(Default) {
         noUnused;
+        if (!wasSwitch()) {
+            transpilerError("Unexpected 'default' statement", i);
+            errors.push_back(err);
+            return;
+        }
         append("default: {\n");
         scopeDepth++;
         varScopePush();
@@ -4393,7 +4627,7 @@ namespace sclc {
         append("switch (_scl_pop()->i) {\n");
         scopeDepth++;
         varScopePush();
-        pushOther();
+        pushSwitch();
     }
 
     handler(AddrOf) {
@@ -4423,6 +4657,7 @@ namespace sclc {
     }
 
     bool isPrimitiveIntegerType(std::string s) {
+        s = removeTypeModifiers(s);
         return s == "int" ||
                s == "int64" ||
                s == "int32" ||
@@ -4545,7 +4780,8 @@ namespace sclc {
             return;
         }
         Token dot = body[i];
-        i++;
+        bool deref = body[i + 1].getType() == tok_addr_of;
+        i += deref + 1;
         if (!s.hasMember(body[i].getValue())) {
             if (s.getName() == "Map" || s.extends("Map")) {
                 Method* f = getMethodByName(result, "get", s.getName());
@@ -4561,9 +4797,9 @@ namespace sclc {
                 std::string t = type;
                 append("_scl_push()->s = _scl_create_string(\"%s\");\n", body[i].getValue().c_str());
                 addIfAbsent(stringLiterals, body[i].getValue());
-                typeStack.push(t);
                 typeStack.push("str");
                 append("_scl_push()->v = tmp;\n");
+                typeStack.push(t);
                 scopeDepth--;
                 append("}\n");
                 methodCall(f, fp, result, warns, errors, body, i);
@@ -4621,6 +4857,19 @@ namespace sclc {
             }
         }
         typeStack.push(mem.getType());
+        if (deref) {
+            std::string path = dot.getValue() + "@" + body[i].getValue();
+            append("_scl_nil_ptr_dereference(_scl_top()->i, \"%s\");\n", path.c_str());
+            append("_scl_top()->v = *(scl_any*) _scl_top()->v;\n");
+            std::string type = typeStackTop;
+            typePop;
+            if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+                type = type.substr(1, type.size() - 2);
+            } else {
+                type = "any";
+            }
+            typeStack.push(type);
+        }
     }
 
     handler(ColumnOnInterface) {
@@ -5054,6 +5303,8 @@ namespace sclc {
         name = replaceAll(name, "operator\\$inc", "++");
         name = replaceAll(name, "operator\\$dec", "--");
         name = replaceAll(name, "operator\\$at", "@");
+        name = replaceAll(name, "operator\\$set", "=>[]");
+        name = replaceAll(name, "operator\\$get", "[]");
         name = replaceAll(name, "operator\\$wildcard", "?");
         name = replaceAll(name, "\\$\\$ol\\d+", "");
         name = replaceAll(name, "\\$\\d+", "");

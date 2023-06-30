@@ -30,6 +30,8 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     if (name == "++") name = "operator$inc";
     if (name == "--") name = "operator$dec";
     if (name == "@") name = "operator$at";
+    if (name == "=>[]") name = "operator$set";
+    if (name == "[]") name = "operator$get";
     if (name == "?") name = "operator$wildcard";
 
     this->nameToken = nameToken;

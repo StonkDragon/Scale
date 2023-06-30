@@ -360,12 +360,20 @@ namespace sclc
             r.value = type_mods + "?";
         } else if (body[*i].getType() == tok_bracket_open) {
             std::string type = "[";
+            std::string size = "";
             (*i)++;
+            if (body[*i].getType() == tok_number) {
+                size = body[*i].getValue();
+                (*i)++;
+            }
             r = parseType(body, i);
             if (!r.success) {
                 return r;
             }
             type += r.value;
+            if (size.size()) {
+                type += ";" + size;
+            }
             (*i)++;
             if (body[*i].getType() == tok_bracket_close) {
                 type += "]";
@@ -421,6 +429,8 @@ namespace sclc
         if (name == "++") name = "operator$inc";
         if (name == "--") name = "operator$dec";
         if (name == "@") name = "operator$at";
+        if (name == "=>[]") name = "operator$set";
+        if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
 
         for (Function* func : result.functions) {
@@ -491,6 +501,8 @@ namespace sclc
         if (name == "++") name = "operator$inc";
         if (name == "--") name = "operator$dec";
         if (name == "@") name = "operator$at";
+        if (name == "=>[]") name = "operator$set";
+        if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
 
         if (type == "") {
@@ -607,6 +619,8 @@ namespace sclc
         if (name == "++") name = "operator$inc";
         if (name == "--") name = "operator$dec";
         if (name == "@") name = "operator$at";
+        if (name == "=>[]") name = "operator$set";
+        if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
 
         for (Function* func : result.functions) {

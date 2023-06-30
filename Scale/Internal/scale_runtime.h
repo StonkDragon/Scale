@@ -313,6 +313,7 @@ scl_int				_scl_stack_size(void);
 scl_str				_scl_create_string(scl_int8* data);
 void				_scl_stack_new();
 void				_scl_stack_free();
+void				_scl_stack_resize_fit(scl_int sz);
 
 void				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
@@ -334,6 +335,12 @@ void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push();
 void				_scl_throw(void* ex);
+
+void				_scl_cleanup_stack_allocations();
+void				_scl_add_stackallocation(scl_any ptr, scl_int size);
+scl_int				_scl_stackalloc_check_bounds(scl_any ptr, scl_int index);
+scl_int				_scl_index_of_stackalloc(scl_any ptr);
+void				_scl_remove_stackallocation(scl_any ptr);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);

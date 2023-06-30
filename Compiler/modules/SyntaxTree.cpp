@@ -35,6 +35,18 @@ const std::vector<std::string> intrinsics({
 
 namespace sclc {
     Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+        if (name == "=>") {
+            if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
+                i += 2;
+                name += "[]";
+            }
+        } else if (name == "[") {
+            if (tokens[i + 2].getType() == tok_bracket_close) {
+                i++;
+                name += "]";
+            }
+        }
+
         if (name == "+") name = "operator$add";
         if (name == "-") name = "operator$sub";
         if (name == "*") name = "operator$mul";
@@ -61,6 +73,8 @@ namespace sclc {
         if (name == "++") name = "operator$inc";
         if (name == "--") name = "operator$dec";
         if (name == "@") name = "operator$at";
+        if (name == "=>[]") name = "operator$set";
+        if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
 
         Function* func = new Function(name, nameToken);
@@ -273,6 +287,18 @@ namespace sclc {
     }
 
     Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+        if (name == "=>") {
+            if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
+                i += 2;
+                name += "[]";
+            }
+        } else if (name == "[") {
+            if (tokens[i + 2].getType() == tok_bracket_close) {
+                i++;
+                name += "]";
+            }
+        }
+
         if (name == "+") name = "operator$add";
         if (name == "-") name = "operator$sub";
         if (name == "*") name = "operator$mul";
@@ -299,6 +325,8 @@ namespace sclc {
         if (name == "++") name = "operator$inc";
         if (name == "--") name = "operator$dec";
         if (name == "@") name = "operator$at";
+        if (name == "=>[]") name = "operator$set";
+        if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
 
         Method* method = new Method(memberName, name, nameToken);
@@ -858,7 +886,7 @@ namespace sclc {
                     currentOverloads.clear();
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
-                        result.message = "Methods cannot be declared 'private', if they are not in the struct body!";
+                        result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
                         result.value = func.getValue();
                         result.line = func.getLine();
                         result.in = func.getFile();

@@ -36,6 +36,10 @@ sealed struct Array is IIterable
     done
   end
 
+  function [](index: int): any?
+    index self:get return
+  end
+
   function get(index: int): any?
     if index 0 < index self.count >= || then
       "Index "
@@ -45,7 +49,11 @@ sealed struct Array is IIterable
       "!" +
       IndexOutOfBoundsException::new throw
     fi
-    self.values index sizeof any * + @ return
+    self.values[index] return
+  end
+
+  function =>[](index: int, value: any): none
+    index value self:set
   end
 
   restrict function set(index: int, value: any): none
@@ -64,9 +72,7 @@ sealed struct Array is IIterable
       index 1 + => self.count
     fi
 
-    unsafe
-      value => @(self.values index sizeof any * +)
-    end
+    value => self.values[index]
   end
 
   function top(): any?
@@ -85,9 +91,7 @@ sealed struct Array is IIterable
       => self.values
     fi
 
-    unsafe
-      value => @(self.values self.count sizeof any * +)
-    end
+    value => self.values[self.count]
     self.count 1 + => self.count
   end
 

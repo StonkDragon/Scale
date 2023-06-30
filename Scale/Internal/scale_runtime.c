@@ -122,6 +122,84 @@ scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* ca
 	return i;
 }
 
+extern scl_any* stackalloc_arrays;
+extern scl_int* stackalloc_array_sizes;
+extern scl_int stackalloc_arrays_count;
+extern scl_int stackalloc_arrays_cap;
+
+scl_int _scl_stackallocs_above() {
+	scl_any current_stack_high = &(_stack.data[_stack.ptr]);
+	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+		if (stackalloc_arrays[i] > current_stack_high) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void _scl_cleanup_stack_allocations() {
+	scl_any current_stack_high = &(_stack.data[_stack.ptr]);
+	scl_int indicesToRemove[stackalloc_arrays_count];
+	scl_int indicesToRemove_count = 0;
+	while (_scl_stackallocs_above()) {
+		for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+			if (stackalloc_arrays[i] > current_stack_high) {
+				_scl_remove_stackallocation(stackalloc_arrays[i]);
+				break;
+			}
+		}
+	}
+}
+
+void _scl_add_stackallocation(scl_any ptr, scl_int size) {
+	if (stackalloc_arrays == nil) {
+		stackalloc_arrays = system_allocate(sizeof(scl_any) * stackalloc_arrays_cap);
+		stackalloc_array_sizes = system_allocate(sizeof(scl_int) * stackalloc_arrays_cap);
+		stackalloc_arrays_count = 0;
+	}
+	_scl_cleanup_stack_allocations();
+	if (stackalloc_arrays_count + 1 >= stackalloc_arrays_cap) {
+		stackalloc_arrays_cap += 64;
+		stackalloc_arrays = system_realloc(stackalloc_arrays, sizeof(scl_any) * stackalloc_arrays_cap);
+		stackalloc_array_sizes = system_realloc(stackalloc_array_sizes, sizeof(scl_int) * stackalloc_arrays_cap);
+	}
+	stackalloc_arrays[stackalloc_arrays_count] = ptr;
+	stackalloc_array_sizes[stackalloc_arrays_count] = size;
+	stackalloc_arrays_count++;
+}
+
+scl_int _scl_stackalloc_check_bounds(scl_any ptr, scl_int index) {
+	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+		if (ptr == stackalloc_arrays[i]) {
+			if (index >= 0 && index < stackalloc_array_sizes[i]) {
+				return 1;
+			}
+			return 0;
+		}
+	}
+	// not a stackalloc array, bounds checking disabled
+	return 1;
+}
+
+scl_int _scl_index_of_stackalloc(scl_any ptr) {
+	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+		if (ptr == stackalloc_arrays[i]) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void _scl_remove_stackallocation(scl_any ptr) {
+	scl_int index = _scl_index_of_stackalloc(ptr);
+	if (index == -1) return;
+	for (scl_int i = index; i < stackalloc_arrays_count - 1; i++) {
+		stackalloc_arrays[i] = stackalloc_arrays[i + 1];
+		stackalloc_array_sizes[i] = stackalloc_array_sizes[i + 1];
+	}
+	stackalloc_arrays_count--;
+}
+
 void _scl_remove_stack(_scl_stack_t* stack) {
 	Process$lock((volatile scl_any) runtimeModifierLock);
 	scl_int index;
@@ -850,8 +928,8 @@ scl_any _scl_msg_send_impl(scl_int onSuper, scl_any instance, scl_int8* methodId
 	}
 	_scl_push()->v = instance;
 
-	_scl_msg_send_impl0(onSuper, instance, methodIdentifier);
 	_callstack.ptr--;
+	_scl_msg_send_impl0(onSuper, instance, methodIdentifier);
 	return strequals(returnType, "V;") ? nil : _scl_pop()->v;
 }
 
@@ -863,8 +941,8 @@ void _scl_msg_send_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIden
 	hash methodNameHash = hash1(methodName);
 	hash signatureHash = hash1(signature);
 
-	_scl_call_method_or_throw(instance, methodNameHash, signatureHash, onSuper, methodName, signature);
 	_callstack.ptr--;
+	_scl_call_method_or_throw(instance, methodNameHash, signatureHash, onSuper, methodName, signature);
 }
 
 void _scl_call_method_or_throw(scl_any instance_, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
@@ -1745,6 +1823,14 @@ scl_int8** _scl_callstack_push() {
 	return &_callstack.func[_callstack.ptr - 1];
 }
 
+void _scl_stack_resize_fit(scl_int sz) {
+	_stack.ptr += sz;
+
+	while (_scl_expect(_stack.ptr >= _stack.cap, 0)) {
+		_scl_resize_stack();
+	}
+}
+
 void _scl_create_stack() {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
@@ -1805,7 +1891,6 @@ void nativeTrace() {
 }
 
 void printStackTraceOf(_scl_Exception e) {
-	printf("strace: %p\n", e->stackTrace);
 	if (!e->stackTrace || e->stackTrace->count == 0) {
 		nativeTrace();
 		return;
