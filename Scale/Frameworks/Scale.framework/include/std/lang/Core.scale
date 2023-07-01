@@ -77,7 +77,7 @@ end
 
 deprecated![since: "23.5", replacement: "int::toString"]
 function longToString(theNumber: int): str
-  25 any::new => decl out: [int8]
+  new[25] => decl out: [int8]
   unsafe
     c!
       sprintf(*out, SCL_INT_FMT, *theNumber);
@@ -105,7 +105,7 @@ end
 
 deprecated![since: "23.5", replacement: "float::parse"]
 function doubleToString(theNumber: float): str
-  100 any::new => decl out: [int8]
+  new[100] => decl out: [int8]
   unsafe
     c!
       sprintf(*out, "%f", *theNumber);

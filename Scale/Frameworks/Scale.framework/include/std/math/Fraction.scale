@@ -121,8 +121,8 @@ final struct Fraction
             1 0 Fraction::new return
         else
             s:size => decl size: int
-            size any::new => decl whole: [int8]
-            size any::new => decl decimal: [int8]
+            new[size] => decl whole: [int8]
+            new[size] => decl decimal: [int8]
             0 => decl wholePtr: int
             0 => decl decimalPtr: int
 

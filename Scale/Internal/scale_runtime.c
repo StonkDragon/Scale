@@ -64,6 +64,10 @@ typedef struct Struct_ReadOnlyArray {
 	struct Struct_Array self;
 }* scl_ReadOnlyArray;
 
+typedef struct Struct_IndexOutOfBoundsException {
+	struct Struct_Exception self;
+}* scl_IndexOutOfBoundsException;
+
 extern _scl_stack_t**	stacks;
 extern scl_int			stacks_count;
 extern scl_int			stacks_cap;
@@ -168,17 +172,28 @@ void _scl_add_stackallocation(scl_any ptr, scl_int size) {
 	stackalloc_arrays_count++;
 }
 
-scl_int _scl_stackalloc_check_bounds(scl_any ptr, scl_int index) {
+void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
 		if (ptr == stackalloc_arrays[i]) {
 			if (index >= 0 && index < stackalloc_array_sizes[i]) {
-				return 1;
+				return;
 			}
-			return 0;
+			scl_IndexOutOfBoundsException e = NEW(IndexOutOfBoundsException, Exception);
+			scl_int8* str = _scl_alloc(64);
+			snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[i]);
+			_scl_msg_send(e, "init(s;)V;", str_of(str));
+			_scl_throw(e);
 		}
 	}
-	// not a stackalloc array, bounds checking disabled
-	return 1;
+}
+
+scl_int _scl_stackalloc_size(scl_any ptr) {
+	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+		if (ptr == stackalloc_arrays[i]) {
+			return stackalloc_array_sizes[i];
+		}
+	}
+	return -1;
 }
 
 scl_int _scl_index_of_stackalloc(scl_any ptr) {
@@ -402,10 +417,10 @@ void _scl_assert(scl_int b, scl_int8* msg, ...) {
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) * 8);
 		va_list list;
 		va_start(list, msg);
-		vsprintf(cmsg, msg, list);
+		vsnprintf(cmsg, strlen(msg) * 8 - 1, msg, list);
 		va_end(list);
 
-		sprintf(cmsg, "Assertion failed: %s\n", _scl_strdup(cmsg));
+		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s\n", _scl_strdup(cmsg));
 		_scl_AssertError* err = NEW(AssertError, Error);
 		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
 
@@ -435,7 +450,7 @@ _scl_no_return void _scl_security_throw(int code, scl_int8* msg, ...) {
 	va_start(args, msg);
 	
 	char* str = malloc(strlen(msg) * 8);
-	vsprintf(str, msg, args);
+	vsnprintf(str, strlen(msg) * 8, msg, args);
 	printf("Exception: %s\n", str);
 
 	va_end(args);
@@ -624,7 +639,7 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	array->capacity = cap;
 	array->initCapacity = cap;
 	array->count = 0;
-	array->values = _scl_alloc(cap * sizeof(scl_str));
+	array->values = _scl_new_array(cap * sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
 		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(arr[i]);
 	}
@@ -1254,8 +1269,9 @@ void _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type
 			scl_str errno_str;
 		} _scl_CastError;
 
-		scl_int8* cmsg = (scl_int8*) _scl_alloc(64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name));
-		sprintf(cmsg, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
+		scl_int size = 64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name);
+		scl_int8* cmsg = (scl_int8*) _scl_alloc(size);
+		snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
 		_scl_CastError* err = NEW(CastError, Error);
 		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
 		_scl_throw(err);
@@ -1590,7 +1606,7 @@ struct Struct_Array* Process$stackTrace() {
 	arr->capacity = _callstack.ptr;
 	arr->initCapacity = _callstack.ptr;
 	arr->count = 0;
-	arr->values = _scl_alloc((_callstack.ptr) * sizeof(scl_str));
+	arr->values = _scl_new_array((_callstack.ptr) * sizeof(scl_str));
 	
 	for (scl_int i = 0; i < _callstack.ptr; i++) {
 		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(_callstack.func[i]);
@@ -1691,9 +1707,94 @@ typedef struct Struct_Thread {
 	scl_str name;
 }* scl_Thread;
 
+typedef struct Struct_InvalidArgumentException {
+	struct Struct_Exception self;
+}* scl_InvalidArgumentException;
+
 extern scl_Array Var_Thread$threads;
 extern scl_Thread Var_Thread$mainThread;
 static tls scl_Thread _currentThread = nil;
+
+scl_any* _scl_new_array(scl_int num_elems) {
+	if (_scl_expect(num_elems < 1, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array size must not be less than 1"));
+		_scl_throw(e);
+	}
+	scl_any* arr = _scl_alloc(num_elems * sizeof(scl_any) + sizeof(scl_int));
+	((scl_int*) arr)[0] = num_elems;
+	return arr + 1;
+}
+
+scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]) {
+	if (_scl_expect(dimensions < 1, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array dimensions must not be less than 1"));
+		_scl_throw(e);
+	}
+	if (dimensions == 1) {
+		return _scl_new_array(sizes[0]);
+	}
+	scl_any* arr = _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(scl_int));
+	((scl_int*) arr)[0] = sizes[0];
+	for (scl_int i = 1; i <= sizes[0]; i++) {
+		arr[i] = _scl_multi_new_array(dimensions - 1, &(sizes[1]));
+	}
+	return arr + 1;
+}
+
+scl_int _scl_array_size(scl_any* arr) {
+	if (_scl_index_of_stackalloc(arr) >= 0) {
+		return _scl_stackalloc_size(arr);
+	}
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	return *((scl_int*) arr - 1);
+}
+
+void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
+	if (_scl_index_of_stackalloc(arr) >= 0) {
+		return _scl_stackalloc_check_bounds_or_throw(arr, index);
+	}
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	scl_int size = *((scl_int*) arr - 1);
+	if (index < 0 || index >= size) {
+		scl_IndexOutOfBoundsException e = NEW(IndexOutOfBoundsException, Exception);
+		scl_int8* str = _scl_alloc(64);
+		snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
+		_scl_msg_send(e, "init(s;)V;", str_of(str));
+		_scl_throw(e);
+	}
+}
+
+scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
+	if (_scl_expect(_scl_index_of_stackalloc(arr) >= 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Cannot resize stack-allocated array"));
+		_scl_throw(e);
+	}
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	if (_scl_expect(new_size < 1, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("New array size must not be less than 1"));
+		_scl_throw(e);
+	}
+	scl_int size = *((scl_int*) arr - 1);
+	scl_any* new_arr = _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
+	((scl_int*) new_arr)[0] = new_size;
+	return new_arr + 1;
+}
 
 static scl_int8* substr_of(scl_int8* str, size_t len, size_t beg, size_t end) {
 	scl_int8* sub = _scl_alloc(len);
@@ -1884,9 +1985,11 @@ void nativeTrace() {
 	void* callstack[1024];
 	int i, frames = backtrace(callstack, 1024);
 	char** strs = backtrace_symbols(callstack, frames);
+	fprintf(stderr, "Native stack trace:\n");
 	for (i = 0; i < frames; ++i) {
 		fprintf(stderr, "%s\n", strs[i]);
 	}
+	fprintf(stderr, "\n");
 	free(strs);
 }
 
@@ -1895,9 +1998,10 @@ void printStackTraceOf(_scl_Exception e) {
 		nativeTrace();
 		return;
 	}
-	for (scl_int i = 0; i < e->stackTrace->count; i++) {
+	for (scl_int i = e->stackTrace->count - 3; i >= 0; i--) {
 		fprintf(stderr, "  %s\n", ((scl_str) ((scl_any*) e->stackTrace->values)[i])->_data);
 	}
+	fprintf(stderr, "\n");
 }
 
 // Struct::structsCount: int
@@ -1963,16 +2067,12 @@ int main(int argc, char** argv) {
 			}
 			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-			// _scl_msg_send(_extable.exception_table[_extable.current_pointer], "printStackTrace()V;");
-			// _scl_push()->v = _extable.exception_table[_extable.current_pointer];
-			// _scl_call_method_or_throw(_extable.exception_table[_extable.current_pointer], hash1("printStackTrace"), hash1("()V;"), 0, "printStackTrace", "()V;");
+			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
 			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
-
-			if (msg) {
-				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
-			} else {
-				_scl_security_throw(EX_THROWN, "Uncaught exception");
+			if (errno) {
+				fprintf(stderr, "errno: %s\n", strerror(errno));
 			}
+			exit(EX_THROWN);
 		}
 	}
 
@@ -1994,15 +2094,12 @@ int main(int argc, char** argv) {
 		}
 		scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-		// _scl_msg_send(_extable.exception_table[_extable.current_pointer], "printStackTrace()V;");
-		// _scl_push()->v = _extable.exception_table[_extable.current_pointer];
-		// _scl_call_method_or_throw(_extable.exception_table[_extable.current_pointer], hash1("printStackTrace"), hash1("()V;"), 0, "printStackTrace", "()V;");
+		fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
 		printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
-		if (msg) {
-			_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
-		} else {
-			_scl_security_throw(EX_THROWN, "Uncaught exception");
+		if (errno) {
+			fprintf(stderr, "errno: %s\n", strerror(errno));
 		}
+		exit(EX_THROWN);
 	}
 
 	// Run finalization:
@@ -2019,15 +2116,12 @@ int main(int argc, char** argv) {
 			}
 			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-			// _scl_msg_send(_extable.exception_table[_extable.current_pointer], "printStackTrace()V;");
-			// _scl_push()->v = _extable.exception_table[_extable.current_pointer];
-			// _scl_call_method_or_throw(_extable.exception_table[_extable.current_pointer], hash1("printStackTrace"), hash1("()V;"), 0, "printStackTrace", "()V;");
+			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
 			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
-			if (msg) {
-				_scl_security_throw(EX_THROWN, "Uncaught exception: %s", msg->_data);
-			} else {
-				_scl_security_throw(EX_THROWN, "Uncaught exception");
+			if (errno) {
+				fprintf(stderr, "errno: %s\n", strerror(errno));
 			}
+			exit(EX_THROWN);
 		}
 	}
 

@@ -336,12 +336,6 @@ void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push();
 void				_scl_throw(void* ex);
 
-void				_scl_cleanup_stack_allocations();
-void				_scl_add_stackallocation(scl_any ptr, scl_int size);
-scl_int				_scl_stackalloc_check_bounds(scl_any ptr, scl_int index);
-scl_int				_scl_index_of_stackalloc(scl_any ptr);
-void				_scl_remove_stackallocation(scl_any ptr);
-
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
 scl_int				_scl_identity_hash(scl_any obj);
@@ -364,6 +358,19 @@ void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
+
+scl_any*			_scl_new_array(scl_int num_elems);
+scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]);
+scl_int				_scl_array_size(scl_any* arr);
+void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
+scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
+
+void				_scl_cleanup_stack_allocations();
+void				_scl_add_stackallocation(scl_any ptr, scl_int size);
+void				_scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index);
+scl_int				_scl_index_of_stackalloc(scl_any ptr);
+void				_scl_remove_stackallocation(scl_any ptr);
+scl_int				_scl_stackalloc_size(scl_any ptr);
 
 scl_any				_scl_get_struct_by_id(scl_int id);
 scl_any				_scl_typeinfo_of(hash type);

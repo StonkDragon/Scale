@@ -79,7 +79,7 @@ sealed struct Exception
 
   restrict export sealed function printStackTrace(): none
     "Stacktrace of " typeof self + ":" + eputs
-    for i in self.stackTrace.count 1 - to -1 step -- do
+    for i in self.stackTrace.count 3 - to -1 step -- do
       "    " (i self.stackTrace:get as str) + eputs
     done
   end
@@ -106,7 +106,7 @@ final sealed open struct CastError: Error
 final sealed open struct UnreachableError: Error
 
 function sysPrettyString(): str
-  40 any::new => decl sPtr: [int8]
+  new[40] => decl sPtr: [int8]
   unsafe
     c!
       snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);

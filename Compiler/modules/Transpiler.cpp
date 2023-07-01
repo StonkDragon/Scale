@@ -2495,11 +2495,55 @@ namespace sclc {
 
     handler(New) {
         noUnused;
-        {
-            transpilerError("Using 'new <type>' is deprecated! Use '<type>::new' instead.", i);
-            errors.push_back(err);
-        }
         i++;
+        int dimensions = 0;
+        std::vector<int> startingOffsets;
+        while (body[i].getType() == tok_bracket_open) {
+            dimensions++;
+            startingOffsets.push_back(i);
+            i++;
+            if (body[i].getType() == tok_bracket_close) {
+                transpilerError("Empty array dimensions are not allowed", i);
+                errors.push_back(err);
+                i--;
+                return;
+            }
+            while (body[i].getType() != tok_bracket_close) {
+                handle(Token);
+                i++;
+            }
+            i++;
+        }
+        i--;
+        if (dimensions == 0) {
+            transpilerError("Expected '[', but got '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        if (dimensions == 1) {
+            append("_scl_top()->v = _scl_new_array(_scl_top()->i);\n");
+        } else {
+            append("{\n");
+            scopeDepth++;
+            std::string dims = "";
+            for (int i = 0; i < dimensions; i++) {
+                append("scl_int _scl_dim%d = _scl_pop()->i;\n", i);
+                if (i > 0) dims += ", ";
+                dims += "_scl_dim" + std::to_string(i);
+                if (!isPrimitiveIntegerType(typeStackTop)) {
+                    transpilerError("Array size must be an integer, but got '" + removeTypeModifiers(typeStackTop) + "'!", startingOffsets[i]);
+                    errors.push_back(err);
+                    return;
+                }
+                typePop;
+            }
+
+            append("scl_int tmp[] = {%s};\n", dims.c_str());
+            append("_scl_push()->v = _scl_multi_new_array(%d, tmp);\n", dimensions);
+            scopeDepth--;
+            append("}\n");
+        }
+        typeStack.push("any");
     }
 
     handler(Repeat) {
@@ -2735,6 +2779,20 @@ namespace sclc {
             } while (s.getName().size());
             return false;
         };
+
+        std::string type = removeTypeModifiers(typeStackTop);
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            append("%s %s = (%s) _scl_pop()->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+            typePop;
+            append("for (scl_int i = 0; i < _scl_array_size(%s); i++) {\n", iterator_name.c_str());
+            scopeDepth++;
+
+            varScopePush();
+            varScopeTop().push_back(Variable(iter_var_tok.getValue(), type.substr(1, type.size() - 2)));
+            append("%s Var_%s = %s[i];\n", sclTypeToCType(result, type.substr(1, type.size() - 2)).c_str(), iter_var_tok.getValue().c_str(), iterator_name.c_str());
+            pushOther();
+            return;
+        }
         
         if (!structImplements(getStructByName(result, typeStackTop), "IIterable")) {
             transpilerError("Struct '" + typeStackTop + "' is not iterable!", i);
@@ -2742,7 +2800,7 @@ namespace sclc {
             return;
         }
         append("%s %s = (%s) _scl_pop()->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
-        std::string type = typeStackTop;
+        type = typeStackTop;
         typePop;
 
         Method* nextMethod = getMethodByName(result, "next", type);
@@ -3604,7 +3662,8 @@ namespace sclc {
             };
 
             std::string path = makePath(variablePrefix);
-            if (body[i + 1].getType() == tok_bracket_open) {
+            // allow for => x[...], but not => x[(...)]
+            if (body[i + 1].getType() == tok_bracket_open && body[i + 2].getType() != tok_paren_open) {
                 i = start;
                 append("{\n");
                 scopeDepth++;
@@ -3624,15 +3683,9 @@ namespace sclc {
                 i++;
                 append("scl_any* array = _scl_pop()->v;\n");
                 std::string arrayType = removeTypeModifiers(typeStackTop);
-                std::string indexingType = "";
-                if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                    indexingType = "int";
-                } else if (hasMethod(result, "=>[]", arrayType)) {
-                    Method* m = getMethodByName(result, "=>[]", arrayType);
-                    indexingType = m->getArgs()[0].getType();
-                }
 
                 typePop;
+            reevaluateArrayIndexing:
 
                 append("{\n");
                 scopeDepth++;
@@ -3642,6 +3695,22 @@ namespace sclc {
                 }
                 scopeDepth--;
                 append("}\n");
+                std::string indexingType = "";
+                bool multiDimensional = false;
+                if (i + 1 < body.size() && body[i + 1].getType() == tok_bracket_open) {
+                    multiDimensional = true;
+                    openBracket = i + 1;
+                    i += 2;
+                }
+                if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                    indexingType = "int";
+                } else if (hasMethod(result, (multiDimensional ? "[]" : "=>[]"), arrayType)) {
+                    Method* m = getMethodByName(result, (multiDimensional ? "[]" : "=>[]"), arrayType);
+                    indexingType = m->getArgs()[0].getType();
+                }
+
+                scopeDepth++;
+                append("{\n");
                 append("%s index = (%s) _scl_pop()->i;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
                 std::string indexType = removeTypeModifiers(typeStackTop);
                 if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
@@ -3651,23 +3720,51 @@ namespace sclc {
                 }
                 // indexType and indexingType are the same type
                 typePop;
+
+                if (multiDimensional) {
+                    if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                        append("_scl_array_check_bounds_or_throw(array, index);\n");
+                        append("array = array[index];\n");
+                        if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                            arrayType = arrayType.substr(1, arrayType.size() - 2);
+                        } else {
+                            arrayType = "any";
+                        }
+                    } else {
+                        if (hasMethod(result, "[]", arrayType)) {
+                            Method* m = getMethodByName(result, "[]", arrayType);
+                            if (m->getArgs().size() != 2) {
+                                transpilerError("Method '[]' of type '" + arrayType + "' must have exactly 1 argument! Signature should be: '[](index: " + m->getArgs()[0].getType() + ")'", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            if (removeTypeModifiers(m->getReturnType()) == "none" || removeTypeModifiers(m->getReturnType()) == "nothing") {
+                                transpilerError("Method '[]' of type '" + arrayType + "' must return a value!", i);
+                                errors.push_back(err);
+                                return;
+                            }
+                            append("_scl_push()->i = index;\n");
+                            typeStack.push(indexType);
+                            append("_scl_push()->v = array;\n");
+                            typeStack.push(arrayType);
+                            methodCall(m, fp, result, warns, errors, body, i);
+                        } else {
+                            transpilerError("Type '" + arrayType + "' does not have a method '[]'!", openBracket);
+                            errors.push_back(err);
+                        }
+                    }
+                    scopeDepth--;
+                    append("}\n");
+                    goto reevaluateArrayIndexing;
+                }
                 
                 if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                    if (!typeEquals(valueType, arrayType.substr(1, arrayType.size() - 2))) {
+                    if (arrayType != "[any]" && !typeEquals(valueType, arrayType.substr(1, arrayType.size() - 2))) {
                         transpilerError("Array of type '" + arrayType + "' cannot contain '" + valueType + "'", start - 1);
                         errors.push_back(err);
                         return;
                     }
-                    append("if (_scl_expect(!_scl_stackalloc_check_bounds(array, index), 0)) {\n");
-                    scopeDepth++;
-                    append("_scl_assert(0, \"Tried indexing stack allocated array out of bounds! Index was \" SCL_INT_FMT, index);\n");
-                    scopeDepth--;
-                    append("}\n");
-                    append("if (_scl_expect(index < 0, 0)) {\n");
-                    scopeDepth++;
-                    append("_scl_assert(0, \"Tried indexing array with negative index! Index was: \" SCL_INT_FMT, index);\n");
-                    scopeDepth--;
-                    append("}\n");
+                    append("_scl_array_check_bounds_or_throw(array, index);\n");
                     append("array[index] = value;\n");
                 } else {
                     if (hasMethod(result, "=>[]", arrayType)) {
@@ -3694,6 +3791,8 @@ namespace sclc {
                         errors.push_back(err);
                     }
                 }
+                scopeDepth--;
+                append("}\n");
                 scopeDepth--;
                 append("}\n");
                 return;
@@ -3816,6 +3915,85 @@ namespace sclc {
     handler(BracketOpen) {
         noUnused;
         std::string type = removeTypeModifiers(typeStackTop);
+        if (i + 1 < body.size()) {
+            if (body[i + 1].getType() == tok_paren_open) {
+                i += 2;
+                append("{\n");
+                scopeDepth++;
+                bool existingArrayUsed = false;
+                if (body[i].getType() == tok_number && body[i + 1].getType() == tok_store) {
+                    long long array_size = std::stoll(body[i].getValue());
+                    if (array_size < 1) {
+                        transpilerError("Array size must be positive!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("scl_int array_size = %s;\n", body[i].getValue().c_str());
+                    i += 2;
+                } else {
+                    while (body[i].getType() != tok_store) {
+                        handle(Token);
+                        i++;
+                    }
+                    std::string top = removeTypeModifiers(typeStackTop);
+                    if (top.size() > 2 && top.front() == '[' && top.back() == ']') {
+                        existingArrayUsed = true;
+                    }
+                    if (!isPrimitiveIntegerType(typeStackTop) && !existingArrayUsed) {
+                        transpilerError("Array size must be an integer!", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    if (existingArrayUsed) {
+                        append("scl_int array_size = _scl_array_size(_scl_top()->v);\n");
+                    } else {
+                        append("scl_int array_size = _scl_pop()->i;\n");
+                        typePop;
+                    }
+                    i++;
+                }
+                std::string arrayType = "[int]";
+                std::string elementType = "int";
+                if (existingArrayUsed) {
+                    append("scl_int* array = _scl_pop()->v;\n");
+                    arrayType = removeTypeModifiers(typeStackTop);
+                    typePop;
+                    if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                        elementType = arrayType.substr(1, arrayType.size() - 2);
+                    } else {
+                        elementType = "any";
+                    }
+                } else {
+                    append("scl_int* array = _scl_new_array(array_size);\n");
+                }
+                append("for (scl_int i = 0; i < array_size; i++) {\n");
+                varScopePush();
+                append("const scl_int Var_i = i;\n");
+                varScopeTop().push_back(Variable("i", "const int", true, false));
+                if (existingArrayUsed) {
+                    append("const %s Var_val = array[i];\n", sclTypeToCType(result, elementType).c_str());
+                    varScopeTop().push_back(Variable("val", "const " + elementType, true, false));
+                }
+                while (body[i].getType() != tok_paren_close) {
+                    handle(Token);
+                    i++;
+                }
+                varScopePop();
+                append("array[i] = _scl_pop()->i;\n");
+                append("}\n");
+                append("_scl_push()->v = array;\n");
+                typeStack.push("[int]");
+                scopeDepth--;
+                append("}\n");
+                i++;
+                if (body[i].getType() != tok_bracket_close) {
+                    transpilerError("Expected ']', but got '" + body[i].getValue() + "'!", i);
+                    errors.push_back(err);
+                    return;
+                }
+                return;
+            }
+        }
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             if ((i + 2) < body.size()) {
                 if (body[i + 1].getType() == tok_number && body[i + 2].getType() == tok_bracket_close) {
@@ -3826,6 +4004,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
+                    append("_scl_array_check_bounds_or_throw(_scl_top()->v, %s);\n", body[i - 1].getValue().c_str());
                     append("_scl_top()->v = ((scl_any*) _scl_top()->v)[%s];\n", body[i - 1].getValue().c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
@@ -3840,7 +4019,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_any* tmp = (scl_any*) _scl_top()->v;\n");
+            append("scl_any* tmp = (scl_any*) _scl_pop()->v;\n");
             typePop;
             varScopePush();
             while (body[i].getType() != tok_bracket_close) {
@@ -3855,16 +4034,7 @@ namespace sclc {
             }
             typePop;
             append("scl_int index = _scl_pop()->i;\n");
-            append("if (_scl_expect(!_scl_stackalloc_check_bounds(tmp, index), 0)) {\n");
-            scopeDepth++;
-            append("_scl_assert(0, \"Tried indexing stack allocated array out of bounds! Index was \" SCL_INT_FMT, index);\n");
-            scopeDepth--;
-            append("}\n");
-            append("if (_scl_expect(index < 0, 0)) {\n");
-            scopeDepth++;
-            append("_scl_assert(0, \"Tried indexing array with negative index! Index was: \" SCL_INT_FMT, index);\n");
-            scopeDepth--;
-            append("}\n");
+            append("_scl_array_check_bounds_or_throw(tmp, index);\n");
             append("_scl_push()->v = tmp[index];\n");
             typeStack.push(type.substr(1, type.size() - 2));
             scopeDepth--;
@@ -4773,6 +4943,24 @@ namespace sclc {
             typeStack.push(l.getMember(member).getType());
             return;
         }
+        std::string tmp = removeTypeModifiers(type);
+        if (tmp.size() > 2 && tmp.front() == '[' && tmp.back() == ']') {
+            i++;
+            if (body[i].getType() != tok_identifier) {
+                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string member = body[i].getValue();
+            if (member == "count") {
+                append("_scl_top()->i = _scl_array_size(_scl_top()->v);\n");
+                typeStack.push("int");
+            } else {
+                transpilerError("Unknown array member '" + member + "'", i);
+                errors.push_back(err);
+            }
+            return;
+        }
         Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
             transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + type + "'", i);
@@ -4951,6 +5139,33 @@ namespace sclc {
             return;
         }
         std::string type = typeStackTop;
+        std::string tmp = removeTypeModifiers(type);
+        if (tmp.size() > 2 && tmp.front() == '[' && tmp.back() == ']') {
+            i++;
+            if (body[i].getType() != tok_identifier) {
+                transpilerError("Expected identifier, but got '" + body[i].getValue() + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string op = body[i].getValue();
+            if (op == "resize") {
+                append("{\n");
+                scopeDepth++;
+                append("scl_any* array = _scl_pop()->v;\n");
+                typePop;
+                append("scl_int size = _scl_pop()->i;\n");
+                typePop;
+                append("array = _scl_array_resize(array, size);\n");
+                append("_scl_push()->v = array;\n");
+                typeStack.push(type);
+                scopeDepth--;
+                append("}\n");
+            } else {
+                transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + type + "'", i);
+                errors.push_back(err);
+            }
+            return;
+        }
         Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
             if (getInterfaceByName(result, type) != nullptr) {
@@ -5386,7 +5601,7 @@ namespace sclc {
         if (type == "[any]") return "p;";
         if (type == "lambda" || strstarts(type, "lambda(")) return "F;";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            return "[" + typeToRTSig(type.substr(1, type.size() - 2)) + ";";
+            return "[" + typeToRTSig(type.substr(1, type.size() - 2));
         }
         if (type == "uint") return "u;";
         if (type == "int8") return "i8;";

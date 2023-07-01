@@ -40,7 +40,7 @@ final struct File
   end
 
   restrict function read(sz: int): any
-    sz any::new => decl buffer: [any]?
+    new[sz] => decl buffer: [any]?
     unsafe
       buffer 1 sz _file File::__c_fread
     end
@@ -140,7 +140,7 @@ end
 
 deprecated![since: "23.5", replacement: "File:read", forRemoval: true]
 function fread(filePtr: __c_file, elemSize: int): [any]?
-  elemSize any::new => decl buffer: [any]?
+  new[elemSize] => decl buffer: [any]?
   buffer 1 elemSize filePtr File::__c_fread
   buffer return
 end
