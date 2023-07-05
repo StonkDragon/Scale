@@ -34,6 +34,8 @@ const std::vector<std::string> intrinsics({
 });
 
 namespace sclc {
+    std::map<std::string, std::string> templateArgs;
+
     Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
@@ -86,6 +88,7 @@ namespace sclc {
         if (tokens[i].getType() == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                std::string fromTemplate = "";
                 if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
@@ -98,12 +101,13 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        FPResult r = parseType(tokens, &i);
+                        FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        fromTemplate = r.message;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
@@ -138,6 +142,7 @@ namespace sclc {
                     }
                     Variable v = Variable(name, type, isConst, isMut);
                     v.canBeNil = typeCanBeNil(v.getType());
+                    v.typeFromTemplate = fromTemplate;
                     func->addArgument(v);
                 } else if (tokens[i].getType() == tok_curly_open) {
                     std::vector<std::string> multi;
@@ -169,12 +174,13 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        FPResult r = parseType(tokens, &i);
+                        FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        fromTemplate = r.message;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
@@ -205,6 +211,7 @@ namespace sclc {
                     for (std::string s : multi) {
                         Variable v = Variable(s, type, isConst, isMut);
                         v.canBeNil = typeCanBeNil(v.getType());
+                        v.typeFromTemplate = fromTemplate;
                         func->addArgument(v);
                     }
                 } else {
@@ -246,16 +253,19 @@ namespace sclc {
             }
             if (tokens[i].getType() == tok_column) {
                 i++;
-                FPResult r = parseType(tokens, &i);
+                FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
                     return nullptr;
                 }
                 std::string type = r.value;
+                std::string fromTemplate = r.message;
                 func->setReturnType(type);
+                func->templateArg = r.message;
                 if (namedReturn.size()) {
                     Variable v = Variable(namedReturn, type, false, true);
                     v.canBeNil = typeCanBeNil(v.getType());
+                    v.typeFromTemplate = fromTemplate;
                     func->setNamedReturnValue(v);
                 }
             } else {
@@ -342,6 +352,7 @@ namespace sclc {
         if (tokens[i].getType() == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+                std::string fromTemplate = "";
                 if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
                     std::string name = tokens[i].getValue();
                     std::string type = "any";
@@ -354,12 +365,13 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        FPResult r = parseType(tokens, &i);
+                        FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        fromTemplate = r.message;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
@@ -389,6 +401,7 @@ namespace sclc {
                     }
                     Variable v = Variable(name, type, isConst, isMut);
                     v.canBeNil = typeCanBeNil(v.getType());
+                    v.typeFromTemplate = fromTemplate;
                     method->addArgument(v);
                 } else if (tokens[i].getType() == tok_curly_open) {
                     std::vector<std::string> multi;
@@ -420,12 +433,13 @@ namespace sclc {
                     bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        FPResult r = parseType(tokens, &i);
+                        FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
                         }
                         type = r.value;
+                        fromTemplate = r.message;
                         isConst = typeIsConst(type);
                         isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
@@ -456,6 +470,7 @@ namespace sclc {
                     for (std::string s : multi) {
                         Variable v = Variable(s, type, isConst, isMut);
                         v.canBeNil = typeCanBeNil(v.getType());
+                        v.typeFromTemplate = fromTemplate;
                         method->addArgument(v);
                     }
                 } else {
@@ -501,17 +516,21 @@ namespace sclc {
             }
             if (tokens[i].getType() == tok_column) {
                 i++;
-                FPResult r = parseType(tokens, &i);
+                FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
                     return nullptr;
                 }
+
+                std::string fromTemplate = r.message;
                 std::string type = r.value;
                 bool canReturnNil = typeCanBeNil(type);
                 method->setReturnType(type);
+                method->templateArg = fromTemplate;
                 if (namedReturn.size()) {
                     Variable v = Variable(namedReturn, type, false, true);
                     v.canBeNil = canReturnNil;
+                    v.typeFromTemplate = fromTemplate;
                     method->setNamedReturnValue(v);
                 }
             } else {
@@ -687,7 +706,6 @@ namespace sclc {
 
             extern_functions.push_back(builtinUnreachable);
         }
-
 
         auto findFunctionByName = [&](std::string name) {
             for (size_t i = 0; i < functions.size(); i++) {
@@ -1039,6 +1057,7 @@ namespace sclc {
                     currentContainer = nullptr;
                 } else if (currentStruct != nullptr) {
                     structs.push_back(*currentStruct);
+                    templateArgs.clear();
                     currentStruct = nullptr;
                 } else if (currentInterface != nullptr) {
                     interfaces.push_back(currentInterface);
@@ -1228,6 +1247,56 @@ namespace sclc {
                 
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
+                if (tokens[i + 1].getValue() == "<") {
+                    i++;
+                    // *i = "<"
+                    i++;
+                    // *i = first template argument
+                    while (tokens[i].getValue() != ">") {
+                        if (tokens[i].getType() != tok_identifier) {
+                            FPResult result;
+                            result.message = "Expected identifier for template argument name, but got '" + tokens[i].getValue() + "'";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        std::string key = tokens[i].getValue();
+                        i++;
+                        // *i = ":"
+                        if (tokens[i].getType() != tok_column) {
+                            FPResult result;
+                            result.message = "Expected ':' after template argument name, but got '" + tokens[i].getValue() + "'";
+                            result.value = tokens[i].getValue();
+                            result.line = tokens[i].getLine();
+                            result.in = tokens[i].getFile();
+                            result.type = tokens[i].getType();
+                            result.column = tokens[i].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        i++;
+                        FPResult value = parseType(tokens, &i, templateArgs);
+                        if (!value.success) {
+                            errors.push_back(value);
+                            continue;
+                        }
+                        currentStruct->required_typed_arguments++;
+                        currentStruct->addTemplateArgument(key, value.value);
+                        currentStruct->addMember(Variable("$template_arg_" + key, "int"));
+                        currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
+                        templateArgs[key] = value.value;
+                        if (tokens[i].getValue() == ",") {
+                            i++;
+                        }
+                        i++;
+                    }
+                }
                 if (tokens[i + 1].getType() == tok_column) {
                     i += 2;
                     if (currentStruct->getName() == tokens[i].getValue()) {
@@ -1387,7 +1456,7 @@ namespace sclc {
                     i++;
                     if (tokens[i].getType() == tok_column) {
                         i++;
-                        FPResult r = parseType(tokens, &i);
+                        FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
                             continue;
@@ -1640,7 +1709,7 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    FPResult r = parseType(tokens, &i);
+                    FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
@@ -1689,7 +1758,7 @@ namespace sclc {
                 bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    FPResult r = parseType(tokens, &i);
+                    FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
@@ -1736,13 +1805,15 @@ namespace sclc {
                 bool isMut = false;
                 bool isInternalMut = false;
                 bool isPrivate = false;
+                std::string fromTemplate = "";
                 if (tokens[i].getType() == tok_column) {
                     i++;
-                    FPResult r = parseType(tokens, &i);
+                    FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
                         errors.push_back(r);
                         continue;
                     }
+                    fromTemplate = r.message;
                     type = r.value;
                     isConst = typeIsConst(type);
                     isMut = typeIsMut(type);
@@ -1786,17 +1857,20 @@ namespace sclc {
                     }
                     if (isConst) {
                         v = Variable(name, type, isConst, isMut);
+                        v.typeFromTemplate = fromTemplate;
                         v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                         v.canBeNil = typeCanBeNil(v.getType());
                         currentStruct->addMember(v);
                     } else {
                         if (isInternalMut) {
                             v = Variable(name, type, isConst, isMut, currentStruct->getName());
+                            v.typeFromTemplate = fromTemplate;
                             v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         } else {
                             v = Variable(name, type, isConst, isMut);
+                            v.typeFromTemplate = fromTemplate;
                             v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
@@ -2015,6 +2089,34 @@ namespace sclc {
 
         for (Struct s : result.structs) {
             Struct super = getStructByName(result, s.extends());
+            for (auto t : s.templates) {
+                if (t.second.size() > 2 && t.second.front() == '[' && t.second.back() == ']') {
+                    FPResult r;
+                    r.message = "Default value for template '" + t.first + "' is an array, which is not allowed";
+                    r.value = t.second;
+                    r.line = s.getNameToken().getLine();
+                    r.in = s.getNameToken().getFile();
+                    r.type = s.getNameToken().getType();
+                    r.column = s.getNameToken().getColumn();
+                    r.column = s.getNameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    continue;
+                }
+                if (!isPrimitiveType(t.second) && getStructByName(result, t.second) == Struct::Null) {
+                    FPResult r;
+                    r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which does not appear to be a struct or primitive type";
+                    r.value = t.second;
+                    r.line = s.getNameToken().getLine();
+                    r.in = s.getNameToken().getFile();
+                    r.type = s.getNameToken().getType();
+                    r.column = s.getNameToken().getColumn();
+                    r.column = s.getNameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    continue;
+                }
+            }
             Struct oldSuper = s;
             while (super.getName().size()) {
                 if (super.getName() == s.getName()) {
@@ -2066,6 +2168,25 @@ namespace sclc {
                     result.errors.push_back(r2);
                     goto nextIter;
                 }
+                if (super.templates.size() && s.templates.size() == 0) {
+                    for (auto kv : super.templates) {
+                        s.addTemplateArgument(kv.first, kv.second);
+                    }
+                    s.required_typed_arguments = super.required_typed_arguments;
+                }
+                if (super.templates.size() && super.templates.size() != s.templates.size()) {
+                    FPResult r;
+                    r.message = "Struct '" + s.getName() + "' has " + std::to_string(s.templates.size()) + " template arguments, but '" + super.getName() + "' has " + std::to_string(super.templates.size());
+                    r.value = s.nameToken().getValue();
+                    r.line = s.nameToken().getLine();
+                    r.in = s.nameToken().getFile();
+                    r.type = s.nameToken().getType();
+                    r.column = s.nameToken().getColumn();
+                    r.column = s.nameToken().getColumn();
+                    r.success = false;
+                    result.errors.push_back(r);
+                    goto nextIter;
+                }
                 std::vector<Variable> vars = super.getDefinedMembers();
                 for (ssize_t i = vars.size() - 1; i >= 0; i--) {
                     s.addMember(vars[i], true);
@@ -2083,37 +2204,49 @@ namespace sclc {
                 newStructs.push_back(s);
                 continue;
             }
-            auto createToStringMethod = [](Struct& s) -> Method* {
+            auto hasTypeAlias = [&](std::string name) -> bool {
+                return result.typealiases.find(name) != result.typealiases.end();
+            };
+            auto createToStringMethod = [&](Struct& s) -> Method* {
                 Token t(tok_identifier, "toString", 0, "<generated>");
                 Method* toString = new Method(s.getName(), std::string("toString"), t);
                 std::string stringify = s.getName() + " {";
                 toString->setReturnType("str");
                 toString->addModifier("<generated>");
                 toString->addArgument(Variable("self", "mut " + s.getName()));
-                toString->addToken(Token(tok_string_literal, stringify, 0, "<generated1>"));
+                toString->addToken(Token(tok_string_literal, stringify, 0, s.getName() + ":toString"));
+
+                size_t membersAdded = 0;
 
                 for (size_t i = 0; i < s.getMembers().size(); i++) {
                     auto member = s.getMembers()[i];
-                    if (i) {
-                        toString->addToken(Token(tok_string_literal, ", ", 0, "<generated2>"));
-                        toString->addToken(Token(tok_add, "+", 0, "<generated3>"));
+                    if (member.getName().front() == '$') continue;
+                    if (membersAdded) {
+                        toString->addToken(Token(tok_string_literal, ", ", 0, s.getName() + ":toString"));
+                        toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
                     }
+                    membersAdded++;
 
-                    toString->addToken(Token(tok_string_literal, member.getName() + ": ", 0, "<generated4>"));
-                    toString->addToken(Token(tok_add, "+", 0, "<generated5>"));
-                    toString->addToken(Token(tok_identifier, "self", 0, "<generated6>"));
-                    toString->addToken(Token(tok_dot, ".", 0, "<generated6>"));
-                    toString->addToken(Token(tok_identifier, member.getName(), 0, "<generated6>"));
-                    if (removeTypeModifiers(member.getType()) == "float") {
-                        toString->addToken(Token(tok_identifier, "doubleToString", 0, "<generated7>"));
+                    toString->addToken(Token(tok_string_literal, member.getName() + ": ", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_identifier, "self", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_dot, ".", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_identifier, member.getName(), 0, s.getName() + ":toString"));
+                    if (typeCanBeNil(member.getType())) {
+                        toString->addToken(Token(tok_identifier, "builtinToString", 0, s.getName() + ":toString"));
+                    } else if (removeTypeModifiers(member.getType()) == "lambda" || strstarts(removeTypeModifiers(member.getType()), "lambda(") || hasTypeAlias(removeTypeModifiers(member.getType()))) {
+                        toString->addToken(Token(tok_identifier, "any", 0, s.getName() + ":toString"));
+                        toString->addToken(Token(tok_double_column, "::", 0, s.getName() + ":toString"));
+                        toString->addToken(Token(tok_identifier, "toHexString", 0, s.getName() + ":toString"));
                     } else {
-                        toString->addToken(Token(tok_identifier, "builtinToString", 0, "<generated10>"));
+                        toString->addToken(Token(tok_column, ":", 0, s.getName() + ":toString"));
+                        toString->addToken(Token(tok_identifier, "toString", 0, s.getName() + ":toString"));
                     }
-                    toString->addToken(Token(tok_add, "+", 0, "<generated11>"));
+                    toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
                 }
-                toString->addToken(Token(tok_string_literal, "}", 0, "<generated12>"));
-                toString->addToken(Token(tok_add, "+", 0, "<generated13>"));
-                toString->addToken(Token(tok_return, "return", 0, "<generated14>"));
+                toString->addToken(Token(tok_string_literal, "}", 0, s.getName() + ":toString"));
+                toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
+                toString->addToken(Token(tok_return, "return", 0, s.getName() + ":toString"));
                 toString->forceAdd(true);
                 return toString;
             };
@@ -2131,6 +2264,34 @@ namespace sclc {
             newStructs.push_back(s);
         }
         result.structs = newStructs;
+        return result;
+    }
+
+    std::pair<std::string, std::string> pairAt(std::map<std::string, std::string> map, size_t index) {
+        size_t i = 0;
+        for (auto& pair : map) {
+            if (i == index) {
+                return pair;
+            }
+            i++;
+        }
+        return std::pair<std::string, std::string>("", "");
+    }
+
+    std::string specToCIdent(std::string in) {
+        if (in.find("<") == std::string::npos) return in;
+        // replace all < and > with $$
+        std::string result = in;
+        for (size_t i = 0; i < result.size(); i++) {
+            if (result[i] == '<') {
+                result[i] = '$';
+                result.insert(i + 1, "$");
+            } else if (result[i] == ',') {
+                result[i] = '$';
+            } else if (result[i] == '>') {
+                result.erase(i, 1);
+            }
+        }
         return result;
     }
 }

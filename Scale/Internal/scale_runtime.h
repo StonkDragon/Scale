@@ -214,16 +214,54 @@ typedef unsigned int		scl_uint32;
 typedef unsigned short		scl_uint16;
 typedef unsigned char		scl_uint8;
 
+typedef void(*_scl_lambda)(void);
+
+struct _scl_methodinfo {
+	_scl_lambda				ptr;
+	scl_int					pure_name;
+	scl_any					actual_handle;
+	scl_int8*				actual_name;
+	scl_int					signature;
+	scl_int8*				signature_str;
+};
+
+struct _scl_membertype {
+	scl_int					pure_name;
+	scl_int8*				actual_name;
+	scl_int8*				type_name;
+	scl_int					offset;
+	scl_int					access_flags;
+};
+
+struct _scl_typeinfo {
+	scl_int					type;
+	scl_int					super;
+	scl_int					alloc_size;
+	scl_int8*				name;
+	scl_int					memberscount;
+	struct _scl_membertype*	members;
+	scl_int					methodscount;
+	struct _scl_methodinfo*	methods;
+	scl_int					isStatic;
+};
+
+typedef struct StaticMembers {
+	scl_int			type;
+	scl_int8*		type_name;
+	scl_int			super;
+	scl_int			size;
+	struct _scl_methodinfo*	vtable;
+	struct _scl_methodinfo*	super_vtable;
+	scl_int*		supers;
+} StaticMembers;
+
 struct scaleString {
-	scl_int		$__type__;
-	scl_int8*	$__type_name__;
-	scl_int		$__super__;
-	scl_int		$__size__;
-	mutex_t		$__mutex__;
-	scl_int8*	_data;
-	scl_int		_len;
-	scl_int		_iter;
-	scl_int		_hash;
+	StaticMembers*			$statics;
+	mutex_t					$mutex;
+	scl_int8*				_data;
+	scl_int					_len;
+	scl_int					_iter;
+	scl_int					_hash;
 };
 
 #if defined(__ANDROID__)
@@ -286,25 +324,22 @@ typedef struct {
 	scl_int			cap;
 } _scl_callstack_t;
 
-typedef void(*_scl_lambda)(void);
-
 // Create a new instance of a struct that does not directly extend SclObject
-#define NEW(_type, _super)		_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super))
+#define NEW(_type, _super)		({ extern struct _scl_methodinfo _scl_vtable_ ## _type []; extern struct _scl_methodinfo _scl_vtable_ ## _super []; extern StaticMembers _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super), _scl_vtable_ ## _type, _scl_vtable_ ## _super, &_scl_statics_ ## _type); })
 // Create a new instance of a struct
-#define NEW0(_type)				_scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash)
+#define NEW0(_type)				({ extern struct _scl_methodinfo _scl_vtable_ ## _type []; extern struct _scl_methodinfo _scl_vtable_SclObject[]; extern StaticMembers _scl_statics_ ## _type; extern const hash SclObjectHash; _scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash, _scl_vtable_ ## _type, _scl_vtable_SclObject, &_scl_statics_ ## _type); })
 // Create a new instance of SclObject
-#define NEWOBJ()				_scl_alloc_struct(sizeof(struct Struct_SclObject), "SclObject", 0)
+#define NEWOBJ()				({ extern struct _scl_methodinfo _scl_vtable_SclObject[]; extern StaticMembers _scl_statics_SclObject; _scl_alloc_struct(sizeof(struct Struct_SclObject), "SclObject", 0, _scl_vtable_SclObject, NULL, &_scl_statics_SclObject); })
+
+#define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
+#define CAST(_obj, _type) CAST0(_obj, _type, hash1(#_type))
 
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
-
-#undef NEW_
 
 extern tls _scl_stack_t _stack;
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
-_scl_no_return void _scl_callstack_overflow(scl_int8* func);
-_scl_no_return void	_scl_unreachable(scl_int8* msg);
 
 void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
@@ -327,7 +362,7 @@ scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg, ...);
 void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
-void				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
+scl_any				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
 void				_scl_not_nil_cast(scl_int val, scl_int8* name);
 void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
@@ -335,16 +370,16 @@ void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push();
 void				_scl_throw(void* ex);
+int					_scl_run(int argc, char** argv);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super);
+scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super, struct _scl_methodinfo* vtable, struct _scl_methodinfo* super_vtable, StaticMembers* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
-scl_any				_scl_get_method_on_type(hash type, hash method, hash signature);
-scl_any				_scl_get_method_handle(hash type, hash method, hash signature);
+scl_any				_scl_get_method_on_type(scl_any type, hash method, hash signature, int onSuper);
 void				_scl_call_method_or_throw(scl_any instance, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
 scl_int8**			_scl_callstack_push();
 
@@ -354,7 +389,6 @@ scl_float			_scl_msg_sendf(scl_any instance, scl_int8* methodIdentifier, ...);
 scl_float			_scl_msg_send_superf(scl_any instance, scl_int8* methodIdentifier, ...);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
-void				_scl_free_struct_no_finalize(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
@@ -364,6 +398,9 @@ scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]);
 scl_int				_scl_array_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
+scl_any*			_scl_array_sort(scl_any* arr);
+scl_any*			_scl_array_reverse(scl_any* arr);
+scl_str				_scl_array_to_string(scl_any* arr);
 
 void				_scl_cleanup_stack_allocations();
 void				_scl_add_stackallocation(scl_any ptr, scl_int size);
@@ -372,10 +409,8 @@ scl_int				_scl_index_of_stackalloc(scl_any ptr);
 void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
-scl_any				_scl_get_struct_by_id(scl_int id);
-scl_any				_scl_typeinfo_of(hash type);
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_binary_search_method_index(void** methods, scl_int count, hash id, hash sig);
+scl_int				_scl_search_method_index(void** methods, scl_int count, hash id, hash sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);

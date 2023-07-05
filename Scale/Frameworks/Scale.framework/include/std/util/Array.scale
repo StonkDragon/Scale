@@ -6,7 +6,7 @@ import std.util.IndexOutOfBoundsException
 import std.util.TypedArray
 import std.util.ReadOnlyArray
 
-sealed struct Array is IIterable
+sealed struct Array is Iterable
   decl values:  mut readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
@@ -140,18 +140,22 @@ sealed struct Array is IIterable
     size => self.initCap
   end
 
-  function begin(): none
-    0 => self.pos
-  end
+  # function begin(): none
+  #   0 => self.pos
+  # end
 
-  function hasNext(): bool
-    self.pos self.count < return
-  end
+  # function hasNext(): bool
+  #   self.pos self.count < return
+  # end
 
-  function next(): any?
-    self.pos self:get
-    self.pos 1 + => self.pos
-    return
+  # function next(): any?
+  #   self.pos self:get
+  #   self.pos 1 + => self.pos
+  #   return
+  # end
+
+  function iterate(): ArrayIterator
+    self ArrayIterator::new return
   end
 
   restrict function reverse(): Array
@@ -255,5 +259,24 @@ sealed struct Array is IIterable
       values i sizeof any * + @ arr:push
     done
     return
+  end
+end
+
+sealed struct ArrayIterator is Iterator
+  private decl array: Array
+  private decl pos: int
+
+  function init(arr: Array): none
+    arr => self.array
+    0 => self.pos
+  end
+
+  function hasNext(): bool
+    self.pos self.array.count < return
+  end
+
+  function next(): any
+    self.pos 1 + => self.pos
+    self.array[self.pos 1 -] return
   end
 end

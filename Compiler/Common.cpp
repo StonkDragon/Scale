@@ -277,7 +277,7 @@ namespace sclc
         return num;
     }
 
-    FPResult parseType(std::vector<Token> body, size_t* i) {
+    FPResult parseType(std::vector<Token> body, size_t* i, std::map<std::string, std::string> typeReplacements) {
         // int, str, any, none, Struct
         FPResult r;
         r.success = true;
@@ -287,7 +287,7 @@ namespace sclc
         r.column = body[*i].getColumn();
         r.value = body[*i].getValue();
         r.type = body[*i].getType();
-        r.message = "Failed to parse type! Token for type: " + body[*i].tostring();
+        r.message = "";
         r.value = "";
         std::string type_mods = "";
         bool isConst = false;
@@ -326,6 +326,10 @@ namespace sclc
         }
         if (body[*i].getType() == tok_identifier) {
             r.value = type_mods + body[*i].getValue();
+            if (typeReplacements.find(body[*i].getValue()) != typeReplacements.end()) {
+                r.value = type_mods + typeReplacements[body[*i].getValue()];
+                r.message = body[*i].getValue();
+            }
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].getType() != tok_paren_open) {

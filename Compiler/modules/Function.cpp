@@ -69,6 +69,9 @@ std::string Function::finalName() {
 std::vector<Token> Function::getBody() {
     return body;
 }
+std::vector<Token>& Function::getBodyRef() {
+    return body;
+}
 void Function::addToken(Token token) {
     body.push_back(token);
 }

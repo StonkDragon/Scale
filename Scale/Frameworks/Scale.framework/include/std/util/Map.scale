@@ -1,11 +1,18 @@
 import std.util.Pair
 import std.util.Iterable
 
-final sealed struct MapEntry
+final sealed struct MapEntry<T: any>
   decl key: str
-  decl value: any
+  decl value: T
 
-  function init(key: str, value: any): none
+  private function checkTypeOrThrow(val: any): none
+    if val typeof T builtinIsInstanceOf then
+      return
+    fi
+    "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
+  end
+
+  function init(key: str, value: T): none
     key => self.key
     value => self.value
   end
@@ -15,14 +22,12 @@ final sealed struct MapEntry
   end
 end
 
-sealed struct Map is IIterable
-  private decl data: Array
+sealed struct Map<T: any> is Iterable
+  private decl data: TypedArray
+  private decl valueType: str
 
   function init(size: int): none
-    size Array::new => self.data
-    for i in 0 to size do
-      nil self.data:push
-    done
+    size TypedArray<MapEntry>::new => self.data
   end
 
   function [](key: str): any?
@@ -33,43 +38,34 @@ sealed struct Map is IIterable
     foreach entry in self.data do
       if entry nil == then continue fi
 
-      entry => decl notNilEntry: MapEntry
-      if notNilEntry.key nil == then continue fi
-      if key notNilEntry.key == then
-        notNilEntry.value return
+      if entry!! as MapEntry.key nil == then continue fi
+      if key entry!! as MapEntry.key == then
+        entry!! as MapEntry.value return
       fi
     done
     nil return
   end
 
-  function =>[](key: str, value: any): none
+  function =>[](key: str, value: T): none
     key value self:set
   end
 
-  restrict function set(key: str, value: any): none
+  restrict function set(key: str, value: T): none
     for i in 0 to self.data.count do
       i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
-        i key value MapEntry::new self.data:set
+        i key value MapEntry<(self.valueType)>::new self.data:set
         return
       elif entry as MapEntry.key key:equals then
         value => entry.value
         return
       fi
     done
-    key value MapEntry::new self.data:push
+    key value MapEntry<typeof T>::new self.data:push
   end
 
-  function begin(): none
-    self.data:begin
-  end
-
-  function hasNext(): bool
-    self.data:hasNext return
-  end
-
-  function next(): MapEntry?
-    self.data:next as MapEntry? return
+  function iterate(): Iterator
+    self.data MapIterator::new return
   end
 
   function toString(): str
@@ -82,5 +78,21 @@ sealed struct Map is IIterable
         value x:accept
       fi
     done
+  end
+end
+
+sealed struct MapIterator is Iterator
+  private decl data: ArrayIterator
+
+  function init(data: Array): none
+    data ArrayIterator::new => self.data
+  end
+
+  function hasNext(): bool
+    self.data:hasNext return
+  end
+
+  function next(): MapEntry
+    self.data:next as MapEntry return
   end
 end

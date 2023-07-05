@@ -118,6 +118,34 @@ final static sealed struct int
   intrinsic function isValidUInt32(val: any): bool
     val val:toUInt32 == return
   end
+
+  expect cdecl "Int$valueOf" function asReference(i: int): Int
+end
+
+struct Int
+  decl value: readonly int
+
+  expect static function valueOf(x: int): Int
+
+  function equals(other: int): bool
+    other self.value == return
+  end
+  function ==(other: int): bool
+    other self:equals return
+  end
+  function equals(other: Int): bool
+    other.value self.value == return
+  end
+  function ==(other: Int): bool
+    other self:equals return
+  end
+  function @(): int
+    self.value return
+  end
+
+  function toString(): str
+    self.value:toString return
+  end
 end
 
 expect cdecl "op$add_ii" function +(:int, :int): int

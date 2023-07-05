@@ -79,7 +79,35 @@ final static sealed struct float
         x float::isNaN ! return
     end
 
+    expect cdecl "Float$valueOf" function asReference(f: float): Float
+
     intrinsic function fromBits(bits: any): float
         ref bits as [float] @ return
+    end
+end
+
+struct Float
+    decl value: readonly float
+
+    expect static function valueOf(x: float): Float
+
+    function equals(other: float): bool
+        other self.value == return
+    end
+    function ==(other: float): bool
+        other self:equals return
+    end
+    function equals(other: Float): bool
+        other.value self.value == return
+    end
+    function ==(other: Float): bool
+        other self:equals return
+    end
+    function @(): float
+        self.value return
+    end
+
+    function toString(): str
+        self.value:toString return
     end
 end

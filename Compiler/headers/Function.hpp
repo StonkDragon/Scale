@@ -30,12 +30,14 @@ namespace sclc
         bool hasNamedReturnValue;
         Deprecation deprecated;
         std::vector<std::string> overloads;
+        std::string templateArg;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
         virtual std::string getName();
         virtual std::string finalName();
         virtual std::vector<Token> getBody();
+        virtual std::vector<Token>& getBodyRef();
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
         virtual std::vector<std::string> getModifiers();

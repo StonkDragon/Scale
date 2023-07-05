@@ -1,0 +1,8 @@
+function main(): none
+    new[8] => decl s: [int]
+    [(s => i 3 *)] drop
+    
+    s:toString puts
+    s:reverse:toString puts
+    s:sort:toString puts
+end

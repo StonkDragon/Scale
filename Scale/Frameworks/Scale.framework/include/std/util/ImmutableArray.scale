@@ -1,7 +1,7 @@
 import std.util.Iterable
 import std.debug
 
-final sealed struct ImmutableArray is IIterable
+final sealed struct ImmutableArray
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
@@ -71,8 +71,8 @@ final sealed struct ImmutableArray is IIterable
 
   deprecated![since: "23.6", replacement: "ReadOnlyArray:map", forRemoval: true]
   function map(x: lambda(any): none): none
-    foreach elem in self do
-      elem x:accept
+    for i in 0 to self.count do
+      i self:get x:accept
     done
   end
 end

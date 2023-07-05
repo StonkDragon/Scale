@@ -35,7 +35,7 @@ final sealed struct Thread
 
     construct function __privateInit(): none
         0 => Thread::nextID
-        1 TypedArray::new => Thread::threads
+        1 TypedArray<Thread>::new => Thread::threads
     end
 
     static function stackTrace(): Array

@@ -835,48 +835,11 @@ Returns a copy of this object.
 ### function SclObject:hashCode(): SclObject
 Returns the <<CYAN>>identity hash<<RESET>> of this object.
 
-### final function SclObject:getStruct(): Struct
-Returns the <<WHITE>>Struct<<RESET>> instance representing the struct of this object.
-This function cannot be overridden.
-
 ### final function SclObject:lock(): none
 Locks this object.
 
 ### final function SclObject:unlock(): none
 Unlocks this object.
-
-@std.reflect.Struct
-## Struct
-### struct Struct
-Member types:
-- <<WHITE>>isStatic<<BLUE>>: readonly bool<<RESET>>
-
-<<WHITE>>isStatic<<RESET>>: <<BLUE>>true<<RESET>>, if this <<WHITE>>Struct<<RESET>> represents a static struct.
-
-### static function Struct::getStructByName(name: str): Struct
-Returns an instance of <<WHITE>>Struct<<RESET>> representing the struct with the given name.
-A <<WHITE>>NullPointerException<<RESET>> is thrown if no such struct exists.
-
-### function Struct:newInstance(argumentTypes: Array): SclObject
-Creates a new instance of the struct represented by this object.
-The <<WHITE>>argumentTypes<<RESET>> array must contain the types of the arguments to the constructor.
-
-### function Struct:getMethodByName(name: str, returnType: str, argumentTypes: Array): lambda
-Returns a lambda representing the method with the given name, return type and argument types.
-
-### function Struct:getName(): str
-Returns the name of this struct.
-
-### function Struct:getSize(): int
-Returns the size in bytes needed to create a new instance of the struct represented by this object.
-
-### function Struct:getSuper(): Struct?
-Returns the super-struct of this struct.
-Only returns <<BLUE>>nil<<RESET>> when called on the <<WHITE>>Struct<<RESET>> representing <<WHITE>>SclObject<<RESET>>.
-
-### unsafe function Struct:setAccesible(accessible: bool, name: str): none
-Sets the private attribute of the member variable.
-This function is unsafe as it sets the flag globally for every object of this struct.
 
 @std.runtime.Process
 ## Process
@@ -1109,7 +1072,7 @@ Returns a string representation of this map entry.
 
 @std.util.Cloneable
 ## Cloneable
-### interface ICloneable
+### interface Cloneable
 Implementing this interface indicates that instances of this struct may be copied.
 
 ### function ICloneable:clone(): ?
@@ -1117,7 +1080,7 @@ The interface method to implement for cloning, where <<BLUE>>?<<RESET>> represen
 
 @std.util.Equatable
 ## Equatable
-### interface IEquatable
+### interface Equatable
 Implementing this interface indicates that instances of this struct implement a custom equality check.
 
 ### function IEquatable:equals(other: ?): bool
@@ -1130,7 +1093,7 @@ The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct
 
 @std.util.Hashable
 ## Hashable
-### interface IHashable
+### interface Hashable
 Implementing this interface indicates that instances of this struct implement a custom hashCode method.
 
 ### function IHashable:hashCode(): int
@@ -1138,7 +1101,7 @@ Implementations of this interface method should return a hash code value.
 
 @std.util.Iterable
 ## Iterable
-### interface IIterable
+### interface Iterable
 Implementing this interface enables it to be used in a <<BLUE>>foreach<<RESET>>-loop
 
 ### function IIterable:begin(): none
@@ -1153,7 +1116,7 @@ The <<BLUE>>?<<RESET>> should represent a meaningful type for the iteration.
 
 @std.util.Stringifyable
 ## Stringifyable
-### interface IStringifyable
+### interface Stringifyable
 Implementing this interface indicates that instances of this struct implement a custom <<WHITE>>toString<<RESET>> method.
 
 ### function IStringifyable:toString(): str

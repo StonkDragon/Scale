@@ -207,7 +207,7 @@ namespace sclc {
     bool hasContainer(TPResult result, Token name);
     bool hasContainer(TPResult result, std::string name);
     bool hasGlobal(TPResult result, std::string name);
-    FPResult parseType(std::vector<Token> tokens, size_t* i);
+    FPResult parseType(std::vector<Token> tokens, size_t* i, std::map<std::string, std::string> typeReplacements = std::map<std::string, std::string>());
     std::string sclConvertToStructType(std::string type);
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);

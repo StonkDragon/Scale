@@ -39,7 +39,7 @@ def run_tests(directory):
                 print("[PASS] " + file)
                 passedTests += 1
             else:
-                print("[FAIL] " + file)
+                print("\b[FAIL] " + file)
                 failedTests += 1
                 print("Compiler Output:")
                 print(compOut)

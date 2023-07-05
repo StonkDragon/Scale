@@ -1,4 +1,5 @@
 import std.util.Array
+import std.util.ReadOnlyArray
 
 final struct InvalidTypeException : Exception
     function init(msg: str): none
@@ -6,27 +7,11 @@ final struct InvalidTypeException : Exception
     end
 end
 
-final sealed struct TypedArray : Array
-    private decl typeStr: str
-
+final sealed struct TypedArray<T: any>: Array
     private function checkTypeOrThrow(val: any): none
-        self:lock
-        unless typeStr then
-            typeof val => typeStr
+        if val typeof T builtinIsInstanceOf then
+            return
         fi
-        unless val typeStr builtinIsInstanceOf then
-            "Value '" val builtinToString +
-            "' not of type '" +
-            typeStr +
-            "'" +
-            InvalidTypeException::new
-            self:unlock
-            throw
-        fi
-        self:unlock
-    end
-
-    function getType(): str
-        typeStr return
+        "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
     end
 end

@@ -23,5 +23,33 @@ final static sealed struct any
         return
     end
 
+    expect cdecl "Any$valueOf" function asReference(x: any): Any
+
     cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+end
+
+struct Any
+    decl value: readonly any
+
+    expect static function valueOf(x: any): Any
+
+    function equals(other: any): bool
+        other self.value == return
+    end
+    function ==(other: any): bool
+        other self:equals return
+    end
+    function equals(other: Any): bool
+        other.value self.value == return
+    end
+    function ==(other: Any): bool
+        other self:equals return
+    end
+    function @(): any
+        self.value return
+    end
+
+    function toString(): str
+        self.value:toString return
+    end
 end

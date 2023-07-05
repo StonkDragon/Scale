@@ -18,13 +18,7 @@ scl_any**       instances = nil;
 scl_int         instances_count = 0;
 scl_int         instances_cap = 64;
 
-scl_any**       structs = nil;
-scl_int         structs_count = 0;
-scl_int         structs_cap = 64;
-
-scl_any* stackalloc_arrays = nil;
-scl_int* stackalloc_array_sizes = nil;
-scl_int stackalloc_arrays_count = 0;
-scl_int stackalloc_arrays_cap = 64;
-
-int             printingStacktrace = 0;
+tls scl_any*    stackalloc_arrays = nil;
+tls scl_int*    stackalloc_array_sizes = nil;
+tls scl_int     stackalloc_arrays_count = 0;
+tls scl_int     stackalloc_arrays_cap = 64;

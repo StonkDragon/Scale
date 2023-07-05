@@ -23,13 +23,9 @@ tls _scl_callstack_t	_callstack = {0};
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
 
-// generic struct
 typedef struct Struct {
-	scl_int		type;
-	scl_int8*	type_name;
-	scl_int		super;
-	scl_int		size;
-	mutex_t		mutex;
+	StaticMembers*	statics;
+	mutex_t			mutex;
 } Struct;
 
 typedef struct Struct_SclObject {
@@ -68,6 +64,34 @@ typedef struct Struct_IndexOutOfBoundsException {
 	struct Struct_Exception self;
 }* scl_IndexOutOfBoundsException;
 
+typedef struct Struct_Int {
+	Struct rtFields;
+	scl_int value;
+}* scl_Int;
+
+typedef struct Struct_Float {
+	Struct rtFields;
+	scl_float value;
+}* scl_Float;
+
+typedef struct Struct_AssertError {
+	Struct rtFields;
+	scl_str msg;
+	struct Struct_Array* stackTrace;
+	scl_str errno_str;
+} scl_AssertError;
+
+typedef struct Struct_UnreachableError {
+	Struct rtFields;
+	scl_str msg;
+	struct Struct_Array* stackTrace;
+	scl_str errno_str;
+} scl_UnreachableError;
+
+struct Struct_str {
+	struct scaleString s;
+};
+
 extern _scl_stack_t**	stacks;
 extern scl_int			stacks_count;
 extern scl_int			stacks_cap;
@@ -84,8 +108,15 @@ extern Struct**			instances;
 extern scl_int			instances_count;
 extern scl_int			instances_cap;
 
-volatile Struct* runtimeModifierLock = nil;
-volatile Struct* binarySearchLock = nil;
+extern tls scl_any*		stackalloc_arrays;
+extern tls scl_int*		stackalloc_array_sizes;
+extern tls scl_int		stackalloc_arrays_count;
+extern tls scl_int		stackalloc_arrays_cap;
+
+static tls scl_int		_stackallocations_since_cleanup = 0;
+
+volatile Struct*		runtimeModifierLock = nil;
+volatile Struct*		binarySearchLock = nil;
 
 // Inserts value into array at it's sorted position
 // returns the index at which the value was inserted
@@ -126,31 +157,15 @@ scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* ca
 	return i;
 }
 
-extern scl_any* stackalloc_arrays;
-extern scl_int* stackalloc_array_sizes;
-extern scl_int stackalloc_arrays_count;
-extern scl_int stackalloc_arrays_cap;
-
-scl_int _scl_stackallocs_above() {
-	scl_any current_stack_high = &(_stack.data[_stack.ptr]);
-	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
-		if (stackalloc_arrays[i] > current_stack_high) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 void _scl_cleanup_stack_allocations() {
-	scl_any current_stack_high = &(_stack.data[_stack.ptr]);
-	scl_int indicesToRemove[stackalloc_arrays_count];
-	scl_int indicesToRemove_count = 0;
-	while (_scl_stackallocs_above()) {
-		for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
-			if (stackalloc_arrays[i] > current_stack_high) {
-				_scl_remove_stackallocation(stackalloc_arrays[i]);
-				break;
+	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
+		if (stackalloc_arrays[i] > (scl_any) &(_stack.data[_stack.ptr])) {
+			for (scl_int j = i; j < stackalloc_arrays_count - 1; j++) {
+				stackalloc_arrays[j] = stackalloc_arrays[j + 1];
+				stackalloc_array_sizes[j] = stackalloc_array_sizes[j + 1];
 			}
+			stackalloc_arrays_count--;
+			i--;
 		}
 	}
 }
@@ -161,7 +176,6 @@ void _scl_add_stackallocation(scl_any ptr, scl_int size) {
 		stackalloc_array_sizes = system_allocate(sizeof(scl_int) * stackalloc_arrays_cap);
 		stackalloc_arrays_count = 0;
 	}
-	_scl_cleanup_stack_allocations();
 	if (stackalloc_arrays_count + 1 >= stackalloc_arrays_cap) {
 		stackalloc_arrays_cap += 64;
 		stackalloc_arrays = system_realloc(stackalloc_arrays, sizeof(scl_any) * stackalloc_arrays_cap);
@@ -170,6 +184,11 @@ void _scl_add_stackallocation(scl_any ptr, scl_int size) {
 	stackalloc_arrays[stackalloc_arrays_count] = ptr;
 	stackalloc_array_sizes[stackalloc_arrays_count] = size;
 	stackalloc_arrays_count++;
+	_stackallocations_since_cleanup++;
+	if (_stackallocations_since_cleanup > 16) {
+		_scl_cleanup_stack_allocations();
+		_stackallocations_since_cleanup = 0;
+	}
 }
 
 void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
@@ -181,7 +200,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 			scl_IndexOutOfBoundsException e = NEW(IndexOutOfBoundsException, Exception);
 			scl_int8* str = _scl_alloc(64);
 			snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[i]);
-			_scl_msg_send(e, "init(s;)V;", str_of(str));
+			_scl_msg_send(e, "IndexOutOfBoundsException:init(s;)V;", str_of(str));
 			_scl_throw(e);
 		}
 	}
@@ -203,16 +222,6 @@ scl_int _scl_index_of_stackalloc(scl_any ptr) {
 		}
 	}
 	return -1;
-}
-
-void _scl_remove_stackallocation(scl_any ptr) {
-	scl_int index = _scl_index_of_stackalloc(ptr);
-	if (index == -1) return;
-	for (scl_int i = index; i < stackalloc_arrays_count - 1; i++) {
-		stackalloc_arrays[i] = stackalloc_arrays[i + 1];
-		stackalloc_array_sizes[i] = stackalloc_array_sizes[i + 1];
-	}
-	stackalloc_arrays_count--;
 }
 
 void _scl_remove_stack(_scl_stack_t* stack) {
@@ -251,7 +260,7 @@ void _scl_remove_ptr(scl_any ptr) {
 // Returns the next index of a given pointer in the allocated-pointers array
 // Returns -1, if the pointer is not in the table
 scl_int _scl_get_index_of_ptr(scl_any ptr) {
-	return _scl_binary_search(allocated, allocated_count, ptr);
+	return _scl_binary_search((scl_any*) allocated, allocated_count, ptr);
 }
 
 // Removes the pointer at the given index and shift everything after left
@@ -362,7 +371,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 	// If this pointer points to an instance of a struct, quietly deallocate it
 	// without calling SclObject:finalize() on it
-	_scl_free_struct_no_finalize(ptr);
+	_scl_free_struct(ptr);
 	
 	// Remove the pointer from the table
 	_scl_remove_ptr(ptr);
@@ -407,13 +416,6 @@ scl_int8* _scl_strdup(scl_int8*);
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, scl_int8* msg, ...) {
 	if (!b) {
-		typedef struct Struct_AssertError {
-			Struct _structData;
-			scl_str msg;
-			struct Struct_Array* stackTrace;
-			scl_str errno_str;
-		} _scl_AssertError;
-
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) * 8);
 		va_list list;
 		va_start(list, msg);
@@ -421,7 +423,7 @@ void _scl_assert(scl_int b, scl_int8* msg, ...) {
 		va_end(list);
 
 		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s\n", _scl_strdup(cmsg));
-		_scl_AssertError* err = NEW(AssertError, Error);
+		scl_AssertError* err = NEW(AssertError, Error);
 		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
 
 		_scl_throw(err);
@@ -429,14 +431,7 @@ void _scl_assert(scl_int b, scl_int8* msg, ...) {
 }
 
 void builtinUnreachable() {
-	typedef struct Struct_UnreachableError {
-		Struct _structData;
-		scl_str msg;
-		struct Struct_Array* stackTrace;
-		scl_str errno_str;
-	} _scl_UnreachableError;
-
-	_scl_UnreachableError* err = NEW(UnreachableError, Error);
+	scl_UnreachableError* err = NEW(UnreachableError, Error);
 	_scl_msg_send(err, "init(s;)V;", str_of("Unreachable!"));
 
 	_scl_throw(err);
@@ -481,6 +476,23 @@ scl_int8* _scl_strdup(scl_int8* str) {
 	return _scl_strndup(str, len);
 }
 
+static struct Struct_Int _ints[256] = {};
+
+scl_Int Int$valueOf(scl_int val) {
+	if (val >= -128 && val <= 127) {
+		return &_ints[val + 128];
+	}
+	scl_Int new = NEW(Int, SclObject);
+	new->value = val;
+	return new;
+}
+
+scl_Float Float$valueOf(scl_float val) {
+	scl_Float new = NEW(Float, SclObject);
+	new->value = val;
+	return new;
+}
+
 extern const scl_int _scl_internal_string_literals_count;
 extern struct scaleString _scl_internal_string_literals[];
 
@@ -498,17 +510,13 @@ scl_int _scl_find_string_in_literals(scl_int8* str, scl_int len) {
 }
 
 scl_str _scl_create_string(scl_int8* data) {
-	struct Struct_str {
-		struct scaleString s;
-	};
-
 	scl_int len = strlen(data);
 	scl_int index = _scl_find_string_in_literals(data, len);
 
 	if (index != -1) {
 		scl_str s = (scl_str) &(_scl_internal_string_literals[index]);
-		if (!s->$__mutex__) {
-			s->$__mutex__ = _scl_mutex_new();
+		if (!s->$mutex) {
+			s->$mutex = _scl_mutex_new();
 			s->_hash = hash1len(data, len);
 		}
 		_scl_add_struct(s);
@@ -680,7 +688,7 @@ scl_int _scl_identity_hash(scl_any _obj) {
 	}
 	Struct* obj = (Struct*) _obj;
 	Process$lock((volatile scl_any) obj);
-	scl_int size = obj->size;
+	scl_int size = obj->statics->size;
 	scl_int hash = (*(scl_int*) &obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((char*) obj)[i];
@@ -701,161 +709,19 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 	return clone;
 }
 
-struct _scl_methodinfo {
-  scl_any  	ptr;
-  scl_int  	pure_name;
-  scl_any  	actual_handle;
-  scl_int8*	actual_name;
-  scl_int	signature;
-  scl_int8*	signature_str;
-};
-
-struct _scl_membertype {
-  scl_int  	pure_name;
-  scl_int8*	actual_name;
-  scl_int8*	type_name;
-  scl_int  	offset;
-  scl_int	access_flags;
-};
-
-struct _scl_typeinfo {
-  scl_int					type;
-  scl_int					super;
-  scl_int					alloc_size;
-  scl_int8*					name;
-  scl_int					memberscount;
-  struct _scl_membertype*	members;
-  scl_int					methodscount;
-  struct _scl_methodinfo*	methods;
-};
-
-// Structs
-extern struct _scl_typeinfo		_scl_types[];
-extern scl_int 					_scl_types_count;
-
-scl_int _scl_binary_search_typeinfo_index(struct _scl_typeinfo* types, scl_int count, hash type) {
-	Process$lock((volatile scl_any) runtimeModifierLock);
-	scl_int left = 0;
-	scl_int right = count - 1;
-
-	while (left <= right) {
-		scl_int mid = (left + right) / 2;
-		if (types[mid].type == type) {
-			Process$unlock((volatile scl_any) runtimeModifierLock);
-			return mid;
-		} else if (types[mid].type < type) {
-			left = mid + 1;
-		} else {
-			right = mid - 1;
-		}
-	}
-
-	Process$unlock((volatile scl_any) runtimeModifierLock);
-	return -1;
-}
-
-typedef struct Struct_Struct {
-	Struct structData;
-	scl_str typeName;
-	scl_int typeId;
-	struct Struct_Struct* super;
-	scl_int binarySize;
-	scl_int members_count;
-	struct _scl_membertype* members;
-	scl_bool isStatic;
-} _scl_Struct;
-
-typedef struct Struct_Variable {
-	Struct structData;
-} _scl_Variable;
-
-extern _scl_Struct** structs;
-extern scl_int structs_count;
-extern scl_int structs_cap;
-
-scl_int _scl_binary_search_struct_struct_index(_scl_Struct** structs, scl_int count, hash type) {
-	Process$lock((volatile scl_any) runtimeModifierLock);
-	scl_int left = 0;
-	scl_int right = count - 1;
-
-	while (left <= right) {
-		scl_int mid = (left + right) / 2;
-		if (structs[mid]->typeId == type) {
-			Process$unlock((volatile scl_any) runtimeModifierLock);
-			return mid;
-		} else if (structs[mid]->typeId < type) {
-			left = mid + 1;
-		} else {
-			right = mid - 1;
-		}
-	}
-
-	Process$unlock((volatile scl_any) runtimeModifierLock);
-	return -1;
-}
-
-scl_any _scl_get_struct_by_id(scl_int id) {
-	scl_int index = _scl_binary_search_struct_struct_index(structs, structs_count, id);
-	if (index >= 0) return structs[index];
-	if (_scl_expect(id == 0, 0)) return nil;
-	index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, id);
-	if (_scl_expect(index < 0, 0)) {
-		return nil;
-	}
-	struct _scl_typeinfo t = _scl_types[index];
-	_scl_Struct* s = NEW0(Struct);
-	s->binarySize = t.alloc_size;
-	s->typeName = str_of(t.name);
-	s->typeId = id;
-	s->super = _scl_get_struct_by_id(t.super);
-	s->isStatic = s->binarySize == 0;
-	s->members = t.members;
-	s->members_count = t.memberscount;
-	insert_sorted((scl_any**) &structs, &structs_count, s, &structs_cap);
-	return s;
-}
-
-// Marks unreachable execution paths
-_scl_no_return void _scl_unreachable(char* msg) {
-	// Uses compiler specific extensions if possible.
-	// Even if no extension is used, undefined behavior is still raised by
-	// an empty function body and the noreturn attribute.
-#if defined(__GNUC__)
-	__builtin_unreachable();
-#elif defined(_MSC_VER) // MSVC
-	__assume(false);
-#endif
-}
-
-_scl_no_return void _scl_callstack_overflow(scl_int8* func) {
-	_scl_security_throw(EX_STACK_OVERFLOW, "Call stack overflow in function '%s'", func);
-}
-
-// Returns a pointer to the typeinfo of the given struct
-// nil if the struct does not exist
-scl_any _scl_typeinfo_of(hash type) {
-	scl_int index = _scl_binary_search_typeinfo_index(_scl_types, _scl_types_count, type);
-	if (index >= 0) {
-		return (scl_any) _scl_types + (index * sizeof(struct _scl_typeinfo));
-	}
-	return nil;
-}
-
-struct _scl_typeinfo* _scl_find_typeinfo_of(hash type) {
-	return (struct _scl_typeinfo*) _scl_typeinfo_of(type);
-}
-
 // returns the method handle of a method on a struct, or a parent struct
-scl_any _scl_get_method_on_type(hash type, hash method, hash signature) {
+scl_any _scl_get_method_on_type(scl_any type, hash method, hash signature, int onSuper) {
 	*(_scl_callstack_push()) = "<runtime _scl_get_method_on_type(type: int32, method: int32, signature: int32): any>";
-	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
-	while (p) {
-		scl_int index = _scl_binary_search_method_index((scl_any*) p->methods, p->methodscount, method, signature);
-		if (index >= 0) {
-			_callstack.ptr--;
-			return p->methods[index].ptr;
-		}
-		p = _scl_find_typeinfo_of(p->super);
+	Struct* instance = (Struct*) type;
+	scl_int index = -1;
+	if (onSuper) {
+		index = _scl_search_method_index((scl_any*) instance->statics->super_vtable, -1, method, signature);
+	} else {
+		index = _scl_search_method_index((scl_any*) instance->statics->vtable, -1, method, signature);
+	}
+	if (index >= 0) {
+		_callstack.ptr--;
+		return instance->statics->vtable[index].ptr;
 	}
 	_callstack.ptr--;
 	return nil;
@@ -965,29 +831,12 @@ void _scl_call_method_or_throw(scl_any instance_, hash method, hash signature, i
 		_scl_security_throw(EX_BAD_PTR, "Method call on non-object");
 	}
 	Struct* instance = (Struct*) instance_;
-	scl_int typeID = instance->type;
-	scl_int8* typeName = instance->type_name;
-	if (_scl_expect(on_super, 0)) {
-		typeID = instance->super;
-		typeName = _scl_find_typeinfo_of(typeID)->name;
+	_scl_lambda m = _scl_get_method_on_type(instance, method, signature, on_super);
+	if (m) {
+		m();
+		return;
 	}
-	scl_any handle = _scl_get_method_on_type(typeID, method, signature);
-	if (handle == nil) {
-		_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", method_name, signature_str, typeName);
-	}
-	((void (*)(void)) handle)();
-}
-
-scl_any _scl_get_method_handle(hash type, hash method, hash signature) {
-	struct _scl_typeinfo* p = _scl_find_typeinfo_of(type);
-	while (p) {
-		scl_int index = _scl_binary_search_method_index((scl_any*) p->methods, p->methodscount, method, signature);
-		if (index >= 0) {
-			return p->methods[index].actual_handle;
-		}
-		p = _scl_find_typeinfo_of(p->super);
-	}
-	return nil;
+	_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", method_name, signature_str, instance->statics->type_name);
 }
 
 // adds an instance to the table of tracked instances
@@ -1006,7 +855,7 @@ mutex_t _scl_mutex_new() {
 }
 
 // creates a new instance with a size of 'size'
-scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
+scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super, struct _scl_methodinfo* vtable, struct _scl_methodinfo* super_vtable, StaticMembers* statics) {
 	*(_scl_callstack_push()) = "<runtime _scl_alloc_struct(size: int, typeName: [int8], super: int): any>";
 
 	// Allocate the memory
@@ -1017,20 +866,16 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super) {
 		return nil;
 	}
 
-	// Type name hash
-	((Struct*) ptr)->type = hash1(type_name);
-
-	// Type name
-	((Struct*) ptr)->type_name = type_name;
-
-	// Parent struct name hash
-	((Struct*) ptr)->super = super;
-
-	// Size (Currently only used by SclObject:clone())
-	((Struct*) ptr)->size = size;
-
 	// Callstack
 	((Struct*) ptr)->mutex = _scl_mutex_new();
+
+	// Static members
+	((Struct*) ptr)->statics = statics;
+
+	if (_scl_expect(((Struct*) ptr)->statics->vtable == nil, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "Could not find vtable for type '%s'", type_name);
+		return nil;
+	}
 
 	_callstack.ptr--;
 	// Add struct to allocated table
@@ -1055,53 +900,30 @@ scl_int _scl_find_index_of_struct(scl_any ptr) {
 }
 
 // Removes an instance from the allocated table without calling its finalizer
-void _scl_free_struct_no_finalize(scl_any ptr) {
-	scl_int i = _scl_find_index_of_struct(ptr);
-	while (i != -1) {
-		_scl_struct_map_remove(i);
-		i = _scl_find_index_of_struct(ptr);
-	}
-}
-
-// Removes an instance from the allocated table and call the finalzer
 void _scl_free_struct(scl_any ptr) {
-	if (_scl_expect(_scl_find_index_of_struct(ptr) == -1, 0)) {
-		return;
-	}
-
 	scl_int i = _scl_find_index_of_struct(ptr);
 	while (i != -1) {
 		_scl_struct_map_remove(i);
 		i = _scl_find_index_of_struct(ptr);
 	}
-}
-
-// Returns true if the given type is a child of the other type
-scl_int _scl_type_extends_type(struct _scl_typeinfo* type, struct _scl_typeinfo* extends) {
-	if (_scl_expect(!type || !extends, 0)) return 0;
-	do {
-		if (type->type == extends->type) {
-			return 1;
-		}
-		type = _scl_find_typeinfo_of(type->super);
-	} while (type);
-	return 0;
 }
 
 // Returns true, if the instance is of a given struct type
 scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
-	if (_scl_expect(ptr == nil, 0)) return 0;
+	if (_scl_expect(ptr == nil, 0)) return 0; // ptr is null
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
-	if (_scl_expect(!isStruct, 0)) return 0;
+	if (_scl_expect(!isStruct, 0)) return 0; // ptr is not an instance and cast to non primitive type attempted
 
 	Struct* ptrStruct = (Struct*) ptr;
 
-	if (ptrStruct->type == typeId) return 1;
+	if (ptrStruct->statics->type == typeId) return 1; // cast to same type
+	if (typeId == SclObjectHash) return 1; // cast to SclObject
 
-	struct _scl_typeinfo* ptrType = _scl_typeinfo_of(ptrStruct->type);
-	struct _scl_typeinfo* typeIdType = _scl_typeinfo_of(typeId);
+	for (scl_int i = 0; ptrStruct->statics->supers[i]; i++) {
+		if (ptrStruct->statics->supers[i] == typeId) return 1; // cast to super type
+	}
 
-	return _scl_type_extends_type(ptrType, typeIdType);
+	return 0; // invalid cast
 }
 
 scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
@@ -1125,17 +947,18 @@ scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
 	return -1;
 }
 
-scl_int _scl_binary_search_method_index(scl_any* methods, scl_int count, hash id, hash sig) {
+scl_int _scl_search_method_index(scl_any* methods, const scl_int count, hash id, hash sig) {
+	if (_scl_expect(methods == nil, 0)) return -1;
 	struct _scl_methodinfo* methods_ = (struct _scl_methodinfo*) methods;
 
 	Process$lock((volatile scl_any) binarySearchLock);
-	for (scl_int i = 0; i < count; i++) {
+	for (scl_int i = 0; (count == -1 ? (*(scl_int*) &(methods_[i].ptr)) : i < count); i++) {
 		if (methods_[i].pure_name == id && (sig == 0 || methods_[i].signature == sig)) {
 			Process$unlock((volatile scl_any) binarySearchLock);
 			return i;
 		}
 	}
-
+	
 	Process$unlock((volatile scl_any) binarySearchLock);
 	return -1;
 }
@@ -1255,27 +1078,39 @@ void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Argument '%s' is nil", name);
-		assert(0 && msg);
-		// _scl_assert(0, msg);
+		_scl_assert(0, msg);
 	}
 }
 
-void _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name) {
+#define as(type, val) ((scl_ ## type) _scl_checked_cast((scl_any) val, hash_of(#type), #type))
+
+scl_any _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name) {
 	if (!_scl_is_instance_of(instance, target_type)) {
 		typedef struct Struct_CastError {
-			Struct _structData;
+			Struct rtFields;
 			scl_str msg;
 			struct Struct_Array* stackTrace;
 			scl_str errno_str;
 		} _scl_CastError;
 
-		scl_int size = 64 + strlen(((Struct*) instance)->type_name) + strlen(target_type_name);
-		scl_int8* cmsg = (scl_int8*) _scl_alloc(size);
-		snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type_name, target_type_name);
+		int isStruct = _scl_binary_search((scl_any*) instances, instances_count, instance) != -1;
+
+		scl_int size;
+		scl_int8* cmsg;
+		if (isStruct) {
+			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
+			cmsg = (scl_int8*) _scl_alloc(size);
+			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
+		} else {
+			size = 96 + strlen(target_type_name);
+			cmsg = (scl_int8*) _scl_alloc(size);
+			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
+		}
 		_scl_CastError* err = NEW(CastError, Error);
 		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
 		_scl_throw(err);
 	}
+	return instance;
 }
 
 void _scl_not_nil_cast(scl_int val, scl_int8* name) {
@@ -1529,28 +1364,6 @@ scl_float float$fromBits(scl_any bits) {
 	return *(scl_float*) &bits;
 }
 
-scl_bool Struct$setAccessible0(_scl_Struct* self, scl_bool accessible, scl_str name) {
-	Process$lock((volatile scl_any) self);
-	for (scl_int i = 0; i < (self)->members_count; i++) {
-		struct _scl_membertype member = ((struct _scl_membertype*) (self)->members)[i];
-		if (member.pure_name == (name)->_hash) {
-			scl_int flags = ((struct _scl_membertype*) (self)->members)[i].access_flags;
-			if (accessible) {
-				flags &= 0b01111;
-			} else {
-				flags |= 0b10000;
-			}
-			((struct _scl_membertype*) (self)->members)[i].access_flags = flags;
-
-			Process$unlock((volatile scl_any) self);
-			return 1;
-		}
-	}
-
-	Process$unlock((volatile scl_any) self);
-	return 0;
-}
-
 void dumpStack() {
 	printf("Dump:\n");
 	for (ssize_t i = 0; i < _stack.ptr; i++) {
@@ -1743,6 +1556,13 @@ scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]) {
 	return arr + 1;
 }
 
+scl_int _scl_array_size_unchecked(scl_any* arr) {
+	if (_scl_index_of_stackalloc(arr) >= 0) {
+		return _scl_stackalloc_size(arr);
+	}
+	return *((scl_int*) arr - 1);
+}
+
 scl_int _scl_array_size(scl_any* arr) {
 	if (_scl_index_of_stackalloc(arr) >= 0) {
 		return _scl_stackalloc_size(arr);
@@ -1794,6 +1614,76 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 	scl_any* new_arr = _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
 	((scl_int*) new_arr)[0] = new_size;
 	return new_arr + 1;
+}
+
+// these args cannot be scl_any because warning would appear
+static int compare(const void* a, const void* b) {
+	return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+}
+
+scl_any* _scl_array_sort(scl_any* arr) {
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	scl_int size = _scl_array_size_unchecked(arr);
+	// binary sort
+	for (scl_int i = 0; i < size; i++) {
+		scl_any tmp = arr[i];
+		scl_int j = i - 1;
+		while (j >= 0) {
+			if (tmp < arr[j]) {
+				arr[j + 1] = arr[j];
+				arr[j] = tmp;
+			} else {
+				arr[j + 1] = tmp;
+				break;
+			}
+			j--;
+		}
+	}
+	
+	return arr;
+}
+
+scl_any* _scl_array_reverse(scl_any* arr) {
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	scl_int size = _scl_array_size_unchecked(arr);
+	scl_int half = size / 2;
+	for (scl_int i = 0; i < half; i++) {
+		scl_any tmp = arr[i];
+		arr[i] = arr[size - i - 1];
+		arr[size - i - 1] = tmp;
+	}
+	return arr;
+}
+
+scl_str _scl_array_to_string(scl_any* arr) {
+	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
+		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
+		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		_scl_throw(e);
+	}
+	scl_int size = _scl_array_size_unchecked(arr);
+	scl_str s = str_of("[");
+	for (scl_int i = 0; i < size; i++) {
+		if (i) {
+			s = _scl_msg_send(s, "append(s;)s;", str_of(", "));
+		}
+		scl_str tmp;
+		if (_scl_is_instance_of(arr[i], SclObjectHash)) {
+			tmp = _scl_msg_send(arr[i], "toString()s;");
+		} else {
+			tmp = int$toString((scl_int) arr[i]);
+		}
+		s = _scl_msg_send(s, "append(s;)s;", tmp);
+	}
+	return _scl_msg_send(s, "append(s;)s;", str_of("]"));
 }
 
 static scl_int8* substr_of(scl_int8* str, size_t len, size_t beg, size_t end) {
@@ -2004,11 +1894,7 @@ void printStackTraceOf(_scl_Exception e) {
 	fprintf(stderr, "\n");
 }
 
-// Struct::structsCount: int
-extern scl_int Struct$structsCount
-	__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Struct$structsCount");
-
-int main(int argc, char** argv) {
+int _scl_run(int argc, char** argv) {
 
 #if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
@@ -2033,25 +1919,27 @@ int main(int argc, char** argv) {
 	_scl_create_stack();
 
 	// Convert argv and envp from native arrays to Scale arrays
-	struct Struct_Array* args = nil;
-	struct Struct_Array* env = nil;
+	struct Struct_Array* args = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
+	struct Struct_Array* env = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
 
-#if !defined(SCL_MAIN_ARG_COUNT)
-#define SCL_MAIN_ARG_COUNT 0
-#endif
-#if SCL_MAIN_ARG_COUNT > 0
-	args = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
-#endif
-#if SCL_MAIN_ARG_COUNT > 1
-	env = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
-#endif
+	extern StaticMembers _scl_statics_Int;
+
+	hash intHash = hash1("Int");
+	for (scl_int i = -128; i < 127; i++) {
+		_ints[i + 128] = (struct Struct_Int) {
+			.rtFields = {
+				.statics = &_scl_statics_Int,
+				.mutex = _scl_mutex_new(),
+			},
+			.value = i
+		};
+	}
 
 	// Get the address of the main function
 	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
 	_scl_exception_push();
-	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 
-	Struct$structsCount = _scl_types_count;
+	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 
 	// Run __init__ functions
 	if (_scl_internal_init_functions[0]) {
@@ -2067,7 +1955,7 @@ int main(int argc, char** argv) {
 			}
 			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
+			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.statics->type_name, msg->_data);
 			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
 			if (errno) {
 				fprintf(stderr, "errno: %s\n", strerror(errno));
@@ -2082,19 +1970,14 @@ int main(int argc, char** argv) {
 	if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666) {
 
 		// _scl_get_main_addr() returns nil if compiled with --no-main
-#if defined(SCL_MAIN_RETURN_NONE)
-		ret = 0;
 		(_scl_main ? _scl_main(args, env) : 0);
-#else
-		ret = (_scl_main ? _scl_main(args, env) : 0);
-#endif
 	} else {
 		if (_extable.exception_table[_extable.current_pointer] == nil) {
 			_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
 		}
 		scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-		fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
+		fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.statics->type_name, msg->_data);
 		printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
 		if (errno) {
 			fprintf(stderr, "errno: %s\n", strerror(errno));
@@ -2116,7 +1999,7 @@ int main(int argc, char** argv) {
 			}
 			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
 
-			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.type_name, msg->_data);
+			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.statics->type_name, msg->_data);
 			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
 			if (errno) {
 				fprintf(stderr, "errno: %s\n", strerror(errno));

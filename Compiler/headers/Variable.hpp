@@ -30,6 +30,7 @@ namespace sclc
     public:
         bool isPrivate;
         bool canBeNil;
+        std::string typeFromTemplate;
         Variable(std::string name, std::string type) : Variable(name, type, false, "") {}
         Variable(std::string name, std::string type, bool isConst, bool isMut) : Variable(name, type, isConst, isMut, "") {}
         Variable(std::string name, std::string type, std::string memberType) : Variable(name, type, false, false, memberType) {}
@@ -42,6 +43,7 @@ namespace sclc
             this->isInternalMut = memberType.size() != 0;
             this->canBeNil = false;
             this->isPrivate = false;
+            this->typeFromTemplate = "";
         }
         ~Variable() {}
         std::string getName() {

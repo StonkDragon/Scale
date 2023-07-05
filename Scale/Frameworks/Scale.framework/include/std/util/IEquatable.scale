@@ -1,4 +1,4 @@
-interface IEquatable
+interface Equatable
     function ==(other: ?): bool
     function equals(other: ?): bool
 end

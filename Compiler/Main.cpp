@@ -57,6 +57,18 @@
 #endif
 #endif
 
+#if defined(__APPLE__)
+#define LIB_SCALE_FILENAME "libScaleRT.dylib"
+#define LIB_SCALE_STATIC   "libScaleRT.a"
+#elif defined(__linux__)
+#define LIB_SCALE_FILENAME "libScaleRT.so"
+#define LIB_SCALE_STATIC   "libScaleRT.a"
+#elif defined(_WIN32)
+// defined, but not used
+#define LIB_SCALE_FILENAME "ScaleRT.dll"
+#define LIB_SCALE_STATIC   "ScaleRT.lib"
+#endif
+
 #define TO_STRING2(x) #x
 #define TO_STRING(x) TO_STRING2(x)
 
@@ -572,6 +584,33 @@ namespace sclc
         return demangled;
     }
 
+    int compileRuntimeLib() {
+        std::vector<std::string> cmd = {
+            std::string("clang"),
+            "-O2",
+#if defined(__APPLE__)
+            "-dynamiclib",
+#elif defined(__linux__)
+            "-shared",
+#endif
+            "-undefined",
+            "dynamic_lookup",
+            "-I" + scaleFolder + "/Internal",
+            scaleFolder + "/Internal/runtime_vars.c",
+            scaleFolder + "/Internal/scale_runtime.c",
+            "-o",
+            scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
+        };
+        std::string cmdStr = "";
+        for (auto& s : cmd) {
+            cmdStr += s + " ";
+        }
+
+        std::cout << Color::BLUE << "Compiling runtime library..." << std::endl;
+        std::cout << Color::CYAN << cmdStr << Color::RESET << std::endl;
+        return system(cmdStr.c_str());
+    }
+
     int main(std::vector<std::string> args) {
         if (args.size() < 2) {
             usage(args[0]);
@@ -591,6 +630,15 @@ namespace sclc
         bool hasCppFiles        = false;
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
+
+        std::string libScaleRTFileName = std::string(LIB_SCALE_FILENAME);
+        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRTFileName)) {
+            int ret = compileRuntimeLib();
+            if (ret) {
+                std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
+                return ret;
+            }
+        }
 
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {
@@ -777,10 +825,9 @@ namespace sclc
             cflags.push_back("-I" + scaleFolder + "/Internal");
             cflags.push_back("-I" + scaleFolder + "/Frameworks");
             cflags.push_back("-I.");
+            cflags.push_back("-L" + scaleFolder + "/Internal");
+            cflags.push_back("-lScaleRT");
             cflags.push_back("-lgc");
-            if (!Main.options.noMain)
-                cflags.push_back(scaleFolder + "/Internal/runtime_vars.c");
-            cflags.push_back(scaleFolder + "/Internal/scale_runtime.c");
             cflags.push_back("-" + optimizer);
             cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
             cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));

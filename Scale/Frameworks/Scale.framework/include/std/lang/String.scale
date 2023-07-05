@@ -15,7 +15,7 @@ private expect unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
 cdecl "strtok"
 private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
 
-final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
+final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl _data: [int8]
   private decl _len: int
   private decl _iter: int
@@ -101,6 +101,10 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
 
   function @(i: int): int
     i self:at return
+  end
+
+  function [](index: int): int8
+    index self:at return
   end
 
   function reverse(): str
@@ -204,18 +208,22 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     data builtinHash => self._hash
   end
 
-  function begin(): none
-    0 => self._iter
-  end
+  # function begin(): none
+  #   0 => self._iter
+  # end
 
-  function hasNext(): bool
-    self._iter self._len < return
-  end
+  # function hasNext(): bool
+  #   self._iter self._len < return
+  # end
 
-  function next(): int8
-    self._iter self @
-    self._iter 1 + => self._iter
-    return
+  # function next(): int8
+  #   self._iter self @
+  #   self._iter 1 + => self._iter
+  #   return
+  # end
+
+  function iterate(): StringIterator
+    self StringIterator::new return
   end
 
   function hashCode(): int
@@ -231,6 +239,25 @@ final sealed struct str is IEquatable, ICloneable, IStringifyable, IIterable
     out secondCStr __c_strcat drop
 
     out return
+  end
+end
+
+final sealed struct StringIterator is Iterator
+  private decl _str: str
+  private decl _pos: int
+
+  function init(s: str): none
+    s => self._str
+    0 => self._pos
+  end
+
+  function next(): int8
+    self._pos 1 + => self._pos
+    self._str[self._pos 1 -] return
+  end
+
+  function hasNext(): bool
+    self._pos self._str:size < return
   end
 end
 

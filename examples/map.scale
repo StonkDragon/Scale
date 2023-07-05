@@ -1,7 +1,9 @@
 import std.util.Map
 
 function main(): none
-    ["A": "Apple", "B": "Banana" " " + "Pineapple" +] => decl map
+    10 Map<str>::new => decl map
+    "Apple" => map["A"]
+    "Banana" " " + "Pineapple" + => map["B"]
     
     "A" map:get puts
     "B" map:get puts

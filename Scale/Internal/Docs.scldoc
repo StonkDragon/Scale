@@ -604,6 +604,10 @@ Decrements the top value by one.
 ### Dereference (@)
 Dereferences the top value as a pointer.
 
+### Array Indexing ([])
+Array indexing is done with the <<BLUE>>[]<<RESET>> operator.
+
+
 ### Overriding Operators
 Operators can be overridden like this:<<WHITE>>
 <<BLUE>>struct <<WHITE>>Foo

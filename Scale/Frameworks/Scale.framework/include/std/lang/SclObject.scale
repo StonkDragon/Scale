@@ -1,9 +1,8 @@
 import std.util.Cloneable
 import std.util.Equatable
 import std.util.Hashable
-import std.reflect.Struct
 
-struct SclObject is ICloneable, IEquatable, IHashable
+struct SclObject is Cloneable, Equatable, Hashable
     function ==(other: SclObject): bool
         other self:equals return
     end
@@ -15,10 +14,6 @@ struct SclObject is ICloneable, IEquatable, IHashable
     expect cdecl "_scl_atomic_clone" function clone(): SclObject
 
     expect cdecl "_scl_identity_hash" function hashCode(): int
-
-    sealed function getStruct() selfStruct: Struct
-        typeof self Struct::getStructByName return
-    end
 
     sealed function lock(): none
         self Process::lock
