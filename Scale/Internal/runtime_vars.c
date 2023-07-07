@@ -18,6 +18,10 @@ scl_any**       instances = nil;
 scl_int         instances_count = 0;
 scl_int         instances_cap = 64;
 
+scl_any*        arrays = nil;
+scl_int         arrays_count = 0;
+scl_int         arrays_capacity = 64;
+
 tls scl_any*    stackalloc_arrays = nil;
 tls scl_int*    stackalloc_array_sizes = nil;
 tls scl_int     stackalloc_arrays_count = 0;

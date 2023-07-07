@@ -8,9 +8,10 @@
 #include <regex>
 #include <unordered_map>
 #include <unordered_set>
+#include <stack>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); fflush(fp); } while (0)
 
 #undef INT_MAX
 #undef INT_MIN
@@ -190,6 +191,8 @@ namespace sclc {
     Interface* getInterfaceByName(TPResult result, std::string name);
     Method* getMethodByName(TPResult result, std::string name, std::string type);
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type);
+    Method* getMethodByNameWithArgs(TPResult result, std::string name, std::string type, bool doCheck = true);
+    Function* getFunctionByNameWithArgs(TPResult result, std::string name, bool doCheck = true);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
     Layout getLayout(TPResult result, std::string name);
@@ -222,6 +225,7 @@ namespace sclc {
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {
+        if (v.size() == 0) return false;
         return std::find(v.begin(), v.end(), val) != v.end();
     }
 

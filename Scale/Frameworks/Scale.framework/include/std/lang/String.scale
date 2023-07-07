@@ -18,7 +18,6 @@ private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl _data: [int8]
   private decl _len: int
-  private decl _iter: int
   private decl _hash: int
 
   function +(other: str): str
@@ -45,6 +44,12 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     other._data self:append return
   end
 
+  function append(cStr: [int8]): str
+    unsafe
+      self._data cStr concat str::new return
+    end
+  end
+
   function prepend(other: str): str
     other._data self:prepend return
   end
@@ -55,30 +60,15 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     end
   end
 
-  function append(cStr: [int8]): str
-    unsafe
-      self._data cStr concat str::new return
-    end
+  function equals(other: any): bool
+    if other is str ! then
+      false return
+    fi
+    self._hash other as str._hash == return
   end
 
-  function equals(other: str): bool
-    unsafe
-      self._data other._data __c_strcmp 0 == return
-    end
-  end
-
-  function ==(other: str): bool
+  function ==(other: any): bool
     other self:equals return
-  end
-
-  function ==(cStr: [int8]): bool
-    cStr self:equals return
-  end
-
-  function equals(cStr: [int8]): bool
-    unsafe
-      self._data cStr __c_strcmp 0 == return
-    end
   end
 
   function size(): int
@@ -88,8 +78,8 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   function at(i: int): int
     if i 0 < i self:size >= || then
       "Index " i:toString +
-      " is out of bounds for string with length " self:size:toString +
-      +
+      " is out of bounds for string with length " +
+      self:size:toString +
       IndexOutOfBoundsException::new throw
     fi
     self._data as int i + @:toInt8 as int return
@@ -204,23 +194,8 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       data __c_strlen => self._len
     end
     data => self._data
-    0 => self._iter
     data builtinHash => self._hash
   end
-
-  # function begin(): none
-  #   0 => self._iter
-  # end
-
-  # function hasNext(): bool
-  #   self._iter self._len < return
-  # end
-
-  # function next(): int8
-  #   self._iter self @
-  #   self._iter 1 + => self._iter
-  #   return
-  # end
 
   function iterate(): StringIterator
     self StringIterator::new return

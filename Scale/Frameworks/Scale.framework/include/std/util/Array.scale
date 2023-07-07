@@ -12,8 +12,6 @@ sealed struct Array is Iterable
   decl capacity:    readonly int
   decl initCap:     readonly int
 
-  private decl pos: readonly int
-
   private function checkTypeOrThrow(value: any): none end
   
   restrict function sort(): none
@@ -135,24 +133,9 @@ sealed struct Array is Iterable
     fi
     new[size] => self.values
     0 => self.count
-    0 => self.pos
     size => self.capacity
     size => self.initCap
   end
-
-  # function begin(): none
-  #   0 => self.pos
-  # end
-
-  # function hasNext(): bool
-  #   self.pos self.count < return
-  # end
-
-  # function next(): any?
-  #   self.pos self:get
-  #   self.pos 1 + => self.pos
-  #   return
-  # end
 
   function iterate(): ArrayIterator
     self ArrayIterator::new return

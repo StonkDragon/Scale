@@ -93,14 +93,6 @@ namespace sclc
             }
         }
 
-        std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
-        std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);
-        std::sort(result.containers.begin(), result.containers.end(), compare<Container>);
-        std::sort(result.structs.begin(), result.structs.end(), compare<Struct>);
-        std::sort(result.globals.begin(), result.globals.end(), compare<Variable>);
-        std::sort(result.extern_globals.begin(), result.extern_globals.end(), compare<Variable>);
-        std::sort(result.interfaces.begin(), result.interfaces.end(), compare<Interface*>);
-
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);
         ConvertC::writeStructs(fp, result, errors, warns);
@@ -109,36 +101,48 @@ namespace sclc
         ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
-        append("scl_any _scl_internal_init_functions[] = {\n");
+        append("_scl_constructor void init_this() {\n");
+        scopeDepth++;
+        append("_scl_setup();\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isInitFunction(f)) {
-                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
+                if (f->getArgs().size()) {
+                    FPResult result;
+                    result.success = false;
+                    result.message = "Constructor functions cannot have arguments";
+                    result.line = f->getNameToken().getLine();
+                    result.in = f->getNameToken().getFile();
+                    result.column = f->getNameToken().getColumn();
+                    result.type = f->getNameToken().getType();
+                    result.value = f->getNameToken().getValue();
+                    errors.push_back(result);
+                } else {
+                    append("Function_%s();\n", f->finalName().c_str());
+                }
             }
         }
-        append("  0\n");
-        append("};\n\n");
-        append("scl_any _scl_internal_destroy_functions[] = {\n");
+        scopeDepth--;
+        append("}\n\n");
+        append("_scl_destructor void destroy_this() {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isDestroyFunction(f)) {
-                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
+                if (f->getArgs().size()) {
+                    FPResult result;
+                    result.success = false;
+                    result.message = "Finalizer functions cannot have arguments";
+                    result.line = f->getNameToken().getLine();
+                    result.in = f->getNameToken().getFile();
+                    result.column = f->getNameToken().getColumn();
+                    result.type = f->getNameToken().getType();
+                    result.value = f->getNameToken().getValue();
+                    errors.push_back(result);
+                } else {
+                    append("Function_%s();\n", f->finalName().c_str());
+                }
             }
         }
-        append("  0\n");
-        append("};\n\n");
-
-        append("scl_any _scl_get_main_addr() {\n");
-        if (mainFunction && !Main.options.noMain) {
-            append("  return Function_main;\n");
-        } else {
-            append("  return NULL;\n");
-        }
-        append("}\n");
-
-        append("#ifdef __cplusplus\n");
-        append("}\n");
-        append("#endif\n");
-        append("/* END OF GENERATED CODE */\n");
-
+        append("}\n\n");
+        
         fclose(fp);
 
         FPResult parseResult;

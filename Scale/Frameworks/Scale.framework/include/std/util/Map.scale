@@ -1,5 +1,6 @@
 import std.util.Pair
 import std.util.Iterable
+import std.util.InvalidArgumentException
 
 final sealed struct MapEntry<T: any>
   decl key: str
@@ -24,39 +25,45 @@ end
 
 sealed struct Map<T: any> is Iterable
   private decl data: TypedArray
-  private decl valueType: str
 
   function init(size: int): none
     size TypedArray<MapEntry>::new => self.data
   end
 
-  function [](key: str): any?
+  function [](key: str): T
     key self:get return
   end
 
-  restrict function get(key: str): any?
-    foreach entry in self.data do
-      if entry nil == then continue fi
-
-      if entry!! as MapEntry.key nil == then continue fi
-      if key entry!! as MapEntry.key == then
-        entry!! as MapEntry.value return
+  restrict function get(key: str): T
+    for i in 0 to self.data.count do
+      self.data[i] => decl entry: MapEntry
+      if entry.key key == then
+        entry.value return
       fi
     done
-    nil return
+    "Key '" key + "' not found in map" + InvalidArgumentException::new throw
   end
 
   function =>[](key: str, value: T): none
     key value self:set
   end
 
+  function containsKey(key: str): bool
+    foreach entry in self.data do
+      if entry as MapEntry.key key == then
+        true return
+      fi
+    done
+    false return
+  end
+
   restrict function set(key: str, value: T): none
     for i in 0 to self.data.count do
       i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
-        i key value MapEntry<(self.valueType)>::new self.data:set
+        i (key value MapEntry<typeof T>::new) self.data:set
         return
-      elif entry as MapEntry.key key:equals then
+      elif entry as MapEntry.key key == then
         value => entry.value
         return
       fi

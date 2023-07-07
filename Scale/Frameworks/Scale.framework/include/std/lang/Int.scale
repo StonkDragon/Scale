@@ -127,16 +127,14 @@ struct Int
 
   expect static function valueOf(x: int): Int
 
-  function equals(other: int): bool
-    other self.value == return
+  function equals(other: any): bool
+    if other is Int then
+      other as Int.value self.value == return
+    else
+      other as int self.value == return
+    fi
   end
-  function ==(other: int): bool
-    other self:equals return
-  end
-  function equals(other: Int): bool
-    other.value self.value == return
-  end
-  function ==(other: Int): bool
+  function ==(other: any): bool
     other self:equals return
   end
   function @(): int
@@ -148,69 +146,69 @@ struct Int
   end
 end
 
-expect cdecl "op$add_ii" function +(:int, :int): int
-expect cdecl "op$sub_ii" function -(:int, :int): int
-expect cdecl "op$mul_ii" function *(:int, :int): int
-expect cdecl "op$div_ii" function /(:int, :int): int
-expect cdecl "op$pow_ii" function **(:int, :int): int
+expect operator "add_ii" function +(:int, :int): int
+expect operator "sub_ii" function -(:int, :int): int
+expect operator "mul_ii" function *(:int, :int): int
+expect operator "div_ii" function /(:int, :int): int
+expect operator "pow_ii" function **(:int, :int): int
 
-expect cdecl "op$add_if" function +(:int, :float): float
-expect cdecl "op$sub_if" function -(:int, :float): float
-expect cdecl "op$mul_if" function *(:int, :float): float
-expect cdecl "op$div_if" function /(:int, :float): float
-expect cdecl "op$pow_if" function **(:int, :float): float
+expect operator "add_if" function +(:int, :float): float
+expect operator "sub_if" function -(:int, :float): float
+expect operator "mul_if" function *(:int, :float): float
+expect operator "div_if" function /(:int, :float): float
+expect operator "pow_if" function **(:int, :float): float
 
-expect cdecl "op$add_fi" function +(:float, :int): float
-expect cdecl "op$sub_fi" function -(:float, :int): float
-expect cdecl "op$mul_fi" function *(:float, :int): float
-expect cdecl "op$div_fi" function /(:float, :int): float
-expect cdecl "op$pow_fi" function **(:float, :int): float
+expect operator "add_fi" function +(:float, :int): float
+expect operator "sub_fi" function -(:float, :int): float
+expect operator "mul_fi" function *(:float, :int): float
+expect operator "div_fi" function /(:float, :int): float
+expect operator "pow_fi" function **(:float, :int): float
 
-expect cdecl "op$add_ff" function +(:float, :float): float
-expect cdecl "op$sub_ff" function -(:float, :float): float
-expect cdecl "op$mul_ff" function *(:float, :float): float
-expect cdecl "op$div_ff" function /(:float, :float): float
-expect cdecl "op$pow_ff" function **(:float, :float): float
+expect operator "add_ff" function +(:float, :float): float
+expect operator "sub_ff" function -(:float, :float): float
+expect operator "mul_ff" function *(:float, :float): float
+expect operator "div_ff" function /(:float, :float): float
+expect operator "pow_ff" function **(:float, :float): float
 
-expect cdecl "op$eq_if" function ==(:int, :float): bool
-expect cdecl "op$ne_if" function !=(:int, :float): bool
-expect cdecl "op$gt_if" function >(:int, :float): bool
-expect cdecl "op$ge_if" function >=(:int, :float): bool
-expect cdecl "op$lt_if" function <(:int, :float): bool
-expect cdecl "op$le_if" function <=(:int, :float): bool
+expect operator "eq_if" function ==(:int, :float): bool
+expect operator "ne_if" function !=(:int, :float): bool
+expect operator "gt_if" function >(:int, :float): bool
+expect operator "ge_if" function >=(:int, :float): bool
+expect operator "lt_if" function <(:int, :float): bool
+expect operator "le_if" function <=(:int, :float): bool
 
-expect cdecl "op$eq_fi" function ==(:float, :int): bool
-expect cdecl "op$ne_fi" function !=(:float, :int): bool
-expect cdecl "op$gt_fi" function >(:float, :int): bool
-expect cdecl "op$ge_fi" function >=(:float, :int): bool
-expect cdecl "op$lt_fi" function <(:float, :int): bool
-expect cdecl "op$le_fi" function <=(:float, :int): bool
+expect operator "eq_fi" function ==(:float, :int): bool
+expect operator "ne_fi" function !=(:float, :int): bool
+expect operator "gt_fi" function >(:float, :int): bool
+expect operator "ge_fi" function >=(:float, :int): bool
+expect operator "lt_fi" function <(:float, :int): bool
+expect operator "le_fi" function <=(:float, :int): bool
 
-expect cdecl "op$eq_ff" function ==(:float, :float): bool
-expect cdecl "op$ne_ff" function !=(:float, :float): bool
-expect cdecl "op$gt_ff" function >(:float, :float): bool
-expect cdecl "op$ge_ff" function >=(:float, :float): bool
-expect cdecl "op$lt_ff" function <(:float, :float): bool
-expect cdecl "op$le_ff" function <=(:float, :float): bool
+expect operator "eq_ff" function ==(:float, :float): bool
+expect operator "ne_ff" function !=(:float, :float): bool
+expect operator "gt_ff" function >(:float, :float): bool
+expect operator "ge_ff" function >=(:float, :float): bool
+expect operator "lt_ff" function <(:float, :float): bool
+expect operator "le_ff" function <=(:float, :float): bool
 
-expect cdecl "op$eq_ii" function ==(:any, :any): bool
-expect cdecl "op$ne_ii" function !=(:any, :any): bool
-expect cdecl "op$gt_ii" function >(:any, :any): bool
-expect cdecl "op$ge_ii" function >=(:any, :any): bool
-expect cdecl "op$lt_ii" function <(:any, :any): bool
-expect cdecl "op$le_ii" function <=(:any, :any): bool
+expect operator "eq_ii" function ==(:int, :int): bool
+expect operator "ne_ii" function !=(:int, :int): bool
+expect operator "gt_ii" function >(:int, :int): bool
+expect operator "ge_ii" function >=(:int, :int): bool
+expect operator "lt_ii" function <(:int, :int): bool
+expect operator "le_ii" function <=(:int, :int): bool
 
-expect cdecl "op$and" function &&(:bool, :bool): bool
-expect cdecl "op$or" function ||(:bool, :bool): bool
-expect cdecl "op$not" function !(:bool): bool
+expect operator "and" function &&(:bool, :bool): bool
+expect operator "or" function ||(:bool, :bool): bool
+expect operator "not" function !(:bool): bool
 
-expect cdecl "op$mod" function %(:int, :int): int
-expect cdecl "op$land" function &(:int, :int): int
-expect cdecl "op$lor" function |(:int, :int): int
-expect cdecl "op$lxor" function ^(:int, :int): int
-expect cdecl "op$lnot" function ~(:int): int
-expect cdecl "op$lsl" function <<(:int, :int): int
-expect cdecl "op$lsr" function >>(:int, :int): int
+expect operator "mod" function %(:int, :int): int
+expect operator "land" function &(:int, :int): int
+expect operator "lor" function |(:int, :int): int
+expect operator "lxor" function ^(:int, :int): int
+expect operator "lnot" function ~(:int): int
+expect operator "lsl" function <<(:int, :int): int
+expect operator "lsr" function >>(:int, :int): int
 
 deprecated![since: "23.5", replacement: "int::toInt8"]
 function toInt8(value: any): int8

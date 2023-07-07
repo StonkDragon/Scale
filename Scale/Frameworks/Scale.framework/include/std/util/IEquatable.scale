@@ -1,4 +1,4 @@
 interface Equatable
-    function ==(other: ?): bool
-    function equals(other: ?): bool
+    function ==(other: any): bool
+    function equals(other: any): bool
 end

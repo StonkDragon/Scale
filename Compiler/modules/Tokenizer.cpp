@@ -562,6 +562,7 @@ namespace sclc
                                     return r;
                                 }
                                 auto file = find.in;
+                                file = std::filesystem::absolute(file).string();
                                 if (!contains(Main.options.files, file)) {
                                     Main.options.files.push_back(file);
                                 }
@@ -610,6 +611,7 @@ namespace sclc
                     return r;
                 }
                 file = find.in;
+                file = std::filesystem::absolute(file).string();
                 if (!contains(Main.options.files, file)) {
                     Main.options.files.push_back(file);
                 }

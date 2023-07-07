@@ -5,6 +5,6 @@ function main(): none
     "Apple" => map["A"]
     "Banana" " " + "Pineapple" + => map["B"]
     
-    "A" map:get puts
-    "B" map:get puts
+    map["A"] puts
+    map["B"] puts
 end

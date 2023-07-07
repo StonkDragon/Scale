@@ -29,7 +29,7 @@ namespace sclc
         bool isPrivate;
         bool hasNamedReturnValue;
         Deprecation deprecated;
-        std::vector<std::string> overloads;
+        std::vector<Function*> overloads;
         std::string templateArg;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
@@ -56,9 +56,17 @@ namespace sclc
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
+        virtual std::string getMemberType() {
+            return member_type;
+        }
+        virtual void setMemberType(std::string member_type) {
+            this->member_type = member_type;
+        }
 
         virtual bool operator==(const Function& other) const;
+        virtual bool operator!=(const Function& other) const;
         virtual bool operator==(const Function* other) const;
+        virtual bool operator!=(const Function* other) const;
     };
     
     class Method : public Function {
@@ -68,12 +76,6 @@ namespace sclc
             this->member_type = member_type;
             this->isMethod = true;
             this->force_add = false;
-        }
-        std::string getMemberType() {
-            return member_type;
-        }
-        void setMemberType(std::string member_type) {
-            this->member_type = member_type;
         }
         bool addAnyway() {
             return force_add;

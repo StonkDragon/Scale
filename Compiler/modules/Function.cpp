@@ -49,7 +49,8 @@ std::string Function::finalName() {
     if (
         !isMethod && 
         (
-            (isInitFunction(this) || isDestroyFunction(this)) ||
+            isInitFunction(this) ||
+            isDestroyFunction(this) ||
             contains<std::string>(this->getModifiers(), "private")
         )
     ) {
@@ -108,6 +109,9 @@ Token Function::getNameToken() {
 void Function::setNameToken(Token t) {
     this->nameToken = t;
 }
+bool Function::operator!=(const Function& other) const {
+    return !(*this == other);
+}
 bool Function::operator==(const Function& other) const {
     if (other.isMethod && !this->isMethod) return false;
     if (!other.isMethod && this->isMethod) return false;
@@ -118,6 +122,9 @@ bool Function::operator==(const Function& other) const {
         return name == other.name && thisM->getMemberType() == otherM->getMemberType();
     }
     return name == other.name;
+}
+bool Function::operator!=(const Function* other) const {
+    return !(*this == other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;

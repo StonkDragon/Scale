@@ -86,17 +86,23 @@ final sealed struct Thread
         nil => self.tid
     end
 
-    restrict function equals(other: Thread): bool
-        other:lock
-        self other ==
-        other:unlock
+    restrict function equals(other: any): bool
+        if other is Thread ! then
+            false return
+        fi
+        other as Thread:lock
+        self other as Thread ==
+        other as Thread:unlock
         return
     end
 
-    restrict function ==(other: Thread): bool
-        other:lock
-        self.tid other.tid ==
-        other:unlock
+    restrict function ==(other: any): bool
+        if other is Thread ! then
+            false return
+        fi
+        other as Thread:lock
+        self.tid as int other as Thread.tid as int ==
+        other as Thread:unlock
         return
     end
 end

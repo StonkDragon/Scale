@@ -58,15 +58,18 @@
 #endif
 
 #if defined(__APPLE__)
-#define LIB_SCALE_FILENAME "libScaleRT.dylib"
-#define LIB_SCALE_STATIC   "libScaleRT.a"
+#define LIB_SCALE_FILENAME "libScaleRuntime.dylib"
+#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
+#define LIB_SCALE_EXT ".dylib"
 #elif defined(__linux__)
-#define LIB_SCALE_FILENAME "libScaleRT.so"
-#define LIB_SCALE_STATIC   "libScaleRT.a"
+#define LIB_SCALE_FILENAME "libScaleRuntime.so"
+#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
+#define LIB_SCALE_EXT ".so"
 #elif defined(_WIN32)
 // defined, but not used
-#define LIB_SCALE_FILENAME "ScaleRT.dll"
-#define LIB_SCALE_STATIC   "ScaleRT.lib"
+#define LIB_SCALE_FILENAME "ScaleRuntime.dll"
+#define LIB_SCALE_FILENAME_NO_EXT "ScaleRuntime"
+#define LIB_SCALE_EXT ".dll"
 #endif
 
 #define TO_STRING2(x) #x
@@ -89,6 +92,7 @@ namespace sclc
         std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
         std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
         std::cout << "  -run                 Run the compiled program" << std::endl;
+        std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
@@ -595,6 +599,7 @@ namespace sclc
 #endif
             "-undefined",
             "dynamic_lookup",
+            "-lgc",
             "-I" + scaleFolder + "/Internal",
             scaleFolder + "/Internal/runtime_vars.c",
             scaleFolder + "/Internal/scale_runtime.c",
@@ -628,11 +633,12 @@ namespace sclc
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O2";
         bool hasCppFiles        = false;
+        bool hasFilesFromArgs   = false;
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
 
-        std::string libScaleRTFileName = std::string(LIB_SCALE_FILENAME);
-        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRTFileName)) {
+        std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
+        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
             int ret = compileRuntimeLib();
             if (ret) {
                 std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
@@ -680,8 +686,11 @@ namespace sclc
                 if (!fileExists(args[i])) {
                     continue;
                 }
-                if (!contains(Main.options.files, args[i]))
-                    Main.options.files.push_back(args[i]);
+                std::string file = std::filesystem::absolute(args[i]).string();
+                if (!contains(Main.options.files, file)) {
+                    Main.options.files.push_back(file);
+                    hasFilesFromArgs = true;
+                }
             } else {
                 if (args[i] == "--transpile" || args[i] == "-t") {
                     Main.options.transpileOnly = true;
@@ -724,7 +733,6 @@ namespace sclc
                     tmpFlags.push_back("-S");
                 } else if (args[i] == "--no-main" || args[i] == "-no-main") {
                     Main.options.noMain = true;
-                    tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
                 } else if (args[i] == "-no-minify") {
                     Main.options.minify = false;
                 } else if (args[i] == "-v" || args[i] == "--version") {
@@ -755,6 +763,18 @@ namespace sclc
                     tmpFlags.push_back("-DSCL_DEBUG=1");
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
+                } else if (args[i] == "-makelib") {
+                    tmpFlags.push_back(
+        #if defined(__APPLE__)
+                    "-dynamiclib"
+        #else
+                    "-shared"
+        #endif
+                    );
+                    tmpFlags.push_back("-undefined");
+                    tmpFlags.push_back("dynamic_lookup");
+                    Main.options.noMain = true;
+                    tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
                 } else if (args[i] == "--dump-parsed-data") {
                     Main.options.dumpInfo = true;
                 } else if (args[i] == "-demangle-symbol") {
@@ -815,29 +835,26 @@ namespace sclc
             }
         }
 
+        if (!hasFilesFromArgs) {
+            Main.options.noMain = true;
+        }
+
         std::vector<std::string> cflags;
         Main.options.optimizer = optimizer;
 
         if (!Main.options.printCflags)
             cflags.push_back(compiler);
 
-        if (Main.options.files.size() != 0) {
-            cflags.push_back("-I" + scaleFolder + "/Internal");
-            cflags.push_back("-I" + scaleFolder + "/Frameworks");
-            cflags.push_back("-I.");
-            cflags.push_back("-L" + scaleFolder + "/Internal");
-            cflags.push_back("-lScaleRT");
-            cflags.push_back("-lgc");
-            cflags.push_back("-" + optimizer);
-            cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-            cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
-        }
-
-        std::string source;
-        if (Main.options.files.size() == 0 && Main.options.printDocFor.size() == 0 && !Main.options.printDocs) {
-            goto actAsCCompiler;
-        }
+        cflags.push_back("-I" + scaleFolder + "/Internal");
+        cflags.push_back("-I" + scaleFolder + "/Frameworks");
+        cflags.push_back("-I.");
+        cflags.push_back("-L" + scaleFolder + "/Internal");
+        cflags.push_back("-lScaleRuntime");
+        cflags.push_back("-" + optimizer);
+        cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+        cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
         
+        std::string source;
         {
             bool alreadyIncluded = false;
             for (auto f : frameworks) {
@@ -1043,6 +1060,7 @@ namespace sclc
                 auto mod = findModule("std");
                 if (mod) {
                     for (auto file : *mod) {
+                        file = std::filesystem::absolute(file).string();
                         if (!contains(Main.options.files, file)) {
                             Main.options.files.push_back(file);
                         }
@@ -1419,13 +1437,6 @@ namespace sclc
             cflags.push_back("-o");
             cflags.push_back("\"" + outfile + "\"");
         }
-
-        if (Main.options.mainReturnsNone) {
-            tmpFlags.push_back("-DSCL_MAIN_RETURN_NONE");
-        }
-        tmpFlags.push_back("-DSCL_MAIN_ARG_COUNT=" + std::to_string(Main.options.mainArgCount));
-
-    actAsCCompiler:
 
         for (std::string s : tmpFlags) {
             cflags.push_back(s);

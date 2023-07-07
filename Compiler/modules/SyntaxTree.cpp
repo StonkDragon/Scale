@@ -578,7 +578,6 @@ namespace sclc {
         Struct* currentStruct = nullptr;
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
-        std::vector<std::string> currentOverloads;
 
         int isInLambda = 0;
         int isInUnsafe = 0;
@@ -780,8 +779,6 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
-                        currentFunction->overloads = currentOverloads;
-                        currentOverloads.clear();
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
@@ -815,8 +812,6 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
-                    currentFunction->overloads = currentOverloads;
-                    currentOverloads.clear();
                     currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
@@ -849,8 +844,6 @@ namespace sclc {
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
                         currentFunction = parseMethod(name, func, "", errors, nextAttributes, i, tokens);
-                        currentFunction->overloads = currentOverloads;
-                        currentOverloads.clear();
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -871,8 +864,6 @@ namespace sclc {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
                         Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
-                        functionToImplement->overloads = currentOverloads;
-                        currentOverloads.clear();
                         functionToImplement->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
@@ -900,8 +891,6 @@ namespace sclc {
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
                     currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
-                    currentFunction->overloads = currentOverloads;
-                    currentOverloads.clear();
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
@@ -920,8 +909,6 @@ namespace sclc {
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
                     currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
-                    currentFunction->overloads = currentOverloads;
-                    currentOverloads.clear();
                     currentFunction->deprecated = currentDeprecation;
                     currentDeprecation.clear();
                 }
@@ -1892,6 +1879,7 @@ namespace sclc {
                            t.getValue() == "intrinsic" ||
                            t.getValue() == "autoimpl" ||
                            t.getValue() == "restrict" ||
+                           t.getValue() == "operator" ||
                            t.getValue() == "default" ||
                            t.getValue() == "private" ||
                            t.getValue() == "static" ||
@@ -2040,33 +2028,33 @@ namespace sclc {
         }
 
         for (Function* self : joinVecs(functions, extern_functions)) {
-            if (self->isMethod) continue;
+            if (self->isMethod) {
+                Function* f2 = self;
+                Method* self = (Method*) f2;
+                std::string name = self->getName();
+                self->overloads.push_back(self);
+                if (name.find("$$ol") != std::string::npos) {
+                    name = name.substr(0, name.find("$$ol"));
+                }
+                for (Function* f : joinVecs(functions, extern_functions)) {
+                    if (f == self) continue;
+                    if (!f->isMethod) continue;
+                    if ((strstarts(f->getName(), name + "$$ol") || f->getName() == name) && ((Method*)f)->getMemberType() == self->getMemberType()) {
+                        self->overloads.push_back(f);
+                    }
+                }
+                continue;
+            }
             std::string name = self->getName();
+            self->overloads.push_back(self);
             if (name.find("$$ol") != std::string::npos) {
                 name = name.substr(0, name.find("$$ol"));
             }
-            self->overloads.push_back(self->getName());
             for (Function* f : joinVecs(functions, extern_functions)) {
                 if (f == self) continue;
                 if (f->isMethod) continue;
                 if (strstarts(f->getName(), name + "$$ol") || f->getName() == name) {
-                    self->overloads.push_back(f->getName());
-                }
-            }
-        }
-        for (Function* selfF : joinVecs(functions, extern_functions)) {
-            if (!selfF->isMethod) continue;
-            Method* self = (Method*) selfF;
-            std::string name = self->getName();
-            if (name.find("$$ol") != std::string::npos) {
-                name = name.substr(0, name.find("$$ol"));
-            }
-            self->overloads.push_back(self->getName());
-            for (Function* f : joinVecs(functions, extern_functions)) {
-                if (f == self) continue;
-                if (!f->isMethod) continue;
-                if ((strstarts(f->getName(), name + "$$ol") || f->getName() == name) && ((Method*)f)->getMemberType() == self->getMemberType()) {
-                    self->overloads.push_back(f->getName());
+                    self->overloads.push_back(f);
                 }
             }
         }

@@ -1,20 +1,21 @@
 function main(): none
   # FizzBuzz is a famous example of showing that
   # a programming language is turing complete
-  1 while dup 100 < do
-    if dup 15 % 0 == then
+  1 => decl i: int
+  while i 100 < do
+    if i 15 % 0 == then
       "FizzBuzz" puts
-    elif dup 3 % 0 == then
+    elif i 3 % 0 == then
       "Fizz" puts
-    elif dup 5 % 0 == then
+    elif i 5 % 0 == then
       "Buzz" puts
     else
       # we have to cast to int here because the typechecker
       # can't infer types from different scopes
-      as int dup putint
+      i putint
     fi
     # this magic cast is here so the compiler doesn't segfault
     # needs to be fixed asap
-    as int 1 +
-  done drop
+    i 1 + => i
+  done
 end

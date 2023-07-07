@@ -5,6 +5,7 @@
 #endif
 
 #include <unordered_set>
+#include <stack>
 
 namespace sclc
 {
@@ -405,8 +406,11 @@ namespace sclc
         }
         return r;
     }
+    
+    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
 
-    Function* getFunctionByName(TPResult result, std::string name) {
+    Function* getFunctionByNameWithArgs(TPResult result, std::string name, bool doCheck) {
+        (void) doCheck;
         if (name == "+") name = "operator$add";
         if (name == "-") name = "operator$sub";
         if (name == "*") name = "operator$mul";
@@ -454,6 +458,10 @@ namespace sclc
         return nullptr;
     }
 
+    Function* getFunctionByName(TPResult result, std::string name) {
+        return getFunctionByNameWithArgs(result, name, false);
+    }
+
     bool hasEnum(TPResult result, std::string name) {
         return getEnumByName(result, name).getName().size() != 0;
     }
@@ -475,8 +483,9 @@ namespace sclc
         }
         return nullptr;
     }
-    
-    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+
+    Method* getMethodByNameWithArgs(TPResult result, std::string name, std::string type, bool doCheck) {
+        (void) doCheck;
         type = sclConvertToStructType(type);
 
         if (name == "+") name = "operator$add";
@@ -508,6 +517,7 @@ namespace sclc
         if (name == "=>[]") name = "operator$set";
         if (name == "[]") name = "operator$get";
         if (name == "?") name = "operator$wildcard";
+        name = replaceAll(name, R"(\$\$ol\d+)", "");
 
         if (type == "") {
             return nullptr;
@@ -515,13 +525,13 @@ namespace sclc
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
                 return (Method*) func;
             }
         }
         for (Function* func : result.extern_functions) {
             if (!func->isMethod) continue;
-            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
+            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
                 return (Method*) func;
             }
         }
@@ -529,9 +539,12 @@ namespace sclc
         if (getInterfaceByName(result, type)) {
             return nullptr;
         }
-        return getMethodByName(result, name, s.extends());
+        return getMethodByNameWithArgs(result, name, s.extends(), doCheck);
     }
 
+    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        return getMethodByNameWithArgs(result, name, type, false);
+    }
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type) {
         Method* method = getMethodByName(result, name, type);
         return (method == nullptr || method->getMemberType() != sclConvertToStructType(type)) ? nullptr : method;
@@ -653,7 +666,6 @@ namespace sclc
     bool hasFunction(TPResult result, Token name) {
         return hasFunction(result, name.getValue());
     }
-
 
     std::vector<std::string> supersToVector(TPResult r, Struct s) {
         std::vector<std::string> v;

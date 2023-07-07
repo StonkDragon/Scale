@@ -217,51 +217,52 @@ typedef unsigned char		scl_uint8;
 typedef void(*_scl_lambda)(void);
 
 struct _scl_methodinfo {
-	_scl_lambda				ptr;
-	scl_int					pure_name;
-	scl_any					actual_handle;
-	scl_int8*				actual_name;
-	scl_int					signature;
-	scl_int8*				signature_str;
+	const _scl_lambda					ptr;
+	const scl_int						pure_name;
+	const scl_any						actual_handle;
+	const scl_int8* const				actual_name;
+	const scl_int						signature;
+	const scl_int8* const				signature_str;
 };
 
 struct _scl_membertype {
-	scl_int					pure_name;
-	scl_int8*				actual_name;
-	scl_int8*				type_name;
-	scl_int					offset;
-	scl_int					access_flags;
+	const scl_int						pure_name;
+	const scl_int8* const				actual_name;
+	const scl_int8* const				type_name;
+	const scl_int						offset;
+	const scl_int						access_flags;
 };
 
 struct _scl_typeinfo {
-	scl_int					type;
-	scl_int					super;
-	scl_int					alloc_size;
-	scl_int8*				name;
-	scl_int					memberscount;
-	struct _scl_membertype*	members;
-	scl_int					methodscount;
-	struct _scl_methodinfo*	methods;
-	scl_int					isStatic;
+	const scl_int						type;
+	const scl_int						super;
+	const scl_int						alloc_size;
+	const scl_int8* const				name;
+	const scl_int						memberscount;
+	const struct _scl_membertype* const	members;
+	const scl_int						methodscount;
+	const struct _scl_methodinfo* const	methods;
+	const scl_int						isStatic;
 };
 
 typedef struct StaticMembers {
-	scl_int			type;
-	scl_int8*		type_name;
-	scl_int			super;
-	scl_int			size;
-	struct _scl_methodinfo*	vtable;
-	struct _scl_methodinfo*	super_vtable;
-	scl_int*		supers;
+	const scl_int						type;
+	const scl_int8*						type_name;
+	const scl_int						super;
+	const scl_int						size;
+	const scl_int						vtable_size;
+	const struct _scl_methodinfo* const	vtable;
+	const scl_int						super_vtable_size;
+	const struct _scl_methodinfo* const	super_vtable;
+	const scl_int*						supers;
 } StaticMembers;
 
 struct scaleString {
-	StaticMembers*			$statics;
-	mutex_t					$mutex;
-	scl_int8*				_data;
-	scl_int					_len;
-	scl_int					_iter;
-	scl_int					_hash;
+	const StaticMembers* const			$statics;
+	const mutex_t						$mutex;
+	scl_int8*							_data;
+	scl_int								_len;
+	scl_int								_hash;
 };
 
 #if defined(__ANDROID__)
@@ -310,6 +311,10 @@ typedef union {
 	scl_str		s;
 	scl_float	f;
 	scl_any		v;
+	struct {
+		StaticMembers*	$statics;
+		mutex_t			$mutex;
+	}*			o;
 } _scl_frame_t;
 
 typedef struct {
@@ -324,22 +329,44 @@ typedef struct {
 	scl_int			cap;
 } _scl_callstack_t;
 
-// Create a new instance of a struct that does not directly extend SclObject
-#define NEW(_type, _super)		({ extern struct _scl_methodinfo _scl_vtable_ ## _type []; extern struct _scl_methodinfo _scl_vtable_ ## _super []; extern StaticMembers _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), hash1(# _super), _scl_vtable_ ## _type, _scl_vtable_ ## _super, &_scl_statics_ ## _type); })
 // Create a new instance of a struct
-#define NEW0(_type)				({ extern struct _scl_methodinfo _scl_vtable_ ## _type []; extern struct _scl_methodinfo _scl_vtable_SclObject[]; extern StaticMembers _scl_statics_ ## _type; extern const hash SclObjectHash; _scl_alloc_struct(sizeof(struct Struct_ ## _type), (#_type), SclObjectHash, _scl_vtable_ ## _type, _scl_vtable_SclObject, &_scl_statics_ ## _type); })
-// Create a new instance of SclObject
-#define NEWOBJ()				({ extern struct _scl_methodinfo _scl_vtable_SclObject[]; extern StaticMembers _scl_statics_SclObject; _scl_alloc_struct(sizeof(struct Struct_SclObject), "SclObject", 0, _scl_vtable_SclObject, NULL, &_scl_statics_SclObject); })
+#define ALLOC(_type)	({ extern const StaticMembers _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
 
+// Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
+// Try to cast the given instance to the given type
 #define CAST(_obj, _type) CAST0(_obj, _type, hash1(#_type))
 
+// Check vtable bounds
+#define VTABLE_BOUNDS_CHECK(_vtable_size, _index) _scl_assert(_index < _vtable_size, "Index for vtable out of bounds")
+
+#define TRY			if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666)
+
+// Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
+
+#define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
 
 extern tls _scl_stack_t _stack;
 
+// call a method on an instance
+// returns `nil` if the method return type is `none`
+scl_any				virtual_call(scl_any instance, scl_int8* methodIdentifier, ...);
+// call a method on the super class of an instance
+// returns `nil` if the method return type is `none`
+scl_any				virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...);
+// call a method on an instance
+scl_float			virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...);
+// call a method on the super class of an instance
+scl_float			virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...);
+
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
+
+_scl_constructor
+void				_scl_setup();
+_scl_destructor
+void				_scl_shutdown();
 
 void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
@@ -369,13 +396,13 @@ void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push();
-void				_scl_throw(void* ex);
-int					_scl_run(int argc, char** argv);
+void				_scl_throw(scl_any ex);
+int					_scl_run(int argc, char** argv, scl_any main);
 
 const hash			hash1(const scl_int8* data);
 const hash			hash1len(const scl_int8* data, size_t len);
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(scl_int size, scl_int8* type_name, hash super, struct _scl_methodinfo* vtable, struct _scl_methodinfo* super_vtable, StaticMembers* statics);
+scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
@@ -383,17 +410,14 @@ scl_any				_scl_get_method_on_type(scl_any type, hash method, hash signature, in
 void				_scl_call_method_or_throw(scl_any instance, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
 scl_int8**			_scl_callstack_push();
 
-scl_any				_scl_msg_send(scl_any instance, scl_int8* methodIdentifier, ...);
-scl_any				_scl_msg_send_super(scl_any instance, scl_int8* methodIdentifier, ...);
-scl_float			_scl_msg_sendf(scl_any instance, scl_int8* methodIdentifier, ...);
-scl_float			_scl_msg_send_superf(scl_any instance, scl_int8* methodIdentifier, ...);
-
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
 scl_int				_scl_stack_index(_scl_stack_t* stack);
 void				_scl_remove_stack_at(scl_int index);
+scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 
 scl_any*			_scl_new_array(scl_int num_elems);
+scl_int				_scl_is_array(scl_any* arr);
 scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]);
 scl_int				_scl_array_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);

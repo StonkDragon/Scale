@@ -23,6 +23,10 @@ final static sealed struct any
         return
     end
 
+    function referenceEquals(one: any, other: any): bool
+        one as int other as int == return
+    end
+
     expect cdecl "Any$valueOf" function asReference(x: any): Any
 
     cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
@@ -34,16 +38,14 @@ struct Any
     expect static function valueOf(x: any): Any
 
     function equals(other: any): bool
-        other self.value == return
+        other self == return
     end
     function ==(other: any): bool
-        other self:equals return
-    end
-    function equals(other: Any): bool
-        other.value self.value == return
-    end
-    function ==(other: Any): bool
-        other self:equals return
+        if other is Any then
+            other as Any.value as int self.value as int == return
+        else
+            other self.value == return
+        fi
     end
     function @(): any
         self.value return

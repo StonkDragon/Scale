@@ -49,11 +49,10 @@ typedef struct Struct_IllegalStateException {
 
 typedef struct Struct_Array {
 	Struct rtFields;
-	scl_any values;
+	scl_any* values;
 	scl_int count;
 	scl_int capacity;
 	scl_int initCapacity;
-	scl_int pos;
 }* scl_Array;
 
 typedef struct Struct_ReadOnlyArray {
@@ -197,10 +196,10 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 			if (index >= 0 && index < stackalloc_array_sizes[i]) {
 				return;
 			}
-			scl_IndexOutOfBoundsException e = NEW(IndexOutOfBoundsException, Exception);
+			scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 			scl_int8* str = _scl_alloc(64);
 			snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[i]);
-			_scl_msg_send(e, "IndexOutOfBoundsException:init(s;)V;", str_of(str));
+			virtual_call(e, "IndexOutOfBoundsException:init(s;)V;", str_of(str));
 			_scl_throw(e);
 		}
 	}
@@ -357,8 +356,8 @@ scl_any _scl_alloc(scl_int size) {
 // the memory will always have a size of a multiple of sizeof(scl_int)
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (size == 0) {
-		scl_NullPointerException* ex = NEW(NullPointerException, Exception);
-		_scl_msg_send(ex, "init()V;");
+		scl_NullPointerException* ex = ALLOC(NullPointerException);
+		virtual_call(ex, "init()V;");
 		ex->self.msg = str_of("realloc() called with size 0");
 		_scl_throw(ex);
 	}
@@ -423,16 +422,16 @@ void _scl_assert(scl_int b, scl_int8* msg, ...) {
 		va_end(list);
 
 		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s\n", _scl_strdup(cmsg));
-		scl_AssertError* err = NEW(AssertError, Error);
-		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
+		scl_AssertError* err = ALLOC(AssertError);
+		virtual_call(err, "init(s;)V;", str_of(cmsg));
 
 		_scl_throw(err);
 	}
 }
 
 void builtinUnreachable() {
-	scl_UnreachableError* err = NEW(UnreachableError, Error);
-	_scl_msg_send(err, "init(s;)V;", str_of("Unreachable!"));
+	scl_UnreachableError* err = ALLOC(UnreachableError);
+	virtual_call(err, "init(s;)V;", str_of("Unreachable!"));
 
 	_scl_throw(err);
 }
@@ -482,56 +481,38 @@ scl_Int Int$valueOf(scl_int val) {
 	if (val >= -128 && val <= 127) {
 		return &_ints[val + 128];
 	}
-	scl_Int new = NEW(Int, SclObject);
+	scl_Int new = ALLOC(Int);
 	new->value = val;
 	return new;
 }
 
 scl_Float Float$valueOf(scl_float val) {
-	scl_Float new = NEW(Float, SclObject);
+	scl_Float new = ALLOC(Float);
 	new->value = val;
 	return new;
 }
 
-extern const scl_int _scl_internal_string_literals_count;
-extern struct scaleString _scl_internal_string_literals[];
-
-scl_int _scl_find_string_in_literals(scl_int8* str, scl_int len) {
-	scl_int index = -1;
-
-	for (scl_int i = 0; i < _scl_internal_string_literals_count; i++) {
-		if (_scl_internal_string_literals[i]._len != len) continue;
-		if (strncmp(_scl_internal_string_literals[i]._data, str, len) == 0) {
-			index = i;
-			break;
-		}
-	}
-	return index;
-}
-
 scl_str _scl_create_string(scl_int8* data) {
-	scl_int len = strlen(data);
-	scl_int index = _scl_find_string_in_literals(data, len);
-
-	if (index != -1) {
-		scl_str s = (scl_str) &(_scl_internal_string_literals[index]);
-		if (!s->$mutex) {
-			s->$mutex = _scl_mutex_new();
-			s->_hash = hash1len(data, len);
-		}
-		_scl_add_struct(s);
-		return s;
-	}
-
-	scl_str self = NEW0(str);
+	scl_str self = ALLOC(str);
 	if (_scl_expect(self == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return nil;
 	}
-	self->_len = len;
-	self->_hash = hash1len(data, len);
+	self->_len = strlen(data);
+	self->_hash = hash1len(data, self->_len);
 	self->_data = _scl_strndup(data, self->_len);
 	return self;
+}
+
+scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
+	scl_Array arr = ALLOC(ReadOnlyArray);
+	_scl_struct_allocation_failure(REINTERPRET_CAST(scl_int, arr), "ReadOnlyArray");
+	virtual_call(arr, "init(i;)V;", count);
+	for (scl_int i = 0; i < count; i++) {
+		arr->values[i] = va_arg(args, scl_any);
+	}
+	arr->count = count;
+	return arr;
 }
 
 void nativeTrace();
@@ -638,7 +619,7 @@ void _scl_default_signal_handler(scl_int sig_num) {
 
 // Converts C nil-terminated array to ReadOnlyArray-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-	struct Struct_Array* array = NEW(ReadOnlyArray, Array);
+	struct Struct_Array* array = ALLOC(ReadOnlyArray);
 	scl_int cap = 0;
 	while (arr[cap] != nil) {
 		cap++;
@@ -684,12 +665,12 @@ scl_uint _scl_rotr(const scl_uint value, scl_int shift) {
 
 scl_int _scl_identity_hash(scl_any _obj) {
 	if (!_scl_is_instance_of(_obj, SclObjectHash)) {
-		return *(scl_int*) &_obj;
+		return REINTERPRET_CAST(scl_int, _obj);
 	}
 	Struct* obj = (Struct*) _obj;
 	Process$lock((volatile scl_any) obj);
 	scl_int size = obj->statics->size;
-	scl_int hash = (*(scl_int*) &obj) % 17;
+	scl_int hash = REINTERPRET_CAST(scl_int, obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((char*) obj)[i];
 	}
@@ -757,38 +738,38 @@ static size_t str_num_of_occurences(scl_int8* str, char c) {
 	return count;
 }
 
-scl_any _scl_msg_send_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap);
+scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap);
 
-scl_any _scl_msg_send(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_any virtual_call(scl_any instance, scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
-	scl_any result = _scl_msg_send_impl(0, instance, methodIdentifier, ap);
+	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
 	va_end(ap);
 	return result;
 }
 
-scl_any _scl_msg_send_super(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_any virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
-	scl_any result = _scl_msg_send_impl(1, instance, methodIdentifier, ap);
+	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
 	va_end(ap);
 	return result;
 }
 
-scl_float _scl_msg_sendf(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_float virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
-	scl_any result = _scl_msg_send_impl(0, instance, methodIdentifier, ap);
+	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
 	va_end(ap);
-	return *(scl_float*) &result;
+	return REINTERPRET_CAST(scl_float, result);
 }
 
-scl_float _scl_msg_send_superf(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_float virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
-	scl_any result = _scl_msg_send_impl(1, instance, methodIdentifier, ap);
+	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
 	va_end(ap);
-	return *(scl_float*) &result;
+	return REINTERPRET_CAST(scl_float, result);
 }
 
 void dumpStack();
@@ -796,10 +777,10 @@ void dumpStack();
 #define strequals(a, b) (strcmp(a, b) == 0)
 #define strstarts(a, b) (strncmp((a), (b), strlen((b))) == 0)
 
-void _scl_msg_send_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier);
+void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier);
 
-scl_any _scl_msg_send_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap) {
-	*(_scl_callstack_push()) = "<runtime _scl_msg_send_impl(onSuper: int32, instance: any, methodIdentifier: int32, :varargs): any>";
+scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap) {
+	*(_scl_callstack_push()) = "<runtime virtual_call_impl(onSuper: int32, instance: any, methodIdentifier: int32, :varargs): any>";
 	size_t methodLen = strlen(methodIdentifier);
 	scl_int8* args = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '(') + 1, str_last_index_of(methodIdentifier, ')'));
 	scl_int8* returnType = substr_of(methodIdentifier, methodLen, str_last_index_of(methodIdentifier, ')') + 1, methodLen);
@@ -810,12 +791,12 @@ scl_any _scl_msg_send_impl(scl_int onSuper, scl_any instance, scl_int8* methodId
 	_scl_push()->v = instance;
 
 	_callstack.ptr--;
-	_scl_msg_send_impl0(onSuper, instance, methodIdentifier);
+	virtual_call_impl0(onSuper, instance, methodIdentifier);
 	return strequals(returnType, "V;") ? nil : _scl_pop()->v;
 }
 
-void _scl_msg_send_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier) {
-	*(_scl_callstack_push()) = "<runtime _scl_msg_send_impl0(onSuper: int32, instance: any, methodIdentifier: int32): any>";
+void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier) {
+	*(_scl_callstack_push()) = "<runtime virtual_call_impl0(onSuper: int32, instance: any, methodIdentifier: int32): any>";
 	size_t methodLen = strlen(methodIdentifier);
 	scl_int8* methodName = substr_of(methodIdentifier, methodLen, 0, str_index_of(methodIdentifier, '('));
 	scl_int8* signature = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '('), methodLen);
@@ -855,7 +836,7 @@ mutex_t _scl_mutex_new() {
 }
 
 // creates a new instance with a size of 'size'
-scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super, struct _scl_methodinfo* vtable, struct _scl_methodinfo* super_vtable, StaticMembers* statics) {
+scl_any _scl_alloc_struct(scl_int size, const StaticMembers* statics) {
 	*(_scl_callstack_push()) = "<runtime _scl_alloc_struct(size: int, typeName: [int8], super: int): any>";
 
 	// Allocate the memory
@@ -870,12 +851,7 @@ scl_any _scl_alloc_struct(scl_int size, scl_int8* type_name, hash super, struct 
 	((Struct*) ptr)->mutex = _scl_mutex_new();
 
 	// Static members
-	((Struct*) ptr)->statics = statics;
-
-	if (_scl_expect(((Struct*) ptr)->statics->vtable == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Could not find vtable for type '%s'", type_name);
-		return nil;
-	}
+	((Struct*) ptr)->statics = (StaticMembers*) statics;
 
 	_callstack.ptr--;
 	// Add struct to allocated table
@@ -971,8 +947,8 @@ void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 			struct Struct_Exception self;
 			scl_int sig;
 		};
-		_scl_Exception e = NEW(InvalidSignalException, Exception);
-		_scl_msg_send(e, "init(i;)V;", sig);
+		_scl_Exception e = ALLOC(InvalidSignalException);
+		virtual_call(e, "init(i;)V;", sig);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
@@ -989,8 +965,8 @@ void _scl_reset_signal_handler(scl_int sig) {
 			struct Struct_Exception self;
 			scl_int sig;
 		};
-		_scl_Exception e = NEW(InvalidSignalException, Exception);
-		_scl_msg_send(e, "init(i;)V;", sig);
+		_scl_Exception e = ALLOC(InvalidSignalException);
+		virtual_call(e, "init(i;)V;", sig);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
@@ -1093,10 +1069,19 @@ scl_any _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_t
 			scl_str errno_str;
 		} _scl_CastError;
 
-		int isStruct = _scl_binary_search((scl_any*) instances, instances_count, instance) != -1;
-
 		scl_int size;
 		scl_int8* cmsg;
+		if (instance == nil) {
+			size = 96 + strlen(target_type_name);
+			cmsg = (scl_int8*) _scl_alloc(size);
+			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
+			_scl_CastError* err = ALLOC(CastError);
+			virtual_call(err, "init(s;)V;", str_of(cmsg));
+			_scl_throw(err);
+		}
+
+		int isStruct = _scl_binary_search((scl_any*) instances, instances_count, instance) != -1;
+
 		if (isStruct) {
 			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
 			cmsg = (scl_int8*) _scl_alloc(size);
@@ -1106,8 +1091,8 @@ scl_any _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_t
 			cmsg = (scl_int8*) _scl_alloc(size);
 			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
 		}
-		_scl_CastError* err = NEW(CastError, Error);
-		_scl_msg_send(err, "init(s;)V;", str_of(cmsg));
+		_scl_CastError* err = ALLOC(CastError);
+		virtual_call(err, "init(s;)V;", str_of(cmsg));
 		_scl_throw(err);
 	}
 	return instance;
@@ -1295,7 +1280,7 @@ scl_str int8$toString(scl_int8 val) {
 void _scl_puts(scl_any val) {
 	scl_str s;
 	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = _scl_msg_send(val, "toString()s;");
+		s = virtual_call(val, "toString()s;");
 	} else {
 		s = int$toString((scl_int) val);
 	}
@@ -1309,7 +1294,7 @@ void _scl_puts_str(scl_str str) {
 void _scl_eputs(scl_any val) {
 	scl_str s;
 	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = _scl_msg_send(val, "toString()s;");
+		s = virtual_call(val, "toString()s;");
 	} else {
 		s = int$toString((scl_int) val);
 	}
@@ -1357,11 +1342,11 @@ scl_str float$toPrecisionString(scl_float val) {
 }
 
 scl_str float$toHexString(scl_float val) {
-	return int$toHexString(*(scl_int*) &val);
+	return int$toHexString(REINTERPRET_CAST(scl_int, val));
 }
 
 scl_float float$fromBits(scl_any bits) {
-	return *(scl_float*) &bits;
+	return REINTERPRET_CAST(scl_float, bits);
 }
 
 void dumpStack() {
@@ -1376,8 +1361,8 @@ void dumpStack() {
 scl_any Library$self0() {
 	scl_any lib = dlopen(nil, RTLD_NOW | RTLD_GLOBAL);
 	if (!lib) {
-		scl_NullPointerException* e = NEW(NullPointerException, Exception);
-		_scl_msg_send(e, "init()V;");
+		scl_NullPointerException* e = ALLOC(NullPointerException);
+		virtual_call(e, "init()V;");
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
 	}
@@ -1391,8 +1376,8 @@ scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
 scl_any Library$open0(scl_int8* name) {
 	scl_any lib = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
 	if (!lib) {
-		scl_NullPointerException* e = NEW(NullPointerException, Exception);
-		_scl_msg_send(e, "init()V;");
+		scl_NullPointerException* e = ALLOC(NullPointerException);
+		virtual_call(e, "init()V;");
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
 	}
@@ -1414,7 +1399,7 @@ scl_int8* Library$progname() {
 }
 
 struct Struct_Array* Process$stackTrace() {
-	struct Struct_Array* arr = NEW(ReadOnlyArray, Array);
+	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
 	
 	arr->capacity = _callstack.ptr;
 	arr->initCapacity = _callstack.ptr;
@@ -1528,21 +1513,44 @@ extern scl_Array Var_Thread$threads;
 extern scl_Thread Var_Thread$mainThread;
 static tls scl_Thread _currentThread = nil;
 
+extern scl_any* arrays;
+extern scl_int arrays_count;
+extern scl_int arrays_capacity;
+
 scl_any* _scl_new_array(scl_int num_elems) {
 	if (_scl_expect(num_elems < 1, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array size must not be less than 1"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array size must not be less than 1"));
 		_scl_throw(e);
 	}
 	scl_any* arr = _scl_alloc(num_elems * sizeof(scl_any) + sizeof(scl_int));
 	((scl_int*) arr)[0] = num_elems;
+	if (arrays == nil) {
+		arrays = system_allocate(sizeof(scl_any) * arrays_capacity);
+	}
+	arrays_count++;
+	if (arrays_count >= arrays_capacity) {
+		arrays_capacity += 64;
+		arrays = system_realloc(arrays, sizeof(scl_any) * arrays_capacity);
+	}
+	arrays[arrays_count - 1] = arr;
 	return arr + 1;
+}
+
+scl_int _scl_is_array(scl_any* arr) {
+	if (_scl_expect(!arr, 0)) return 0;
+	for (scl_int i = 0; i < arrays_count; i++) {
+		if (arrays[i] == (arr - 1)) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]) {
 	if (_scl_expect(dimensions < 1, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array dimensions must not be less than 1"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array dimensions must not be less than 1"));
 		_scl_throw(e);
 	}
 	if (dimensions == 1) {
@@ -1568,8 +1576,8 @@ scl_int _scl_array_size(scl_any* arr) {
 		return _scl_stackalloc_size(arr);
 	}
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	return *((scl_int*) arr - 1);
@@ -1580,34 +1588,34 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 		return _scl_stackalloc_check_bounds_or_throw(arr, index);
 	}
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = *((scl_int*) arr - 1);
 	if (index < 0 || index >= size) {
-		scl_IndexOutOfBoundsException e = NEW(IndexOutOfBoundsException, Exception);
+		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 		scl_int8* str = _scl_alloc(64);
 		snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
-		_scl_msg_send(e, "init(s;)V;", str_of(str));
+		virtual_call(e, "init(s;)V;", str_of(str));
 		_scl_throw(e);
 	}
 }
 
 scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 	if (_scl_expect(_scl_index_of_stackalloc(arr) >= 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Cannot resize stack-allocated array"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Cannot resize stack-allocated array"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(new_size < 1, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("New array size must not be less than 1"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("New array size must not be less than 1"));
 		_scl_throw(e);
 	}
 	scl_int size = *((scl_int*) arr - 1);
@@ -1623,8 +1631,8 @@ static int compare(const void* a, const void* b) {
 
 scl_any* _scl_array_sort(scl_any* arr) {
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -1649,8 +1657,8 @@ scl_any* _scl_array_sort(scl_any* arr) {
 
 scl_any* _scl_array_reverse(scl_any* arr) {
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -1665,25 +1673,25 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 
 scl_str _scl_array_to_string(scl_any* arr) {
 	if (_scl_expect(_scl_get_index_of_ptr(arr - 1) < 0 && _scl_index_of_stackalloc(arr) < 0, 0)) {
-		scl_InvalidArgumentException e = NEW(InvalidArgumentException, Exception);
-		_scl_msg_send(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
+		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
 	scl_str s = str_of("[");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
-			s = _scl_msg_send(s, "append(s;)s;", str_of(", "));
+			s = virtual_call(s, "append(s;)s;", str_of(", "));
 		}
 		scl_str tmp;
 		if (_scl_is_instance_of(arr[i], SclObjectHash)) {
-			tmp = _scl_msg_send(arr[i], "toString()s;");
+			tmp = virtual_call(arr[i], "toString()s;");
 		} else {
 			tmp = int$toString((scl_int) arr[i]);
 		}
-		s = _scl_msg_send(s, "append(s;)s;", tmp);
+		s = virtual_call(s, "append(s;)s;", tmp);
 	}
-	return _scl_msg_send(s, "append(s;)s;", str_of("]"));
+	return virtual_call(s, "append(s;)s;", str_of("]"));
 }
 
 static scl_int8* substr_of(scl_int8* str, size_t len, size_t beg, size_t end) {
@@ -1731,9 +1739,9 @@ scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 	scl_int appendHash = hash1("append");
 	scl_int appendSigHash = hash1("(cs;)s;");
 	for (scl_int i = 0; i < arr->count; i++) {
-		scl_str type = _scl_msg_send(arr, "get(i;)a;", i);
+		scl_str type = virtual_call(arr, "get(i;)a;", i);
 		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
-		s = _scl_msg_send(s, "append(cs;)s;", _scl_type_to_rt_sig(type->_data));
+		s = virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->_data));
 	}
 	_callstack.ptr--;
 	return s;
@@ -1743,9 +1751,9 @@ scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
 	scl_int8* retType = _scl_type_to_rt_sig(returnType->_data);
 	scl_str argTypes = _scl_type_array_to_rt_sig(args);
 	scl_str sig = str_of("(");
-	sig = _scl_msg_send(sig, "append(s;)s;", argTypes);
-	sig = _scl_msg_send(sig, "append(cs;)s;", ")");
-	return _scl_msg_send(sig, "append(cs;)s;", retType);
+	sig = virtual_call(sig, "append(s;)s;", argTypes);
+	sig = virtual_call(sig, "append(cs;)s;", ")");
+	return virtual_call(sig, "append(cs;)s;", retType);
 }
 
 void Thread$run(scl_Thread self) {
@@ -1753,11 +1761,11 @@ void Thread$run(scl_Thread self) {
 	*(_scl_callstack_push()) = "<extern Thread:run(): none>";
 	_currentThread = self;
 
-	_scl_msg_send(Var_Thread$threads, "push(a;)V;", self);
+	virtual_call(Var_Thread$threads, "push(a;)V;", self);
 	
 	self->function();
 
-	_scl_msg_send(Var_Thread$threads, "remove(a;)V;", self);
+	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
 	
 	_currentThread = nil;
 	_callstack.ptr--;
@@ -1774,14 +1782,12 @@ scl_int Thread$stop0(scl_Thread self) {
 	return ret;
 }
 
-scl_any _scl_get_main_addr();
-
 scl_Thread Thread$currentThread() {
 	if (!_currentThread) {
-		_currentThread = NEW0(Thread);
+		_currentThread = ALLOC(Thread);
 		_currentThread->name = str_of("Main Thread");
 		_currentThread->nativeThread = pthread_self();
-		_currentThread->function = _scl_get_main_addr();
+		_currentThread->function = nil;
 	}
 	return _currentThread;
 }
@@ -1851,18 +1857,7 @@ void _scl_throw(scl_any ex) {
 
 // Returns a function pointer with the following signature:
 // function main(args: Array, env: Array): int
-typedef int(*mainFunc)(struct Struct_Array*, struct Struct_Array*);
-
-// __init__ and __destroy__
-typedef void(*genericFunc)();
-
-// __init__
-// last element is always nil
-extern genericFunc _scl_internal_init_functions[];
-
-// __destroy__
-// last element is always nil
-extern genericFunc _scl_internal_destroy_functions[];
+typedef void(*mainFunc)(struct Struct_Array*, struct Struct_Array*);
 
 _scl_no_return
 void* _scl_oom(scl_uint size) {
@@ -1894,8 +1889,13 @@ void printStackTraceOf(_scl_Exception e) {
 	fprintf(stderr, "\n");
 }
 
-int _scl_run(int argc, char** argv) {
+static int setupCalled = 0;
 
+_scl_constructor
+void _scl_setup() {
+	if (setupCalled) {
+		return;
+	}
 #if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
 	short word = 0x0001;
@@ -1909,68 +1909,46 @@ int _scl_run(int argc, char** argv) {
 	GC_INIT();
 	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
-	argv0 = argv[0];
-
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
 
-	runtimeModifierLock = NEWOBJ();
-	binarySearchLock = NEWOBJ();
+	runtimeModifierLock = ALLOC(SclObject);
+	binarySearchLock = ALLOC(SclObject);
 	_scl_create_stack();
 
-	// Convert argv and envp from native arrays to Scale arrays
-	struct Struct_Array* args = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
-	struct Struct_Array* env = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
-
-	extern StaticMembers _scl_statics_Int;
+	extern const StaticMembers _scl_statics_Int;
 
 	hash intHash = hash1("Int");
 	for (scl_int i = -128; i < 127; i++) {
 		_ints[i + 128] = (struct Struct_Int) {
 			.rtFields = {
-				.statics = &_scl_statics_Int,
+				.statics = (StaticMembers*) &_scl_statics_Int,
 				.mutex = _scl_mutex_new(),
 			},
 			.value = i
 		};
 	}
-
-	// Get the address of the main function
-	mainFunc _scl_main = (mainFunc) _scl_get_main_addr();
 	_scl_exception_push();
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 
-	// Run __init__ functions
-	if (_scl_internal_init_functions[0]) {
-		_extable.current_pointer = 1;
-		if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666) {
-			for (int i = 0; _scl_internal_init_functions[i]; i++) {
-				_callstack.ptr = 0;
-				_scl_internal_init_functions[i]();
-			}
-		} else {
-			if (_extable.exception_table[_extable.current_pointer] == nil) {
-				_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
-			}
-			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
+	setupCalled = 1;
+}
 
-			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.statics->type_name, msg->_data);
-			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
-			if (errno) {
-				fprintf(stderr, "errno: %s\n", strerror(errno));
-			}
-			exit(EX_THROWN);
-		}
-	}
+int _scl_run(int argc, char** argv, scl_any entry) {
 
-	int ret;
+	// Convert argv and envp from native arrays to Scale arrays
+	struct Struct_Array* args = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) argv);
+	struct Struct_Array* env = (struct Struct_Array*) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+
+	argv0 = argv[0];
+
 	_extable.current_pointer = 1;
 	_callstack.ptr = 0;
-	if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666) {
-
-		// _scl_get_main_addr() returns nil if compiled with --no-main
-		(_scl_main ? _scl_main(args, env) : 0);
+	TRY {
+		if (entry) {
+			((mainFunc) entry)(args, env);
+		}
 	} else {
 		if (_extable.exception_table[_extable.current_pointer] == nil) {
 			_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
@@ -1984,30 +1962,5 @@ int _scl_run(int argc, char** argv) {
 		}
 		exit(EX_THROWN);
 	}
-
-	// Run finalization:
-	// Run __destroy__ functions
-	if (_scl_internal_destroy_functions[0]) {
-		_extable.current_pointer = 1;
-		if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666) {
-			for (int i = 0; _scl_internal_destroy_functions[i]; i++) {
-				_scl_internal_destroy_functions[i]();
-			}
-		} else {
-			if (_extable.exception_table[_extable.current_pointer] == nil) {
-				_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
-			}
-			scl_str msg = ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->msg;
-
-			fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) _extable.exception_table[_extable.current_pointer])->rtFields.statics->type_name, msg->_data);
-			printStackTraceOf(_extable.exception_table[_extable.current_pointer]);
-			if (errno) {
-				fprintf(stderr, "errno: %s\n", strerror(errno));
-			}
-			exit(EX_THROWN);
-		}
-	}
-
-	GC_deinit();
-	return ret;
+	return 0;
 }
