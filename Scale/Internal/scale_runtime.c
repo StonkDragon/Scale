@@ -199,7 +199,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 			scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 			scl_int8* str = _scl_alloc(64);
 			snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[i]);
-			virtual_call(e, "IndexOutOfBoundsException:init(s;)V;", str_of(str));
+			virtual_call(e, "init(s;)V;", str_of(str));
 			_scl_throw(e);
 		}
 	}

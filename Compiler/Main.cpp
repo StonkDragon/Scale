@@ -634,6 +634,7 @@ namespace sclc
         std::string optimizer   = "O2";
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
+        bool outFileSpecified   = false;
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
 
@@ -721,6 +722,7 @@ namespace sclc
                     }
                 } else if (args[i] == "-o") {
                     if (i + 1 < args.size()) {
+                        outFileSpecified = true;
                         outfile = args[i + 1];
                         i++;
                     } else {
@@ -837,6 +839,8 @@ namespace sclc
 
         if (!hasFilesFromArgs) {
             Main.options.noMain = true;
+            if (!outFileSpecified)
+                outfile = "a.out";
         }
 
         std::vector<std::string> cflags;
