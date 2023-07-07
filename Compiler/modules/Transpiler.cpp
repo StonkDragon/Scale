@@ -1113,7 +1113,9 @@ namespace sclc {
             }
         }
         if (getInterfaceByName(result, self->getMemberType())) {
-            append("// invokeinterface %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
+            transpilerError("Cannot call interface method '" + sclFunctionNameToFriendlyString(self) + "'!", i);
+            errors.push_back(err);
+            return;
         } else {
             if (onSuperType) {
                 append("// invokespecial %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
@@ -1127,7 +1129,7 @@ namespace sclc {
         for (auto method : vtable) {
             if (*method == *self) {
                 if (Main.options.debugBuild) {
-                    append("CAST0(_scl_top()->v, %s, 0x%x);\n", self->getMemberType().c_str(), hash1((char*) self->getMemberType().c_str()));
+                    append("CAST0(_scl_top()->v, %s, 0x%x);\n", self->getMemberType().c_str(), id((char*) self->getMemberType().c_str()));
                     if (onSuperType) {
                         append("VTABLE_BOUNDS_CHECK(_scl_top()->o->$statics->super_vtable_size, %zu);\n", index);
                     } else {
@@ -1811,7 +1813,7 @@ namespace sclc {
             if (wasTry()) {
                 popTry();
                 append("  _extable.current_pointer--;\n");
-                append("} else if (_scl_is_instance_of(_extable.exception_table[_extable.current_pointer], 0x%xU)) {\n", hash1((char*) "Error"));
+                append("} else if (_scl_is_instance_of(_extable.exception_table[_extable.current_pointer], 0x%xU)) {\n", id((char*) "Error"));
                 append("  Function_throw(_extable.exception_table[_extable.current_pointer]);\n");
             } else if (wasCatch()) {
                 popCatch();
@@ -1831,7 +1833,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("} else if (_scl_is_instance_of(_extable.exception_table[_extable.current_pointer], 0x%xU)) {\n", hash1((char*) body[i].getValue().c_str()));
+            append("} else if (_scl_is_instance_of(_extable.exception_table[_extable.current_pointer], 0x%xU)) {\n", id((char*) body[i].getValue().c_str()));
         } else {
             i--;
             {
@@ -2397,7 +2399,7 @@ namespace sclc {
                             append("tmp->$template_arg_%s = %s->_hash;\n", t.first.c_str(), t.second.c_str());
                             append("tmp->$template_argname_%s = %s->_data;\n", t.first.c_str(), t.second.c_str());
                         } else {
-                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), hash1((char*) t.second.c_str()));
+                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
                             append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
                         }
                     }
@@ -2423,7 +2425,7 @@ namespace sclc {
                             append("tmp->$template_arg_%s = %s->_hash;\n", t.first.c_str(), t.second.c_str());
                             append("tmp->$template_argname_%s = %s->_data;\n", t.first.c_str(), t.second.c_str());
                         } else {
-                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), hash1((char*) t.second.c_str()));
+                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
                             append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
                         }
                     }
@@ -2485,7 +2487,7 @@ namespace sclc {
                         append("tmp->$template_arg_%s = %s->_hash;\n", t.first.c_str(), t.second.c_str());
                         append("tmp->$template_argname_%s = %s->_data;\n", t.first.c_str(), t.second.c_str());
                     } else {
-                        append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), hash1((char*) t.second.c_str()));
+                        append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
                         append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
                     }
                 }
@@ -4488,7 +4490,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("_scl_top()->i = _scl_top()->v && _scl_is_instance_of(_scl_top()->v, 0x%xU);\n", hash1((char*) type.c_str()));
+        append("_scl_top()->i = _scl_top()->v && _scl_is_instance_of(_scl_top()->v, 0x%xU);\n", id((char*) type.c_str()));
         typePop;
         typeStack.push("bool");
     }
@@ -5024,7 +5026,7 @@ namespace sclc {
             }
             std::string typeStr = removeTypeModifiers(type.value);
             if (getStructByName(result, typeStr) != Struct::Null) {
-                append("_scl_checked_cast(_scl_top()->v, %d, \"%s\");\n", hash1((char*) typeStr.c_str()), typeStr.c_str());
+                append("_scl_checked_cast(_scl_top()->v, %d, \"%s\");\n", id((char*) typeStr.c_str()), typeStr.c_str());
             }
             typePop;
             typeStack.push(type.value);
@@ -5327,7 +5329,7 @@ namespace sclc {
             if (anyMethod) {
                 Method* objMethod = getMethodByName(result, body[i].getValue(), "SclObject");
                 if (objMethod) {
-                    append("if (_scl_is_instance_of(_scl_top()->v, 0x%xU)) {\n", hash1((char*) "SclObject"));
+                    append("if (_scl_is_instance_of(_scl_top()->v, 0x%xU)) {\n", id((char*) "SclObject"));
                     scopeDepth++;
                     methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
                     if (objMethod->getReturnType() != "none" && objMethod->getReturnType() != "nothing") {
@@ -5673,15 +5675,6 @@ namespace sclc {
         return return_type + "(*)(" + arguments + ")";
     }
 
-    template<typename T>
-    bool compare(T& a, T& b) {
-        if constexpr(std::is_pointer<T>::value) {
-            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
-        } else {
-            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
-        }
-    }
-
     std::string rtTypeToSclType(std::string rtType) {
         if (rtType.size() == 0) return "";
         if (rtType == "a") return "any";
@@ -5831,11 +5824,11 @@ namespace sclc {
             vtables[s.getName()] = vtable;
             append("extern const StaticMembers _scl_statics_%s;\n", s.getName().c_str());
             append("extern const struct _scl_methodinfo _scl_vtable_%s[];\n", s.getName().c_str());
-            append("const scl_int _scl_supers_%s[] = {\n", s.getName().c_str());
+            append("const ID_t _scl_supers_%s[] = {\n", s.getName().c_str());
             scopeDepth++;
             Struct current = s;
-            while (current.getName().size()) {
-                append("0x%xU,\n", hash1((char*) current.extends().c_str()));
+            while (current.extends().size()) {
+                append("0x%xU,\n", id((char*) current.extends().c_str()));
                 current = getStructByName(result, current.extends());
             }
             append("0x0U\n");
@@ -5846,7 +5839,7 @@ namespace sclc {
             if (s.isStatic()) continue;
             append("const StaticMembers _scl_statics_%s = {\n", s.getName().c_str());
             scopeDepth++;
-            append(".type = 0x%xU,\n", hash1((char*) s.getName().c_str()));
+            append(".type = 0x%xU,\n", id((char*) s.getName().c_str()));
             append(".type_name = \"%s\",\n", s.getName().c_str());
             append(".size = sizeof(struct Struct_%s),\n", s.getName().c_str());
             append(".vtable = _scl_vtable_%s,\n", s.getName().c_str());
@@ -5871,10 +5864,10 @@ namespace sclc {
                 append("(struct _scl_methodinfo) {\n");
                 scopeDepth++;
                 append(".ptr = (scl_any) _scl_vt_c_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
-                append(".pure_name = 0x%xU,\n", hash1((char*) sclFunctionNameToFriendlyString(m).c_str()));
+                append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m).c_str()));
                 append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
                 append(".actual_name = \"%s\",\n", sclFunctionNameToFriendlyString(m).c_str());
-                append(".signature = 0x%xU,\n", hash1((char*) signature.c_str()));
+                append(".signature = 0x%xU,\n", id((char*) signature.c_str()));
                 append(".signature_str = \"%s\",\n", signature.c_str());
                 scopeDepth--;
                 append("},\n");
@@ -5884,7 +5877,7 @@ namespace sclc {
             append("};\n\n");
         }
 
-        append("extern const hash hash1(const char*);\n\n");
+        append("extern const ID_t id(const char*);\n\n");
 
         fclose(fp);
         fp = fopen(filename.c_str(), "a");

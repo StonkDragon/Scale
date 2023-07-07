@@ -46,7 +46,7 @@ namespace sclc {
 #include "Enum.hpp"
 
 namespace sclc {
-    typedef unsigned int hash;
+    typedef unsigned int ID_t;
 
     class SyntaxTree
     {
@@ -211,7 +211,6 @@ namespace sclc {
     bool hasContainer(TPResult result, std::string name);
     bool hasGlobal(TPResult result, std::string name);
     FPResult parseType(std::vector<Token> tokens, size_t* i, std::map<std::string, std::string> typeReplacements = std::map<std::string, std::string>());
-    std::string sclConvertToStructType(std::string type);
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
     bool typeIsConst(std::string s);
@@ -233,9 +232,9 @@ namespace sclc {
         return *str ? 1 + const_strlen(str + 1) : 0;
     }
     
-    inline constexpr hash hash1(const char* data)  {
+    inline constexpr ID_t id(const char* data)  {
         if (const_strlen(data) == 0) return 0;
-        hash h = 7;
+        ID_t h = 7;
         for (size_t i = 0; i < const_strlen(data); i++) {
             h = h * 31 + data[i];
         }

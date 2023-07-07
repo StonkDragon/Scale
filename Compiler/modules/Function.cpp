@@ -59,9 +59,9 @@ std::string Function::finalName() {
         }
         return name +
                "$" +
-               std::to_string(hash1((char*) name.c_str())) +
+               std::to_string(id((char*) name.c_str())) +
                "$" +
-               std::to_string(hash1((char*) nameToken.getFile().c_str())) +
+               std::to_string(id((char*) nameToken.getFile().c_str())) +
                "$" +
                std::to_string(nameToken.getLine());
     }

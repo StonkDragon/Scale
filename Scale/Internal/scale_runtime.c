@@ -1,10 +1,10 @@
 #include "scale_runtime.h"
 
-const hash SclObjectHash = 0xC9CCFE34U; // SclObject
-const hash toStringHash = 0xA3F55B73U; // toString
-const hash toStringSigHash = 0x657D302EU; // ()s;
-const hash initHash = 0x940997U; // init
-const hash initSigHash = 0x7577EDU; // ()V;
+const ID_t SclObjectHash = 0xC9CCFE34U; // SclObject
+const ID_t toStringHash = 0xA3F55B73U; // toString
+const ID_t toStringSigHash = 0x657D302EU; // ()s;
+const ID_t initHash = 0x940997U; // init
+const ID_t initSigHash = 0x7577EDU; // ()V;
 
 // this is used by try-catch
 tls struct _exception_handling {
@@ -88,7 +88,7 @@ typedef struct Struct_UnreachableError {
 } scl_UnreachableError;
 
 struct Struct_str {
-	struct scaleString s;
+	struct scale_string s;
 };
 
 extern _scl_stack_t**	stacks;
@@ -499,7 +499,7 @@ scl_str _scl_create_string(scl_int8* data) {
 		return nil;
 	}
 	self->_len = strlen(data);
-	self->_hash = hash1len(data, self->_len);
+	self->_hash = id_by_len(data, self->_len);
 	self->_data = _scl_strndup(data, self->_len);
 	return self;
 }
@@ -643,16 +643,16 @@ void _scl_sleep(scl_int millis) {
 	sleep(millis);
 }
 
-const hash hash1len(const char* data, size_t len) {
-	hash h = 7;
+const ID_t id_by_len(const char* data, size_t len) {
+	ID_t h = 7;
 	for (size_t i = 0; i < len; i++) {
 		h = h * 31 + data[i];
 	}
 	return h;
 }
 
-const hash hash1(const char* data) {
-	return hash1len(data, strlen(data));
+const ID_t id(const char* data) {
+	return id_by_len(data, strlen(data));
 }
 
 scl_uint _scl_rotl(const scl_uint value, scl_int shift) {
@@ -691,7 +691,7 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 }
 
 // returns the method handle of a method on a struct, or a parent struct
-scl_any _scl_get_method_on_type(scl_any type, hash method, hash signature, int onSuper) {
+scl_any _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
 	*(_scl_callstack_push()) = "<runtime _scl_get_method_on_type(type: int32, method: int32, signature: int32): any>";
 	Struct* instance = (Struct*) type;
 	scl_int index = -1;
@@ -780,7 +780,6 @@ void dumpStack();
 void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier);
 
 scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap) {
-	*(_scl_callstack_push()) = "<runtime virtual_call_impl(onSuper: int32, instance: any, methodIdentifier: int32, :varargs): any>";
 	size_t methodLen = strlen(methodIdentifier);
 	scl_int8* args = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '(') + 1, str_last_index_of(methodIdentifier, ')'));
 	scl_int8* returnType = substr_of(methodIdentifier, methodLen, str_last_index_of(methodIdentifier, ')') + 1, methodLen);
@@ -790,34 +789,30 @@ scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIde
 	}
 	_scl_push()->v = instance;
 
-	_callstack.ptr--;
 	virtual_call_impl0(onSuper, instance, methodIdentifier);
 	return strequals(returnType, "V;") ? nil : _scl_pop()->v;
 }
 
 void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier) {
-	*(_scl_callstack_push()) = "<runtime virtual_call_impl0(onSuper: int32, instance: any, methodIdentifier: int32): any>";
 	size_t methodLen = strlen(methodIdentifier);
 	scl_int8* methodName = substr_of(methodIdentifier, methodLen, 0, str_index_of(methodIdentifier, '('));
 	scl_int8* signature = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '('), methodLen);
-	hash methodNameHash = hash1(methodName);
-	hash signatureHash = hash1(signature);
+	ID_t methodNameHash = id(methodName);
+	ID_t signatureHash = id(signature);
 
-	_callstack.ptr--;
 	_scl_call_method_or_throw(instance, methodNameHash, signatureHash, onSuper, methodName, signature);
 }
 
-void _scl_call_method_or_throw(scl_any instance_, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
+void _scl_call_method_or_throw(scl_any instance_, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
 	if (_scl_expect(!_scl_is_instance_of(instance_, SclObjectHash), 0)) {
 		_scl_security_throw(EX_BAD_PTR, "Method call on non-object");
 	}
 	Struct* instance = (Struct*) instance_;
 	_scl_lambda m = _scl_get_method_on_type(instance, method, signature, on_super);
-	if (m) {
-		m();
-		return;
+	if (_scl_expect(m == nil, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", method_name, signature_str, instance->statics->type_name);
 	}
-	_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", method_name, signature_str, instance->statics->type_name);
+	m();
 }
 
 // adds an instance to the table of tracked instances
@@ -885,9 +880,11 @@ void _scl_free_struct(scl_any ptr) {
 }
 
 // Returns true, if the instance is of a given struct type
-scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
+scl_int _scl_is_instance_of(scl_any ptr, ID_t typeId) {
 	if (_scl_expect(ptr == nil, 0)) return 0; // ptr is null
+
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
+
 	if (_scl_expect(!isStruct, 0)) return 0; // ptr is not an instance and cast to non primitive type attempted
 
 	Struct* ptrStruct = (Struct*) ptr;
@@ -895,8 +892,9 @@ scl_int _scl_is_instance_of(scl_any ptr, hash typeId) {
 	if (ptrStruct->statics->type == typeId) return 1; // cast to same type
 	if (typeId == SclObjectHash) return 1; // cast to SclObject
 
-	for (scl_int i = 0; ptrStruct->statics->supers[i]; i++) {
-		if (ptrStruct->statics->supers[i] == typeId) return 1; // cast to super type
+	const ID_t* supers = ptrStruct->statics->supers;
+	for (scl_int i = 0; supers[i]; i++) {
+		if (supers[i] == typeId) return 1; // cast to super type
 	}
 
 	return 0; // invalid cast
@@ -923,7 +921,7 @@ scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
 	return -1;
 }
 
-scl_int _scl_search_method_index(scl_any* methods, const scl_int count, hash id, hash sig) {
+scl_int _scl_search_method_index(scl_any* methods, const scl_int count, ID_t id, ID_t sig) {
 	if (_scl_expect(methods == nil, 0)) return -1;
 	struct _scl_methodinfo* methods_ = (struct _scl_methodinfo*) methods;
 
@@ -1060,7 +1058,7 @@ void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 
 #define as(type, val) ((scl_ ## type) _scl_checked_cast((scl_any) val, hash_of(#type), #type))
 
-scl_any _scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name) {
+scl_any _scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_type_name) {
 	if (!_scl_is_instance_of(instance, target_type)) {
 		typedef struct Struct_CastError {
 			Struct rtFields;
@@ -1733,11 +1731,11 @@ scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
 scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 	*(_scl_callstack_push()) = "<runtime _scl_type_array_to_rt_sig(arr: [str]): str>";
 	scl_str s = str_of("");
-	scl_int strHash = hash1("str");
-	scl_int getHash = hash1("get");
-	scl_int getSigHash = hash1("(i;)a;");
-	scl_int appendHash = hash1("append");
-	scl_int appendSigHash = hash1("(cs;)s;");
+	scl_int strHash = id("str");
+	scl_int getHash = id("get");
+	scl_int getSigHash = id("(i;)a;");
+	scl_int appendHash = id("append");
+	scl_int appendSigHash = id("(cs;)s;");
 	for (scl_int i = 0; i < arr->count; i++) {
 		scl_str type = virtual_call(arr, "get(i;)a;", i);
 		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
@@ -1842,7 +1840,7 @@ void _scl_create_stack() {
 }
 
 void _scl_throw(scl_any ex) {
-	if (_scl_is_instance_of(ex, hash1("Error"))) {
+	if (_scl_is_instance_of(ex, id("Error"))) {
 		_extable.current_pointer = 0;
 	} else {
 		_extable.current_pointer--;
@@ -1918,7 +1916,7 @@ void _scl_setup() {
 
 	extern const StaticMembers _scl_statics_Int;
 
-	hash intHash = hash1("Int");
+	ID_t intHash = id("Int");
 	for (scl_int i = -128; i < 127; i++) {
 		_ints[i + 128] = (struct Struct_Int) {
 			.rtFields = {

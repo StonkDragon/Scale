@@ -630,7 +630,7 @@ namespace sclc {
             builtinHash->isExternC = true;
             builtinHash->addModifier("extern");
             builtinHash->addModifier("cdecl");
-            builtinHash->addModifier("hash1");
+            builtinHash->addModifier("id");
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             

@@ -115,7 +115,7 @@ namespace sclc
 
     std::string gen_random() {
         char* s = (char*) malloc(256);
-        hash h = hash1((char*) std::string(VERSION).c_str());
+        ID_t h = id((char*) std::string(VERSION).c_str());
         snprintf(s, 256, "%x%x%x%x", h, h, h, h);
         return std::string(s);
     }
@@ -859,364 +859,253 @@ namespace sclc
         cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
         
         std::string source;
-        {
-            bool alreadyIncluded = false;
-            for (auto f : frameworks) {
-                if (f == "Scale") {
-                    alreadyIncluded = true;
+        bool alreadyIncluded = false;
+        for (auto f : frameworks) {
+            if (f == "Scale") {
+                alreadyIncluded = true;
+            }
+        }
+        if (!Main.options.noScaleFramework && !alreadyIncluded) {
+            frameworks.push_back("Scale");
+        }
+
+        Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
+
+        for (std::string framework : frameworks) {
+            if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return 1;
                 }
-            }
-            if (!Main.options.noScaleFramework && !alreadyIncluded) {
-                frameworks.push_back("Scale");
-            }
+                root = root->getCompound("framework");
+                Main.options.mapFrameworkConfigs[framework] = root;
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
 
-            Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
-            for (std::string framework : frameworks) {
-                if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
-                    DragonConfig::ConfigParser parser;
-                    DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
-                    if (root == nullptr) {
-                        std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : scaleFolder + "/Frameworks/" + framework + ".framework/" + docfileTag->getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return 1;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->getString(i)->getValue();
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
                         return 1;
-                    }
-                    root = root->getCompound("framework");
-                    Main.options.mapFrameworkConfigs[framework] = root;
-                    DragonConfig::ListEntry* implementers = root->getList("implementers");
-                    DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                    DragonConfig::ListEntry* depends = root->getList("depends");
-                    DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                    DragonConfig::StringEntry* versionTag = root->getString("version");
-                    std::string version = versionTag->getValue();
-                    if (versionTag == nullptr) {
-                        std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                        continue;
-                    }
-                    
-                    DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                    std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                    Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                    
-                    DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                    std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                    
-                    DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                    std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                    DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                    Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : scaleFolder + "/Frameworks/" + framework + ".framework/" + docfileTag->getValue();
-
-                    Version ver = Version(version);
-                    Version compilerVersion = Version(VERSION);
-                    if (ver > compilerVersion) {
-                        std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                        return 1;
-                    }
-                    if (ver < FrameworkMinimumVersion) {
-                        fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                        return 1;
-                    }
-
-                    for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                        std::string depend = depends->getString(i)->getValue();
-                        if (!contains(frameworks, depend)) {
-                            std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                            return 1;
-                        }
-                    }
-
-                    for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                        std::string flag = compilerFlags->getString(i)->getValue();
-                        if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back(flag);
-                    }
-
-                    Main.frameworks.push_back(framework);
-
-                    if (headerDir.size() > 0) {
-                        Main.options.includePaths.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir);
-                        Main.options.mapIncludePathsToFrameworks[framework] = scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-                    }
-                    unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                    for (unsigned long i = 0; i < implementersSize; i++) {
-                        std::string implementer = implementers->getString(i)->getValue();
-                        if (!Main.options.assembleOnly) {
-                            if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                                hasCppFiles = true;
-                            }
-                            tmpFlags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
-                        }
-                    }
-                    for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                        Main.frameworkNativeHeaders.push_back(header);
-                    }
-                } else if (fileExists("./" + framework + ".framework/index.drg")) {
-                    DragonConfig::ConfigParser parser;
-                    DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
-                    if (root == nullptr) {
-                        std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
-                        return 1;
-                    }
-                    root = root->getCompound("framework");
-                    Main.options.mapFrameworkConfigs[framework] = root;
-                    DragonConfig::ListEntry* implementers = root->getList("implementers");
-                    DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                    DragonConfig::ListEntry* depends = root->getList("depends");
-                    DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                    DragonConfig::StringEntry* versionTag = root->getString("version");
-                    std::string version = versionTag->getValue();
-                    if (versionTag == nullptr) {
-                        std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                        continue;
-                    }
-                    
-                    DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                    std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                    Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                    
-                    DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                    std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                    
-                    DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                    std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                    DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                    Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : "./" + framework + ".framework/" + docfileTag->getValue();
-                    
-                    Version ver = Version(version);
-                    Version compilerVersion = Version(VERSION);
-                    if (ver > compilerVersion) {
-                        std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                        return 1;
-                    }
-                    if (ver < FrameworkMinimumVersion) {
-                        fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                        return 1;
-                    }
-
-                    for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                        std::string depend = depends->getString(i)->getValue();
-                        if (!contains(frameworks, depend)) {
-                            std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                            return 1;
-                        }
-                    }
-
-                    for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                        std::string flag = compilerFlags->getString(i)->getValue();
-                        if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back(flag);
-                    }
-
-                    Main.frameworks.push_back(framework);
-
-                    if (headerDir.size() > 0) {
-                        Main.options.includePaths.push_back("./" + framework + ".framework/" + headerDir);
-                        Main.options.mapIncludePathsToFrameworks[framework] = "./" + framework + ".framework/" + headerDir;
-                    }
-                    unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                    for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
-                        std::string implementer = implementers->getString(i)->getValue();
-                        if (!Main.options.assembleOnly) {
-                            if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                                hasCppFiles = true;
-                            }
-                            tmpFlags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
-                        }
-                    }
-                    for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                        std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                        Main.frameworkNativeHeaders.push_back(header);
                     }
                 }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->getString(i)->getValue();
+                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                        hasCppFiles = true;
+                    }
+                    tmpFlags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
+                }
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers->getString(i)->getValue();
+                    if (!Main.options.assembleOnly) {
+                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        tmpFlags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
+            } else if (fileExists("./" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return 1;
+                }
+                root = root->getCompound("framework");
+                Main.options.mapFrameworkConfigs[framework] = root;
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    continue;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : "./" + framework + ".framework/" + docfileTag->getValue();
+                
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return 1;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return 1;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->getString(i)->getValue();
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return 1;
+                    }
+                }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->getString(i)->getValue();
+                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                        hasCppFiles = true;
+                    }
+                    tmpFlags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back("./" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = "./" + framework + ".framework/" + headerDir;
+                }
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
+                    std::string implementer = implementers->getString(i)->getValue();
+                    if (!Main.options.assembleOnly) {
+                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        tmpFlags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
             }
-            Main.options.includePaths.push_back("./");
-            if (!Main.options.noScaleFramework) {
-                auto findModule = [&](const std::string moduleName) -> std::optional<std::vector<std::string>> {
-                    std::vector<std::string> mods;
-                    for (auto config : Main.options.mapFrameworkConfigs) {
-                        auto modules = config.second->getCompound("modules");
-                        if (modules) {
-                            auto list = modules->getList(moduleName);
-                            if (list) {
-                                for (size_t j = 0; j < list->size(); j++) {
-                                    FPResult find = findFileInIncludePath(list->getString(j)->getValue());
-                                    if (!find.success) {
-                                        return std::nullopt;
-                                    }
-                                    auto file = find.in;
-                                    mods.push_back(file);
+        }
+        Main.options.includePaths.push_back("./");
+        if (!Main.options.noScaleFramework) {
+            auto findModule = [&](const std::string moduleName) -> std::optional<std::vector<std::string>> {
+                std::vector<std::string> mods;
+                for (auto config : Main.options.mapFrameworkConfigs) {
+                    auto modules = config.second->getCompound("modules");
+                    if (modules) {
+                        auto list = modules->getList(moduleName);
+                        if (list) {
+                            for (size_t j = 0; j < list->size(); j++) {
+                                FPResult find = findFileInIncludePath(list->getString(j)->getValue());
+                                if (!find.success) {
+                                    return std::nullopt;
                                 }
-                                break;
+                                auto file = find.in;
+                                mods.push_back(file);
                             }
+                            break;
                         }
                     }
-                    return std::make_optional(mods);
-                };
+                }
+                return std::make_optional(mods);
+            };
 
-                auto mod = findModule("std");
-                if (mod) {
-                    for (auto file : *mod) {
-                        file = std::filesystem::absolute(file).string();
-                        if (!contains(Main.options.files, file)) {
-                            Main.options.files.push_back(file);
-                        }
+            auto mod = findModule("std");
+            if (mod) {
+                for (auto file : *mod) {
+                    file = std::filesystem::absolute(file).string();
+                    if (!contains(Main.options.files, file)) {
+                        Main.options.files.push_back(file);
                     }
                 }
             }
+        }
 
-            if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+        if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
 
-            if (Main.options.printDocs ||  Main.options.printDocFor.size() != 0) {
-                if (Main.options.printDocs || (Main.options.printDocFor.size() && contains(frameworks, Main.options.printDocFor))) {
-                    return docHandler(args);
-                }
-                std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' not found!" << Color::RESET << std::endl;
+        if (Main.options.printDocs ||  Main.options.printDocFor.size() != 0) {
+            if (Main.options.printDocs || (Main.options.printDocFor.size() && contains(frameworks, Main.options.printDocFor))) {
+                return docHandler(args);
+            }
+            std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' not found!" << Color::RESET << std::endl;
+            return 1;
+        }
+        
+        std::vector<Token>  tokens;
+
+        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+            using path = std::filesystem::path;
+            path s = Main.options.files.at(i);
+            if (s.parent_path().string().size())
+                Main.options.includePaths.push_back(s.parent_path().string());
+        }
+
+        auto tokenizerBegin = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+            std::string filename = Main.options.files[i];
+
+            if (!std::filesystem::exists(filename)) {
+                std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
                 return 1;
             }
-            
-            std::vector<Token>  tokens;
+            if (Main.options.debugBuild)
+                std::cout << "Tokenizing file '" << filename << "'" << std::endl;
 
-            for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
-                using path = std::filesystem::path;
-                path s = Main.options.files.at(i);
-                if (s.parent_path().string().size())
-                    Main.options.includePaths.push_back(s.parent_path().string());
-            }
+            Tokenizer tokenizer;
+            Main.tokenizer = &tokenizer;
+            FPResult result = Main.tokenizer->tokenize(filename);
 
-            for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
-                std::string filename = Main.options.files[i];
-
-                if (!std::filesystem::exists(filename)) {
-                    std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
-                    return 1;
-                }
-                if (Main.options.debugBuild)
-                    std::cout << "Tokenizing file '" << filename << "'" << std::endl;
-
-                Tokenizer tokenizer;
-                Main.tokenizer = &tokenizer;
-                FPResult result = Main.tokenizer->tokenize(filename);
-
-                if (result.warns.size() > 0) {
-                    for (FPResult error : result.warns) {
-                        if (error.type > tok_char_literal) continue;
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        std::string colString = Color::BOLDMAGENTA;
-                        if (Main.options.noErrorLocation) colString = "";
-                        std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
-                    }
-                }
-                if (result.errors.size() > 0) {
-                    for (FPResult error : result.errors) {
-                        if (error.type > tok_char_literal) continue;
-                        std::string colorStr;
-                        if (error.isNote) {
-                            colorStr = Color::BOLDCYAN;
-                        } else {
-                            colorStr = Color::BOLDRED;
-                        }
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        if (Main.options.noErrorLocation) colorStr = "";
-                        std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
-                    }
-                    std::cout << "Failed!" << std::endl;
-                    return result.errors.size();
-                }
-
-                FPResult importResult = Main.tokenizer->tryImports();
-                if (!importResult.success) {
-                    std::cerr << Color::BOLDRED << "Include Error: " << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
-                    return 1;
-                }
-
-                std::vector<Token> theseTokens = Main.tokenizer->getTokens();
-                
-                tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
-            }
-
-            if (Main.options.preprocessOnly) {
-                std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
-                return 0;
-            }
-
-            TPResult result;
-            if (!Main.options.printCflags) {
-                SyntaxTree lexer(tokens);
-                Main.lexer = &lexer;
-                result = Main.lexer->parse();
-            }
-
-            if (!Main.options.printCflags && result.warns.size() > 0) {
+            if (result.warns.size() > 0) {
                 for (FPResult error : result.warns) {
                     if (error.type > tok_char_literal) continue;
                     if (error.line == 0) {
@@ -1256,7 +1145,7 @@ namespace sclc
                     free(line);
                 }
             }
-            if (!Main.options.printCflags && result.errors.size() > 0) {
+            if (result.errors.size() > 0) {
                 for (FPResult error : result.errors) {
                     if (error.type > tok_char_literal) continue;
                     std::string colorStr;
@@ -1277,8 +1166,7 @@ namespace sclc
                     char* line = (char*) malloc(sizeof(char) * 500);
                     int i = 1;
                     if (f) fseek(f, 0, SEEK_SET);
-                    
-                    
+                    if (Main.options.noErrorLocation) colorStr = "";
                     std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
                     i = 1;
                     if (Main.options.noErrorLocation) {
@@ -1305,128 +1193,250 @@ namespace sclc
                 return result.errors.size();
             }
 
-            if (Main.options.dumpInfo) {
-                InfoDumper::dump(result);
-                return 0;
+            FPResult importResult = Main.tokenizer->tryImports();
+            if (!importResult.success) {
+                std::cerr << Color::BOLDRED << "Include Error: " << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
+                return 1;
             }
 
-            source = "out.c";
-            if (!Main.options.printCflags) {
-                Parser parser(result);
-                Main.parser = &parser;
+            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
+            
+            tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
+        }
+        auto tokenizerEnd = std::chrono::high_resolution_clock::now();
+        auto tokenizerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tokenizerEnd - tokenizerBegin).count();
+        std::cout << "Tokenizer took " << tokenizerDuration << "ms" << std::endl;
 
-                FPResult parseResult = Main.parser->parse(source);
-                if (parseResult.warns.size() > 0) {
-                    for (FPResult error : parseResult.warns) {
-                        if (error.type > tok_char_literal) continue;
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
+        if (Main.options.preprocessOnly) {
+            std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
+            return 0;
+        }
+
+        TPResult result;
+        if (!Main.options.printCflags) {
+            SyntaxTree lexer(tokens);
+            Main.lexer = &lexer;
+            auto lexerBegin = std::chrono::high_resolution_clock::now();
+            result = Main.lexer->parse();
+            auto lexerEnd = std::chrono::high_resolution_clock::now();
+            auto lexerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(lexerEnd - lexerBegin).count();
+            std::cout << "Lexer took " << lexerDuration << "ms" << std::endl;
+        }
+
+        if (!Main.options.printCflags && result.warns.size() > 0) {
+            for (FPResult error : result.warns) {
+                if (error.type > tok_char_literal) continue;
+                if (error.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(error.in).c_str(), "r");
+                if (!f) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                    continue;
+                }
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                if (f) fseek(f, 0, SEEK_SET);
+                std::string colString = Color::BOLDMAGENTA;
+                if (Main.options.noErrorLocation) colString = "";
+                std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                i = 1;
+                if (Main.options.noErrorLocation) {
+                    std::cout << "Token: " << error.value << std::endl;
+                } else {
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
                         }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        std::string colString = Color::BOLDMAGENTA;
-                        if (Main.options.noErrorLocation) colString = "";
-                        std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
+                        i++;
                     }
                 }
-                if (parseResult.errors.size() > 0) {
-                    for (FPResult error : parseResult.errors) {
-                        if (error.type > tok_char_literal) continue;
-                        std::string colorStr;
-                        ssize_t addAtCol = -1;
-                        std::string strToAdd = "";
-                        if (error.isNote) {
-                            colorStr = Color::BOLDCYAN;
-                            size_t i = error.message.find('\\');
-                            if (i != std::string::npos) {
-                                std::string cmd = error.message.substr(i + 1);
-                                auto data = split(cmd, ";");
-                                error.message = error.message.substr(0, i);
-                                if (data[0] == "insertText") {
-                                    strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
-                                    auto pos = split(data[2], ":");
-                                    addAtCol = std::atoi(pos[1].c_str()) - 1;
-                                }
-                            }
-                        } else {
-                            colorStr = Color::BOLDRED;
+                fclose(f);
+                if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                free(line);
+            }
+        }
+        if (!Main.options.printCflags && result.errors.size() > 0) {
+            for (FPResult error : result.errors) {
+                if (error.type > tok_char_literal) continue;
+                std::string colorStr;
+                if (error.isNote) {
+                    colorStr = Color::BOLDCYAN;
+                } else {
+                    colorStr = Color::BOLDRED;
+                }
+                if (error.line == 0) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                    continue;
+                }
+                FILE* f = fopen(std::string(error.in).c_str(), "r");
+                if (!f) {
+                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                    continue;
+                }
+                char* line = (char*) malloc(sizeof(char) * 500);
+                int i = 1;
+                if (f) fseek(f, 0, SEEK_SET);
+                
+                
+                std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                i = 1;
+                if (Main.options.noErrorLocation) {
+                    std::cout << "Token: " << error.value << std::endl;
+                } else {
+                    while (fgets(line, 500, f) != NULL) {
+                        if (i == error.line) {
+                            std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                        } else if (i == error.line - 1 || i == error.line - 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
+                        } else if (i == error.line + 1 || i == error.line + 2) {
+                            if (strlen(line) > 0)
+                                std::cerr << "  " << line;
                         }
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        if (Main.options.noErrorLocation) colorStr = "";
-                        std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    if (strToAdd.size())
-                                        std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
-                                    else
-                                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
+                        i++;
                     }
-                    std::cout << "Failed!" << std::endl;
-                    return parseResult.errors.size();
+                }
+                fclose(f);
+                if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                free(line);
+            }
+            std::cout << "Failed!" << std::endl;
+            return result.errors.size();
+        }
+
+        if (Main.options.dumpInfo) {
+            InfoDumper::dump(result);
+            return 0;
+        }
+
+        source = "out.c";
+        if (!Main.options.printCflags) {
+            Parser parser(result);
+            Main.parser = &parser;
+
+            auto parseBegin = std::chrono::high_resolution_clock::now();
+            FPResult parseResult = Main.parser->parse(source);
+            auto parseEnd = std::chrono::high_resolution_clock::now();
+            auto parseDuration = std::chrono::duration_cast<std::chrono::milliseconds>(parseEnd - parseBegin).count();
+            std::cout << "Parsing took " << parseDuration << "ms" << std::endl;
+            if (parseResult.warns.size() > 0) {
+                for (FPResult error : parseResult.warns) {
+                    if (error.type > tok_char_literal) continue;
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    if (f) fseek(f, 0, SEEK_SET);
+                    std::string colString = Color::BOLDMAGENTA;
+                    if (Main.options.noErrorLocation) colString = "";
+                    std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    if (Main.options.noErrorLocation) {
+                        std::cout << "Token: " << error.value << std::endl;
+                    } else {
+                        while (fgets(line, 500, f) != NULL) {
+                            if (i == error.line) {
+                                std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                            } else if (i == error.line - 1 || i == error.line - 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            } else if (i == error.line + 1 || i == error.line + 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            }
+                            i++;
+                        }
+                    }
+                    fclose(f);
+                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                    free(line);
                 }
             }
-
-            if (Main.options.transpileOnly) {
-                auto end = clock::now();
-                double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
-                std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
-                return 0;
+            if (parseResult.errors.size() > 0) {
+                for (FPResult error : parseResult.errors) {
+                    if (error.type > tok_char_literal) continue;
+                    std::string colorStr;
+                    ssize_t addAtCol = -1;
+                    std::string strToAdd = "";
+                    if (error.isNote) {
+                        colorStr = Color::BOLDCYAN;
+                        size_t i = error.message.find('\\');
+                        if (i != std::string::npos) {
+                            std::string cmd = error.message.substr(i + 1);
+                            auto data = split(cmd, ";");
+                            error.message = error.message.substr(0, i);
+                            if (data[0] == "insertText") {
+                                strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
+                                auto pos = split(data[2], ":");
+                                addAtCol = std::atoi(pos[1].c_str()) - 1;
+                            }
+                        }
+                    } else {
+                        colorStr = Color::BOLDRED;
+                    }
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    if (f) fseek(f, 0, SEEK_SET);
+                    if (Main.options.noErrorLocation) colorStr = "";
+                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    if (Main.options.noErrorLocation) {
+                        std::cout << "Token: " << error.value << std::endl;
+                    } else {
+                        while (fgets(line, 500, f) != NULL) {
+                            if (i == error.line) {
+                                if (strToAdd.size())
+                                    std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                                else
+                                    std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                            } else if (i == error.line - 1 || i == error.line - 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            } else if (i == error.line + 1 || i == error.line + 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            }
+                            i++;
+                        }
+                    }
+                    fclose(f);
+                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                    free(line);
+                }
+                std::cout << "Failed!" << std::endl;
+                return parseResult.errors.size();
             }
+        }
+
+        if (Main.options.transpileOnly) {
+            auto end = clock::now();
+            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+            std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
+            return 0;
         }
 
         if (!hasCppFiles) {

@@ -16,18 +16,6 @@ namespace sclc
         return result;
     }
 
-    template<typename T>
-    bool compare(T& a, T& b) {
-        if constexpr(std::is_pointer<T>::value) {
-            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
-        } else {
-            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
-        }
-    }
-
-    std::string sclFunctionToFriendlyString(Function*);
-    std::string argsToGenericString(Function*);
-
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
         std::vector<FPResult> errors;
@@ -67,31 +55,6 @@ namespace sclc
         vars = tmp;
         vars.clear();
         vars.push_back(defaultScope);
-
-        if (
-            featureEnabled("default-interface-implementation") ||
-            featureEnabled("default-interface-impl")
-        ) {
-            for (Struct s : result.structs) {
-                for (std::string i : s.getInterfaces()) {
-                    Interface* interface = getInterfaceByName(result, i);
-                    for (Method* m : interface->getDefaultImplementations()) {
-                        if (!hasMethod(result, m->getName(), s.getName())) {
-                            Method* m2 = m->cloneAs(s.getName());
-                            std::vector<Variable> args = m2->getArgs();
-                            m2->clearArgs();
-                            for (Variable v : args) {
-                                if (v.getType() == "") {
-                                    v.setType(s.getName());
-                                }
-                                m2->addArgument(v);
-                            }
-                            result.functions.push_back(m2);
-                        }
-                    }
-                }
-            }
-        }
 
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);

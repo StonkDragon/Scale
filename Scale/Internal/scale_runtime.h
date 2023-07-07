@@ -184,9 +184,10 @@ typedef void*				scl_any;
 typedef long				scl_int;
 typedef size_t				scl_uint;
 typedef scl_int				scl_bool;
-typedef struct scaleString*	scl_str;
 typedef double 				scl_float;
 typedef pthread_mutex_t*	mutex_t;
+
+typedef struct scale_string* scl_str;
 
 #define SCL_int64_MAX		INT64_MAX
 #define SCL_int64_MIN		INT64_MIN
@@ -216,17 +217,19 @@ typedef unsigned char		scl_uint8;
 
 typedef void(*_scl_lambda)(void);
 
+typedef unsigned int ID_t;
+
 struct _scl_methodinfo {
 	const _scl_lambda					ptr;
-	const scl_int						pure_name;
+	const ID_t							pure_name;
 	const scl_any						actual_handle;
 	const scl_int8* const				actual_name;
-	const scl_int						signature;
+	const ID_t							signature;
 	const scl_int8* const				signature_str;
 };
 
 struct _scl_membertype {
-	const scl_int						pure_name;
+	const ID_t							pure_name;
 	const scl_int8* const				actual_name;
 	const scl_int8* const				type_name;
 	const scl_int						offset;
@@ -234,8 +237,8 @@ struct _scl_membertype {
 };
 
 struct _scl_typeinfo {
-	const scl_int						type;
-	const scl_int						super;
+	const ID_t							type;
+	const ID_t							super;
 	const scl_int						alloc_size;
 	const scl_int8* const				name;
 	const scl_int						memberscount;
@@ -246,18 +249,18 @@ struct _scl_typeinfo {
 };
 
 typedef struct StaticMembers {
-	const scl_int						type;
+	const ID_t							type;
 	const scl_int8*						type_name;
-	const scl_int						super;
+	const ID_t							super;
 	const scl_int						size;
 	const scl_int						vtable_size;
 	const struct _scl_methodinfo* const	vtable;
 	const scl_int						super_vtable_size;
 	const struct _scl_methodinfo* const	super_vtable;
-	const scl_int*						supers;
+	const ID_t*							supers;
 } StaticMembers;
 
-struct scaleString {
+struct scale_string {
 	const StaticMembers* const			$statics;
 	const mutex_t						$mutex;
 	scl_int8*							_data;
@@ -304,8 +307,6 @@ struct scaleString {
 #define SCL_OS_NAME "Unknown OS"
 #endif
 
-typedef unsigned int hash;
-
 typedef union {
 	scl_int		i;
 	scl_str		s;
@@ -335,7 +336,7 @@ typedef struct {
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
 // Try to cast the given instance to the given type
-#define CAST(_obj, _type) CAST0(_obj, _type, hash1(#_type))
+#define CAST(_obj, _type) CAST0(_obj, _type, id(#_type))
 
 // Check vtable bounds
 #define VTABLE_BOUNDS_CHECK(_vtable_size, _index) _scl_assert(_index < _vtable_size, "Index for vtable out of bounds")
@@ -389,7 +390,7 @@ scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, scl_int8* msg, ...);
 void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout);
 void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
-scl_any				_scl_checked_cast(scl_any instance, hash target_type, scl_int8* target_type_name);
+scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_type_name);
 void				_scl_not_nil_cast(scl_int val, scl_int8* name);
 void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
@@ -399,15 +400,15 @@ void				_scl_exception_push();
 void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, scl_any main);
 
-const hash			hash1(const scl_int8* data);
-const hash			hash1len(const scl_int8* data, size_t len);
+const ID_t			id(const scl_int8* data);
+const ID_t			id_by_len(const scl_int8* data, size_t len);
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
-scl_int				_scl_is_instance_of(scl_any ptr, hash typeId);
-scl_any				_scl_get_method_on_type(scl_any type, hash method, hash signature, int onSuper);
-void				_scl_call_method_or_throw(scl_any instance, hash method, hash signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
+scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
+scl_any				_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
+void				_scl_call_method_or_throw(scl_any instance, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
 scl_int8**			_scl_callstack_push();
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
@@ -434,7 +435,7 @@ void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_search_method_index(void** methods, scl_int count, hash id, hash sig);
+scl_int				_scl_search_method_index(void** methods, scl_int count, ID_t id, ID_t sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
