@@ -1,5 +1,5 @@
      876 Compiler/Common.cpp
-    1511 Compiler/Main.cpp
+    1515 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      245 Compiler/headers/Common.hpp
       49 Compiler/headers/Container.hpp
@@ -90,4 +90,4 @@
        8 examples/while.scale
       16 interop-example/foo.c
       14 interop-example/main.scale
-   19647 total
+   19651 total
