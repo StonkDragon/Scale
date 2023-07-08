@@ -1,0 +1,3904 @@
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:42:1: Function system is already defined
+  end
+  
+> intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
+    decl ptr: [int8]?
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:42:40: Cannot define function inside another function. Current function: system
+  end
+  
+> intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
+    decl ptr: [int8]?
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:55:1: Function system is already defined
+  end
+  
+> layout timeval
+    decl seconds: int
+    decl microseconds: int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:55:1: Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> layout timeval
+    decl seconds: int
+    decl microseconds: int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:60:1: Function system is already defined
+  end
+  
+> cdecl "gettimeofday"
+  private expect unsafe function __c_gettimeofday(:timeval, :any): int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:61:32: Cannot define function inside another function. Current function: system
+  
+  cdecl "gettimeofday"
+> private expect unsafe function __c_gettimeofday(:timeval, :any): int
+  
+  intrinsic cdecl "_scl_time" function time(): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:63:38: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_gettimeofday(:timeval, :any): int
+  
+> intrinsic cdecl "_scl_time" function time(): float
+    sizeof timeval any::new => decl tv: timeval
+    
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:79:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toString"]
+> function longToString(theNumber: int): str
+    new[25] => decl out: [int8]
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:89:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::parse"]
+  function stringToLong(theString: str): int
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:90:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::parse"]
+> function stringToLong(theString: str): int
+    unsafe
+      theString:view __c_atoll as int return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:96:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "float::toString"]
+  function stringToDouble(theString: str): float
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:97:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "float::toString"]
+> function stringToDouble(theString: str): float
+    unsafe
+      c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:106:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "float::parse"]
+  function doubleToString(theNumber: float): str
+    new[100] => decl out: [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:107:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "float::parse"]
+> function doubleToString(theNumber: float): str
+    new[100] => decl out: [int8]
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:117:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5"]
+  function nop(): none
+    0 sleep
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Core.scale:118:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5"]
+> function nop(): none
+    0 sleep
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:1:1: Function system is already defined
+> import std.util.Stringifyable
+  
+  cdecl "strlen"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:4:32: Cannot define function inside another function. Current function: system
+  
+  cdecl "strlen"
+> private expect unsafe function __c_strlen(cstr: [int8]): int
+  cdecl "strcmp"
+  private expect unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:6:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strlen(cstr: [int8]): int
+  cdecl "strcmp"
+> private expect unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
+  cdecl "_scl_strdup"
+  private expect unsafe function __c_strdup(cstr: [int8]): [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:8:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
+  cdecl "_scl_strdup"
+> private expect unsafe function __c_strdup(cstr: [int8]): [int8]
+  cdecl "_scl_strncmp"
+  private expect unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:10:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strdup(cstr: [int8]): [int8]
+  cdecl "_scl_strncmp"
+> private expect unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
+  cdecl "_scl_strcpy"
+  private expect unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:12:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
+  cdecl "_scl_strcpy"
+> private expect unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
+  cdecl "strcat"
+  private expect unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:14:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
+  cdecl "strcat"
+> private expect unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
+  cdecl "strtok"
+  private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:16:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
+  cdecl "strtok"
+> private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
+  
+  final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:18:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
+  
+> final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
+    private decl _data: [int8]
+    private decl _len: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:23:12: Cannot define function inside another function. Current function: system
+    private decl _hash: int
+  
+>   function +(other: str): str
+      other self:prepend return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:27:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function +(number: int): str
+      number:toString self:prepend return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:31:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function +(number: float): str
+      number:toString self:prepend return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:35:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function +(cStr: [int8]): str
+      cStr str::new self:prepend return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:39:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function clone(): str
+      self._data str::new return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:43:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function append(other: str): str
+      other._data self:append return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:47:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function append(cStr: [int8]): str
+      unsafe
+        self._data cStr concat str::new return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:53:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function prepend(other: str): str
+      other._data self:prepend return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:57:3: Function system is already defined
+    end
+  
+>   function prepend(cStr: [int8]): str
+      unsafe
+        cStr self._data concat str::new return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:57:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function prepend(cStr: [int8]): str
+      unsafe
+        cStr self._data concat str::new return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:63:3: Function system is already defined
+    end
+  
+>   function equals(other: any): bool
+      if other is str ! then
+        false return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:63:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function equals(other: any): bool
+      if other is str ! then
+        false return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:70:3: Function system is already defined
+    end
+  
+>   function ==(other: any): bool
+      other self:equals return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:70:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function ==(other: any): bool
+      other self:equals return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:74:3: Function system is already defined
+    end
+  
+>   function size(): int
+      self._len return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:74:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function size(): int
+      self._len return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:78:3: Function system is already defined
+    end
+  
+>   function at(i: int): int
+      if i 0 < i self:size >= || then
+        "Index " i:toString +
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:78:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function at(i: int): int
+      if i 0 < i self:size >= || then
+        "Index " i:toString +
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:88:3: Function system is already defined
+    end
+  
+>   function toString(): str
+      self return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:88:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function toString(): str
+      self return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:92:3: Function system is already defined
+    end
+  
+>   function @(i: int): int
+      i self:at return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:92:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function @(i: int): int
+      i self:at return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:96:3: Function system is already defined
+    end
+  
+>   function [](index: int): int8
+      index self:at return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:96:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function [](index: int): int8
+      index self:at return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:100:3: Function system is already defined
+    end
+  
+>   function reverse(): str
+      decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:100:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function reverse(): str
+      decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:118:3: Function system is already defined
+    end
+  
+>   function toChars() _arr_: Array
+      self:size Array::new => _arr_
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:118:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function toChars() _arr_: Array
+      self:size Array::new => _arr_
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:127:3: Function system is already defined
+    end
+  
+>   function split(delimiter: str): Array
+      10 Array::new => decl arr: Array
+      decl string: [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:127:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function split(delimiter: str): Array
+      10 Array::new => decl arr: Array
+      decl string: [int8]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:150:3: Function system is already defined
+    end
+  
+>   function startsWith(string: str): bool
+      unsafe
+        self._data string._data string:size __c_strncmp 0 == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:150:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function startsWith(string: str): bool
+      unsafe
+        self._data string._data string:size __c_strncmp 0 == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:156:3: Function system is already defined
+    end
+  
+>   function endsWith(string: str): bool
+      if self._len string._len < then
+        false return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:156:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function endsWith(string: str): bool
+      if self._len string._len < then
+        false return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:168:3: Function system is already defined
+    end
+  
+>   function subString(start: int): str
+      if start 0 == then
+        self return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:168:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function subString(start: int): str
+      if start 0 == then
+        self return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:185:3: Function system is already defined
+    end
+  
+>   function view(): [int8]
+      unsafe
+        self._data __c_strdup return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:185:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function view(): [int8]
+      unsafe
+        self._data __c_strdup return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:191:3: Function system is already defined
+    end
+  
+>   function init(data: [int8]): none
+      unsafe
+        data __c_strdup => data
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:191:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function init(data: [int8]): none
+      unsafe
+        data __c_strdup => data
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:200:3: Function system is already defined
+    end
+  
+>   function iterate(): StringIterator
+      self StringIterator::new return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:200:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function iterate(): StringIterator
+      self StringIterator::new return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:204:3: Function system is already defined
+    end
+  
+>   function hashCode(): int
+      self._hash return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:204:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function hashCode(): int
+      self._hash return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:208:3: Function system is already defined
+    end
+  
+>   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
+      firstCStr __c_strlen => decl len: int
+      secondCStr __c_strlen => decl len2: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:208:27: Cannot define function inside another function. Current function: system
+    end
+  
+>   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
+      firstCStr __c_strlen => decl len: int
+      secondCStr __c_strlen => decl len2: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:220:1: Function system is already defined
+  end
+  
+> final sealed struct StringIterator is Iterator
+    private decl _str: str
+    private decl _pos: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:220:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final sealed struct StringIterator is Iterator
+    private decl _str: str
+    private decl _pos: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:224:12: Cannot define function inside another function. Current function: system
+    private decl _pos: int
+  
+>   function init(s: str): none
+      s => self._str
+      0 => self._pos
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:229:3: Function system is already defined
+    end
+  
+>   function next(): int8
+      self._pos 1 + => self._pos
+      self._str[self._pos 1 -] return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:229:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function next(): int8
+      self._pos 1 + => self._pos
+      self._str[self._pos 1 -] return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:234:3: Function system is already defined
+    end
+  
+>   function hasNext(): bool
+      self._pos self._str:size < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:234:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function hasNext(): bool
+      self._pos self._str:size < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:237:1: Function system is already defined
+      self._pos self._str:size < return
+    end
+> end
+  
+  function +(s: str, i: int): str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:239:1: Function system is already defined
+  end
+  
+> function +(s: str, i: int): str
+    s i:toString + return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:239:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function +(s: str, i: int): str
+    s i:toString + return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:243:1: Function system is already defined
+  end
+  
+> function +(s: str, f: float): str
+    s f:toString + return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/String.scale:243:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function +(s: str, f: float): str
+    s f:toString + return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:1:1: Function system is already defined
+> import std.util.Cloneable
+  import std.util.Equatable
+  import std.util.Hashable
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:5:1: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  import std.util.Hashable
+  
+> struct SclObject is Cloneable, Equatable, Hashable
+      function ==(other: any): bool
+          other self:equals return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:6:14: Cannot define function inside another function. Current function: system
+  
+  struct SclObject is Cloneable, Equatable, Hashable
+>     function ==(other: any): bool
+          other self:equals return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:10:5: Function system is already defined
+      end
+  
+>     function equals(other: any): bool
+          if other is SclObject ! then false return fi
+          self:hashCode other as SclObject:hashCode == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:10:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function equals(other: any): bool
+          if other is SclObject ! then false return fi
+          self:hashCode other as SclObject:hashCode == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:15:5: Function system is already defined
+      end
+  
+>     expect cdecl "_scl_atomic_clone" function clone(): SclObject
+  
+      expect cdecl "_scl_identity_hash" function hashCode(): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:15:47: Cannot define function inside another function. Current function: system
+      end
+  
+>     expect cdecl "_scl_atomic_clone" function clone(): SclObject
+  
+      expect cdecl "_scl_identity_hash" function hashCode(): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:17:48: Cannot define function inside another function. Current function: system
+      expect cdecl "_scl_atomic_clone" function clone(): SclObject
+  
+>     expect cdecl "_scl_identity_hash" function hashCode(): int
+  
+      sealed function lock(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:19:21: Cannot define function inside another function. Current function: system
+      expect cdecl "_scl_identity_hash" function hashCode(): int
+  
+>     sealed function lock(): none
+          self Process::lock
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:23:5: Function system is already defined
+      end
+  
+>     sealed function unlock(): none
+          self Process::unlock
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:23:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     sealed function unlock(): none
+          self Process::unlock
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:27:5: Function system is already defined
+      end
+  
+>     function init(): none end
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:27:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function init(): none end
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/SclObject.scale:28:1: Function system is already defined
+  
+      function init(): none end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:1:1: Function system is already defined
+> typealias int64 "scl_int64"
+  typealias int32 "scl_int32"
+  typealias int16 "scl_int16"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:12:32: Cannot define function inside another function. Current function: system
+  
+  cdecl "atoll"
+> private expect unsafe function __c_atoll(:[int8]): int64
+  
+  construct function inttypes_scale_init(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:14:20: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_atoll(:[int8]): int64
+  
+> construct function inttypes_scale_init(): none
+    0x80 => int8::minValue
+    0x7f => int8::maxValue
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:21:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final static sealed struct int8
+    decl minValue: const int8
+    decl maxValue: const int8
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:25:22: Cannot define function inside another function. Current function: system
+    decl maxValue: const int8
+  
+>   intrinsic function toString(x: int8): str
+      new[2] => decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:36:1: Function system is already defined
+  end
+  
+> final static sealed struct int
+    decl minValue: const int
+    decl maxValue: const int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:36:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final static sealed struct int
+    decl minValue: const int
+    decl maxValue: const int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:40:22: Cannot define function inside another function. Current function: system
+    decl maxValue: const int
+  
+>   intrinsic function toString(x: int): str
+      new[25] => decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:50:3: Function system is already defined
+    end
+  
+>   intrinsic function toHexString(x: int): str
+      new[19] => decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:50:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toHexString(x: int): str
+      new[19] => decl out: [int8]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:60:3: Function system is already defined
+    end
+  
+>   function parse(s: str): int
+      unsafe
+        s:view __c_atoll as int return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:60:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function parse(s: str): int
+      unsafe
+        s:view __c_atoll as int return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:66:3: Function system is already defined
+    end
+  
+>   intrinsic function toInt8(value: any): int8
+      value as int8 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:66:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toInt8(value: any): int8
+      value as int8 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:70:3: Function system is already defined
+    end
+  
+>   intrinsic function toInt16(value: any): int16
+      value as int16 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:70:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toInt16(value: any): int16
+      value as int16 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:74:3: Function system is already defined
+    end
+  
+>   intrinsic function toInt32(value: any): int32
+      value as int32 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:74:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toInt32(value: any): int32
+      value as int32 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:78:3: Function system is already defined
+    end
+  
+>   intrinsic function toInt(value: any): int
+      value as int return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:78:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toInt(value: any): int
+      value as int return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:82:3: Function system is already defined
+    end
+  
+>   intrinsic function toUInt8(value: any): uint8
+      value as uint8 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:82:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toUInt8(value: any): uint8
+      value as uint8 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:86:3: Function system is already defined
+    end
+  
+>   intrinsic function toUInt16(value: any): uint16
+      value as uint16 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:86:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toUInt16(value: any): uint16
+      value as uint16 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:90:3: Function system is already defined
+    end
+  
+>   intrinsic function toUInt32(value: any): uint32
+      value as uint32 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:90:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toUInt32(value: any): uint32
+      value as uint32 return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:94:3: Function system is already defined
+    end
+  
+>   intrinsic function toUInt(value: any): uint
+      value as uint return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:94:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function toUInt(value: any): uint
+      value as uint return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:98:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidInt8(val: any): bool
+      val val:toInt8 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:98:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidInt8(val: any): bool
+      val val:toInt8 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:102:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidInt16(val: any): bool
+      val val:toInt16 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:102:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidInt16(val: any): bool
+      val val:toInt16 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:106:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidInt32(val: any): bool
+      val val:toInt32 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:106:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidInt32(val: any): bool
+      val val:toInt32 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:110:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidUInt8(val: any): bool
+      val val:toUInt8 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:110:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidUInt8(val: any): bool
+      val val:toUInt8 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:114:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidUInt16(val: any): bool
+      val val:toUInt16 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:114:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidUInt16(val: any): bool
+      val val:toUInt16 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:118:3: Function system is already defined
+    end
+  
+>   intrinsic function isValidUInt32(val: any): bool
+      val val:toUInt32 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:118:22: Cannot define function inside another function. Current function: system
+    end
+  
+>   intrinsic function isValidUInt32(val: any): bool
+      val val:toUInt32 == return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:122:3: Function system is already defined
+    end
+  
+>   expect cdecl "Int$valueOf" function asReference(i: int): Int
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:122:39: Cannot define function inside another function. Current function: system
+    end
+  
+>   expect cdecl "Int$valueOf" function asReference(i: int): Int
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:125:1: Function system is already defined
+  end
+  
+> struct Int
+    decl value: readonly int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:125:1: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> struct Int
+    decl value: readonly int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:128:26: Cannot define function inside another function. Current function: system
+    decl value: readonly int
+  
+>   expect static function valueOf(x: int): Int
+  
+    function equals(other: any): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:130:12: Cannot define function inside another function. Current function: system
+    expect static function valueOf(x: int): Int
+  
+>   function equals(other: any): bool
+      if other is Int then
+        other as Int.value self.value == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:137:3: Function system is already defined
+      fi
+    end
+>   function ==(other: any): bool
+      other self:equals return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:137:12: Cannot define function inside another function. Current function: system
+      fi
+    end
+>   function ==(other: any): bool
+      other self:equals return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:140:3: Function system is already defined
+      other self:equals return
+    end
+>   function @(): int
+      self.value return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:140:12: Cannot define function inside another function. Current function: system
+      other self:equals return
+    end
+>   function @(): int
+      self.value return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:144:3: Function system is already defined
+    end
+  
+>   function toString(): str
+      self.value:toString return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:144:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function toString(): str
+      self.value:toString return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:147:1: Function system is already defined
+      self.value:toString return
+    end
+> end
+  
+  expect operator "add_ii" function +(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:149:1: Function system is already defined
+  end
+  
+> expect operator "add_ii" function +(:int, :int): int
+  expect operator "sub_ii" function -(:int, :int): int
+  expect operator "mul_ii" function *(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:149:35: Cannot define function inside another function. Current function: system
+  end
+  
+> expect operator "add_ii" function +(:int, :int): int
+  expect operator "sub_ii" function -(:int, :int): int
+  expect operator "mul_ii" function *(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:150:35: Cannot define function inside another function. Current function: system
+  
+  expect operator "add_ii" function +(:int, :int): int
+> expect operator "sub_ii" function -(:int, :int): int
+  expect operator "mul_ii" function *(:int, :int): int
+  expect operator "div_ii" function /(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:151:35: Cannot define function inside another function. Current function: system
+  expect operator "add_ii" function +(:int, :int): int
+  expect operator "sub_ii" function -(:int, :int): int
+> expect operator "mul_ii" function *(:int, :int): int
+  expect operator "div_ii" function /(:int, :int): int
+  expect operator "pow_ii" function **(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:152:35: Cannot define function inside another function. Current function: system
+  expect operator "sub_ii" function -(:int, :int): int
+  expect operator "mul_ii" function *(:int, :int): int
+> expect operator "div_ii" function /(:int, :int): int
+  expect operator "pow_ii" function **(:int, :int): int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:153:35: Cannot define function inside another function. Current function: system
+  expect operator "mul_ii" function *(:int, :int): int
+  expect operator "div_ii" function /(:int, :int): int
+> expect operator "pow_ii" function **(:int, :int): int
+  
+  expect operator "add_if" function +(:int, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:155:35: Cannot define function inside another function. Current function: system
+  expect operator "pow_ii" function **(:int, :int): int
+  
+> expect operator "add_if" function +(:int, :float): float
+  expect operator "sub_if" function -(:int, :float): float
+  expect operator "mul_if" function *(:int, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:156:35: Cannot define function inside another function. Current function: system
+  
+  expect operator "add_if" function +(:int, :float): float
+> expect operator "sub_if" function -(:int, :float): float
+  expect operator "mul_if" function *(:int, :float): float
+  expect operator "div_if" function /(:int, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:157:35: Cannot define function inside another function. Current function: system
+  expect operator "add_if" function +(:int, :float): float
+  expect operator "sub_if" function -(:int, :float): float
+> expect operator "mul_if" function *(:int, :float): float
+  expect operator "div_if" function /(:int, :float): float
+  expect operator "pow_if" function **(:int, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:158:35: Cannot define function inside another function. Current function: system
+  expect operator "sub_if" function -(:int, :float): float
+  expect operator "mul_if" function *(:int, :float): float
+> expect operator "div_if" function /(:int, :float): float
+  expect operator "pow_if" function **(:int, :float): float
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:159:35: Cannot define function inside another function. Current function: system
+  expect operator "mul_if" function *(:int, :float): float
+  expect operator "div_if" function /(:int, :float): float
+> expect operator "pow_if" function **(:int, :float): float
+  
+  expect operator "add_fi" function +(:float, :int): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:161:35: Cannot define function inside another function. Current function: system
+  expect operator "pow_if" function **(:int, :float): float
+  
+> expect operator "add_fi" function +(:float, :int): float
+  expect operator "sub_fi" function -(:float, :int): float
+  expect operator "mul_fi" function *(:float, :int): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:162:35: Cannot define function inside another function. Current function: system
+  
+  expect operator "add_fi" function +(:float, :int): float
+> expect operator "sub_fi" function -(:float, :int): float
+  expect operator "mul_fi" function *(:float, :int): float
+  expect operator "div_fi" function /(:float, :int): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:163:35: Cannot define function inside another function. Current function: system
+  expect operator "add_fi" function +(:float, :int): float
+  expect operator "sub_fi" function -(:float, :int): float
+> expect operator "mul_fi" function *(:float, :int): float
+  expect operator "div_fi" function /(:float, :int): float
+  expect operator "pow_fi" function **(:float, :int): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:164:35: Cannot define function inside another function. Current function: system
+  expect operator "sub_fi" function -(:float, :int): float
+  expect operator "mul_fi" function *(:float, :int): float
+> expect operator "div_fi" function /(:float, :int): float
+  expect operator "pow_fi" function **(:float, :int): float
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:165:35: Cannot define function inside another function. Current function: system
+  expect operator "mul_fi" function *(:float, :int): float
+  expect operator "div_fi" function /(:float, :int): float
+> expect operator "pow_fi" function **(:float, :int): float
+  
+  expect operator "add_ff" function +(:float, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:167:35: Cannot define function inside another function. Current function: system
+  expect operator "pow_fi" function **(:float, :int): float
+  
+> expect operator "add_ff" function +(:float, :float): float
+  expect operator "sub_ff" function -(:float, :float): float
+  expect operator "mul_ff" function *(:float, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:168:35: Cannot define function inside another function. Current function: system
+  
+  expect operator "add_ff" function +(:float, :float): float
+> expect operator "sub_ff" function -(:float, :float): float
+  expect operator "mul_ff" function *(:float, :float): float
+  expect operator "div_ff" function /(:float, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:169:35: Cannot define function inside another function. Current function: system
+  expect operator "add_ff" function +(:float, :float): float
+  expect operator "sub_ff" function -(:float, :float): float
+> expect operator "mul_ff" function *(:float, :float): float
+  expect operator "div_ff" function /(:float, :float): float
+  expect operator "pow_ff" function **(:float, :float): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:170:35: Cannot define function inside another function. Current function: system
+  expect operator "sub_ff" function -(:float, :float): float
+  expect operator "mul_ff" function *(:float, :float): float
+> expect operator "div_ff" function /(:float, :float): float
+  expect operator "pow_ff" function **(:float, :float): float
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:171:35: Cannot define function inside another function. Current function: system
+  expect operator "mul_ff" function *(:float, :float): float
+  expect operator "div_ff" function /(:float, :float): float
+> expect operator "pow_ff" function **(:float, :float): float
+  
+  expect operator "eq_if" function ==(:int, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:173:34: Cannot define function inside another function. Current function: system
+  expect operator "pow_ff" function **(:float, :float): float
+  
+> expect operator "eq_if" function ==(:int, :float): bool
+  expect operator "ne_if" function !=(:int, :float): bool
+  expect operator "gt_if" function >(:int, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:174:34: Cannot define function inside another function. Current function: system
+  
+  expect operator "eq_if" function ==(:int, :float): bool
+> expect operator "ne_if" function !=(:int, :float): bool
+  expect operator "gt_if" function >(:int, :float): bool
+  expect operator "ge_if" function >=(:int, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:175:34: Cannot define function inside another function. Current function: system
+  expect operator "eq_if" function ==(:int, :float): bool
+  expect operator "ne_if" function !=(:int, :float): bool
+> expect operator "gt_if" function >(:int, :float): bool
+  expect operator "ge_if" function >=(:int, :float): bool
+  expect operator "lt_if" function <(:int, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:176:34: Cannot define function inside another function. Current function: system
+  expect operator "ne_if" function !=(:int, :float): bool
+  expect operator "gt_if" function >(:int, :float): bool
+> expect operator "ge_if" function >=(:int, :float): bool
+  expect operator "lt_if" function <(:int, :float): bool
+  expect operator "le_if" function <=(:int, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:177:34: Cannot define function inside another function. Current function: system
+  expect operator "gt_if" function >(:int, :float): bool
+  expect operator "ge_if" function >=(:int, :float): bool
+> expect operator "lt_if" function <(:int, :float): bool
+  expect operator "le_if" function <=(:int, :float): bool
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:178:34: Cannot define function inside another function. Current function: system
+  expect operator "ge_if" function >=(:int, :float): bool
+  expect operator "lt_if" function <(:int, :float): bool
+> expect operator "le_if" function <=(:int, :float): bool
+  
+  expect operator "eq_fi" function ==(:float, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:180:34: Cannot define function inside another function. Current function: system
+  expect operator "le_if" function <=(:int, :float): bool
+  
+> expect operator "eq_fi" function ==(:float, :int): bool
+  expect operator "ne_fi" function !=(:float, :int): bool
+  expect operator "gt_fi" function >(:float, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:181:34: Cannot define function inside another function. Current function: system
+  
+  expect operator "eq_fi" function ==(:float, :int): bool
+> expect operator "ne_fi" function !=(:float, :int): bool
+  expect operator "gt_fi" function >(:float, :int): bool
+  expect operator "ge_fi" function >=(:float, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:182:34: Cannot define function inside another function. Current function: system
+  expect operator "eq_fi" function ==(:float, :int): bool
+  expect operator "ne_fi" function !=(:float, :int): bool
+> expect operator "gt_fi" function >(:float, :int): bool
+  expect operator "ge_fi" function >=(:float, :int): bool
+  expect operator "lt_fi" function <(:float, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:183:34: Cannot define function inside another function. Current function: system
+  expect operator "ne_fi" function !=(:float, :int): bool
+  expect operator "gt_fi" function >(:float, :int): bool
+> expect operator "ge_fi" function >=(:float, :int): bool
+  expect operator "lt_fi" function <(:float, :int): bool
+  expect operator "le_fi" function <=(:float, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:184:34: Cannot define function inside another function. Current function: system
+  expect operator "gt_fi" function >(:float, :int): bool
+  expect operator "ge_fi" function >=(:float, :int): bool
+> expect operator "lt_fi" function <(:float, :int): bool
+  expect operator "le_fi" function <=(:float, :int): bool
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:185:34: Cannot define function inside another function. Current function: system
+  expect operator "ge_fi" function >=(:float, :int): bool
+  expect operator "lt_fi" function <(:float, :int): bool
+> expect operator "le_fi" function <=(:float, :int): bool
+  
+  expect operator "eq_ff" function ==(:float, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:187:34: Cannot define function inside another function. Current function: system
+  expect operator "le_fi" function <=(:float, :int): bool
+  
+> expect operator "eq_ff" function ==(:float, :float): bool
+  expect operator "ne_ff" function !=(:float, :float): bool
+  expect operator "gt_ff" function >(:float, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:188:34: Cannot define function inside another function. Current function: system
+  
+  expect operator "eq_ff" function ==(:float, :float): bool
+> expect operator "ne_ff" function !=(:float, :float): bool
+  expect operator "gt_ff" function >(:float, :float): bool
+  expect operator "ge_ff" function >=(:float, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:189:34: Cannot define function inside another function. Current function: system
+  expect operator "eq_ff" function ==(:float, :float): bool
+  expect operator "ne_ff" function !=(:float, :float): bool
+> expect operator "gt_ff" function >(:float, :float): bool
+  expect operator "ge_ff" function >=(:float, :float): bool
+  expect operator "lt_ff" function <(:float, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:190:34: Cannot define function inside another function. Current function: system
+  expect operator "ne_ff" function !=(:float, :float): bool
+  expect operator "gt_ff" function >(:float, :float): bool
+> expect operator "ge_ff" function >=(:float, :float): bool
+  expect operator "lt_ff" function <(:float, :float): bool
+  expect operator "le_ff" function <=(:float, :float): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:191:34: Cannot define function inside another function. Current function: system
+  expect operator "gt_ff" function >(:float, :float): bool
+  expect operator "ge_ff" function >=(:float, :float): bool
+> expect operator "lt_ff" function <(:float, :float): bool
+  expect operator "le_ff" function <=(:float, :float): bool
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:192:34: Cannot define function inside another function. Current function: system
+  expect operator "ge_ff" function >=(:float, :float): bool
+  expect operator "lt_ff" function <(:float, :float): bool
+> expect operator "le_ff" function <=(:float, :float): bool
+  
+  expect operator "eq_ii" function ==(:int, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:194:34: Cannot define function inside another function. Current function: system
+  expect operator "le_ff" function <=(:float, :float): bool
+  
+> expect operator "eq_ii" function ==(:int, :int): bool
+  expect operator "ne_ii" function !=(:int, :int): bool
+  expect operator "gt_ii" function >(:int, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:195:34: Cannot define function inside another function. Current function: system
+  
+  expect operator "eq_ii" function ==(:int, :int): bool
+> expect operator "ne_ii" function !=(:int, :int): bool
+  expect operator "gt_ii" function >(:int, :int): bool
+  expect operator "ge_ii" function >=(:int, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:196:34: Cannot define function inside another function. Current function: system
+  expect operator "eq_ii" function ==(:int, :int): bool
+  expect operator "ne_ii" function !=(:int, :int): bool
+> expect operator "gt_ii" function >(:int, :int): bool
+  expect operator "ge_ii" function >=(:int, :int): bool
+  expect operator "lt_ii" function <(:int, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:197:34: Cannot define function inside another function. Current function: system
+  expect operator "ne_ii" function !=(:int, :int): bool
+  expect operator "gt_ii" function >(:int, :int): bool
+> expect operator "ge_ii" function >=(:int, :int): bool
+  expect operator "lt_ii" function <(:int, :int): bool
+  expect operator "le_ii" function <=(:int, :int): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:198:34: Cannot define function inside another function. Current function: system
+  expect operator "gt_ii" function >(:int, :int): bool
+  expect operator "ge_ii" function >=(:int, :int): bool
+> expect operator "lt_ii" function <(:int, :int): bool
+  expect operator "le_ii" function <=(:int, :int): bool
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:199:34: Cannot define function inside another function. Current function: system
+  expect operator "ge_ii" function >=(:int, :int): bool
+  expect operator "lt_ii" function <(:int, :int): bool
+> expect operator "le_ii" function <=(:int, :int): bool
+  
+  expect operator "and" function &&(:bool, :bool): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:201:32: Cannot define function inside another function. Current function: system
+  expect operator "le_ii" function <=(:int, :int): bool
+  
+> expect operator "and" function &&(:bool, :bool): bool
+  expect operator "or" function ||(:bool, :bool): bool
+  expect operator "not" function !(:bool): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:202:31: Cannot define function inside another function. Current function: system
+  
+  expect operator "and" function &&(:bool, :bool): bool
+> expect operator "or" function ||(:bool, :bool): bool
+  expect operator "not" function !(:bool): bool
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:203:32: Cannot define function inside another function. Current function: system
+  expect operator "and" function &&(:bool, :bool): bool
+  expect operator "or" function ||(:bool, :bool): bool
+> expect operator "not" function !(:bool): bool
+  
+  expect operator "mod" function %(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:205:32: Cannot define function inside another function. Current function: system
+  expect operator "not" function !(:bool): bool
+  
+> expect operator "mod" function %(:int, :int): int
+  expect operator "land" function &(:int, :int): int
+  expect operator "lor" function |(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:206:33: Cannot define function inside another function. Current function: system
+  
+  expect operator "mod" function %(:int, :int): int
+> expect operator "land" function &(:int, :int): int
+  expect operator "lor" function |(:int, :int): int
+  expect operator "lxor" function ^(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:207:32: Cannot define function inside another function. Current function: system
+  expect operator "mod" function %(:int, :int): int
+  expect operator "land" function &(:int, :int): int
+> expect operator "lor" function |(:int, :int): int
+  expect operator "lxor" function ^(:int, :int): int
+  expect operator "lnot" function ~(:int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:208:33: Cannot define function inside another function. Current function: system
+  expect operator "land" function &(:int, :int): int
+  expect operator "lor" function |(:int, :int): int
+> expect operator "lxor" function ^(:int, :int): int
+  expect operator "lnot" function ~(:int): int
+  expect operator "lsl" function <<(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:209:33: Cannot define function inside another function. Current function: system
+  expect operator "lor" function |(:int, :int): int
+  expect operator "lxor" function ^(:int, :int): int
+> expect operator "lnot" function ~(:int): int
+  expect operator "lsl" function <<(:int, :int): int
+  expect operator "lsr" function >>(:int, :int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:210:32: Cannot define function inside another function. Current function: system
+  expect operator "lxor" function ^(:int, :int): int
+  expect operator "lnot" function ~(:int): int
+> expect operator "lsl" function <<(:int, :int): int
+  expect operator "lsr" function >>(:int, :int): int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:211:32: Cannot define function inside another function. Current function: system
+  expect operator "lnot" function ~(:int): int
+  expect operator "lsl" function <<(:int, :int): int
+> expect operator "lsr" function >>(:int, :int): int
+  
+  deprecated![since: "23.5", replacement: "int::toInt8"]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:214:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toInt8"]
+> function toInt8(value: any): int8
+    value:toInt8 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:218:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toInt16"]
+  function toInt16(value: any): int16
+    value:toInt16 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:219:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toInt16"]
+> function toInt16(value: any): int16
+    value:toInt16 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:223:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toInt32"]
+  function toInt32(value: any): int32
+    value:toInt32 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:224:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toInt32"]
+> function toInt32(value: any): int32
+    value:toInt32 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:228:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toInt"]
+  function toInt(value: any): int
+    value:toInt return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:229:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toInt"]
+> function toInt(value: any): int
+    value:toInt return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:233:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toUInt8"]
+  function toUInt8(value: any): uint8
+    value:toUInt8 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:234:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toUInt8"]
+> function toUInt8(value: any): uint8
+    value:toUInt8 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:238:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toUInt16"]
+  function toUInt16(value: any): uint16
+    value:toUInt16 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:239:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toUInt16"]
+> function toUInt16(value: any): uint16
+    value:toUInt16 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:243:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toUInt32"]
+  function toUInt32(value: any): uint32
+    value:toUInt32 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:244:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toUInt32"]
+> function toUInt32(value: any): uint32
+    value:toUInt32 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:248:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::toUInt"]
+  function toUInt(value: any): uint
+    value:toUInt return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:249:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::toUInt"]
+> function toUInt(value: any): uint
+    value:toUInt return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:253:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidInt8"]
+  function isValidInt8(val: any): bool
+    val:isValidInt8 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:254:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidInt8"]
+> function isValidInt8(val: any): bool
+    val:isValidInt8 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:258:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidInt16"]
+  function isValidInt16(val: any): bool
+    val:isValidInt16 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:259:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidInt16"]
+> function isValidInt16(val: any): bool
+    val:isValidInt16 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:263:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidInt32"]
+  function isValidInt32(val: any): bool
+    val:isValidInt32 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:264:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidInt32"]
+> function isValidInt32(val: any): bool
+    val:isValidInt32 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:268:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidUInt8"]
+  function isValidUInt8(val: any): bool
+    val:isValidUInt8 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:269:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidUInt8"]
+> function isValidUInt8(val: any): bool
+    val:isValidUInt8 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:273:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidUInt16"]
+  function isValidUInt16(val: any): bool
+    val:isValidUInt16 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:274:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidUInt16"]
+> function isValidUInt16(val: any): bool
+    val:isValidUInt16 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:278:1: Function system is already defined
+  end
+  
+> deprecated![since: "23.5", replacement: "int::isValidUInt32"]
+  function isValidUInt32(val: any): bool
+    val:isValidUInt32 return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:279:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.5", replacement: "int::isValidUInt32"]
+> function isValidUInt32(val: any): bool
+    val:isValidUInt32 return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:283:1: Function system is already defined
+  end
+  
+> function isnil(x: any): bool
+    x nil == return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:283:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function isnil(x: any): bool
+    x nil == return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:287:1: Function system is already defined
+  end
+  
+> function isnotnil(x: any): bool
+    x nil != return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Int.scale:287:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function isnotnil(x: any): bool
+    x nil != return
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:1:1: Function system is already defined
+> import std.io
+  import std.runtime.Process
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:8:17: Cannot define function inside another function. Current function: system
+  cdecl "print_stacktrace"
+  deprecated![since: "23.7", replacement: "Process::stackTrace", forRemoval: true]
+> expect function trace(): none
+  cdecl "_scl_throw"
+  expect function throw(ex: Exception): nothing
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:10:17: Cannot define function inside another function. Current function: system
+  expect function trace(): none
+  cdecl "_scl_throw"
+> expect function throw(ex: Exception): nothing
+  
+  cdecl "_scl_security_safe_exit"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:13:32: Cannot define function inside another function. Current function: system
+  
+  cdecl "_scl_security_safe_exit"
+> private expect unsafe function __c_exit(i: int): none
+  cdecl "_scl_default_signal_handler"
+  private expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:15:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_exit(i: int): none
+  cdecl "_scl_default_signal_handler"
+> private expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
+  cdecl "raise"
+  private expect unsafe function __c_raise(sigNum: int): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:17:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
+  cdecl "raise"
+> private expect unsafe function __c_raise(sigNum: int): int
+  cdecl "_scl_errno"
+  expect function errno(): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:19:17: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_raise(sigNum: int): int
+  cdecl "_scl_errno"
+> expect function errno(): int
+  cdecl "_scl_errno_str"
+  expect function strerror(): str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:21:17: Cannot define function inside another function. Current function: system
+  expect function errno(): int
+  cdecl "_scl_errno_str"
+> expect function strerror(): str
+  cdecl "_scl_set_signal_handler"
+  expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:23:17: Cannot define function inside another function. Current function: system
+  expect function strerror(): str
+  cdecl "_scl_set_signal_handler"
+> expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+  cdecl "_scl_reset_signal_handler"
+  expect function resetSignalHandler(sig: int): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:25:17: Cannot define function inside another function. Current function: system
+  expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+  cdecl "_scl_reset_signal_handler"
+> expect function resetSignalHandler(sig: int): none
+  
+  intrinsic function dumpStack(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:27:20: Cannot define function inside another function. Current function: system
+  expect function resetSignalHandler(sig: int): none
+  
+> intrinsic function dumpStack(): none
+    unsafe
+      c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:40:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function crash(): none
+    unsafe
+      1 __c_exit
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:46:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function raise(sigNum: int): none
+    unsafe
+      sigNum __c_raise => decl raised
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:56:32: Cannot define function inside another function. Current function: system
+  
+  cdecl "getchar"
+> private expect unsafe function __c_getchar(): int8
+  
+  function breakPoint(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:58:10: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_getchar(): int8
+  
+> function breakPoint(): none
+    "Hit breakPoint. Press enter to continue." puts
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:65:8: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> sealed struct Exception
+    decl msg: str
+    decl stackTrace: const Array
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:70:12: Cannot define function inside another function. Current function: system
+    decl errnoStr: readonly str
+  
+>   function init(): none
+      if errno then
+        strerror
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:80:35: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict export sealed function printStackTrace(): none
+      "Stacktrace of " typeof self + ":" + eputs
+      for i in self.stackTrace.count 3 - to -1 step -- do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:86:1: Function system is already defined
+      done
+    end
+> end
+  
+  final sealed struct InvalidSignalException: Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:88:1: Function system is already defined
+  end
+  
+> final sealed struct InvalidSignalException: Exception
+    decl sig: readonly int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:88:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final sealed struct InvalidSignalException: Exception
+    decl sig: readonly int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:91:12: Cannot define function inside another function. Current function: system
+    decl sig: readonly int
+  
+>   function init(sig: int): none
+      sig => self.sig
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:94:1: Function system is already defined
+      sig => self.sig
+    end
+> end
+  
+  sealed open struct NullPointerException: Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:96:1: Function system is already defined
+  end
+  
+> sealed open struct NullPointerException: Exception
+  
+  sealed struct Error: Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:96:13: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> sealed open struct NullPointerException: Exception
+  
+  sealed struct Error: Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:98:8: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  sealed open struct NullPointerException: Exception
+  
+> sealed struct Error: Exception
+    function init(msg: str): none
+      msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:99:12: Cannot define function inside another function. Current function: system
+  
+  sealed struct Error: Exception
+>   function init(msg: str): none
+      msg => self.msg
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:102:1: Function system is already defined
+      msg => self.msg
+    end
+> end
+  
+  final sealed open struct AssertError: Error
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:104:1: Function system is already defined
+  end
+  
+> final sealed open struct AssertError: Error
+  final sealed open struct CastError: Error
+  final sealed open struct UnreachableError: Error
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:104:19: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final sealed open struct AssertError: Error
+  final sealed open struct CastError: Error
+  final sealed open struct UnreachableError: Error
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:105:19: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  
+  final sealed open struct AssertError: Error
+> final sealed open struct CastError: Error
+  final sealed open struct UnreachableError: Error
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:106:19: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  final sealed open struct AssertError: Error
+  final sealed open struct CastError: Error
+> final sealed open struct UnreachableError: Error
+  
+  function sysPrettyString(): str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Debug.scale:108:10: Cannot define function inside another function. Current function: system
+  final sealed open struct UnreachableError: Error
+  
+> function sysPrettyString(): str
+    new[40] => decl sPtr: [int8]
+    unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:1:1: Function system is already defined
+> final static sealed struct any
+      cdecl "_scl_alloc"  expect function new(size: int): any
+      cdecl "_scl_free"   expect function delete(ptr: any): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:1:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final static sealed struct any
+      cdecl "_scl_alloc"  expect function new(size: int): any
+      cdecl "_scl_free"   expect function delete(ptr: any): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:2:41: Cannot define function inside another function. Current function: system
+  final static sealed struct any
+>     cdecl "_scl_alloc"  expect function new(size: int): any
+      cdecl "_scl_free"   expect function delete(ptr: any): none
+      cdecl "_scl_sizeof" expect function size(ptr: any): int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:3:41: Cannot define function inside another function. Current function: system
+  final static sealed struct any
+      cdecl "_scl_alloc"  expect function new(size: int): any
+>     cdecl "_scl_free"   expect function delete(ptr: any): none
+      cdecl "_scl_sizeof" expect function size(ptr: any): int
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:4:41: Cannot define function inside another function. Current function: system
+      cdecl "_scl_alloc"  expect function new(size: int): any
+      cdecl "_scl_free"   expect function delete(ptr: any): none
+>     cdecl "_scl_sizeof" expect function size(ptr: any): int
+  
+      function resize(newSize: int, ptr: any): any
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:6:14: Cannot define function inside another function. Current function: system
+      cdecl "_scl_sizeof" expect function size(ptr: any): int
+  
+>     function resize(newSize: int, ptr: any): any
+          unsafe
+              ptr newSize __c_realloc return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:12:5: Function system is already defined
+      end
+  
+>     function default(): any
+          sizeof any any::new return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:12:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function default(): any
+          sizeof any any::new return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:16:5: Function system is already defined
+      end
+  
+>     function toString(x: any): str
+          x as int:toString
+          return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:16:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function toString(x: any): str
+          x as int:toString
+          return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:21:5: Function system is already defined
+      end
+  
+>     function toHexString(x: any): str
+          x as int:toHexString
+          return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:21:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function toHexString(x: any): str
+          x as int:toHexString
+          return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:26:5: Function system is already defined
+      end
+  
+>     function referenceEquals(one: any, other: any): bool
+          one as int other as int == return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:26:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function referenceEquals(one: any, other: any): bool
+          one as int other as int == return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:30:5: Function system is already defined
+      end
+  
+>     expect cdecl "Any$valueOf" function asReference(x: any): Any
+  
+      cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:30:41: Cannot define function inside another function. Current function: system
+      end
+  
+>     expect cdecl "Any$valueOf" function asReference(x: any): Any
+  
+      cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:32:57: Cannot define function inside another function. Current function: system
+      expect cdecl "Any$valueOf" function asReference(x: any): Any
+  
+>     cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:35:1: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> struct Any
+      decl value: readonly any
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:38:28: Cannot define function inside another function. Current function: system
+      decl value: readonly any
+  
+>     expect static function valueOf(x: any): Any
+  
+      function equals(other: any): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:40:14: Cannot define function inside another function. Current function: system
+      expect static function valueOf(x: any): Any
+  
+>     function equals(other: any): bool
+          other self == return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:43:5: Function system is already defined
+          other self == return
+      end
+>     function ==(other: any): bool
+          if other is Any then
+              other as Any.value as int self.value as int == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:43:14: Cannot define function inside another function. Current function: system
+          other self == return
+      end
+>     function ==(other: any): bool
+          if other is Any then
+              other as Any.value as int self.value as int == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:50:5: Function system is already defined
+          fi
+      end
+>     function @(): any
+          self.value return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:50:14: Cannot define function inside another function. Current function: system
+          fi
+      end
+>     function @(): any
+          self.value return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:54:5: Function system is already defined
+      end
+  
+>     function toString(): str
+          self.value:toString return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:54:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function toString(): str
+          self.value:toString return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Any.scale:57:1: Function system is already defined
+          self.value:toString return
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:1:1: Function system is already defined
+> construct function float_scale_init(): none
+      1023  => float::maxExponent
+      -1022 => float::minExponent
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:1:20: Cannot define function inside another function. Current function: system
+> construct function float_scale_init(): none
+      1023  => float::maxExponent
+      -1022 => float::minExponent
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:6:1: Function system is already defined
+  end
+  
+> final static sealed struct float
+      decl maxExponent: const int
+      decl minExponent: const int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:6:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final static sealed struct float
+      decl maxExponent: const int
+      decl minExponent: const int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:10:24: Cannot define function inside another function. Current function: system
+      decl minExponent: const int
+  
+>     intrinsic function toString(x: float): str
+          100 any::new => decl out: [int8]
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:20:5: Function system is already defined
+      end
+  
+>     intrinsic function toPrecisionString(x: float): str
+          100 any::new => decl out: [int8]
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:20:24: Cannot define function inside another function. Current function: system
+      end
+  
+>     intrinsic function toPrecisionString(x: float): str
+          100 any::new => decl out: [int8]
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:30:5: Function system is already defined
+      end
+  
+>     intrinsic function toHexString(x: float): str
+          19 any::new => decl out: [int8]
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:30:24: Cannot define function inside another function. Current function: system
+      end
+  
+>     intrinsic function toHexString(x: float): str
+          19 any::new => decl out: [int8]
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:40:5: Function system is already defined
+      end
+  
+>     function parse(s: str): float
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:40:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function parse(s: str): float
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:49:5: Function system is already defined
+      end
+  
+>     function bits(x: float) val: int
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:49:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function bits(x: float) val: int
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:58:5: Function system is already defined
+      end
+  
+>     function isInfinite(x: float): bool
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:58:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function isInfinite(x: float): bool
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:66:5: Function system is already defined
+      end
+  
+>     function isNaN(x: float): bool
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:66:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function isNaN(x: float): bool
+          unsafe
+              c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:74:5: Function system is already defined
+      end
+  
+>     function isFinite(x: float): bool
+          x float::isInfinite ! x float::isNaN ! && return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:74:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function isFinite(x: float): bool
+          x float::isInfinite ! x float::isNaN ! && return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:78:5: Function system is already defined
+      end
+  
+>     function isNotNaN(x: float): bool
+          x float::isNaN ! return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:78:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function isNotNaN(x: float): bool
+          x float::isNaN ! return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:82:5: Function system is already defined
+      end
+  
+>     expect cdecl "Float$valueOf" function asReference(f: float): Float
+  
+      intrinsic function fromBits(bits: any): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:82:43: Cannot define function inside another function. Current function: system
+      end
+  
+>     expect cdecl "Float$valueOf" function asReference(f: float): Float
+  
+      intrinsic function fromBits(bits: any): float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:84:24: Cannot define function inside another function. Current function: system
+      expect cdecl "Float$valueOf" function asReference(f: float): Float
+  
+>     intrinsic function fromBits(bits: any): float
+          ref bits as [float] @ return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:87:1: Function system is already defined
+          ref bits as [float] @ return
+      end
+> end
+  
+  struct Float
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:89:1: Function system is already defined
+  end
+  
+> struct Float
+      decl value: readonly float
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:89:1: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> struct Float
+      decl value: readonly float
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:92:28: Cannot define function inside another function. Current function: system
+      decl value: readonly float
+  
+>     expect static function valueOf(x: float): Float
+  
+      function equals(other: any): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:94:14: Cannot define function inside another function. Current function: system
+      expect static function valueOf(x: float): Float
+  
+>     function equals(other: any): bool
+          other self == return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:97:5: Function system is already defined
+          other self == return
+      end
+>     function ==(other: any): bool
+          if other is Float then
+              other as Float.value self.value == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:97:14: Cannot define function inside another function. Current function: system
+          other self == return
+      end
+>     function ==(other: any): bool
+          if other is Float then
+              other as Float.value self.value == return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:104:5: Function system is already defined
+          fi
+      end
+>     function @(): float
+          self.value return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:104:14: Cannot define function inside another function. Current function: system
+          fi
+      end
+>     function @(): float
+          self.value return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:108:5: Function system is already defined
+      end
+  
+>     function toString(): str
+          self.value:toString return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:108:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function toString(): str
+          self.value:toString return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Float.scale:111:1: Function system is already defined
+          self.value:toString return
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:2:1: Function system is already defined
+  # Formatted IO
+> final static sealed struct ConsoleColor  
+    function reset(): str   "\033[0m"  return end
+    function black(): str   "\033[30m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:2:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  # Formatted IO
+> final static sealed struct ConsoleColor  
+    function reset(): str   "\033[0m"  return end
+    function black(): str   "\033[30m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:3:12: Cannot define function inside another function. Current function: system
+  # Formatted IO
+  final static sealed struct ConsoleColor  
+>   function reset(): str   "\033[0m"  return end
+    function black(): str   "\033[30m" return end
+    function red(): str     "\033[31m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:4:3: Function system is already defined
+  final static sealed struct ConsoleColor  
+    function reset(): str   "\033[0m"  return end
+>   function black(): str   "\033[30m" return end
+    function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:4:12: Cannot define function inside another function. Current function: system
+  final static sealed struct ConsoleColor  
+    function reset(): str   "\033[0m"  return end
+>   function black(): str   "\033[30m" return end
+    function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:5:3: Function system is already defined
+    function reset(): str   "\033[0m"  return end
+    function black(): str   "\033[30m" return end
+>   function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:5:12: Cannot define function inside another function. Current function: system
+    function reset(): str   "\033[0m"  return end
+    function black(): str   "\033[30m" return end
+>   function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:6:3: Function system is already defined
+    function black(): str   "\033[30m" return end
+    function red(): str     "\033[31m" return end
+>   function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:6:12: Cannot define function inside another function. Current function: system
+    function black(): str   "\033[30m" return end
+    function red(): str     "\033[31m" return end
+>   function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:7:3: Function system is already defined
+    function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+>   function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:7:12: Cannot define function inside another function. Current function: system
+    function red(): str     "\033[31m" return end
+    function green(): str   "\033[32m" return end
+>   function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:8:3: Function system is already defined
+    function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+>   function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:8:12: Cannot define function inside another function. Current function: system
+    function green(): str   "\033[32m" return end
+    function yellow(): str  "\033[33m" return end
+>   function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:9:3: Function system is already defined
+    function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+>   function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:9:12: Cannot define function inside another function. Current function: system
+    function yellow(): str  "\033[33m" return end
+    function blue(): str    "\033[34m" return end
+>   function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:10:3: Function system is already defined
+    function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+>   function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+    function bold(): str    "\033[1m"  return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:10:12: Cannot define function inside another function. Current function: system
+    function blue(): str    "\033[34m" return end
+    function magenta(): str "\033[35m" return end
+>   function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+    function bold(): str    "\033[1m"  return end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:11:3: Function system is already defined
+    function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+>   function white(): str   "\033[37m" return end
+    function bold(): str    "\033[1m"  return end
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:11:12: Cannot define function inside another function. Current function: system
+    function magenta(): str "\033[35m" return end
+    function cyan(): str    "\033[36m" return end
+>   function white(): str   "\033[37m" return end
+    function bold(): str    "\033[1m"  return end
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:12:3: Function system is already defined
+    function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+>   function bold(): str    "\033[1m"  return end
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:12:12: Cannot define function inside another function. Current function: system
+    function cyan(): str    "\033[36m" return end
+    function white(): str   "\033[37m" return end
+>   function bold(): str    "\033[1m"  return end
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:13:1: Function system is already defined
+    function white(): str   "\033[37m" return end
+    function bold(): str    "\033[1m"  return end
+> end
+  
+  final static sealed struct FmtIO
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:15:1: Function system is already defined
+  end
+  
+> final static sealed struct FmtIO
+    cdecl "putchar" private expect function putchar(char: int8): none
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:15:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final static sealed struct FmtIO
+    cdecl "putchar" private expect function putchar(char: int8): none
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:16:43: Cannot define function inside another function. Current function: system
+  
+  final static sealed struct FmtIO
+>   cdecl "putchar" private expect function putchar(char: int8): none
+  
+    private function printStrNoNewline(s: str): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:18:20: Cannot define function inside another function. Current function: system
+    cdecl "putchar" private expect function putchar(char: int8): none
+  
+>   private function printStrNoNewline(s: str): none
+      foreach c in s do
+        c FmtIO::putchar
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:24:3: Function system is already defined
+    end
+  
+>   function puts(fmt: str): none
+      1 Array::new => decl fmtArgs
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:24:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function puts(fmt: str): none
+      1 Array::new => decl fmtArgs
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/Fmt.scale:60:1: Function system is already defined
+      done
+    end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:1:1: Function system is already defined
+> cdecl "write"
+  private expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+  cdecl "read"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:2:32: Cannot define function inside another function. Current function: system
+  cdecl "write"
+> private expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+  cdecl "read"
+  private expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:4:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+  cdecl "read"
+> private expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
+  cdecl "fprintf"
+  private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:6:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
+  cdecl "fprintf"
+> private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+  cdecl "printf"
+  private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:8:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+  cdecl "printf"
+> private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+  cdecl "getchar"
+  private expect unsafe function __c_getchar(): int8
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:10:32: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+  cdecl "getchar"
+> private expect unsafe function __c_getchar(): int8
+  
+  intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:12:46: Cannot define function inside another function. Current function: system
+  private expect unsafe function __c_getchar(): int8
+  
+> intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
+    fileDescriptor string:view string:size __c_write drop
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:16:38: Cannot define function inside another function. Current function: system
+  end
+  
+> intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str?
+    new[amount] => decl buf: [int8]
+    fileDescriptor buf amount __c_read drop
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:22:10: Cannot define function inside another function. Current function: system
+  end
+  
+> function getchar(): int8
+    unsafe
+      __c_getchar
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:30:25: Cannot define function inside another function. Current function: system
+  
+  cdecl "puts"
+> private expect function puts0(:[int8]): none
+  cdecl "_scl_puts_str"
+  private expect function puts1(:str): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:32:25: Cannot define function inside another function. Current function: system
+  private expect function puts0(:[int8]): none
+  cdecl "_scl_puts_str"
+> private expect function puts1(:str): none
+  
+  function puts(val: str): none    val puts1 end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:34:10: Cannot define function inside another function. Current function: system
+  private expect function puts1(:str): none
+  
+> function puts(val: str): none    val puts1 end
+  function puts(val: [int8]): none val puts0 end
+  function puts(f: float): none    f:toString puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:35:10: Cannot define function inside another function. Current function: system
+  
+  function puts(val: str): none    val puts1 end
+> function puts(val: [int8]): none val puts0 end
+  function puts(f: float): none    f:toString puts end
+  function puts(value: any): none  value:toString puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:36:10: Cannot define function inside another function. Current function: system
+  function puts(val: str): none    val puts1 end
+  function puts(val: [int8]): none val puts0 end
+> function puts(f: float): none    f:toString puts end
+  function puts(value: any): none  value:toString puts end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:37:10: Cannot define function inside another function. Current function: system
+  function puts(val: [int8]): none val puts0 end
+  function puts(f: float): none    f:toString puts end
+> function puts(value: any): none  value:toString puts end
+  
+  function eputs(s: [int8]): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:39:1: Function system is already defined
+  function puts(value: any): none  value:toString puts end
+  
+> function eputs(s: [int8]): none
+    unsafe
+      c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:39:10: Cannot define function inside another function. Current function: system
+  function puts(value: any): none  value:toString puts end
+  
+> function eputs(s: [int8]): none
+    unsafe
+      c!
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:48:1: Function system is already defined
+    drop
+  end
+> function eputs(s: str): none     s:toString:view eputs end
+  function eputs(f: float): none   f:toString:view eputs end
+  function eputs(value: any): none value:toString:view eputs end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:48:10: Cannot define function inside another function. Current function: system
+    drop
+  end
+> function eputs(s: str): none     s:toString:view eputs end
+  function eputs(f: float): none   f:toString:view eputs end
+  function eputs(value: any): none value:toString:view eputs end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:49:1: Function system is already defined
+  end
+  function eputs(s: str): none     s:toString:view eputs end
+> function eputs(f: float): none   f:toString:view eputs end
+  function eputs(value: any): none value:toString:view eputs end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:49:10: Cannot define function inside another function. Current function: system
+  end
+  function eputs(s: str): none     s:toString:view eputs end
+> function eputs(f: float): none   f:toString:view eputs end
+  function eputs(value: any): none value:toString:view eputs end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:50:1: Function system is already defined
+  function eputs(s: str): none     s:toString:view eputs end
+  function eputs(f: float): none   f:toString:view eputs end
+> function eputs(value: any): none value:toString:view eputs end
+  
+  function putint(number: int): none number puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:50:10: Cannot define function inside another function. Current function: system
+  function eputs(s: str): none     s:toString:view eputs end
+  function eputs(f: float): none   f:toString:view eputs end
+> function eputs(value: any): none value:toString:view eputs end
+  
+  function putint(number: int): none number puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:52:1: Function system is already defined
+  function eputs(value: any): none value:toString:view eputs end
+  
+> function putint(number: int): none number puts end
+  
+  function putfloat(number: float): none number:toString puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:52:10: Cannot define function inside another function. Current function: system
+  function eputs(value: any): none value:toString:view eputs end
+  
+> function putint(number: int): none number puts end
+  
+  function putfloat(number: float): none number:toString puts end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:54:1: Function system is already defined
+  function putint(number: int): none number puts end
+  
+> function putfloat(number: float): none number:toString puts end
+  
+  deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:54:10: Cannot define function inside another function. Current function: system
+  function putint(number: int): none number puts end
+  
+> function putfloat(number: float): none number:toString puts end
+  
+  deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:56:1: Function system is already defined
+  function putfloat(number: float): none number:toString puts end
+  
+> deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
+  function throwerr(errorString: str): none
+    Exception::new => decl e: mut Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/lang/IO.scale:57:10: Cannot define function inside another function. Current function: system
+  
+  deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
+> function throwerr(errorString: str): none
+    Exception::new => decl e: mut Exception
+    errorString => e.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:1:1: Function system is already defined
+> import std.util.Iterable
+  import std.util.ImmutableArray
+  import std.debug
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:9:8: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  import std.util.ReadOnlyArray
+  
+> sealed struct Array is Iterable
+    decl values:  mut readonly [any]
+    decl count:       readonly int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:15:20: Cannot define function inside another function. Current function: system
+    decl initCap:     readonly int
+  
+>   private function checkTypeOrThrow(value: any): none end
+    
+    restrict function sort(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:17:3: Function system is already defined
+    private function checkTypeOrThrow(value: any): none end
+    
+>   restrict function sort(): none
+      0 => decl i
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:17:21: Cannot define function inside another function. Current function: system
+    private function checkTypeOrThrow(value: any): none end
+    
+>   restrict function sort(): none
+      0 => decl i
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:37:3: Function system is already defined
+    end
+  
+>   function [](index: int): any?
+      index self:get return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:37:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function [](index: int): any?
+      index self:get return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:41:3: Function system is already defined
+    end
+  
+>   function get(index: int): any?
+      if index 0 < index self.count >= || then
+        "Index "
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:41:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function get(index: int): any?
+      if index 0 < index self.count >= || then
+        "Index "
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:53:3: Function system is already defined
+    end
+  
+>   function =>[](index: int, value: any): none
+      index value self:set
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:53:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function =>[](index: int, value: any): none
+      index value self:set
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:57:3: Function system is already defined
+    end
+  
+>   restrict function set(index: int, value: any): none
+      value self:checkTypeOrThrow
+      if index 0 < index self.capacity >= || then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:57:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function set(index: int, value: any): none
+      value self:checkTypeOrThrow
+      if index 0 < index self.capacity >= || then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:76:3: Function system is already defined
+    end
+  
+>   function top(): any?
+      if self.count 0 <= then
+        "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:76:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function top(): any?
+      if self.count 0 <= then
+        "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:83:3: Function system is already defined
+    end
+  
+>   restrict function push(value: any): none
+      value self:checkTypeOrThrow
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:83:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function push(value: any): none
+      value self:checkTypeOrThrow
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:95:3: Function system is already defined
+    end
+  
+>   restrict function pop(): none
+      if self.count 0 <= then
+        "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:95:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function pop(): none
+      if self.count 0 <= then
+        "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:103:3: Function system is already defined
+    end
+  
+>   restrict function indexOf(val: any): int
+      val self:checkTypeOrThrow
+      for i in 0 to self.count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:103:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function indexOf(val: any): int
+      val self:checkTypeOrThrow
+      for i in 0 to self.count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:125:3: Function system is already defined
+    end
+  
+>   function contains(val: any): bool
+      val self:checkTypeOrThrow
+      val self:indexOf -1 != return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:125:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function contains(val: any): bool
+      val self:checkTypeOrThrow
+      val self:indexOf -1 != return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:130:3: Function system is already defined
+    end
+  
+>   function init(size: int): none
+      if size 1 < then
+        "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:130:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function init(size: int): none
+      if size 1 < then
+        "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:140:3: Function system is already defined
+    end
+  
+>   function iterate(): ArrayIterator
+      self ArrayIterator::new return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:140:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function iterate(): ArrayIterator
+      self ArrayIterator::new return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:144:3: Function system is already defined
+    end
+  
+>   restrict function reverse(): Array
+      if self.count 0 <= then self return fi
+      
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:144:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function reverse(): Array
+      if self.count 0 <= then self return fi
+      
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:161:3: Function system is already defined
+    end
+  
+>   restrict function toString() s: str
+      if self.count 0 == then
+        "{}" => s
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:161:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function toString() s: str
+      if self.count 0 == then
+        "{}" => s
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:178:3: Function system is already defined
+    end
+  
+>   restrict function immutableCopy(): ImmutableArray
+      new[self.count] => decl newVals: [any]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:178:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function immutableCopy(): ImmutableArray
+      new[self.count] => decl newVals: [any]
+      unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:189:3: Function system is already defined
+    end
+  
+>   restrict function remove(val: any): none
+      val self:checkTypeOrThrow
+      val self:indexOf => decl index
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:189:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function remove(val: any): none
+      val self:checkTypeOrThrow
+      val self:indexOf => decl index
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:198:3: Function system is already defined
+    end
+  
+>   function removeAll(val: any): none
+      val self:checkTypeOrThrow
+      while val self:indexOf -1 != do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:198:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function removeAll(val: any): none
+      val self:checkTypeOrThrow
+      while val self:indexOf -1 != do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:205:3: Function system is already defined
+    end
+  
+>   restrict function map(x: lambda(any): none): none
+      foreach elem in self do
+        elem x:accept
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:205:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function map(x: lambda(any): none): none
+      foreach elem in self do
+        elem x:accept
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:211:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function filter(x: lambda(any): bool) arr: Array
+      self.capacity Array::new => arr
+      foreach elem in self do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:221:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function clone(): Array
+      self builtinAtomicClone as Array => decl clone: mut Array
+      self.values builtinAtomicClone => clone.values
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:227:3: Function system is already defined
+    end
+  
+>   restrict function *(): none
+      foreach elem in self do
+        elem
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:227:21: Cannot define function inside another function. Current function: system
+    end
+  
+>   restrict function *(): none
+      foreach elem in self do
+        elem
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:239:3: Function system is already defined
+    end
+  
+>   static function fromPointerCollection(count: int, values: [any]) arr: Array
+      count Array::new => arr
+      for i in 0 to count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:239:19: Cannot define function inside another function. Current function: system
+    end
+  
+>   static function fromPointerCollection(count: int, values: [any]) arr: Array
+      count Array::new => arr
+      for i in 0 to count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:246:1: Function system is already defined
+      return
+    end
+> end
+  
+  sealed struct ArrayIterator is Iterator
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:248:1: Function system is already defined
+  end
+  
+> sealed struct ArrayIterator is Iterator
+    private decl array: Array
+    private decl pos: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:248:8: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> sealed struct ArrayIterator is Iterator
+    private decl array: Array
+    private decl pos: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:252:12: Cannot define function inside another function. Current function: system
+    private decl pos: int
+  
+>   function init(arr: Array): none
+      arr => self.array
+      0 => self.pos
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:257:3: Function system is already defined
+    end
+  
+>   function hasNext(): bool
+      self.pos self.array.count < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:257:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function hasNext(): bool
+      self.pos self.array.count < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:261:3: Function system is already defined
+    end
+  
+>   function next(): any
+      self.pos 1 + => self.pos
+      self.array[self.pos 1 -] return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:261:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function next(): any
+      self.pos 1 + => self.pos
+      self.array[self.pos 1 -] return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/Array.scale:265:1: Function system is already defined
+      self.array[self.pos 1 -] return
+    end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IStringifyable.scale:1:1: Function system is already defined
+> interface Stringifyable
+      function toString(): str
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IStringifyable.scale:1:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> interface Stringifyable
+      function toString(): str
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IStringifyable.scale:2:14: Cannot define function inside another function. Current function: system
+  interface Stringifyable
+>     function toString(): str
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ICloneable.scale:1:1: Function system is already defined
+> interface Cloneable
+      function clone(): ?
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ICloneable.scale:1:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> interface Cloneable
+      function clone(): ?
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ICloneable.scale:2:14: Cannot define function inside another function. Current function: system
+  interface Cloneable
+>     function clone(): ?
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IEquatable.scale:1:1: Function system is already defined
+> interface Equatable
+      function ==(other: any): bool
+      function equals(other: any): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IEquatable.scale:1:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> interface Equatable
+      function ==(other: any): bool
+      function equals(other: any): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IEquatable.scale:2:14: Cannot define function inside another function. Current function: system
+  interface Equatable
+>     function ==(other: any): bool
+      function equals(other: any): bool
+  end
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IEquatable.scale:3:14: Cannot define function inside another function. Current function: system
+  interface Equatable
+      function ==(other: any): bool
+>     function equals(other: any): bool
+  end
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IHashable.scale:1:1: Function system is already defined
+> interface Hashable
+      function hashCode(): int
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IHashable.scale:1:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> interface Hashable
+      function hashCode(): int
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IHashable.scale:2:14: Cannot define function inside another function. Current function: system
+  interface Hashable
+>     function hashCode(): int
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:1:1: Function system is already defined
+> import std.runtime.Library
+  import std.thread.Thread
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:4:21: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  import std.thread.Thread
+  
+> static final sealed struct Process
+      cdecl "_scl_security_safe_exit"
+      expect function exit(:int): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:6:21: Cannot define function inside another function. Current function: system
+  static final sealed struct Process
+      cdecl "_scl_security_safe_exit"
+>     expect function exit(:int): none
+      expect function stackTrace(): Array
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:7:21: Cannot define function inside another function. Current function: system
+      cdecl "_scl_security_safe_exit"
+      expect function exit(:int): none
+>     expect function stackTrace(): Array
+  
+      function loadLibrary(name: str): Library
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:9:14: Cannot define function inside another function. Current function: system
+      expect function stackTrace(): Array
+  
+>     function loadLibrary(name: str): Library
+          name Library::new return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:13:5: Function system is already defined
+      end
+  
+>     expect function gcEnabled(): bool
+  
+      function isOnMainThread(): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:13:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     expect function gcEnabled(): bool
+  
+      function isOnMainThread(): bool
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:15:14: Cannot define function inside another function. Current function: system
+      expect function gcEnabled(): bool
+  
+>     function isOnMainThread(): bool
+          Thread::currentThread:lock
+          Thread::currentThread Thread::mainThread ==
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:22:5: Function system is already defined
+      end
+  
+>     expect function lock(obj: SclObject): none
+      expect function unlock(obj: SclObject): none
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:22:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     expect function lock(obj: SclObject): none
+      expect function unlock(obj: SclObject): none
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Process.scale:23:21: Cannot define function inside another function. Current function: system
+  
+      expect function lock(obj: SclObject): none
+>     expect function unlock(obj: SclObject): none
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:1:1: Function system is already defined
+> interface Iterator
+    function hasNext(): bool
+    function next(): ?
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:1:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> interface Iterator
+    function hasNext(): bool
+    function next(): ?
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:2:12: Cannot define function inside another function. Current function: system
+  interface Iterator
+>   function hasNext(): bool
+    function next(): ?
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:3:12: Cannot define function inside another function. Current function: system
+  interface Iterator
+    function hasNext(): bool
+>   function next(): ?
+  end
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:6:1: Function system is already defined
+  end
+  
+> interface Iterable
+    function iterate(): Iterator
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:6:1: Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> interface Iterable
+    function iterate(): Iterator
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IIterable.scale:7:12: Cannot define function inside another function. Current function: system
+  
+  interface Iterable
+>   function iterate(): Iterator
+  end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:1:1: Function system is already defined
+> import std.util.Iterable
+  import std.debug
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:4:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  import std.debug
+  
+> final sealed struct ImmutableArray
+    decl values:      readonly [any]
+    decl count:       readonly int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:12:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray:get", forRemoval: true]
+>   function get(index: int): any?
+      if index 0 <= then self.values @ return fi
+      self.values index 3 << + @ return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:17:3: Function system is already defined
+    end
+  
+>   deprecated![since: "23.6", replacement: "ReadOnlyArray:top", forRemoval: true]
+    function top(): any?
+      self.values self.count 1 - 3 << + @ return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:18:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray:top", forRemoval: true]
+>   function top(): any?
+      self.values self.count 1 - 3 << + @ return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:22:3: Function system is already defined
+    end
+  
+>   deprecated![since: "23.6", replacement: "ReadOnlyArray:contains", forRemoval: true]
+    function contains(val: any): bool
+      for i in 0 to self.count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:23:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray:contains", forRemoval: true]
+>   function contains(val: any): bool
+      for i in 0 to self.count do
+        if i self:get val == then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:32:3: Function system is already defined
+    end
+  
+>   deprecated![since: "23.6", replacement: "ReadOnlyArray::fromPointerCollection", forRemoval: true]
+    function init(count: int, values: [any]): none
+      count => self.count
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:33:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray::fromPointerCollection", forRemoval: true]
+>   function init(count: int, values: [any]): none
+      count => self.count
+      count => self.capacity
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:40:3: Function system is already defined
+    end
+  
+>   function begin(): none
+      0 => self.pos
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:40:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function begin(): none
+      0 => self.pos
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:44:3: Function system is already defined
+    end
+  
+>   function hasNext(): bool
+      self.pos self.count < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:44:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function hasNext(): bool
+      self.pos self.count < return
+    end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:48:3: Function system is already defined
+    end
+  
+>   function next(): any?
+      self.pos self:get
+      self.pos 1 + => self.pos
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:48:12: Cannot define function inside another function. Current function: system
+    end
+  
+>   function next(): any?
+      self.pos self:get
+      self.pos 1 + => self.pos
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:54:3: Function system is already defined
+    end
+  
+>   deprecated![since: "23.6", replacement: "ReadOnlyArray:toString", forRemoval: true]
+    function toString() s: str
+      if self.count 0 == then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:55:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray:toString", forRemoval: true]
+>   function toString() s: str
+      if self.count 0 == then
+        "{}" => s
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:72:3: Function system is already defined
+    end
+  
+>   deprecated![since: "23.6", replacement: "ReadOnlyArray:map", forRemoval: true]
+    function map(x: lambda(any): none): none
+      for i in 0 to self.count do
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ImmutableArray.scale:73:12: Cannot define function inside another function. Current function: system
+  
+    deprecated![since: "23.6", replacement: "ReadOnlyArray:map", forRemoval: true]
+>   function map(x: lambda(any): none): none
+      for i in 0 to self.count do
+        i self:get x:accept
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale:1:1: Function system is already defined
+> final sealed struct InvalidArgumentException : Exception
+      function init(s: str): none
+          s => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale:1:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final sealed struct InvalidArgumentException : Exception
+      function init(s: str): none
+          s => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale:2:14: Cannot define function inside another function. Current function: system
+  final sealed struct InvalidArgumentException : Exception
+>     function init(s: str): none
+          s => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale:5:1: Function system is already defined
+          s => self.msg
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale:1:1: Function system is already defined
+> final sealed struct IndexOutOfBoundsException : Exception
+      function init(s: str): none
+          s => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale:1:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final sealed struct IndexOutOfBoundsException : Exception
+      function init(s: str): none
+          s => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale:2:14: Cannot define function inside another function. Current function: system
+  final sealed struct IndexOutOfBoundsException : Exception
+>     function init(s: str): none
+          s => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/IndexOutOfBoundsException.scale:5:1: Function system is already defined
+          s => self.msg
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:1:1: Function system is already defined
+> import std.util.Array
+  import std.util.ReadOnlyArray
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:4:7: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  import std.util.ReadOnlyArray
+  
+> final struct InvalidTypeException : Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:5:14: Cannot define function inside another function. Current function: system
+  
+  final struct InvalidTypeException : Exception
+>     function init(msg: str): none
+          msg => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:8:1: Function system is already defined
+          msg => self.msg
+      end
+> end
+  
+  final sealed struct TypedArray<T: any>: Array
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:10:1: Function system is already defined
+  end
+  
+> final sealed struct TypedArray<T: any>: Array
+      private function checkTypeOrThrow(val: any): none
+          if val typeof T builtinIsInstanceOf then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:10:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final sealed struct TypedArray<T: any>: Array
+      private function checkTypeOrThrow(val: any): none
+          if val typeof T builtinIsInstanceOf then
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:11:22: Cannot define function inside another function. Current function: system
+  
+  final sealed struct TypedArray<T: any>: Array
+>     private function checkTypeOrThrow(val: any): none
+          if val typeof T builtinIsInstanceOf then
+              return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/TypedArray.scale:17:1: Function system is already defined
+          "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:1:1: Function system is already defined
+> final sealed struct IllegalStateException: Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:1:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final sealed struct IllegalStateException: Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:2:14: Cannot define function inside another function. Current function: system
+  final sealed struct IllegalStateException: Exception
+>     function init(msg: str): none
+          msg => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:5:1: Function system is already defined
+          msg => self.msg
+      end
+> end
+  
+  sealed struct ReadOnlyArray: Array
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:7:1: Function system is already defined
+  end
+  
+> sealed struct ReadOnlyArray: Array
+      function sort(): none
+          "Attempted to sort readonly array!"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:7:8: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> sealed struct ReadOnlyArray: Array
+      function sort(): none
+          "Attempted to sort readonly array!"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:8:14: Cannot define function inside another function. Current function: system
+  
+  sealed struct ReadOnlyArray: Array
+>     function sort(): none
+          "Attempted to sort readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:13:5: Function system is already defined
+      end
+  
+>     function set(index: int, value: any): none
+          "Attempted to set value on readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:13:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function set(index: int, value: any): none
+          "Attempted to set value on readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:18:5: Function system is already defined
+      end
+  
+>     function push(value: any): none
+          "Attempted to push to readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:18:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function push(value: any): none
+          "Attempted to push to readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:23:5: Function system is already defined
+      end
+  
+>     function pop(): none
+          "Attempted to pop on readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:23:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function pop(): none
+          "Attempted to pop on readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:28:5: Function system is already defined
+      end
+  
+>     function reverse(): Array
+          "Attempted to reverse readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:28:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function reverse(): Array
+          "Attempted to reverse readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:33:5: Function system is already defined
+      end
+  
+>     function remove(val: any): none
+          "Attempted to remove value from readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:33:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function remove(val: any): none
+          "Attempted to remove value from readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:38:5: Function system is already defined
+      end
+  
+>     function removeAll(val: any): none
+          "Attempted to remove all values from readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:38:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function removeAll(val: any): none
+          "Attempted to remove all values from readonly array!"
+          IllegalStateException::new throw
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:43:5: Function system is already defined
+      end
+  
+>     static function fromArray(arr: Array) out: ReadOnlyArray
+          arr:lock
+          arr.capacity ReadOnlyArray::new => out
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:43:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     static function fromArray(arr: Array) out: ReadOnlyArray
+          arr:lock
+          arr.capacity ReadOnlyArray::new => out
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:57:5: Function system is already defined
+      end
+  
+>     static function fromPointerCollection(count: int, values: [any]) out: ReadOnlyArray
+          count ReadOnlyArray::new => out
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:57:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     static function fromPointerCollection(count: int, values: [any]) out: ReadOnlyArray
+          count ReadOnlyArray::new => out
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale:68:1: Function system is already defined
+          return
+      end
+> end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:1:1: Function system is already defined
+> final sealed struct Library
+      private decl _handle: any
+      private decl _name: str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:1:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final sealed struct Library
+      private decl _handle: any
+      private decl _name: str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:5:43: Cannot define function inside another function. Current function: system
+      private decl _name: str
+  
+>     private static expect unsafe function getSymbol0(handle: any, name: [int8]): any
+      private static expect unsafe function open0(name: [int8]): any
+      private static expect unsafe function close0(handle: any): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:6:43: Cannot define function inside another function. Current function: system
+  
+      private static expect unsafe function getSymbol0(handle: any, name: [int8]): any
+>     private static expect unsafe function open0(name: [int8]): any
+      private static expect unsafe function close0(handle: any): none
+      private static expect unsafe function dlerror0(): str
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:7:43: Cannot define function inside another function. Current function: system
+      private static expect unsafe function getSymbol0(handle: any, name: [int8]): any
+      private static expect unsafe function open0(name: [int8]): any
+>     private static expect unsafe function close0(handle: any): none
+      private static expect unsafe function dlerror0(): str
+      
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:8:43: Cannot define function inside another function. Current function: system
+      private static expect unsafe function open0(name: [int8]): any
+      private static expect unsafe function close0(handle: any): none
+>     private static expect unsafe function dlerror0(): str
+      
+      function init(name: str): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:10:14: Cannot define function inside another function. Current function: system
+      private static expect unsafe function dlerror0(): str
+      
+>     function init(name: str): none
+          name => self._name
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:24:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function close(): none
+          unless self._handle then
+              NullPointerException::new => decl e: mut NullPointerException
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:37:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function name(): str
+          _name return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/runtime/Library.scale:41:14: Cannot define function inside another function. Current function: system
+      end
+  
+>     function getSymbol(name: str): any
+          decl symbol: any
+          unsafe
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:1:1: Function system is already defined
+> final sealed struct ThreadException : Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:1:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+> final sealed struct ThreadException : Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:2:14: Cannot define function inside another function. Current function: system
+  final sealed struct ThreadException : Exception
+>     function init(msg: str): none
+          msg => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:5:1: Function system is already defined
+          msg => self.msg
+      end
+> end
+  
+  final sealed struct AtomicOperationException : Exception
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:7:1: Function system is already defined
+  end
+  
+> final sealed struct AtomicOperationException : Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:7:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  end
+  
+> final sealed struct AtomicOperationException : Exception
+      function init(msg: str): none
+          msg => self.msg
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:8:14: Cannot define function inside another function. Current function: system
+  
+  final sealed struct AtomicOperationException : Exception
+>     function init(msg: str): none
+          msg => self.msg
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:11:1: Function system is already defined
+          msg => self.msg
+      end
+> end
+  
+  typealias pthread_t "pthread_t"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:13:1: Function system is already defined
+  end
+  
+> typealias pthread_t "pthread_t"
+  typealias pthread_mutex_t "pthread_mutex_t"
+  typealias pthread_mutexattr_t "pthread_mutexattr_t"
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:17:62: Cannot define function inside another function. Current function: system
+  typealias pthread_mutexattr_t "pthread_mutexattr_t"
+  
+> cdecl "pthread_mutex_init"    private expect unsafe function __c_pthread_mutex_init(:[pthread_mutex_t], :[pthread_mutexattr_t]?): int32
+  cdecl "pthread_mutex_lock"    private expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:18:62: Cannot define function inside another function. Current function: system
+  
+  cdecl "pthread_mutex_init"    private expect unsafe function __c_pthread_mutex_init(:[pthread_mutex_t], :[pthread_mutexattr_t]?): int32
+> cdecl "pthread_mutex_lock"    private expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:19:62: Cannot define function inside another function. Current function: system
+  cdecl "pthread_mutex_init"    private expect unsafe function __c_pthread_mutex_init(:[pthread_mutex_t], :[pthread_mutexattr_t]?): int32
+  cdecl "pthread_mutex_lock"    private expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
+> cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+  cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:20:62: Cannot define function inside another function. Current function: system
+  cdecl "pthread_mutex_lock"    private expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+> cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+  cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+  cdecl "GC_pthread_join"       private expect unsafe function __c_pthread_join(:pthread_t, :any?): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:21:62: Cannot define function inside another function. Current function: system
+  cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
+  cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+> cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+  cdecl "GC_pthread_join"       private expect unsafe function __c_pthread_join(:pthread_t, :any?): none
+  cdecl "pthread_self"          private expect unsafe function __c_pthread_self(): pthread_t
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:22:62: Cannot define function inside another function. Current function: system
+  cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
+  cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+> cdecl "GC_pthread_join"       private expect unsafe function __c_pthread_join(:pthread_t, :any?): none
+  cdecl "pthread_self"          private expect unsafe function __c_pthread_self(): pthread_t
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:23:62: Cannot define function inside another function. Current function: system
+  cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
+  cdecl "GC_pthread_join"       private expect unsafe function __c_pthread_join(:pthread_t, :any?): none
+> cdecl "pthread_self"          private expect unsafe function __c_pthread_self(): pthread_t
+  
+  final sealed struct Thread
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:25:14: Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: system
+  cdecl "pthread_self"          private expect unsafe function __c_pthread_self(): pthread_t
+  
+> final sealed struct Thread
+      private static decl threads: Array
+      private static decl nextID: int
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:36:24: Cannot define function inside another function. Current function: system
+      decl name: str
+  
+>     construct function __privateInit(): none
+          0 => Thread::nextID
+          1 TypedArray<Thread>::new => Thread::threads
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:41:21: Cannot define function inside another function. Current function: system
+      end
+  
+>     static function stackTrace(): Array
+          Process::stackTrace return
+      end
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:45:70: Cannot define function inside another function. Current function: system
+      end
+  
+>     private static expect unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
+  
+      expect static function currentThread(): Thread
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:47:28: Cannot define function inside another function. Current function: system
+      private static expect unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
+  
+>     expect static function currentThread(): Thread
+  
+      function init(func: lambda(): none): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:49:14: Cannot define function inside another function. Current function: system
+      expect static function currentThread(): Thread
+  
+>     function init(func: lambda(): none): none
+          func => self.func
+          nil => self.tid
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:56:36: Cannot define function inside another function. Current function: system
+      end
+  
+>     private expect unsafe function start0(): int
+      private expect unsafe function stop0(): int
+      private expect unsafe function run(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:57:36: Cannot define function inside another function. Current function: system
+  
+      private expect unsafe function start0(): int
+>     private expect unsafe function stop0(): int
+      private expect unsafe function run(): none
+  
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:58:36: Cannot define function inside another function. Current function: system
+      private expect unsafe function start0(): int
+      private expect unsafe function stop0(): int
+>     private expect unsafe function run(): none
+  
+      restrict function start(): none
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:60:23: Cannot define function inside another function. Current function: system
+      private expect unsafe function run(): none
+  
+>     restrict function start(): none
+          if tid then
+              "Thread started" ThreadException::new
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:74:23: Cannot define function inside another function. Current function: system
+      end
+  
+>     restrict function join(): none
+          unless tid then
+              "Thread ended" ThreadException::new
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:89:23: Cannot define function inside another function. Current function: system
+      end
+  
+>     restrict function equals(other: any): bool
+          if other is Thread ! then
+              false return
+
+Error: /opt/Scale/23.7/Frameworks/Scale.framework/include/std/thread/Thread.scale:99:23: Cannot define function inside another function. Current function: system
+      end
+  
+>     restrict function ==(other: any): bool
+          if other is Thread ! then
+              false return
+

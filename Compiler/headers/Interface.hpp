@@ -16,6 +16,7 @@ namespace sclc
         std::vector<Function*> toImplement;
         std::vector<Method*> defaultImplementations;
     public:
+        Token* name_token;
         Interface(std::string name) {
             this->name = name;
         }

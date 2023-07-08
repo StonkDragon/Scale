@@ -36,7 +36,7 @@ const std::vector<std::string> intrinsics({
 namespace sclc {
     std::map<std::string, std::string> templateArgs;
 
-    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
                 i += 2;
@@ -50,40 +50,37 @@ namespace sclc {
         }
 
         if (name == "+") name = "operator$add";
-        if (name == "-") name = "operator$sub";
-        if (name == "*") name = "operator$mul";
-        if (name == "/") name = "operator$div";
-        if (name == "%") name = "operator$mod";
-        if (name == "&") name = "operator$logic_and";
-        if (name == "|") name = "operator$logic_or";
-        if (name == "^") name = "operator$logic_xor";
-        if (name == "~") name = "operator$logic_not";
-        if (name == "<<") name = "operator$logic_lsh";
-        if (name == ">>") name = "operator$logic_rsh";
-        if (name == "**") name = "operator$pow";
-        if (name == ".") name = "operator$dot";
-        if (name == "<") name = "operator$less";
-        if (name == "<=") name = "operator$less_equal";
-        if (name == ">") name = "operator$more";
-        if (name == ">=") name = "operator$more_equal";
-        if (name == "==") name = "operator$equal";
-        if (name == "!") name = "operator$not";
-        if (name == "!!") name = "operator$assert_not_nil";
-        if (name == "!=") name = "operator$not_equal";
-        if (name == "&&") name = "operator$bool_and";
-        if (name == "||") name = "operator$bool_or";
-        if (name == "++") name = "operator$inc";
-        if (name == "--") name = "operator$dec";
-        if (name == "@") name = "operator$at";
-        if (name == "=>[]") name = "operator$set";
-        if (name == "[]") name = "operator$get";
-        if (name == "?") name = "operator$wildcard";
+        else if (name == "-") name = "operator$sub";
+        else if (name == "*") name = "operator$mul";
+        else if (name == "/") name = "operator$div";
+        else if (name == "%") name = "operator$mod";
+        else if (name == "&") name = "operator$logic_and";
+        else if (name == "|") name = "operator$logic_or";
+        else if (name == "^") name = "operator$logic_xor";
+        else if (name == "~") name = "operator$logic_not";
+        else if (name == "<<") name = "operator$logic_lsh";
+        else if (name == ">>") name = "operator$logic_rsh";
+        else if (name == "**") name = "operator$pow";
+        else if (name == ".") name = "operator$dot";
+        else if (name == "<") name = "operator$less";
+        else if (name == "<=") name = "operator$less_equal";
+        else if (name == ">") name = "operator$more";
+        else if (name == ">=") name = "operator$more_equal";
+        else if (name == "==") name = "operator$equal";
+        else if (name == "!") name = "operator$not";
+        else if (name == "!!") name = "operator$assert_not_nil";
+        else if (name == "!=") name = "operator$not_equal";
+        else if (name == "&&") name = "operator$bool_and";
+        else if (name == "||") name = "operator$bool_or";
+        else if (name == "++") name = "operator$inc";
+        else if (name == "--") name = "operator$dec";
+        else if (name == "@") name = "operator$at";
+        else if (name == "=>[]") name = "operator$set";
+        else if (name == "[]") name = "operator$get";
+        else if (name == "?") name = "operator$wildcard";
 
         Function* func = new Function(name, nameToken);
         func->setFile(nameToken.getFile());
-        for (std::string m : nextAttributes) {
-            func->addModifier(m);
-        }
         i += 2;
         if (tokens[i].getType() == tok_paren_open) {
             i++;
@@ -296,7 +293,7 @@ namespace sclc {
         return func;
     }
 
-    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, std::vector<std::string>& nextAttributes, size_t& i, std::vector<Token>& tokens) {
+    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
                 i += 2;
@@ -310,43 +307,40 @@ namespace sclc {
         }
 
         if (name == "+") name = "operator$add";
-        if (name == "-") name = "operator$sub";
-        if (name == "*") name = "operator$mul";
-        if (name == "/") name = "operator$div";
-        if (name == "%") name = "operator$mod";
-        if (name == "&") name = "operator$logic_and";
-        if (name == "|") name = "operator$logic_or";
-        if (name == "^") name = "operator$logic_xor";
-        if (name == "~") name = "operator$logic_not";
-        if (name == "<<") name = "operator$logic_lsh";
-        if (name == ">>") name = "operator$logic_rsh";
-        if (name == "**") name = "operator$pow";
-        if (name == ".") name = "operator$dot";
-        if (name == "<") name = "operator$less";
-        if (name == "<=") name = "operator$less_equal";
-        if (name == ">") name = "operator$more";
-        if (name == ">=") name = "operator$more_equal";
-        if (name == "==") name = "operator$equal";
-        if (name == "!") name = "operator$not";
-        if (name == "!!") name = "operator$assert_not_nil";
-        if (name == "!=") name = "operator$not_equal";
-        if (name == "&&") name = "operator$bool_and";
-        if (name == "||") name = "operator$bool_or";
-        if (name == "++") name = "operator$inc";
-        if (name == "--") name = "operator$dec";
-        if (name == "@") name = "operator$at";
-        if (name == "=>[]") name = "operator$set";
-        if (name == "[]") name = "operator$get";
-        if (name == "?") name = "operator$wildcard";
+        else if (name == "-") name = "operator$sub";
+        else if (name == "*") name = "operator$mul";
+        else if (name == "/") name = "operator$div";
+        else if (name == "%") name = "operator$mod";
+        else if (name == "&") name = "operator$logic_and";
+        else if (name == "|") name = "operator$logic_or";
+        else if (name == "^") name = "operator$logic_xor";
+        else if (name == "~") name = "operator$logic_not";
+        else if (name == "<<") name = "operator$logic_lsh";
+        else if (name == ">>") name = "operator$logic_rsh";
+        else if (name == "**") name = "operator$pow";
+        else if (name == ".") name = "operator$dot";
+        else if (name == "<") name = "operator$less";
+        else if (name == "<=") name = "operator$less_equal";
+        else if (name == ">") name = "operator$more";
+        else if (name == ">=") name = "operator$more_equal";
+        else if (name == "==") name = "operator$equal";
+        else if (name == "!") name = "operator$not";
+        else if (name == "!!") name = "operator$assert_not_nil";
+        else if (name == "!=") name = "operator$not_equal";
+        else if (name == "&&") name = "operator$bool_and";
+        else if (name == "||") name = "operator$bool_or";
+        else if (name == "++") name = "operator$inc";
+        else if (name == "--") name = "operator$dec";
+        else if (name == "@") name = "operator$at";
+        else if (name == "=>[]") name = "operator$set";
+        else if (name == "[]") name = "operator$get";
+        else if (name == "?") name = "operator$wildcard";
 
         Method* method = new Method(memberName, name, nameToken);
         method->setFile(nameToken.getFile());
         method->forceAdd(true);
         if (method->getName() == "init" || strstarts(method->getName(), "init")) {
             method->addModifier("<constructor>");
-        }
-        for (std::string m : nextAttributes) {
-            method->addModifier(m);
         }
         i += 2;
         if (tokens[i].getType() == tok_paren_open) {
@@ -572,7 +566,447 @@ namespace sclc {
         return c;
     };
 
-    TPResult SyntaxTree::parse() {
+    TPResult parseFile(std::string file) {
+        FILE* f = fopen(file.c_str(), "rb");
+
+        std::vector<FPResult> errors;
+        std::vector<FPResult> warns;
+        if (!f) {
+            FPResult result;
+            result.message = "Could not open file '" + file + "'";
+            result.success = false;
+            result.in = file;
+            errors.push_back(result);
+            TPResult r;
+            r.errors = errors;
+            return r;
+        }
+
+        char* magic = (char*) malloc(4);
+        fread(magic, 1, 4, f);
+        if (strncmp(magic + 1, "SCL", 3) != 0) {
+            FPResult result;
+            result.message = "Invalid file format!";
+            result.success = false;
+            result.in = file;
+            errors.push_back(result);
+            TPResult r;
+            r.errors = errors;
+            return r;
+        }
+
+        bool ast = magic[0] == 0;
+
+        uint32_t version = 0;
+        fread(&version, sizeof(uint32_t), 1, f);
+        uint8_t maj = (version >> 16) & 0xFF;
+        uint8_t min = (version >> 8) & 0xFF;
+        uint8_t patch = version & 0xFF;
+
+        Version v(maj, min, patch);
+        if (v > *Main.version) {
+            FPResult result;
+            result.message = "This file was compiled with a newer version of the compiler!";
+            result.success = false;
+            result.in = file;
+            errors.push_back(result);
+            TPResult r;
+            r.errors = errors;
+            return r;
+        }
+
+        uint32_t numContainers = 0;
+        fread(&numContainers, sizeof(uint32_t), 1, f);
+
+        uint32_t numStructs = 0;
+        fread(&numStructs, sizeof(uint32_t), 1, f);
+
+        uint32_t numEnums = 0;
+        fread(&numEnums, sizeof(uint32_t), 1, f);
+
+        uint32_t numFunctions = 0;
+        fread(&numFunctions, sizeof(uint32_t), 1, f);
+
+        uint32_t numGlobals = 0;
+        fread(&numGlobals, sizeof(uint32_t), 1, f);
+
+        uint32_t numExternGlobals = 0;
+        fread(&numExternGlobals, sizeof(uint32_t), 1, f);
+
+        uint32_t numInterfaces = 0;
+        fread(&numInterfaces, sizeof(uint32_t), 1, f);
+
+        uint32_t numLayouts = 0;
+        fread(&numLayouts, sizeof(uint32_t), 1, f);
+
+        uint32_t numTypealiases = 0;
+        fread(&numTypealiases, sizeof(uint32_t), 1, f);
+
+        std::vector<Container> containers;
+        for (uint32_t i = 0; i < numContainers; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            uint32_t numMembers = 0;
+            fread(&numMembers, sizeof(uint32_t), 1, f);
+            Container c(name);
+
+            for (uint32_t j = 0; j < numMembers; j++) {
+                uint32_t memberNameLength = 0;
+                fread(&memberNameLength, sizeof(uint32_t), 1, f);
+                char* memberName = (char*) malloc(memberNameLength + 1);
+                fread(memberName, 1, memberNameLength, f);
+
+                uint32_t memberTypeLength = 0;
+                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
+                char* memberType = (char*) malloc(memberTypeLength + 1);
+                fread(memberType, 1, memberTypeLength, f);
+
+                c.addMember(Variable(memberName, memberType));
+            }
+
+            containers.push_back(c);
+        }
+
+        std::vector<Struct> structs;
+        for (uint32_t i = 0; i < numStructs; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            Struct s(name);
+
+            fread(&s.flags, sizeof(uint32_t), 1, f);
+
+            uint32_t numMembers = 0;
+            fread(&numMembers, sizeof(uint32_t), 1, f);
+            
+            for (uint32_t j = 0; j < numMembers; j++) {
+                uint32_t memberNameLength = 0;
+                fread(&memberNameLength, sizeof(uint32_t), 1, f);
+                char* memberName = (char*) malloc(memberNameLength + 1);
+                fread(memberName, 1, memberNameLength, f);
+
+                uint32_t memberTypeLength = 0;
+                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
+                char* memberType = (char*) malloc(memberTypeLength + 1);
+                fread(memberType, 1, memberTypeLength, f);
+
+                s.addMember(Variable(memberName, memberType));
+            }
+
+            structs.push_back(s);
+        }
+
+        std::vector<Enum> enums;
+        for (uint32_t i = 0; i < numEnums; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            Enum e(name);
+
+            uint32_t numMembers = 0;
+            fread(&numMembers, sizeof(uint32_t), 1, f);
+            
+            for (uint32_t j = 0; j < numMembers; j++) {
+                uint32_t memberNameLength = 0;
+                fread(&memberNameLength, sizeof(uint32_t), 1, f);
+                char* memberName = (char*) malloc(memberNameLength + 1);
+                fread(memberName, 1, memberNameLength, f);
+
+                e.addMember(memberName);
+            }
+
+            enums.push_back(e);
+        }
+
+        std::vector<Function*> functions;
+        std::vector<Function*> extern_functions;
+        for (uint32_t i = 0; i < numFunctions; i++) {
+            uint8_t isMethod = 0;
+            fread(&isMethod, sizeof(uint8_t), 1, f);
+
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            std::string memberOf = "";
+            if (isMethod) {
+                uint32_t memberTypeLength = 0;
+                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
+                char* memberType = (char*) malloc(memberTypeLength + 1);
+                fread(memberType, 1, memberTypeLength, f);
+                memberType[memberTypeLength] = 0;
+                memberOf = memberType;
+            }
+
+            uint32_t returnTypeLength = 0;
+            fread(&returnTypeLength, sizeof(uint32_t), 1, f);
+            char* returnType = (char*) malloc(returnTypeLength + 1);
+            fread(returnType, 1, returnTypeLength, f);
+            returnType[returnTypeLength] = 0;
+
+            Function* func;
+            if (isMethod) {
+                func = new Method(memberOf, name, Token(tok_identifier, name, 0, file));
+            } else {
+                func = new Function(name, Token(tok_identifier, name, 0, file));
+            }
+
+            func->setReturnType(returnType);
+
+            func->isExternC = contains<std::string>(func->getModifiers(), "expect");
+
+            uint32_t numModifiers = 0;
+            fread(&numModifiers, sizeof(uint32_t), 1, f);
+            for (uint32_t j = 0; j < numModifiers; j++) {
+                uint32_t modifierLength = 0;
+                fread(&modifierLength, sizeof(uint32_t), 1, f);
+                char* modifier = (char*) malloc(modifierLength + 1);
+                fread(modifier, 1, modifierLength, f);
+                modifier[modifierLength] = 0;
+
+                func->addModifier(modifier);
+            }
+
+            if (isMethod && contains<std::string>(func->getModifiers(), "<virtual>")) {
+                ((Method*) func)->forceAdd(true);
+            }
+
+            if (!ast)
+                func->addModifier("<binary-inherited>");
+
+            uint32_t numArguments = 0;
+            fread(&numArguments, sizeof(uint32_t), 1, f);
+
+            for (uint32_t j = 0; j < numArguments; j++) {
+                std::string varName = "";
+
+                if (ast) {
+                    uint32_t varNameLength = 0;
+                    fread(&varNameLength, sizeof(uint32_t), 1, f);
+                    char* varNameC = (char*) malloc(varNameLength + 1);
+                    fread(varNameC, 1, varNameLength, f);
+                    varNameC[varNameLength] = 0;
+                    varName = varNameC;
+                }
+
+                uint32_t typeLength = 0;
+                fread(&typeLength, sizeof(uint32_t), 1, f);
+                char* type = (char*) malloc(typeLength + 1);
+                fread(type, 1, typeLength, f);
+                type[typeLength] = 0;
+
+                func->addArgument(Variable(varName, type));
+            }
+
+            if (ast) {
+                uint32_t numStatements = 0;
+                fread(&numStatements, sizeof(uint32_t), 1, f);
+
+                for (uint32_t j = 0; j < numStatements; j++) {
+                    TokenType type = tok_eof;
+                    fread(&type, sizeof(TokenType), 1, f);
+
+                    uint32_t length = 0;
+                    fread(&length, sizeof(uint32_t), 1, f);
+                    char* value = (char*) malloc(length + 1);
+                    fread(value, 1, length, f);
+                    value[length] = 0;
+                    func->addToken(Token(type, value, 0, file));
+                }
+            }
+
+            if (func->isExternC) {
+                extern_functions.push_back(func);
+            } else {
+                functions.push_back(func);
+            }
+        }
+
+        std::vector<Variable> globals;
+        for (uint32_t i = 0; i < numGlobals; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            uint32_t typeLength = 0;
+            fread(&typeLength, sizeof(uint32_t), 1, f);
+            char* type = (char*) malloc(typeLength + 1);
+            fread(type, 1, typeLength, f);
+            type[typeLength] = 0;
+
+            globals.push_back(Variable(name, type));
+        }
+
+        std::vector<Variable> extern_globals;
+        for (uint32_t i = 0; i < numExternGlobals; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            uint32_t typeLength = 0;
+            fread(&typeLength, sizeof(uint32_t), 1, f);
+            char* type = (char*) malloc(typeLength + 1);
+            fread(type, 1, typeLength, f);
+            type[typeLength] = 0;
+
+            extern_globals.push_back(Variable(name, type));
+        }
+
+        std::vector<Interface*> interfaces;
+        for (uint32_t i = 0; i < numInterfaces; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            Interface* interface = new Interface(name);
+
+            uint32_t numFunctions = 0;
+            fread(&numFunctions, sizeof(uint32_t), 1, f);
+
+            for (uint32_t j = 0; j < numFunctions; j++) {
+                uint32_t nameLength = 0;
+                fread(&nameLength, sizeof(uint32_t), 1, f);
+                char* name = (char*) malloc(nameLength + 1);
+                fread(name, 1, nameLength, f);
+                name[nameLength] = 0;
+
+                uint32_t memberTypeLength = 0;
+                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
+                char* memberType = (char*) malloc(memberTypeLength + 1);
+                fread(memberType, 1, memberTypeLength, f);
+                memberType[memberTypeLength] = 0;
+
+                uint32_t returnTypeLength = 0;
+                fread(&returnTypeLength, sizeof(uint32_t), 1, f);
+                char* returnType = (char*) malloc(returnTypeLength + 1);
+                fread(returnType, 1, returnTypeLength, f);
+                returnType[returnTypeLength] = 0;
+
+                Function* func = new Method(memberType, name, Token(tok_identifier, name, 0, file));
+
+                uint32_t numModifiers = 0;
+                fread(&numModifiers, sizeof(uint32_t), 1, f);
+                for (uint32_t k = 0; k < numModifiers; k++) {
+                    uint32_t modifierLength = 0;
+                    fread(&modifierLength, sizeof(uint32_t), 1, f);
+                    char* modifier = (char*) malloc(modifierLength + 1);
+                    fread(modifier, 1, modifierLength, f);
+                    modifier[modifierLength] = 0;
+
+                    func->addModifier(modifier);
+                }
+
+                uint32_t numArguments = 0;
+                fread(&numArguments, sizeof(uint32_t), 1, f);
+
+                for (uint32_t k = 0; k < numArguments; k++) {
+                    std::string name = "";
+
+                    if (ast) {
+                        uint32_t nameLength = 0;
+                        fread(&nameLength, sizeof(uint32_t), 1, f);
+                        char* name = (char*) malloc(nameLength + 1);
+                        fread(name, 1, nameLength, f);
+                        name[nameLength] = 0;
+                    }
+
+                    uint32_t typeLength = 0;
+                    fread(&typeLength, sizeof(uint32_t), 1, f);
+                    char* type = (char*) malloc(typeLength + 1);
+                    fread(type, 1, typeLength, f);
+                    type[typeLength] = 0;
+
+                    func->addArgument(Variable(name, type));
+                }
+            }
+
+            interfaces.push_back(interface);
+        }
+
+        std::vector<Layout> layouts;
+        for (uint32_t i = 0; i < numLayouts; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            Layout layout(name);
+
+            uint32_t numFields = 0;
+            fread(&numFields, sizeof(uint32_t), 1, f);
+
+            for (uint32_t j = 0; j < numFields; j++) {
+                uint32_t nameLength = 0;
+                fread(&nameLength, sizeof(uint32_t), 1, f);
+                char* name = (char*) malloc(nameLength + 1);
+                fread(name, 1, nameLength, f);
+                name[nameLength] = 0;
+
+                uint32_t typeLength = 0;
+                fread(&typeLength, sizeof(uint32_t), 1, f);
+                char* type = (char*) malloc(typeLength + 1);
+                fread(type, 1, typeLength, f);
+                type[typeLength] = 0;
+
+                layout.addMember(Variable(name, type));
+            }
+
+            layouts.push_back(layout);
+        }
+
+        Deprecation typealiases;
+        for (uint32_t i = 0; i < numTypealiases; i++) {
+            uint32_t nameLength = 0;
+            fread(&nameLength, sizeof(uint32_t), 1, f);
+            char* name = (char*) malloc(nameLength + 1);
+            fread(name, 1, nameLength, f);
+            name[nameLength] = 0;
+
+            uint32_t typeLength = 0;
+            fread(&typeLength, sizeof(uint32_t), 1, f);
+            char* type = (char*) malloc(typeLength + 1);
+            fread(type, 1, typeLength, f);
+            type[typeLength] = 0;
+
+            typealiases[name] = type;
+        }
+
+        TPResult result;
+        result.errors = errors;
+        result.warns = warns;
+        result.containers = containers;
+        result.structs = structs;
+        result.interfaces = interfaces;
+        result.enums = enums;
+        result.globals = globals;
+        result.layouts = layouts;
+        result.extern_globals = extern_globals;
+        result.typealiases = typealiases;
+        result.functions = functions;
+        result.extern_functions = extern_functions;
+        return result;
+    }
+
+    TPResult SyntaxTree::parse(std::vector<std::string> binaryHeaders) {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
@@ -746,6 +1180,42 @@ namespace sclc {
             return (Method*) nullptr;
         };
         
+        for (std::string binaryHeader : binaryHeaders) {
+            TPResult tmp = parseFile(binaryHeader);
+
+            if (!tmp.errors.empty()) {
+                return tmp;
+            }
+
+            for (Container container : tmp.containers) {
+                containers.push_back(container);
+            }
+            for (Struct s : tmp.structs) {
+                structs.push_back(s);
+            }
+            for (Enum e : tmp.enums) {
+                enums.push_back(e);
+            }
+            for (Function* function : joinVecs(tmp.functions, tmp.extern_functions)) {
+                functions.push_back(function);
+            }
+            for (Variable v : tmp.globals) {
+                globals.push_back(v);
+            }
+            for (Variable v : tmp.extern_globals) {
+                extern_globals.push_back(v);
+            }
+            for (Interface* interface : tmp.interfaces) {
+                interfaces.push_back(interface);
+            }
+            for (Layout layout : tmp.layouts) {
+                layouts.push_back(layout);
+            }
+            for (auto ta : tmp.typealiases) {
+                typealiases[ta.first] = ta.second;
+            }
+        }
+
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 
@@ -778,7 +1248,7 @@ namespace sclc {
                     if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
-                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, nextAttributes, i, tokens);
+                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->getName();
@@ -811,7 +1281,7 @@ namespace sclc {
                     }
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, nextAttributes, i, tokens);
+                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, i, tokens);
                     currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string s : nextAttributes) {
                         currentFunction->addModifier(s);
@@ -843,7 +1313,7 @@ namespace sclc {
                     if (contains<std::string>(nextAttributes, "default")) {
                         Token func = tokens[i + 1];
                         std::string name = func.getValue();
-                        currentFunction = parseMethod(name, func, "", errors, nextAttributes, i, tokens);
+                        currentFunction = parseMethod(name, func, "", errors, i, tokens);
                         for (std::string s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -863,7 +1333,7 @@ namespace sclc {
                     } else {
                         std::string name = tokens[i + 1].getValue();
                         Token func = tokens[i + 1];
-                        Function* functionToImplement = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                        Function* functionToImplement = parseFunction(name, func, errors, i, tokens);
                         functionToImplement->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
@@ -890,7 +1360,7 @@ namespace sclc {
                     i++;
                     Token func = tokens[i + 1];
                     std::string name = func.getValue();
-                    currentFunction = parseMethod(name, func, member_type, errors, nextAttributes, i, tokens);
+                    currentFunction = parseMethod(name, func, member_type, errors, i, tokens);
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
@@ -908,7 +1378,7 @@ namespace sclc {
                     i--;
                     std::string name = tokens[i + 1].getValue();
                     Token func = tokens[i + 1];
-                    currentFunction = parseFunction(name, func, errors, nextAttributes, i, tokens);
+                    currentFunction = parseFunction(name, func, errors, i, tokens);
                     currentFunction->deprecated = currentDeprecation;
                     currentDeprecation.clear();
                 }
@@ -1136,6 +1606,7 @@ namespace sclc {
                     continue;
                 }
                 currentContainer = new Container(tokens[i].getValue());
+                currentContainer->name_token = new Token(tokens[i]);
             } else if (token.getType() == tok_struct_def && ((((long) i) - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
                 currentFunction->addToken(token);
             } else if (token.getType() == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
@@ -1535,6 +2006,7 @@ namespace sclc {
                 std::string name = tokens[i].getValue();
                 i++;
                 Enum e = Enum(name);
+                e.name_token = new Token(tokens[i - 1]);
                 while (tokens[i].getType() != tok_end) {
 
                     if (tokens[i].getType() != tok_identifier) {
@@ -1642,6 +2114,7 @@ namespace sclc {
                     continue;
                 }
                 currentInterface = new Interface(tokens[i].getValue());
+                currentInterface->name_token = new Token(tokens[i]);
             } else if (token.getType() == tok_addr_of) {
                 if (currentFunction == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
@@ -1824,6 +2297,7 @@ namespace sclc {
                 Variable v("", "");
                 if (currentStruct->isStatic() || contains<std::string>(nextAttributes, "static")) {
                     v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
+                    v.name_token = new Token(nameToken);
                     v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                     nextAttributes.clear();
                     v.canBeNil = typeCanBeNil(v.getType());
@@ -1844,6 +2318,7 @@ namespace sclc {
                     }
                     if (isConst) {
                         v = Variable(name, type, isConst, isMut);
+                        v.name_token = new Token(nameToken);
                         v.typeFromTemplate = fromTemplate;
                         v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                         v.canBeNil = typeCanBeNil(v.getType());
@@ -1851,12 +2326,14 @@ namespace sclc {
                     } else {
                         if (isInternalMut) {
                             v = Variable(name, type, isConst, isMut, currentStruct->getName());
+                            v.name_token = new Token(nameToken);
                             v.typeFromTemplate = fromTemplate;
                             v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());
                             currentStruct->addMember(v);
                         } else {
                             v = Variable(name, type, isConst, isMut);
+                            v.name_token = new Token(nameToken);
                             v.typeFromTemplate = fromTemplate;
                             v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
                             v.canBeNil = typeCanBeNil(v.getType());

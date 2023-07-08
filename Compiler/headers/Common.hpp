@@ -60,10 +60,7 @@ namespace sclc {
             this->tokens = tokens;
         }
         ~SyntaxTree() {}
-        TPResult parse();
-        static bool isOperator(Token token);
-        static bool isType(Token token);
-        static bool canAssign(Token token);
+        TPResult parse(std::vector<std::string> binaryHeaders);
     };
 
     class Parser
@@ -123,6 +120,7 @@ namespace sclc {
         Parser* parser;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
+        Version* version;
         struct options {
             bool doRun;
             bool noMain;
@@ -133,8 +131,10 @@ namespace sclc {
             bool debugBuild;
             bool printCflags;
             size_t stackSize;
+            bool binaryHeader;
             bool assembleOnly;
             bool transpileOnly;
+            std::string outfile;
             size_t mainArgCount;
             bool preprocessOnly;
             bool mainReturnsNone;
@@ -149,6 +149,7 @@ namespace sclc {
             std::vector<std::string> files;
             std::vector<std::string> features;
             std::vector<std::string> includePaths;
+            std::vector<std::string> filesFromCommandLine;
             std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
             std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
             std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;

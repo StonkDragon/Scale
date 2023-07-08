@@ -88,3 +88,5 @@ scl_trace.log
 Dragon/
 e.java
 scale-find-virtual-calls
+scale-find-virtual-calls.c
+*.smod

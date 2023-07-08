@@ -28,6 +28,7 @@ namespace sclc
         bool isInternalMut;
         bool isMut;
     public:
+        Token* name_token;
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;

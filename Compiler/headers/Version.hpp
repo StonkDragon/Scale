@@ -9,12 +9,11 @@
 
 namespace sclc
 {
-    class Version {
+    struct Version {
         int major;
         int minor;
         int patch;
 
-    public:
         Version(std::string str) {
             std::string::difference_type n = std::count(str.begin(), str.end(), '.');
             if (n == 1) {
@@ -31,6 +30,7 @@ namespace sclc
                 exit(1);
             }
         }
+        Version(int major, int minor, int patch) : major(major), minor(minor), patch(patch) {}
         ~Version() {}
 
         inline bool operator==(Version& v) const {

@@ -48,6 +48,7 @@ namespace sclc
     #endif
 
     Struct Struct::Null = Struct("");
+    Token Token::Default(tok_identifier, "", 0, "");
 
     std::vector<std::vector<Variable>> vars;
     _Main Main = _Main();

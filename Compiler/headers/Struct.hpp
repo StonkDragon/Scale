@@ -9,7 +9,7 @@
 
 namespace sclc
 {
-    class Struct {
+    struct Struct {
         std::string name;
         Token name_token;
         int flags;
@@ -17,7 +17,6 @@ namespace sclc
         std::vector<bool> memberInherited;
         std::vector<std::string> interfaces;
         std::string super;
-    public:
         std::vector<std::string> toImplementFunctions;
         size_t required_typed_arguments;
         std::string fancyName;

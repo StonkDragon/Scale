@@ -5922,6 +5922,9 @@ namespace sclc {
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
+            if (contains<std::string>(function->getModifiers(), "<binary-inherited>")) {
+                continue;
+            }
             if (getInterfaceByName(result, function->member_type)) {
                 continue;
             }

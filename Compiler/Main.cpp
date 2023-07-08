@@ -638,6 +638,8 @@ namespace sclc
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
 
+        Main.version = new Version(std::string(VERSION));
+
         std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
         if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
             int ret = compileRuntimeLib();
@@ -650,7 +652,7 @@ namespace sclc
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {
             if (scaleConfig->hasMember("outfile"))
-                outfile = scaleConfig->getString("outfile")->getValue();
+                Main.options.outfile = outfile = scaleConfig->getString("outfile")->getValue();
 
             if (scaleConfig->hasMember("compiler"))
                 compiler = scaleConfig->getString("compiler")->getValue();
@@ -683,13 +685,14 @@ namespace sclc
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
                 hasCppFiles = true;
             }
-            if (strends(std::string(args[i]), ".scale")) {
+            if (strends(std::string(args[i]), ".scale") || strends(std::string(args[i]), ".smod")) {
                 if (!fileExists(args[i])) {
                     continue;
                 }
                 std::string file = std::filesystem::absolute(args[i]).string();
                 if (!contains(Main.options.files, file)) {
                     Main.options.files.push_back(file);
+                    Main.options.filesFromCommandLine.push_back(std::filesystem::absolute(file).string());
                     hasFilesFromArgs = true;
                 }
             } else {
@@ -723,7 +726,7 @@ namespace sclc
                 } else if (args[i] == "-o") {
                     if (i + 1 < args.size()) {
                         outFileSpecified = true;
-                        outfile = args[i + 1];
+                        Main.options.outfile = outfile = args[i + 1];
                         i++;
                     } else {
                         std::cerr << "Error: -o requires an argument" << std::endl;
@@ -777,8 +780,19 @@ namespace sclc
                     tmpFlags.push_back("dynamic_lookup");
                     Main.options.noMain = true;
                     tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
-                } else if (args[i] == "--dump-parsed-data") {
+                    if (!outFileSpecified)
+                    #if defined(__APPLE__)
+                        Main.options.outfile = outfile = "libout.dylib";
+                    #else
+                        Main.options.outfile = outfile = "libout.so";
+                    #endif
+                } else if (args[i] == "--dump-parsed-data" || args[i] == "-create-binary-header" || args[i] == "-create-module") {
                     Main.options.dumpInfo = true;
+                    Main.options.binaryHeader = (args[i] == "-create-binary-header");
+                    if (!outFileSpecified)
+                        Main.options.outfile = outfile = "out.smod";
+                } else if (args[i] == "-no-scale-std") {
+                    Main.options.noScaleFramework = true;
                 } else if (args[i] == "-demangle-symbol") {
                     std::string sym;
                     if (i + 1 < args.size()) {
@@ -840,7 +854,7 @@ namespace sclc
         if (!hasFilesFromArgs) {
             Main.options.noMain = true;
             if (!outFileSpecified)
-                outfile = "a.out";
+                Main.options.outfile = outfile = "a.out";
         }
 
         std::vector<std::string> cflags;
@@ -1101,6 +1115,10 @@ namespace sclc
             if (Main.options.debugBuild)
                 std::cout << "Tokenizing file '" << filename << "'" << std::endl;
 
+            if (strends(filename, ".smod")) {
+                continue;
+            }
+
             Tokenizer tokenizer;
             Main.tokenizer = &tokenizer;
             FPResult result = Main.tokenizer->tokenize(filename);
@@ -1217,7 +1235,13 @@ namespace sclc
             SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
             auto lexerBegin = std::chrono::high_resolution_clock::now();
-            result = Main.lexer->parse();
+            std::vector<std::string> binaryHeaders;
+            for (std::string header : Main.options.files) {
+                if (strends(header, ".smod")) {
+                    binaryHeaders.push_back(header);
+                }
+            }
+            result = Main.lexer->parse(binaryHeaders);
             auto lexerEnd = std::chrono::high_resolution_clock::now();
             auto lexerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(lexerEnd - lexerBegin).count();
             std::cout << "Lexer took " << lexerDuration << "ms" << std::endl;
