@@ -93,6 +93,7 @@ namespace sclc
         std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
         std::cout << "  -run                 Run the compiled program" << std::endl;
         std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
+        std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
