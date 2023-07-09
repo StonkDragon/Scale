@@ -401,7 +401,6 @@ void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, scl_any main);
 
 const ID_t			id(const scl_int8* data);
-const ID_t			id_by_len(const scl_int8* data, size_t len);
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
 void				_scl_free_struct(scl_any ptr);

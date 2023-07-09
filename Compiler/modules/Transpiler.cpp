@@ -1113,9 +1113,7 @@ namespace sclc {
             }
         }
         if (getInterfaceByName(result, self->getMemberType())) {
-            transpilerError("Cannot call interface method '" + sclFunctionNameToFriendlyString(self) + "'!", i);
-            errors.push_back(err);
-            return;
+            append("// invokeinterface %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
         } else {
             if (onSuperType) {
                 append("// invokespecial %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
@@ -1123,28 +1121,34 @@ namespace sclc {
                 append("// invokedynamic %s:%s\n", self->getMemberType().c_str(), self->finalName().c_str());
             }
         }
-        auto vtable = vtables[self->getMemberType()];
-        size_t index = 0;
         bool found = false;
-        for (auto method : vtable) {
-            if (*method == *self) {
-                if (Main.options.debugBuild) {
-                    append("CAST0(_scl_top()->v, %s, 0x%x);\n", self->getMemberType().c_str(), id((char*) self->getMemberType().c_str()));
-                    if (onSuperType) {
-                        append("VTABLE_BOUNDS_CHECK(_scl_top()->o->$statics->super_vtable_size, %zu);\n", index);
-                    } else {
-                        append("VTABLE_BOUNDS_CHECK(_scl_top()->o->$statics->vtable_size, %zu);\n", index);
+        if (getInterfaceByName(result, self->getMemberType()) == nullptr) {
+            auto vtable = vtables[self->getMemberType()];
+            size_t index = 0;
+            for (auto method : vtable) {
+                if (*method == *self) {
+                    if (Main.options.debugBuild) {
+                        append("CAST0(_scl_top()->v, %s, 0x%x);\n", self->getMemberType().c_str(), id((char*) self->getMemberType().c_str()));
+                        if (onSuperType) {
+                            append("VTABLE_BOUNDS_CHECK(_scl_top()->o->$statics->super_vtable_size, %zu);\n", index);
+                        } else {
+                            append("VTABLE_BOUNDS_CHECK(_scl_top()->o->$statics->vtable_size, %zu);\n", index);
+                        }
                     }
+                    if (onSuperType) {
+                        append("_scl_top()->o->$statics->super_vtable[%zu].ptr();\n", index);
+                    } else {
+                        append("_scl_top()->o->$statics->vtable[%zu].ptr();\n", index);
+                    }
+                    found = true;
+                    break;
                 }
-                if (onSuperType) {
-                    append("_scl_top()->o->$statics->super_vtable[%zu].ptr();\n", index);
-                } else {
-                    append("_scl_top()->o->$statics->vtable[%zu].ptr();\n", index);
-                }
-                found = true;
-                break;
+                index++;
             }
-            index++;
+        } else {
+            std::string rtSig = argsToRTSignature(self);
+            append("_scl_call_method_or_throw(_scl_top()->v, 0x%xU, 0x%xU, 0, \"%s\", \"%s\");\n", id((char*) self->getName().c_str()), id((char*) rtSig.c_str()), self->getName().c_str(), rtSig.c_str());
+            found = true;
         }
         if (removeTypeModifiers(self->getReturnType()) != "none" && removeTypeModifiers(self->getReturnType()) != "nothing") {
             typeStack.push(self->getReturnType());
@@ -5863,7 +5867,7 @@ namespace sclc {
                 std::string signature = argsToRTSignature(m);
                 append("(struct _scl_methodinfo) {\n");
                 scopeDepth++;
-                append(".ptr = (scl_any) _scl_vt_c_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                append(".ptr = _scl_vt_c_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
                 append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m).c_str()));
                 append(".actual_handle = (scl_any) Method_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
                 append(".actual_name = \"%s\",\n", sclFunctionNameToFriendlyString(m).c_str());
@@ -5872,7 +5876,7 @@ namespace sclc {
                 scopeDepth--;
                 append("},\n");
             }
-            append("  {0}\n");
+            append("{0}\n");
             scopeDepth--;
             append("};\n\n");
         }

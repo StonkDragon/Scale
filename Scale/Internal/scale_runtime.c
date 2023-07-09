@@ -1,10 +1,6 @@
 #include "scale_runtime.h"
 
-const ID_t SclObjectHash = 0xC9CCFE34U; // SclObject
-const ID_t toStringHash = 0xA3F55B73U; // toString
-const ID_t toStringSigHash = 0x657D302EU; // ()s;
-const ID_t initHash = 0x940997U; // init
-const ID_t initSigHash = 0x7577EDU; // ()V;
+const ID_t SclObjectHash = 0x49CC1B82U; // SclObject
 
 // this is used by try-catch
 tls struct _exception_handling {
@@ -499,7 +495,7 @@ scl_str _scl_create_string(scl_int8* data) {
 		return nil;
 	}
 	self->_len = strlen(data);
-	self->_hash = id_by_len(data, self->_len);
+	self->_hash = id(data);
 	self->_data = _scl_strndup(data, self->_len);
 	return self;
 }
@@ -643,16 +639,14 @@ void _scl_sleep(scl_int millis) {
 	sleep(millis);
 }
 
-const ID_t id_by_len(const char* data, size_t len) {
-	ID_t h = 7;
-	for (size_t i = 0; i < len; i++) {
-		h = h * 31 + data[i];
+const ID_t id(const char* data) {
+	ID_t h = 3323198485UL;
+	for (;*data;++data) {
+		h ^= *data;
+		h *= 0x5BD1E995;
+		h ^= h >> 15;
 	}
 	return h;
-}
-
-const ID_t id(const char* data) {
-	return id_by_len(data, strlen(data));
 }
 
 scl_uint _scl_rotl(const scl_uint value, scl_int shift) {

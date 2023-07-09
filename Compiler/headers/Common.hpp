@@ -226,18 +226,27 @@ namespace sclc {
     template<typename T>
     bool contains(std::vector<T> v, T val) {
         if (v.size() == 0) return false;
-        return std::find(v.begin(), v.end(), val) != v.end();
+        if constexpr (std::is_pointer<T>::value) {
+            for (T t : v) {
+                if (*t == *val) return true;
+            }
+            return false;
+        } else {
+            return std::find(v.begin(), v.end(), val) != v.end();
+        }
     }
 
-    constexpr size_t const_strlen(const char* str) {
-        return *str ? 1 + const_strlen(str + 1) : 0;
+    inline ID_t ror(const ID_t value, ID_t shift) {
+        return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
-    
-    inline constexpr ID_t id(const char* data)  {
-        if (const_strlen(data) == 0) return 0;
-        ID_t h = 7;
-        for (size_t i = 0; i < const_strlen(data); i++) {
-            h = h * 31 + data[i];
+
+    inline ID_t id(const char* data)  {
+        if (strlen(data) == 0) return 0;
+        ID_t h = 3323198485UL;
+        for (;*data;++data) {
+            h ^= *data;
+            h *= 0x5BD1E995;
+            h ^= h >> 15;
         }
         return h;
     }
