@@ -9,6 +9,7 @@ cmake --build .
 ctest
 sudo make install
 cd ../..
+rm -rf bdwgc
 
 for f in /opt/Scale/*; do
     if [ -e $f/sclc ] && [ $f != "/opt/Scale/latest" ]; then
