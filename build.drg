@@ -1,7 +1,7 @@
-VERSION: "23.7";
+VERSION: "23.6";
 
 build: {
-  compiler: "clang++";
+  compiler: "g++";
   sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
@@ -49,7 +49,7 @@ build: {
 };
 
 install: {
-  compiler: "clang++";
+  compiler: "g++";
   sourceDir: "Compiler";
   outputDir: "target";
   target: "sclc";
@@ -91,6 +91,5 @@ install: {
     "sudo rm -f /usr/local/bin/sclc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
     "rm -rf target";
-    "sh install_post.sh";
   ];
 };

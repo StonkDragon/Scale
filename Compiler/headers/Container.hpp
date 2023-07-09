@@ -13,7 +13,6 @@ namespace sclc
         std::string name;
         std::vector<Variable> members;
     public:
-        Token* name_token;
         Container(std::string name) {
             this->name = name;
         }

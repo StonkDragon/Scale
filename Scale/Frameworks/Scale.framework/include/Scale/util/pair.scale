@@ -1,0 +1,24 @@
+final sealed struct Pair
+	decl a: any
+	decl b: any
+
+	function init(a: any, b: any): none
+		a => self.a
+		b => self.b
+	end
+
+	function toString(): str
+		if a is SclObject then
+			a as SclObject:toString
+		else
+			a int::toString
+		fi => decl aStr: str
+		if b is SclObject then
+			b as SclObject:toString
+		else
+			b int::toString
+		fi => decl bStr: str
+		
+		"(" aStr + ", " + bStr + ")" + return
+	end
+end

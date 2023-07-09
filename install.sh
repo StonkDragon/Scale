@@ -1,5 +1,5 @@
 if [ `uname` = "Darwin" ]; then
-    if ! which clang >/dev/null; then
+    if ! which gcc >/dev/null; then
         echo "Please install the Xcode command line tools"
         exit 1
     fi
@@ -12,8 +12,8 @@ fi
 
 failedACommand=0
 
-if ! which clang++ >/dev/null; then
-    echo "Please install clang++"
+if ! which g++ >/dev/null; then
+    echo "Please install g++"
     failedACommand=1
 fi
 
@@ -27,16 +27,11 @@ if ! which make >/dev/null; then
     failedACommand=1
 fi
 
-if ! which cmake >/dev/null; then
-    echo "Please install cmake"
-    failedACommand=1
-fi
-
 if [ "$failedACommand" = "1" ]; then
     exit 1
 fi
 
-set -xe
+set -e
 
 if ! which dragon >/dev/null; then
     echo "---------"
@@ -52,7 +47,7 @@ if ! which dragon >/dev/null; then
     echo "Installing dragon. This may require root privileges..."
 
     make compile
-    build/dragon build
+    sudo cp build/dragon /usr/local/bin/dragon
     cd ..
     rm -rf Dragon
 fi
@@ -62,7 +57,18 @@ echo "Installing..."
 
 dragon build -conf install
 
-sh install_post.sh
+for f in /opt/Scale/*; do
+    if [ -e $f/sclc ]; then
+        echo "Linking $f/sclc to sclc-${f:11}"
+        sudo rm -rf /usr/local/bin/sclc-${f:11}
+        sudo ln -s $f/sclc /usr/local/bin/sclc-${f:11}
+    fi
+done
+
+version=$(dragon config -get-key VERSION)
+
+sudo rm -f /opt/Scale/latest
+sudo ln -s /opt/Scale/$version /opt/Scale/latest
 
 echo "---------"
 echo "Done..."

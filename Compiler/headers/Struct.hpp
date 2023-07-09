@@ -9,7 +9,7 @@
 
 namespace sclc
 {
-    struct Struct {
+    class Struct {
         std::string name;
         Token name_token;
         int flags;
@@ -17,10 +17,8 @@ namespace sclc
         std::vector<bool> memberInherited;
         std::vector<std::string> interfaces;
         std::string super;
+    public:
         std::vector<std::string> toImplementFunctions;
-        size_t required_typed_arguments;
-        std::string fancyName;
-        std::map<std::string, std::string> templates;
         static Struct Null;
 
         Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {}
@@ -28,8 +26,6 @@ namespace sclc
             this->name = name;
             this->name_token = t;
             this->flags = 0;
-            this->required_typed_arguments = 0;
-            this->fancyName = name;
             toggleWarnings();
         }
         void addMember(Variable member, bool inherited = false) {
@@ -40,10 +36,6 @@ namespace sclc
             }
             members.push_back(member);
             memberInherited.push_back(false);
-        }
-        void clearMembers() {
-            members.clear();
-            memberInherited.clear();
         }
         bool hasMember(std::string member) {
             for (Variable v : members) {
@@ -84,12 +76,6 @@ namespace sclc
         }
         void setNameToken(Token t) {
             this->name_token = t;
-        }
-        Token getNameToken() {
-            return name_token;
-        }
-        void addTemplateArgument(std::string name, std::string type) {
-            templates[name] = type;
         }
         bool isSealed() {
             return (flags & 0b00000100) != 0;
@@ -133,54 +119,6 @@ namespace sclc
             }
             return mems;
         }
-        void setName(const std::string& name) {
-            this->name = name;
-            this->fancyName = name;
-        }
-    };
-
-    class Layout {
-        std::string name;
-        Token name_token;
-        std::vector<Variable> members;
-    public:
-    
-        Layout(std::string name) : Layout(name, Token(tok_identifier, name, 0, "")) {}
-        Layout(std::string name, Token t) {
-            this->name = name;
-            this->name_token = t;
-        }
-        void addMember(Variable member) {
-            members.push_back(member);
-        }
-        bool hasMember(std::string member) {
-            for (Variable v : members) {
-                if (v.getName() == member) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        Variable getMember(std::string name) {
-            for (Variable v : members) {
-                if (v.getName() == name) {
-                    return v;
-                }
-            }
-            return Variable("", "");
-        }
         void setName(const std::string& name) { this->name = name; }
-        Token getNameToken() {
-            return name_token;
-        }
-        void setNameToken(Token t) {
-            this->name_token = t;
-        }
-        std::string getName() {
-            return name;
-        }
-        std::vector<Variable> getMembers() {
-            return members;
-        }
     };
 } // namespace sclc

@@ -1,0 +1,5 @@
+Hello, World!
+Foo!
+Couldn't find struct 'A'
+Can not instantiate static struct 'FmtIO'
+Direct instantiation of struct 'Struct' is disabled!

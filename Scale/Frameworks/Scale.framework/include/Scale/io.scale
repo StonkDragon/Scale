@@ -1,0 +1,53 @@
+cdecl "write"
+expect function __c_write(_fd_: int, _str_: [int8], _len_: int): int32
+cdecl "read"
+expect function __c_read(_fd_: int, _buf_: [int8], _n_: int): int32
+cdecl "puts"
+expect function __c_puts(_str_: [int8]): int32
+
+function write(_fd_: int, _str_: str): none
+  _fd_ _str_:view _str_:size __c_write drop
+end
+
+function read(_fd_: int, _n_: int): str?
+  _n_ malloc => decl buf: [int8]
+  _fd_ buf _n_ __c_read drop
+  buf str::new return
+end
+
+function puts(_val_: any): none
+  if _val_ is SclObject then
+    _val_ as SclObject:toString
+  else
+    _val_ int::toString
+  fi as str:view __c_puts drop
+end
+
+function eputs(_val_: any): none
+  if _val_ is SclObject then
+    _val_ as SclObject:toString:view
+  else
+    _val_ int::toString:view
+  fi
+  c!
+    fprintf(stderr, "%s\n", (scl_int8*) _scl_pop()->v);
+  end
+end
+
+function putint(_int_: int): none
+  c!
+    printf(SCL_INT_FMT "\n", *_int_);
+  end
+end
+
+function putfloat(_f_: float): none
+  c!
+    printf("%f\n", *_f_);
+  end
+end
+
+function throwerr(_err_: str): none
+  Exception::new => decl e: mut Exception
+  _err_ => e.msg
+  e throw
+end

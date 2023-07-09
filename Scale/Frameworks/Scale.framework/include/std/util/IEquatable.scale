@@ -1,4 +1,0 @@
-interface Equatable
-    function ==(other: any): bool
-    function equals(other: any): bool
-end
