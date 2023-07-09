@@ -91,3 +91,4 @@ scale-find-virtual-calls
 scale-find-virtual-calls.c
 *.smod
 changes.md
+e.log

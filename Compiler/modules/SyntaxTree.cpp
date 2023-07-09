@@ -1721,7 +1721,7 @@ namespace sclc {
                             result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
-                            continue;
+                            break;
                         }
                         std::string key = tokens[i].getValue();
                         i++;
@@ -1736,23 +1736,23 @@ namespace sclc {
                             result.column = tokens[i].getColumn();
                             result.success = false;
                             errors.push_back(result);
-                            continue;
+                            break;
                         }
                         i++;
                         FPResult value = parseType(tokens, &i, templateArgs);
                         if (!value.success) {
                             errors.push_back(value);
-                            continue;
+                            break;
                         }
                         currentStruct->required_typed_arguments++;
                         currentStruct->addTemplateArgument(key, value.value);
                         currentStruct->addMember(Variable("$template_arg_" + key, "int"));
                         currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
                         templateArgs[key] = value.value;
+                        i++;
                         if (tokens[i].getValue() == ",") {
                             i++;
                         }
-                        i++;
                     }
                 }
                 if (tokens[i + 1].getType() == tok_column) {
