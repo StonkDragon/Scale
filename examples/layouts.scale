@@ -1,0 +1,17 @@
+layout Layout
+    decl x: int
+    decl y: int
+    decl z: int
+end
+
+function main(): none
+    sizeof Layout any::new => decl l: Layout
+
+    1 => l.x
+    2 => l.y
+    3 => l.z
+
+    l.x puts
+    l.y puts
+    l.z puts
+end

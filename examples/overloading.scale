@@ -1,0 +1,14 @@
+function foo(x: int): none
+    "I am foo" puts
+    x puts
+end
+
+function foo(x: str): none
+    "I am foo too" puts
+    x puts
+end
+
+function main(): none
+    1 foo
+    "hello" foo
+end
