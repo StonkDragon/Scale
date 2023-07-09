@@ -49,8 +49,10 @@ function eputs(s: str): none     s:toString:view eputs end
 function eputs(f: float): none   f:toString:view eputs end
 function eputs(value: any): none value:toString:view eputs end
 
+deprecated![since: "23.7", replacement: "puts", forRemoval: true]
 function putint(number: int): none number puts end
 
+deprecated![since: "23.7", replacement: "puts", forRemoval: true]
 function putfloat(number: float): none number:toString puts end
 
 deprecated![since: "23.7", replacement: "Exception", forRemoval: true]

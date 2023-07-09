@@ -1919,6 +1919,7 @@ void _scl_setup() {
 			},
 			.value = i
 		};
+		_scl_add_struct((Struct*) &_ints[i + 128]);
 	}
 	_scl_exception_push();
 

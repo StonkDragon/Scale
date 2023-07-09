@@ -58,17 +58,17 @@
 #endif
 
 #if defined(__APPLE__)
-#define LIB_SCALE_FILENAME "libScaleRuntime.dylib"
-#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
+#define LIB_SCALE_FILENAME "libScale.dylib"
+#define LIB_SCALE_FILENAME_NO_EXT "libScale"
 #define LIB_SCALE_EXT ".dylib"
 #elif defined(__linux__)
-#define LIB_SCALE_FILENAME "libScaleRuntime.so"
-#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
+#define LIB_SCALE_FILENAME "libScale.so"
+#define LIB_SCALE_FILENAME_NO_EXT "libScale"
 #define LIB_SCALE_EXT ".so"
 #elif defined(_WIN32)
 // defined, but not used
-#define LIB_SCALE_FILENAME "ScaleRuntime.dll"
-#define LIB_SCALE_FILENAME_NO_EXT "ScaleRuntime"
+#define LIB_SCALE_FILENAME "Scale.dll"
+#define LIB_SCALE_FILENAME_NO_EXT "Scale"
 #define LIB_SCALE_EXT ".dll"
 #endif
 
@@ -641,8 +641,8 @@ namespace sclc
 
         Main.version = new Version(std::string(VERSION));
 
-        std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
+        std::string libScaleFileName = std::string(LIB_SCALE_FILENAME);
+        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleFileName)) {
             int ret = compileRuntimeLib();
             if (ret) {
                 std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
@@ -868,7 +868,7 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder + "/Internal");
-        cflags.push_back("-lScaleRuntime");
+        cflags.push_back("-lScale");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));

@@ -1,0 +1,34 @@
+# the T parameter must be a subtype of Int, or Int itself
+# the U parameter must be a subtype of SclObject, or SclObject itself
+struct Foo<T: Int, U: SclObject>
+    decl x: T
+    decl y: U
+
+    function setX(val: T): none
+        val => x
+        val puts
+    end
+
+    function setY(val: U): none
+        val => y
+        val puts
+    end
+end
+
+function main(): none
+    Foo<Int, str>::new => decl f: mut Foo
+
+    # reference here because value types result in
+    # undefined behavior
+    42:asReference f:setX
+    "hello" f:setY
+
+    # passing incompatible types to a templated argument
+    # normally results in a runtime error like this
+    # -> Cannot cast non-object to type 'str'
+    # but here it is actually a compile time error
+    # because 'int' cannot be cast to 'SclObject'
+    # because 'SclObject' is the base type of the 
+    # template argument 'U'
+    ` 42 f:setY `
+end

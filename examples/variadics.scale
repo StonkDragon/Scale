@@ -4,5 +4,9 @@ function variadicTest(args: varargs): none
 end
 
 function main(): none
+    # calls variadicTest with 3 arguments
+    # number of arguments MUST be specified
     "a" "b" "c" variadicTest! 3
+
+    {"foo", "bar", "baz"} * variadicTest! 3
 end

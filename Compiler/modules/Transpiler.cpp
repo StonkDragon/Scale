@@ -2374,10 +2374,10 @@ namespace sclc {
                         }
                         templates[t.first] = type.value;
                     }
+                    i++;
                     if (body[i].getValue() == ",") {
                         i++;
                     }
-                    i++;
                 }
             }
             if (body[i + 1].getType() == tok_double_column) {

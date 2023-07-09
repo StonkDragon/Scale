@@ -3,6 +3,7 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
+		{"include": "#block_comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
 		{"include": "#keyw_operator"},
@@ -25,6 +26,13 @@
 			"patterns": [{
 				"name": "comment",
 				"match": "."
+			}]
+		},
+		"block_comment": {
+			"name": "comment",
+			"patterns": [{
+				"name": "comment",
+				"match": "`"
 			}]
 		},
 		"keyw_constant": {

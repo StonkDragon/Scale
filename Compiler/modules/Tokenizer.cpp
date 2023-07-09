@@ -483,7 +483,17 @@ namespace sclc
             char *c = buffer;
             int inStr = 0;
             int escaped = 0;
+            bool blockComment = false;
             while (*c != '\0') {
+                if (blockComment) {
+                    if (*c == '`') {
+                        blockComment = false;
+                    }
+                    if (*c != '\n')
+                        *c = ' ';
+                    c++;
+                    continue;
+                }
                 if (*c == '\\') {
                     escaped = !escaped;
                 } else if (*c == '"' && !escaped) {
@@ -493,6 +503,9 @@ namespace sclc
                     c++;
                     *c = '\0';
                     break;
+                } else if (*c == '`' && !inStr) {
+                    *c = ' ';
+                    blockComment = true;
                 }
                 c++;
             }
