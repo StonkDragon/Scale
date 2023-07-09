@@ -1746,7 +1746,7 @@ namespace sclc {
                         }
                         currentStruct->required_typed_arguments++;
                         currentStruct->addTemplateArgument(key, value.value);
-                        currentStruct->addMember(Variable("$template_arg_" + key, "int"));
+                        currentStruct->addMember(Variable("$template_arg_" + key, "uint32"));
                         currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
                         templateArgs[key] = value.value;
                         i++;

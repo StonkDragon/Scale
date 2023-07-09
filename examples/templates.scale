@@ -20,8 +20,8 @@ function main(): none
 
     # reference here because value types result in
     # undefined behavior
-    42:asReference f:setX
     "hello" f:setY
+    42:asReference f:setX
 
     # passing incompatible types to a templated argument
     # normally results in a runtime error like this

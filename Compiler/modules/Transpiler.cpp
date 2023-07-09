@@ -2403,7 +2403,7 @@ namespace sclc {
                             append("tmp->$template_arg_%s = %s->_hash;\n", t.first.c_str(), t.second.c_str());
                             append("tmp->$template_argname_%s = %s->_data;\n", t.first.c_str(), t.second.c_str());
                         } else {
-                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
+                            append("tmp->$template_arg_%s = 0x%xU;\n", t.first.c_str(), id((char*) t.second.c_str()));
                             append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
                         }
                     }
