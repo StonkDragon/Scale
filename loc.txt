@@ -62,6 +62,7 @@
       24 examples/arraysort.scale
       14 examples/cdecl.scale
       14 examples/container.scale
+      16 examples/custom-get-set.scale
       25 examples/data-type-literals.scale
       11 examples/enum.scale
       17 examples/fib.scale
@@ -74,20 +75,24 @@
        4 examples/hello.scale
        8 examples/if.scale
       12 examples/label-goto.scale
+      17 examples/layouts.scale
       10 examples/map.scale
       28 examples/oop.scale
       55 examples/operator-overloading.scale
       46 examples/operators.scale
+      14 examples/overloading.scale
        8 examples/primitive-array.scale
        6 examples/repeat.scale
       11 examples/sizeof.scale
        7 examples/std-any.scale
       19 examples/struct.scale
+      18 examples/subscript.scale
       27 examples/switch.scale
+      34 examples/templates.scale
       22 examples/try-catch.scale
        7 examples/variables.scale
        8 examples/variadics.scale
        8 examples/while.scale
       16 interop-example/foo.c
       14 interop-example/main.scale
-   20714 total
+   20813 total
