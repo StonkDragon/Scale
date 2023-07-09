@@ -1,0 +1,88 @@
+import std.io
+import std.util.Array
+
+cdecl "_scl_memset"
+expect function memset(ptr: [any], val: int32, len: int): [any]
+cdecl "_scl_memcpy"
+expect function memcpy(dst: [any], src: [any], n: int): [any]
+cdecl "ctrl_stack_size"
+expect function sizeofStack(): int
+cdecl "_scl_sleep"
+expect function sleep(_millis_: int): none
+cdecl "_scl_alloc"
+expect function malloc(_sz_: int): [any]
+cdecl "_scl_free"
+expect function free(_ptr_: [any]): none
+cdecl "_scl_realloc"
+expect function realloc(_ptr_: [any], _sz_: int): [any]
+
+cdecl "system"
+expect function __c_system(cmd: [int8]): int
+cdecl "getenv"
+expect function __c_getenv(cmd: [int8]): [int8]?
+cdecl "_scl_strdup"
+expect function __c_strdup(s: [int8]): [int8]
+cdecl "strtok"
+expect function __c_strtok(s: any, delim: [int8]): [int8]?
+cdecl "atoll"
+expect function __c_atoll(s: [int8]): int64
+cdecl "atof"
+expect function __c_atof(s: [int8]): float
+
+function system(_cmd_: str): int
+  _cmd_:view __c_system return
+end
+
+function getenv(_key_: str): str?
+  _key_:view __c_getenv => decl ptr
+  if ptr then
+    ptr!! str::new return
+  fi
+  nil return
+end
+
+function time(): float
+  decl secs: float
+  c!
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    *secs = (scl_float)(tv.tv_usec) / 1000000 + (scl_float)(tv.tv_sec);
+  end
+  secs return
+end
+
+deprecated![since: "23.5", replacement: "int::toString"]
+function longToString(_long_: int): str
+  25 malloc => decl out: [int8]
+  c!
+	  sprintf(*out, SCL_INT_FMT, *_long_);
+  end
+  out str::new return
+end
+
+deprecated![since: "23.5", replacement: "int::parse"]
+function stringToLong(_str_: str): int
+  _str_:view __c_atoll as int return
+end
+
+deprecated![since: "23.5", replacement: "float::toString"]
+function stringToDouble(_str_: str): float
+  c!
+    _scl_push()->f = (scl_float) atof((*_str_)->_data);
+  end
+  as float return
+end
+
+deprecated![since: "23.5", replacement: "float::parse"]
+function doubleToString(_double_: float): str
+  100 malloc => decl out: [int8]
+  c!
+	  sprintf(*out, "%f", *_double_);
+  end
+  out str::new return
+end
+
+deprecated![since: "23.5"]
+function nop(): none
+  0 sleep
+end

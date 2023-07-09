@@ -1,10 +1,8 @@
 import std.util.Map
 
 function main(): none
-    10 Map<str>::new => decl map
-    "Apple" => map["A"]
-    "Banana" " " + "Pineapple" + => map["B"]
+    ["A": "Apple", "B": "Banana" " " + "Pineapple" +] => decl map
     
-    map["A"] puts
-    map["B"] puts
+    "A" map:get puts
+    "B" map:get puts
 end

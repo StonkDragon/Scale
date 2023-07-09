@@ -1,3 +1,0 @@
-interface Cloneable
-    function clone(): ?
-end

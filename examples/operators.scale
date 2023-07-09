@@ -1,46 +1,46 @@
 # just math nothing to see here
 function main(): none
   # Addition
-  1 2      + :toString puts
+  1 2      +  putint
   # Subtraction
-  2 3      - :toString puts
+  2 3      -  putint
   # Multiplication
-  2 4      * :toString puts
+  2 4      *  putint
   # Division
-  10 5     / :toString puts
+  10 5     /  putint
   # Modulo operator
-  5 6      % :toString puts
+  5 6      %  putint
   # Logical XOR
-  15 7     ^ :toString puts
+  15 7     ^  putint
   # Logical NOT
-  8        ~ :toString puts
+  8        ~  putint
   # Logical Bitwise shift left
-  12 9     <<:toString puts
+  12 9     << putint
   # Logical Bitwise shift right
-  12 10    >>:toString puts
+  12 10    >> putint
   # Logical AND
-  6 11     & :toString puts
+  6 11     &  putint
   # Logical OR
-  7 12     | :toString puts
+  7 12     |  putint
   # Exponentiation operator
   # raises 2 to the 12th power
-  2 12     **:toString puts
+  2 12     ** putint
   
   # Floating point operators
   # Addition
-  10.0 3   +:toString puts
-  10   3.0 +:toString puts
-  10.0 3.0 +:toString puts
+  10.0 3   + putfloat
+  10   3.0 + putfloat
+  10.0 3.0 + putfloat
   # Subtraction
-  10.0 3   -:toString puts
-  10   3.0 -:toString puts
-  10.0 3.0 -:toString puts
+  10.0 3   - putfloat
+  10   3.0 - putfloat
+  10.0 3.0 - putfloat
   # Multiplication
-  10.0 3   *:toString puts
-  10   3.0 *:toString puts
-  10.0 3.0 *:toString puts
+  10.0 3   * putfloat
+  10   3.0 * putfloat
+  10.0 3.0 * putfloat
   # Division
-  10.0 3   /:toString puts
-  10   3.0 /:toString puts
-  10.0 3.0 /:toString puts
+  10.0 3   / putfloat
+  10   3.0 / putfloat
+  10.0 3.0 / putfloat
 end

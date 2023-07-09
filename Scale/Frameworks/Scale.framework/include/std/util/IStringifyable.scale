@@ -1,3 +1,0 @@
-interface Stringifyable
-    function toString(): str
-end

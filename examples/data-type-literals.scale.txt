@@ -1,8 +1,10 @@
 Apple
 Banana
 Pineapple
+Banana Pineapple
 b
 c
 element
+value
 b
 c

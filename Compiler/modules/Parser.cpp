@@ -16,6 +16,17 @@ namespace sclc
         return result;
     }
 
+    extern FILE* support_header;
+
+    template<typename T>
+    bool compare(T& a, T& b) {
+        if constexpr(std::is_pointer<T>::value) {
+            return hash1((char*) a->getName().c_str()) < hash1((char*) b->getName().c_str());
+        } else {
+            return hash1((char*) a.getName().c_str()) < hash1((char*) b.getName().c_str());
+        }
+    }
+
     FPResult Parser::parse(std::string filename) {
         int scopeDepth = 0;
         std::vector<FPResult> errors;
@@ -46,7 +57,7 @@ namespace sclc
         }
 
         if (mainFunction && !Main.options.noMain) {
-            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none" || mainFunction->getReturnType() == "nothing";
+            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none";
             Main.options.mainArgCount  = mainFunction->getArgs().size();
         }
 
@@ -56,6 +67,43 @@ namespace sclc
         vars.clear();
         vars.push_back(defaultScope);
 
+        remove("scale_support.h");
+        support_header = fopen("scale_support.h", "a");
+        fprintf(support_header, "#include <scale_runtime.h>\n\n");
+
+        if (
+            featureEnabled("default-interface-implementation") ||
+            featureEnabled("default-interface-impl")
+        ) {
+            for (Struct s : result.structs) {
+                for (std::string i : s.getInterfaces()) {
+                    Interface* interface = getInterfaceByName(result, i);
+                    for (Method* m : interface->getDefaultImplementations()) {
+                        if (!hasMethod(result, m->getName(), s.getName())) {
+                            Method* m2 = m->cloneAs(s.getName());
+                            std::vector<Variable> args = m2->getArgs();
+                            m2->clearArgs();
+                            for (Variable v : args) {
+                                if (v.getType() == "") {
+                                    v.setType(s.getName());
+                                }
+                                m2->addArgument(v);
+                            }
+                            result.functions.push_back(m2);
+                        }
+                    }
+                }
+            }
+        }
+
+        std::sort(result.functions.begin(), result.functions.end(), compare<Function*>);
+        std::sort(result.extern_functions.begin(), result.extern_functions.end(), compare<Function*>);
+        std::sort(result.containers.begin(), result.containers.end(), compare<Container>);
+        std::sort(result.structs.begin(), result.structs.end(), compare<Struct>);
+        std::sort(result.globals.begin(), result.globals.end(), compare<Variable>);
+        std::sort(result.extern_globals.begin(), result.extern_globals.end(), compare<Variable>);
+        std::sort(result.interfaces.begin(), result.interfaces.end(), compare<Interface*>);
+
         ConvertC::writeHeader(fp, errors, warns);
         ConvertC::writeContainers(fp, result, errors, warns);
         ConvertC::writeStructs(fp, result, errors, warns);
@@ -64,48 +112,38 @@ namespace sclc
         ConvertC::writeExternHeaders(fp, result, errors, warns);
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
-        append("_scl_constructor void init_this() {\n");
-        scopeDepth++;
-        append("_scl_setup();\n");
+        fclose(support_header);
+
+        append("scl_any _scl_internal_init_functions[] = {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isInitFunction(f)) {
-                if (f->getArgs().size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Constructor functions cannot have arguments";
-                    result.line = f->getNameToken().getLine();
-                    result.in = f->getNameToken().getFile();
-                    result.column = f->getNameToken().getColumn();
-                    result.type = f->getNameToken().getType();
-                    result.value = f->getNameToken().getValue();
-                    errors.push_back(result);
-                } else {
-                    append("Function_%s();\n", f->finalName().c_str());
-                }
+                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }
-        scopeDepth--;
-        append("}\n\n");
-        append("_scl_destructor void destroy_this() {\n");
+        append("  0\n");
+        append("};\n\n");
+        append("scl_any _scl_internal_destroy_functions[] = {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isDestroyFunction(f)) {
-                if (f->getArgs().size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Finalizer functions cannot have arguments";
-                    result.line = f->getNameToken().getLine();
-                    result.in = f->getNameToken().getFile();
-                    result.column = f->getNameToken().getColumn();
-                    result.type = f->getNameToken().getType();
-                    result.value = f->getNameToken().getValue();
-                    errors.push_back(result);
-                } else {
-                    append("Function_%s();\n", f->finalName().c_str());
-                }
+                append("  (scl_any) Function_%s,\n", f->finalName().c_str());
             }
         }
-        append("}\n\n");
-        
+        append("  0\n");
+        append("};\n\n");
+
+        append("scl_any _scl_get_main_addr() {\n");
+        if (mainFunction && !Main.options.noMain) {
+            append("  return Function_main;\n");
+        } else {
+            append("  return NULL;\n");
+        }
+        append("}\n");
+
+        append("#ifdef __cplusplus\n");
+        append("}\n");
+        append("#endif\n");
+        append("/* END OF GENERATED CODE */\n");
+
         fclose(fp);
 
         FPResult parseResult;
