@@ -1,0 +1,105 @@
+import std.util.Pair
+import std.util.Iterable
+import std.util.InvalidArgumentException
+
+final sealed struct MapEntry<T: any>
+  decl key: str
+  decl value: T
+
+  private function checkTypeOrThrow(val: any): none
+    if val typeof T builtinIsInstanceOf then
+      return
+    fi
+    "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
+  end
+
+  function init(key: str, value: T): none
+    key => self.key
+    value => self.value
+  end
+
+  function toString(): str
+    key ": " + value:toString + return
+  end
+end
+
+sealed struct Map<T: any> is Iterable
+  private decl data: TypedArray
+
+  function init(size: int): none
+    size TypedArray<MapEntry>::new => self.data
+  end
+
+  function [](key: str): T
+    key self:get return
+  end
+
+  restrict function get(key: str): T
+    for i in 0 to self.data.count do
+      self.data[i] => decl entry: MapEntry
+      if entry.key key == then
+        entry.value return
+      fi
+    done
+    "Key '" key + "' not found in map" + InvalidArgumentException::new throw
+  end
+
+  function =>[](key: str, value: T): none
+    key value self:set
+  end
+
+  function containsKey(key: str): bool
+    foreach entry in self.data do
+      if entry as MapEntry.key key == then
+        true return
+      fi
+    done
+    false return
+  end
+
+  restrict function set(key: str, value: T): none
+    for i in 0 to self.data.count do
+      i self.data:get => decl entry: mut MapEntry?
+      if entry nil == then
+        i (key value MapEntry<typeof T>::new) self.data:set
+        return
+      elif entry as MapEntry.key key == then
+        value => entry.value
+        return
+      fi
+    done
+    key value MapEntry<typeof T>::new self.data:push
+  end
+
+  function iterate(): Iterator
+    self.data MapIterator::new return
+  end
+
+  function toString(): str
+    self.data:toString return
+  end
+
+  restrict function map(x: lambda(MapEntry): none): none
+    foreach value in self.data do
+      if value then
+        value x:accept
+      fi
+    done
+  end
+end
+
+sealed struct MapIterator is Iterator
+  private decl data: ArrayIterator
+
+  function init(data: Array): none
+    data ArrayIterator::new => self.data
+  end
+
+  function hasNext(): bool
+    self.data:hasNext return
+  end
+
+  function next(): MapEntry
+    self.data:next as MapEntry return
+  end
+end

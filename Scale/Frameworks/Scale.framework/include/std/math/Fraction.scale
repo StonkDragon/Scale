@@ -1,0 +1,176 @@
+final struct Fraction
+    decl numerator: int
+    decl denominator: int
+
+    function init(numerator: int, denominator: int): none
+        numerator => self.numerator
+        denominator => self.denominator
+    end
+
+    function toString(): str
+        self:lock
+        numerator:toString "/" + denominator:toString +
+        self:unlock
+        return
+    end
+
+    function toFloat(): float
+        self:lock
+        numerator as float denominator as float /
+        self:unlock
+        return
+    end
+
+    function +(other: Fraction): Fraction
+        self:lock
+        self.denominator other.numerator *
+        self.numerator other.denominator *
+        +
+        self.denominator other.denominator *
+        Fraction::new
+        self:unlock
+        return
+    end
+
+    function -(other: Fraction): Fraction
+        self:lock
+        self.denominator other.numerator *
+        self.numerator other.denominator *
+        -
+        self.denominator other.denominator *
+        Fraction::new
+        self:unlock
+        return
+    end
+
+    function ++(): Fraction
+        self:lock
+        self.numerator self.denominator + => self.numerator
+        self
+        self:unlock
+        return
+    end
+
+    function --(): Fraction
+        self:lock
+        self.numerator self.denominator - => self.numerator
+        self
+        self:unlock
+        return
+    end
+
+    function *(other: Fraction): Fraction
+        self:lock
+        self.numerator other.numerator *
+        self.denominator other.denominator *
+        Fraction::new
+        self:unlock
+        return
+    end
+
+    function inverse(): Fraction
+        self:lock
+        self.denominator self.numerator Fraction::new
+        self:unlock
+        return
+    end
+
+    function /(other: Fraction): Fraction
+        self:lock
+        other self:inverse *
+        self:unlock
+        return
+    end
+
+    function isNan(): bool
+        self:lock
+        self.numerator 0 == self.denominator 0 == &&
+        self:unlock
+        return
+    end
+
+    function isInfinite(): bool
+        self:lock
+        self.denominator 0 ==
+        self:unlock
+        return
+    end
+
+    function isFinite(): bool
+        self:lock
+        self:isInfinite !
+        self:unlock
+        return
+    end
+
+    function isNotNan(): bool
+        self:lock
+        self:isNan !
+        self:unlock
+        return
+    end
+
+    static function fromFloat(d: float): Fraction
+        0 => decl num: int
+        0 => decl den: int
+        d float::toString => decl s
+
+        if d:isNaN then
+            0 0 Fraction::new return
+        elif d:isInfinite then
+            1 0 Fraction::new return
+        else
+            s:size => decl size: int
+            new[size] => decl whole: [int8]
+            new[size] => decl decimal: [int8]
+            0 => decl wholePtr: int
+            0 => decl decimalPtr: int
+
+            true => decl inWholePart: bool
+            false => decl hasDecimalPart: bool
+            1 => decl sign: int
+
+            for i in 0 to size do
+                if i s @ '.' == then
+                    false => inWholePart
+                    true => hasDecimalPart
+                    continue
+                fi
+                if i s @ '-' == then
+                    -1 => sign
+                    continue
+                fi
+
+                unsafe
+                    if inWholePart then
+                        i s @ => @(whole wholePtr +)
+                        wholePtr 1 + => wholePtr
+                    else
+                        i s @ => @(decimal decimalPtr +)
+                        decimalPtr 1 + => decimalPtr
+                    fi
+                end
+            done
+
+            whole str::new int::parse => decl numWhole: int
+            0 => decl numDecimal: int
+            0 => decl decimalLen: int
+
+            if hasDecimalPart then
+                decimal str::new => decl decimalStr: str
+                decimalStr int::parse => numDecimal
+                decimalStr:size => decimalLen
+                decimalStr any::delete
+            fi
+
+            numWhole (10 decimalLen **) * numDecimal + => num
+            num sign * => num
+
+            10 decimalLen ** => den
+
+            num den Fraction::new return
+        fi
+
+        builtinUnreachable
+    end
+end

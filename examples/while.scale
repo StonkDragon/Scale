@@ -1,11 +1,8 @@
 function main(): none
-  0
+  0 => decl i: int
   # this code prints all numbers from 1 to 10 (both including)
-  # without using variables
-  while dup 10 < do
-    # we have to cast to int here because the typechecker
-    # can't infer types from different scopes
-    ++ as int dup putint
+  while i 10 < do
+    i 1 +> i
+    i putint
   done
-  drop
 end

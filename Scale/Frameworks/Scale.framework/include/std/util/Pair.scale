@@ -1,0 +1,13 @@
+final sealed struct Pair
+	decl a: any
+	decl b: any
+
+	function init(a: any, b: any): none
+		a => self.a
+		b => self.b
+	end
+
+	function toString(): str
+		"(" a:toString + ", " + b:toString + ")" + return
+	end
+end

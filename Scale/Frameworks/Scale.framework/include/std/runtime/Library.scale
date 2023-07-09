@@ -1,0 +1,55 @@
+final sealed struct Library
+    private decl _handle: any
+    private decl _name: str
+
+    private static expect unsafe function getSymbol0(handle: any, name: [int8]): any
+    private static expect unsafe function open0(name: [int8]): any
+    private static expect unsafe function close0(handle: any): none
+    private static expect unsafe function dlerror0(): str
+    
+    function init(name: str): none
+        name => self._name
+        unsafe
+            self._name:view open0 => self._handle
+        end
+        unless self._handle then
+            NullPointerException::new => decl e: mut NullPointerException
+            unsafe
+                dlerror0 => e.msg
+            end
+            e throw
+        fi
+    end
+
+    function close(): none
+        unless self._handle then
+            NullPointerException::new => decl e: mut NullPointerException
+            "Library '" self._name + "' already closed!" => e.msg
+            e throw
+        fi
+        unsafe
+            self._handle close0
+        end
+        nil => self._handle
+        "" => self._name
+    end
+
+    function name(): str
+        _name return
+    end
+
+    function getSymbol(name: str): any
+        decl symbol: any
+        unsafe
+            self._handle name:view getSymbol0 => symbol
+        end
+        unless symbol then
+            NullPointerException::new => decl e: mut NullPointerException
+            unsafe
+                dlerror0 => e.msg
+            end
+            e throw
+        fi
+        symbol return
+    end
+end

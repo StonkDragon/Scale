@@ -1,0 +1,17 @@
+import std.util.Array
+import std.util.ReadOnlyArray
+
+final struct InvalidTypeException : Exception
+    function init(msg: str): none
+        msg => self.msg
+    end
+end
+
+final sealed struct TypedArray<T: any>: Array
+    private function checkTypeOrThrow(val: any): none
+        if val typeof T builtinIsInstanceOf then
+            return
+        fi
+        "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
+    end
+end

@@ -16,12 +16,10 @@ function main(): none
     banana puts
     pineapple puts
     
-    "B" ["A": apple, "B": banana " " + pineapple +]:get puts
     ("a", "b").b puts
     ("a", "b", "c").c puts
 
     0 {"element"}:get puts
-    "key" ["key": "value"]:get puts
     ("a", "b").b puts
     ("a", "b", "c").c puts
 end

@@ -9,6 +9,7 @@ namespace sclc {
         std::string name;
         std::vector<std::string> members;
     public:
+        Token* name_token;
         static const size_t npos = -1;
 
         Enum(std::string name) {

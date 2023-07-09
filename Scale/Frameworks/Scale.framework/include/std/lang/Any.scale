@@ -1,0 +1,57 @@
+final static sealed struct any
+    cdecl "_scl_alloc"  expect function new(size: int): any
+    cdecl "_scl_free"   expect function delete(ptr: any): none
+    cdecl "_scl_sizeof" expect function size(ptr: any): int
+
+    function resize(newSize: int, ptr: any): any
+        unsafe
+            ptr newSize __c_realloc return
+        end
+    end
+
+    function default(): any
+        sizeof any any::new return
+    end
+
+    function toString(x: any): str
+        x as int:toString
+        return
+    end
+
+    function toHexString(x: any): str
+        x as int:toHexString
+        return
+    end
+
+    function referenceEquals(one: any, other: any): bool
+        one as int other as int == return
+    end
+
+    expect cdecl "Any$valueOf" function asReference(x: any): Any
+
+    cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+end
+
+struct Any
+    decl value: readonly any
+
+    expect static function valueOf(x: any): Any
+
+    function equals(other: any): bool
+        other self == return
+    end
+    function ==(other: any): bool
+        if other is Any then
+            other as Any.value as int self.value as int == return
+        else
+            other self.value == return
+        fi
+    end
+    function @(): any
+        self.value return
+    end
+
+    function toString(): str
+        self.value:toString return
+    end
+end

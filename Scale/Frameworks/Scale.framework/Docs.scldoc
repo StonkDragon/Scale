@@ -81,6 +81,10 @@ This memory may not be <<GREEN>>0<<RESET>>-initialized.
 Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
 If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
 
+### static function any::resize(size: int, ptr: any): any
+Reallocates the memory pointed to by <<WHITE>>ptr<<RESET>> with a new size of <<WHITE>>size<<RESET>> bytes.
+Any call to <<WHITE>>any::resize<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
+
 ### static function any::size(ptr: any): int
 Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
 Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
@@ -535,6 +539,9 @@ Undefined behavior is invoked if the number is out of range for a 64-Bit floatin
 ### static function float::bits(x: float) val: int
 Returns the bit representation of the float <<WHITE>>x<<RESET>>.
 
+### static function float::fromBits(x: any): float
+Returns <<BLUE>>x<<RESET>> interpreted as a float.
+
 ### static function float::isInfinite(x: float): bool
 Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
 
@@ -700,7 +707,19 @@ Creates a new <<WHITE>>IllegalStateException<<RESET>> with the given message.
 @std.String
 ## String
 ### function str:+(other: str): str
-Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
+Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended to the string.
+
+### function str:+(number: int): str
+Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+
+### function str:+(number: float): str
+Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+
+### function +(s: str, num: int): str
+Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
+
+### function +(s: str, num: float): str
+Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
 
 ### function str:++(c: int): str
 Returns a new string with the character stored in <<WHITE>>c<<RESET>> appended to the end of the string.
@@ -816,42 +835,67 @@ Returns a copy of this object.
 ### function SclObject:hashCode(): SclObject
 Returns the <<CYAN>>identity hash<<RESET>> of this object.
 
-### final function SclObject:getStruct(): Struct
-Returns the <<WHITE>>Struct<<RESET>> instance representing the struct of this object.
-This function cannot be overridden.
+### final function SclObject:lock(): none
+Locks this object.
 
-@std.reflect.Struct
-## Struct
-### struct Struct
-Member types:
-- <<WHITE>>isStatic<<BLUE>>: readonly bool<<RESET>>
+### final function SclObject:unlock(): none
+Unlocks this object.
 
-<<WHITE>>isStatic<<RESET>>: <<BLUE>>true<<RESET>>, if this <<WHITE>>Struct<<RESET>> represents a static struct.
+@std.runtime.Process
+## Process
+### static function Process::exit(code :int): none
+Exits the program with the given exit code.
 
-### static function Struct::getStructByName(name: str): Struct
-Returns an instance of <<WHITE>>Struct<<RESET>> representing the struct with the given name.
-A <<WHITE>>NullPointerException<<RESET>> is thrown if no such struct exists.
+### static function Process::stackTrace(): Array
+Returns the stack trace of the current thread.
 
-### function Struct:newInstance(): SclObject
-Creates a new instance of the struct represented by this object.
+### static function Process::getGC(): GarbageCollector
+Returns the <<WHITE>>GarbageCollector<<RESET>> instance used by the program.
+The function will throw an <<BLUE>>IllegalStateException<<RESET>> if the program was compiled with -disable-gc.
 
-### function Struct:getMethodByName(name: str): lambda
-Returns a generic <<BLUE>>lambda<<RESET>> for the method with the given name.
-The returned lambda <<BOLDRED>>MUST<<RESET>> be cast to a non generic <<BLUE>>lambda<<RESET>> before it may be used.
+### static function Process::loadLibrary(name: str): Library
+Loads the library with the given name.
 
-### function Struct:getName(): str
-Returns the name of this struct.
+### static function Process::gcEnabled(): bool
+Returns <<BLUE>>false<<RESET>> if the program was compiled with -disable-gc, <<BLUE>>true<<RESET>> otherwise.
 
-### function Struct:getSize(): int
-Returns the size in bytes needed to create a new instance of the struct represented by this object.
+@std.runtime.GarbageCollector
+## GarbageCollector
+### function GarbageCollector:collect(): none
+Runs the garbage collector.
+This is a no-op if the program was compiled with -disable-gc.
 
-### function Struct:getSuper(): Struct?
-Returns the super-struct of this struct.
-Only returns <<BLUE>>nil<<RESET>> when called on the <<WHITE>>Struct<<RESET>> representing <<WHITE>>SclObject<<RESET>>.
+### function GarbageCollector:pause(): bool
+Pauses the garbage collector.
+This is a no-op if the program was compiled with -disable-gc.
 
-### unsafe function Struct:setAccesible(accessible: bool, name: str): none
-Sets the private attribute of the member variable.
-This function is unsafe as it sets the flag globally for every object of this struct.
+### function GarbageCollector:resume(): bool
+Resumes the garbage collector.
+This is a no-op if the program was compiled with -disable-gc.
+
+### function GarbageCollector:isPaused(): bool
+Returns <<BLUE>>true<<RESET>> if the garbage collector is paused.
+Returns <<BLUE>>true<<RESET>> if the program was compiled with -disable-gc.
+
+### function GarbageCollector:implementation(): str
+Returns the name of the garbage collector implementation.
+
+@std.runtime.Library
+## Library
+### static function Library::new(name: str): none
+Loads the library with the given name.
+This function will throw a <<BLUE>>NullPointerException<<RESET>> if the library could not be loaded.
+
+### function Library:name(): str
+Returns the name of the library.
+
+### function Library:getSymbol(name: str): any
+Returns the symbol with the given name.
+This function will throw a <<BLUE>>NullPointerException<<RESET>> if the symbol could not be found.
+
+### function Library:close(): none
+Closes the library.
+This function will throw a <<BLUE>>NullPointerException<<RESET>> if the library was already closed.
 
 @std.threading.Thread
 ## Thread
@@ -866,20 +910,25 @@ Returns the stack trace of the current thread.
 
 ### static function Thread::new(func: lambda(): none): none
 Creates a new Thread object.
+This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
 
 ### function Thread:start(): none
 Starts the thread.
 If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> has not been called on this thread yet, a <<WHITE>>ThreadException<<RESET>> is thrown.
+This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
 
 ### function Thread:join(): none
 Blocks the calling thread until the thread finishes execution.
 If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
+This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
 
 ### function Thread:equals(other: Thread): bool
 Returns true, if both threads represent the same pthread instance.
 
 ### function Thread:==(other: Thread): bool
 Returns true, if both threads represent the same pthread instance.
+
+@std.
 
 @std.debug
 ## Exception
@@ -1023,7 +1072,7 @@ Returns a string representation of this map entry.
 
 @std.util.Cloneable
 ## Cloneable
-### interface ICloneable
+### interface Cloneable
 Implementing this interface indicates that instances of this struct may be copied.
 
 ### function ICloneable:clone(): ?
@@ -1031,7 +1080,7 @@ The interface method to implement for cloning, where <<BLUE>>?<<RESET>> represen
 
 @std.util.Equatable
 ## Equatable
-### interface IEquatable
+### interface Equatable
 Implementing this interface indicates that instances of this struct implement a custom equality check.
 
 ### function IEquatable:equals(other: ?): bool
@@ -1044,7 +1093,7 @@ The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct
 
 @std.util.Hashable
 ## Hashable
-### interface IHashable
+### interface Hashable
 Implementing this interface indicates that instances of this struct implement a custom hashCode method.
 
 ### function IHashable:hashCode(): int
@@ -1052,7 +1101,7 @@ Implementations of this interface method should return a hash code value.
 
 @std.util.Iterable
 ## Iterable
-### interface IIterable
+### interface Iterable
 Implementing this interface enables it to be used in a <<BLUE>>foreach<<RESET>>-loop
 
 ### function IIterable:begin(): none
@@ -1067,7 +1116,7 @@ The <<BLUE>>?<<RESET>> should represent a meaningful type for the iteration.
 
 @std.util.Stringifyable
 ## Stringifyable
-### interface IStringifyable
+### interface Stringifyable
 Implementing this interface indicates that instances of this struct implement a custom <<WHITE>>toString<<RESET>> method.
 
 ### function IStringifyable:toString(): str

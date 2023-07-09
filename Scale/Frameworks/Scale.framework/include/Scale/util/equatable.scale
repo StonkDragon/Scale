@@ -1,4 +1,0 @@
-interface IEquatable
-    function ==(other: ?): bool
-    function equals(other: ?): bool
-end

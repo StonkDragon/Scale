@@ -29,12 +29,15 @@ namespace sclc
         bool isPrivate;
         bool hasNamedReturnValue;
         Deprecation deprecated;
+        std::vector<Function*> overloads;
+        std::string templateArg;
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
         virtual std::string getName();
         virtual std::string finalName();
         virtual std::vector<Token> getBody();
+        virtual std::vector<Token>& getBodyRef();
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
         virtual std::vector<std::string> getModifiers();
@@ -51,24 +54,28 @@ namespace sclc
         virtual void setNamedReturnValue(Variable v);
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
+        virtual bool isCVarArgs();
+        virtual Variable& varArgsParam();
+        virtual std::string getMemberType() {
+            return member_type;
+        }
+        virtual void setMemberType(std::string member_type) {
+            this->member_type = member_type;
+        }
 
         virtual bool operator==(const Function& other) const;
+        virtual bool operator!=(const Function& other) const;
         virtual bool operator==(const Function* other) const;
+        virtual bool operator!=(const Function* other) const;
     };
     
     class Method : public Function {
         bool force_add;
     public:
-        Method(std::string member_type, std::string name, Token& nameToken) : Function(name, true, nameToken) {
+        Method(std::string member_type, std::string name, Token nameToken) : Function(name, true, nameToken) {
             this->member_type = member_type;
             this->isMethod = true;
             this->force_add = false;
-        }
-        std::string getMemberType() {
-            return member_type;
-        }
-        void setMemberType(std::string member_type) {
-            this->member_type = member_type;
         }
         bool addAnyway() {
             return force_add;

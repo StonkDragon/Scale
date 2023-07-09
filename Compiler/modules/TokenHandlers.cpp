@@ -31,18 +31,22 @@ namespace sclc {
         if (op == "+" || op == "-" || op == "*" || op == "/") {
             if (!isFloatingType(typeA)) {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->f = _scl_positive_offset(0)->f %s ((scl_float) _scl_positive_offset(1)->i);\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = _scl_positive_offset(0)->f %s ((scl_float) _scl_positive_offset(1)->i);\n", op.c_str());
                     typeStack.push("float");
                 } else {
-                    append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i %s _scl_positive_offset(1)->i;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = _scl_positive_offset(0)->i %s _scl_positive_offset(1)->i;\n", op.c_str());
                     typeStack.push("int");
                 }
             } else {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->f = _scl_positive_offset(0)->f %s _scl_positive_offset(1)->f;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = _scl_positive_offset(0)->f %s _scl_positive_offset(1)->f;\n", op.c_str());
                     typeStack.push("float");
                 } else {
-                    append("_scl_popn(2); _scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) %s _scl_positive_offset(1)->f;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = ((scl_float) _scl_positive_offset(0)->i) %s _scl_positive_offset(1)->f;\n", op.c_str());
                     typeStack.push("float");
                 }
             }
@@ -51,18 +55,22 @@ namespace sclc {
         if (op == "**") {
             if (!isFloatingType(typeA)) {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->f = pow(_scl_positive_offset(0)->f, ((scl_float) _scl_positive_offset(1)->i));\n");
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = pow(_scl_positive_offset(0)->f, ((scl_float) _scl_positive_offset(1)->i));\n");
                     typeStack.push("float");
                 } else {
-                    append("_scl_popn(2); _scl_push()->i = (scl_int) pow(_scl_positive_offset(0)->i, _scl_positive_offset(1)->i);\n");
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = (scl_int) pow(_scl_positive_offset(0)->i, _scl_positive_offset(1)->i);\n");
                     typeStack.push("int");
                 }
             } else {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->f = pow(_scl_positive_offset(0)->f, _scl_positive_offset(1)->f);\n");
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = pow(_scl_positive_offset(0)->f, _scl_positive_offset(1)->f);\n");
                     typeStack.push("float");
                 } else {
-                    append("_scl_popn(2); _scl_push()->f = pow(((scl_float) _scl_positive_offset(0)->i), _scl_positive_offset(1)->f);\n");
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->f = pow(((scl_float) _scl_positive_offset(0)->i), _scl_positive_offset(1)->f);\n");
                     typeStack.push("float");
                 }
             }
@@ -71,15 +79,19 @@ namespace sclc {
         if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") {
             if (!isFloatingType(typeA)) {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->f %s ((scl_float) _scl_positive_offset(1)->i);\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = _scl_positive_offset(0)->f %s ((scl_float) _scl_positive_offset(1)->i);\n", op.c_str());
                 } else {
-                    append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i %s _scl_positive_offset(1)->i;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = _scl_positive_offset(0)->i %s _scl_positive_offset(1)->i;\n", op.c_str());
                 }
             } else {
                 if (isFloatingType(typeB)) {
-                    append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->f %s _scl_positive_offset(1)->f;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = _scl_positive_offset(0)->f %s _scl_positive_offset(1)->f;\n", op.c_str());
                 } else {
-                    append("_scl_popn(2); _scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) %s _scl_positive_offset(1)->f;\n", op.c_str());
+                    append("_scl_popn(2);\n");
+                    append("_scl_push()->i = ((scl_float) _scl_positive_offset(0)->i) %s _scl_positive_offset(1)->f;\n", op.c_str());
                 }
             }
             typeStack.push("bool");
@@ -90,7 +102,7 @@ namespace sclc {
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
-    bool checkStackType(TPResult result, std::vector<Variable> args);
+    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
     std::string argVectorToString(std::vector<Variable> args);
     std::string stackSliceToString(size_t amount);
 
@@ -115,7 +127,7 @@ namespace sclc {
                 if (typeStack.size())
                     typeStack.pop();
             }
-            if (f->getReturnType().size() > 0 && f->getReturnType() != "none") {
+            if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
                 if (f->getReturnType() == "float") {
                     append("_scl_push()->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 } else {
@@ -134,7 +146,8 @@ namespace sclc {
         switch (token.getType()) {
             case tok_add: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "+", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i + _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i + _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -145,7 +158,8 @@ namespace sclc {
 
             case tok_sub: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "-", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i - _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i - _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -156,7 +170,8 @@ namespace sclc {
 
             case tok_mul: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "*", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i * _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i * _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -167,7 +182,8 @@ namespace sclc {
 
             case tok_div: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "/", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i / _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i / _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -178,7 +194,8 @@ namespace sclc {
 
             case tok_mod: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "%", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i %% _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i %% _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -189,7 +206,8 @@ namespace sclc {
 
             case tok_land: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "&", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i & _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i & _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -200,7 +218,8 @@ namespace sclc {
 
             case tok_lor: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "|", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i | _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i | _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -211,7 +230,8 @@ namespace sclc {
 
             case tok_lxor: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "^", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i ^ _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i ^ _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -231,7 +251,8 @@ namespace sclc {
 
             case tok_lsh: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "<<", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i << _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i << _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())
@@ -242,7 +263,8 @@ namespace sclc {
 
             case tok_rsh: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, ">>", typeStackTop)) break;
-                append("_scl_popn(2); _scl_push()->i = _scl_positive_offset(0)->i >> _scl_positive_offset(1)->i;\n");
+                append("_scl_popn(2);\n");
+                append("_scl_push()->i = _scl_positive_offset(0)->i >> _scl_positive_offset(1)->i;\n");
                 if (typeStack.size())
                     typeStack.pop();
                 if (typeStack.size())

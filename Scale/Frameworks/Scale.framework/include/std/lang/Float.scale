@@ -1,0 +1,111 @@
+construct function float_scale_init(): none
+    1023  => float::maxExponent
+    -1022 => float::minExponent
+end
+
+final static sealed struct float
+    decl maxExponent: const int
+    decl minExponent: const int
+
+    intrinsic function toString(x: float): str
+        100 any::new => decl out: [int8]
+        unsafe
+            c!
+                sprintf(*out, "%f", *x);
+            end
+        end
+        out str::new return
+    end
+
+    intrinsic function toPrecisionString(x: float): str
+        100 any::new => decl out: [int8]
+        unsafe
+            c!
+                sprintf(*out, "%.17f", *x);
+            end
+        end
+        out str::new return
+    end
+
+    intrinsic function toHexString(x: float): str
+        19 any::new => decl out: [int8]
+        unsafe
+            c!
+                sprintf(*out, SCL_PTR_HEX_FMT, *(scl_int*) x);
+            end
+        end
+        out str::new return
+    end
+
+    function parse(s: str): float
+        unsafe
+            c!
+                _scl_push()->f = (scl_float) atof((*s)->_data);
+            end
+        end
+        as float return
+    end
+
+    function bits(x: float) val: int
+        unsafe
+            c!
+                *val = *(scl_int*) x;
+            end
+        end
+        return
+    end
+
+    function isInfinite(x: float): bool
+        unsafe
+            c!
+                _scl_push()->i = isinf(*x);
+            end as int return
+        end
+    end
+
+    function isNaN(x: float): bool
+        unsafe
+            c!
+                _scl_push()->i = isnan(*x);
+            end as int return
+        end
+    end
+
+    function isFinite(x: float): bool
+        x float::isInfinite ! x float::isNaN ! && return
+    end
+
+    function isNotNaN(x: float): bool
+        x float::isNaN ! return
+    end
+
+    expect cdecl "Float$valueOf" function asReference(f: float): Float
+
+    intrinsic function fromBits(bits: any): float
+        ref bits as [float] @ return
+    end
+end
+
+struct Float
+    decl value: readonly float
+
+    expect static function valueOf(x: float): Float
+
+    function equals(other: any): bool
+        other self == return
+    end
+    function ==(other: any): bool
+        if other is Float then
+            other as Float.value self.value == return
+        else
+            ref other as [float] @ self.value == return
+        fi
+    end
+    function @(): float
+        self.value return
+    end
+
+    function toString(): str
+        self.value:toString return
+    end
+end

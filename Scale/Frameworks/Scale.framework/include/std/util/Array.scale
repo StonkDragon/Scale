@@ -1,0 +1,265 @@
+import std.util.Iterable
+import std.util.ImmutableArray
+import std.debug
+import std.util.InvalidArgumentException
+import std.util.IndexOutOfBoundsException
+import std.util.TypedArray
+import std.util.ReadOnlyArray
+
+sealed struct Array is Iterable
+  decl values:  mut readonly [any]
+  decl count:       readonly int
+  decl capacity:    readonly int
+  decl initCap:     readonly int
+
+  private function checkTypeOrThrow(value: any): none end
+  
+  restrict function sort(): none
+    0 => decl i
+
+    while i self.count < do
+      i self:get => decl tmp
+      i 1 - => decl j
+      while j 0 >= do
+        if tmp j self:get < then
+          j 1 + j self:get self:set
+          j tmp self:set
+        else
+          j 1 + tmp self:set
+          break
+        fi
+        j-- => j
+      done
+      i++ => i
+    done
+  end
+
+  function [](index: int): any?
+    index self:get return
+  end
+
+  function get(index: int): any?
+    if index 0 < index self.count >= || then
+      "Index "
+      index:toString +
+      " is out of bounds for Array of length " +
+      self.count:toString +
+      "!" +
+      IndexOutOfBoundsException::new throw
+    fi
+    self.values[index] return
+  end
+
+  function =>[](index: int, value: any): none
+    index value self:set
+  end
+
+  restrict function set(index: int, value: any): none
+    value self:checkTypeOrThrow
+    if index 0 < index self.capacity >= || then
+      "Index "
+      index:toString +
+      " is out of bounds for Array of capacity " +
+      self.capacity:toString +
+      "!" +
+      IndexOutOfBoundsException::new
+      throw
+    fi
+    
+    if index self.count >= then
+      index 1 + => self.count
+    fi
+
+    value => self.values[index]
+  end
+
+  function top(): any?
+    if self.count 0 <= then
+      "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
+    fi
+    self.values self.count 1 - sizeof any * + @ return
+  end
+
+  restrict function push(value: any): none
+    value self:checkTypeOrThrow
+
+    if self.count self.capacity >= then
+      self.capacity self.initCap + => self.capacity
+      self.capacity self.values:resize => self.values
+    fi
+
+    value => self.values[self.count]
+    self.count 1 + => self.count
+  end
+
+  restrict function pop(): none
+    if self.count 0 <= then
+      "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new
+      throw
+    fi
+    self.count 1 - => self.count
+  end
+
+  restrict function indexOf(val: any): int
+    val self:checkTypeOrThrow
+    for i in 0 to self.count do
+      if i self:get is SclObject then
+        if val is SclObject then
+          if
+            i self:get as SclObject
+            val as SclObject
+            ==
+          then
+            i return
+          fi
+        fi
+      else
+        if i self:get val == then
+          i return
+        fi
+      fi
+    done
+    -1 return
+  end
+
+  function contains(val: any): bool
+    val self:checkTypeOrThrow
+    val self:indexOf -1 != return
+  end
+
+  function init(size: int): none
+    if size 1 < then
+      "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
+    fi
+    new[size] => self.values
+    0 => self.count
+    size => self.capacity
+    size => self.initCap
+  end
+
+  function iterate(): ArrayIterator
+    self ArrayIterator::new return
+  end
+
+  restrict function reverse(): Array
+    if self.count 0 <= then self return fi
+    
+    self.count Array::new => decl tmp
+    foreach elem in self do
+      elem tmp:push
+    done
+    0 => self.count
+    tmp.count => decl tmpMax: int
+    for i in 0 to tmpMax do
+      tmp:top self:push
+      tmp:pop
+    done
+    tmp any::delete
+    self return
+  end
+
+  restrict function toString() s: str
+    if self.count 0 == then
+      "{}" => s
+    else
+      "{" => s
+      for i in 0 to self.count do
+        i self:get => decl elem: any
+        if i then
+          s ", " + => s
+        fi
+        s elem:toString + => s
+      done
+      s "}" + => s
+    fi
+    return
+  end
+
+  restrict function immutableCopy(): ImmutableArray
+    new[self.count] => decl newVals: [any]
+    unsafe
+      newVals self.values self.count sizeof any * memcpy => newVals
+    end
+    self.count => decl newCount: int
+
+    newCount newVals ImmutableArray::new
+    return
+  end
+
+  restrict function remove(val: any): none
+    val self:checkTypeOrThrow
+    val self:indexOf => decl index
+    for i in index to self.count 1 - do
+      i (i 1 + self:get) self:set
+    done
+    self.count 1 - => self.count
+  end
+
+  function removeAll(val: any): none
+    val self:checkTypeOrThrow
+    while val self:indexOf -1 != do
+      val self:remove
+    done
+  end
+
+  restrict function map(x: lambda(any): none): none
+    foreach elem in self do
+      elem x:accept
+    done
+  end
+
+  restrict function filter(x: lambda(any): bool) arr: Array
+    self.capacity Array::new => arr
+    foreach elem in self do
+      if elem x:accept then
+        elem arr:push
+      fi
+    done
+    return
+  end
+
+  restrict function clone(): Array
+    self builtinAtomicClone as Array => decl clone: mut Array
+    self.values builtinAtomicClone => clone.values
+    clone return
+  end
+
+  restrict function *(): none
+    foreach elem in self do
+      elem
+    done
+    unsafe
+      c!
+        scl_int* begin_sp = (scl_int*) &__begin_stack_size;
+        *begin_sp = _stack.ptr;
+      end
+    end
+  end
+
+  static function fromPointerCollection(count: int, values: [any]) arr: Array
+    count Array::new => arr
+    for i in 0 to count do
+      values i sizeof any * + @ arr:push
+    done
+    return
+  end
+end
+
+sealed struct ArrayIterator is Iterator
+  private decl array: Array
+  private decl pos: int
+
+  function init(arr: Array): none
+    arr => self.array
+    0 => self.pos
+  end
+
+  function hasNext(): bool
+    self.pos self.array.count < return
+  end
+
+  function next(): any
+    self.pos 1 + => self.pos
+    self.array[self.pos 1 -] return
+  end
+end

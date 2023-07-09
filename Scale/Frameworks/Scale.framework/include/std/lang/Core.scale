@@ -1,0 +1,120 @@
+import std.io
+import std.util.Array
+
+cdecl "_scl_memset"
+expect unsafe function memset(ptr: [any], val: int32, len: int): [any]
+cdecl "_scl_memcpy"
+expect unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+cdecl "_scl_stack_size"
+expect function sizeofStack(): int
+cdecl "_scl_sleep"
+expect function sleep(millis: int): none
+cdecl "_scl_alloc"
+deprecated![since: "23.7", replacement: "any::new", forRemoval: true]
+expect function malloc(size: int): [any]
+cdecl "_scl_free"
+deprecated![since: "23.7", replacement: "any::delete", forRemoval: true]
+expect function free(pointer: [any]): none
+cdecl "_scl_realloc"
+deprecated![since: "23.7", replacement: "any::resize", forRemoval: true]
+expect function realloc(pointer: [any], size: int): [any]
+
+cdecl "system"
+private expect unsafe function __c_system(:[int8]): int
+cdecl "getenv"
+private expect unsafe function __c_getenv(:[int8]): [int8]?
+cdecl "_scl_strdup"
+private expect unsafe function __c_strdup(:[int8]): [int8]
+cdecl "atoll"
+private expect unsafe function __c_atoll(:[int8]): int64
+cdecl "atof"
+private expect unsafe function __c_atof(:[int8]): float
+
+typealias varargs "/* varargs */ ..."
+
+intrinsic cdecl "_scl_system" function system(command: str): int
+  unsafe
+    command:view __c_system
+    return
+  end
+end
+
+intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
+  decl ptr: [int8]?
+  unsafe
+    environKey:view __c_getenv => ptr
+  end
+  if ptr then
+    ptr!! str::new
+    return
+  fi
+  nil
+  return
+end
+
+layout timeval
+  decl seconds: int
+  decl microseconds: int32
+end
+
+cdecl "gettimeofday"
+private expect unsafe function __c_gettimeofday(:timeval, :any): int
+
+intrinsic cdecl "_scl_time" function time(): float
+  sizeof timeval any::new => decl tv: timeval
+  
+  unsafe
+    tv nil __c_gettimeofday drop
+  end
+
+  tv.seconds => decl seconds: int
+  tv.microseconds => decl microseconds: int
+
+  tv any::delete
+  microseconds as float 1000000.0 / seconds +
+  return
+end
+
+deprecated![since: "23.5", replacement: "int::toString"]
+function longToString(theNumber: int): str
+  new[25] => decl out: [int8]
+  unsafe
+    c!
+      sprintf(*out, SCL_INT_FMT, *theNumber);
+    end
+  end
+  out str::new return
+end
+
+deprecated![since: "23.5", replacement: "int::parse"]
+function stringToLong(theString: str): int
+  unsafe
+    theString:view __c_atoll as int return
+  end
+end
+
+deprecated![since: "23.5", replacement: "float::toString"]
+function stringToDouble(theString: str): float
+  unsafe
+    c!
+      _scl_push()->f = (scl_float) atof((*theString)->_data);
+    end
+  end
+  as float return
+end
+
+deprecated![since: "23.5", replacement: "float::parse"]
+function doubleToString(theNumber: float): str
+  new[100] => decl out: [int8]
+  unsafe
+    c!
+      sprintf(*out, "%f", *theNumber);
+    end
+  end
+  out str::new return
+end
+
+deprecated![since: "23.5"]
+function nop(): none
+  0 sleep
+end

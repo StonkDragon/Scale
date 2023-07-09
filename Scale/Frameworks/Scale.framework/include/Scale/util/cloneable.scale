@@ -1,3 +1,0 @@
-interface ICloneable
-    function clone(): ?
-end

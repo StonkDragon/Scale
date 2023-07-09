@@ -1,0 +1,8 @@
+function variadicTest(args: varargs): none
+    args.count puts
+    args puts
+end
+
+function main(): none
+    "a" "b" "c" variadicTest! 3
+end
