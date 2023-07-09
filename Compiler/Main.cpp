@@ -998,8 +998,9 @@ namespace sclc
                     Main.options.includePaths.push_back(s.parent_path().string());
             }
 
-            for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
-                std::string filename = Main.options.files[i];
+        auto tokenizerBegin = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+            std::string filename = Main.options.files[i];
 
                 if (!std::filesystem::exists(filename)) {
                     std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
@@ -1106,22 +1107,35 @@ namespace sclc
                     return 1;
                 }
 
-                std::vector<Token> theseTokens = Main.tokenizer->getTokens();
-                
-                tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
-            }
+            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
+            
+            tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
+        }
+        auto tokenizerEnd = std::chrono::high_resolution_clock::now();
+        auto tokenizerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tokenizerEnd - tokenizerBegin).count();
+        std::cout << "Tokenizer took " << tokenizerDuration << "ms" << std::endl;
 
             if (Main.options.preprocessOnly) {
                 std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
                 return 0;
             }
 
-            TPResult result;
-            if (!Main.options.printCflags) {
-                SyntaxTree lexer(tokens);
-                Main.lexer = &lexer;
-                result = Main.lexer->parse();
+        TPResult result;
+        if (!Main.options.printCflags) {
+            SyntaxTree lexer(tokens);
+            Main.lexer = &lexer;
+            auto lexerBegin = std::chrono::high_resolution_clock::now();
+            std::vector<std::string> binaryHeaders;
+            for (std::string header : Main.options.files) {
+                if (strends(header, ".smod")) {
+                    binaryHeaders.push_back(header);
+                }
             }
+            result = Main.lexer->parse(binaryHeaders);
+            auto lexerEnd = std::chrono::high_resolution_clock::now();
+            auto lexerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(lexerEnd - lexerBegin).count();
+            std::cout << "Lexer took " << lexerDuration << "ms" << std::endl;
+        }
 
             if (!Main.options.printCflags && result.warns.size() > 0) {
                 for (FPResult error : result.warns) {
@@ -1222,112 +1236,115 @@ namespace sclc
                 Parser parser(result);
                 Main.parser = &parser;
 
-                FPResult parseResult = Main.parser->parse(source);
-                if (parseResult.warns.size() > 0) {
-                    for (FPResult error : parseResult.warns) {
-                        if (error.type > tok_char_literal) continue;
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        std::string colString = Color::BOLDMAGENTA;
-                        if (Main.options.noErrorLocation) colString = "";
-                        std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
+            auto parseBegin = std::chrono::high_resolution_clock::now();
+            FPResult parseResult = Main.parser->parse(source);
+            auto parseEnd = std::chrono::high_resolution_clock::now();
+            auto parseDuration = std::chrono::duration_cast<std::chrono::milliseconds>(parseEnd - parseBegin).count();
+            std::cout << "Parsing took " << parseDuration << "ms" << std::endl;
+            if (parseResult.warns.size() > 0) {
+                for (FPResult error : parseResult.warns) {
+                    if (error.type > tok_char_literal) continue;
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
                     }
-                }
-                if (parseResult.errors.size() > 0) {
-                    for (FPResult error : parseResult.errors) {
-                        if (error.type > tok_char_literal) continue;
-                        std::string colorStr;
-                        ssize_t addAtCol = -1;
-                        std::string strToAdd = "";
-                        if (error.isNote) {
-                            colorStr = Color::BOLDCYAN;
-                            size_t i = error.message.find('\\');
-                            if (i != std::string::npos) {
-                                std::string cmd = error.message.substr(i + 1);
-                                auto data = split(cmd, ";");
-                                error.message = error.message.substr(0, i);
-                                if (data[0] == "insertText") {
-                                    strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
-                                    auto pos = split(data[2], ":");
-                                    addAtCol = std::atoi(pos[1].c_str()) - 1;
-                                }
-                            }
-                        } else {
-                            colorStr = Color::BOLDRED;
-                        }
-                        if (error.line == 0) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        FILE* f = fopen(std::string(error.in).c_str(), "r");
-                        if (!f) {
-                            std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                            continue;
-                        }
-                        char* line = (char*) malloc(sizeof(char) * 500);
-                        int i = 1;
-                        if (f) fseek(f, 0, SEEK_SET);
-                        if (Main.options.noErrorLocation) colorStr = "";
-                        std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                        i = 1;
-                        if (Main.options.noErrorLocation) {
-                            std::cout << "Token: " << error.value << std::endl;
-                        } else {
-                            while (fgets(line, 500, f) != NULL) {
-                                if (i == error.line) {
-                                    if (strToAdd.size())
-                                        std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
-                                    else
-                                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                                } else if (i == error.line - 1 || i == error.line - 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                } else if (i == error.line + 1 || i == error.line + 2) {
-                                    if (strlen(line) > 0)
-                                        std::cerr << "  " << line;
-                                }
-                                i++;
-                            }
-                        }
-                        fclose(f);
-                        if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                        free(line);
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
                     }
-                    std::filesystem::remove(source);
-                    std::cout << "Failed!" << std::endl;
-                    return parseResult.errors.size();
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    if (f) fseek(f, 0, SEEK_SET);
+                    std::string colString = Color::BOLDMAGENTA;
+                    if (Main.options.noErrorLocation) colString = "";
+                    std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    if (Main.options.noErrorLocation) {
+                        std::cout << "Token: " << error.value << std::endl;
+                    } else {
+                        while (fgets(line, 500, f) != NULL) {
+                            if (i == error.line) {
+                                std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                            } else if (i == error.line - 1 || i == error.line - 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            } else if (i == error.line + 1 || i == error.line + 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            }
+                            i++;
+                        }
+                    }
+                    fclose(f);
+                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                    free(line);
                 }
             }
+            if (parseResult.errors.size() > 0) {
+                for (FPResult error : parseResult.errors) {
+                    if (error.type > tok_char_literal) continue;
+                    std::string colorStr;
+                    ssize_t addAtCol = -1;
+                    std::string strToAdd = "";
+                    if (error.isNote) {
+                        colorStr = Color::BOLDCYAN;
+                        size_t i = error.message.find('\\');
+                        if (i != std::string::npos) {
+                            std::string cmd = error.message.substr(i + 1);
+                            auto data = split(cmd, ";");
+                            error.message = error.message.substr(0, i);
+                            if (data[0] == "insertText") {
+                                strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
+                                auto pos = split(data[2], ":");
+                                addAtCol = std::atoi(pos[1].c_str()) - 1;
+                            }
+                        }
+                    } else {
+                        colorStr = Color::BOLDRED;
+                    }
+                    if (error.line == 0) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    FILE* f = fopen(std::string(error.in).c_str(), "r");
+                    if (!f) {
+                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                        continue;
+                    }
+                    char* line = (char*) malloc(sizeof(char) * 500);
+                    int i = 1;
+                    if (f) fseek(f, 0, SEEK_SET);
+                    if (Main.options.noErrorLocation) colorStr = "";
+                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+                    i = 1;
+                    if (Main.options.noErrorLocation) {
+                        std::cout << "Token: " << error.value << std::endl;
+                    } else {
+                        while (fgets(line, 500, f) != NULL) {
+                            if (i == error.line) {
+                                if (strToAdd.size())
+                                    std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                                else
+                                    std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                            } else if (i == error.line - 1 || i == error.line - 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            } else if (i == error.line + 1 || i == error.line + 2) {
+                                if (strlen(line) > 0)
+                                    std::cerr << "  " << line;
+                            }
+                            i++;
+                        }
+                    }
+                    fclose(f);
+                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
+                    free(line);
+                }
+                std::cout << "Failed!" << std::endl;
+                return parseResult.errors.size();
+            }
+        }
 
             if (Main.options.transpileOnly) {
                 auto end = clock::now();
@@ -1381,6 +1398,10 @@ namespace sclc
             return 0;
         } else if (!Main.options.transpileOnly) {
             int ret = system(cmd.c_str());
+            if (ret) {
+                std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
+                return ret;
+            }
             remove(source.c_str());
             remove((source.substr(0, source.size() - 2) + ".h").c_str());
             remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
