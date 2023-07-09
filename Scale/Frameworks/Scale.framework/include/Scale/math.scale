@@ -1,0 +1,108 @@
+container MathConstants
+  const decl e: float
+  const decl pi: float
+  const decl nan: float
+  const decl infinity: float
+end
+
+construct function mathInitialization(): none
+  2.71828182845904523536028747135266250 => MathConstants.e
+  3.14159265358979323846264338327950288 => MathConstants.pi
+
+  c!
+    Container_MathConstants.nan = 0.0/0.0;
+    Container_MathConstants.infinity = 1.0/0.0;
+    srand(time(NULL));
+  end
+end
+
+expect function acos(:float): float
+expect function asin(:float): float
+expect function atan(:float): float
+expect function atan2(:float, :float): float
+expect function cos(:float): float
+expect function sin(:float): float
+expect function tan(:float): float
+expect function acosh(:float): float
+expect function asinh(:float): float
+expect function atanh(:float): float
+expect function cosh(:float): float
+expect function sinh(:float): float
+expect function tanh(:float): float
+expect function exp(:float): float
+expect function exp2(:float): float
+expect function expm1(:float): float
+expect function log(:float): float
+expect function log10(:float): float
+expect function log2(:float): float
+expect function log1p(:float): float
+expect function logb(:float): float
+expect function fabs(:float): float
+expect function cbrt(:float): float
+expect function hypot(:float, :float): float
+expect function pow(:float, :float): float
+expect function sqrt(:float): float
+expect function erf(:float): float
+expect function erfc(:float): float
+expect function lgamma(:float): float
+expect function tgamma(:float): float
+expect function ceil(:float): float
+expect function floor(:float): float
+expect function nearbyint(:float): float
+expect function rint(:float): float
+expect function round(:float): float
+expect function trunc(:float): float
+expect function fmod(:float, :float): float
+expect function remainder(:float, :float): float
+expect function fdim(:float, :float): float
+expect function fmax(:float, :float): float
+expect function fmin(:float, :float): float
+expect function fma(:float, :float, :float): float
+
+deprecated![since: "23.5", replacement: "float::isInfinite"]
+function isInfinite(x: float): bool
+  x float::isInfinite return
+end
+
+deprecated![since: "23.5", replacement: "float::isNaN"]
+function isNaN(x: float): bool
+  x float::isNaN return
+end
+
+deprecated![since: "23.5", replacement: "float::isFinite"]
+function isFinite(x: float): bool
+  x float::isFinite return
+end
+
+deprecated![since: "23.5", replacement: "float::isNotNaN"]
+function isNotNaN(x: float): bool
+  x float::isNotNaN return
+end
+
+function random(): int
+  decl r: int
+  c!
+    *r = ((scl_int) rand() << 32) | (scl_int) rand();
+  end
+  r return
+end
+
+function iseven(_i_: int): int
+  _i_ 2 % 0 == return
+end
+
+function isodd(_i_: int): int
+  _i_ iseven ! return
+end
+
+function lrandom(_limit_: int): int
+  random _limit_ % return
+end
+
+function lerp(_a_: float, _b_: float, _t_: float): float
+  _b_ _a_ - _t_ * _a_ + return
+end
+
+function neg(_i_: int): int
+  _i_ 0 swap - return
+end

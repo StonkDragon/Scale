@@ -5,7 +5,6 @@
 #endif
 
 #include <unordered_set>
-#include <stack>
 
 namespace sclc
 {
@@ -48,7 +47,6 @@ namespace sclc
     #endif
 
     Struct Struct::Null = Struct("");
-    Token Token::Default(tok_identifier, "", 0, "");
 
     std::vector<std::vector<Variable>> vars;
     _Main Main = _Main();
@@ -83,10 +81,6 @@ namespace sclc
 
     bool strstarts(const std::string& str, const std::string& prefix) {
         return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
-    }
-
-    bool strcontains(const std::string& str, const std::string& substr) {
-        return str.find(substr) != std::string::npos;
     }
 
     int isCharacter(char c) {
@@ -283,7 +277,16 @@ namespace sclc
         return num;
     }
 
-    FPResult parseType(std::vector<Token> body, size_t* i, std::map<std::string, std::string> typeReplacements) {
+    hash hash1(char* data) {
+        if (strlen(data) == 0) return 0;
+        hash h = 7;
+        for (size_t i = 0; i < strlen(data); i++) {
+            h = h * 31 + data[i];
+        }
+        return h;
+    }
+
+    FPResult parseType(std::vector<Token> body, size_t* i) {
         // int, str, any, none, Struct
         FPResult r;
         r.success = true;
@@ -293,7 +296,7 @@ namespace sclc
         r.column = body[*i].getColumn();
         r.value = body[*i].getValue();
         r.type = body[*i].getType();
-        r.message = "";
+        r.message = "Failed to parse type! Token for type: " + body[*i].tostring();
         r.value = "";
         std::string type_mods = "";
         bool isConst = false;
@@ -332,10 +335,6 @@ namespace sclc
         }
         if (body[*i].getType() == tok_identifier) {
             r.value = type_mods + body[*i].getValue();
-            if (typeReplacements.find(body[*i].getValue()) != typeReplacements.end()) {
-                r.value = type_mods + typeReplacements[body[*i].getValue()];
-                r.message = body[*i].getValue();
-            }
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].getType() != tok_paren_open) {
@@ -370,20 +369,12 @@ namespace sclc
             r.value = type_mods + "?";
         } else if (body[*i].getType() == tok_bracket_open) {
             std::string type = "[";
-            std::string size = "";
             (*i)++;
-            if (body[*i].getType() == tok_number) {
-                size = body[*i].getValue();
-                (*i)++;
-            }
             r = parseType(body, i);
             if (!r.success) {
                 return r;
             }
             type += r.value;
-            if (size.size()) {
-                type += ";" + size;
-            }
             (*i)++;
             if (body[*i].getType() == tok_bracket_close) {
                 type += "]";
@@ -411,41 +402,8 @@ namespace sclc
         }
         return r;
     }
-    
-    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
 
-    Function* getFunctionByNameWithArgs(TPResult result, std::string name, bool doCheck) {
-        (void) doCheck;
-        if (name == "+") name = "operator$add";
-        else if (name == "-") name = "operator$sub";
-        else if (name == "*") name = "operator$mul";
-        else if (name == "/") name = "operator$div";
-        else if (name == "%") name = "operator$mod";
-        else if (name == "&") name = "operator$logic_and";
-        else if (name == "|") name = "operator$logic_or";
-        else if (name == "^") name = "operator$logic_xor";
-        else if (name == "~") name = "operator$logic_not";
-        else if (name == "<<") name = "operator$logic_lsh";
-        else if (name == ">>") name = "operator$logic_rsh";
-        else if (name == "**") name = "operator$pow";
-        else if (name == ".") name = "operator$dot";
-        else if (name == "<") name = "operator$less";
-        else if (name == "<=") name = "operator$less_equal";
-        else if (name == ">") name = "operator$more";
-        else if (name == ">=") name = "operator$more_equal";
-        else if (name == "==") name = "operator$equal";
-        else if (name == "!") name = "operator$not";
-        else if (name == "!!") name = "operator$assert_not_nil";
-        else if (name == "!=") name = "operator$not_equal";
-        else if (name == "&&") name = "operator$bool_and";
-        else if (name == "||") name = "operator$bool_or";
-        else if (name == "++") name = "operator$inc";
-        else if (name == "--") name = "operator$dec";
-        else if (name == "@") name = "operator$at";
-        else if (name == "=>[]") name = "operator$set";
-        else if (name == "[]") name = "operator$get";
-        else if (name == "?") name = "operator$wildcard";
-
+    Function* getFunctionByName(TPResult result, std::string name) {
         for (Function* func : result.functions) {
             if (func == nullptr) continue;
             if (func->isMethod) continue;
@@ -461,10 +419,6 @@ namespace sclc
             }
         }
         return nullptr;
-    }
-
-    Function* getFunctionByName(TPResult result, std::string name) {
-        return getFunctionByNameWithArgs(result, name, false);
     }
 
     bool hasEnum(TPResult result, std::string name) {
@@ -488,41 +442,36 @@ namespace sclc
         }
         return nullptr;
     }
-
-    Method* getMethodByNameWithArgs(TPResult result, std::string name, std::string type, bool doCheck) {
-        (void) doCheck;
-        type = removeTypeModifiers(type);
-
+    
+    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+        type = sclConvertToStructType(type);
         if (name == "+") name = "operator$add";
-        else if (name == "-") name = "operator$sub";
-        else if (name == "*") name = "operator$mul";
-        else if (name == "/") name = "operator$div";
-        else if (name == "%") name = "operator$mod";
-        else if (name == "&") name = "operator$logic_and";
-        else if (name == "|") name = "operator$logic_or";
-        else if (name == "^") name = "operator$logic_xor";
-        else if (name == "~") name = "operator$logic_not";
-        else if (name == "<<") name = "operator$logic_lsh";
-        else if (name == ">>") name = "operator$logic_rsh";
-        else if (name == "**") name = "operator$pow";
-        else if (name == ".") name = "operator$dot";
-        else if (name == "<") name = "operator$less";
-        else if (name == "<=") name = "operator$less_equal";
-        else if (name == ">") name = "operator$more";
-        else if (name == ">=") name = "operator$more_equal";
-        else if (name == "==") name = "operator$equal";
-        else if (name == "!") name = "operator$not";
-        else if (name == "!!") name = "operator$assert_not_nil";
-        else if (name == "!=") name = "operator$not_equal";
-        else if (name == "&&") name = "operator$bool_and";
-        else if (name == "||") name = "operator$bool_or";
-        else if (name == "++") name = "operator$inc";
-        else if (name == "--") name = "operator$dec";
-        else if (name == "@") name = "operator$at";
-        else if (name == "=>[]") name = "operator$set";
-        else if (name == "[]") name = "operator$get";
-        else if (name == "?") name = "operator$wildcard";
-        name = replaceAll(name, R"(\$\$ol\d+)", "");
+        if (name == "-") name = "operator$sub";
+        if (name == "*") name = "operator$mul";
+        if (name == "/") name = "operator$div";
+        if (name == "%") name = "operator$mod";
+        if (name == "&") name = "operator$logic_and";
+        if (name == "|") name = "operator$logic_or";
+        if (name == "^") name = "operator$logic_xor";
+        if (name == "~") name = "operator$logic_not";
+        if (name == "<<") name = "operator$logic_lsh";
+        if (name == ">>") name = "operator$logic_rsh";
+        if (name == "**") name = "operator$pow";
+        if (name == ".") name = "operator$dot";
+        if (name == "<") name = "operator$less";
+        if (name == "<=") name = "operator$less_equal";
+        if (name == ">") name = "operator$more";
+        if (name == ">=") name = "operator$more_equal";
+        if (name == "==") name = "operator$equal";
+        if (name == "!") name = "operator$not";
+        if (name == "!!") name = "operator$assert_not_nil";
+        if (name == "!=") name = "operator$not_equal";
+        if (name == "&&") name = "operator$bool_and";
+        if (name == "||") name = "operator$bool_or";
+        if (name == "++") name = "operator$inc";
+        if (name == "--") name = "operator$dec";
+        if (name == "@") name = "operator$at";
+        if (name == "?") name = "operator$wildcard";
 
         if (type == "") {
             return nullptr;
@@ -530,33 +479,27 @@ namespace sclc
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
                 return (Method*) func;
             }
         }
         for (Function* func : result.extern_functions) {
             if (!func->isMethod) continue;
-            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
+            if (func->getName() == name && ((Method*) func)->getMemberType() == type) {
                 return (Method*) func;
             }
         }
         Struct s = getStructByName(result, type);
-        if (getInterfaceByName(result, type)) {
-            return nullptr;
-        }
-        return getMethodByNameWithArgs(result, name, s.extends(), doCheck);
+        return getMethodByName(result, name, s.extends());
     }
 
-    Method* getMethodByName(TPResult result, std::string name, std::string type) {
-        return getMethodByNameWithArgs(result, name, type, false);
-    }
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type) {
         Method* method = getMethodByName(result, name, type);
-        return (method == nullptr || method->getMemberType() != removeTypeModifiers(type)) ? nullptr : method;
+        return (method == nullptr || method->getMemberType() != sclConvertToStructType(type)) ? nullptr : method;
     }
 
     std::vector<Method*> methodsOnType(TPResult res, std::string type) {
-        type = removeTypeModifiers(type);
+        type = sclConvertToStructType(type);
 
         std::vector<Method*> methods;
 
@@ -590,6 +533,7 @@ namespace sclc
 
     Struct getStructByName(TPResult result, std::string name) {
         name = removeTypeModifiers(name);
+        name = sclConvertToStructType(name);
         for (Struct struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
@@ -598,77 +542,26 @@ namespace sclc
         return Struct::Null;
     }
 
-    Layout getLayout(TPResult result, std::string name) {
-        name = removeTypeModifiers(name);
-        for (Layout layout : result.layouts) {
-            if (layout.getName() == name) {
-                return layout;
-            }
-        }
-        return Layout("");
-    }
-
-    bool hasLayout(TPResult result, std::string name) {
-        return getLayout(result, name).getName().size() != 0;
-    }
-
     bool hasFunction(TPResult result, std::string name) {
-        if (name == "+") name = "operator$add";
-        else if (name == "-") name = "operator$sub";
-        else if (name == "*") name = "operator$mul";
-        else if (name == "/") name = "operator$div";
-        else if (name == "%") name = "operator$mod";
-        else if (name == "&") name = "operator$logic_and";
-        else if (name == "|") name = "operator$logic_or";
-        else if (name == "^") name = "operator$logic_xor";
-        else if (name == "~") name = "operator$logic_not";
-        else if (name == "<<") name = "operator$logic_lsh";
-        else if (name == ">>") name = "operator$logic_rsh";
-        else if (name == "**") name = "operator$pow";
-        else if (name == ".") name = "operator$dot";
-        else if (name == "<") name = "operator$less";
-        else if (name == "<=") name = "operator$less_equal";
-        else if (name == ">") name = "operator$more";
-        else if (name == ">=") name = "operator$more_equal";
-        else if (name == "==") name = "operator$equal";
-        else if (name == "!") name = "operator$not";
-        else if (name == "!!") name = "operator$assert_not_nil";
-        else if (name == "!=") name = "operator$not_equal";
-        else if (name == "&&") name = "operator$bool_and";
-        else if (name == "||") name = "operator$bool_or";
-        else if (name == "++") name = "operator$inc";
-        else if (name == "--") name = "operator$dec";
-        else if (name == "@") name = "operator$at";
-        else if (name == "=>[]") name = "operator$set";
-        else if (name == "[]") name = "operator$get";
-        else if (name == "?") name = "operator$wildcard";
+        return hasFunction(result, Token(tok_identifier, name, 0, ""));
+    }
 
+    bool hasFunction(TPResult result, Token name) {
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
-            std::string funcName = func->getName();
-            if (funcName.find("$$ol") != std::string::npos) {
-                funcName = funcName.substr(0, funcName.find("$$ol"));
-            }
-            if (funcName == name) {
+            if (func->getName() == name.getValue()) {
                 return true;
             }
         }
         for (Function* func : result.extern_functions) {
             if (func->isMethod) continue;
-            std::string funcName = func->getName();
-            if (funcName.find("$$ol") != std::string::npos) {
-                funcName = funcName.substr(0, funcName.find("$$ol"));
-            }
-            if (funcName == name) {
+            if (func->getName() == name.getValue()) {
                 return true;
             }
         }
         return false;
     }
 
-    bool hasFunction(TPResult result, Token name) {
-        return hasFunction(result, name.getValue());
-    }
 
     std::vector<std::string> supersToVector(TPResult r, Struct s) {
         std::vector<std::string> v;
@@ -688,7 +581,7 @@ namespace sclc
                 list += ", ";
             }
             std::string super = v[i];
-            list += std::to_string(id((char*) super.c_str()));
+            list += std::to_string(hash1((char*) super.c_str()));
         }
         list += "}";
         return list;
@@ -785,6 +678,15 @@ namespace sclc
         }
 
         return accessType != VarAccess::Dereference;
+    }
+
+    std::string sclConvertToStructType(std::string type) {
+        while (type.size() > 1 && type.back() == '?')
+            type = type.substr(0, type.size() - 1);
+
+        type = removeTypeModifiers(type);
+
+        return type;
     }
 
     bool sclIsProhibitedInit(std::string s) {

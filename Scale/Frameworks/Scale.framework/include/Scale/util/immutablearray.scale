@@ -1,0 +1,82 @@
+import std.util.Iterable
+import std.debug
+
+final sealed struct ImmutableArray is IIterable
+  decl values:      readonly [any]
+  decl count:       readonly int
+  decl capacity:    readonly int
+
+  private decl pos: readonly int
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray:get", forRemoval: true]
+  function get(index: int): any?
+    if index 0 <= then self.values @ return fi
+    self.values index 3 << + @ return
+  end
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray:top", forRemoval: true]
+  function top(): any?
+    self.values self.count 1 - 3 << + @ return
+  end
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray:contains", forRemoval: true]
+  function contains(val: any): bool
+    for i in 0 to self.count do
+      if i self:get val == then
+        true return
+      fi
+    done
+    false return
+  end
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray::fromPointerCollection", forRemoval: true]
+  function init(count: int, values: [any]): none
+    count => self.count
+    count => self.capacity
+    values => self.values
+    0 => self.pos
+  end
+
+  function begin(): none
+    0 => self.pos
+  end
+
+  function hasNext(): bool
+    self.pos self.count < return
+  end
+
+  function next(): any?
+    self.pos self:get
+    self.pos 1 + => self.pos
+    return
+  end
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray:toString", forRemoval: true]
+  function toString() s: str
+    if self.count 0 == then
+      "{}" => s
+    else
+      "{" => s
+      for i in 0 to self.count do
+        i self:get => decl elem: any
+        if i then
+          s ", " + => s
+        fi
+        if elem is SclObject then
+          s elem as SclObject :toString + => s
+        else
+          s elem as int int::toString + => s
+        fi
+      done
+      s "}" + => s
+    fi
+    return
+  end
+
+  deprecated![since: "23.6", replacement: "ReadOnlyArray:map", forRemoval: true]
+  function map(x: lambda(any): none): none
+    foreach elem in self do
+      elem x:accept
+    done
+  end
+end

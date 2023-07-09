@@ -304,16 +304,6 @@
 		],
 		"description": "Struct"
 	},
-	"Layout": {
-		"scope": "source.scale",
-		"prefix": "layout",
-		"body": [
-			"layout ${1:name}",
-			"\t$0",
-			"end"
-		],
-		"description": "Layout"
-	},
 	"Enum": {
 		"scope": "source.scale",
 		"prefix": "enum",

@@ -1,0 +1,3 @@
+interface IStringifyable
+    function toString(): str
+end

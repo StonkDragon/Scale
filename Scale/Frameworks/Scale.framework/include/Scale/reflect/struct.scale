@@ -1,0 +1,195 @@
+final sealed struct IllegalAccessException: Exception end
+
+final sealed struct Struct
+    private decl typeName: str
+    private decl typeId: int
+    private decl superStruct: Struct?
+    private decl binarySize: int
+    private decl membersCount: int
+    private decl members: [any]
+
+    decl isStatic: readonly bool
+
+    static decl structsCount: const int
+
+    private function init(): none
+        "Direct instantiation of struct 'Struct' is disabled!"
+        IllegalStateException::new throw
+    end
+
+    function newInstance() inst: SclObject
+        if self.isStatic then
+            "Can not instantiate static struct '" self.typeName + "'" +
+            IllegalStateException::new throw
+        fi
+        c!
+            scl_int size = (*self)->binarySize;
+            (*inst) = _scl_alloc(size);
+            (*inst)->$__size__ = size;
+            (*inst)->$__super__ = (*self)->superStruct ? (*self)->superStruct->typeId : 0;
+            (*inst)->$__type__ = (*self)->typeId;
+            (*inst)->$__type_name__ = (*self)->typeName->_data;
+            _scl_add_struct(*inst);
+        end
+        inst:init
+        return
+    end
+
+    function getMemberValue(instance: SclObject, name: str) val: any
+        false => decl found: bool
+        Thread::stackTrace => decl frame: Array
+        frame:pop
+        false => decl isInStruct: bool
+        if self.typeName ":" + frame:top as str :startsWith then
+            true => isInStruct
+        fi
+        decl readSuccessful: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    // private
+                    int canRead = (member.access_flags & 0b10000 ? *isInStruct : 1);
+
+                    if (canRead) {
+                        *val = *(scl_any*) ((*(scl_int*) instance) + member.offset);
+                        *readSuccessful = 1;
+                    }
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+
+        unless readSuccessful then
+            IllegalAccessException::new => decl e: mut Exception
+            "Variable '" name +
+            "' is private!" + => e.msg
+            e throw
+        fi
+        return
+    end
+
+    unsafe function setAccessible(accessible: bool, name: str): none
+        false => decl found: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    scl_int flags = ((struct _scl_membertype*) (*self)->members)[i].access_flags;
+                    if (*accessible) {
+                        flags &= 0b01111;
+                    } else {
+                        flags |= 0b10000;
+                    }
+                    ((struct _scl_membertype*) (*self)->members)[i].access_flags = flags;
+
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+    end
+
+    function setMemberValue(instance: SclObject, name: str, val: any): none
+        false => decl found: bool
+        Thread::stackTrace => decl frame: Array
+        frame:pop
+        false => decl isInStruct: bool
+        if self.typeName ":" + frame:top as str :startsWith then
+            true => isInStruct
+        fi
+        decl writeSuccessful: bool
+        c!
+            for (scl_int i = 0; i < (*self)->membersCount; i++) {
+                struct _scl_membertype member = ((struct _scl_membertype*) (*self)->members)[i];
+                if (member.pure_name == (*name)->_hash) {
+                    int canWrite =
+                        // const
+                        (member.access_flags & 0b01000) == 0 &&
+                        // readonly and private
+                        (member.access_flags & 0b10010 ? *isInStruct : 1);
+
+                    if (canWrite) {
+                        *(scl_any*) ((*(scl_int*) instance) + member.offset) = *val;
+                        *writeSuccessful = 1;
+                    }
+                    *found = 1;
+                    break;
+                }
+            }
+        end
+
+        unless found then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find variable '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+
+        unless writeSuccessful then
+            IllegalAccessException::new => decl e: mut Exception
+            "Variable '" name +
+            "' is not writable from the current scope!" + => e.msg
+            e throw
+        fi
+    end
+
+    function getMethodByName(name: str) method: lambda
+        c!
+            *method = _scl_get_method_handle((*self)->typeId, (*name)->_hash);
+        end
+        unless method then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find method '" name +
+            "' on struct '" +
+            self.typeName +
+            "'" + => e.msg
+            e throw
+        fi
+        return
+    end
+
+    function getName(): str
+        self.typeName return
+    end
+
+    function getSize(): int
+        self.binarySize return
+    end
+
+    function getSuper(): Struct?
+        self.superStruct return
+    end
+
+    static function getStructByName(name: str) theStruct: Struct
+        c!
+            *theStruct = _scl_get_struct_by_id((*name)->_hash);
+        end
+        unless theStruct then
+            NullPointerException::new => decl e: mut Exception
+            "Couldn't find struct '" name + "'" + => e.msg
+            e throw
+        fi
+        return
+    end
+end

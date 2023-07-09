@@ -1,0 +1,3 @@
+interface IHashable
+    function hashCode(): int
+end

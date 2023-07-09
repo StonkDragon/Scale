@@ -71,7 +71,6 @@ namespace sclc
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Struct> structs;
-        std::vector<Layout> layouts;
         std::vector<Enum> enums;
         std::unordered_map<std::string, std::string> typealiases;
     };

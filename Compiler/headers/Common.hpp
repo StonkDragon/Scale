@@ -8,10 +8,9 @@
 #include <regex>
 #include <unordered_map>
 #include <unordered_set>
-#include <stack>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); fflush(fp); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
 
 #undef INT_MAX
 #undef INT_MIN
@@ -46,7 +45,7 @@ namespace sclc {
 #include "Enum.hpp"
 
 namespace sclc {
-    typedef unsigned int ID_t;
+    typedef unsigned int hash;
 
     class SyntaxTree
     {
@@ -60,7 +59,10 @@ namespace sclc {
             this->tokens = tokens;
         }
         ~SyntaxTree() {}
-        TPResult parse(std::vector<std::string> binaryHeaders);
+        TPResult parse();
+        static bool isOperator(Token token);
+        static bool isType(Token token);
+        static bool canAssign(Token token);
     };
 
     class Parser
@@ -120,7 +122,6 @@ namespace sclc {
         Parser* parser;
         std::vector<std::string> frameworkNativeHeaders;
         std::vector<std::string> frameworks;
-        Version* version;
         struct options {
             bool doRun;
             bool noMain;
@@ -131,10 +132,8 @@ namespace sclc {
             bool debugBuild;
             bool printCflags;
             size_t stackSize;
-            bool binaryHeader;
             bool assembleOnly;
             bool transpileOnly;
-            std::string outfile;
             size_t mainArgCount;
             bool preprocessOnly;
             bool mainReturnsNone;
@@ -149,7 +148,6 @@ namespace sclc {
             std::vector<std::string> files;
             std::vector<std::string> features;
             std::vector<std::string> includePaths;
-            std::vector<std::string> filesFromCommandLine;
             std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
             std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
             std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
@@ -166,7 +164,6 @@ namespace sclc {
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     bool strstarts(const std::string& str, const std::string& prefix);
-    bool strcontains(const std::string& str, const std::string& substr);
     int isCharacter(char c);
     int isDigit(char c);
     int isSpace(char c);
@@ -186,6 +183,7 @@ namespace sclc {
     bool hasVar(Token name);
     Variable getVar(std::string name);
     Variable getVar(Token name);
+    hash hash1(char* data);
     FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth);
     FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
     FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
@@ -193,12 +191,8 @@ namespace sclc {
     Interface* getInterfaceByName(TPResult result, std::string name);
     Method* getMethodByName(TPResult result, std::string name, std::string type);
     Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type);
-    Method* getMethodByNameWithArgs(TPResult result, std::string name, std::string type, bool doCheck = true);
-    Function* getFunctionByNameWithArgs(TPResult result, std::string name, bool doCheck = true);
     Container getContainerByName(TPResult result, std::string name);
     Struct getStructByName(TPResult result, std::string name);
-    Layout getLayout(TPResult result, std::string name);
-    bool hasLayout(TPResult result, std::string name);
     bool hasFunction(TPResult result, std::string name);
     bool hasFunction(TPResult result, Token name);
     bool hasEnum(TPResult result, std::string name);
@@ -212,7 +206,8 @@ namespace sclc {
     bool hasContainer(TPResult result, Token name);
     bool hasContainer(TPResult result, std::string name);
     bool hasGlobal(TPResult result, std::string name);
-    FPResult parseType(std::vector<Token> tokens, size_t* i, std::map<std::string, std::string> typeReplacements = std::map<std::string, std::string>());
+    FPResult parseType(std::vector<Token> tokens, size_t* i);
+    std::string sclConvertToStructType(std::string type);
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
     bool typeIsConst(std::string s);
@@ -226,30 +221,18 @@ namespace sclc {
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {
-        if (v.size() == 0) return false;
-        if constexpr (std::is_pointer<T>::value) {
-            for (T t : v) {
-                if (*t == *val) return true;
+        return std::find(v.begin(), v.end(), val) != v.end();
+    }
+
+    template<typename T>
+    struct Hasher {
+        size_t operator()(T& t) const {
+            if constexpr(std::is_pointer<T>::value) {
+                return hash1((char*) t->getName().c_str());
+            } else {
+                return hash1((char*) t.getName().c_str());
             }
-            return false;
-        } else {
-            return std::find(v.begin(), v.end(), val) != v.end();
         }
-    }
-
-    inline ID_t ror(const ID_t value, ID_t shift) {
-        return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
-    }
-
-    inline ID_t id(const char* data)  {
-        if (strlen(data) == 0) return 0;
-        ID_t h = 3323198485UL;
-        for (;*data;++data) {
-            h ^= *data;
-            h *= 0x5BD1E995;
-            h ^= h >> 15;
-        }
-        return h;
-    }
+    };
 }
 #endif // COMMON_H

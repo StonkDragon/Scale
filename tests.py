@@ -19,7 +19,6 @@ def genTest(file):
 # and run the tests on each file
 def run_tests(directory):
     failedTests = 0
-    theseTestsFailed = []
     passedTests = 0
     skippedTests = 0
     for file in os.listdir(directory):
@@ -40,9 +39,8 @@ def run_tests(directory):
                 print("[PASS] " + file)
                 passedTests += 1
             else:
-                print("\b[FAIL] " + file)
+                print("[FAIL] " + file)
                 failedTests += 1
-                theseTestsFailed.append(file)
                 print("Compiler Output:")
                 print(compOut)
                 print("Program Output:")
@@ -52,7 +50,7 @@ def run_tests(directory):
                 print("")
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))
-    print("Failed: " + str(failedTests) + "/" + str(total) + " " + str(theseTestsFailed))
+    print("Failed: " + str(failedTests) + "/" + str(total))
     print("Skipped: " + str(skippedTests) + "/" + str(total))
 
 # Reset the tests

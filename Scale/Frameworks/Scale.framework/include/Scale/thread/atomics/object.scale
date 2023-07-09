@@ -1,0 +1,48 @@
+import std.threading.Thread
+
+final struct AtomicObject
+    private decl value: SclObject
+    private decl mutex: pthread_mutex_t
+
+    function init(val: SclObject): none
+        val => self.value
+        if ref self.mutex nil as [pthread_mutexattr_t] __c_pthread_mutex_init 0 != then
+            "Failed to create mutex" AtomicOperationException::new throw
+        fi
+    end
+
+    function get(): SclObject
+        self.value return
+    end
+
+    function set(val: SclObject): none
+        val => self.value
+    end
+
+    function getAndSet(val: SclObject): none
+        ref self.mutex __c_pthread_mutex_lock
+
+        self.value => decl tmp
+        val => self.value
+
+        ref self.mutex __c_pthread_mutex_unlock
+        tmp return
+    end
+
+    function compareAndSet(expected: SclObject, val: SclObject): bool
+        ref self.mutex __c_pthread_mutex_lock
+
+        if self.value expected == then
+            val => self.value
+            ref self.mutex __c_pthread_mutex_unlock
+            true return
+        fi
+
+        ref self.mutex __c_pthread_mutex_unlock
+        false return
+    end
+
+    function toString(): str
+        self.value:toString return
+    end
+end

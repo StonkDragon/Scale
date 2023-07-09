@@ -9,14 +9,14 @@
 
 namespace sclc
 {
-    struct Token {
-        static Token Default;
-
+    class Token
+    {
         TokenType type;
         int line;
         std::string file;
         std::string value;
         int column;
+    public:
         std::string tostring() {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ", file=" + file + ")";
         }

@@ -67,9 +67,6 @@ scale-symbol-table.txt
 # Build
 Dragon
 e.sh
-e.c
-e.cpp
-foo.c
 
 # Kernel Module Compile Results
 *.mod*
@@ -87,6 +84,3 @@ scl_trace.log
 .chglog
 Dragon/
 e.java
-scale-find-virtual-calls
-scale-find-virtual-calls.c
-*.smod

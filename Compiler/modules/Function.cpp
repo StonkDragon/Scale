@@ -30,8 +30,6 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     if (name == "++") name = "operator$inc";
     if (name == "--") name = "operator$dec";
     if (name == "@") name = "operator$at";
-    if (name == "=>[]") name = "operator$set";
-    if (name == "[]") name = "operator$get";
     if (name == "?") name = "operator$wildcard";
 
     this->nameToken = nameToken;
@@ -46,31 +44,20 @@ std::string Function::getName() {
     return name;
 }
 std::string Function::finalName() {
-    if (
-        !isMethod && 
-        (
-            isInitFunction(this) ||
-            isDestroyFunction(this) ||
-            contains<std::string>(this->getModifiers(), "private")
-        )
-    ) {
-        if (this->isExternC || contains<std::string>(this->getModifiers(), "extern")) {
-            return name;
-        }
-        return name +
-               "$" +
-               std::to_string(id((char*) name.c_str())) +
-               "$" +
-               std::to_string(id((char*) nameToken.getFile().c_str())) +
-               "$" +
-               std::to_string(nameToken.getLine());
-    }
-    return name;
+    return (!isMethod && (isInitFunction(this) || isDestroyFunction(this))
+        ?
+            name +
+            "$" +
+            std::to_string(hash1((char*) name.c_str())) +
+            "$" +
+            std::to_string(hash1((char*) nameToken.getFile().c_str())) +
+            "$" +
+            std::to_string(nameToken.getLine())
+        :
+            name
+        );
 }
 std::vector<Token> Function::getBody() {
-    return body;
-}
-std::vector<Token>& Function::getBodyRef() {
     return body;
 }
 void Function::addToken(Token token) {
@@ -109,9 +96,6 @@ Token Function::getNameToken() {
 void Function::setNameToken(Token t) {
     this->nameToken = t;
 }
-bool Function::operator!=(const Function& other) const {
-    return !(*this == other);
-}
 bool Function::operator==(const Function& other) const {
     if (other.isMethod && !this->isMethod) return false;
     if (!other.isMethod && this->isMethod) return false;
@@ -122,9 +106,6 @@ bool Function::operator==(const Function& other) const {
         return name == other.name && thisM->getMemberType() == otherM->getMemberType();
     }
     return name == other.name;
-}
-bool Function::operator!=(const Function* other) const {
-    return !(*this == other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;
@@ -152,13 +133,4 @@ bool Function::belongsToType(std::string typeName) {
 }
 void Function::clearArgs() {
     this->args = std::vector<Variable>();
-}
-bool Function::isCVarArgs() {
-    return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args.at(this->args.size() - (1 + ((size_t) this->isMethod))).getType() == "varargs";
-}
-Variable& Function::varArgsParam() {
-    if (this->isCVarArgs()) {
-        return this->args.at(this->args.size() - (1 + ((size_t) this->isMethod)));
-    }
-    throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
 }
