@@ -166,6 +166,7 @@ namespace sclc {
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     bool strstarts(const std::string& str, const std::string& prefix);
+    bool strcontains(const std::string& str, const std::string& substr);
     int isCharacter(char c);
     int isDigit(char c);
     int isSpace(char c);

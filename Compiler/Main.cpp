@@ -1105,7 +1105,6 @@ namespace sclc
                 Main.options.includePaths.push_back(s.parent_path().string());
         }
 
-        auto tokenizerBegin = std::chrono::high_resolution_clock::now();
         for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
             std::string filename = Main.options.files[i];
 
@@ -1222,9 +1221,6 @@ namespace sclc
             
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
         }
-        auto tokenizerEnd = std::chrono::high_resolution_clock::now();
-        auto tokenizerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tokenizerEnd - tokenizerBegin).count();
-        std::cout << "Tokenizer took " << tokenizerDuration << "ms" << std::endl;
 
         if (Main.options.preprocessOnly) {
             std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
@@ -1235,7 +1231,6 @@ namespace sclc
         if (!Main.options.printCflags) {
             SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
-            auto lexerBegin = std::chrono::high_resolution_clock::now();
             std::vector<std::string> binaryHeaders;
             for (std::string header : Main.options.files) {
                 if (strends(header, ".smod")) {
@@ -1243,9 +1238,6 @@ namespace sclc
                 }
             }
             result = Main.lexer->parse(binaryHeaders);
-            auto lexerEnd = std::chrono::high_resolution_clock::now();
-            auto lexerDuration = std::chrono::duration_cast<std::chrono::milliseconds>(lexerEnd - lexerBegin).count();
-            std::cout << "Lexer took " << lexerDuration << "ms" << std::endl;
         }
 
         if (!Main.options.printCflags && result.warns.size() > 0) {
@@ -1347,11 +1339,7 @@ namespace sclc
             Parser parser(result);
             Main.parser = &parser;
 
-            auto parseBegin = std::chrono::high_resolution_clock::now();
             FPResult parseResult = Main.parser->parse(source);
-            auto parseEnd = std::chrono::high_resolution_clock::now();
-            auto parseDuration = std::chrono::duration_cast<std::chrono::milliseconds>(parseEnd - parseBegin).count();
-            std::cout << "Parsing took " << parseDuration << "ms" << std::endl;
             if (parseResult.warns.size() > 0) {
                 for (FPResult error : parseResult.warns) {
                     if (error.type > tok_char_literal) continue;
@@ -1496,15 +1484,81 @@ namespace sclc
             cmd += "-DSCL_DEBUG";
         }
 
+        int errors = 0;
         if (Main.options.printCflags) {
             std::cout << cmd << std::endl;
             return 0;
         } else if (!Main.options.transpileOnly) {
-            int ret = system(cmd.c_str());
-            if (ret) {
-                std::cerr << Color::RED << "Compilation failed with code " << ret << Color::RESET << std::endl;
-                return ret;
+            FILE* compile_command = popen((cmd + " 2>&1").c_str(), "r");
+
+            if (!compile_command) {
+                std::cerr << Color::RED << "Failed to compile!" << Color::RESET << std::endl;
+                return 1;
             }
+
+            char* cline = (char*) malloc(sizeof(char) * 1024);
+            bool doCheckForSymbols = false;
+            std::map<std::string, std::vector<std::string>> undefinedSymbols;
+            std::string currentUndefinedSymbol = "";
+            while (fgets(cline, 1024, compile_command) != NULL) {
+                std::string line = cline;
+                if (strstarts(line, "out.c") || strstarts(line, "out.h") || strstarts(line, "out.typeinfo.h")) {
+                    size_t space = line.find(" ");
+                    std::string file = line.substr(0, space);
+                    line = line.substr(space + 1);
+                    std::string col = Color::RED;
+                    if (strstarts(line, "note")) {
+                        continue;
+                    } else if (strstarts(line, "warning")) {
+                        col = Color::BLUE;
+                    }
+                    if (strstarts(line, "error: definition with same mangled name '")) {
+                        std::string sym = line.substr(42);
+                        line = "Error:" + Color::RESET + " Multiple functions with the same symbol '" + sym.substr(0, sym.find("'")) + "' defined.\n";
+                        col = Color::BOLDRED;
+                    }
+                    std::cerr << file << " " << col << line << Color::RESET;
+                } else {
+                    if (doCheckForSymbols) {
+                        if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
+                            continue;
+                        }
+                    }
+                    if (strstarts(line, "Undefined symbols for architecture ")) {
+                        doCheckForSymbols = true;
+                    } else if (doCheckForSymbols && strstarts(line, "  \"")) {
+                        std::string sym = line.substr(line.find("\"") + 1);
+                        sym = sym.substr(0, sym.find("\""));
+                        currentUndefinedSymbol = sym;
+                        undefinedSymbols[sym] = std::vector<std::string>();
+                    } else if (doCheckForSymbols && !strstarts(line, "  \"")) {
+                        undefinedSymbols[currentUndefinedSymbol].push_back(line.find_first_not_of(" ") == std::string::npos ? "" : line.substr(line.find_first_not_of(" ")));
+                    } else {
+                        std::cerr << Color::BOLDRED << line << Color::RESET;
+                    }
+                }
+                errors++;
+            }
+
+            if (doCheckForSymbols) {
+                std::cerr << Color::BOLDRED << "Undefined symbols: " << Color::RESET << std::endl;
+                for (auto sym : undefinedSymbols) {
+                    std::cerr << Color::RED << "  Symbol '" << sym.first << "' referenced from:" << std::endl;
+                    for (auto line : sym.second) {
+                        if (line.size() > 0)
+                            std::cerr << "    " << Color::CYAN << line;
+                    }
+                }
+                std::cerr << Color::RESET << std::endl;
+            }
+
+            free(cline);
+
+            if (errors) {
+                std::cout << Color::RED << "Compilation failed!" << std::endl;
+                return errors;
+            }
+
             remove(source.c_str());
             remove((source.substr(0, source.size() - 2) + ".h").c_str());
             remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());

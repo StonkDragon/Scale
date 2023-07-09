@@ -85,6 +85,10 @@ namespace sclc
         return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
     }
 
+    bool strcontains(const std::string& str, const std::string& substr) {
+        return str.find(substr) != std::string::npos;
+    }
+
     int isCharacter(char c) {
         return (c >= 'a' && c <= 'z') ||
             (c >= 'A' && c <= 'Z') ||
