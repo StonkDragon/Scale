@@ -2,7 +2,9 @@ framework: {
     version: "23.7";
     headerDir: "include";
     implDir: "impl";
-    implementers: [];
+    implementers: [
+        "scale.c";
+    ];
     implHeaderDir: "impl";
     implHeaders: [];
     docfile: "Docs.scldoc";
