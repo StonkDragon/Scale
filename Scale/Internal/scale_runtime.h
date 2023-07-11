@@ -29,7 +29,6 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-#define GC_DL
 #define GC_THREADS
 #if __has_include(<gc/gc.h>)
 #include <gc/gc.h>
@@ -350,6 +349,8 @@ typedef struct {
 
 extern tls _scl_stack_t _stack;
 
+extern tls _scl_callstack_t _callstack;
+
 // call a method on an instance
 // returns `nil` if the method return type is `none`
 scl_any				virtual_call(scl_any instance, scl_int8* methodIdentifier, ...);
@@ -365,17 +366,17 @@ _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 
 _scl_constructor
-void				_scl_setup();
+void				_scl_setup(void);
 _scl_destructor
-void				_scl_shutdown();
+void				_scl_shutdown(void);
 
 void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
 scl_str				_scl_create_string(scl_int8* data);
-void				_scl_stack_new();
-void				_scl_stack_free();
+void				_scl_stack_new(void);
+void				_scl_stack_free(void);
 void				_scl_stack_resize_fit(scl_int sz);
 
 void				_scl_remove_ptr(scl_any ptr);
@@ -396,7 +397,7 @@ void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
-void				_scl_exception_push();
+void				_scl_exception_push(void);
 void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, scl_any main);
 
@@ -408,7 +409,7 @@ scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
 scl_any				_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 void				_scl_call_method_or_throw(scl_any instance, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
-scl_int8**			_scl_callstack_push();
+scl_int8**			_scl_callstack_push(void);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 void				_scl_remove_stack(_scl_stack_t* stack);
@@ -426,21 +427,25 @@ scl_any*			_scl_array_sort(scl_any* arr);
 scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
 
-void				_scl_cleanup_stack_allocations();
+void				_scl_cleanup_stack_allocations(void);
 void				_scl_add_stackallocation(scl_any ptr, scl_int size);
 void				_scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index);
 scl_int				_scl_index_of_stackalloc(scl_any ptr);
 void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
+int					_scl_gc_is_disabled(void);
+int					_scl_gc_pthread_create(pthread_t*, const pthread_attr_t*, scl_any(*)(scl_any), scl_any);
+int					_scl_gc_pthread_join(pthread_t, scl_any*);
+
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_search_method_index(void** methods, scl_int count, ID_t id, ID_t sig);
+scl_int				_scl_search_method_index(scl_any* methods, scl_int count, ID_t id, ID_t sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
-mutex_t				_scl_mutex_new();
+mutex_t				_scl_mutex_new(void);
 
-void				_scl_resize_stack();
+void				_scl_resize_stack(void);
 
 static inline _scl_frame_t* _scl_push() {
 	_stack.ptr++;

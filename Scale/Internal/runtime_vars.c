@@ -26,3 +26,5 @@ tls scl_any*    stackalloc_arrays = nil;
 tls scl_int*    stackalloc_array_sizes = nil;
 tls scl_int     stackalloc_arrays_count = 0;
 tls scl_int     stackalloc_arrays_cap = 64;
+
+tls scl_any     _currentThread = nil;
