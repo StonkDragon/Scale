@@ -57,12 +57,19 @@ namespace sclc
 
         begin = column;
 
+        bool stringLiteralIsCString = false;
+
         if (isCharacter(c)) {
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
                 value += c;
                 current++;
                 column++;
                 c = source[current];
+            }
+            if (value == "c" && c == '"') {
+                stringLiteralIsCString = true;
+                value = "";
+                goto stringLiteral;
             }
         } else if ((c == '-' && isHexDigit(source[current + 1])) || isHexDigit(c)) {
             bool isFloat = false;
@@ -83,6 +90,7 @@ namespace sclc
                 return Token(tok_number, value, line, filename, begin);
             }
         } else if (c == '"') {
+        stringLiteral:
             c = source[++current];
             column++;
             while (c != '"') {
@@ -119,7 +127,11 @@ namespace sclc
             }
             current++;
             column++;
-            return Token(tok_string_literal, value, line, filename, begin);
+            if (!stringLiteralIsCString) {
+                return Token(tok_string_literal, value, line, filename, begin);
+            } else {
+                return Token(tok_char_string_literal, value, line, filename, begin);
+            }
         } else if (c == '\'') {
             c = source[++current];
             column++;

@@ -1505,6 +1505,8 @@ namespace sclc {
 
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, FILE* fp, TPResult& result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
+#define handlerRef(_tok) handle ## _tok
+#define handleRef(ref) (ref)(body, function, errors, warns, fp, result)
 #define noUnused \
         (void) body; \
         (void) function; \
@@ -4315,6 +4317,12 @@ namespace sclc {
         typeStack.push("str");
     }
 
+    handler(CharStringLiteral) {
+        noUnused;
+        append("_scl_push()->v = \"%s\";\n", body[i].getValue().c_str());
+        typeStack.push("[int8]");
+    }
+
     handler(CDecl) {
         noUnused;
         safeInc();
@@ -5325,228 +5333,74 @@ namespace sclc {
         }
     }
 
+    handler(INVALID) {
+        noUnused;
+        transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
+        errors.push_back(err);
+    }
+
+    void (*handleRefs[tok_MAX])(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, FILE*, TPResult&);
+
+    void populateTokenJumpTable() {
+        for (int i = 0; i < tok_MAX; i++) {
+            handleRefs[i] = handlerRef(INVALID);
+        }
+
+        handleRefs[tok_question_mark] = handlerRef(Identifier);
+        handleRefs[tok_identifier] = handlerRef(Identifier);
+        handleRefs[tok_dot] = handlerRef(Dot);
+        handleRefs[tok_column] = handlerRef(Column);
+        handleRefs[tok_as] = handlerRef(As);
+        handleRefs[tok_string_literal] = handlerRef(StringLiteral);
+        handleRefs[tok_char_string_literal] = handlerRef(CharStringLiteral);
+        handleRefs[tok_cdecl] = handlerRef(CDecl);
+        handleRefs[tok_extern_c] = handlerRef(ExternC);
+        handleRefs[tok_number] = handlerRef(IntegerLiteral);
+        handleRefs[tok_char_literal] = handlerRef(IntegerLiteral);
+        handleRefs[tok_number_float] = handlerRef(FloatLiteral);
+        handleRefs[tok_nil] = handlerRef(FalsyType);
+        handleRefs[tok_false] = handlerRef(FalsyType);
+        handleRefs[tok_true] = handlerRef(TruthyType);
+        handleRefs[tok_new] = handlerRef(New);
+        handleRefs[tok_is] = handlerRef(Is);
+        handleRefs[tok_if] = handlerRef(If);
+        handleRefs[tok_unless] = handlerRef(Unless);
+        handleRefs[tok_else] = handlerRef(Else);
+        handleRefs[tok_elif] = handlerRef(Elif);
+        handleRefs[tok_elunless] = handlerRef(Elunless);
+        handleRefs[tok_while] = handlerRef(While);
+        handleRefs[tok_do] = handlerRef(Do);
+        handleRefs[tok_repeat] = handlerRef(Repeat);
+        handleRefs[tok_for] = handlerRef(For);
+        handleRefs[tok_foreach] = handlerRef(Foreach);
+        handleRefs[tok_fi] = handlerRef(Fi);
+        handleRefs[tok_done] = handlerRef(DoneLike);
+        handleRefs[tok_end] = handlerRef(DoneLike);
+        handleRefs[tok_return] = handlerRef(Return);
+        handleRefs[tok_addr_ref] = handlerRef(AddrRef);
+        handleRefs[tok_store] = handlerRef(Store);
+        handleRefs[tok_declare] = handlerRef(Declare);
+        handleRefs[tok_continue] = handlerRef(Continue);
+        handleRefs[tok_break] = handlerRef(Break);
+        handleRefs[tok_goto] = handlerRef(Goto);
+        handleRefs[tok_label] = handlerRef(Label);
+        handleRefs[tok_case] = handlerRef(Case);
+        handleRefs[tok_esac] = handlerRef(Esac);
+        handleRefs[tok_default] = handlerRef(Default);
+        handleRefs[tok_switch] = handlerRef(Switch);
+        handleRefs[tok_curly_open] = handlerRef(CurlyOpen);
+        handleRefs[tok_bracket_open] = handlerRef(BracketOpen);
+        handleRefs[tok_paren_open] = handlerRef(ParenOpen);
+        handleRefs[tok_addr_of] = handlerRef(AddrOf);
+    }
+
     handler(Token) {
         noUnused;
 
         auto tokenStart = std::chrono::high_resolution_clock::now();
 
-        switch (body[i].getType()) {
-            case tok_question_mark:
-            case tok_identifier: {
-                handle(Identifier);
-                break;
-            }
+        handleRef(handleRefs[body[i].getType()]);
 
-            case tok_dot: {
-                handle(Dot);
-                break;
-            }
-
-            case tok_column: {
-                handle(Column);
-                break;
-            }
-
-            case tok_as: {
-                handle(As);
-                break;
-            }
-
-            case tok_string_literal: {
-                handle(StringLiteral);
-                break;
-            }
-
-            case tok_cdecl: {
-                handle(CDecl);
-                break;
-            }
-
-            case tok_extern_c: {
-                handle(ExternC);
-                break;
-            }
-
-            case tok_number:
-            case tok_char_literal: {
-                handle(IntegerLiteral);
-                break;
-            }
-
-            case tok_number_float: {
-                handle(FloatLiteral);
-                break;
-            }
-
-            case tok_nil:
-            case tok_false: {
-                handle(FalsyType);
-                break;
-            }
-
-            case tok_true: {
-                handle(TruthyType);
-                break;
-            }
-
-            case tok_new: {
-                handle(New);
-                break;
-            }
-
-            case tok_is: {
-                handle(Is);
-                break;
-            }
-
-            case tok_if: {
-                handle(If);
-                break;
-            }
-
-            case tok_unless: {
-                handle(Unless);
-                break;
-            }
-
-            case tok_else: {
-                handle(Else);
-                break;
-            }
-
-            case tok_elif: {
-                handle(Elif);
-                break;
-            }
-
-            case tok_elunless: {
-                handle(Elunless);
-                break;
-            }
-
-            case tok_while: {
-                handle(While);
-                break;
-            }
-
-            case tok_do: {
-                handle(Do);
-                break;
-            }
-
-            case tok_repeat: {
-                handle(Repeat);
-                break;
-            }
-
-            case tok_for: {
-                handle(For);
-                break;
-            }
-
-            case tok_foreach: {
-                handle(Foreach);
-                break;
-            }
-
-            case tok_fi: {
-                handle(Fi);
-                break;
-            }
-
-            case tok_done:
-            case tok_end: {
-                handle(DoneLike);
-                break;
-            }
-
-            case tok_return: {
-                handle(Return);
-                break;
-            }
-
-            case tok_addr_ref: {
-                handle(AddrRef);
-                break;
-            }
-
-            case tok_store: {
-                handle(Store);
-                break;
-            }
-
-            case tok_declare: {
-                handle(Declare);
-                break;
-            }
-
-            case tok_continue: {
-                handle(Continue);
-                break;
-            }
-
-            case tok_break: {
-                handle(Break);
-                break;
-            }
-
-            case tok_goto: {
-                handle(Goto);
-                break;
-            }
-
-            case tok_label: {
-                handle(Label);
-                break;
-            }
-
-            case tok_case: {
-                handle(Case);
-                break;
-            }
-
-            case tok_esac: {
-                handle(Esac);
-                break;
-            }
-
-            case tok_default: {
-                handle(Default);
-                break;
-            }
-
-            case tok_switch: {
-                handle(Switch);
-                break;
-            }
-
-            case tok_curly_open: {
-                handle(CurlyOpen);
-                break;
-            }
-
-            case tok_bracket_open: {
-                handle(BracketOpen);
-                break;
-            }
-
-            case tok_paren_open: {
-                handle(ParenOpen);
-                break;
-            }
-
-            case tok_addr_of: {
-                handle(AddrOf);
-                break;
-            }
-
-            default: {
-                transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
-                errors.push_back(err);
-                break;
-            }
-        }
-    
         auto tokenEnd = std::chrono::high_resolution_clock::now();
         Main.tokenHandleTime += std::chrono::duration_cast<std::chrono::microseconds>(tokenEnd - tokenStart).count();
     }
@@ -5731,6 +5585,9 @@ namespace sclc {
 
     extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename) {
         (void) warns;
+
+        populateTokenJumpTable();
+
         scopeDepth = 0;
         append("extern tls _scl_stack_t _stack;\n\n");
         append("extern tls _scl_callstack_t _callstack;\n\n");
