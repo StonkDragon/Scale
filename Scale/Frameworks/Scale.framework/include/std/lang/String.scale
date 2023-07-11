@@ -98,17 +98,13 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function reverse(): str
-    decl out: [int8]
+    self:size any::new => decl out: [int8]
+    0 => decl i: int
     unsafe
-      c!
-        scl_int i = 0;
-        scl_int len = strlen((*self)->_data);
-        *out = _scl_alloc(len + 1);
-        for (i = len - 1; i >= 0; i--) {
-          (*out)[i] = (*self)->_data[len - i - 1];
-        }
-        (*out)[len] = '\0';
-      end
+      for i in self._len 1 - to -1 step -- do
+        self._len i - 1 - self @ => @(out as int i +)
+      done
+      '\0' => @(out as int self._len +)
     end
     out str::new
     out any::delete

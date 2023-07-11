@@ -23,12 +23,12 @@ cdecl "system"
 private expect unsafe function __c_system(:[int8]): int
 cdecl "getenv"
 private expect unsafe function __c_getenv(:[int8]): [int8]?
-cdecl "_scl_strdup"
-private expect unsafe function __c_strdup(:[int8]): [int8]
 cdecl "atoll"
 private expect unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
 private expect unsafe function __c_atof(:[int8]): float
+cdecl "sprintf"
+private expect unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
 typealias varargs "/* varargs */ ..."
 
@@ -79,9 +79,7 @@ deprecated![since: "23.5", replacement: "int::toString"]
 function longToString(theNumber: int): str
   new[25] => decl out: [int8]
   unsafe
-    c!
-      sprintf(*out, SCL_INT_FMT, *theNumber);
-    end
+    out "%ld":view theNumber __c_sprintf! 1 drop
   end
   out str::new return
 end
@@ -96,20 +94,15 @@ end
 deprecated![since: "23.5", replacement: "float::toString"]
 function stringToDouble(theString: str): float
   unsafe
-    c!
-      _scl_push()->f = (scl_float) atof((*theString)->_data);
-    end
+    theString:view __c_atof return
   end
-  as float return
 end
 
 deprecated![since: "23.5", replacement: "float::parse"]
 function doubleToString(theNumber: float): str
   new[100] => decl out: [int8]
   unsafe
-    c!
-      sprintf(*out, "%f", *theNumber);
-    end
+    out "%f":view theNumber __c_sprintf! 1 drop
   end
   out str::new return
 end

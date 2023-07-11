@@ -9,10 +9,8 @@ expect function trace(): none
 cdecl "_scl_throw"
 expect function throw(ex: Exception): nothing
 
-cdecl "_scl_security_safe_exit"
-private expect unsafe function __c_exit(i: int): none
-cdecl "_scl_default_signal_handler"
-private expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
+private expect unsafe function _scl_security_safe_exit(i: int): none
+private expect unsafe function _scl_default_signal_handler(sigNum: int): none
 cdecl "raise"
 private expect unsafe function __c_raise(sigNum: int): int
 cdecl "_scl_errno"
@@ -25,21 +23,21 @@ cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
 intrinsic function dumpStack(): none
+  "Dump:" puts
   unsafe
     c!
-      printf("Dump:\n");
       for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
         scl_int v = _stack.data[i].i;
         printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
       }
-      printf("\n");
     end
   end
+  "" puts
 end
 
 function crash(): none
   unsafe
-    1 __c_exit
+    1 _scl_security_safe_exit
   end
 end
 
@@ -47,7 +45,7 @@ function raise(sigNum: int): none
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
-      sigNum __c_scl_default_signal_handler
+      sigNum _scl_default_signal_handler
     fi
   end
 end
