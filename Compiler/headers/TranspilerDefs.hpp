@@ -1,11 +1,11 @@
-#define transpilerError(msg, at)         \
-    FPResult err;                        \
-    err.success = false;                 \
-    err.line = body[(at)].getLine();     \
-    err.column = body[(at)].getColumn(); \
-    err.in = body[(at)].getFile();       \
-    err.value = body[(at)].getValue();   \
-    err.type = body[(at)].getType();     \
+#define transpilerError(msg, _at)          \
+    FPResult err;                          \
+    err.success = false;                   \
+    err.line = body.at(_at).getLine();     \
+    err.column = body.at(_at).getColumn(); \
+    err.in = body.at(_at).getFile();       \
+    err.value = body.at(_at).getValue();   \
+    err.type = body.at(_at).getType();     \
     err.message = msg
 
 #define transpilerErrorTok(msg, tok) \

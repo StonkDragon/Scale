@@ -371,18 +371,18 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     std::string data;
     int z = 0;
     for (int *i = &z; (*i) < configSize; ++(*i)) {
-        if (!inStr && config.at((*i)) == ' ') continue;
-        if (config.at((*i)) == '"' && config.at((*i) - 1) != '\\') {
+        if (!inStr && config[(*i)] == ' ') continue;
+        if (config[(*i)] == '"' && config[(*i) - 1] != '\\') {
             inStr = !inStr;
-            char c = config.at((*i));
+            char c = config[(*i)];
             data += c;
             continue;
         }
-        if (config.at((*i)) == '\n') {
+        if (config[(*i)] == '\n') {
             inStr = false;
             continue;
         }
-        char c = config.at((*i));
+        char c = config[(*i)];
         data += c;
     }
     std::string str;
@@ -401,9 +401,9 @@ bool ConfigParser::isValidIdentifier(char c) {
 
 ListEntry* ConfigParser::parseList(std::string& data, int* i) {
     ListEntry* list = new ListEntry();
-    char c = data.at(++(*i));
+    char c = data[++(*i)];
     while (c != ']') {
-        c = data.at((*i));
+        c = data[(*i)];
         if (c == '[') {
             list->add(this->parseList(data, i));
         } else if (c == '{') {
@@ -411,9 +411,9 @@ ListEntry* ConfigParser::parseList(std::string& data, int* i) {
         } else {
             list->add(this->parseString(data, i));
         }
-        c = data.at(++(*i));
+        c = data[++(*i)];
     }
-    c = data.at(++(*i));
+    c = data[++(*i)];
     if (c != ';') {
         DRAGON_ERR << "Missing semicolon" << std::endl;
         return nullptr;
@@ -423,7 +423,7 @@ ListEntry* ConfigParser::parseList(std::string& data, int* i) {
 
 StringEntry* ConfigParser::parseString(std::string& data, int* i) {
     std::string value = "";
-    char c = data.at(++(*i));
+    char c = data[++(*i)];
     bool escaped = false;
     while (true) {
         if (c == '"' && !escaped) break;
@@ -433,9 +433,9 @@ StringEntry* ConfigParser::parseString(std::string& data, int* i) {
             escaped = false;
         }
         value += c;
-        c = data.at(++(*i));
+        c = data[++(*i)];
     }
-    c = data.at(++(*i));
+    c = data[++(*i)];
     if (c != ';') {
         DRAGON_ERR << "Invalid value: '" << value << "'" << std::endl;
         return nullptr;
@@ -452,13 +452,13 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
         currentParsingRoot = compound;
         resetCurrentAfter = true;
     }
-    char c = data.at(++(*i));
+    char c = data[++(*i)];
     while (c != '}') {
         std::string key = "";
-        for (; isValidIdentifier(c); c = data.at(++(*i))) {
+        for (; isValidIdentifier(c); c = data[++(*i)]) {
             key += c;
         }
-        c = data.at(++(*i));
+        c = data[++(*i)];
         if (c == '[') {
             ListEntry* entry = this->parseList(data, i);
             if (!entry) {
@@ -487,9 +487,9 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
             entry->setKey(key);
             compound->entries.push_back(entry);
         }
-        c = data.at(++(*i));
+        c = data[++(*i)];
     }
-    c = data.at(++(*i));
+    c = data[++(*i)];
     if (c != ';') {
         DRAGON_ERR << "Invalid compound entry!" << std::endl;
         if (resetCurrentAfter)

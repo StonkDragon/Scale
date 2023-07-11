@@ -542,7 +542,7 @@ namespace sclc
 
     void Tokenizer::printTokens() {
         for (size_t i = 0; i < tokens.size(); i++) {
-            std::cout << "Token: " << tokens.at(i).tostring() << std::endl;
+            std::cout << "Token: " << tokens[i].tostring() << std::endl;
         }
     }
 

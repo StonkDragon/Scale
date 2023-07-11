@@ -63,7 +63,6 @@ namespace sclc
     class TPResult {
     public:
         std::vector<Function*> functions;
-        std::vector<Function*> extern_functions;
         std::vector<Interface*> interfaces;
         std::vector<Variable> extern_globals;
         std::vector<Variable> globals;

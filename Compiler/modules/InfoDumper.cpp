@@ -57,7 +57,7 @@ namespace sclc {
         fwrite(&numEnums, sizeof(uint32_t), 1, f);
 
         uint32_t numFunctions = 0;
-        for (Function* f : joinVecs(result.functions, result.extern_functions)) {
+        for (Function* f : result.functions) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(f->nameToken.file).string())) {
                 numFunctions++;
             }
@@ -160,7 +160,7 @@ namespace sclc {
                 fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
             }
         }
-        for (Function* func : joinVecs(result.functions, result.extern_functions)) {
+        for (Function* func : result.functions) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(func->nameToken.file).string())) {
                 continue;
             }
@@ -318,7 +318,7 @@ namespace sclc {
         fclose(f);
     }
 
-    void InfoDumper::dump(TPResult result) {
+    void InfoDumper::dump(TPResult& result) {
         if (Main.options.binaryHeader) {
             binaryHeader(result);
             return;
@@ -362,7 +362,7 @@ namespace sclc {
         fwrite(&numEnums, sizeof(uint32_t), 1, f);
 
         uint32_t numFunctions = 0;
-        for (Function* f : joinVecs(result.functions, result.extern_functions)) {
+        for (Function* f : result.functions) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(f->nameToken.file).string())) {
                 numFunctions++;
             }
@@ -465,12 +465,12 @@ namespace sclc {
                 fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
             }
         }
-        for (Function* func : joinVecs(result.functions, result.extern_functions)) {
+        for (Function* func : result.functions) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(func->nameToken.file).string())) {
                 continue;
             }
 
-            if (contains<std::string>(func->getModifiers(), "intrinsic") && func->getBody().size() == 0) {
+            if (func->has_intrinsic && func->getBody().size() == 0) {
                 continue;
             }
 

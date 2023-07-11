@@ -558,6 +558,30 @@ namespace sclc
 
     std::string rtTypeToSclType(std::string rtType);
 
+    std::string demangleSymbol(std::string sym);
+
+    std::string demangleLambda(std::string sym) {
+        // "lambda[0@lambda[0@main()V;]()V;]()V;"
+        std::string subExpr = sym.substr(sym.find("[") + 1, sym.find_last_of("]") - sym.find("[") - 1);
+        std::string num = subExpr.substr(0, subExpr.find("@"));
+        std::string ofFunction = subExpr.substr(subExpr.find("@") + 1);
+
+        std::string args = sym.substr(("lambda[" + num + "@" + ofFunction + "]").size());
+        std::string returnType = args.substr(args.find(")") + 1, args.size() - args.find(")") - 2);
+        args = sym.substr(args.find("(") + 1, args.find(")") - args.find("(") - 1);
+        std::vector<std::string> argTypes = split(args, ";");
+        std::string demangled = "lambda(";
+        for (size_t i = 0; i < argTypes.size() - 1; i++) {
+            if (i)
+                demangled += ", ";
+            demangled += ":" + rtTypeToSclType(argTypes[i]);
+        }
+        demangled += "): " + rtTypeToSclType(returnType);
+        demangled += " #" + std::to_string(std::atoi(num.c_str()) + 1);
+        demangled += " in " + demangleSymbol(ofFunction);
+        return demangled;
+    }
+
     std::string demangleSymbol(std::string sym) {
         std::string varPrefix = TO_STRING(__USER_LABEL_PREFIX__) + std::string("Var_");
         if (strstarts(sym, varPrefix) || strstarts(sym, "Var_")) {
@@ -568,6 +592,9 @@ namespace sclc
             
             sym = replaceAll(sym, "\\$", "::");
             return sym;
+        }
+        if (strstarts(sym, "lambda<")) {
+            return demangleLambda(sym);
         }
         if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
             return sym;
@@ -638,6 +665,7 @@ namespace sclc
         bool outFileSpecified   = false;
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
+        tmpFlags.reserve(args.size());
 
         Main.version = new Version(std::string(VERSION));
 
@@ -859,6 +887,7 @@ namespace sclc
         }
 
         std::vector<std::string> cflags;
+        cflags.reserve(tmpFlags.size() + 10);
         Main.options.optimizer = optimizer;
 
         if (!Main.options.printCflags)
@@ -1100,7 +1129,7 @@ namespace sclc
 
         for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
             using path = std::filesystem::path;
-            path s = Main.options.files.at(i);
+            path s = Main.options.files[i];
             if (s.parent_path().string().size())
                 Main.options.includePaths.push_back(s.parent_path().string());
         }
@@ -1519,10 +1548,8 @@ namespace sclc
                     }
                     std::cerr << file << " " << col << line << Color::RESET;
                 } else {
-                    if (doCheckForSymbols) {
-                        if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
-                            continue;
-                        }
+                    if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
+                        continue;
                     }
                     if (strstarts(line, "Undefined symbols for architecture ")) {
                         doCheckForSymbols = true;
@@ -1533,6 +1560,10 @@ namespace sclc
                         undefinedSymbols[sym] = std::vector<std::string>();
                     } else if (doCheckForSymbols && !strstarts(line, "  \"")) {
                         undefinedSymbols[currentUndefinedSymbol].push_back(line.find_first_not_of(" ") == std::string::npos ? "" : line.substr(line.find_first_not_of(" ")));
+                    } else if (strstarts(line, "ld: library not found for -l")) {
+                        std::string lib = line.substr(28);
+                        lib = replaceAll(lib, "\n", "");
+                        std::cerr << Color::RED << "Error: " << Color::RESET << "Library '" << lib << "' not found." << std::endl;
                     } else {
                         std::cerr << Color::BOLDRED << line << Color::RESET;
                     }
@@ -1564,6 +1595,14 @@ namespace sclc
             remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
             remove("scale_support.h");
         }
+
+        std::cout << "Time spent handling tokens: " << ((double) Main.tokenHandleTime) / 1000000.0 << " seconds." << std::endl;
+        std::cout << "writeHeaderTime: " << ((double) Main.writeHeaderTime) / 1000000.0 << "seconds." << std::endl;
+        std::cout << "writeContainersTime: " << ((double) Main.writeContainersTime) / 1000000.0 << "seconds." << std::endl;
+        std::cout << "writeStructsTime: " << ((double) Main.writeStructsTime) / 1000000.0 << "seconds." << std::endl;
+        std::cout << "writeGlobalsTime: " << ((double) Main.writeGlobalsTime) / 1000000.0 << "seconds." << std::endl;
+        std::cout << "writeFunctionHeadersTime: " << ((double) Main.writeFunctionHeadersTime) / 1000000.0 << "seconds." << std::endl;
+        std::cout << "writeFunctionsTime: " << ((double) Main.writeFunctionsTime) / 1000000.0 << "seconds." << std::endl;
 
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 

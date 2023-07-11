@@ -13,7 +13,7 @@ namespace sclc
 {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
-    class Function {
+    struct Function {
         std::string name;
         std::string file;
         std::string return_type;
@@ -21,7 +21,6 @@ namespace sclc
         std::vector<std::string> modifiers;
         std::vector<Variable> args;
         Variable namedReturnValue;
-    public:
         std::string member_type;
         Token nameToken;
         bool isMethod;
@@ -31,6 +30,24 @@ namespace sclc
         Deprecation deprecated;
         std::vector<Function*> overloads;
         std::string templateArg;
+
+        long has_expect;
+        long has_export;
+        long has_private;
+        long has_construct;
+        long has_final;
+        long has_constructor;
+        long has_cdecl;
+        long has_intrinsic;
+        long has_lambda;
+        long has_asm;
+        long has_sealed;
+        long has_unsafe;
+        long has_operator;
+        long has_restrict;
+        long has_getter;
+        long has_setter;
+
         Function(std::string name, Token nameToken);
         Function(std::string name, bool isMethod, Token nameToken);
         virtual ~Function() {}
@@ -41,6 +58,8 @@ namespace sclc
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
         virtual std::vector<std::string> getModifiers();
+        // IMPORTANT: Function takes index starting at 1
+        virtual std::string& getModifier(size_t index);
         virtual void addArgument(Variable arg);
         virtual std::vector<Variable> getArgs();
         virtual std::string getFile();

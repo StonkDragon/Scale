@@ -11,7 +11,7 @@
 
 namespace sclc
 {
-    class Function;
+    struct Function;
 
     enum VarAccess {
         Dereference,
@@ -20,14 +20,13 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
-    class Variable {
+    struct Variable {
         std::string name;
         std::string type;
         std::string internalMutableFrom;
         bool isConst;
         bool isInternalMut;
         bool isMut;
-    public:
         Token* name_token;
         bool isPrivate;
         bool canBeNil;

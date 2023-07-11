@@ -11,8 +11,8 @@ namespace sclc {
     extern std::stack<std::string> typeStack;
 #define typeStackTop (typeStack.size() ? typeStack.top() : "")
 
-    std::string sclTypeToCType(TPResult result, std::string t);
-    std::string generateArgumentsForFunction(TPResult result, Function *func);
+    std::string sclTypeToCType(TPResult& result, std::string t);
+    std::string generateArgumentsForFunction(TPResult& result, Function *func);
     bool isPrimitiveIntegerType(std::string s);
     std::string removeTypeModifiers(std::string t);
 
@@ -102,11 +102,11 @@ namespace sclc {
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
-    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
+    bool checkStackType(TPResult& result, std::vector<Variable> args, bool allowIntPromotion = false);
     std::string argVectorToString(std::vector<Variable> args);
     std::string stackSliceToString(size_t amount);
 
-    bool handleOverriddenOperator(TPResult result, FILE* fp, int scopeDepth, std::string op, std::string type) {
+    bool handleOverriddenOperator(TPResult& result, FILE* fp, int scopeDepth, std::string op, std::string type) {
         type = removeTypeModifiers(type);
         if (type.size() == 0)
             return false;
@@ -142,7 +142,7 @@ namespace sclc {
         return false;
     }
 
-    FPResult handleOperator(TPResult result, FILE* fp, Token token, int scopeDepth) {
+    FPResult handleOperator(TPResult& result, FILE* fp, Token token, int scopeDepth) {
         switch (token.getType()) {
             case tok_add: {
                 if (handleOverriddenOperator(result, fp, scopeDepth, "+", typeStackTop)) break;

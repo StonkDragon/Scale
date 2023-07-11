@@ -36,7 +36,7 @@ const std::vector<std::string> intrinsics({
 namespace sclc {
     std::map<std::string, std::string> templateArgs;
 
-    Function* parseFunction(std::string name, Token nameToken, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+    Function* parseFunction(std::string name, Token& nameToken, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
                 i += 2;
@@ -143,6 +143,7 @@ namespace sclc {
                     func->addArgument(v);
                 } else if (tokens[i].getType() == tok_curly_open) {
                     std::vector<std::string> multi;
+                    multi.reserve(10);
                     i++;
                     while (tokens[i].getType() != tok_curly_close) {
                         if (tokens[i].getType() == tok_comma) {
@@ -293,7 +294,7 @@ namespace sclc {
         return func;
     }
 
-    Method* parseMethod(std::string name, Token nameToken, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+    Method* parseMethod(std::string name, Token& nameToken, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
                 i += 2;
@@ -729,7 +730,6 @@ namespace sclc {
         }
 
         std::vector<Function*> functions;
-        std::vector<Function*> extern_functions;
         for (uint32_t i = 0; i < numFunctions; i++) {
             uint8_t isMethod = 0;
             fread(&isMethod, sizeof(uint8_t), 1, f);
@@ -765,7 +765,7 @@ namespace sclc {
 
             func->setReturnType(returnType);
 
-            func->isExternC = contains<std::string>(func->getModifiers(), "expect");
+            func->isExternC = func->has_expect;
 
             uint32_t numModifiers = 0;
             fread(&numModifiers, sizeof(uint32_t), 1, f);
@@ -827,11 +827,7 @@ namespace sclc {
                 }
             }
 
-            if (func->isExternC) {
-                extern_functions.push_back(func);
-            } else {
-                functions.push_back(func);
-            }
+            functions.push_back(func);
         }
 
         std::vector<Variable> globals;
@@ -1002,11 +998,10 @@ namespace sclc {
         result.extern_globals = extern_globals;
         result.typealiases = typealiases;
         result.functions = functions;
-        result.extern_functions = extern_functions;
         return result;
     }
 
-    TPResult SyntaxTree::parse(std::vector<std::string> binaryHeaders) {
+    TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
@@ -1025,15 +1020,49 @@ namespace sclc {
         std::vector<Layout> layouts;
         std::vector<Interface*> interfaces;
         std::vector<Enum> enums;
+        std::vector<Function*> functions;
+        std::vector<Variable> extern_globals;
         std::unordered_map<std::string, std::string> typealiases;
+
+        uses.reserve(100);
+        nextAttributes.reserve(100);
+        globals.reserve(100);
+        containers.reserve(100);
+        structs.reserve(100);
+        layouts.reserve(100);
+        interfaces.reserve(100);
+        enums.reserve(100);
+        functions.reserve(100);
+        extern_globals.reserve(100);
+        typealiases.reserve(100);
 
         Variable lastDeclaredVariable("", "");
 
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
 
+        for (std::string binaryHeader : binaryHeaders) {
+            TPResult tmp = parseFile(binaryHeader);
+
+            if (!tmp.errors.empty()) {
+                return tmp;
+            }
+
+            containers.insert(containers.end(), tmp.containers.begin(), tmp.containers.end());
+            structs.insert(structs.end(), tmp.structs.begin(), tmp.structs.end());
+            enums.insert(enums.end(), tmp.enums.begin(), tmp.enums.end());
+            functions.insert(functions.end(), tmp.functions.begin(), tmp.functions.end());
+            globals.insert(globals.end(), tmp.globals.begin(), tmp.globals.end());
+            extern_globals.insert(extern_globals.end(), tmp.extern_globals.begin(), tmp.extern_globals.end());
+            interfaces.insert(interfaces.end(), tmp.interfaces.begin(), tmp.interfaces.end());
+            layouts.insert(layouts.end(), tmp.layouts.begin(), tmp.layouts.end());
+            for (auto it = tmp.typealiases.begin(); it != tmp.typealiases.end(); it++) {
+                typealiases[it->first] = it->second;
+            }
+        }
+
         // Builtins
-        {
+        if (!Main.options.noScaleFramework) {
             Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "<builtinIsInstanceOf>"));
             builtinIsInstanceOf->addModifier("export");
 
@@ -1069,7 +1098,7 @@ namespace sclc {
             builtinHash->addArgument(Variable("data", "[int8]"));
             
             builtinHash->setReturnType("int32");
-            extern_functions.push_back(builtinHash);
+            functions.push_back(builtinHash);
 
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtinIdentityHash>"));
             builtinIdentityHash->isExternC = true;
@@ -1080,7 +1109,7 @@ namespace sclc {
             builtinIdentityHash->addArgument(Variable("obj", "any"));
             
             builtinIdentityHash->setReturnType("int");
-            extern_functions.push_back(builtinIdentityHash);
+            functions.push_back(builtinIdentityHash);
 
             Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtinAtomicClone>"));
             builtinAtomicClone->isExternC = true;
@@ -1091,7 +1120,7 @@ namespace sclc {
             builtinAtomicClone->addArgument(Variable("obj", "any"));
             
             builtinAtomicClone->setReturnType("any");
-            extern_functions.push_back(builtinAtomicClone);
+            functions.push_back(builtinAtomicClone);
 
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtinTypeEquals>"));
             builtinTypeEquals->isExternC = true;
@@ -1103,7 +1132,7 @@ namespace sclc {
             builtinTypeEquals->addArgument(Variable("typeId", "int32"));
 
             builtinTypeEquals->setReturnType("int");
-            extern_functions.push_back(builtinTypeEquals);
+            functions.push_back(builtinTypeEquals);
 
             Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "<builtinToString>"));
             builtinToString->addModifier("export");
@@ -1134,27 +1163,28 @@ namespace sclc {
             functions.push_back(builtinToString);
 
             Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "<builtinUnreachable>"));
+            builtinUnreachable->isExternC = true;
             builtinUnreachable->addModifier("extern");
             builtinUnreachable->setReturnType("none");
 
-            extern_functions.push_back(builtinUnreachable);
+            functions.push_back(builtinUnreachable);
         }
 
         auto findFunctionByName = [&](std::string name) {
             for (size_t i = 0; i < functions.size(); i++) {
-                if (functions.at(i)->isMethod) {
+                if (functions[i]->isMethod) {
                     continue;
                 }
-                if (functions.at(i)->getName() == name) {
-                    return functions.at(i);
+                if (functions[i]->getName() == name) {
+                    return functions[i];
                 }
             }
-            for (size_t i = 0; i < extern_functions.size(); i++) {
-                if (extern_functions.at(i)->isMethod) {
+            for (size_t i = 0; i < functions.size(); i++) {
+                if (functions[i]->isMethod) {
                     continue;
                 }
-                if (extern_functions.at(i)->getName() == name) {
-                    return extern_functions.at(i);
+                if (functions[i]->getName() == name) {
+                    return functions[i];
                 }
             }
             return (Function*) nullptr;
@@ -1162,60 +1192,24 @@ namespace sclc {
 
         auto findMethodByName = [&](std::string name, std::string memberType) {
             for (size_t i = 0; i < functions.size(); i++) {
-                if (!functions.at(i)->isMethod) {
+                if (!functions[i]->isMethod) {
                     continue;
                 }
-                if (functions.at(i)->getName() == name && ((Method*) functions.at(i))->getMemberType() == memberType) {
-                    return (Method*) functions.at(i);
+                if (functions[i]->getName() == name && ((Method*) functions[i])->getMemberType() == memberType) {
+                    return (Method*) functions[i];
                 }
             }
-            for (size_t i = 0; i < extern_functions.size(); i++) {
-                if (!extern_functions.at(i)->isMethod) {
+            for (size_t i = 0; i < functions.size(); i++) {
+                if (!functions[i]->isMethod) {
                     continue;
                 }
-                if (extern_functions.at(i)->getName() == name && ((Method*) extern_functions.at(i))->getMemberType() == memberType) {
-                    return (Method*) extern_functions.at(i);
+                if (functions[i]->getName() == name && ((Method*) functions[i])->getMemberType() == memberType) {
+                    return (Method*) functions[i];
                 }
             }
             return (Method*) nullptr;
         };
         
-        for (std::string binaryHeader : binaryHeaders) {
-            TPResult tmp = parseFile(binaryHeader);
-
-            if (!tmp.errors.empty()) {
-                return tmp;
-            }
-
-            for (Container container : tmp.containers) {
-                containers.push_back(container);
-            }
-            for (Struct s : tmp.structs) {
-                structs.push_back(s);
-            }
-            for (Enum e : tmp.enums) {
-                enums.push_back(e);
-            }
-            for (Function* function : joinVecs(tmp.functions, tmp.extern_functions)) {
-                functions.push_back(function);
-            }
-            for (Variable v : tmp.globals) {
-                globals.push_back(v);
-            }
-            for (Variable v : tmp.extern_globals) {
-                extern_globals.push_back(v);
-            }
-            for (Interface* interface : tmp.interfaces) {
-                interfaces.push_back(interface);
-            }
-            for (Layout layout : tmp.layouts) {
-                layouts.push_back(layout);
-            }
-            for (auto ta : tmp.typealiases) {
-                typealiases[ta.first] = ta.second;
-            }
-        }
-
         for (size_t i = 0; i < tokens.size(); i++) {
             Token token = tokens[i];
 
@@ -1267,13 +1261,13 @@ namespace sclc {
                         }
                         if (contains<std::string>(nextAttributes, "expect")) {
                             currentFunction->isExternC = true;
-                            extern_functions.push_back(currentFunction);
+                            functions.push_back(currentFunction);
                             currentFunction = nullptr;
                         }
                         if (contains<std::string>(nextAttributes, "intrinsic")) {
                             if (contains<std::string>(intrinsics, "F:" + currentFunction->getName())) {
                                 currentFunction->isExternC = true;
-                                extern_functions.push_back(currentFunction);
+                                functions.push_back(currentFunction);
                             }
                         }
                         nextAttributes.clear();
@@ -1297,13 +1291,13 @@ namespace sclc {
                     }
                     if (contains<std::string>(nextAttributes, "expect")) {
                         currentFunction->isExternC = true;
-                        extern_functions.push_back(currentFunction);
+                        functions.push_back(currentFunction);
                         currentFunction = nullptr;
                     }
                     if (contains<std::string>(nextAttributes, "intrinsic")) {
                         if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->getMemberType() + "::" + currentFunction->getName())) {
                             currentFunction->isExternC = true;
-                            extern_functions.push_back(currentFunction);
+                            functions.push_back(currentFunction);
                         }
                     }
                     nextAttributes.clear();
@@ -1396,13 +1390,13 @@ namespace sclc {
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
                     currentFunction->isExternC = true;
-                    extern_functions.push_back(currentFunction);
+                    functions.push_back(currentFunction);
                     currentFunction = nullptr;
                 }
                 if (contains<std::string>(nextAttributes, "intrinsic")) {
                     if (contains<std::string>(intrinsics, "F:" + currentFunction->getName())) {
                         currentFunction->isExternC = true;
-                        extern_functions.push_back(currentFunction);
+                        functions.push_back(currentFunction);
                     }
                 }
                 nextAttributes.clear();
@@ -1410,13 +1404,13 @@ namespace sclc {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
                         isInLambda--;
-                        if (!contains<Function*>(extern_functions, currentFunction))
+                        if (!contains<Function*>(functions, currentFunction))
                             currentFunction->addToken(token);
                         continue;
                     }
                     if (isInUnsafe) {
                         isInUnsafe--;
-                        if (!contains<Function*>(extern_functions, currentFunction))
+                        if (!contains<Function*>(functions, currentFunction))
                             currentFunction->addToken(token);
                         continue;
                     }
@@ -1444,7 +1438,7 @@ namespace sclc {
                                 nextAttributes.clear();
                                 currentFunction = nullptr;
                                 continue;
-                            } else if (!contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
+                            } else if (!currentFunction->has_intrinsic) {
                                 if (currentFunction->getArgs() == f->getArgs()) {
                                     FPResult result;
                                     result.message = "Function " + currentFunction->getName() + " is already defined!";
@@ -1462,7 +1456,7 @@ namespace sclc {
                                 currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
                                 functionWasOverloaded = true;
                             } else if (currentFunction != f) {
-                                if (contains<std::string>(currentFunction->getModifiers(), "intrinsic")) {
+                                if (currentFunction->has_intrinsic) {
                                     FPResult result;
                                     result.message = "Cannot overload intrinsic function " + currentFunction->getName() + "!";
                                     result.value = currentFunction->getName();
@@ -1472,7 +1466,7 @@ namespace sclc {
                                     result.column = currentFunction->getNameToken().getColumn();
                                     result.success = false;
                                     errors.push_back(result);
-                                } else if (contains<std::string>(f->getModifiers(), "intrinsic")) {
+                                } else if (f->has_intrinsic) {
                                     FPResult result;
                                     result.message = "Cannot overload function " + currentFunction->getName() + " with intrinsic function!";
                                     result.value = currentFunction->getName();
@@ -1505,7 +1499,7 @@ namespace sclc {
                             errors.push_back(result);
                         }
                     } else {
-                        if (functionWasOverloaded || !contains<Function*>(extern_functions, currentFunction))
+                        if (functionWasOverloaded || !contains<Function*>(functions, currentFunction))
                             functions.push_back(currentFunction);
                     }
                     currentFunction = nullptr;
@@ -2119,6 +2113,9 @@ namespace sclc {
                 if (currentFunction == nullptr) {
                     if (tokens[i + 1].getType() == tok_identifier) {
                         nextAttributes.push_back(tokens[i + 1].getValue());
+                        if (tokens[i + 1].getValue() == "relocatable") {
+                            nextAttributes.push_back("export");
+                        }
                     } else {
                         FPResult result;
                         result.message = "'" + tokens[i + 1].getValue() + "' is not a valid modifier.";
@@ -2147,7 +2144,7 @@ namespace sclc {
                 if (token.getType() == tok_identifier && token.getValue() == "unsafe") {
                     isInUnsafe++;
                 }
-                if (!contains<Function*>(extern_functions, currentFunction))
+                if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
             } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
@@ -2500,11 +2497,14 @@ namespace sclc {
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].getValue());
+                    if (tokens[i].getValue() == "relocatable") {
+                        nextAttributes.push_back("export");
+                    }
                 }
             }
         }
 
-        for (Function* self : joinVecs(functions, extern_functions)) {
+        for (Function* self : functions) {
             if (self->isMethod) {
                 Function* f2 = self;
                 Method* self = (Method*) f2;
@@ -2513,7 +2513,7 @@ namespace sclc {
                 if (name.find("$$ol") != std::string::npos) {
                     name = name.substr(0, name.find("$$ol"));
                 }
-                for (Function* f : joinVecs(functions, extern_functions)) {
+                for (Function* f : functions) {
                     if (f == self) continue;
                     if (!f->isMethod) continue;
                     if ((strstarts(f->getName(), name + "$$ol") || f->getName() == name) && ((Method*)f)->getMemberType() == self->getMemberType()) {
@@ -2527,7 +2527,7 @@ namespace sclc {
             if (name.find("$$ol") != std::string::npos) {
                 name = name.substr(0, name.find("$$ol"));
             }
-            for (Function* f : joinVecs(functions, extern_functions)) {
+            for (Function* f : functions) {
                 if (f == self) continue;
                 if (f->isMethod) continue;
                 if (strstarts(f->getName(), name + "$$ol") || f->getName() == name) {
@@ -2538,7 +2538,7 @@ namespace sclc {
 
         TPResult result;
         result.functions = functions;
-        result.extern_functions = extern_functions;
+        result.functions = functions;
         result.extern_globals = extern_globals;
         result.globals = globals;
         result.containers = containers;

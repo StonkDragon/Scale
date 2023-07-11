@@ -50,7 +50,8 @@ namespace sclc
     Struct Struct::Null = Struct("");
     Token Token::Default(tok_identifier, "", 0, "");
 
-    std::vector<std::vector<Variable>> vars;
+    std::vector<Variable> vars;
+    std::vector<size_t> var_indices;
     _Main Main = _Main();
 
     void print_trace(void) {
@@ -182,12 +183,10 @@ namespace sclc
         for (size_t i = 0; i < vec.size(); i++) {
             if (str->isMethod && vec[i]->isMethod) {
                 if (vec[i]->getName() == str->getName() && static_cast<Method*>(vec[i])->getMemberType() == static_cast<Method*>(str)->getMemberType()) {
-                    // std::cout << "Method " << str->getName() << " is " << static_cast<Method*>(vec[i])->getMemberType() << std::endl;
                     return;
                 }
             } else if (!str->isMethod && !vec[i]->isMethod) {
                 if (*vec[i] == *str) {
-                    // std::cout << "Function " << str->getName() << " exists" << std::endl;
                     return;
                 }
             }
@@ -226,33 +225,29 @@ namespace sclc
     }
 
     bool hasVar(std::string name) {
-        return hasVar(Token(tok_identifier, name, 0, ""));
-    }
-
-    bool hasVar(Token name) {
-        for (std::vector<Variable> var : vars) {
-            for (Variable v : var) {
-                if (v.getName() == name.getValue()) {
-                    return true;
-                }
+        for (auto&& v : vars) {
+            if (v.name == name) {
+                return true;
             }
         }
         return false;
     }
 
+    bool hasVar(Token name) {
+        return hasVar(name.getValue());
+    }
+
     Variable getVar(std::string name) {
-        return getVar(Token(tok_identifier, name, 0, ""));
+        for (auto&& v : vars) {
+            if (v.name == name) {
+                return v;
+            }
+        }
+        return Variable("", "");
     }
 
     Variable getVar(Token name) {
-        for (ssize_t i = vars.size() - 1; i >= 0; i--) {
-            for (Variable v : vars[i]) {
-                if (v.getName() == name.getValue()) {
-                    return v;
-                }
-            }
-        }
-        return Variable("","");
+        return getVar(name.getValue());
     }
 
     long long parseNumber(std::string str) {
@@ -283,7 +278,7 @@ namespace sclc
         return num;
     }
 
-    FPResult parseType(std::vector<Token> body, size_t* i, std::map<std::string, std::string> typeReplacements) {
+    FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
         // int, str, any, none, Struct
         FPResult r;
         r.success = true;
@@ -333,7 +328,7 @@ namespace sclc
         if (body[*i].getType() == tok_identifier) {
             r.value = type_mods + body[*i].getValue();
             if (typeReplacements.find(body[*i].getValue()) != typeReplacements.end()) {
-                r.value = type_mods + typeReplacements[body[*i].getValue()];
+                r.value = type_mods + typeReplacements.at(body[*i].getValue());
                 r.message = body[*i].getValue();
             }
             if (r.value == "lambda") {
@@ -412,9 +407,10 @@ namespace sclc
         return r;
     }
     
-    bool checkStackType(TPResult result, std::vector<Variable> args, bool allowIntPromotion = false);
+    bool checkStackType(TPResult& result, std::vector<Variable> args, bool allowIntPromotion = false);
 
-    Function* getFunctionByNameWithArgs(TPResult result, std::string name, bool doCheck) {
+    Function* getFunctionByNameWithArgs(TPResult& result, std::string name, bool doCheck) {
+
         (void) doCheck;
         if (name == "+") name = "operator$add";
         else if (name == "-") name = "operator$sub";
@@ -446,14 +442,8 @@ namespace sclc
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
 
+
         for (Function* func : result.functions) {
-            if (func == nullptr) continue;
-            if (func->isMethod) continue;
-            if (func->getName() == name) {
-                return func;
-            }
-        }
-        for (Function* func : result.extern_functions) {
             if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->getName() == name) {
@@ -463,16 +453,16 @@ namespace sclc
         return nullptr;
     }
 
-    Function* getFunctionByName(TPResult result, std::string name) {
+    Function* getFunctionByName(TPResult& result, std::string name) {
         return getFunctionByNameWithArgs(result, name, false);
     }
 
-    bool hasEnum(TPResult result, std::string name) {
+    bool hasEnum(TPResult& result, std::string name) {
         return getEnumByName(result, name).getName().size() != 0;
     }
 
-    Enum getEnumByName(TPResult result, std::string name) {
-        for (Enum e : result.enums) {
+    Enum getEnumByName(TPResult& result, std::string name) {
+        for (Enum& e : result.enums) {
             if (e.getName() == name) {
                 return e;
             }
@@ -480,7 +470,7 @@ namespace sclc
         return Enum("");
     }
     
-    Interface* getInterfaceByName(TPResult result, std::string name) {
+    Interface* getInterfaceByName(TPResult& result, std::string name) {
         for (Interface* i : result.interfaces) {
             if (i->getName() == name) {
                 return i;
@@ -489,7 +479,7 @@ namespace sclc
         return nullptr;
     }
 
-    Method* getMethodByNameWithArgs(TPResult result, std::string name, std::string type, bool doCheck) {
+    Method* getMethodByNameWithArgs(TPResult& result, std::string name, std::string type, bool doCheck) {
         (void) doCheck;
         type = removeTypeModifiers(type);
 
@@ -530,13 +520,7 @@ namespace sclc
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
-                return (Method*) func;
-            }
-        }
-        for (Function* func : result.extern_functions) {
-            if (!func->isMethod) continue;
-            if ((func->getName() == name) && ((Method*) func)->getMemberType() == type) {
+            if (func->getName() == name && func->getMemberType() == type) {
                 return (Method*) func;
             }
         }
@@ -547,26 +531,21 @@ namespace sclc
         return getMethodByNameWithArgs(result, name, s.extends(), doCheck);
     }
 
-    Method* getMethodByName(TPResult result, std::string name, std::string type) {
+    Method* getMethodByName(TPResult& result, std::string name, std::string type) {
         return getMethodByNameWithArgs(result, name, type, false);
     }
-    Method* getMethodByNameOnThisType(TPResult result, std::string name, std::string type) {
+    Method* getMethodByNameOnThisType(TPResult& result, std::string name, std::string type) {
         Method* method = getMethodByName(result, name, type);
         return (method == nullptr || method->getMemberType() != removeTypeModifiers(type)) ? nullptr : method;
     }
 
-    std::vector<Method*> methodsOnType(TPResult res, std::string type) {
+    std::vector<Method*> methodsOnType(TPResult& res, std::string type) {
         type = removeTypeModifiers(type);
 
         std::vector<Method*> methods;
+        methods.reserve(res.functions.size());
 
         for (Function* func : res.functions) {
-            if (!func->isMethod) continue;
-            if (((Method*) func)->getMemberType() == type) {
-                methods.push_back((Method*) func);
-            }
-        }
-        for (Function* func : res.extern_functions) {
             if (!func->isMethod) continue;
             if (((Method*) func)->getMemberType() == type) {
                 methods.push_back((Method*) func);
@@ -575,8 +554,8 @@ namespace sclc
         return methods;
     }
 
-    Container getContainerByName(TPResult result, std::string name) {
-        for (Container container : result.containers) {
+    Container getContainerByName(TPResult& result, std::string name) {
+        for (Container& container : result.containers) {
             if (container.getName() == name) {
                 return container;
             }
@@ -588,9 +567,9 @@ namespace sclc
 
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
-    Struct getStructByName(TPResult result, std::string name) {
+    Struct getStructByName(TPResult& result, std::string name) {
         name = removeTypeModifiers(name);
-        for (Struct struct_ : result.structs) {
+        for (Struct& struct_ : result.structs) {
             if (struct_.getName() == name) {
                 return struct_;
             }
@@ -598,9 +577,9 @@ namespace sclc
         return Struct::Null;
     }
 
-    Layout getLayout(TPResult result, std::string name) {
+    Layout getLayout(TPResult& result, std::string name) {
         name = removeTypeModifiers(name);
-        for (Layout layout : result.layouts) {
+        for (Layout& layout : result.layouts) {
             if (layout.getName() == name) {
                 return layout;
             }
@@ -608,11 +587,11 @@ namespace sclc
         return Layout("");
     }
 
-    bool hasLayout(TPResult result, std::string name) {
+    bool hasLayout(TPResult& result, std::string name) {
         return getLayout(result, name).getName().size() != 0;
     }
 
-    bool hasFunction(TPResult result, std::string name) {
+    bool hasFunction(TPResult& result, std::string name) {
         if (name == "+") name = "operator$add";
         else if (name == "-") name = "operator$sub";
         else if (name == "*") name = "operator$mul";
@@ -653,25 +632,16 @@ namespace sclc
                 return true;
             }
         }
-        for (Function* func : result.extern_functions) {
-            if (func->isMethod) continue;
-            std::string funcName = func->getName();
-            if (funcName.find("$$ol") != std::string::npos) {
-                funcName = funcName.substr(0, funcName.find("$$ol"));
-            }
-            if (funcName == name) {
-                return true;
-            }
-        }
         return false;
     }
 
-    bool hasFunction(TPResult result, Token name) {
+    bool hasFunction(TPResult& result, Token name) {
         return hasFunction(result, name.getValue());
     }
 
-    std::vector<std::string> supersToVector(TPResult r, Struct s) {
+    std::vector<std::string> supersToVector(TPResult& r, Struct s) {
         std::vector<std::string> v;
+        v.reserve(16);
         v.push_back(s.getName());
         Struct super = getStructByName(r, s.extends());
         while (super.getName().size()) {
@@ -680,7 +650,7 @@ namespace sclc
         }
         return v;
     }
-    std::string supersToHashedCList(TPResult r, Struct s) {
+    std::string supersToHashedCList(TPResult& r, Struct s) {
         std::string list = "(scl_int[]) {";
         std::vector<std::string> v = supersToVector(r, s);
         for (size_t i = 0; i < v.size(); i++) {
@@ -693,7 +663,7 @@ namespace sclc
         list += "}";
         return list;
     }
-    std::string supersToCList(TPResult r, Struct s) {
+    std::string supersToCList(TPResult& r, Struct s) {
         std::string list = "(scl_str*) {\"" + s.getName() + "\"";
         Struct super = getStructByName(r, s.extends());
         while (super.getName().size()) {
@@ -707,28 +677,28 @@ namespace sclc
         return list;
     }
 
-    bool hasMethod(TPResult result, std::string name, std::string type) {
+    bool hasMethod(TPResult& result, std::string name, std::string type) {
         return getMethodByName(result, name, type) != nullptr;
     }
 
-    bool hasMethod(TPResult result, Token name, std::string type) {
+    bool hasMethod(TPResult& result, Token name, std::string type) {
         return hasMethod(result, name.getValue(), type);
     }
 
-    bool hasContainer(TPResult result, Token name) {
+    bool hasContainer(TPResult& result, Token name) {
         for (Container container_ : result.containers) {
-            if (container_.getName() == name.getValue()) {
+            if (container_.getName() == name.value) {
                 return true;
             }
         }
         return false;
     }
 
-    bool hasContainer(TPResult result, std::string name) {
+    bool hasContainer(TPResult& result, std::string name) {
         return hasContainer(result, Token(tok_identifier, name, 0, ""));
     }
 
-    bool hasGlobal(TPResult result, std::string name) {
+    bool hasGlobal(TPResult& result, std::string name) {
         for (Variable v : result.globals) {
             if (v.getName() == name) {
                 return true;
@@ -748,34 +718,35 @@ namespace sclc
         }
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
-            return contains<std::string>(m->getModifiers(), "<constructor>") || strstarts(m->getName(), "init");
+            return m->has_constructor || strstarts(m->getName(), "init");
         } else {
-            return contains<std::string>(f->getModifiers(), "construct");
+            return f->has_construct;
         }
     }
 
     bool isDestroyFunction(Function* f) {
-        return strstarts(f->getName(), "__destroy__") || contains<std::string>(f->getModifiers(), "final");
+        return f->has_final || strstarts(f->getName(), "__destroy__");
     }
 
-    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
-        auto memberOfStruct = [this](Function* f) -> bool {
-            if (f->isMethod) {
-                Method* m = static_cast<Method*>(f);
-                if (m->getMemberType() == this->internalMutableFrom) {
-                    return true;
-                }
-            } else if (strstarts(this->getName(), f->member_type + "$")) {
+    bool memberOfStruct(Variable* self, Function* f) {
+        if (f->isMethod) {
+            Method* m = static_cast<Method*>(f);
+            if (m->getMemberType() == self->internalMutableFrom) {
                 return true;
             }
-            return false;
-        };
+        } else if (strstarts(self->getName(), f->member_type + "$")) {
+            return true;
+        }
+        return false;
+    };
+
+    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
 
         if (typeIsReadonly(getType())) {
             if (strstarts(this->getName(), f->member_type + "$")) {
                 return true;
             }
-            return memberOfStruct(f);
+            return memberOfStruct(this, f);
         }
         if (typeIsConst(getType())) {
             return isInitFunction(f);
@@ -866,5 +837,317 @@ namespace sclc
 
     bool featureEnabled(std::string feat) {
         return contains<std::string>(Main.options.features, feat);
+    }
+
+    ID_t id(char* data) {
+        if (strlen(data) == 0) return 0;
+        ID_t h = 3323198485UL;
+        for (;*data;++data) {
+            h ^= *data;
+            h *= 0x5BD1E995;
+            h ^= h >> 15;
+        }
+        return h;
+    }
+
+    string_builder::string_builder() {
+        this->data = nullptr;
+        this->size = 0;
+        this->capacity = 0;
+    }
+
+    string_builder::string_builder(size_t size) {
+        this->data = (char*) malloc(size);
+        this->size = size;
+        this->capacity = size;
+    }
+
+    string_builder::string_builder(const char* str) {
+        this->data = (char*) malloc(strlen(str) + 1);
+        strcpy(this->data, str);
+        this->size = strlen(str) + 1;
+        this->capacity = this->size;
+    }
+
+    string_builder::string_builder(const string_builder& other) {
+        this->data = (char*) malloc(other.capacity);
+        this->size = other.size;
+        this->capacity = other.capacity;
+
+        memcpy(this->data, other.data, other.size);
+    }
+
+    string_builder::string_builder(string_builder&& other) {
+        this->data = other.data;
+        this->size = other.size;
+        this->capacity = other.capacity;
+        other.data = nullptr;
+        other.size = 0;
+        other.capacity = 0;
+    }
+
+    string_builder::~string_builder() {
+        if (this->data != nullptr) {
+            free(this->data);
+        }
+    }
+
+
+    string_builder& string_builder::operator=(const string_builder& other) {
+        this->data = (char*) malloc(other.capacity);
+        this->size = other.size;
+        this->capacity = other.capacity;
+        memcpy(this->data, other.data, other.size);
+        return *this;
+    }
+
+    string_builder& string_builder::operator=(string_builder&& other) {
+        this->data = other.data;
+        this->size = other.size;
+        this->capacity = other.capacity;
+        other.data = nullptr;
+        other.size = 0;
+        other.capacity = 0;
+        return *this;
+    }
+
+    string_builder& string_builder::operator=(const char* str) {
+        this->data = (char*) malloc(strlen(str) + 1);
+        strcpy(this->data, str);
+        this->size = strlen(str) + 1;
+        this->capacity = this->size;
+        return *this;
+    }
+
+    string_builder& string_builder::operator=(const std::string& str) {
+        this->data = (char*) malloc(str.size() + 1);
+        strcpy(this->data, str.c_str());
+        this->size = str.size() + 1;
+        this->capacity = this->size;
+        return *this;
+    }
+
+    string_builder& string_builder::operator+=(const string_builder& other) {
+        grow_if_smaller(other.size);
+        memcpy(this->data + this->size, other.data, other.size);
+        this->size += other.size;
+        return *this;
+    }
+
+    string_builder& string_builder::operator+=(const char* str) {
+        size_t len = strlen(str);
+        grow_if_smaller(len);
+        memcpy(this->data + this->size, str, len);
+        this->size += len;
+        return *this;
+    }
+
+    string_builder& string_builder::operator+=(const std::string& str) {
+        grow_if_smaller(str.size());
+        memcpy(this->data + this->size, str.c_str(), str.size());
+        this->size += str.size();
+        return *this;
+    }
+
+    string_builder& string_builder::operator+=(char c) {
+        grow_if_smaller(1);
+        this->data[this->size] = c;
+        this->size++;
+        return *this;
+    }
+
+    string_builder&& string_builder::operator+(const string_builder& other) {
+        string_builder sb(this->size + other.size);
+        memcpy(sb.data, this->data, this->size);
+        memcpy(sb.data + this->size, other.data, other.size);
+        sb.size = this->size + other.size;
+        return std::move(sb);
+    }
+
+    string_builder&& string_builder::operator+(const char* str) {
+        size_t len = strlen(str);
+        string_builder sb(this->size + len);
+        memcpy(sb.data, this->data, this->size);
+        memcpy(sb.data + this->size, str, len);
+        sb.size = this->size + len;
+        return std::move(sb);
+    }
+
+    string_builder&& string_builder::operator+(const std::string& str) {
+        string_builder sb(this->size + str.size());
+        memcpy(sb.data, this->data, this->size);
+        memcpy(sb.data + this->size, str.c_str(), str.size());
+        sb.size = this->size + str.size();
+        return std::move(sb);
+    }
+
+    string_builder&& string_builder::operator+(char c) {
+        string_builder sb(this->size + 1);
+        memcpy(sb.data, this->data, this->size);
+        sb.data[this->size] = c;
+        sb.size = this->size + 1;
+        return std::move(sb);
+    }
+
+    bool string_builder::operator==(const string_builder& other) {
+        return this->size == other.size && memcmp(this->data, other.data, this->size) == 0;
+    }
+
+    bool string_builder::operator==(const char* str) {
+        return this->size == strlen(str) && memcmp(this->data, str, this->size) == 0;
+    }
+
+    bool string_builder::operator==(const std::string& str) {
+        return this->size == str.size() && memcmp(this->data, str.c_str(), this->size) == 0;
+    }
+
+    bool string_builder::operator!=(const string_builder& other) {
+        return !(this->operator==(other));
+    }
+
+    bool string_builder::operator!=(const char* str) {
+        return !(this->operator==(str));
+    }
+
+    bool string_builder::operator!=(const std::string& str) {
+        return !(this->operator==(str));
+    }
+
+    char& string_builder::operator[](size_t index) {
+        return this->data[index];
+    }
+
+    char string_builder::operator[](size_t index) const {
+        return this->data[index];
+    }
+
+    string_builder::operator std::string() const {
+        return std::string(this->data, this->size);
+    }
+
+    string_builder::operator char*() const {
+        return this->data;
+    }
+
+    string_builder::operator const char*() const {
+        return this->data;
+    }
+
+    string_builder::operator bool() const {
+        return this->data != nullptr;
+    }
+
+    char* string_builder::c_str() {
+        return this->data;
+    }
+
+    const char* string_builder::c_str() const {
+        return this->data;
+    }
+
+    std::string string_builder::string() {
+        return std::string(this->data, this->size);
+    }
+
+    const std::string string_builder::string() const {
+        return std::string(this->data, this->size);
+    }
+
+    size_t string_builder::length() const {
+        return this->size;
+    }
+
+    void string_builder::clear() {
+        this->size = 0;
+        this->capacity = 16;
+        if (this->data) {
+            free(this->data);
+        }
+        this->data = (char*) malloc(this->capacity);
+    }
+
+    void string_builder::reserve(size_t size) {
+        if (size <= 0) {
+            throw std::invalid_argument("size must be greater than 0");
+        }
+        if (size > this->capacity) {
+            this->capacity = size;
+            this->data = (char*) realloc(this->data, this->capacity);
+        }
+    }
+
+    char& string_builder::front() {
+        return this->data[0];
+    }
+
+    char string_builder::front() const {
+        return this->data[0];
+    }
+
+    char& string_builder::back() {
+        return this->data[this->size - 1];
+    }
+
+    char string_builder::back() const {
+        return this->data[this->size - 1];
+    }
+
+    char* string_builder::begin() {
+        return this->data;
+    }
+
+    const char* string_builder::begin() const {
+        return this->data;
+    }
+
+    char* string_builder::end() {
+        return this->data + this->size;
+    }
+
+    const char* string_builder::end() const {
+        return this->data + this->size;
+    }
+
+    char& string_builder::at(size_t index) {
+        if (index >= this->size || index < 0) {
+            throw std::out_of_range("index out of range");
+        }
+        return this->data[index];
+    }
+
+    char string_builder::at(size_t index) const {
+        if (index >= this->size || index < 0) {
+            throw std::out_of_range("index out of range");
+        }
+        return this->data[index];
+    }
+
+    void string_builder::grow_if_smaller(size_t size) {
+        if (this->size + size > this->capacity) {
+            this->capacity = this->size + size;
+            this->data = (char*) realloc(this->data, this->capacity);
+        }
+    }
+
+    std::ostream& operator<<(std::ostream& os, const string_builder& str) {
+        os << str.data;
+        return os;
+    }
+
+    std::string& operator*(std::string& toRepeat, const size_t count) {
+        if (count == 0) {
+            toRepeat.clear();
+            return toRepeat;
+        }
+        if (count == 1) {
+            return toRepeat;
+        }
+        const size_t oldSize = toRepeat.size();
+        const size_t newSize = oldSize * count;
+        toRepeat.resize(newSize);
+        for (size_t i = 1; i < count; i++) {
+            memcpy(&toRepeat[0] + (i * oldSize), &toRepeat[0], oldSize);
+        }
+        return toRepeat;
     }
 } // namespace sclc

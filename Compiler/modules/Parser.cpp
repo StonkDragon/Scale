@@ -12,7 +12,7 @@
 
 namespace sclc
 {
-    TPResult Parser::getResult() {
+    TPResult& Parser::getResult() {
         return result;
     }
 
@@ -52,17 +52,37 @@ namespace sclc
 
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
-        vars = tmp;
-        vars.clear();
-        vars.push_back(defaultScope);
+        vars.reserve(32);
 
+        auto writeHeaderStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeHeader(fp, errors, warns);
+        auto writeHeaderEnd = std::chrono::high_resolution_clock::now();
+        Main.writeHeaderTime = std::chrono::duration_cast<std::chrono::microseconds>(writeHeaderEnd - writeHeaderStart).count();
+
+        auto writeContainersStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeContainers(fp, result, errors, warns);
+        auto writeContainersEnd = std::chrono::high_resolution_clock::now();
+        Main.writeContainersTime = std::chrono::duration_cast<std::chrono::microseconds>(writeContainersEnd - writeContainersStart).count();
+
+        auto writeStructsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeStructs(fp, result, errors, warns);
+        auto writeStructsEnd = std::chrono::high_resolution_clock::now();
+        Main.writeStructsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeStructsEnd - writeStructsStart).count();
+
+        auto writeGlobalsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
+        auto writeGlobalsEnd = std::chrono::high_resolution_clock::now();
+        Main.writeGlobalsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeGlobalsEnd - writeGlobalsStart).count();
+
+        auto writeFunctionHeadersStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
-        ConvertC::writeExternHeaders(fp, result, errors, warns);
+        auto writeFunctionHeadersEnd = std::chrono::high_resolution_clock::now();
+        Main.writeFunctionHeadersTime = std::chrono::duration_cast<std::chrono::microseconds>(writeFunctionHeadersEnd - writeFunctionHeadersStart).count();
+
+        auto writeFunctionsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
+        auto writeFunctionsEnd = std::chrono::high_resolution_clock::now();
+        Main.writeFunctionsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeFunctionsEnd - writeFunctionsStart).count();
 
         append("_scl_constructor void init_this() {\n");
         scopeDepth++;
