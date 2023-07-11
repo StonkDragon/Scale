@@ -1,4 +1,4 @@
-VERSION: "23.7";
+VERSION: "23.8";
 
 build: {
   compiler: "clang++";
