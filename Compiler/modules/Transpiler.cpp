@@ -85,7 +85,7 @@ namespace sclc {
             return "/* " + t + " */ scl_" + getStructByName(result, t).getName();
         }
         if (t.size() > 2 && t.front() == '[') {
-            std::string type = sclTypeToCType(result, t.substr(1, t.length() - 2));
+            std::string type = sclTypeToCType(result, t.substr(1, t.size() - 2));
             return type + "*";
         }
         if (getInterfaceByName(result, t)) {
@@ -237,7 +237,7 @@ namespace sclc {
         while ((end = str.find(delimiter, start)) != std::string::npos)
         {
             body.push_back(str.substr(start, end - start));
-            start = end + delimiter.length();
+            start = end + delimiter.size();
         }
         body.push_back(str.substr(start));
         return body;
@@ -687,7 +687,7 @@ namespace sclc {
         return 0;
     }
 
-    bool checkStackType(TPResult& result, std::vector<Variable> args, bool allowIntPromotion = false) {
+    bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false) {
         if (args.size() == 0) {
             return true;
         }
@@ -1633,7 +1633,7 @@ namespace sclc {
                 transpilerError("Generic Exception caught here:", i);
                 errors.push_back(err);
             }
-            transpilerError("Add 'typeof Exception' here to fix this:\\insertText; typeof Exception;" + std::to_string(err.line) + ":" + std::to_string(err.column + body[i].getValue().length()), i);
+            transpilerError("Add 'typeof Exception' here to fix this:\\insertText; typeof Exception;" + std::to_string(err.line) + ":" + std::to_string(err.column + body[i].getValue().size()), i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -5258,8 +5258,6 @@ namespace sclc {
         noUnused;
 
         auto tokenStart = std::chrono::high_resolution_clock::now();
-
-        append("/* %s */\n", body[i].tostring().c_str());
 
         handleRef(handleRefs[body[i].getType()]);
 

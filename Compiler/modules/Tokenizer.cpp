@@ -486,7 +486,7 @@ namespace sclc
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
-            if (std::string(buffer).length() <= 1 || buffer[0] == '\0' || buffer[0] == '#' || buffer[0] == '\n' || buffer[0] == '\r') {
+            if (std::string(buffer).size() <= 1 || buffer[0] == '\0' || buffer[0] == '#' || buffer[0] == '\n' || buffer[0] == '\r') {
                 data += "\n";
                 continue;
             }

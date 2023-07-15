@@ -407,7 +407,7 @@ namespace sclc
         return r;
     }
     
-    bool checkStackType(TPResult& result, std::vector<Variable> args, bool allowIntPromotion = false);
+    bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false);
 
     Function* getFunctionByNameWithArgs(TPResult& result, std::string name, bool doCheck) {
 

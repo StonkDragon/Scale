@@ -41,7 +41,7 @@ namespace sclc {
         fwrite(&numContainers, sizeof(uint32_t), 1, f);
 
         uint32_t numStructs = 0;
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.file).string())) {
                 numStructs++;
             }
@@ -104,27 +104,27 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = c.getName().length();
+            uint32_t nameLength = c.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(c.getName().c_str(), sizeof(char), nameLength, f);
             uint32_t numMembers = c.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
             for (Variable v : c.getMembers()) {
-                uint32_t memberNameLength = v.getName().length();
+                uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
 
-                uint32_t memberTypeLength = v.getType().length();
+                uint32_t memberTypeLength = v.getType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), memberTypeLength, f);
             }
         }
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.file).string())) {
                 continue;
             }
 
-            uint32_t nameLength = s.getName().length();
+            uint32_t nameLength = s.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(s.getName().c_str(), sizeof(char), nameLength, f);
 
@@ -134,11 +134,11 @@ namespace sclc {
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
 
             for (Variable v : s.getMembers()) {
-                uint32_t memberNameLength = v.getName().length();
+                uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
 
-                uint32_t memberTypeLength = v.getType().length();
+                uint32_t memberTypeLength = v.getType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), memberTypeLength, f);
             }
@@ -148,14 +148,14 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = e.getName().length();
+            uint32_t nameLength = e.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(e.getName().c_str(), sizeof(char), nameLength, f);
 
             uint32_t numMembers = e.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
             for (uint32_t i = 0; i < numMembers; i++) {
-                uint32_t memberNameLength = e.getMembers()[i].length();
+                uint32_t memberNameLength = e.getMembers()[i].size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
             }
@@ -168,18 +168,18 @@ namespace sclc {
             uint8_t isMethod = func->isMethod;
             fwrite(&isMethod, sizeof(uint8_t), 1, f);
             
-            uint32_t nameLength = func->getName().length();
+            uint32_t nameLength = func->getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(func->getName().c_str(), sizeof(char), nameLength, f);
 
             if (isMethod) {
                 Method* m = static_cast<Method*>(func);
-                uint32_t memberTypeLength = m->getMemberType().length();
+                uint32_t memberTypeLength = m->getMemberType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getMemberType().c_str(), sizeof(char), memberTypeLength, f);
             }
 
-            uint32_t returnTypeLength = func->getReturnType().length();
+            uint32_t returnTypeLength = func->getReturnType().size();
             fwrite(&returnTypeLength, sizeof(uint32_t), 1, f);
             fwrite(func->getReturnType().c_str(), sizeof(char), returnTypeLength, f);
 
@@ -199,7 +199,7 @@ namespace sclc {
             }
 
             for (std::string mod : mods) {
-                uint32_t modLength = mod.length();
+                uint32_t modLength = mod.size();
                 fwrite(&modLength, sizeof(uint32_t), 1, f);
                 fwrite(mod.c_str(), sizeof(char), modLength, f);
             }
@@ -208,7 +208,7 @@ namespace sclc {
             fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
             for (Variable v : func->getArgs()) {
-                uint32_t argTypeLength = v.getType().length();
+                uint32_t argTypeLength = v.getType().size();
                 fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
             }
@@ -218,11 +218,11 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = v.getName().length();
+            uint32_t nameLength = v.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(v.getName().c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = v.getType().length();
+            uint32_t typeLength = v.getType().size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
@@ -231,11 +231,11 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = v.getName().length();
+            uint32_t nameLength = v.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(v.getName().c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = v.getType().length();
+            uint32_t typeLength = v.getType().size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
@@ -244,7 +244,7 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = i->getName().length();
+            uint32_t nameLength = i->getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(i->getName().c_str(), sizeof(char), nameLength, f);
 
@@ -252,15 +252,15 @@ namespace sclc {
             fwrite(&numMethods, sizeof(uint32_t), 1, f);
 
             for (Function* m : i->getImplements()) {
-                uint32_t methodNameLength = m->getName().length();
+                uint32_t methodNameLength = m->getName().size();
                 fwrite(&methodNameLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getName().c_str(), sizeof(char), methodNameLength, f);
 
-                uint32_t memberTypeLength = m->getMemberType().length();
+                uint32_t memberTypeLength = m->getMemberType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getMemberType().c_str(), sizeof(char), memberTypeLength, f);
 
-                uint32_t returnTypeLength = m->getReturnType().length();
+                uint32_t returnTypeLength = m->getReturnType().size();
                 fwrite(&returnTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getReturnType().c_str(), sizeof(char), returnTypeLength, f);
 
@@ -268,7 +268,7 @@ namespace sclc {
                 uint32_t numMods = mods.size();
                 fwrite(&numMods, sizeof(uint32_t), 1, f);
                 for (std::string mod : mods) {
-                    uint32_t modLength = mod.length();
+                    uint32_t modLength = mod.size();
                     fwrite(&modLength, sizeof(uint32_t), 1, f);
                     fwrite(mod.c_str(), sizeof(char), modLength, f);
                 }
@@ -277,7 +277,7 @@ namespace sclc {
                 fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
                 for (Variable v : m->getArgs()) {
-                    uint32_t argTypeLength = v.getType().length();
+                    uint32_t argTypeLength = v.getType().size();
                     fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                     fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
                 }
@@ -288,7 +288,7 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = l.getName().length();
+            uint32_t nameLength = l.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(l.getName().c_str(), sizeof(char), nameLength, f);
 
@@ -296,21 +296,21 @@ namespace sclc {
             fwrite(&numFields, sizeof(uint32_t), 1, f);
 
             for (Variable v : l.getMembers()) {
-                uint32_t fieldNameLength = v.getName().length();
+                uint32_t fieldNameLength = v.getName().size();
                 fwrite(&fieldNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), fieldNameLength, f);
 
-                uint32_t fieldTypeLength = v.getType().length();
+                uint32_t fieldTypeLength = v.getType().size();
                 fwrite(&fieldTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), fieldTypeLength, f);
             }
         }
         for (auto ta : result.typealiases) {
-            uint32_t nameLength = ta.first.length();
+            uint32_t nameLength = ta.first.size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(ta.first.c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = ta.second.length();
+            uint32_t typeLength = ta.second.size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(ta.second.c_str(), sizeof(char), typeLength, f);
         }
@@ -346,7 +346,7 @@ namespace sclc {
         fwrite(&numContainers, sizeof(uint32_t), 1, f);
 
         uint32_t numStructs = 0;
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.file).string())) {
                 numStructs++;
             }
@@ -409,27 +409,27 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = c.getName().length();
+            uint32_t nameLength = c.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(c.getName().c_str(), sizeof(char), nameLength, f);
             uint32_t numMembers = c.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
             for (Variable v : c.getMembers()) {
-                uint32_t memberNameLength = v.getName().length();
+                uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
 
-                uint32_t memberTypeLength = v.getType().length();
+                uint32_t memberTypeLength = v.getType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), memberTypeLength, f);
             }
         }
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.file).string())) {
                 continue;
             }
 
-            uint32_t nameLength = s.getName().length();
+            uint32_t nameLength = s.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(s.getName().c_str(), sizeof(char), nameLength, f);
 
@@ -439,11 +439,11 @@ namespace sclc {
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
 
             for (Variable v : s.getMembers()) {
-                uint32_t memberNameLength = v.getName().length();
+                uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
 
-                uint32_t memberTypeLength = v.getType().length();
+                uint32_t memberTypeLength = v.getType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), memberTypeLength, f);
             }
@@ -453,14 +453,14 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = e.getName().length();
+            uint32_t nameLength = e.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(e.getName().c_str(), sizeof(char), nameLength, f);
 
             uint32_t numMembers = e.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
             for (uint32_t i = 0; i < numMembers; i++) {
-                uint32_t memberNameLength = e.getMembers()[i].length();
+                uint32_t memberNameLength = e.getMembers()[i].size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
             }
@@ -477,18 +477,18 @@ namespace sclc {
             uint8_t isMethod = func->isMethod;
             fwrite(&isMethod, sizeof(uint8_t), 1, f);
             
-            uint32_t nameLength = func->getName().length();
+            uint32_t nameLength = func->getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(func->getName().c_str(), sizeof(char), nameLength, f);
 
             if (isMethod) {
                 Method* m = static_cast<Method*>(func);
-                uint32_t memberTypeLength = m->getMemberType().length();
+                uint32_t memberTypeLength = m->getMemberType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getMemberType().c_str(), sizeof(char), memberTypeLength, f);
             }
 
-            uint32_t returnTypeLength = func->getReturnType().length();
+            uint32_t returnTypeLength = func->getReturnType().size();
             fwrite(&returnTypeLength, sizeof(uint32_t), 1, f);
             fwrite(func->getReturnType().c_str(), sizeof(char), returnTypeLength, f);
 
@@ -508,7 +508,7 @@ namespace sclc {
             }
 
             for (std::string mod : mods) {
-                uint32_t modLength = mod.length();
+                uint32_t modLength = mod.size();
                 fwrite(&modLength, sizeof(uint32_t), 1, f);
                 fwrite(mod.c_str(), sizeof(char), modLength, f);
             }
@@ -517,11 +517,11 @@ namespace sclc {
             fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
             for (Variable v : func->getArgs()) {
-                uint32_t argNameLength = v.getName().length();
+                uint32_t argNameLength = v.getName().size();
                 fwrite(&argNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), argNameLength, f);
 
-                uint32_t argTypeLength = v.getType().length();
+                uint32_t argTypeLength = v.getType().size();
                 fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
             }
@@ -531,7 +531,7 @@ namespace sclc {
             for (uint32_t i = 0; i < bodySize; i++) {
                 auto tok = func->getBody()[i];
                 fwrite(&(tok.type), sizeof(TokenType), 1, f);
-                uint32_t strLength = tok.value.length();
+                uint32_t strLength = tok.value.size();
                 fwrite(&strLength, sizeof(uint32_t), 1, f);
                 fwrite(tok.value.c_str(), sizeof(char), strLength, f);
             }
@@ -541,11 +541,11 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = v.getName().length();
+            uint32_t nameLength = v.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(v.getName().c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = v.getType().length();
+            uint32_t typeLength = v.getType().size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
@@ -554,11 +554,11 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = v.getName().length();
+            uint32_t nameLength = v.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(v.getName().c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = v.getType().length();
+            uint32_t typeLength = v.getType().size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
@@ -567,7 +567,7 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = i->getName().length();
+            uint32_t nameLength = i->getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(i->getName().c_str(), sizeof(char), nameLength, f);
 
@@ -575,15 +575,15 @@ namespace sclc {
             fwrite(&numMethods, sizeof(uint32_t), 1, f);
 
             for (Function* m : i->getImplements()) {
-                uint32_t methodNameLength = m->getName().length();
+                uint32_t methodNameLength = m->getName().size();
                 fwrite(&methodNameLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getName().c_str(), sizeof(char), methodNameLength, f);
 
-                uint32_t memberTypeLength = m->getMemberType().length();
+                uint32_t memberTypeLength = m->getMemberType().size();
                 fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getMemberType().c_str(), sizeof(char), memberTypeLength, f);
 
-                uint32_t returnTypeLength = m->getReturnType().length();
+                uint32_t returnTypeLength = m->getReturnType().size();
                 fwrite(&returnTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(m->getReturnType().c_str(), sizeof(char), returnTypeLength, f);
 
@@ -591,7 +591,7 @@ namespace sclc {
                 uint32_t numMods = mods.size();
                 fwrite(&numMods, sizeof(uint32_t), 1, f);
                 for (std::string mod : mods) {
-                    uint32_t modLength = mod.length();
+                    uint32_t modLength = mod.size();
                     fwrite(&modLength, sizeof(uint32_t), 1, f);
                     fwrite(mod.c_str(), sizeof(char), modLength, f);
                 }
@@ -600,11 +600,11 @@ namespace sclc {
                 fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
                 for (Variable v : m->getArgs()) {
-                    uint32_t argNameLength = v.getName().length();
+                    uint32_t argNameLength = v.getName().size();
                     fwrite(&argNameLength, sizeof(uint32_t), 1, f);
                     fwrite(v.getName().c_str(), sizeof(char), argNameLength, f);
 
-                    uint32_t argTypeLength = v.getType().length();
+                    uint32_t argTypeLength = v.getType().size();
                     fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                     fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
                 }
@@ -615,7 +615,7 @@ namespace sclc {
                 continue;
             }
 
-            uint32_t nameLength = l.getName().length();
+            uint32_t nameLength = l.getName().size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(l.getName().c_str(), sizeof(char), nameLength, f);
 
@@ -623,21 +623,21 @@ namespace sclc {
             fwrite(&numFields, sizeof(uint32_t), 1, f);
 
             for (Variable v : l.getMembers()) {
-                uint32_t fieldNameLength = v.getName().length();
+                uint32_t fieldNameLength = v.getName().size();
                 fwrite(&fieldNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), fieldNameLength, f);
 
-                uint32_t fieldTypeLength = v.getType().length();
+                uint32_t fieldTypeLength = v.getType().size();
                 fwrite(&fieldTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), fieldTypeLength, f);
             }
         }
         for (auto ta : result.typealiases) {
-            uint32_t nameLength = ta.first.length();
+            uint32_t nameLength = ta.first.size();
             fwrite(&nameLength, sizeof(uint32_t), 1, f);
             fwrite(ta.first.c_str(), sizeof(char), nameLength, f);
 
-            uint32_t typeLength = ta.second.length();
+            uint32_t typeLength = ta.second.size();
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(ta.second.c_str(), sizeof(char), typeLength, f);
         }

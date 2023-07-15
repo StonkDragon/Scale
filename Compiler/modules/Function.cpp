@@ -81,7 +81,7 @@ std::string Function::finalName() {
     }
     return name;
 }
-std::vector<Token> Function::getBody() {
+std::vector<Token>& Function::getBody() {
     return body;
 }
 std::vector<Token>& Function::getBodyRef() {
@@ -114,13 +114,13 @@ void Function::addModifier(std::string modifier) {
     else if (!has_getter && modifier == "@getter") has_getter = modifiers.size();
     else if (!has_setter && modifier == "@setter") has_setter = modifiers.size();
 }
-std::vector<std::string> Function::getModifiers() {
+std::vector<std::string>& Function::getModifiers() {
     return modifiers;
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
 }
-std::vector<Variable> Function::getArgs() {
+std::vector<Variable>& Function::getArgs() {
     return args;
 }
 std::string Function::getFile() {
@@ -172,11 +172,11 @@ bool Function::operator==(const Function* other) const {
     }
     return name == other->name;
 }
-Variable Function::getNamedReturnValue() {
+Variable& Function::getNamedReturnValue() {
     if (this->hasNamedReturnValue)
         return this->namedReturnValue;
     
-    return Variable("", "");
+    return Variable::emptyVar();
 }
 void Function::setNamedReturnValue(Variable v) {
     this->namedReturnValue = v;

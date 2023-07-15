@@ -659,7 +659,7 @@ namespace sclc
         scaleFolder             = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O2";
+        std::string optimizer   = "O0";
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;

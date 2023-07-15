@@ -71,5 +71,10 @@ namespace sclc
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);
         }
+
+        static Variable& emptyVar() {
+            static Variable empty("", "");
+            return empty;
+        }
     };
 } // namespace sclc

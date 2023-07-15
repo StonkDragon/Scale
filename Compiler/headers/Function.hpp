@@ -53,15 +53,15 @@ namespace sclc
         virtual ~Function() {}
         virtual std::string getName();
         virtual std::string finalName();
-        virtual std::vector<Token> getBody();
+        virtual std::vector<Token>& getBody();
         virtual std::vector<Token>& getBodyRef();
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
-        virtual std::vector<std::string> getModifiers();
+        virtual std::vector<std::string>& getModifiers();
         // IMPORTANT: Function takes index starting at 1
         virtual std::string& getModifier(size_t index);
         virtual void addArgument(Variable arg);
-        virtual std::vector<Variable> getArgs();
+        virtual std::vector<Variable>& getArgs();
         virtual std::string getFile();
         virtual void setFile(std::string file);
         virtual void setName(std::string name);
@@ -69,7 +69,7 @@ namespace sclc
         virtual void setReturnType(std::string type);
         virtual Token getNameToken();
         virtual void setNameToken(Token t);
-        virtual Variable getNamedReturnValue();
+        virtual Variable& getNamedReturnValue();
         virtual void setNamedReturnValue(Variable v);
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
