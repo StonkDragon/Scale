@@ -6,6 +6,7 @@ final sealed struct Library
     private static expect unsafe function open0(name: [int8]): any
     private static expect unsafe function close0(handle: any): none
     private static expect unsafe function dlerror0(): str
+    private static expect unsafe function self0(): any
     
     function init(name: str): none
         name => self._name

@@ -124,19 +124,29 @@ scl_int8* Library$progname(void) {
 struct Struct_Array* Process$stackTrace(void) {
 	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
 	
-	arr->capacity = _callstack.ptr;
-	arr->initCapacity = _callstack.ptr;
+	arr->capacity = (_stack.tp - _stack.tbp) / sizeof(scl_int8*) + 1;
+	arr->initCapacity = arr->capacity;
 	arr->count = 0;
-	arr->values = _scl_new_array((_callstack.ptr) * sizeof(scl_str));
-	
-	for (scl_int i = 0; i < _callstack.ptr; i++) {
-		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(_callstack.func[i]);
+	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
+
+	scl_int8** _callstack = _stack.tbp;
+
+	while (_callstack < _stack.tp) {
+		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(*_callstack++);
 	}
 	return arr;
 }
 
 scl_bool Process$gcEnabled(void) {
 	return !_scl_gc_is_disabled();
+}
+
+scl_any* Process$stackPointer() {
+	return (scl_any*) _stack.sp;
+}
+
+scl_any* Process$basePointer() {
+	return (scl_any*) _stack.bp;
 }
 
 #define TO(type, name) scl_ ## type int$to ## name (scl_int val) { return (scl_ ## type) (val & ((1ULL << (sizeof(scl_ ## type) * 8)) - 1)); }
@@ -272,15 +282,15 @@ scl_bool float$isNaN(scl_float val) {
 
 void dumpStack(void) {
 	printf("Dump:\n");
-	for (ssize_t i = 0; i < _stack.ptr; i++) {
-		scl_int v = _stack.data[i].i;
-		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+	_scl_frame_t* frame = _stack.bp;
+	while (frame != _stack.sp) {
+		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
 	}
 	printf("\n");
 }
 
 scl_any Library$self0(void) {
-	scl_any lib = dlopen(nil, RTLD_NOW | RTLD_GLOBAL);
+	scl_any lib = dlopen(nil, RTLD_LAZY);
 	if (!lib) {
 		scl_NullPointerException* e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
@@ -295,7 +305,7 @@ scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
 }
 
 scl_any Library$open0(scl_int8* name) {
-	scl_any lib = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
+	scl_any lib = dlopen(name, RTLD_LAZY);
 	if (!lib) {
 		scl_NullPointerException* e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
@@ -338,7 +348,7 @@ scl_Float Float$valueOf(scl_float val) {
 
 void Thread$run(scl_Thread self) {
 	_scl_stack_new();
-	*(_scl_callstack_push()) = "<extern Thread:run(): none>";
+	*(_stack.tp++) = "<extern Thread:run(): none>";
 	_currentThread = self;
 
 	virtual_call(Var_Thread$threads, "push(a;)V;", self);
@@ -348,7 +358,7 @@ void Thread$run(scl_Thread self) {
 	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
 	
 	_currentThread = nil;
-	_callstack.ptr--;
+	_stack.tp--;
 	_scl_stack_free();
 }
 

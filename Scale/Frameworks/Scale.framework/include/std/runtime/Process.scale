@@ -21,4 +21,7 @@ static final sealed struct Process
 
     expect function lock(obj: SclObject): none
     expect function unlock(obj: SclObject): none
+
+    expect function stackPointer(): [any]
+    expect function basePointer(): [any]
 end

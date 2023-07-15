@@ -230,8 +230,8 @@ sealed struct Array is Iterable
     done
     unsafe
       c!
-        scl_int* begin_sp = (scl_int*) &__begin_stack_size;
-        *begin_sp = _stack.ptr;
+        _scl_frame_t** begin_sp = (_scl_frame_t**) &__current_base_ptr;
+        *begin_sp = _stack.sp;
       end
     end
   end
