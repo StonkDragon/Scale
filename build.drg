@@ -31,6 +31,7 @@ build: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-O2";
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
@@ -79,6 +80,7 @@ install: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-O2";
   ];
   preBuild: [
     "rm -rf /opt/Scale/$(VERSION)";
