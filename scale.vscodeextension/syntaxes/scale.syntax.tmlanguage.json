@@ -5,12 +5,12 @@
 		{"include": "#comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
+		{"include": "#quoted_string"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#deprecation"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#quoted_string"},
 		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
 		{"include": "#stack_operators"},
@@ -79,7 +79,7 @@
 		},
 		"quoted_string": {
 			"name": "string.quoted.double",
-			"begin": "\"",
+			"begin": "(c\"|\")",
 			"end": "\"",
 			"patterns": [{
 				"name": "string",
