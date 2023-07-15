@@ -593,7 +593,7 @@ namespace sclc
             sym = replaceAll(sym, "\\$", "::");
             return sym;
         }
-        if (strstarts(sym, "lambda<")) {
+        if (strstarts(sym, "lambda[")) {
             return demangleLambda(sym);
         }
         if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
@@ -900,7 +900,6 @@ namespace sclc
         cflags.push_back("-lScaleRuntime");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-        cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
         
         std::string source;
         bool alreadyIncluded = false;
@@ -1596,14 +1595,6 @@ namespace sclc
             remove("scale_support.h");
         }
 
-        std::cout << "Time spent handling tokens: " << ((double) Main.tokenHandleTime) / 1000000.0 << " seconds." << std::endl;
-        std::cout << "writeHeaderTime: " << ((double) Main.writeHeaderTime) / 1000000.0 << "seconds." << std::endl;
-        std::cout << "writeContainersTime: " << ((double) Main.writeContainersTime) / 1000000.0 << "seconds." << std::endl;
-        std::cout << "writeStructsTime: " << ((double) Main.writeStructsTime) / 1000000.0 << "seconds." << std::endl;
-        std::cout << "writeGlobalsTime: " << ((double) Main.writeGlobalsTime) / 1000000.0 << "seconds." << std::endl;
-        std::cout << "writeFunctionHeadersTime: " << ((double) Main.writeFunctionHeadersTime) / 1000000.0 << "seconds." << std::endl;
-        std::cout << "writeFunctionsTime: " << ((double) Main.writeFunctionsTime) / 1000000.0 << "seconds." << std::endl;
-
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
 
         auto end = clock::now();
@@ -1628,12 +1619,8 @@ int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
     signal(SIGILL, sclc::signalHandler);
-    signal(SIGFPE, sclc::signalHandler);
     signal(SIGINT, sclc::signalHandler);
     signal(SIGTERM, sclc::signalHandler);
-#ifdef SIGQUIT
-    signal(SIGQUIT, sclc::signalHandler);
-#endif
 
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {
