@@ -87,6 +87,8 @@ namespace sclc
         append("_scl_constructor void init_this() {\n");
         scopeDepth++;
         append("_scl_setup();\n");
+        append("TRY {\n");
+        scopeDepth++;
         for (Function* f : result.functions) {
             if (!f->isMethod && isInitFunction(f)) {
                 if (f->getArgs().size()) {
@@ -105,8 +107,15 @@ namespace sclc
             }
         }
         scopeDepth--;
+        append("} else {\n");
+        append("    _scl_runtime_catch();\n");
+        append("}\n");
+
+        scopeDepth--;
         append("}\n\n");
         append("_scl_destructor void destroy_this() {\n");
+        append("TRY {\n");
+        scopeDepth++;
         for (Function* f : result.functions) {
             if (!f->isMethod && isDestroyFunction(f)) {
                 if (f->getArgs().size()) {
@@ -124,6 +133,10 @@ namespace sclc
                 }
             }
         }
+        scopeDepth--;
+        append("} else {\n");
+        append("    _scl_runtime_catch();\n");
+        append("}\n");
         append("}\n\n");
         
         fclose(fp);
