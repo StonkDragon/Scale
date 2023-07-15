@@ -98,9 +98,6 @@ framework: {
         std.util.Triple: [
             "std/util/Triple.scale";
         ];
-        std.reflect.Struct: [
-            "std/reflect/Struct.scale";
-        ];
         std.runtime.Process: [
             "std/runtime/Process.scale";
         ];
