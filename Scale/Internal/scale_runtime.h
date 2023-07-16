@@ -120,6 +120,8 @@
 #define _scl_always_inline
 #endif
 
+#define AKA(_sym) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) # _sym)
+
 // Define scale-specific signals
 #define EX_BAD_PTR				128
 #define EX_STACK_OVERFLOW		129
@@ -349,6 +351,26 @@ scl_any				virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...)
 scl_float			virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...);
 // call a method on the super class of an instance
 scl_float			virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...);
+// Throws the given exception
+_scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
+// Returns the current size of the stack
+scl_int				stack_size(void) AKA(_scl_stack_size);
+// Reallocates the given pointer to the given size
+scl_any				managed_realloc(scl_any ptr, scl_int size) AKA(_scl_realloc);
+// Allocates a new pointer of the given size
+scl_any				managed_alloc(scl_int size) AKA(_scl_alloc);
+// Frees the given pointer
+void				managed_free(scl_any ptr) AKA(_scl_free);
+// Returns the size of the given pointer
+scl_int				size_of(scl_any ptr) AKA(_scl_sizeof);
+// Asserts that 'b' is true, otherwise throws an 'AssertError' with the given message
+void				scl_assert(scl_int b, scl_int8* msg, ...) AKA(_scl_assert);
+// Creates a new array with the given size
+scl_any				array_of(scl_int size, scl_int element_size) AKA(_scl_new_array_by_size);
+// Returns the size of the given array. Throws an 'InvalidArgumentException' if the given object is not an array
+scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
+
+#define TYPEID(_type) id(#_type)
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
@@ -390,6 +412,7 @@ void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, scl_any main);
 
 const ID_t			id(const scl_int8* data);
+
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
 void				_scl_free_struct(scl_any ptr);
