@@ -4936,8 +4936,12 @@ namespace sclc {
                 return;
             }
             std::string help = "";
-            if (getMethodByName(result, body[i].getValue(), s.getName())) {
-                help = ". Maybe you meant to use ':' instead of '.' here";
+            Method* m;
+            if ((m = getMethodByName(result, body[i].getValue(), s.getName())) != nullptr) {
+                std::string lambdaType = "lambda(" + std::to_string(m->getArgs().size()) + "):" + m->getReturnType();
+                append("(_stack.sp++)->v = Method_%s$%s;\n", s.getName().c_str(), m->getName().c_str());
+                typeStack.push(lambdaType);
+                return;
             }
             transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'" + help, i);
             errors.push_back(err);
@@ -5137,7 +5141,60 @@ namespace sclc {
             std::string help = "";
             if (s.hasMember(body[i].getValue())) {
                 help = ". Maybe you meant to use '.' instead of ':' here";
+
+                const Variable& v = s.getMember(body[i].getValue());
+                std::string type = v.getType();
+                if (!strstarts(removeTypeModifiers(type), "lambda(")) {
+                    goto notLambdaType;
+                }
+
+                std::string returnType = lambdaReturnType(type);
+                size_t argAmount = lambdaArgCount(type);
+
+
+                append("{\n");
+                scopeDepth++;
+
+                append("%s tmp = (--_stack.sp)->v;\n", sclTypeToCType(result, s.getName()).c_str());
+                typePop;
+
+                if (typeStack.size() < argAmount) {
+                    transpilerError("Arguments for lambda '" + s.getName() + ":" + v.getName() + "' do not equal inferred stack!", i);
+                    errors.push_back(err);
+                    return;
+                }
+
+                std::string argTypes = "";
+                std::string argGet = "";
+                for (size_t argc = argAmount; argc; argc--) {
+                    argTypes += "scl_any";
+                    argGet += "_scl_positive_offset(" + std::to_string(argAmount - argc) + ")->v";
+                    if (argc > 1) {
+                        argTypes += ", ";
+                        argGet += ", ";
+                    }
+                    typePop;
+                }
+                if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
+                    append("void(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.getName().c_str());
+                    append("_stack.sp -= (%zu);\n", argAmount);
+                    append("lambda(%s);\n", argGet.c_str());
+                } else if (removeTypeModifiers(returnType) == "float") {
+                    append("scl_float(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.getName().c_str());
+                    append("_stack.sp -= (%zu);\n", argAmount);
+                    append("(_stack.sp++)->f = lambda(%s);\n", argGet.c_str());
+                    typeStack.push(returnType);
+                } else {
+                    append("scl_any(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.getName().c_str());
+                    append("_stack.sp -= (%zu);\n", argAmount);
+                    append("(_stack.sp++)->v = lambda(%s);\n", argGet.c_str());
+                    typeStack.push(returnType);
+                }
+                scopeDepth--;
+                append("}\n");
+                return;
             }
+        notLambdaType:
             transpilerError("Unknown method '" + body[i].getValue() + "' on type '" + removeTypeModifiers(type) + "'" + help, i);
             errors.push_back(err);
             return;
