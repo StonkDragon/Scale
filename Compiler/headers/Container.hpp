@@ -21,7 +21,7 @@ namespace sclc
             members.push_back(member);
         }
         bool hasMember(std::string member) {
-            for (Variable m : members) {
+            for (Variable& m : members) {
                 if (m.getName() == member) {
                     return true;
                 }
@@ -31,7 +31,7 @@ namespace sclc
         std::string getName() { return name; }
         std::vector<Variable> getMembers() { return members; }
         std::string getMemberType(std::string member) {
-            for (Variable m : members) {
+            for (Variable& m : members) {
                 if (m.getName() == member) {
                     return m.getType();
                 }
@@ -39,7 +39,7 @@ namespace sclc
             return "";
         }
         Variable getMember(std::string member) {
-            for (Variable m : members) {
+            for (Variable& m : members) {
                 if (m.getName() == member) {
                     return m;
                 }

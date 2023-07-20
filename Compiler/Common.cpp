@@ -64,7 +64,7 @@ namespace sclc
         strings = backtrace_symbols(array, size);
         if (strings != NULL) {
             for (i = 0; i < size; i++)
-                printf("  %s\n", strings[i]);
+                fprintf(stderr, "  %s\n", strings[i]);
         }
 
         free(strings);
@@ -72,8 +72,8 @@ namespace sclc
     }
 
     void signalHandler(int signum) {
-        std::cout << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cout << "Error: " << std::strerror(errno) << std::endl;
+        std::cerr << "Signal " << signum << " received." << std::endl;
+        if (errno != 0) std::cerr << "Error: " << std::strerror(errno) << std::endl;
         print_trace();
         exit(signum);
     }
@@ -164,11 +164,6 @@ namespace sclc
             c == '!';
     }
 
-    bool isOperator(Token token) {
-        TokenType type = token.getType();
-        return type == tok_add || type == tok_sub || type == tok_mul || type == tok_div || type == tok_mod || type == tok_land || type == tok_lor || type == tok_lxor || type == tok_lnot || type == tok_lsh || type == tok_rsh || type == tok_pow;
-    }
-
     bool fileExists(const std::string& name) {
         FILE *file;
         if ((file = fopen(name.c_str(), "r")) != NULL) {
@@ -233,10 +228,6 @@ namespace sclc
         return false;
     }
 
-    bool hasVar(Token name) {
-        return hasVar(name.getValue());
-    }
-
     Variable getVar(std::string name) {
         for (auto&& v : vars) {
             if (v.name == name) {
@@ -244,10 +235,6 @@ namespace sclc
             }
         }
         return Variable("", "");
-    }
-
-    Variable getVar(Token name) {
-        return getVar(name.getValue());
     }
 
     long long parseNumber(std::string str) {
@@ -554,13 +541,15 @@ namespace sclc
         return methods;
     }
 
+    Container EmptyContainer = Container("");
+
     Container getContainerByName(TPResult& result, std::string name) {
         for (Container& container : result.containers) {
             if (container.getName() == name) {
                 return container;
             }
         }
-        return Container("");
+        return EmptyContainer;
     }
 
     std::string removeTypeModifiers(std::string t);
@@ -569,13 +558,15 @@ namespace sclc
 
     Struct getStructByName(TPResult& result, std::string name) {
         name = removeTypeModifiers(name);
-        for (Struct& struct_ : result.structs) {
-            if (struct_.getName() == name) {
-                return struct_;
+        for (Struct s : result.structs) {
+            if (s.getName() == name) {
+                return s;
             }
         }
         return Struct::Null;
     }
+
+    Layout EmptyLayout = Layout("");
 
     Layout getLayout(TPResult& result, std::string name) {
         name = removeTypeModifiers(name);
@@ -584,7 +575,7 @@ namespace sclc
                 return layout;
             }
         }
-        return Layout("");
+        return EmptyLayout;
     }
 
     bool hasLayout(TPResult& result, std::string name) {
@@ -635,11 +626,7 @@ namespace sclc
         return false;
     }
 
-    bool hasFunction(TPResult& result, Token name) {
-        return hasFunction(result, name.getValue());
-    }
-
-    std::vector<std::string> supersToVector(TPResult& r, Struct s) {
+    std::vector<std::string> supersToVector(TPResult& r, Struct& s) {
         std::vector<std::string> v;
         v.reserve(16);
         v.push_back(s.getName());
@@ -650,7 +637,7 @@ namespace sclc
         }
         return v;
     }
-    std::string supersToHashedCList(TPResult& r, Struct s) {
+    std::string supersToHashedCList(TPResult& r, Struct& s) {
         std::string list = "(scl_int[]) {";
         std::vector<std::string> v = supersToVector(r, s);
         for (size_t i = 0; i < v.size(); i++) {
@@ -663,7 +650,7 @@ namespace sclc
         list += "}";
         return list;
     }
-    std::string supersToCList(TPResult& r, Struct s) {
+    std::string supersToCList(TPResult& r, Struct& s) {
         std::string list = "(scl_str*) {\"" + s.getName() + "\"";
         Struct super = getStructByName(r, s.extends());
         while (super.getName().size()) {
@@ -681,30 +668,22 @@ namespace sclc
         return getMethodByName(result, name, type) != nullptr;
     }
 
-    bool hasMethod(TPResult& result, Token name, std::string type) {
-        return hasMethod(result, name.getValue(), type);
-    }
-
-    bool hasContainer(TPResult& result, Token name) {
-        for (Container container_ : result.containers) {
-            if (container_.getName() == name.value) {
+    bool hasContainer(TPResult& result, std::string name) {
+        for (Container& container_ : result.containers) {
+            if (container_.getName() == name) {
                 return true;
             }
         }
         return false;
     }
 
-    bool hasContainer(TPResult& result, std::string name) {
-        return hasContainer(result, Token(tok_identifier, name, 0, ""));
-    }
-
     bool hasGlobal(TPResult& result, std::string name) {
-        for (Variable v : result.globals) {
+        for (Variable& v : result.globals) {
             if (v.getName() == name) {
                 return true;
             }
         }
-        for (Variable v : result.extern_globals) {
+        for (Variable& v : result.extern_globals) {
             if (v.getName() == name) {
                 return true;
             }
@@ -728,7 +707,7 @@ namespace sclc
         return f->has_final || strstarts(f->getName(), "__destroy__");
     }
 
-    bool memberOfStruct(Variable* self, Function* f) {
+    bool memberOfStruct(const Variable* self, Function* f) {
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
             if (m->getMemberType() == self->internalMutableFrom) {
@@ -740,7 +719,7 @@ namespace sclc
         return false;
     };
 
-    bool Variable::isWritableFrom(Function* f, VarAccess accessType)  {
+    bool Variable::isWritableFrom(Function* f, VarAccess accessType) const {
 
         if (typeIsReadonly(getType())) {
             if (strstarts(this->getName(), f->member_type + "$")) {

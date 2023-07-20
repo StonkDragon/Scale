@@ -20,7 +20,12 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
-    struct Variable {
+    template<typename T>
+    struct Also {
+        virtual T& also(std::function<void(T&)> func) = 0;
+    };
+
+    struct Variable : public Also<Variable> {
         std::string name;
         std::string type;
         std::string internalMutableFrom;
@@ -45,8 +50,8 @@ namespace sclc
             this->isPrivate = false;
             this->typeFromTemplate = "";
         }
-        ~Variable() {}
-        std::string getName() {
+        virtual ~Variable() {}
+        std::string getName() const {
             return name;
         }
         std::string getType() const {
@@ -58,10 +63,10 @@ namespace sclc
         void setType(std::string type) {
             this->type = type;
         }
-        bool isWritable() {
+        bool isWritable() const {
             return !isConst;
         }
-        bool isWritableFrom(Function* f, VarAccess accessType);
+        bool isWritableFrom(Function* f, VarAccess accessType) const;
         inline bool operator==(const Variable& other) const {
             if (this->getType() == "?" || other.getType() == "?") {
                 return this->name == other.name;
@@ -70,6 +75,10 @@ namespace sclc
         }
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);
+        }
+        virtual Variable& also(std::function<void(Variable&)> f) {
+            f(*this);
+            return *this;
         }
 
         static Variable& emptyVar() {

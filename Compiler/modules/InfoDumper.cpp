@@ -33,7 +33,7 @@ namespace sclc {
         fwrite(&version, sizeof(uint32_t), 1, f);
 
         uint32_t numContainers = 0;
-        for (Container c : result.containers) {
+        for (Container& c : result.containers) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->file).string())) {
                 numContainers++;
             }
@@ -65,7 +65,7 @@ namespace sclc {
         fwrite(&numFunctions, sizeof(uint32_t), 1, f);
 
         uint32_t numGlobals = 0;
-        for (Variable v : result.globals) {
+        for (Variable& v : result.globals) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 numGlobals++;
             }
@@ -73,7 +73,7 @@ namespace sclc {
         fwrite(&numGlobals, sizeof(uint32_t), 1, f);
 
         uint32_t numExternGlobals = 0;
-        for (Variable v : result.extern_globals) {
+        for (Variable& v : result.extern_globals) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 numExternGlobals++;
             }
@@ -89,7 +89,7 @@ namespace sclc {
         fwrite(&numInterfaces, sizeof(uint32_t), 1, f);
 
         uint32_t numLayouts = 0;
-        for (Layout l : result.layouts) {
+        for (Layout& l : result.layouts) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.getNameToken().file).string())) {
                 numLayouts++;
             }
@@ -99,7 +99,7 @@ namespace sclc {
         uint32_t numTypealiases = result.typealiases.size();
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
-        for (Container c : result.containers) {
+        for (Container& c : result.containers) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->file).string())) {
                 continue;
             }
@@ -109,7 +109,7 @@ namespace sclc {
             fwrite(c.getName().c_str(), sizeof(char), nameLength, f);
             uint32_t numMembers = c.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (Variable v : c.getMembers()) {
+            for (Variable& v : c.getMembers()) {
                 uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
@@ -133,7 +133,7 @@ namespace sclc {
             uint32_t numMembers = s.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
 
-            for (Variable v : s.getMembers()) {
+            for (Variable& v : s.getMembers()) {
                 uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
@@ -198,7 +198,7 @@ namespace sclc {
                 fwrite("<virtual>", sizeof(char), modLength, f);
             }
 
-            for (std::string mod : mods) {
+            for (std::string& mod : mods) {
                 uint32_t modLength = mod.size();
                 fwrite(&modLength, sizeof(uint32_t), 1, f);
                 fwrite(mod.c_str(), sizeof(char), modLength, f);
@@ -207,13 +207,13 @@ namespace sclc {
             uint32_t numArgs = func->getArgs().size();
             fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
-            for (Variable v : func->getArgs()) {
+            for (Variable& v : func->getArgs()) {
                 uint32_t argTypeLength = v.getType().size();
                 fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
             }
         }
-        for (Variable v : result.globals) {
+        for (Variable& v : result.globals) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 continue;
             }
@@ -226,7 +226,7 @@ namespace sclc {
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
-        for (Variable v : result.extern_globals) {
+        for (Variable& v : result.extern_globals) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 continue;
             }
@@ -267,7 +267,7 @@ namespace sclc {
                 auto mods = m->getModifiers();
                 uint32_t numMods = mods.size();
                 fwrite(&numMods, sizeof(uint32_t), 1, f);
-                for (std::string mod : mods) {
+                for (std::string& mod : mods) {
                     uint32_t modLength = mod.size();
                     fwrite(&modLength, sizeof(uint32_t), 1, f);
                     fwrite(mod.c_str(), sizeof(char), modLength, f);
@@ -276,14 +276,14 @@ namespace sclc {
                 uint32_t numArgs = m->getArgs().size();
                 fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
-                for (Variable v : m->getArgs()) {
+                for (Variable& v : m->getArgs()) {
                     uint32_t argTypeLength = v.getType().size();
                     fwrite(&argTypeLength, sizeof(uint32_t), 1, f);
                     fwrite(v.getType().c_str(), sizeof(char), argTypeLength, f);
                 }
             }
         }
-        for (Layout l : result.layouts) {
+        for (Layout& l : result.layouts) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.getNameToken().file).string())) {
                 continue;
             }
@@ -295,7 +295,7 @@ namespace sclc {
             uint32_t numFields = l.getMembers().size();
             fwrite(&numFields, sizeof(uint32_t), 1, f);
 
-            for (Variable v : l.getMembers()) {
+            for (Variable& v : l.getMembers()) {
                 uint32_t fieldNameLength = v.getName().size();
                 fwrite(&fieldNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), fieldNameLength, f);
@@ -338,7 +338,7 @@ namespace sclc {
         fwrite(&version, sizeof(uint32_t), 1, f);
 
         uint32_t numContainers = 0;
-        for (Container c : result.containers) {
+        for (Container& c : result.containers) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->file).string())) {
                 numContainers++;
             }
@@ -370,7 +370,7 @@ namespace sclc {
         fwrite(&numFunctions, sizeof(uint32_t), 1, f);
 
         uint32_t numGlobals = 0;
-        for (Variable v : result.globals) {
+        for (Variable& v : result.globals) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 numGlobals++;
             }
@@ -378,7 +378,7 @@ namespace sclc {
         fwrite(&numGlobals, sizeof(uint32_t), 1, f);
 
         uint32_t numExternGlobals = 0;
-        for (Variable v : result.extern_globals) {
+        for (Variable& v : result.extern_globals) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 numExternGlobals++;
             }
@@ -394,7 +394,7 @@ namespace sclc {
         fwrite(&numInterfaces, sizeof(uint32_t), 1, f);
 
         uint32_t numLayouts = 0;
-        for (Layout l : result.layouts) {
+        for (Layout& l : result.layouts) {
             if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.getNameToken().file).string())) {
                 numLayouts++;
             }
@@ -404,7 +404,7 @@ namespace sclc {
         uint32_t numTypealiases = result.typealiases.size();
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
-        for (Container c : result.containers) {
+        for (Container& c : result.containers) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->file).string())) {
                 continue;
             }
@@ -414,7 +414,7 @@ namespace sclc {
             fwrite(c.getName().c_str(), sizeof(char), nameLength, f);
             uint32_t numMembers = c.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (Variable v : c.getMembers()) {
+            for (Variable& v : c.getMembers()) {
                 uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
@@ -438,7 +438,7 @@ namespace sclc {
             uint32_t numMembers = s.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
 
-            for (Variable v : s.getMembers()) {
+            for (Variable& v : s.getMembers()) {
                 uint32_t memberNameLength = v.getName().size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), memberNameLength, f);
@@ -507,7 +507,7 @@ namespace sclc {
                 fwrite("<virtual>", sizeof(char), modLength, f);
             }
 
-            for (std::string mod : mods) {
+            for (std::string& mod : mods) {
                 uint32_t modLength = mod.size();
                 fwrite(&modLength, sizeof(uint32_t), 1, f);
                 fwrite(mod.c_str(), sizeof(char), modLength, f);
@@ -516,7 +516,7 @@ namespace sclc {
             uint32_t numArgs = func->getArgs().size();
             fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
-            for (Variable v : func->getArgs()) {
+            for (Variable& v : func->getArgs()) {
                 uint32_t argNameLength = v.getName().size();
                 fwrite(&argNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), argNameLength, f);
@@ -536,7 +536,7 @@ namespace sclc {
                 fwrite(tok.value.c_str(), sizeof(char), strLength, f);
             }
         }
-        for (Variable v : result.globals) {
+        for (Variable& v : result.globals) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 continue;
             }
@@ -549,7 +549,7 @@ namespace sclc {
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.getType().c_str(), sizeof(char), typeLength, f);
         }
-        for (Variable v : result.extern_globals) {
+        for (Variable& v : result.extern_globals) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->file).string())) {
                 continue;
             }
@@ -590,7 +590,7 @@ namespace sclc {
                 auto mods = m->getModifiers();
                 uint32_t numMods = mods.size();
                 fwrite(&numMods, sizeof(uint32_t), 1, f);
-                for (std::string mod : mods) {
+                for (std::string& mod : mods) {
                     uint32_t modLength = mod.size();
                     fwrite(&modLength, sizeof(uint32_t), 1, f);
                     fwrite(mod.c_str(), sizeof(char), modLength, f);
@@ -599,7 +599,7 @@ namespace sclc {
                 uint32_t numArgs = m->getArgs().size();
                 fwrite(&numArgs, sizeof(uint32_t), 1, f);
 
-                for (Variable v : m->getArgs()) {
+                for (Variable& v : m->getArgs()) {
                     uint32_t argNameLength = v.getName().size();
                     fwrite(&argNameLength, sizeof(uint32_t), 1, f);
                     fwrite(v.getName().c_str(), sizeof(char), argNameLength, f);
@@ -610,7 +610,7 @@ namespace sclc {
                 }
             }
         }
-        for (Layout l : result.layouts) {
+        for (Layout& l : result.layouts) {
             if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.getNameToken().file).string())) {
                 continue;
             }
@@ -622,7 +622,7 @@ namespace sclc {
             uint32_t numFields = l.getMembers().size();
             fwrite(&numFields, sizeof(uint32_t), 1, f);
 
-            for (Variable v : l.getMembers()) {
+            for (Variable& v : l.getMembers()) {
                 uint32_t fieldNameLength = v.getName().size();
                 fwrite(&fieldNameLength, sizeof(uint32_t), 1, f);
                 fwrite(v.getName().c_str(), sizeof(char), fieldNameLength, f);

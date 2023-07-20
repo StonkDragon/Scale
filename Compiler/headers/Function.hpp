@@ -115,7 +115,7 @@ namespace sclc
             for (Token t : this->getBody()) {
                 m->addToken(t);
             }
-            for (Variable v : getArgs()) {
+            for (Variable& v : getArgs()) {
                 m->addArgument(v);
             }
             if (hasNamedReturnValue) {

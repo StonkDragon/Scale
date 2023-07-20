@@ -30,7 +30,6 @@ namespace sclc
             this->flags = 0;
             this->required_typed_arguments = 0;
             this->fancyName = name;
-            toggleWarnings();
         }
         void addMember(Variable member, bool inherited = false) {
             if (inherited) {
@@ -45,62 +44,59 @@ namespace sclc
             members.clear();
             memberInherited.clear();
         }
-        bool hasMember(std::string member) {
-            for (Variable v : members) {
+        bool hasMember(std::string member) const {
+            for (const Variable& v : members) {
                 if (v.getName() == member) {
                     return true;
                 }
             }
             return false;
         }
-        bool extends(std::string s) {
+        bool extends(std::string s) const {
             return this->super == s;
         }
-        std::string extends() {
+        std::string extends() const {
             return this->super;
         }
         void setExtends(std::string s) {
             this->super = s;
         }
-        Variable getMember(std::string name) {
-            for (Variable v : members) {
+        Variable getMember(std::string name) const {
+            for (const Variable& v : members) {
                 if (v.getName() == name) {
                     return v;
                 }
             }
             return Variable("", "");
         }
-        bool implements(std::string name) {
+        bool implements(std::string name) const {
             return std::find(interfaces.begin(), interfaces.end(), name) != interfaces.end();
         }
         void implement(std::string interface) {
             interfaces.push_back(interface);
         }
-        std::vector<std::string> getInterfaces() {
+        std::vector<std::string> getInterfaces() const {
             return interfaces;
         }
-        Token nameToken() {
+        Token nameToken() const {
             return name_token;
         }
         void setNameToken(Token t) {
             this->name_token = t;
         }
-        Token getNameToken() {
+        Token getNameToken() const {
             return name_token;
         }
         void addTemplateArgument(std::string name, std::string type) {
             templates[name] = type;
         }
-        bool isSealed() {
+        bool isSealed() const {
             return (flags & 0b00000100) != 0;
         }
-        bool warnsEnabled() {
-            return (flags & 0b00001000) != 0;
-        }
-        bool isStatic() {
+        bool isStatic() const {
             return (flags & 0b00010000) != 0;
         }
-        bool isFinal() {
+        bool isFinal() const {
             return (flags & 0b00100000) != 0;
         }
         void toggleFinal() {
@@ -109,11 +105,17 @@ namespace sclc
         void toggleSealed() {
             flags ^= 0b00000100;
         }
-        void toggleWarnings() {
-            flags ^= 0b00001000;
-        }
         void toggleStatic() {
             flags ^= 0b00010000;
+        }
+        void addModifier(std::string m) {
+            if (m == "final") {
+                flags |= 0b00100000;
+            } else if (m == "sealed") {
+                flags |= 0b00000100;
+            } else if (m == "static") {
+                flags |= 0b00010000;
+            }
         }
         inline bool operator==(const Struct& other) const {
             return other.name == this->name;
@@ -121,11 +123,13 @@ namespace sclc
         inline bool operator!=(const Struct& other) const {
             return other.name != this->name;
         }
-        std::string getName() { return name; }
-        std::vector<Variable> getMembers() {
+        std::string getName() const {
+            return name;
+        }
+        std::vector<Variable> getMembers() const {
             return members;
         }
-        std::vector<Variable> getDefinedMembers() {
+        std::vector<Variable> getDefinedMembers() const {
             std::vector<Variable> mems;
             for (size_t i = 0; i < members.size(); i++) {
                 if (!memberInherited[i])
@@ -154,7 +158,7 @@ namespace sclc
             members.push_back(member);
         }
         bool hasMember(std::string member) {
-            for (Variable v : members) {
+            for (Variable& v : members) {
                 if (v.getName() == member) {
                     return true;
                 }
@@ -162,7 +166,7 @@ namespace sclc
             return false;
         }
         Variable getMember(std::string name) {
-            for (Variable v : members) {
+            for (Variable& v : members) {
                 if (v.getName() == name) {
                     return v;
                 }

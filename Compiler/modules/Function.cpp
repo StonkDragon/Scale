@@ -98,7 +98,10 @@ void Function::addModifier(std::string modifier) {
         isExternC = true;
     }
     else if (!has_export && modifier == "export") has_export = modifiers.size();
-    else if (!has_private && modifier == "private") has_private = modifiers.size();
+    else if (!has_private && modifier == "private") {
+        has_private = modifiers.size();
+        isPrivate = true;
+    }
     else if (!has_construct && modifier == "construct") has_construct = modifiers.size();
     else if (!has_constructor && modifier == "<constructor>") has_constructor = modifiers.size();
     else if (!has_final && modifier == "final") has_final = modifiers.size();

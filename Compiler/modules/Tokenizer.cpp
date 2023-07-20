@@ -650,7 +650,7 @@ namespace sclc
     }
 
     FPResult findFileInIncludePath(std::string file) {
-        for (std::string path : Main.options.includePaths) {
+        for (std::string& path : Main.options.includePaths) {
             using namespace std::filesystem;
             if (exists(path + PATH_SEPARATOR + file)) {
                 FPResult r;

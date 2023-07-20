@@ -17,7 +17,7 @@ namespace sclc
         std::string file;
         std::string value;
         int column;
-        std::string tostring() {
+        std::string tostring() const {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ", file=" + file + ")";
         }
         Token() : Token(tok_eof, "", 0, "") {}

@@ -332,7 +332,7 @@ namespace sclc
                     }
                 }
             } else {
-                for (std::string f : DocOps.find) {
+                for (std::string& f : DocOps.find) {
                     bool found = false;
                     std::string sec = "";
                     bool hasSection = false;
@@ -427,7 +427,7 @@ namespace sclc
                         }
                     }
                 } else {
-                    for (std::string f : DocOps.find_category) {
+                    for (std::string& f : DocOps.find_category) {
                         bool found = false;
                         std::string sec = "";
                         std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
@@ -458,7 +458,7 @@ namespace sclc
                     }
                 }
             } else {
-                for (std::string f : DocOps.find) {
+                for (std::string& f : DocOps.find) {
                     bool found = false;
                     std::string sec = "";
                     bool hasSection = false;
@@ -914,7 +914,7 @@ namespace sclc
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
-        for (std::string framework : frameworks) {
+        for (std::string& framework : frameworks) {
             if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
                 DragonConfig::ConfigParser parser;
                 DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
@@ -1260,7 +1260,7 @@ namespace sclc
             SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
             std::vector<std::string> binaryHeaders;
-            for (std::string header : Main.options.files) {
+            for (std::string& header : Main.options.files) {
                 if (strends(header, ".smod")) {
                     binaryHeaders.push_back(header);
                 }
@@ -1493,7 +1493,7 @@ namespace sclc
             cflags.push_back("\"" + outfile + "\"");
         }
 
-        for (std::string s : tmpFlags) {
+        for (std::string& s : tmpFlags) {
             cflags.push_back(s);
         }
         
@@ -1505,7 +1505,7 @@ namespace sclc
 #endif
 
         std::string cmd = "";
-        for (std::string s : cflags) {
+        for (std::string& s : cflags) {
             cmd += s + " ";
         }
         if (Main.options.debugBuild) {

@@ -55,7 +55,7 @@ namespace sclc {
     private:
         std::vector<Token> tokens;
     public:
-        SyntaxTree(std::vector<Token> tokens) {
+        SyntaxTree(std::vector<Token>& tokens) {
             this->tokens = tokens;
         }
         ~SyntaxTree() {}
@@ -180,19 +180,13 @@ namespace sclc {
     int isOctDigit(char c);
     int isBinDigit(char c);
     int isOperator(char c);
-    bool isOperator(Token token);
     bool fileExists(const std::string& name);
     void addIfAbsent(std::vector<Function*>& vec, Function* str);
     std::string replaceAll(std::string src, std::string from, std::string to);
     std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
     int lastIndexOf(char* src, char c);
     bool hasVar(std::string name);
-    bool hasVar(Token name);
     Variable getVar(std::string name);
-    Variable getVar(Token name);
-    FPResult handleOperator(TPResult& result, FILE* fp, Token token, int scopeDepth);
-    FPResult handleNumber(FILE* fp, Token token, int scopeDepth);
-    FPResult handleDouble(FILE* fp, Token token, int scopeDepth);
     Function* getFunctionByName(TPResult& result, std::string name);
     Interface* getInterfaceByName(TPResult& result, std::string name);
     Method* getMethodByName(TPResult& result, std::string name, std::string type);
@@ -204,16 +198,13 @@ namespace sclc {
     Layout getLayout(TPResult& result, std::string name);
     bool hasLayout(TPResult& result, std::string name);
     bool hasFunction(TPResult& result, std::string name);
-    bool hasFunction(TPResult& result, Token name);
     bool hasEnum(TPResult& result, std::string name);
     Enum getEnumByName(TPResult& result, std::string name);
-    std::vector<std::string> supersToVector(TPResult& r, Struct s);
-    std::string supersToHashedCList(TPResult& r, Struct s);
-    std::string supersToCList(TPResult& r, Struct s);
+    std::vector<std::string> supersToVector(TPResult& r, Struct& s);
+    std::string supersToHashedCList(TPResult& r, Struct& s);
+    std::string supersToCList(TPResult& r, Struct& s);
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
-    bool hasMethod(TPResult& result, Token name, std::string type);
     bool hasMethod(TPResult& result, std::string name, std::string type);
-    bool hasContainer(TPResult& result, Token name);
     bool hasContainer(TPResult& result, std::string name);
     bool hasGlobal(TPResult& result, std::string name);
     FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());
