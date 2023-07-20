@@ -8,7 +8,7 @@
      127 Compiler/headers/Function.hpp
       81 Compiler/headers/Interface.hpp
       30 Compiler/headers/Prototype.hpp
-     120 Compiler/headers/Results.hpp
+      77 Compiler/headers/Results.hpp
      190 Compiler/headers/Struct.hpp
       62 Compiler/headers/Token.hpp
       96 Compiler/headers/TokenType.hpp
@@ -96,4 +96,4 @@
        8 examples/while.scale
       16 interop-example/foo.c
       14 interop-example/main.scale
-   21329 total
+   21286 total
