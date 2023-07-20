@@ -204,7 +204,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
     firstCStr __c_strlen => decl len: int
     secondCStr __c_strlen => decl len2: int
-    new[len len2 + 1 +] => decl out: [int8]
+    new<int8>[len len2 + 1 +] => decl out: [int8]
 
     out firstCStr __c_strcpy drop
     out secondCStr __c_strcat drop

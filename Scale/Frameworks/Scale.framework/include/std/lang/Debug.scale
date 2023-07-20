@@ -105,7 +105,7 @@ final sealed open struct CastError: Error
 final sealed open struct UnreachableError: Error
 
 function sysPrettyString(): str
-  new[40] => decl sPtr: [int8]
+  new<int8>[40] => decl sPtr: [int8]
   unsafe
     c!
       snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);

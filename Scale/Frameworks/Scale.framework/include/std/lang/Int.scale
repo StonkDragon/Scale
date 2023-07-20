@@ -25,7 +25,7 @@ final static sealed struct int8
   decl maxValue: const int8
 
   intrinsic function toString(x: int8): str
-    new[2] => decl out: [int8]
+    new<int8>[2] => decl out: [int8]
     unsafe
       out "%c":view x __c_sprintf! 1 drop
     end
@@ -38,7 +38,7 @@ final static sealed struct int
   decl maxValue: const int
 
   intrinsic function toString(x: int): str
-    new[25] => decl out: [int8]
+    new<int8>[25] => decl out: [int8]
     unsafe
       out "%ld":view x __c_sprintf! 1 drop
     end
@@ -46,7 +46,7 @@ final static sealed struct int
   end
 
   intrinsic function toHexString(x: int): str
-    new[19] => decl out: [int8]
+    new<int8>[19] => decl out: [int8]
     unsafe
       out "0x%016lx":view x __c_sprintf! 1 drop
     end
