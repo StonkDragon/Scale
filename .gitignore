@@ -92,3 +92,4 @@ scale-find-virtual-calls.c
 *.smod
 changes.md
 utf8.h
+e.log
