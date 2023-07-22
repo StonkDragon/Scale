@@ -3,6 +3,7 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
+		{"include": "#block_comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
 		{"include": "#quoted_string"},
@@ -22,6 +23,15 @@
 			"name": "comment",
 			"begin": "#",
 			"end": "\n",
+			"patterns": [{
+				"name": "comment",
+				"match": "."
+			}]
+		},
+		"block_comment": {
+			"name": "comment",
+			"begin": "`",
+			"end": "`",
 			"patterns": [{
 				"name": "comment",
 				"match": "."
