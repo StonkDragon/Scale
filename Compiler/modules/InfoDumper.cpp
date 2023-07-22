@@ -154,10 +154,12 @@ namespace sclc {
 
             uint32_t numMembers = e.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (uint32_t i = 0; i < numMembers; i++) {
-                uint32_t memberNameLength = e.getMembers()[i].size();
+            for (auto&& member : e.getMembers()) {
+                uint32_t memberNameLength = member.first.size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
-                fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
+                fwrite(member.first.c_str(), sizeof(char), memberNameLength, f);
+
+                fwrite(&(member.second), sizeof(long), 1, f);
             }
         }
         for (Function* func : result.functions) {
@@ -459,10 +461,12 @@ namespace sclc {
 
             uint32_t numMembers = e.getMembers().size();
             fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (uint32_t i = 0; i < numMembers; i++) {
-                uint32_t memberNameLength = e.getMembers()[i].size();
+            for (auto&& member : e.getMembers()) {
+                uint32_t memberNameLength = member.first.size();
                 fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
-                fwrite(e.getMembers()[i].c_str(), sizeof(char), memberNameLength, f);
+                fwrite(member.first.c_str(), sizeof(char), memberNameLength, f);
+
+                fwrite(&(member.second), sizeof(long), 1, f);
             }
         }
         for (Function* func : result.functions) {
