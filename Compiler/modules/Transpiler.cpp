@@ -1075,7 +1075,7 @@ namespace sclc {
             typeStack.push(self->getReturnType());
         }
         if (self->isExternC && !hasImplementation(result, self)) {
-            append("_stack.tp--;\n");
+            append("--_stack.tp;\n");
         }
         if (!found) {
             transpilerError("Method '" + sclFunctionNameToFriendlyString(self) + "' not found on type '" + self->getMemberType() + "'", i);
@@ -1347,7 +1347,7 @@ namespace sclc {
             append("Function_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         }
         if (self->isExternC && !hasImplementation(result, self)) {
-            append("_stack.tp--;\n");
+            append("--_stack.tp;\n");
         }
     }
 
@@ -1804,7 +1804,7 @@ namespace sclc {
     #pragma region Identifier functions
     #endif
         if (body[i].getValue() == "drop") {
-            append("_stack.sp--;\n");
+            append("--_stack.sp;\n");
             typePop;
         } else if (body[i].getValue() == "dup") {
             append("(_stack.sp++)->v = (_stack.sp - 1)->v;\n");
@@ -1874,7 +1874,7 @@ namespace sclc {
                 typeStack.push("int");
         } else if (body[i].getValue() == "--") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "--", typeStackTop)) return;
-            append("(_stack.sp - 1)->i--;\n");
+            append("--(_stack.sp - 1)->i;\n");
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].getValue() == "exit") {
@@ -4444,7 +4444,7 @@ namespace sclc {
                 append("_scl_checked_cast(returnFrame->v, Var_self->$template_arg_%s, Var_self->$template_argname_%s);\n", function->templateArg.c_str(), function->templateArg.c_str());
             }
         }
-        append("_stack.tp--;\n");
+        append("--_stack.tp;\n");
         append("_stack.sp = __current_base_ptr;\n");
 
         if (function->getReturnType() != "none" && function->getReturnType() != "nothing") {
@@ -5753,7 +5753,7 @@ namespace sclc {
                     varScopePop();
                 }
 
-                append("_stack.tp--;\n");
+                append("--_stack.tp;\n");
                 append("_stack.sp = __current_base_ptr;\n");
             }
 
