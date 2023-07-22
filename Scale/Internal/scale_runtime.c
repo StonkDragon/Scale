@@ -16,10 +16,6 @@ typedef struct Struct {
 	mutex_t			mutex;
 } Struct;
 
-typedef struct Struct_SclObject {
-	Struct rtFields;
-}* scl_SclObject;
-
 typedef struct Struct_Exception {
 	Struct rtFields;
 	scl_str msg;
@@ -47,21 +43,6 @@ typedef struct Struct_IndexOutOfBoundsException {
 	struct Struct_Exception self;
 }* scl_IndexOutOfBoundsException;
 
-typedef struct Struct_Int {
-	Struct rtFields;
-	scl_int value;
-}* scl_Int;
-
-typedef struct Struct_Any {
-	Struct rtFields;
-	scl_any value;
-}* scl_Any;
-
-typedef struct Struct_Float {
-	Struct rtFields;
-	scl_float value;
-}* scl_Float;
-
 typedef struct Struct_AssertError {
 	Struct rtFields;
 	scl_str msg;
@@ -79,13 +60,6 @@ typedef struct Struct_UnreachableError {
 struct Struct_str {
 	struct scale_string s;
 };
-
-typedef struct Struct_Thread {
-	Struct rtFields;
-	_scl_lambda function;
-	pthread_t nativeThread;
-	scl_str name;
-}* scl_Thread;
 
 typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
@@ -449,9 +423,9 @@ scl_str _scl_create_string(scl_int8* data) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return nil;
 	}
-	self->_len = strlen(data);
-	self->_hash = id(data);
-	self->_data = _scl_strndup(data, self->_len);
+	self->length = strlen(data);
+	self->hash = id(data);
+	self->data = _scl_strndup(data, self->length);
 	return self;
 }
 
@@ -1372,14 +1346,14 @@ scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 	for (scl_int i = 0; i < arr->count; i++) {
 		scl_str type = virtual_call(arr, "get(i;)a;", i);
 		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
-		s = virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->_data));
+		s = virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->data));
 	}
 	_stack.tp--;
 	return s;
 }
 
 scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
-	scl_int8* retType = _scl_type_to_rt_sig(returnType->_data);
+	scl_int8* retType = _scl_type_to_rt_sig(returnType->data);
 	scl_str argTypes = _scl_type_array_to_rt_sig(args);
 	scl_str sig = str_of("(");
 	sig = virtual_call(sig, "append(s;)s;", argTypes);
@@ -1451,7 +1425,7 @@ void printStackTraceOf(_scl_Exception e) {
 		return;
 	}
 	for (scl_int i = e->stackTrace->count - 3; i >= 0; i--) {
-		fprintf(stderr, "  %s\n", ((scl_str) ((scl_any*) e->stackTrace->values)[i])->_data);
+		fprintf(stderr, "  %s\n", ((scl_str) ((scl_any*) e->stackTrace->values)[i])->data);
 	}
 	fprintf(stderr, "\n");
 }
@@ -1463,7 +1437,7 @@ void _scl_runtime_catch() {
 	}
 	scl_str msg = ((_scl_Exception) *(_stack.ex))->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) *(_stack.ex))->rtFields.statics->type_name, msg->_data);
+	fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) *(_stack.ex))->rtFields.statics->type_name, msg->data);
 	printStackTraceOf(*(_stack.ex));
 	if (errno) {
 		fprintf(stderr, "errno: %s\n", strerror(errno));

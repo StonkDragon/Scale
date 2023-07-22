@@ -207,11 +207,11 @@ void _scl_puts(scl_any val) {
 	} else {
 		s = int$toString((scl_int) val);
 	}
-	printf("%s\n", s->_data);
+	printf("%s\n", s->data);
 }
 
 void _scl_puts_str(scl_str str) {
-	printf("%s\n", str->_data);
+	printf("%s\n", str->data);
 }
 
 void _scl_eputs(scl_any val) {
@@ -221,11 +221,11 @@ void _scl_eputs(scl_any val) {
 	} else {
 		s = int$toString((scl_int) val);
 	}
-	fprintf(stderr, "%s\n", s->_data);
+	fprintf(stderr, "%s\n", s->data);
 }
 
 void _scl_write(scl_int fd, scl_str str) {
-	write(fd, str->_data, str->_len);
+	write(fd, str->data, str->length);
 }
 
 scl_str _scl_read(scl_int fd, scl_int len) {
@@ -236,11 +236,11 @@ scl_str _scl_read(scl_int fd, scl_int len) {
 }
 
 scl_int _scl_system(scl_str cmd) {
-	return system(cmd->_data);
+	return system(cmd->data);
 }
 
 scl_str _scl_getenv(scl_str name) {
-	scl_int8* val = getenv(name->_data);
+	scl_int8* val = getenv(name->data);
 	return val ? str_of(val) : nil;
 }
 

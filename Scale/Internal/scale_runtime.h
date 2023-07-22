@@ -102,7 +102,7 @@
 #define nil NULL
 
 #define str_of(_cstr) _scl_create_string((_cstr))
-#define cstr_of(Struct_str) ((Struct_str)->_data)
+#define cstr_of(Struct_str) ((Struct_str)->data)
 
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
@@ -249,9 +249,9 @@ typedef struct StaticMembers {
 struct scale_string {
 	const StaticMembers* const			$statics;
 	const mutex_t						$mutex;
-	scl_int8*							_data;
-	scl_int								_len;
-	scl_int								_hash;
+	scl_int8*							data;
+	scl_int								length;
+	scl_int								hash;
 };
 
 #if defined(__ANDROID__)

@@ -16,9 +16,9 @@ cdecl "strtok"
 private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
 
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
-  private decl _data: [int8]
-  private decl _len: int
-  private decl _hash: int
+  private decl data: [int8]
+  private decl length: int
+  private decl hash: int
 
   function +(other: str): str
     other self:prepend return
@@ -37,26 +37,26 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function clone(): str
-    self._data str::new return
+    self.data str::new return
   end
 
   function append(other: str): str
-    other._data self:append return
+    other.data self:append return
   end
 
   function append(cStr: [int8]): str
     unsafe
-      self._data cStr concat str::new return
+      self.data cStr concat str::new return
     end
   end
 
   function prepend(other: str): str
-    other._data self:prepend return
+    other.data self:prepend return
   end
 
   function prepend(cStr: [int8]): str
     unsafe
-      cStr self._data concat str::new return
+      cStr self.data concat str::new return
     end
   end
 
@@ -64,7 +64,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     if other is str ! then
       false return
     fi
-    self._hash other as str._hash == return
+    self.hash other as str.hash == return
   end
 
   function ==(other: any): bool
@@ -72,7 +72,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function size(): int
-    self._len return
+    self.length return
   end
 
   function at(i: int): int
@@ -82,7 +82,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       self:size:toString +
       IndexOutOfBoundsException::new throw
     fi
-    self._data as int i + @:toInt8 as int return
+    self.data as int i + @:toInt8 as int return
   end
 
   function toString(): str
@@ -101,10 +101,10 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self:size any::new => decl out: [int8]
     0 => decl i: int
     unsafe
-      for i in self._len 1 - to -1 step -- do
-        self._len i - 1 - self @ => @(out as int i +)
+      for i in self.length 1 - to -1 step -- do
+        self.length i - 1 - self @ => @(out as int i +)
       done
-      '\0' => @(out as int self._len +)
+      '\0' => @(out as int self.length +)
     end
     out str::new
     out any::delete
@@ -145,15 +145,15 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function startsWith(string: str): bool
     unsafe
-      self._data string._data string:size __c_strncmp 0 == return
+      self.data string.data string:size __c_strncmp 0 == return
     end
   end
 
   function endsWith(string: str): bool
-    if self._len string._len < then
+    if self.length string.length < then
       false return
     fi
-    self._len string._len - self:subString => decl substr: str
+    self.length string.length - self:subString => decl substr: str
     substr string ==
     
     substr any::delete
@@ -165,14 +165,14 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     if start 0 == then
       self return
     fi
-    if start self._len >= start 0 < || then
+    if start self.length >= start 0 < || then
       "Index " start:toString +
       " is out of bounds for string with length " self:size:toString +
       +
       IndexOutOfBoundsException::new throw
     fi
 
-    self._data => decl tmp: any
+    self.data => decl tmp: any
 
     tmp as int start + => tmp
     tmp as [int8] str::new return
@@ -180,17 +180,17 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function view(): [int8]
     unsafe
-      self._data __c_strdup return
+      self.data __c_strdup return
     end
   end
 
   function init(data: [int8]): none
     unsafe
       data __c_strdup => data
-      data __c_strlen => self._len
+      data __c_strlen => self.length
     end
-    data => self._data
-    data builtinHash => self._hash
+    data => self.data
+    data builtinHash => self.hash
   end
 
   function iterate(): StringIterator
@@ -198,7 +198,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function hashCode(): int
-    self._hash return
+    self.hash return
   end
 
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
