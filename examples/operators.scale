@@ -1,4 +1,20 @@
-# just math nothing to see here
+# Operators
+# --------------------------
+# Operators are used to perform arithmetic and logical operations on values.
+# The following operators are supported:
+#   +  : Addition
+#   -  : Subtraction
+#   *  : Multiplication
+#   /  : Division
+#   %  : Modulo
+#   ^  : Logical XOR
+#   ~  : Logical NOT
+#   << : Logical Bitwise shift left
+#   >> : Logical Bitwise shift right
+#   &  : Logical AND
+#   |  : Logical OR
+#   ** : Exponentiation
+
 function main(): none
   # Addition
   1 2      + :toString puts

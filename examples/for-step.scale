@@ -1,9 +1,11 @@
-function main(): none
-    decl MIN: int 0 => MIN
-    decl MAX: int 100 => MAX
+# For step
+# --------------------------
+# This example shows how to define custom
+# step values for a for loop.
 
+function main(): none
     # prints every fifth number between 0 and 100
-    for i in MIN to MAX step + 5 do
+    for i in 0 to 100 step + 5 do
         i putint
     done
 end

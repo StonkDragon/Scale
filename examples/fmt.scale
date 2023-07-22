@@ -1,7 +1,12 @@
+# Formatted IO
+# --------------------------
+# The FmtIO static struct provides a set of functions for formatted IO.
+# The functions are similar to the printf family of functions in C.
+
 function main(): none
     "Hello, World!" puts
 
-    "Hello!\n" FmtIO::puts
-    "world" "Hello %s!\n" FmtIO::puts
-    2.25 1 "This is %i %f\n" FmtIO::puts
+    "Hello!\n" FmtIO::puts # prints "Hello!" and a newline
+    "world" "Hello %s!\n" FmtIO::puts # prints "Hello world!" and a newline
+    2.25 1 "This is %i %f\n" FmtIO::puts # prints "This is 1 2.25" and a newline
 end

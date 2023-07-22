@@ -1,0 +1,29 @@
+# Enum indices
+# --------------------------
+# Enum members can be assigned custom indices.
+# The values of subsequent members are auto-incremented from the previous member.
+
+enum CustomIndexes
+    [0x01]  a # will be 1
+            b # will be 2
+            c # will be 3
+            d # will be 4
+
+    [10]    e # will be 10
+            f # will be 11
+            g # will be 12
+            h # will be 13
+end
+
+# Prints numbers 1, 2, 3, 4, 10, 11, 12, 13
+function main(): none
+    CustomIndexes::a puts
+    CustomIndexes::b puts
+    CustomIndexes::c puts
+    CustomIndexes::d puts
+
+    CustomIndexes::e puts
+    CustomIndexes::f puts
+    CustomIndexes::g puts
+    CustomIndexes::h puts
+end

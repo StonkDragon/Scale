@@ -1,3 +1,7 @@
+# Switch
+# --------------------------
+# This example shows how to use the switch statement.
+
 function main(): none
     # prints:
     #   first
@@ -6,6 +10,8 @@ function main(): none
     #   fourth
     #   fifth
     for i in 0 to 5 do
+
+        # switch operates on the TOS
         i switch
             case 0
                 "first" puts

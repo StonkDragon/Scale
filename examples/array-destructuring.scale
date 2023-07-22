@@ -1,13 +1,23 @@
+# Array destructuring
+# --------------------------
+# This example shows how to use array literals and destructuring to assign
+# multiple variables at once.
+
 function main(): none
+    # fruits will hold our array of fruits
     decl fruits: Array
+
+    # this is a shorthand for creating an array
     {"Apple", "Banana", "Pineapple"} => fruits
     
     decl apple: str
     decl banana: str
     decl pineapple: str
 
+    # this will store the first 3 elements of fruits into apple, banana, and pineapple
     fruits => (apple, banana, pineapple)
 
+    # print out the fruits
     apple puts
     banana puts
     pineapple puts

@@ -1,3 +1,12 @@
+# Templates
+# --------------------------
+# This example demonstrates the use of templates.
+# Templates are a way to define a generic type
+# that can be specialized to a specific type
+# at compile time. This is useful for creating
+# generic data structures that can be used with
+# any type.
+
 # the T parameter must be a subtype of Int, or Int itself
 # the U parameter must be a subtype of SclObject, or SclObject itself
 struct Foo<T: Int, U: SclObject>
@@ -30,5 +39,5 @@ function main(): none
     # because 'int' cannot be cast to 'SclObject'
     # because 'SclObject' is the base type of the 
     # template argument 'U'
-    ` 42 f:setY `
+    # 42 f:setY
 end

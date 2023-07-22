@@ -1,3 +1,5 @@
+# This is a file used to test the Array:sort method
+
 function createList(len: int): Array
     len Array::new => decl arr: Array
     decl i: int 0 => i

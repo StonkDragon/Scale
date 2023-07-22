@@ -1,4 +1,8 @@
+# Hello, World!
+# --------------------------
+# This is a simple program that prints "Hello, World!" to standard output.
+# This is the first program that most people write when learning a new language.
+
 function main(): none
-  # this will print "Hello, World!" to standard output
   "Hello, World!" puts
 end

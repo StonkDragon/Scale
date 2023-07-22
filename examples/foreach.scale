@@ -1,11 +1,16 @@
+# For each
+# --------------------------
+# This example shows how to use the 'foreach' loop
+# to iterate over an array or another iterable object
+# and execute a block of code for each element
 
 function main(): none
     # declare a new variable of type 'Array'
     decl arr: Array
-    # This will split the string into an array of strings
+    # split the string into an array of strings
     " " "A B C D E F":split => arr
 
-    # Loops over every element of the array and prints it
+    # Loop over every element of the array and print it
     foreach val in arr do
         val puts
     done

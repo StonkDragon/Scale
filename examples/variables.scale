@@ -1,8 +1,15 @@
+# Variables
+# --------------------------
+# This example shows how to declare and use variables in
+# Scale.
+
 function main(): none
-  # declares a new variable named 'foo' with the type 'str'
-  decl foo: str
-  # stores the string "Hello, world!" in foo
-  "Hello, world!" => foo
-  # prints "Hello, world!"
-  foo puts
+    # Declare a variable named foo of type str
+    decl foo: str
+
+    # Assign the value "Hello, world!" to foo
+    "Hello, world!" => foo
+
+    # Print the value of foo
+    foo puts
 end

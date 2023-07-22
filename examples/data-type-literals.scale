@@ -1,3 +1,11 @@
+# Data type literals
+# --------------------------
+# This example shows the usage of data type literals.
+# The following data type literals are supported:
+# - Array: { elements }
+# - Pair: ( first, second )
+# - Triple: ( first, second, third )
+
 import std.util.Map
 import std.util.Pair
 import std.util.Triple

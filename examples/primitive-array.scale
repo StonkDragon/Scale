@@ -1,8 +1,21 @@
+# Primitive arrays
+# --------------------------
+# This example shows how to use primitive arrays in the language.
+# Primitive arrays are equivalent to C arrays, and are used to store
+# values of primitive types (int, float, char, bool).
+
 function main(): none
+    # Create a new array of 8 integers
     new[8] => decl s: [int]
+
+    # This will set all the values of the array to their index times 3
     [(s => i 3 *)] drop
+    # It is equivalent to the following C code:
+    # for (int i = 0; i < 8; i++) {
+    #     s[i] = i * 3;
+    # }
     
-    s:toString puts
-    s:reverse:toString puts
-    s:sort:toString puts
+    s:toString puts # Prints [0, 3, 6, 9, 12, 15, 18, 21]
+    s:reverse:toString puts # Prints [21, 18, 15, 12, 9, 6, 3, 0]
+    s:sort:toString puts # Prints [0, 3, 6, 9, 12, 15, 18, 21]
 end

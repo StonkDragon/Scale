@@ -1,9 +1,20 @@
+# Custom getters and setters
+# --------------------------
+# This example shows how to define custom getters and setters for a field.
+# Getters and setters are a shorthand for defining get... and set... methods.
+
 struct Foo
     decl x: int
-        get() => lambda
+
+        # defines the getX method.
+        # Return type is inferred from the field type.
+        get() =>
             field 2 * return
         end
-        set(value) => lambda
+        
+        # defines the setX method.
+        # Return type and type of argument is inferred from the field type.
+        set(value) =>
             value 2 + => field
         end
 end
@@ -11,7 +22,7 @@ end
 function main(): none
     Foo::new => decl x: mut Foo
 
-    1 => x.x
+    1 x:setX
 
-    x.x puts
+    x:getX puts
 end

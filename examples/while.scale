@@ -1,5 +1,10 @@
+# While loop
+# --------------------------
+# This example shows how to use while loop in Scale.
+
 function main(): none
   0 => decl i: int
+  
   # this code prints all numbers from 1 to 10 (both including)
   while i 10 < do
     i 1 +> i

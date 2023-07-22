@@ -1,4 +1,9 @@
-# a container is a static structure
+# Containers
+# --------------------------
+# Containers are a way to group related data together.
+# Containers are a legacy feature and are not recommended for use.
+# Instead, use a static struct.
+
 container Foo
   decl bar: str
   decl baz: mut [str]
@@ -8,7 +13,7 @@ function main(): none
   "load/store" => Foo.bar
   Foo.bar puts
   
-  8 any::new => Foo.baz
+  8 any::new as [str] => Foo.baz
   "ref/deref" => @ Foo.baz
   Foo.baz @ puts
 end

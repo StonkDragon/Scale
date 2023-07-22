@@ -1,3 +1,10 @@
+# Layouts
+# --------------------------
+# This example shows how to use layouts to create a struct-like object.
+# Layouts are the equivalent of C structs.
+# Layouts are just like structs in scale, except that they do not have
+# methods or inheritance. They are just a collection of fields.
+
 layout Layout
     decl x: int
     decl y: int

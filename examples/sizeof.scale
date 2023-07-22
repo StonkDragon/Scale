@@ -2,10 +2,10 @@ typealias char "char"
 
 # prints the sizes of all Scale default types
 function main(): none
-  sizeof int   putint
-  sizeof float putint
-  sizeof str   putint
-  sizeof any   putint
-  sizeof none  putint
-  sizeof char  putint
+  sizeof int   puts
+  sizeof float puts
+  sizeof str   puts
+  sizeof any   puts
+  sizeof none  puts
+  sizeof char  puts
 end
