@@ -463,6 +463,7 @@ namespace sclc
         int size;
         char* buffer;
         Token token;
+        bool inBlockComment = false;
         if (fp == NULL) {
             printf("IO Error: Could not open file %s\n", source.c_str());
             FPResult r;
@@ -486,7 +487,7 @@ namespace sclc
 
         while (fgets(buffer, size + 1, fp) != NULL) {
             // skip if comment
-            if (std::string(buffer).size() <= 1 || buffer[0] == '\0' || buffer[0] == '#' || buffer[0] == '\n' || buffer[0] == '\r') {
+            if (buffer[0] == '\0' || buffer[0] == '\n' || buffer[0] == '\r') {
                 data += "\n";
                 continue;
             }
@@ -495,31 +496,30 @@ namespace sclc
             char *c = buffer;
             int inStr = 0;
             int escaped = 0;
-            bool inBlockComment = false;
             while (*c != '\0') {
                 if (inBlockComment) {
                     if (*c == '`') {
-                        inBlockComment = false;
+                        inBlockComment = !inBlockComment;
                         *c = ' ';
-                        c++;
+                    } else {
+                        if (*c != '\n')
+                            *c = ' ';
                     }
-                    if (*c != '\n')
-                        *c = ' ';
-                    c++;
-                    continue;
-                }
-                if (*c == '\\') {
+                } else if (*c == '\\') {
                     escaped = !escaped;
-                } else if (*c == '"' && !escaped) {
-                    inStr = !inStr;
-                } else if (*c == '#' && !inStr) {
-                    *c = '\n';
-                    c++;
-                    *c = '\0';
-                    break;
-                } else if (*c == '`' && !inStr) {
-                    inBlockComment = true;
-                    *c = ' ';
+                } else {
+                    escaped = false;
+                    if (*c == '"' && !escaped) {
+                        inStr = !inStr;
+                    } else if (*c == '#' && !inStr) {
+                        *c = '\n';
+                        c++;
+                        *c = '\0';
+                        break;
+                    } else if (*c == '`' && !inStr) {
+                        inBlockComment = !inBlockComment;
+                        *c = ' ';
+                    }
                 }
                 c++;
             }
