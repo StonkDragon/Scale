@@ -8,6 +8,10 @@
 
   Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
 
+### Examples
+
+  Examples can be found in the [examples](./examples) directory.
+
 ## Installation
 ### Install the latest release
 To install the latest release, run the following commands:
@@ -61,10 +65,6 @@ The Scale Framework documentation can be viewed by running the following command
 ```shell
 $ sclc -doc-for Scale
 ```
-
-## Examples
-
-  Examples can be found in the [examples](./examples) directory.
 
 # Build
 
