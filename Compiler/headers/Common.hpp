@@ -212,7 +212,6 @@ namespace sclc {
     bool typeCanBeNil(std::string s);
     bool typeIsConst(std::string s);
     bool typeIsMut(std::string s);
-    bool typeIsRef(std::string s);
     bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s);
     bool featureEnabled(std::string feat);

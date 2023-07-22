@@ -94,8 +94,6 @@ namespace sclc {
                     } else {
                         i++;
                     }
-                    bool isConst = false;
-                    bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
@@ -105,8 +103,6 @@ namespace sclc {
                         }
                         type = r.value;
                         fromTemplate = r.message;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -133,12 +129,9 @@ namespace sclc {
                         continue;
                     }
                     if (type == "varargs" && name.size()) {
-                        func->addArgument(Variable(name + "$size", "int", true, false).also([](Variable& v) {
-                            v.canBeNil = typeCanBeNil(v.getType());
-                        }));
+                        func->addArgument(Variable(name + "$size", "const int"));
                     }
-                    func->addArgument(Variable(name, type, isConst, isMut).also([fromTemplate](Variable& v) {
-                        v.canBeNil = typeCanBeNil(v.getType());
+                    func->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
                     }));
                 } else if (tokens[i].getType() == tok_curly_open) {
@@ -168,8 +161,6 @@ namespace sclc {
                     }
                     i++;
                     std::string type;
-                    bool isConst = false;
-                    bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
@@ -179,8 +170,6 @@ namespace sclc {
                         }
                         type = r.value;
                         fromTemplate = r.message;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -207,8 +196,7 @@ namespace sclc {
                         continue;
                     }
                     for (std::string& s : multi) {
-                        func->addArgument(Variable(s, type, isConst, isMut).also([fromTemplate](Variable& v) {
-                            v.canBeNil = typeCanBeNil(v.getType());
+                        func->addArgument(Variable(s, type).also([fromTemplate](Variable& v) {
                             v.typeFromTemplate = fromTemplate;
                         }));
                     }
@@ -261,7 +249,7 @@ namespace sclc {
                 func->setReturnType(type);
                 func->templateArg = r.message;
                 if (namedReturn.size()) {
-                    func->setNamedReturnValue(Variable(namedReturn, type, false, true).also([fromTemplate](Variable& v) {
+                    func->setNamedReturnValue(Variable(namedReturn, "mut " + type).also([fromTemplate](Variable& v) {
                         v.canBeNil = typeCanBeNil(v.getType());
                         v.typeFromTemplate = fromTemplate;
                     }));
@@ -373,8 +361,6 @@ namespace sclc {
                     } else {
                         i++;
                     }
-                    bool isConst = false;
-                    bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
@@ -384,8 +370,6 @@ namespace sclc {
                         }
                         type = r.value;
                         fromTemplate = r.message;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -411,8 +395,7 @@ namespace sclc {
                         i++;
                         continue;
                     }
-                    method->addArgument(Variable(name, type, isConst, isMut).also([fromTemplate](Variable& v) {
-                        v.canBeNil = typeCanBeNil(v.getType());
+                    method->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
                     }));
                 } else if (tokens[i].getType() == tok_curly_open) {
@@ -441,8 +424,6 @@ namespace sclc {
                     }
                     i++;
                     std::string type;
-                    bool isConst = false;
-                    bool isMut = false;
                     if (tokens[i].getType() == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
@@ -452,8 +433,6 @@ namespace sclc {
                         }
                         type = r.value;
                         fromTemplate = r.message;
-                        isConst = typeIsConst(type);
-                        isMut = typeIsMut(type);
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
@@ -480,8 +459,7 @@ namespace sclc {
                         continue;
                     }
                     for (std::string& s : multi) {
-                        method->addArgument(Variable(s, type, isConst, isMut).also([fromTemplate](Variable& v) {
-                            v.canBeNil = typeCanBeNil(v.getType());
+                        method->addArgument(Variable(s, type).also([fromTemplate](Variable& v) {
                             v.typeFromTemplate = fromTemplate;
                         }));
                     }
@@ -517,9 +495,7 @@ namespace sclc {
                 continue;
             }
             i++;
-            method->addArgument(Variable("self", "mut " + memberName).also([](Variable& v) {
-                v.canBeNil = false;
-            }));
+            method->addArgument(Variable("self", "mut " + memberName));
 
             std::string namedReturn = "";
             if (tokens[i].getType() == tok_identifier) {
@@ -536,12 +512,10 @@ namespace sclc {
 
                 std::string fromTemplate = r.message;
                 std::string type = r.value;
-                bool canReturnNil = typeCanBeNil(type);
                 method->setReturnType(type);
                 method->templateArg = fromTemplate;
                 if (namedReturn.size()) {
-                    method->setNamedReturnValue(Variable(namedReturn, type, false, true).also([canReturnNil, fromTemplate](Variable& v) {
-                        v.canBeNil = canReturnNil;
+                    method->setNamedReturnValue(Variable(namedReturn, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
                     }));
                 }
@@ -583,6 +557,19 @@ namespace sclc {
         c.insert(c.end(), b.begin(), b.end());
         return c;
     };
+
+    #define expect(value, ...) if (!(__VA_ARGS__)) { \
+            FPResult result; \
+            result.message = "Expected " + std::string(value) + ", but got '" + tokens[i].getValue() + "'"; \
+            result.va ## lue = tokens[i].getValue(); \
+            result.line = tokens[i].getLine(); \
+            result.in = tokens[i].getFile(); \
+            result.type = tokens[i].getType(); \
+            result.column = tokens[i].getColumn(); \
+            result.success = false; \
+            errors.push_back(result); \
+            continue; \
+        }
 
     TPResult parseFile(std::string file) {
         FILE* f = fopen(file.c_str(), "rb");
@@ -740,7 +727,10 @@ namespace sclc {
                 char* memberName = (char*) malloc(memberNameLength + 1);
                 fread(memberName, 1, memberNameLength, f);
 
-                e.addMember(memberName);
+                long memberValue = -1;
+                fread(&memberValue, sizeof(long), 1, f);
+                
+                e.addMember(memberName, memberValue);
             }
 
             enums.push_back(e);
@@ -1016,6 +1006,14 @@ namespace sclc {
         result.typealiases = typealiases;
         result.functions = functions;
         return result;
+    }
+
+    std::string operator ""_s(const char* str, size_t len) {
+        return std::string(str, len);
+    }
+
+    std::string operator ""_s(char c) {
+        return std::string(1, c);
     }
 
     TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
@@ -1323,9 +1321,7 @@ namespace sclc {
                         for (Variable& v : currentFunction->getArgs()) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->getName()).also([&](Variable& v) {
-                            v.canBeNil = false;
-                        }));
+                        m->addArgument(Variable("self", "mut " + currentInterface->getName()));
                         m->setReturnType(currentFunction->getReturnType());
                         for (std::string& s : currentFunction->getModifiers()) {
                             m->addModifier(s);
@@ -1343,9 +1339,7 @@ namespace sclc {
                         for (Variable& v : functionToImplement->getArgs()) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->getName()).also([](Variable& v) {
-                            v.canBeNil = false;
-                        }));
+                        m->addArgument(Variable("self", "mut " + currentInterface->getName()));
                         m->setReturnType(functionToImplement->getReturnType());
                         for (std::string& s : functionToImplement->getModifiers()) {
                             m->addModifier(s);
@@ -2000,7 +1994,15 @@ namespace sclc {
                 Enum e = Enum(name);
                 e.name_token = new Token(tokens[i - 1]);
                 while (tokens[i].getType() != tok_end) {
-
+                    long next = e.nextValue;
+                    if (tokens[i].getType() == tok_bracket_open) {
+                        i++;
+                        expect("number", tokens[i].getType() == tok_number);
+                        next = parseNumber(tokens[i].getValue());
+                        i++;
+                        expect("]", tokens[i].getType() == tok_bracket_close);
+                        i++;
+                    }
                     if (tokens[i].getType() != tok_identifier) {
                         FPResult result;
                         result.message = "Expected identifier for enum member, but got '" + tokens[i].getValue() + "'";
@@ -2014,9 +2016,11 @@ namespace sclc {
                         i++;
                         continue;
                     }
-                    if (e.indexOf(tokens[i].getValue()) != Enum::npos) {
+                    try {
+                        e.addMember(tokens[i].getValue(), next);
+                    } catch (const std::runtime_error& e) {
                         FPResult result;
-                        result.message = "Duplicate member of enum '" + e.getName() + "': '" + tokens[i].getValue() + "'";
+                        result.message = e.what();
                         result.value = tokens[i].getValue();
                         result.line = tokens[i].getLine();
                         result.in = tokens[i].getFile();
@@ -2024,10 +2028,7 @@ namespace sclc {
                         result.column = tokens[i].getColumn();
                         result.success = false;
                         errors.push_back(result);
-                        i++;
-                        continue;
                     }
-                    e.addMember(tokens[i].getValue());
                     i++;
                 }
                 enums.push_back(e);
@@ -2159,8 +2160,6 @@ namespace sclc {
                 std::string name = tokens[i].getValue();
                 std::string type = "any";
                 i++;
-                bool isConst = false;
-                bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
                     FPResult r = parseType(tokens, &i, templateArgs);
@@ -2169,8 +2168,6 @@ namespace sclc {
                         continue;
                     }
                     type = r.value;
-                    isConst = typeIsConst(type);
-                    isMut = typeIsMut(type);
                     if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
@@ -2185,13 +2182,9 @@ namespace sclc {
                     }
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
-                    extern_globals.push_back(Variable(name, type, isConst, isMut).also([](Variable& v){
-                        v.canBeNil = typeCanBeNil(v.getType());
-                    }));
+                    extern_globals.push_back(Variable(name, type));
                 } else {
-                    globals.push_back(Variable(name, type, isConst, isMut).also([](Variable& v){
-                        v.canBeNil = typeCanBeNil(v.getType());
-                    }));
+                    globals.push_back(Variable(name, type));
                 }
                 nextAttributes.clear();
             } else if (token.getType() == tok_declare && currentContainer != nullptr) {
@@ -2209,8 +2202,6 @@ namespace sclc {
                 std::string name = tokens[i].getValue();
                 std::string type = "any";
                 i++;
-                bool isConst = false;
-                bool isMut = false;
                 if (tokens[i].getType() == tok_column) {
                     i++;
                     FPResult r = parseType(tokens, &i, templateArgs);
@@ -2219,8 +2210,6 @@ namespace sclc {
                         continue;
                     }
                     type = r.value;
-                    isConst = typeIsConst(type);
-                    isMut = typeIsMut(type);
                     if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
@@ -2236,9 +2225,7 @@ namespace sclc {
                     }
                 }
                 nextAttributes.clear();
-                currentContainer->addMember(Variable(name, type, isConst, isMut).also([](Variable& v) {
-                    v.canBeNil = typeCanBeNil(v.getType());
-                }));
+                currentContainer->addMember(Variable(name, type));
             } else if (token.getType() == tok_declare && currentStruct != nullptr) {
                 if (tokens[i + 1].getType() != tok_identifier) {
                     FPResult result;
@@ -2256,8 +2243,6 @@ namespace sclc {
                 std::string name = tokens[i].getValue();
                 std::string type = "any";
                 i++;
-                bool isConst = false;
-                bool isMut = false;
                 bool isInternalMut = false;
                 bool isPrivate = false;
                 std::string fromTemplate = "";
@@ -2270,8 +2255,6 @@ namespace sclc {
                     }
                     fromTemplate = r.message;
                     type = r.value;
-                    isConst = typeIsConst(type);
-                    isMut = typeIsMut(type);
                     isInternalMut = typeIsReadonly(type);
                     isPrivate = contains<std::string>(nextAttributes, "private");
                     if (type == "none" || type == "nothing") {
@@ -2291,14 +2274,13 @@ namespace sclc {
                 
                 Variable& v = Variable::emptyVar();
                 if (currentStruct->isStatic() || contains<std::string>(nextAttributes, "static")) {
-                    v = Variable(currentStruct->getName() + "$" + name, type, isConst, isMut);
+                    v = Variable(currentStruct->getName() + "$" + name, type, currentStruct->getName());
                     v.name_token = new Token(nameToken);
-                    v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
+                    v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
-                    v.canBeNil = typeCanBeNil(v.getType());
                     globals.push_back(v);
                 } else {
-                    if (isConst && isInternalMut) {
+                    if (typeIsConst(type) && isInternalMut) {
                         FPResult result;
                         result.message = "The 'const' and 'readonly' modifiers are mutually exclusive!";
                         result.value = nameToken.getValue();
@@ -2311,30 +2293,11 @@ namespace sclc {
                         errors.push_back(result);
                         continue;
                     }
-                    if (isConst) {
-                        v = Variable(name, type, isConst, isMut);
-                        v.name_token = new Token(nameToken);
-                        v.typeFromTemplate = fromTemplate;
-                        v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
-                        v.canBeNil = typeCanBeNil(v.getType());
-                        currentStruct->addMember(v);
-                    } else {
-                        if (isInternalMut) {
-                            v = Variable(name, type, isConst, isMut, currentStruct->getName());
-                            v.name_token = new Token(nameToken);
-                            v.typeFromTemplate = fromTemplate;
-                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
-                            v.canBeNil = typeCanBeNil(v.getType());
-                            currentStruct->addMember(v);
-                        } else {
-                            v = Variable(name, type, isConst, isMut);
-                            v.name_token = new Token(nameToken);
-                            v.typeFromTemplate = fromTemplate;
-                            v.isPrivate = (contains<std::string>(nextAttributes, "private") || isPrivate);
-                            v.canBeNil = typeCanBeNil(v.getType());
-                            currentStruct->addMember(v);
-                        }
-                    }
+                    v = Variable(name, type, currentStruct->getName());
+                    v.name_token = new Token(nameToken);
+                    v.typeFromTemplate = fromTemplate;
+                    v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
+                    currentStruct->addMember(v);
                     nextAttributes.clear();
                 }
 
@@ -2365,20 +2328,8 @@ namespace sclc {
                            t.getValue() == "asm";
                 };
 
-                #define expect(value, ...) if (!(__VA_ARGS__)) { \
-                        FPResult result; \
-                        result.message = "Expected " + std::string(value) + ", but got '" + tokens[i].getValue() + "'"; \
-                        result.va ## lue = tokens[i].getValue(); \
-                        result.line = tokens[i].getLine(); \
-                        result.in = tokens[i].getFile(); \
-                        result.type = tokens[i].getType(); \
-                        result.column = tokens[i].getColumn(); \
-                        result.success = false; \
-                        errors.push_back(result); \
-                        continue; \
-                    }
-
                 if ((tokens[i].getValue() == "get" || tokens[i].getValue() == "set") && currentStruct != nullptr && currentFunction == nullptr) {
+                    std::string varName = lastDeclaredVariable.getName();
                     if (tokens[i].getValue() == "get") {
                         Token& getToken = tokens[i];
                         i++;
@@ -2387,12 +2338,18 @@ namespace sclc {
                         expect("')'", tokens[i].getType() == tok_paren_close);
                         i++;
                         expect("'=>'", tokens[i].getType() == tok_store);
-                        i++;
-                        expect("lambda expression", tokens[i].getType() == tok_identifier && tokens[i].getValue() == "lambda");
+                        if (tokens[i + 1].getType() == tok_identifier && tokens[i + 1].getValue() == "lambda") {
+                            i++;
+                        }
                         
-                        Method* getter = new Method(currentStruct->getName(), "attribute_accessor$" + lastDeclaredVariable.getName(), getToken);
+                        std::string name = "get";
+                        name += (char) std::toupper(varName[0]);
+                        name += varName.substr(1);
+
+                        Method* getter = new Method(currentStruct->getName(), name, getToken);
                         getter->setReturnType(lastDeclaredVariable.getType());
                         getter->addModifier("@getter");
+                        getter->addModifier(varName);
                         getter->addArgument(Variable("self", "mut " + currentStruct->getName()));
                         currentFunction = getter;
                     } else {
@@ -2406,12 +2363,18 @@ namespace sclc {
                         expect("')'", tokens[i].getType() == tok_paren_close);
                         i++;
                         expect("'=>'", tokens[i].getType() == tok_store);
-                        i++;
-                        expect("lambda expression", tokens[i].getType() == tok_identifier && tokens[i].getValue() == "lambda");
+                        if (tokens[i + 1].getType() == tok_identifier && tokens[i + 1].getValue() == "lambda") {
+                            i++;
+                        }
 
-                        Method* setter = new Method(currentStruct->getName(), "attribute_mutator$" + lastDeclaredVariable.getName(), setToken);
+                        std::string name = "set";
+                        name += (char) std::toupper(varName[0]);
+                        name += varName.substr(1);
+
+                        Method* setter = new Method(currentStruct->getName(), name, setToken);
                         setter->setReturnType("none");
                         setter->addModifier("@setter");
+                        setter->addModifier(varName);
                         setter->addArgument(Variable(argName, lastDeclaredVariable.getType()));
                         setter->addArgument(Variable("self", "mut " + currentStruct->getName()));
                         currentFunction = setter;

@@ -25,6 +25,11 @@ namespace sclc
         virtual T& also(std::function<void(T&)> func) = 0;
     };
 
+    bool typeCanBeNil(std::string s);
+    bool typeIsReadonly(std::string s);
+    bool typeIsConst(std::string s);
+    bool typeIsMut(std::string s);
+
     struct Variable : public Also<Variable> {
         std::string name;
         std::string type;
@@ -32,21 +37,21 @@ namespace sclc
         bool isConst;
         bool isInternalMut;
         bool isMut;
+        bool isReadonly;
         Token* name_token;
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;
-        Variable(std::string name, std::string type) : Variable(name, type, false, "") {}
-        Variable(std::string name, std::string type, bool isConst, bool isMut) : Variable(name, type, isConst, isMut, "") {}
-        Variable(std::string name, std::string type, std::string memberType) : Variable(name, type, false, false, memberType) {}
-        Variable(std::string name, std::string type, bool isConst, bool isMut, std::string memberType) {
+        Variable(std::string name, std::string type) : Variable(name, type, "") {}
+        Variable(std::string name, std::string type, std::string memberType) {
             this->name = name;
             this->type = type;
-            this->isMut = isMut;
-            this->isConst = isConst;
+            this->isMut = typeIsMut(type);
+            this->isConst = typeIsConst(type);
+            this->isReadonly = typeIsReadonly(type);
+            this->canBeNil = typeCanBeNil(type);
             this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
-            this->canBeNil = false;
             this->isPrivate = false;
             this->typeFromTemplate = "";
         }
@@ -66,7 +71,8 @@ namespace sclc
         bool isWritable() const {
             return !isConst;
         }
-        bool isWritableFrom(Function* f, VarAccess accessType) const;
+        bool isWritableFrom(Function* f) const;
+        bool isAccessible(Function* f) const;
         inline bool operator==(const Variable& other) const {
             if (this->getType() == "?" || other.getType() == "?") {
                 return this->name == other.name;

@@ -717,24 +717,26 @@ namespace sclc
             return true;
         }
         return false;
-    };
+    }
 
-    bool Variable::isWritableFrom(Function* f, VarAccess accessType) const {
+    bool Variable::isAccessible(Function* f) const {
+        if (isPrivate) {
+            return memberOfStruct(this, f);
+        }
+        return true;
+    }
 
-        if (typeIsReadonly(getType())) {
-            if (strstarts(this->getName(), f->member_type + "$")) {
+    bool Variable::isWritableFrom(Function* f) const {
+        if (isReadonly || isPrivate) {
+            if (isReadonly && strstarts(this->getName(), f->member_type + "$")) {
                 return true;
             }
             return memberOfStruct(this, f);
         }
-        if (typeIsConst(getType())) {
+        if (isConst) {
             return isInitFunction(f);
         }
-        if (typeIsMut(getType())) {
-            return true;
-        }
-
-        return accessType != VarAccess::Dereference;
+        return true;
     }
 
     bool sclIsProhibitedInit(std::string s) {
@@ -748,63 +750,24 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
-        while (strstarts(s, "mut ") || strstarts(s, "const ") || strstarts(s, "ref ")) {
-            while (strstarts(s, "mut ")) {
-                s = s.substr(4);
-            }
-            while (strstarts(s, "ref ")) {
-                s = s.substr(4);
-            }
-            while (strstarts(s, "const ")) {
-                s = s.substr(6);
-            }
+        while (strstarts(s, "mut ") || strstarts(s, "const ")) {
+            s = s.substr(strstarts(s, "mut ") ? 4 : 6);
         }
         return strstarts(s, "readonly ");
     }
 
     bool typeIsConst(std::string s) {
-        while (strstarts(s, "mut ") || strstarts(s, "readonly ") || strstarts(s, "ref ")) {
-            while (strstarts(s, "mut ")) {
-                s = s.substr(4);
-            }
-            while (strstarts(s, "ref ")) {
-                s = s.substr(4);
-            }
-            while (strstarts(s, "readonly ")) {
-                s = s.substr(9);
-            }
+        while (strstarts(s, "mut ") || strstarts(s, "readonly ")) {
+            s = s.substr(strstarts(s, "mut ") ? 4 : 9);
         }
         return strstarts(s, "const ");
     }
 
     bool typeIsMut(std::string s) {
-        while (strstarts(s, "const ") || strstarts(s, "readonly ") || strstarts(s, "ref ")) {
-            while (strstarts(s, "const ")) {
-                s = s.substr(6);
-            }
-            while (strstarts(s, "readonly ")) {
-                s = s.substr(9);
-            }
-            while (strstarts(s, "ref ")) {
-                s = s.substr(4);
-            }
+        while (strstarts(s, "const ") || strstarts(s, "readonly ")) {
+            s = s.substr(strstarts(s, "const ") ? 6 : 9);
         }
         return strstarts(s, "mut ");
-    }
-
-    bool typeIsRef(std::string s) {
-        while (strstarts(s, "const ") || strstarts(s, "readonly ") || strstarts(s, "mut ")) {
-            while (strstarts(s, "const ")) {
-                s = s.substr(6);
-            }
-            while (strstarts(s, "readonly ")) {
-                s = s.substr(9);
-            }
-            while (strstarts(s, "mut ")) {
-                s = s.substr(4);
-            }
-        }
-        return strstarts(s, "ref ");
     }
 
     bool isPrimitiveIntegerType(std::string type);
