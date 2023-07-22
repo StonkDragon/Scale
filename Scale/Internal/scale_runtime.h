@@ -1075,4 +1075,26 @@ _scl_always_inline static inline void _scl_not_chk() {
 	_scl_not();
 }
 
+_scl_always_inline static inline void _scl_ror() {
+	// rotate right
+	(_stack.sp - 2)->i = ((_stack.sp - 2)->i >> (_stack.sp - 1)->i) | ((_stack.sp - 2)->i << (sizeof(scl_int) * 8 - (_stack.sp - 1)->i));
+	_stack.sp--;
+}
+
+_scl_always_inline static inline void _scl_ror_chk() {
+	_scl_assert(_scl_stack_size() >= 2, "_scl_ror_chk() failed: Not enough data on the stack!");
+	_scl_ror();
+}
+
+_scl_always_inline static inline void _scl_rol() {
+	// rotate left
+	(_stack.sp - 2)->i = ((_stack.sp - 2)->i << (_stack.sp - 1)->i) | ((_stack.sp - 2)->i >> (sizeof(scl_int) * 8 - (_stack.sp - 1)->i));
+	_stack.sp--;
+}
+
+_scl_always_inline static inline void _scl_rol_chk() {
+	_scl_assert(_scl_stack_size() >= 2, "_scl_rol_chk() failed: Not enough data on the stack!");
+	_scl_rol();
+}
+
 #endif // __SCALE_RUNTIME_H__

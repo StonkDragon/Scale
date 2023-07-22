@@ -409,7 +409,9 @@ namespace sclc
         else if (name == "^") name = "operator$logic_xor";
         else if (name == "~") name = "operator$logic_not";
         else if (name == "<<") name = "operator$logic_lsh";
+        else if (name == "<<<") name = "operator$logic_rol";
         else if (name == ">>") name = "operator$logic_rsh";
+        else if (name == ">>>") name = "operator$logic_ror";
         else if (name == "**") name = "operator$pow";
         else if (name == ".") name = "operator$dot";
         else if (name == "<") name = "operator$less";
@@ -480,7 +482,9 @@ namespace sclc
         else if (name == "^") name = "operator$logic_xor";
         else if (name == "~") name = "operator$logic_not";
         else if (name == "<<") name = "operator$logic_lsh";
+        else if (name == "<<<") name = "operator$logic_rol";
         else if (name == ">>") name = "operator$logic_rsh";
+        else if (name == ">>>") name = "operator$logic_ror";
         else if (name == "**") name = "operator$pow";
         else if (name == ".") name = "operator$dot";
         else if (name == "<") name = "operator$less";
@@ -593,7 +597,9 @@ namespace sclc
         else if (name == "^") name = "operator$logic_xor";
         else if (name == "~") name = "operator$logic_not";
         else if (name == "<<") name = "operator$logic_lsh";
+        else if (name == "<<<") name = "operator$logic_rol";
         else if (name == ">>") name = "operator$logic_rsh";
+        else if (name == ">>>") name = "operator$logic_ror";
         else if (name == "**") name = "operator$pow";
         else if (name == ".") name = "operator$dot";
         else if (name == "<") name = "operator$less";

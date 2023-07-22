@@ -186,19 +186,29 @@ namespace sclc
                     syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
                 }
             }
-        } else if (isOperator(c) /* && value != "-" */) {
+        } else if (isOperator(c)) {
             value += c;
             if (c == '>') {
                 if (source[current + 1] == '>' || source[current + 1] == '=') {
                     c = source[++current];
                     column++;
                     value += c;
+                    if (source[current] == '>' && source[current + 1] == '>') {
+                        c = source[++current];
+                        column++;
+                        value += c;
+                    }
                 }
             } else if (c == '<') {
                 if (source[current + 1] == '<' || source[current + 1] == '=') {
                     c = source[++current];
                     column++;
                     value += c;
+                    if (source[current] == '<' && source[current + 1] == '<') {
+                        c = source[++current];
+                        column++;
+                        value += c;
+                    }
                 }
             } else if (c == '=') {
                 c = source[++current];
@@ -382,7 +392,6 @@ namespace sclc
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
         TOKEN("enum",       tok_enum, line, filename);
-        TOKEN("pragma!",    tok_identifier, line, filename);
         
         if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
             additional = true;
@@ -418,32 +427,8 @@ namespace sclc
         TOKEN(",",          tok_comma, line, filename);
         TOKEN(":",          tok_column, line, filename);
         TOKEN("::",         tok_double_column, line, filename);
-        TOKEN("+",          tok_identifier, line, filename);
-        TOKEN("-",          tok_identifier, line, filename);
-        TOKEN("*",          tok_identifier, line, filename);
-        TOKEN("/",          tok_identifier, line, filename);
-        TOKEN("%",          tok_identifier, line, filename);
-        TOKEN("&",          tok_identifier, line, filename);
-        TOKEN("|",          tok_identifier, line, filename);
-        TOKEN("^",          tok_identifier, line, filename);
-        TOKEN("~",          tok_identifier, line, filename);
-        TOKEN("<<",         tok_identifier, line, filename);
-        TOKEN(">>",         tok_identifier, line, filename);
-        TOKEN("**",         tok_identifier, line, filename);
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("?.",         tok_dot, line, filename);
-        TOKEN("<",          tok_identifier, line, filename);
-        TOKEN("<=",         tok_identifier, line, filename);
-        TOKEN(">",          tok_identifier, line, filename);
-        TOKEN(">=",         tok_identifier, line, filename);
-        TOKEN("==",         tok_identifier, line, filename);
-        TOKEN("!",          tok_identifier, line, filename);
-        TOKEN("!!",         tok_identifier, line, filename);
-        TOKEN("!=",         tok_identifier, line, filename);
-        TOKEN("&&",         tok_identifier, line, filename);
-        TOKEN("||",         tok_identifier, line, filename);
-        TOKEN("++",         tok_identifier, line, filename);
-        TOKEN("--",         tok_identifier, line, filename);
 
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, begin);

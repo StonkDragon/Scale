@@ -205,6 +205,8 @@ expect operator "lxor" function ^(:int, :int): int
 expect operator "lnot" function ~(:int): int
 expect operator "lsl" function <<(:int, :int): int
 expect operator "lsr" function >>(:int, :int): int
+expect operator "rol" function <<<(:int, :int): int
+expect operator "ror" function >>>(:int, :int): int
 
 deprecated![since: "23.5", replacement: "int::toInt8"]
 function toInt8(value: any): int8

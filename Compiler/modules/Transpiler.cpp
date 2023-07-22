@@ -896,6 +896,8 @@ namespace sclc {
         if (op == "lnot") return "~";
         if (op == "lsl") return "<<";
         if (op == "lsr") return ">>";
+        if (op == "rol") return "<<<";
+        if (op == "ror") return ">>>";
         return "???";
     }
 
@@ -1128,7 +1130,9 @@ namespace sclc {
                op == "lxor" ||
                op == "lnot" ||
                op == "lsr" ||
-               op == "lsl";
+               op == "lsl" ||
+               op == "ror" ||
+               op == "rol";
     }
 
     bool operatorFloat(std::string op) {
@@ -5171,7 +5175,9 @@ namespace sclc {
         else if (name == "operator$logic_xor") name = "^";
         else if (name == "operator$logic_not") name = "~";
         else if (name == "operator$logic_lsh") name = "<<";
+        else if (name == "operator$logic_rol") name = "<<<";
         else if (name == "operator$logic_rsh") name = ">>";
+        else if (name == "operator$logic_ror") name = ">>>";
         else if (name == "operator$pow") name = "**";
         else if (name == "operator$dot") name = ".";
         else if (name == "operator$less") name = "<";

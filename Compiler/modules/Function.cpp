@@ -14,7 +14,9 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     if (name == "^") name = "operator$logic_xor";
     if (name == "~") name = "operator$logic_not";
     if (name == "<<") name = "operator$logic_lsh";
+    if (name == "<<<") name = "operator$logic_rol";
     if (name == ">>") name = "operator$logic_rsh";
+    if (name == ">>>") name = "operator$logic_ror";
     if (name == "**") name = "operator$pow";
     if (name == ".") name = "operator$dot";
     if (name == "<") name = "operator$less";
