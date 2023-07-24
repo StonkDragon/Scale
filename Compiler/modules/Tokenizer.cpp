@@ -41,9 +41,6 @@ namespace sclc
         return this->tokens;
     }
 
-    static bool additional;
-    static Token additionalToken;
-
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, begin);
@@ -430,9 +427,9 @@ namespace sclc
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("?.",         tok_dot, line, filename);
 
-        if (current >= strlen(source)) {
-            return Token(tok_eof, "", line, filename, begin);
-        }
+        // if (current >= strlen(source)) {
+        //     return Token(tok_eof, "", line, filename, begin);
+        // }
         return Token(tok_identifier, value, line, filename, begin);
     }
 

@@ -78,19 +78,20 @@ namespace sclc {
         static void dump(TPResult& result);
     };
 
-    class Tokenizer
+    struct Tokenizer
     {
         std::vector<Token> tokens;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         char* source;
         size_t current;
+        bool additional;
+        Token additionalToken;
 
         int line = 1;
         int column = 1;
         int begin = 1;
         std::string filename;
-    public:
         Tokenizer() {current = 0;}
         ~Tokenizer() {}
         FPResult tokenize(std::string source);

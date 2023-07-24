@@ -141,93 +141,229 @@ namespace sclc
     using Triple = triple<std::string, std::string, std::string>;
     using TripleList = std::vector<Triple>;
 
-    auto parseSclDoc(std::string file) {
-        std::map<std::string, TripleList> docs;
-        FILE* fp = fopen(file.c_str(), "rb");
-        if (fp) fseek(fp, 0, SEEK_END);
-        long sz = ftell(fp);
-        if (fp) fseek(fp, 0, SEEK_SET);
+    struct DocumentationEntry {
+        std::string name;
+        std::string description;
+        std::string module;
+    };
+
+    using DocumentationEntries = std::vector<DocumentationEntry>;
+
+    struct Documentation {
+        std::map<std::string, DocumentationEntries> entries;
+
+        auto begin() {
+            return entries.begin();
+        }
+        auto end() {
+            return entries.end();
+        }
+    };
+
+    std::vector<Token> parseString(std::string s) {
+        Tokenizer tk;
+
+        tk.source = strdup(s.c_str());
+        tk.current = 0;
+
+        Token token = tk.nextToken();
+        while (token.getType() != tok_eof) {
+            tk.tokens.push_back(token);
+            if (tk.additional) {
+                tk.tokens.push_back(tk.additionalToken);
+                tk.additional = false;
+            }
+            token = tk.nextToken();
+        }
+
+        return tk.tokens;
+    }
+
+    bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
+        for (auto path : Main.options.includePaths) {
+            if (fileExists(path + "/" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse(path + "/" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return false;
+                }
+                root = root->getCompound("framework");
+                Main.options.mapFrameworkConfigs[framework] = root;
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    return false;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + "/" + framework + ".framework/" + docfileTag->getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return false;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return false;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->getString(i)->getValue();
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->getString(i)->getValue();
+                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                        hasCppFiles = true;
+                    }
+                    tmpFlags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back(path + "/" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = path + "/" + framework + ".framework/" + headerDir;
+                }
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers->getString(i)->getValue();
+                    if (!Main.options.assembleOnly) {
+                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        tmpFlags.push_back(path + "/" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::string compileLine(std::string line) {
+        std::string out = "";
+        out.reserve(line.size());
+        bool inCode = false;
+        for (size_t i = 0; i < line.size(); i++) {
+            if (line[i] == '`') {
+                inCode = !inCode;
+            } else {
+                if (inCode) {
+                    std::string theCode = line.substr(i, line.find("`", i) - i);
+                    i += theCode.size();
+                    auto tokens = parseString(theCode);
+                    theCode = "";
+                    for (size_t i = 0; i < tokens.size(); i++) {
+                        if (tokens[i].type == tok_eof) continue;
+                        auto t = tokens[i];
+                        if (i) theCode += " ";
+                        theCode += t.formatted();
+                    }
+                    inCode = false;
+                    out += Color::RESET + theCode + Color::GREEN;
+                } else {
+                    out += line[i];
+                }
+            }
+        }
+        return out;
+    }
+
+    Documentation parseSclDoc(std::string file) {
+        FILE* docFile = fopen(file.c_str(), "rb");
+        
+        if (docFile) fseek(docFile, 0, SEEK_END);
+        long sz = ftell(docFile);
+        if (docFile) fseek(docFile, 0, SEEK_SET);
+
         char* data = new char[sz];
-        fread(data, 1, sz, fp);
-        fclose(fp);
+
+        fread(data, 1, sz, docFile);
+        fclose(docFile);
+
+        Documentation docs;
 
         std::vector<std::string> lines = split(std::string(data), "\n");
         std::string current = "";
         std::string nextFileName = "";
         for (size_t i = 0; i < lines.size(); i++) {
             std::string line = lines[i];
-            try {
-                line = replaceAll(line, "`", "");
-            } catch (std::out_of_range& e) {}
             if (strstarts(line, "@")) {
-                try {
-                    nextFileName = line.substr(1);
-                } catch (std::out_of_range& e) {}
+                nextFileName = line.substr(1);
             } else if (strstarts(line, "##") && !strstarts(line, "###")) {
-                try {
-                    current = line.substr(3);
-                    TripleList key_value;
-                    docs[current] = key_value;
-                } catch (std::out_of_range& e) {}
+                current = line.substr(3);
+                docs.entries[current] = DocumentationEntries();
             } else if (strstarts(line, "###")) {
                 std::string key = line.substr(4);
-                docs[current].push_back(triple(key, std::string(""), nextFileName));
+                DocumentationEntry e;
+                e.name = key;
+                e.module = nextFileName;
+                
                 line = lines[++i];
-                std::string linePrefix = "";
-                while (i < lines.size() && !strstarts(line, "##") && !strstarts(line, "@")) {
-                    while (strstarts(line, "<div")) {
-                        line = lines[++i];
+                auto isNextLine = [](std::string line) -> bool {
+                    return strstarts(line, "##") || strstarts(line, "@");
+                };
+                while (i < lines.size()) {
+                    line = lines[i++];
+                    if (isNextLine(line)) {
+                        i -= 2;
+                        break;
                     }
-                    if (line == "<pre>" || strstarts(line, "<pre>")) {
-                        linePrefix = Color::CYAN + "  ";
-                    } else if (line == "</pre>" || strstarts(line, "</pre>")) {
-                        linePrefix = "";
-                    } else {
-                        docs[current].back().second += "  " + linePrefix + line + "\n";
-                    }
-                    line = lines[++i];
+                    e.description += "  " + compileLine(line) + "\n";
                 }
-                std::string prev = docs[current].back().second;
-                std::string now = replaceAll(prev, "\n  \n", "\n");
-                now = replaceAll(now, "<<RESET>>", Color::GREEN);
-                now = replaceAll(now, "<<BLACK>>", Color::BLACK);
-                now = replaceAll(now, "<<RED>>", Color::RED);
-                now = replaceAll(now, "<<GREEN>>", Color::GREEN);
-                now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
-                now = replaceAll(now, "<<BLUE>>", Color::BLUE);
-                now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
-                now = replaceAll(now, "<<WHITE>>", Color::WHITE);
-                now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
-                now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
-                now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
-                now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
-                now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
-                now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
-                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
-                now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
-
-                docs[current].back().second = now;
-                i--;
+                docs.entries[current].push_back(e);
             }
         }
         return docs;
     }
 
     auto docHandler(std::vector<std::string> args) {
-        std::map<std::string, TripleList> docs;
+        Documentation docs;
+        std::vector<std::string> tmpFlags;
+        std::vector<std::string> frameworks = {Main.options.printDocFor};
+        bool hasCppFiles;
+        Version FrameworkMinimumVersion(FRAMEWORK_VERSION_REQ);
+        if (!checkFramework(Main.options.printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {
+            return 1;
+        }
         
         struct {
             std::vector<std::string> find;
             std::vector<std::string> find_category;
             bool help;
-            bool info;
             bool categories;
         } DocOps = {
             std::vector<std::string>(),
             std::vector<std::string>(),
             false,
-            Main.options.printDocFor.size() == 0,
             false
         };
 
@@ -251,271 +387,109 @@ namespace sclc
                 }
             } else if (arg == "help" || arg == "-h" || arg == "--help") {
                 DocOps.help = true;
-            } else if (arg == "info") {
-                DocOps.info = true;
             } else if (arg == "categories") {
                 DocOps.categories = true;
+            } else if (arg == "for") {
+                if (i + 1 < args.size()) {
+                    Main.options.printDocFor = args[i + 1];
+                    i++;
+                } else {
+                    std::cerr << "Error: for requires an argument" << std::endl;
+                    return 1;
+                }
             } else {
                 std::cout << "Unknown argument: " << arg << std::endl;
                 DocOps.help = true;
             }
         }
-        
+
         if (DocOps.help) {
             std::cout << "Scale Doc-Viewer help:" << std::endl;
             std::cout << "" << std::endl;
             std::cout << "  find <regex>             Find <regex> in documentation." << std::endl;
             std::cout << "  find-category <category> Find <category> in documentation." << std::endl;
-            std::cout << "  info                     Display Scale language documentation." << std::endl;
             std::cout << "  help                     Display this help." << std::endl;
             std::cout << "  categories               Display categories." << std::endl;
             std::cout << "" << std::endl;
             return 0;
         }
+        std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+        std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
-        if (DocOps.categories) {
-            if (Main.options.printDocFor.size()) {
-                std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-                std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-                if (file.size() == 0 || !fileExists(file)) {
-                    std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-                    return 1;
-                }
-                std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-                Main.options.docsIncludeFolder = includeFolder;
-                if (docFileFormat == "markdown") {
-                    std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
-                    return 1;
-                } else if (docFileFormat == "scldoc") {
-                    docs = parseSclDoc(file);
-                } else {
-                    std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-                    return 1;
-                }
-                std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
-                std::cout << "Categories: " << std::endl;
-
-                std::string current = "";
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
-                }
-                return 0;
-            } else {
-                docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
-                std::cout << "Scale Documentation" << std::endl;
-                std::cout << "Categories: " << std::endl;
-
-                std::string current;
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
-                }
-                return 0;
-            }
+        if (file.size() == 0 || !fileExists(file)) {
+            std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+            return 1;
         }
 
-        if (DocOps.info) {
-            std::cout << "Scale Documentation" << std::endl;
-            docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
+        std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
+        Main.options.docsIncludeFolder = includeFolder;
 
-            std::string current;
-            if (DocOps.find.size() == 0) {
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                    for (Triple kv : section.second) {
-                        if (kv.third.size())
-                            std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                        else
-                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                    }
-                }
-            } else {
-                for (std::string& f : DocOps.find) {
-                    bool found = false;
-                    std::string sec = "";
-                    bool hasSection = false;
-                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                                hasSection = true;
-                            }
-                        }
-                        if (!found) {
-                            for (Triple kv : section.second) {
-                                std::string matchCurrent = current;
-                                std::string matchKey = kv.first;
-                                std::string matchDescription = kv.second;
-                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                    found = true;
-                                    sec = current;
-                                }
-                            }
-                        }
-                    }
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        if (found && current == sec)
-                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::string s = kv.second;
-                                std::smatch matches;
-                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                    }
-                }
+        if (docFileFormat == "markdown") {
+            std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
+            return 1;
+        } else if (docFileFormat == "scldoc") {
+            docs = parseSclDoc(file);
+        } else {
+            std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
+            return 1;
+        }
+
+        if (DocOps.categories) {
+            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+            std::cout << "Categories: " << std::endl;
+
+            std::string current = "";
+            for (auto section : docs) {
+                current = section.first;
+                std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
             }
             return 0;
         }
 
-        if (Main.options.printDocFor.size()) {
-            std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-            std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-            if (file.size() == 0 || !fileExists(file)) {
-                std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-                return 1;
-            }
-            std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-            Main.options.docsIncludeFolder = includeFolder;
-            if (docFileFormat == "markdown") {
-                std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
-                return 1;
-            } else if (docFileFormat == "scldoc") {
-                docs = parseSclDoc(file);
-            } else {
-                std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-                return 1;
-            }
-            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+        std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
 
-            std::string current = "";
-            if (DocOps.find.size() == 0) {
-                if (DocOps.find_category.size() == 0) {
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            if (kv.third.size())
-                                std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            else
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+        std::string current = "";
+        for (auto&& section : docs) {
+            current = section.first;
+
+            bool found = true;
+            if (DocOps.find_category.size()) {
+                found = false;
+                for (auto&& cat : DocOps.find_category) {
+                    if (std::regex_search(current, std::regex(cat))) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) continue;
+
+            std::vector<DocumentationEntry> foundIn;
+
+            for (DocumentationEntry e : section.second) {
+                if (DocOps.find.size()) {
+                    for (auto&& f : DocOps.find) {
+                        if (
+                            std::regex_search(e.name.begin(), e.name.end(), std::regex(f, std::regex::icase)) ||
+                            std::regex_search(e.module.begin(), e.module.end(), std::regex(f, std::regex::icase)) ||
+                            std::regex_search(e.description.begin(), e.description.end(), std::regex(f, std::regex::icase))
+                        ) {
+                            foundIn.push_back(e);
                         }
                     }
                 } else {
-                    for (std::string& f : DocOps.find_category) {
-                        bool found = false;
-                        std::string sec = "";
-                        std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                        for (std::pair<std::string, TripleList> section : docs) {
-                            current = section.first;
-                            std::string matchCurrent = current;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                            }
-                        }
-                        for (std::pair<std::string, TripleList> section : docs) {
-                            current = section.first;
-                            if (found && current == sec) {
-                                std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (Triple kv : section.second) {
-                                    if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                    else
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                }
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            std::cout << Color::RED << "Could not find category '" << f << "'" << std::endl;
-                        }
-                    }
+                    foundIn.push_back(e);
                 }
-            } else {
-                for (std::string& f : DocOps.find) {
-                    bool found = false;
-                    std::string sec = "";
-                    bool hasSection = false;
-                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                                hasSection = true;
-                            }
-                        }
-                        if (!found) {
-                            for (Triple kv : section.second) {
-                                std::string matchCurrent = current;
-                                std::string matchKey = kv.first;
-                                std::string matchDescription = kv.second;
-                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                    found = true;
-                                    sec = current;
-                                }
-                            }
-                        }
-                    }
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        if (found && current == sec)
-                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                    else
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::string s = kv.second;
-                                std::smatch matches;
-                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                    }
+            }
+
+            if (foundIn.size() == 0) continue;
+            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+            for (DocumentationEntry e : foundIn) {
+                std::cout << Color::BLUE << e.name << "\n";
+                if (e.module.size()) {
+                    std::cout << Color::CYAN << "Module: " << e.module << "\n";
                 }
+                std::cout << Color::GREEN << e.description;
             }
         }
 
@@ -645,11 +619,6 @@ namespace sclc
     }
 
     int main(std::vector<std::string> args) {
-        if (args.size() < 2) {
-            usage(args[0]);
-            return 1;
-        }
-
         using clock = std::chrono::high_resolution_clock;
 
         auto start = clock::now();
@@ -663,6 +632,21 @@ namespace sclc
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;
+
+        Main.options.includePaths.push_back(scaleFolder + "/Frameworks");
+        Main.options.includePaths.push_back(".");
+
+        if (args[0] == "scaledoc") {
+            Main.options.docPrinterArgsStart = 0;
+            Main.options.printDocFor = "Scale";
+            return docHandler(args);
+        }
+
+        if (args.size() < 2) {
+            usage(args[0]);
+            return 1;
+        }
+
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
         tmpFlags.reserve(args.size());
@@ -860,10 +844,6 @@ namespace sclc
                         std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
                     }
-                } else if (args[i] == "-doc") {
-                    Main.options.printDocs = true;
-                    Main.options.docPrinterArgsStart = i;
-                    break;
                 } else if (args[i] == "-no-error-location") {
                     Main.options.noErrorLocation = true;
                 } else {
@@ -915,169 +895,7 @@ namespace sclc
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
         for (std::string& framework : frameworks) {
-            if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
-                DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
-                if (root == nullptr) {
-                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
-                    return 1;
-                }
-                root = root->getCompound("framework");
-                Main.options.mapFrameworkConfigs[framework] = root;
-                DragonConfig::ListEntry* implementers = root->getList("implementers");
-                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                DragonConfig::ListEntry* depends = root->getList("depends");
-                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                DragonConfig::StringEntry* versionTag = root->getString("version");
-                std::string version = versionTag->getValue();
-                if (versionTag == nullptr) {
-                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                    continue;
-                }
-                
-                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                
-                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                
-                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : scaleFolder + "/Frameworks/" + framework + ".framework/" + docfileTag->getValue();
-
-                Version ver = Version(version);
-                Version compilerVersion = Version(VERSION);
-                if (ver > compilerVersion) {
-                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                    return 1;
-                }
-                if (ver < FrameworkMinimumVersion) {
-                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                    return 1;
-                }
-
-                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                    std::string depend = depends->getString(i)->getValue();
-                    if (!contains(frameworks, depend)) {
-                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                        return 1;
-                    }
-                }
-
-                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                    std::string flag = compilerFlags->getString(i)->getValue();
-                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                        hasCppFiles = true;
-                    }
-                    tmpFlags.push_back(flag);
-                }
-
-                Main.frameworks.push_back(framework);
-
-                if (headerDir.size() > 0) {
-                    Main.options.includePaths.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir);
-                    Main.options.mapIncludePathsToFrameworks[framework] = scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-                }
-                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                for (unsigned long i = 0; i < implementersSize; i++) {
-                    std::string implementer = implementers->getString(i)->getValue();
-                    if (!Main.options.assembleOnly) {
-                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
-                    }
-                }
-                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                    Main.frameworkNativeHeaders.push_back(header);
-                }
-            } else if (fileExists("./" + framework + ".framework/index.drg")) {
-                DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
-                if (root == nullptr) {
-                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
-                    return 1;
-                }
-                root = root->getCompound("framework");
-                Main.options.mapFrameworkConfigs[framework] = root;
-                DragonConfig::ListEntry* implementers = root->getList("implementers");
-                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                DragonConfig::ListEntry* depends = root->getList("depends");
-                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                DragonConfig::StringEntry* versionTag = root->getString("version");
-                std::string version = versionTag->getValue();
-                if (versionTag == nullptr) {
-                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                    continue;
-                }
-                
-                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                
-                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                
-                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : "./" + framework + ".framework/" + docfileTag->getValue();
-                
-                Version ver = Version(version);
-                Version compilerVersion = Version(VERSION);
-                if (ver > compilerVersion) {
-                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                    return 1;
-                }
-                if (ver < FrameworkMinimumVersion) {
-                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                    return 1;
-                }
-
-                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                    std::string depend = depends->getString(i)->getValue();
-                    if (!contains(frameworks, depend)) {
-                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                        return 1;
-                    }
-                }
-
-                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                    std::string flag = compilerFlags->getString(i)->getValue();
-                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                        hasCppFiles = true;
-                    }
-                    tmpFlags.push_back(flag);
-                }
-
-                Main.frameworks.push_back(framework);
-
-                if (headerDir.size() > 0) {
-                    Main.options.includePaths.push_back("./" + framework + ".framework/" + headerDir);
-                    Main.options.mapIncludePathsToFrameworks[framework] = "./" + framework + ".framework/" + headerDir;
-                }
-                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
-                    std::string implementer = implementers->getString(i)->getValue();
-                    if (!Main.options.assembleOnly) {
-                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
-                    }
-                }
-                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                    Main.frameworkNativeHeaders.push_back(header);
-                }
-            }
+            checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
         Main.options.includePaths.push_back("./");
         if (!Main.options.noScaleFramework) {
@@ -1621,6 +1439,26 @@ int main(int argc, char const *argv[]) {
     signal(SIGILL, sclc::signalHandler);
     signal(SIGINT, sclc::signalHandler);
     signal(SIGTERM, sclc::signalHandler);
+
+    if (!isatty(fileno(stdout))) {
+        sclc::Color::RESET = "";
+        sclc::Color::BLACK = "";
+        sclc::Color::RED = "";
+        sclc::Color::GREEN = "";
+        sclc::Color::YELLOW = "";
+        sclc::Color::BLUE = "";
+        sclc::Color::MAGENTA = "";
+        sclc::Color::CYAN = "";
+        sclc::Color::WHITE = "";
+        sclc::Color::BOLDBLACK = "";
+        sclc::Color::BOLDRED = "";
+        sclc::Color::BOLDGREEN = "";
+        sclc::Color::BOLDYELLOW = "";
+        sclc::Color::BOLDBLUE = "";
+        sclc::Color::BOLDMAGENTA = "";
+        sclc::Color::BOLDCYAN = "";
+        sclc::Color::BOLDWHITE = "";
+    }
 
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {

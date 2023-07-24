@@ -10,42 +10,90 @@
 namespace sclc
 {
     #ifdef _WIN32
-    const std::string Color::RESET = "";
-    const std::string Color::BLACK = "";
-    const std::string Color::RED = "";
-    const std::string Color::GREEN = "";
-    const std::string Color::YELLOW = "";
-    const std::string Color::BLUE = "";
-    const std::string Color::MAGENTA = "";
-    const std::string Color::CYAN = "";
-    const std::string Color::WHITE = "";
-    const std::string Color::BOLDBLACK = "";
-    const std::string Color::BOLDRED = "";
-    const std::string Color::BOLDGREEN = "";
-    const std::string Color::BOLDYELLOW = "";
-    const std::string Color::BOLDBLUE = "";
-    const std::string Color::BOLDMAGENTA = "";
-    const std::string Color::BOLDCYAN = "";
-    const std::string Color::BOLDWHITE = "";
+    std::string Color::RESET = "";
+    std::string Color::BLACK = "";
+    std::string Color::RED = "";
+    std::string Color::GREEN = "";
+    std::string Color::YELLOW = "";
+    std::string Color::BLUE = "";
+    std::string Color::MAGENTA = "";
+    std::string Color::CYAN = "";
+    std::string Color::WHITE = "";
+    std::string Color::BOLDBLACK = "";
+    std::string Color::BOLDRED = "";
+    std::string Color::BOLDGREEN = "";
+    std::string Color::BOLDYELLOW = "";
+    std::string Color::BOLDBLUE = "";
+    std::string Color::BOLDMAGENTA = "";
+    std::string Color::BOLDCYAN = "";
+    std::string Color::BOLDWHITE = "";
     #else
-    const std::string Color::RESET = "\033[0m";
-    const std::string Color::BLACK = "\033[30m";
-    const std::string Color::RED = "\033[31m";
-    const std::string Color::GREEN = "\033[32m";
-    const std::string Color::YELLOW = "\033[33m";
-    const std::string Color::BLUE = "\033[34m";
-    const std::string Color::MAGENTA = "\033[35m";
-    const std::string Color::CYAN = "\033[36m";
-    const std::string Color::WHITE = "\033[37m";
-    const std::string Color::BOLDBLACK = "\033[1m\033[30m";
-    const std::string Color::BOLDRED = "\033[1m\033[31m";
-    const std::string Color::BOLDGREEN = "\033[1m\033[32m";
-    const std::string Color::BOLDYELLOW = "\033[1m\033[33m";
-    const std::string Color::BOLDBLUE = "\033[1m\033[34m";
-    const std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
-    const std::string Color::BOLDCYAN = "\033[1m\033[36m";
-    const std::string Color::BOLDWHITE = "\033[1m\033[37m";
+    std::string Color::RESET = "\033[0m";
+    std::string Color::BLACK = "\033[30m";
+    std::string Color::RED = "\033[31m";
+    std::string Color::GREEN = "\033[32m";
+    std::string Color::YELLOW = "\033[33m";
+    std::string Color::BLUE = "\033[34m";
+    std::string Color::MAGENTA = "\033[35m";
+    std::string Color::CYAN = "\033[36m";
+    std::string Color::WHITE = "\033[37m";
+    std::string Color::BOLDBLACK = "\033[1m\033[30m";
+    std::string Color::BOLDRED = "\033[1m\033[31m";
+    std::string Color::BOLDGREEN = "\033[1m\033[32m";
+    std::string Color::BOLDYELLOW = "\033[1m\033[33m";
+    std::string Color::BOLDBLUE = "\033[1m\033[34m";
+    std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
+    std::string Color::BOLDCYAN = "\033[1m\033[36m";
+    std::string Color::BOLDWHITE = "\033[1m\033[37m";
     #endif
+
+    std::vector<std::string> keywords({
+        "import",
+        "construct",
+        "final",
+        "ref",
+        "typeof",
+        "nameof",
+        "sizeof",
+        "typealias",
+        "layout",
+        "asm",
+        "nothing",
+        "none",
+        "int",
+        "float",
+        "int32",
+        "int16",
+        "int8",
+        "uint32",
+        "uint16",
+        "uint8",
+        "uint",
+        "int64",
+        "uint64",
+        "any",
+        "str",
+        "varargs",
+        "self",
+        "super",
+        "bool",
+        "sealed",
+        "static",
+        "private",
+        "export",
+        "expect",
+        "unsafe",
+        "restrict",
+        "const",
+        "readonly",
+        "mut",
+        "try",
+        "catch",
+        "throw",
+        "open",
+        "intrinsic",
+        "lambda",
+    });
 
     Struct Struct::Null = Struct("");
     Token Token::Default(tok_identifier, "", 0, "");

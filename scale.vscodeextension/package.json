@@ -41,6 +41,9 @@
         },{
             "language": "scldoc",
             "scopeName": "source.scldoc",
+            "embeddedLanguages": {
+              "meta.embedded.block.scale": "scale"
+            },
             "path": "./scldoc/syntaxes/scldoc.syntax.tmlanguage.json"
         }],
         "snippets": [{

@@ -1,1123 +1,1355 @@
-# Scale Framework Documentation
-@std
-## Core
-### function sleep(_millis_: int): none
-Sleeps for <<WHITE>>_millis_<<RESET>> milliseconds.
-This function can be used to suspend execution for a given amount of time.
-
-### function system(_cmd_: str): int
-Executes the shell command <<WHITE>>_cmd_<<RESET>> and returns the return value.
-
-### function getenv(_key_: str): str?
-Returns the value of the environment variable <<WHITE>>_key_<<RESET>>.
-If the environment variable is not set, <<BLUE>>nil<<RESET>> is returned.
-
-### function sizeofStack(): int
-Returns the current stack size.
-
-### function malloc(_size_: int): any
-Returns a pointer to <<WHITE>>_size_<<RESET>> bytes of memory.
-This memory may not be <<GREEN>>0<<RESET>>-initialized.
-It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
-The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
-
-### function realloc(_ptr_: any, _size_: int): any
-Reallocates the memory pointed to by <<WHITE>>_ptr_<<RESET>> with a new size of <<WHITE>>_size_<<RESET>> bytes.
-Any call to <<WHITE>>realloc<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
-If <<WHITE>>_ptr_<<RESET>> is <<BLUE>>nil<<RESET>> the function will behave identical to <<WHITE>>malloc<<RESET>>.
-It is undefined behavior to pass in a <<WHITE>>_size_<<RESET>> of <<GREEN>>0<<RESET>>.
-
-### function free(_ptr_: any): none
-Frees the memory pointed to by <<WHITE>>_ptr_<<RESET>>.
-If <<WHITE>>_ptr_<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
-
-### function memset(ptr: [any], val: int, len: int): [any]
-Sets the first <<WHITE>>len<<RESET>> bytes pointed to by <<WHITE>>ptr<<RESET>> to <<WHITE>>val<<RESET>>.
-Returns a pointer to the changed memory.
-
-### function memcpy(dst: [any], src: [any], n: int): [any]
-Copies <<WHITE>>n<<RESET>> bytes from <<WHITE>>src<<RESET>> to <<WHITE>>dst<<RESET>> and returns <<WHITE>>dst<<RESET>>.
-
-### function time(): float
-Returns the current time in seconds as a float.
-
-### function longToString(_long_: int): str
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toString<<RESET>>
-Converts <<WHITE>>_long_<<RESET>> to a string.
-
-### function stringToLong(_str_: str): int
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>parse<<RESET>>
-Converts <<WHITE>>_str_<<RESET>> to an interger.
-Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
-If <<WHITE>>_str_<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
-
-### function stringToDouble(_str_: str): float
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>toString<<RESET>>
-Converts <<WHITE>>_str_<<RESET>> to a float.
-Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
-Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
-
-### function doubleToString(_double_: float): str
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>parse<<RESET>>
-Converts <<WHITE>>_double_<<RESET>> to a string.
-
-### function nop(): none
-<<RED>>This function has been deprecated<<RESET>>
-Do nothing.
-
+# Scale Standard Library
 @std.Any
 ## Any
-### static function any::new(size: int): any
-Returns a pointer to <<WHITE>>size<<RESET>> bytes of memory.
-This memory may not be <<GREEN>>0<<RESET>>-initialized.
-It is undefined behavior to pass in a <<WHITE>>size<<RESET>> of <<GREEN>>0<<RESET>>.
-The amount of allocated memory will be padded to a multiple of <<GREEN>>8<<RESET>> (<<GREEN>>4<<RESET>> on 32-bit systems).
+### final static struct any
+The static struct `any` provides utility functions for working with the `any` type.
 
-### static function any::default(): any
-Returns a pointer to <<BLUE>>sizeof any<<RESET>> bytes of memory.
-This memory may not be <<GREEN>>0<<RESET>>-initialized.
+### static function any::new(sz: int): any
+Returns a pointer to a newly allocated memory block of size `sz` bytes.
 
 ### static function any::delete(ptr: any): none
-Frees the memory pointed to by <<WHITE>>ptr<<RESET>>.
-If <<WHITE>>ptr<<RESET>> was not allocated or is <<BLUE>>nil<<RESET>>, this function will do nothing.
-
-### static function any::resize(size: int, ptr: any): any
-Reallocates the memory pointed to by <<WHITE>>ptr<<RESET>> with a new size of <<WHITE>>size<<RESET>> bytes.
-Any call to <<WHITE>>any::resize<<RESET>> may invalidate the old pointer so it is strongly suggested to reassign it to the return value.
+Frees the memory block pointed to by `ptr`.
 
 ### static function any::size(ptr: any): int
-Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
-Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+Returns the size of the memory block pointed to by `ptr`.
+Returns -1 if `ptr` is nil or invalid.
 
-### static function any::toString(x: any): int
-Returns the amount of bytes <<WHITE>>ptr<<RESET>> points to.
-Returns <<GREEN>>-1<<RESET>> if the pointer was not allocated.
+### static function any::resize(newSize: int, ptr: any): any
+Resizes the memory block pointed to by `ptr` to `newSize` bytes.
+Returns a pointer to the resized memory block.
 
-### static function any::toHexString(x: any): int
-Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+### static function any::default(): any
+Returns a pointer to a newly allocated memory block of size 8 bytes.
 
-@std.Int
-## Int
-### static function int::toString(i: int): str
-Converts <<WHITE>>i<<RESET>> to a string.
+### static function any::toString(x: any): str
+Returns a string representation of `x`.
 
-### static function int::toHexString(i: int): str
-Returns the hexadecimal representation of <<WHITE>>i<<RESET>> as a string.
+### static function any::toHexString(x: any): str
+Returns a hexadecimal string representation of `x`.
 
-### static function int::parse(s: str): int
-Converts <<WHITE>>s<<RESET>> to an interger.
-Returns <<GREEN>>0<<RESET>> if the string is not a valid number.
-If <<WHITE>>s<<RESET>> contains the string representation of a float, this function will return the whole part of the number.
+### static function any::referenceEquals(one: any, other: any): bool
+Returns true if `one` and `other` point to the same memory block.
 
-### static function int::toInt8(_val_: int): int8
-Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
+### static function any::asReference(x: any): Any
+Returns a new instance of `Any` that represents the value `x`.
 
-### static function int::toInt16(_val_: int): int16
-Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
+### struct Any
+The struct `Any` is the reference type that represents the `any` type.
+Declared Fields:
+- `value: readonly any` - The value of the `Any` instance.
 
-### static function int::toInt32(_val_: int): int32
-Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
+### static function Any::valueOf(x: any): Any
+Returns a new instance of `Any` that represents the value `x`.
 
-### static function int::toInt(_val_: any): int
-Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
-32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+### function Any:equals(other: any): bool
+Returns true if `self` and `other` point to the same memory block.
 
-### static function int::toUInt8(_val_: int): int8
-Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
+### function Any:==(other: any): bool
+Returns true if `self` and `other` point to the same memory block.
 
-### static function int::toUInt16(_val_: int): int16
-Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
+### function Any:@(): any
+Returns the data pointed to by this `Any` instance.
 
-### static function int::toUInt32(_val_: int): int32
-Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
+### function Any:toString(): str
+Returns a string representation of this `Any` instance.
 
-### static function int::toUInt(_val_: any): uint
-Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
-32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+@std
+## Core
+### unsafe function memset(ptr: [any], val: int32, len: int): [any]
+Sets `len` bytes of memory pointed to by `ptr` to `val` and returns `ptr`.
+This function is unsafe because it does not check if `ptr` is nil or invalid.
 
-### static function int::isValidInt8(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
+### unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+Copies `n` bytes from `src` to `dst` and returns `dst`.
+This function is unsafe because it does not check if `dst` or `src` are nil or invalid.
 
-### static function int::isValidInt16(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
+### function sizeofStack(): int
+Returns the size of the stack in elements.
 
-### static function int::isValidInt32(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
+### function sleep(millis: int): none
+Sleeps for `millis` milliseconds.
 
-### static function int::isValidUInt8(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
+### function malloc(size: int): [any]
+Allocates a memory block of `size` bytes and returns a pointer to it.
 
-### static function int::isValidUInt16(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
+### function free(pointer: [any]): none
+Frees the memory block pointed to by `pointer`.
 
-### static function int::isValidUInt32(_val_: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
+### function realloc(pointer: [any], size: int): [any]
+Resizes the memory block pointed to by `pointer` to `size` bytes and returns a pointer to it.
 
-### function toInt8(_val_: int): int8
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt8<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to an 8-Bit integer.
+### function system(command: str): int
+Executes `command` in the system shell and returns the exit code.
 
-### function toInt16(_val_: int): int16
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt16<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to a 16-Bit integer.
+### function getenv(environKey: str): str?
+Returns the value of the environment variable `environKey` or nil if it is not set.
 
-### function toInt32(_val_: int): int32
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt32<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to a 32-Bit integer.
+### function time(): float
+Returns the current time in seconds since the epoch.
 
-### function toInt(_val_: any): int
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toInt<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to an integer with the default bit width of the platform.
-32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+### function longToString(theNumber: int): str
+Returns a string representation of `theNumber`.
 
-### function toUInt8(_val_: int): int8
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt8<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to an unsigned 8-Bit integer.
+### function stringToLong(theString: str): int
+Returns an integer representation of `theString`.
 
-### function toUInt16(_val_: int): int16
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt16<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to a unsigned 16-Bit integer.
+### function stringToDouble(theString: str): float
+Parses `theString` as a float and returns the result.
 
-### function toUInt32(_val_: int): int32
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt32<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to a unsigned 32-Bit integer.
+### function doubleToString(theNumber: float): str
+Returns a string representation of `theNumber`.
 
-### function toUInt(_val_: any): uint
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>toUInt<<RESET>>
-Converts <<WHITE>>_val_<<RESET>> to an unsigned integer with the default bit width of the platform.
-32 bits on 32-Bit systems and 64 bits on 64-Bit systems.
+### function nop(): none
+Does nothing.
 
-### function isValidInt8(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt8<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 8-Bit integer.
+@std.debug
+## Debug
+### function trace(): none
+Prints a stack trace to stdout.
 
-### function isValidInt16(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt16<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 16-Bit integer.
+### function throw(ex: Exception): nothing
+Throws the given exception `ex`.
 
-### function isValidInt32(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidInt32<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid 32-Bit integer.
+### function errno(): int
+Returns the value of the errno variable.
 
-### function isValidUInt8(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt8<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 8-Bit integer.
+### function strerror(): str
+Returns a string representation of the error code in errno.
 
-### function isValidUInt16(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt16<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 16-Bit integer.
+### function setSignalHandler(fun: lambda(int): none, sig: int): none
+Sets the signal handler for the signal `sig` to `fun`.
 
-### function isValidUInt32(_val_: any): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>int::<<WHITE>>isValidUInt32<<RESET>>
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>_val_<<RESET>> is a valid unsigned 32-Bit integer.
+### function resetSignalHandler(sig: int): none
+Resets the signal handler for the signal `sig` to the default handler.
 
-### function isnil(x: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is <<BLUE>>nil<<RESET>>.
+### function dumpStack(): none
+Prints the current stack to stdout.
 
-### function isnotnil(x: any): bool
-Returns <<BLUE>>true<<RESET>>, if <<WHITE>>x<<RESET>> is not <<BLUE>>nil<<RESET>>.
+### function crash(): none
+Crashes the program.
 
-@std.io
-## IO
-### function write(_fd_: int, _str_: str, _n_: int): none
-Writes <<WHITE>>_n_<<RESET>> bytes of <<WHITE>>_str_<<RESET>> to file descriptor <<WHITE>>_fd_<<RESET>>.
+### function raise(sigNum: int): none
+Raises the signal `sigNum`.
 
-### function read(_fd_: int, _n_: int): any
-Reads <<WHITE>>_n_<<RESET>> bytes from file descriptor <<WHITE>>_fd_<<RESET>>.
+### function breakPoint(): none
+Sets a breakpoint.
 
-### function puts(_str_: str): none
-Prints <<WHITE>>_str_<<RESET>> followed by a new line to the standard output.
+### struct Exception
+The struct `Exception` is the base class for all exceptions.
+Declared Fields:
+- `msg: str` - The message of the exception.
+- `stackTrace: const Array` - The stack trace of the exception.
+- `errnoStr: readonly str` - The string representation of the error code in errno at the time the exception was initialized.
 
-### function eputs(_str_: str): none
-Prints <<WHITE>>_str_<<RESET>> followed by a new line to the standard error output.
+### static function Exception::new(): Exception
+Returns a new instance of `Exception`.
 
-### function putint(_int_: int): none
-Prints the number <<WHITE>>_int_<<RESET>> followed by a new line to the standard output.
+### function Exception:printStackTrace(): none
+Prints the stack trace of this exception to stdout.
 
-### function putfloat(f: float): none
-Prints the float <<WHITE>>f<<RESET>> followed by a new line to the standard output.
+### final struct InvalidSignalException: Exception
+The struct `InvalidSignalException` is thrown when an invalid signal is passed to `setSignalHandler` or `resetSignalHandler`.
+Declared Fields:
+- `sig: readonly int` - The signal number that was passed to `setSignalHandler` or `resetSignalHandler`.
 
-### function throwerr(_err_: str): none
-Prints <<WHITE>>_err_<<RESET>> to standard error output and exits with exit code 1.
+### static function InvalidSignalException::new(sig: int): InvalidSignalException
+Returns a new instance of `InvalidSignalException` with the given signal number `sig`.
 
-@std.math
-## Math
-### container MathConstants
-Member types:
-- <<BLUE>>const <<WHITE>>e<<BLUE>>: float<<RESET>>
-- <<BLUE>>const <<WHITE>>pi<<BLUE>>: float<<RESET>>
-- <<BLUE>>const <<WHITE>>nan<<BLUE>>: float<<RESET>>
-- <<BLUE>>const <<WHITE>>infinity<<BLUE>>: float<<RESET>>
-<<WHITE>>e<<RESET>>: The math constant <<WHITE>>e<<RESET>>.
-It is equal to <<GREEN>>2.71828182845904523536028747135266250<<RESET>>
-<<WHITE>>pi<<RESET>>: The math constant <<WHITE>>pi<<RESET>>.
-It is equal to <<GREEN>>3.14159265358979323846264338327950288<<RESET>>
-<<WHITE>>nan<<RESET>>: A floating point value representing "Not a Number".
-<<WHITE>>infinity<<RESET>>: A floating point value representing positive infinity.
+### struct nilPointerException: Exception
+The struct `nilPointerException` is thrown when a nil pointer is dereferenced.
 
-### function acos(f: float): float
-Returns the arc cosine of <<WHITE>>f<<RESET>>.
+### struct Error: Exception
+The struct `Error` is the base class for all errors.
+Errors are thrown when the program encounters an unrecoverable error and cannot be handled by the program.
 
-### function asin(f: float): float
-Returns the arc sine of <<WHITE>>f<<RESET>>.
+### static function Error::new(msg: str): Error
+Returns a new instance of `Error` with the given message `msg`.
 
-### function atan(f: float): float
-Returns the arc tangent of <<WHITE>>f<<RESET>>.
+### final struct AssertError: Error
+The struct `AssertError` is thrown when an assertion fails.
 
-### function atan2(y: float, x: float): float
-Returns the angle of the point <<BLUE>>(<<WHITE>>x<<BLUE>>, <<WHITE>>y<<BLUE>>)<<RESET>> to the x-Axis.
+### final struct CastError: Error
+The struct `CastError` is thrown when a cast fails.
 
-### function cos(f: float): float
-Returns the cosine of <<WHITE>>f<<RESET>>.
+### final struct UnreachableError: Error
+The struct `UnreachableError` is thrown when the program encounters a statement that is unreachable.
 
-### function sin(f: float): float
-Returns the sine of <<WHITE>>f<<RESET>>.
-
-### function tan(f: float): float
-Returns the tangent of <<WHITE>>f<<RESET>>.
-
-### function acosh(f: float): float
-Returns the area hyperbolic cosine of <<WHITE>>f<<RESET>>.
-
-### function asinh(f: float): float
-Returns the area hyperbolic sine of <<WHITE>>f<<RESET>>.
-
-### function atanh(f: float): float
-Returns the area hyperbolic tangent of <<WHITE>>f<<RESET>>.
-
-### function cosh(f: float): float
-Returns the hyperbolic cosine of <<WHITE>>f<<RESET>>.
-
-### function sinh(f: float): float
-Returns the hyperbolic sine of <<WHITE>>f<<RESET>>.
-
-### function tanh(f: float): float
-Returns the hyperbolic tangent of <<WHITE>>f<<RESET>>.
-
-### function exp(f: float): float
-Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
-
-### function exp2(f: float): float
-Returns <<GREEN>>2<<RESET>> raised to the power of <<WHITE>>f<<RESET>>.
-
-### function expm1(f: float): float
-Returns <<WHITE>>MathConstants<<BLUE>>.<<WHITE>>e<<RESET>> raised to the power of <<WHITE>>f<<RESET>> minus <<GREEN>>1<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f exp <<GREEN>>1 <<BLUE>>-<<RESET>>.
-
-### function log(f: float): float
-Returns the natural logarithm of <<WHITE>>f<<RESET>>.
-
-### function log10(f: float): float
-Returns the common (base-10) logarithm of <<WHITE>>f<<RESET>>.
-
-### function log2(f: float): float
-Returns the binary logarithm of <<WHITE>>f<<RESET>>.
-
-### function log1p(f: float): float
-Returns the natural logarithm of <<GREEN>>1 <<WHITE>>f <<BLUE>>+<<RESET>>.
-For small values of <<WHITE>>f<<RESET>>, this may be more accurate than <<WHITE>>f <<GREEN>>1 <<BLUE>>+ <<WHITE>>exp<<RESET>>.
-
-### function logb(f: float): float
-Returns the logarithm of the absolute value of <<WHITE>>f<<RESET>>.
-
-### function fabs(f: float): float
-Returns the absolute value of <<WHITE>>f<<RESET>>.
-
-### function cbrt(f: float): float
-Returns the cubic root of <<WHITE>>f<<RESET>>.
-
-### function hypot(x: float, y: float): float
-Returns the hypotenuse of a right-angled triangle whose legs are <<WHITE>>x<<RESET>> and <<WHITE>>y<<RESET>>.
-
-The function returns what would be the square root of the sum of the squares of <<WHITE>>x<<RESET>> and <<WHITE>>y<<RESET>>.
-
-### function pow(base: float, exp: float): float
-Returns <<WHITE>>base<<RESET>> raised to the power of <<WHITE>>exp<<RESET>>.
-
-### function sqrt(f: float): float
-Returns the square root of <<WHITE>>f<<RESET>>.
-
-### function erf(f: float): float
-Returns the error function value for <<WHITE>>f<<RESET>>.
-
-### function erfc(f: float): float
-Returns the complementary error function value for <<WHITE>>f<<RESET>>.
-
-### function lgamma(f: float): float
-Returns the natural logarithm of the absolute value of the gamma function of <<WHITE>>f<<RESET>>.
-
-### function tgamma(f: float): float
-Returns the gamma function of <<WHITE>>f<<RESET>>.
-
-### function ceil(f: float): float
-Rounds <<WHITE>>f<<RESET>> upwards to the nearest integer value not less than <<WHITE>>f<<RESET>>.
-
-### function floor(f: float): float
-Rounds <<WHITE>>f<<RESET>> downwards to the nearest integer value not more than <<WHITE>>f<<RESET>>.
-
-### function round(f: float): float
-Returns the integer value that is nearest to <<WHITE>>f<<RESET>>, with halfway cases rounded away from zero.
-
-### function trunc(f: float): float
-Rounds <<WHITE>>f<<RESET>> toward zero, returning the nearest integral value that is not larger in magnitude than <<WHITE>>f<<RESET>>.
-
-### function fmod(a: float, b: float): float
-Returns the floating-point remainder of <<WHITE>>a<<BLUE>>/<<WHITE>>b<<RESET>>.
-
-### function remainder(a: float, b: float): float
-Returns the floating-point remainder of <<WHITE>>a<<BLUE>>/<<WHITE>>b<<RESET>>.
-
-### function fdim(x: float, y: float): float
-Returns the positive difference between <<WHITE>>x <<RESET>>and <<WHITE>>y<<RESET>>.
-
-### function fmax(x: float, y: float): float
-Returns the larger of the two arguments.
-
-### function fmin(x: float, y: float): float
-Returns the smaller of the two arguments.
-
-### function fma(x: float, y: float, z: float): float
-Returns <<WHITE>>x y <<BLUE>>* <<WHITE>>z <<BLUE>>+<<RESET>>.
-The function computes the result without losing precision in any intermediate result.
-
-### function isInfinite(x: float): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isInfinite<<RESET>>
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
-
-### function isNaN(x: float): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNaN<<RESET>>
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
-
-### function isFinite(x: float): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isFinite<<RESET>>
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
-
-### function isNotNaN(x: float): bool
-<<RED>>This function has been deprecated in favor of <<BLUE>>float::<<WHITE>>isNotNaN<<RESET>>
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
-
-### function random(): int
-Returns a random <<BLUE>>int<<RESET>>.
-
-### function iseven(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is evenly divisible by <<GREEN>>2<<RESET>>.
-
-### function isodd(i: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>i<<RESET>> is not evenly divisible by <<GREEN>>2<<RESET>>.
-
-### function lrandom(lim: int): int
-Returns a random <<BLUE>>int<<RESET>> not exceeding <<WHITE>>lim<<RESET>>.
-
-### function lerp(_a_: float, _b_: float, _t_: float): float
-Linear interpolation between <<WHITE>>_a_<<RESET>> and <<WHITE>>_b_<<RESET>> with the argument <<WHITE>>_t_<<RESET>>.
-
-### function neg(i: int): int
-Returns <<WHITE>>_i_<<BLUE>> *<<GREEN>> -1<<RESET>>.
+### function sysPrettyString(): str
+Returns a string representation of the system.
 
 @std.fs
-## File
-### struct File
-The <<WHITE>>File<<RESET>> struct represents a file.
+## Filesystem
+### final struct File
+The struct `File` represents a file on the filesystem.
 
 ### static function File::new(name: str): File
-Creates a new File instance of the file with the given name as the path.
+Returns a new instance of `File` with the given name `name`.
 
 ### function File:name(): str
-Returns the name of the file.
+Returns the name of this file.
 
 ### function File:close(): none
-Closes the underlying file handle.
+Closes this file. Any further operations on this file will result in undefined behavior.
 
 ### function File:append(s: str): none
-Appends the given string to the end of the file.
+Appends the string `s` to this file.
 
-### function File:puts(s: str): none
-Prints the given string to the end of the file and appends a new line.
+### function File:puts(s: any): none
+Writes the string representation of `s` to this file.
 
 ### function File:writeBinary(buf: any, sz: int): none
-Writes <<WHITE>>sz<<RESET>> bytes of the buffer <<WHITE>>buf<<RESET>> to the file.
+Writes `sz` bytes from the memory block pointed to by `buf` to this file.
 
 ### function File:read(sz: int): any
-Returns up to <<WHITE>>sz<<RESET>> bytes of data from the file.
+Reads `sz` bytes from this file and returns a pointer to the memory block containing the data.
 
-### function File:offsetFromBegin(off: int): none
-Moves the current position in the file to <<WHITE>>off<<RESET>> bytes from the beginning of the file.
+### function File:offsetFromBegin(offset: int): none
+Sets the offset of this file to `offset` bytes from the beginning of the file.
 
-### function File:offsetFromEnd(off: int): none
-Moves the current position in the file to <<WHITE>>off<<RESET>> bytes from the end of the file.
+### function File:offsetFromEnd(offset: int): none
+Sets the offset of this file to `offset` bytes from the end of the file.
 
-### function File:offset(off: int): none
-Moves the current position in the file <<WHITE>>off<<RESET>> bytes forward.
+### function File:offset(offset: int): none
+Sets the offset of this file to `offset` bytes from the current offset.
 
 ### function File:fileno(): int
-Returns the underlying file descriptor of this instance.
+Returns the file descriptor of this file.
 
 ### function File:pos(): int
-Returns the current position in the file.
+Returns the current offset of this file.
 
 ### function File:delete(): bool
-Deletes the file and returns <<BLUE>>true<<RESET>> if it was successful.
+Deletes this file and returns true if the operation was successful.
 
 ### function File:create(): none
-Creates this file if it doesn't already exist.
+Creates this file.
 
-### static function File::exists(name: str): bool
-Returns <<BLUE>>true<<RESET>> if the file with the name <<WHITE>>name<<RESET>> exists.
+### static function File::exists(f: str): bool
+Returns true if the file with the name `f` exists.
 
-### function fopen(_filename_: str, _mode_: str): any
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Opens a new file handle of file <<WHITE>>_filename_<<RESET>> in mode <<WHITE>>_mode_<<RESET>>.
+### unsafe function fopen(fileName: str, mode: str): __c_file?
+Opens the file with the name `fileName` in the mode `mode` and returns a pointer to the file.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fclose(_file_: any): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Closes the file handle <<WHITE>>_file_<<RESET>>.
+### unsafe function fwrite(buffer: any, elemSize: int, filePtr: __c_file): none
+Writes `elemSize` bytes from the memory block pointed to by `buffer` to the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function ftell(_file_: any): int
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Returns the current position in the file <<WHITE>>_file_<<RESET>>.
+### unsafe function fwrites(buffer: str, elemSize: int, filePtr: __c_file): none
+Writes `elemSize` bytes from the memory block pointed to by `buffer` to the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fileno(_file_: any): int
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Returns the file descriptor of <<WHITE>>_file_<<RESET>>.
+### unsafe function fputs(filePtr: __c_file, _str_: str): none
+Writes the string `_str_` to the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fseek(_file_: any, _whence_: int, _offset_: int): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Seeks to <<WHITE>>_offset_<<RESET>> in the <<WHITE>>_file_<<RESET>> from <<WHITE>>_whence_<<RESET>>.
+### unsafe function fputint(filePtr: __c_file, _int_: int): none
+Writes the integer `_int_` to the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fwrite(_buf_: any, _size_: int, _file_: any): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Writes <<WHITE>>_size_<<RESET>> bytes of buffer <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
+### unsafe function fputfloat(filePtr: __c_file, _float_: float): none
+Writes the float `_float_` to the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fwrites(_buf_: str, _size_: int, _file_: any): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Writes <<WHITE>>_size_<<RESET>> bytes of string <<WHITE>>_buf_<<RESET>> to the file <<WHITE>>_file_<<RESET>>.
+### unsafe function fread(filePtr: __c_file, elemSize: int): [any]?
+Reads `elemSize` bytes from the file pointed to by `filePtr` and returns a pointer to the memory block containing the data.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fputs(_file_: any, _str_: str): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Prints the string <<WHITE>>_str_<<RESET>> to <<WHITE>>_file_<<RESET>>.
+### unsafe function fseekstart(filePtr: __c_file, offset: int): none
+Seek to `offset` bytes from the beginning of the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fputs(_file_: any, _int_: int): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Prints the integer <<WHITE>>_int_<<RESET>> to <<WHITE>>_file_<<RESET>>.
+### unsafe function fseekend(filePtr: __c_file, offset: int): none
+Seek to `offset` bytes from the end of the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
-### function fputs(_file_: any, _float_: float): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Prints the float <<WHITE>>_float_<<RESET>> to <<WHITE>>_file_<<RESET>>.
-
-### function fread(f: any, _size_: int): [any]?
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Reads <<WHITE>>_size_<<RESET>> bytes from file <<WHITE>>f<<RESET>>.
-
-### function fseekstart(f: any, _offset_: int): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Seeks to position <<WHITE>>_offset_<<RESET>> from the start of file <<WHITE>>f<<RESET>>.
-
-### function fseekend(f: any, _offset_: int): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Seeks to position <<WHITE>>_offset_<<RESET>> from the end of file <<WHITE>>f<<RESET>>.
-
-### function fseekcur(f: any, _offset_: int): none
-<<RED>>This function has been deprecated in favor of <<BLUE>>struct <<WHITE>>File<<RESET>>
-Seeks to position <<WHITE>>_offset_<<RESET>> from the current position of file <<WHITE>>f<<RESET>>.
+### unsafe function fseekcur(filePtr: __c_file, offset: int): none
+Seek to `offset` bytes from the current offset of the file pointed to by `filePtr`.
+This function is unsafe as it does not check for nil on its arguments.
+This function is deprecated and should not be used.
 
 @std.Float
 ## Float
+### final static struct float
+The static struct `float` provides utility functions for working with the `float` type.
+Static Fields:
+- `maxExponent: const int` - The maximum exponent of a float.
+- `minExponent: const int` - The minimum exponent of a float.
+
 ### static function float::toString(x: float): str
-Converts <<WHITE>>x<<RESET>> to a string.
+Returns a string representation of `x`.
 
 ### static function float::toPrecisionString(x: float): str
-Converts <<WHITE>>x<<RESET>> to a string with the highest precision available.
+Returns a string representation of `x` with a precision of 17.
 
 ### static function float::toHexString(x: float): str
-Returns the hexadecimal representation of <<WHITE>>x<<RESET>> as a string.
+Returns a hexadecimal string representation of `x`.
 
 ### static function float::parse(s: str): float
-Converts <<WHITE>>s<<RESET>> to a float.
-Returns <<WHITE>>0<<RESET>> if the string is not a valid float.
-Undefined behavior is invoked if the number is out of range for a 64-Bit floating point number.
+Parses `s` as a float and returns the result.
 
-### static function float::bits(x: float) val: int
-Returns the bit representation of the float <<WHITE>>x<<RESET>>.
-
-### static function float::fromBits(x: any): float
-Returns <<BLUE>>x<<RESET>> interpreted as a float.
+### static function float::bits(x: float): int
+Returns the bits of `x`.
 
 ### static function float::isInfinite(x: float): bool
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents infinity.
+Returns true if `x` is infinite.
 
 ### static function float::isNaN(x: float): bool
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents NaN.
+Returns true if `x` is NaN.
 
 ### static function float::isFinite(x: float): bool
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents neither NaN nor infinity.
+Returns true if `x` is finite.
 
 ### static function float::isNotNaN(x: float): bool
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>x<<RESET>> represents anything but NaN.
+Returns true if `x` is not NaN.
 
-@std.math.Fraction
-## Fraction
-### struct Fraction
-Member types:
-- <<WHITE>>numerator<<BLUE>>: int<<RESET>>
-- <<WHITE>>denominator<<BLUE>>: int<<RESET>>
+### static function float::asReference(f: float): Float
+Returns a new instance of `Float` that represents the value `f`.
 
-<<WHITE>>numerator<<RESET>>: The numerator of the fraction
-<<WHITE>>denominator<<RESET>>: The denominator of the fraction
+### static function float::fromBits(bits: any): float
+Returns a float from the bits `bits`.
 
-### static function Fraction::new(numerator: int, denominator: int): Fraction
-Creates a new fraction with the given numerator and denominator.
+### struct Float
+The struct `Float` is the reference type that represents the `float` type.
+Declared Fields:
+- `value: readonly float` - The value of the `Float` instance.
 
-### static function Fraction::fromFloat(val: float): Fraction
-Creates a new fraction from the given <<BLUE>>float<<RESET>> value.
+### static function Float::valueOf(x: float): Float
+Returns a new instance of `Float` that represents the value `x`.
 
-### function Fraction:toString(): str
-Returns a string representation of this fraction.
-It follows this pattern: numerator "/" denominator
+### function Float:equals(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
-### function Fraction:toFloat(): float
-Returns a float approximation of the fraction.
+### function Float:==(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
-### function Fraction:+(other: Fraction): Fraction
-Adds two fractions and returns a new Fraction based on the result of the addition.
+### function Float:@(): float
+Returns the float value of this `Float` instance.
 
-### function Fraction:-(other: Fraction): Fraction
-Subtracts two fractions and returns a new Fraction based on the result of the subtraction.
+### function Float:toString(): str
+Returns a string representation of this `Float` instance.
 
-### function Fraction:++(): Fraction
-Increments this fraction by adding the denominator to the numerator once.
+@std.io
+## IO
+### unsafe function write(fileDescriptor: int, string: str): none
+Writes the string `string` to the file with the file descriptor `fileDescriptor`.
 
-### function Fraction:--(): Fraction
-Increments this fraction by subtracting the denominator from the numerator once.
+### function read(fileDescriptor: int, amount: int): str
+Reads `amount` bytes from the file with the file descriptor `fileDescriptor` and returns a string containing the data.
 
-### function Fraction:*(other: Fraction): Fraction
-Multiplies two fractions and returns a new Fraction based on the result of the multiplication.
+### function getchar(): int8
+Reads a character from stdin and returns it.
 
-### function Fraction:/(other: Fraction): Fraction
-Divides two fractions and returns a new Fraction based on the result of the division.
+### function puts(val: str | [int8] | float | any): none
+Writes the string representation of `val` to stdout.
 
-### function Fraction:inverse(): Fraction
-Returns the inverse of this fraction.
+### function eputs(s: str | [int8] | float | any): none
+Writes the string representation of `s` to stderr.
 
-@std.util.Array
-## Array
-### struct Array
-Member types:
-- <<BLUE>>readonly <<WHITE>>values<<BLUE>>: any<<RESET>>
-- <<BLUE>>readonly <<WHITE>>count<<BLUE>>: int<<RESET>>
-- <<BLUE>>readonly <<WHITE>>capacity<<BLUE>>: int<<RESET>>
+### function putint(number: int): none
+Writes the string representation of `number` to stdout.
 
-<<WHITE>>values<<RESET>>: Contains the contents of the array.
-<<WHITE>>count<<RESET>>: Contains the amount of elements in the array.
-<<WHITE>>capacity<<RESET>>: Contains the maximum capacity of the array.
+### function putfloat(number: float): none
+Writes the string representation of `number` to stdout.
 
-### function Array:sort(): none
-Sorts the array.
-If the array is empty, the function will do nothing.
+### function throwerr(errorString: str): none deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
+Throws an Exception with the message `errorString`.
 
-### function Array:get(index: int): any
-Returns the value at <<WHITE>>index<<RESET>>.
-If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+### final static struct ConsoleColor
+The static struct `ConsoleColor` provides utility functions for working with the console color.
 
-### function Array:set(index: int, value: any): none
-Sets the value at <<WHITE>>index<<RESET>> to <<WHITE>>value<<RESET>>.
-If the index is out of bounds for the array, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+### static function ConsoleColor::reset(): str
+Returns the ANSI escape sequence to reset the console color.
 
-### function Array:top(): any
-Returns the top value of the array.
-This invocation is identical to <<WHITE>>Array.count <<GREEN>>1 <<BLUE>>-<<WHITE>> Array:get<<RESET>>.
-If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+### static function ConsoleColor::black(): str
+Returns the ANSI escape sequence to set the console color to black.
 
-### function Array:push(value: any): none
-Returns <<WHITE>>value<<RESET>> onto the array.
-If the array has no more free slots, it will be resized accordingly.
+### static function ConsoleColor::red(): str
+Returns the ANSI escape sequence to set the console color to red.
 
-### function Array:pop(): none
-Pops the top value of the array by decrementing the <<WHITE>>count<<RESET>> property on the array.
-If the array is empty, an <<WHITE>>IndexOutOfBoundsException<<RESET>> will be thrown.
+### static function ConsoleColor::green(): str
+Returns the ANSI escape sequence to set the console color to green.
 
-### function Array:indexOf(val: any): int
-Returns the index of the first occurence of <<WHITE>>val<<RESET>> in the array.
-Returns <<GREEN>>-1<<RESET>> if <<WHITE>>val<<RESET>> is not found in the array.
+### static function ConsoleColor::yellow(): str
+Returns the ANSI escape sequence to set the console color to yellow.
 
-### function Array:contains(val: any): bool
-Returns <<BLUE>>true<<RESET>>, if the array contains <<WHITE>>val<<RESET>>.
+### static function ConsoleColor::blue(): str
+Returns the ANSI escape sequence to set the console color to blue.
 
-### function Array:toString(): str
-Returns a stringified version of the array.
+### static function ConsoleColor::magenta(): str
+Returns the ANSI escape sequence to set the console color to magenta.
 
-### function Array:immutableCopy(): ImmutableArray
-Returns an immutable copy of the array.
+### static function ConsoleColor::cyan(): str
+Returns the ANSI escape sequence to set the console color to cyan.
 
-### function Array:remove(val: any): none
-Removes the first occurence of <<WHITE>>val<<RESET>> from the array.
-This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+### static function ConsoleColor::white(): str
+Returns the ANSI escape sequence to set the console color to white.
 
-### function Array:removeAll(val: any): none
-Removes all occurences of <<WHITE>>val<<RESET>> in the array.
-This function does nothing if <<WHITE>>val<<RESET>> is not in the array.
+### static function ConsoleColor::bold(): str
+Returns the ANSI escape sequence to set the console color to bold.
 
-### function Array:map(x: lambda(any): none): none
-Runs the <<BLUE>>lambda <<WHITE>>x<<RESET>> for every element in the array.
+### final static struct FmtIO
+The static struct `FmtIO` provides utility functions for working with formatted output.
 
-### function Array:filter(x: lambda(any): bool): Array
-Returns a new array with only those elements in it for which the <<BLUE>>lambda <<WHITE>>x<<RESET>> returns <<BLUE>>true<<RESET>>.
+### static function FmtIO::puts(fmt: str, args: varargs): none
+Writes the formatted string `fmt` to stdout.
 
-### function Array:reverse(): Array
-Reverses the order of the elements in the array.
+@std.Int
+## Int
+### final static struct int8
+The static struct `int8` provides utility functions for working with the `int8` type.
 
-### static function Array::new(size: int): none
-Create an empty array with an initial capacity of <<WHITE>>size<<RESET>> elements, where <<WHITE>>size<<RESET>> is bigger than <<GREEN>>0<<RESET>>.
+### static function int8::toString(x: int8): str
+Returns a string representation of `x`.
 
-### static function Array::fromPointerCollection(count: int, values: [any]): Array
-Returns a new array that contains count elements of the c-style array values.
+### final static struct int
+The static struct `int` provides utility functions for working with the `int` type.
 
-@std.util.ReadOnlyArray
-## ReadOnlyArray
-### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
-Creates a new <<WHITE>>ReadOnlyArray<<RESET>> from the given <<WHITE>>Array<<RESET>>.
+### static function int::toString(x: int): str
+Returns a string representation of `x`.
 
-### static function ReadOnlyArray::fromPointerCollection(count: int, values: [any]): ReadOnlyArray
-Creates a new <<WHITE>>ReadOnlyArray<<RESET>> containing <<WHITE>>count<<RESET>> elements from the given c-style array.
+### static function int::toHexString(x: int): str
+Returns a hexadecimal string representation of `x`.
 
-### function ReadOnlyArray:sort(): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::parse(s: str): int
+Parses `s` as an int and returns the result.
 
-### function ReadOnlyArray:set(index: int, value: any): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toInt8(value: any): int8
+Cast `value` to an int8.
 
-### function ReadOnlyArray:push(value: any): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toInt16(value: any): int16
+Cast `value` to an int16.
 
-### function ReadOnlyArray:pop(): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toInt32(value: any): int32
+Cast `value` to an int32.
 
-### function ReadOnlyArray:reverse(): Array
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toInt(value: any): int
+Cast `value` to an int.
 
-### function ReadOnlyArray:remove(val: any): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toUInt8(value: any): uint8
+Cast `value` to a uint8.
 
-### function ReadOnlyArray:removeAll(val: any): none
-Throws <<WHITE>>IllegalStateException<<RESET>>.
+### static function int::toUInt16(value: any): uint16
+Cast `value` to a uint16.
 
-## IllegalStateException
-### static function IllegalStateException::new(msg: str): IllegalStateException
-Creates a new <<WHITE>>IllegalStateException<<RESET>> with the given message.
+### static function int::toUInt32(value: any): uint32
+Cast `value` to a uint32.
 
-@std.String
-## String
-### function str:+(other: str): str
-Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended to the string.
+### static function int::toUInt(value: any): uint
+Cast `value` to a uint.
 
-### function str:+(number: int): str
-Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+### static function int::isValidInt8(val: any): bool
+Returns true if `val` can be safely cast to an int8 without loss of precision.
 
-### function str:+(number: float): str
-Returns a new string with <<WHITE>>number<<RESET>> prepended to the string.
+### static function int::isValidInt16(val: any): bool
+Returns true if `val` can be safely cast to an int16 without loss of precision.
 
-### function +(s: str, num: int): str
-Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
+### static function int::isValidInt32(val: any): bool
+Returns true if `val` can be safely cast to an int32 without loss of precision.
 
-### function +(s: str, num: float): str
-Returns a new string with <<WHITE>>num<<RESET>> appended to the string.
+### static function int::isValidUInt8(val: any): bool
+Returns true if `val` can be safely cast to a uint8 without loss of precision.
 
-### function str:++(c: int): str
-Returns a new string with the character stored in <<WHITE>>c<<RESET>> appended to the end of the string.
+### static function int::isValidUInt16(val: any): bool
+Returns true if `val` can be safely cast to a uint16 without loss of precision.
 
-### function str:clone(): str
-Returns a copy of the string.
+### static function int::isValidUInt32(val: any): bool
+Returns true if `val` can be safely cast to a uint32 without loss of precision.
 
-### function str:append(other: str): str
-Returns a new string with the contents of <<WHITE>>other<<RESET>> appended to the end of the string.
+### static function int::asReference(i: int): Int
+Returns a new instance of `Int` that represents the value `i`.
 
-### function str:prepend(other: str): str
-Returns a new string with the contents of <<WHITE>>other<<RESET>> prepended at the start of the string.
+### struct Int
+The struct `Int` is the reference type that represents the `int` type.
+Declared Fields:
+- `value: readonly int` - The value of the `Int` instance.
 
-### function str:==(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
-Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
+### static function Int::valueOf(x: int): Int
+Returns a new instance of `Int` that represents the value `x`.
 
-### function str:equals(other: str): bool
-Returns <<BLUE>>true<<RESET>>, if the string equals <<WHITE>>other<<RESET>>, <<BLUE>>false<<RESET>> otherwise.
-Will return <<BLUE>>false<<RESET>> if either of the strings is <<BLUE>>nil<<RESET>>.
+### function Int:equals(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
-### function str:size(): int
-Returns the length of the string.
+### function Int:==(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
-### function str:at(index: int): int
-Returns the character at <<WHITE>>index<<RESET>> in the string.
-If the index is out of bounds for the string, an <<WHITE>>IndexOutOfBoundsException<<RESET>> is thrown.
+### function Int:@(): int
+Returns the int value of this `Int` instance.
 
-### function str:reverse(): str
-Returns a new string that is the original string reversed.
+### function Int:toString(): str
+Returns a string representation of this `Int` instance.
 
-### function str:toChars(): Array
-Returns an array containing all characters of the string in order.
+### function toInt8(value: any): int8 deprecated![since: "23.5", replacement: "int::toInt8"]
+Cast `value` to an int8.
 
-### function str:startsWith(_s_: str): bool
-Returns <<BLUE>>true<<RESET>> if the string starts with _s_.
+### function toInt16(value: any): int16 deprecated![since: "23.5", replacement: "int::toInt16"]
+Cast `value` to an int16.
 
-### function str:view(): [int8]
-Returns a copy of the underlying cstring.
+### function toInt32(value: any): int32 deprecated![since: "23.5", replacement: "int::toInt32"]
+Cast `value` to an int32.
 
-### function str:hashCode(): int
-Returns the hash of the string.
+### function toInt(value: any): int deprecated![since: "23.5", replacement: "int::toInt"]
+Cast `value` to an int.
 
-### function str:split(_delim_: str): Array
-Splits this string at every occurence of <<WHITE>>_delim_<<RESET>> and returns an array containing the results.
-Returns an empty array if the string does not contain <<WHITE>>_delim_<<RESET>>.
+### function toUInt8(value: any): uint8 deprecated![since: "23.5", replacement: "int::toUInt8"]
+Cast `value` to a uint8.
 
-### function str:endsWith(suffix: str): bool
-Returns <<BLUE>>true<<RESET>> if the string ends with <<WHITE>>suffix<<RESET>>.
+### function toUInt16(value: any): uint16 deprecated![since: "23.5", replacement: "int::toUInt16"]
+Cast `value` to a uint16.
 
-### function str:subString(start: str): str
-Returns a substring of the string starting at <<WHITE>>start<<RESET>>.
+### function toUInt32(value: any): uint32 deprecated![since: "23.5", replacement: "int::toUInt32"]
+Cast `value` to a uint32.
 
-@std.util.Pair
-## Pair
-### static function Pair::new(a: any, b: any): none
-Create a new pair of <<WHITE>>a<<RESET>> and <<WHITE>>b<<RESET>>.
+### function toUInt(value: any): uint deprecated![since: "23.5", replacement: "int::toUInt"]
+Cast `value` to a uint.
 
-### function Pair:toString(): str
-Returns a string representation of this pair.
+### function isValidInt8(val: any): bool deprecated![since: "23.5", replacement: "int::isValidInt8"]
+Returns true if `val` can be safely cast to an int8 without loss of precision.
 
-@std.util.Triple
-## Triple
-### static function Triple::new(a: any, b: any, c: any): none
-Create a new triple of <<WHITE>>a<<RESET>>, <<WHITE>>b<<RESET>> and <<WHITE>>c<<RESET>>.
+### function isValidInt16(val: any): bool deprecated![since: "23.5", replacement: "int::isValidInt16"]
+Returns true if `val` can be safely cast to an int16 without loss of precision.
 
-### function Triple:toString(): str
-Returns a string representation of this triple.
+### function isValidInt32(val: any): bool deprecated![since: "23.5", replacement: "int::isValidInt32"]
+Returns true if `val` can be safely cast to an int32 without loss of precision.
 
-@std.util.Range
-## Ranges
-### static function Range::new(_start: int, _end: int): none
-Create a new Range object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting up.
+### function isValidUInt8(val: any): bool deprecated![since: "23.5", replacement: "int::isValidUInt8"]
+Returns true if `val` can be safely cast to a uint8 without loss of precision.
 
-### function Range:containsRange(other: Range): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> lies completely within the range.
-Returns <<BLUE>>true<<RESET>> if both ranges are equal.
+### function isValidUInt16(val: any): bool deprecated![since: "23.5", replacement: "int::isValidUInt16"]
+Returns true if `val` can be safely cast to a uint16 without loss of precision.
 
-### function Range:overlaps(other: Range): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>other<<RESET>> is partially contained within the range.
-For example, a Range from 2 to 7 will overlap with a Range from 4 to 10.
+### function isValidUInt32(val: any): bool deprecated![since: "23.5", replacement: "int::isValidUInt32"]
+Returns true if `val` can be safely cast to a uint32 without loss of precision.
 
-### function Range:contains(pos: int): int
-Returns <<BLUE>>true<<RESET>> if <<WHITE>>pos<<RESET>> is contained within the range.
-For example, on a Range from 1 to 5, this method will return <<BLUE>>true<<RESET>> for all numbers from 1 to 5, both including.
+### function isnil(x: any): bool
+Returns true if `x` is nil.
 
-### function Range:toReverseRange(): ReverseRange
-Convert range to a <<WHITE>>ReverseRange<<RESET>> object.
-For example, a range from 1 to 5 will return a <<WHITE>>ReverseRange<<RESET>> object from 5 to 1.
+### function isnotnil(x: any): bool
+Returns true if `x` is not nil.
 
-@std.util.ReverseRange
-### static function ReverseRange::new(_start: int, _end: int): none
-Create a new ReverseRange object from <<WHITE>>_start<<RESET>> to <<WHITE>>_end<<RESET>> counting down.
+@std.math
+## Math
+### final static struct MathConstants
+The static struct `MathConstants` provides constants for mathematical operations.
+Declared Fields:
+- `e: const float` - The mathematical constant e.
+- `pi: const float` - The mathematical constant pi.
+- `nan: const float` - The floating point representation of NaN.
+- `infinity: const float` - The floating point representation of infinity.
+- `negativeInfinity: const float` - The floating point representation of negative infinity.
 
-### function ReverseRange:toRange(): Range
-Convert reverse range to a <<WHITE>>Range<<RESET>> object.
-For example, a reverse range from 5 to 1 will return a <<WHITE>>Range<<RESET>> object from 1 to 5.
+### function acos(:float): float
+Returns the arc cosine of `x`.
+
+### function asin(:float): float
+Returns the arc sine of `x`.
+
+### function atan(:float): float
+Returns the arc tangent of `x`.
+
+### function atan2(:float, :float): float
+Returns the arc tangent of `y/x` in the range [-pi, pi].
+
+### function cos(:float): float
+Returns the cosine of `x`.
+
+### function sin(:float): float
+Returns the sine of `x`.
+
+### function tan(:float): float
+Returns the tangent of `x`.
+
+### function acosh(:float): float
+Returns the inverse hyperbolic cosine of `x`.
+
+### function asinh(:float): float
+Returns the inverse hyperbolic sine of `x`.
+
+### function atanh(:float): float
+Returns the inverse hyperbolic tangent of `x`.
+
+### function cosh(:float): float
+Returns the hyperbolic cosine of `x`.
+
+### function sinh(:float): float
+Returns the hyperbolic sine of `x`.
+
+### function tanh(:float): float
+Returns the hyperbolic tangent of `x`.
+
+### function exp(:float): float
+Returns the base-e exponential of `x`.
+
+### function exp2(:float): float
+Returns the base-2 exponential of `x`.
+
+### function expm1(:float): float
+Returns the base-e exponential of `x` minus 1.
+
+### function log(:float): float
+Returns the natural logarithm of `x`.
+
+### function log10(:float): float
+Returns the base-10 logarithm of `x`.
+
+### function log2(:float): float
+Returns the base-2 logarithm of `x`.
+
+### function log1p(:float): float
+Returns the natural logarithm of `x` plus 1.
+
+### function logb(:float): float
+Returns the exponent of `x`.
+
+### function fabs(:float): float
+Returns the absolute value of `x`.
+
+### function cbrt(:float): float
+Returns the cube root of `x`.
+
+### function hypot(:float, :float): float
+Returns the square root of the sum of the squares of `x` and `y`.
+
+### function pow(:float, :float): float
+Returns `x` raised to the power of `y`.
+
+### function sqrt(:float): float
+Returns the square root of `x`.
+
+### function erf(:float): float
+Returns the error function of `x`.
+
+### function erfc(:float): float
+Returns the complementary error function of `x`.
+
+### function lgamma(:float): float
+Returns the natural logarithm of the absolute value of the gamma function of `x`.
+
+### function tgamma(:float): float
+Returns the gamma function of `x`.
+
+### function ceil(:float): float
+Returns the smallest integer value greater than or equal to `x`.
+
+### function floor(:float): float
+Returns the largest integer value less than or equal to `x`.
+
+### function nearbyint(:float): float
+Returns the integer value nearest to `x`.
+
+### function rint(:float): float
+Returns the integer value nearest to `x`.
+
+### function round(:float): float
+Rounds `x` to the nearest integer value.
+
+### function trunc(:float): float
+Round `x` to the nearest integer not larger in magnitude.
+
+### function fmod(:float, :float): float
+Returns the floating-point remainder of `x/y`.
+
+### function remainder(:float, :float): float
+Returns the remainder of `x/y`.
+
+### function fdim(:float, :float): float
+Returns the positive difference between `x` and `y`.
+
+### function fmax(:float, :float): float
+Returns the maximum of `x` and `y`.
+
+### function fmin(:float, :float): float
+Returns the minimum of `x` and `y`.
+
+### function fma(:float, :float, :float): float
+Returns `x*y+z`.
+
+### function isInfinite(x: float): bool deprecated![since: "23.5", replacement: "float::isInfinite"]
+Returns true if `x` is infinite.
+
+### function isNaN(x: float): bool deprecated![since: "23.5", replacement: "float::isNaN"]
+Returns true if `x` is NaN.
+
+### function isFinite(x: float): bool deprecated![since: "23.5", replacement: "float::isFinite"]
+Returns true if `x` is finite.
+
+### function isNotNaN(x: float): bool deprecated![since: "23.5", replacement: "float::isNotNaN"]
+Returns true if `x` is not NaN.
+
+### function random(): int
+Returns a random integer.
+
+### function iseven(number: int): int
+Returns true if `number` is even.
+
+### function isodd(number: int): int
+Returns true if `number` is odd.
+
+### function lrandom(limit: int): int
+Returns a random integer in the range 0 to `limit` (exclusive).
+
+### function lerp(a: float, b: float, t: float): float
+Returns the linear interpolation of `a` and `b` at `t`.
+
+### function neg(number: int): int
+Returns the negation of `number`.
 
 @std.SclObject
 ## SclObject
-### function SclObject:toString(): str
-Returns a string representation of this object.
+### struct SclObject is Cloneable, Equatable, Hashable
+The struct `SclObject` is the base class for all objects in Scale.
 
-### function SclObject:==(other: SclObject): bool
-Returns true if the two object's hashes are equal.
+### function SclObject:==(other: any): bool
+Returns true if the hash codes of `self` and `other` are equal.
 
-### function SclObject:equals(other: SclObject): bool
-Returns true if the two object's hashes are equal.
+### function SclObject:equals(other: any): bool
+Returns true if the hash codes of `self` and `other` are equal.
 
 ### function SclObject:clone(): SclObject
-Returns a copy of this object.
+Returns a new instance of `SclObject` that is a clone of `self`.
 
-### function SclObject:hashCode(): SclObject
-Returns the <<CYAN>>identity hash<<RESET>> of this object.
+### function SclObject:hashCode(): int
+Returns the hash code of `self`.
 
-### final function SclObject:lock(): none
-Locks this object.
+### function SclObject:lock(): none
+Locks `self` on the current thread, blocking if another thread has already locked `self`.
 
-### final function SclObject:unlock(): none
-Unlocks this object.
+### function SclObject:unlock(): none
+Unlocks `self` on the current thread.
 
-@std.runtime.Process
-## Process
-### static function Process::exit(code :int): none
-Exits the program with the given exit code.
+### static function SclObject::new(): SclObject
+Returns a new instance of `SclObject`.
 
-### static function Process::stackTrace(): Array
-Returns the stack trace of the current thread.
+@std.String
+## String
+### final struct str is Equatable, Cloneable, Stringifyable, Iterable
+The struct `str` represents a string.
 
-### static function Process::getGC(): GarbageCollector
-Returns the <<WHITE>>GarbageCollector<<RESET>> instance used by the program.
-The function will throw an <<BLUE>>IllegalStateException<<RESET>> if the program was compiled with -disable-gc.
+### function str:+(what: str | int | float | [int8]): str
+Prepends `what` to `self` and returns the result.
 
-### static function Process::loadLibrary(name: str): Library
-Loads the library with the given name.
+### function str:clone(): str
+Returns a new instance of `str` that is a clone of `self`.
 
-### static function Process::gcEnabled(): bool
-Returns <<BLUE>>false<<RESET>> if the program was compiled with -disable-gc, <<BLUE>>true<<RESET>> otherwise.
+### function str:append(what: str | [int8]): str
+Appends `what` to `self` and returns the result.
+
+### function str:prepend(what: str | [int8]): str
+Prepends `what` to `self` and returns the result.
+
+### function str:equals(other: any): bool
+Returns true if `self` and `other` represent the same string.
+
+### function str:==(other: any): bool
+Returns true if `self` and `other` represent the same string.
+
+### function str:size(): int
+Returns the size of `self`.
+
+### function str:at(i: int): int
+Returns the character at index `i` in `self`.
+
+### function str:toString(): str
+Returns `self`.
+
+### function str:@(i: int): int
+Returns the character at index `i` in `self`.
+
+### function str:[](index: int): int8
+Returns the character at index `index` in `self`.
+
+### function str:reverse(): str
+Returns a reversed copy of `self`.
+
+### function str:toChars(): Array
+Returns an array containing the characters of `self`.
+
+### function str:split(delimiter: str): Array
+Splits `self` at `delimiter` and returns an array containing the parts.
+
+### function str:startsWith(string: str): bool
+Returns true if `self` starts with `string`.
+
+### function str:endsWith(string: str): bool
+Returns true if `self` ends with `string`.
+
+### function str:subString(start: int): str
+Returns a substring of `self` starting at `start`.
+
+### function str:view(): [int8]
+Returns a pointer to the memory block containing the data of `self`.
+
+### static function str::new(data: [int8]): str
+Returns a new instance of `str` with the data `data`.
+
+### function str:iterate(): StringIterator
+Returns an iterator over the characters of `self`.
+
+### function str:hashCode(): int
+Returns the hash code of `self`.
+
+### final struct StringIterator is Iterator
+The struct `StringIterator` is an iterator over the characters of a string.
+
+### static function StringIterator::new(s: str): StringIterator
+Returns a new instance of `StringIterator` that iterates over the characters of `s`.
+
+### function StringIterator:next(): int8
+Returns the next character in the string.
+
+### function StringIterator:hasNext(): bool
+Returns true if there are more characters to iterate over.
+
+### function +(string: str, number: int | float): str
+Appends the string representation of `number` to `string` and returns the result.
+
+@std.math.Fraction
+## Fraction
+### final struct Fraction
+The struct `Fraction` represents a fraction.
+Declared Fields:
+- `numerator: int` - The numerator of the fraction.
+- `denominator: int` - The denominator of the fraction.
+
+### static function Fraction::new(numerator: int, denominator: int): Fraction
+Returns a new instance of `Fraction` with the numerator `numerator` and the denominator `denominator`.
+
+### function Fraction:toString(): str
+Returns a string representation of this `Fraction` instance.
+
+### function Fraction:toFloat(): float
+Returns the float value of this `Fraction` instance.
+
+### function Fraction:+(other: Fraction): Fraction
+Returns the sum of `self` and `other`.
+
+### function Fraction:-(other: Fraction): Fraction
+Returns the difference of `self` and `other`.
+
+### function Fraction:++(): Fraction
+Returns the sum of `self` and 1.
+
+### function Fraction:--(): Fraction
+Returns the difference of `self` and 1.
+
+### function Fraction:*(other: Fraction): Fraction
+Returns the product of `self` and `other`.
+
+### function Fraction:inverse(): Fraction
+Returns the inverse of `self`.
+
+### function Fraction:/(other: Fraction): Fraction
+Returns the quotient of `self` and `other`.
+
+### function Fraction:isNan(): bool
+Returns true if `self` is NaN.
+
+### function Fraction:isInfinite(): bool
+Returns true if `self` is infinite.
+
+### function Fraction:isFinite(): bool
+Returns true if `self` is finite.
+
+### function Fraction:isNotNan(): bool
+Returns true if `self` is not NaN.
+
+### static function Fraction::fromFloat(d: float): Fraction
+Returns a fraction from the float `d`.
 
 @std.runtime.GarbageCollector
-## GarbageCollector
-### function GarbageCollector:collect(): none
-Runs the garbage collector.
-This is a no-op if the program was compiled with -disable-gc.
+## Runtime: GarbageCollector
+### final static struct GarbageCollector
+The static struct `GarbageCollector` provides utility functions for working with the garbage collector.
 
-### function GarbageCollector:pause(): bool
+### static function GarbageCollector::heapSize(): int
+Returns the size of the heap in bytes.
+
+### static function GarbageCollector::freeBytesEstimate(): int
+Returns the number of bytes that are free on the heap.
+
+### static function GarbageCollector::bytesSinceLastCollect(): int
+Returns the number of bytes allocated since the last garbage collection.
+
+### static function GarbageCollector::totalMemory(): int
+Returns the total amount of memory allocated by the garbage collector.
+
+### static function GarbageCollector::collect(): none
+Performs a garbage collection.
+
+### static function GarbageCollector::pause(): none
 Pauses the garbage collector.
-This is a no-op if the program was compiled with -disable-gc.
 
-### function GarbageCollector:resume(): bool
+### static function GarbageCollector::resume(): none
 Resumes the garbage collector.
-This is a no-op if the program was compiled with -disable-gc.
 
-### function GarbageCollector:isPaused(): bool
-Returns <<BLUE>>true<<RESET>> if the garbage collector is paused.
-Returns <<BLUE>>true<<RESET>> if the program was compiled with -disable-gc.
+### static function GarbageCollector::isPaused(): bool
+Returns true if the garbage collector is paused.
 
-### function GarbageCollector:implementation(): str
+### static function GarbageCollector::implementation(): str
 Returns the name of the garbage collector implementation.
 
 @std.runtime.Library
-## Library
-### static function Library::new(name: str): none
-Loads the library with the given name.
-This function will throw a <<BLUE>>NullPointerException<<RESET>> if the library could not be loaded.
+## Runtime: Library
+### final struct Library
+The struct `Library` represents a shared library.
 
-### function Library:name(): str
-Returns the name of the library.
-
-### function Library:getSymbol(name: str): any
-Returns the symbol with the given name.
-This function will throw a <<BLUE>>NullPointerException<<RESET>> if the symbol could not be found.
+### static function Library::new(name: str): Library
+Returns a new instance of `Library` with the name `name`.
 
 ### function Library:close(): none
-Closes the library.
-This function will throw a <<BLUE>>NullPointerException<<RESET>> if the library was already closed.
+Closes this library.
 
-@std.threading.Thread
+### function Library:name(): str
+Returns the name of this library.
+
+### function Library:getSymbol(name: str): any
+Returns the symbol with the name `name` from this library.
+
+@std.runtime.Process
+## Runtime: Process
+### final static struct Process
+The static struct `Process` provides utility functions for working with the current process.
+
+### static function Process::exit(:int): none
+Exits the current process with the exit code `code`.
+
+### static function Process::stackTrace(): Array
+Returns an array containing the current stack trace.
+
+### static function Process::loadLibrary(name: str): Library
+Loads the shared library with the name `name` and returns it.
+
+### static function Process::gcEnabled(): bool
+Returns true if the garbage collector is enabled.
+
+### static function Process::isOnMainThread(): bool
+Returns true if the current thread is the main thread.
+
+### static function Process::lock(obj: SclObject): none
+Locks `obj` on the current thread, blocking if another thread has already locked `obj`.
+
+### static function Process::unlock(obj: SclObject): none
+Unlocks `obj` on the current thread.
+
+### static function Process::stackPointer(): [any]
+Returns the stack pointer of the current thread.
+
+### static function Process::basePointer(): [any]
+Returns the stack base pointer of the current thread.
+
+@std.thread.Thread
 ## Thread
-### static decl Thread::mainThread: readonly Thread
-A reference to the main thread.
+### final struct ThreadException: Exception
+The struct `ThreadException` represents an exception that is thrown when an error occurs in a thread.
 
-### static function Thread::currentThread(): Thread
-Returns a reference to the current thread.
+### static function ThreadException::new(msg: str): ThreadException
+Returns a new instance of `ThreadException` with the message `msg`.
+
+### final struct AtomicOperationException: Exception
+The struct `AtomicOperationException` represents an exception that is thrown when an error occurs in an atomic operation.
+
+### static function AtomicOperationException::new(msg: str): AtomicOperationException
+Returns a new instance of `AtomicOperationException` with the message `msg`.
+
+### final struct Thread
+The struct `Thread` represents a thread.
+Declared Fields:
+- `name: str` - The name of the thread.
+
+Static Fields:
+- `mainThread: readonly Thread` - The main thread.
 
 ### static function Thread::stackTrace(): Array
-Returns the stack trace of the current thread.
+Returns an array containing stack trace of the current thread.
 
-### static function Thread::new(func: lambda(): none): none
-Creates a new Thread object.
-This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
+### static function Thread::currentThread(): Thread
+Returns the current thread.
+
+### static function Thread::new(func: lambda(): none): Thread
+Returns a new instance of `Thread` that executes `func`.
 
 ### function Thread:start(): none
-Starts the thread.
-If the thread has already been started, and <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> has not been called on this thread yet, a <<WHITE>>ThreadException<<RESET>> is thrown.
-This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
+Starts this thread.
 
 ### function Thread:join(): none
-Blocks the calling thread until the thread finishes execution.
-If <<WHITE>>Thread<<BLUE>>:<<WHITE>>join<<RESET>> gets called more than once a <<WHITE>>ThreadException<<RESET>> is thrown.
-This function will throw an <<BLUE>>IllegalStateException<<RESET>> when the program was not compiled with -disable-gc.
+Waits for this thread to finish.
 
-### function Thread:equals(other: Thread): bool
-Returns true, if both threads represent the same pthread instance.
+### function Thread:equals(other: any): bool
+Returns true if `self` and `other` represent the same thread.
 
-### function Thread:==(other: Thread): bool
-Returns true, if both threads represent the same pthread instance.
+### function Thread:==(other: any): bool
+Returns true if `self` and `other` represent the same thread.
 
-@std.
+@std.util.Array
+## Util: Array
+### struct Array is Iterable
+The struct `Array` represents an array.
+Declared Fields:
+- `values: readonly [any]` - The values of the array.
+- `count: readonly int` - The number of values in the array.
+- `capacity: readonly int` - The capacity of the array.
+- `initCap: readonly int` - The initial capacity of the array.
 
-@std.debug
-## Exception
-### struct Exception
-Member types:
-- <<WHITE>>msg<<BLUE>>: str<<RESET>>
-- <<WHITE>>stackTrace<<BLUE>>: const <<WHITE>>Array<<RESET>>
-- <<WHITE>>errnoStr<<BLUE>>: readonly str<<RESET>>
+### function Array:sort(): none
+Sorts the array.
 
-<<WHITE>>msg<<RESET>>: Contains the exception message.
-<<WHITE>>stackTrace<<RESET>>: Contains the stack trace.
-<<WHITE>>errnoStr<<RESET>>: Contains the string representation of errno at the time of initialization.
+### function Array:[](index: int): any
+Returns the value at index `index` in `self`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
 
-### function Exception:printStackTrace(): none
-Prints the stack trace of this exception to stderr.
+### function Array:get(index: int): any
+Returns the value at index `index` in `self`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
 
-### function Exception::new(): none
-Creates a new exception.
+### function Array:=>[](index: int, value: any): none
+Sets the value at index `index` in `self` to `value`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
 
-## InvalidSignalException
-### struct InvalidSignalException : Exception
-Member types inherited from <<WHITE>>Exception<<RESET>>.
-This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+### function Array:set(index: int, value: any): none
+Sets the value at index `index` in `self` to `value`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
 
-### function InvalidSignalException::new(signal: int): none
-Creates a new InvalidSignalException with the signal <<WHITE>>signal<<RESET>>.
-This exception is only thrown when calling <<WHITE>>setSignalHandler<<RESET>> with an invalid signal number.
+### function Array:top(): any
+Returns the last value in `self`.
+Throws an `IndexOutOfBoundsException` if `self` is empty.
 
-## Error
-### struct Error : Exception
-Member types inherited from <<WHITE>>Exception<<RESET>>.
-Errors are not catchable in a try-catch and will always throw to the first try block (the try block in native code surrounding the call to <<WHITE>>main<<RESET>>).
+### function Array:push(value: any): none
+Appends `value` to `self`.
 
-### function Error::new(message: str): none
-Creates a new Error with the given message.
+### function Array:pop(): none
+Removes the last value from `self`.
 
-## AssertError
-### struct AssertError : Error
-Member types inherited from <<WHITE>>Error<<RESET>>.
-This error is only thrown when an assertion failed.
+### function Array:indexOf(val: any): int
+Returns the index of `val` in `self` or -1 if `val` is not in `self`.
 
-## CastError
-### struct CastError : Error
-Member types inherited from <<WHITE>>Error<<RESET>>.
-This error is thrown when a cast fails.
+### function Array:contains(val: any): bool
+Returns true if `val` is in `self`.
 
-## Debug
-### function trace(): none
-Prints the current stack trace to stdout.
+### static function Array::new(size: int): Array
+Returns a new instance of `Array` with the size `size`.
 
-### function dumpStack(): none
-Prints a stack dump.
+### function Array:iterate(): ArrayIterator
+Returns an iterator over the values of `self`.
 
-### function raise(_sig_: int): none
-Raises the signal <<WHITE>>_sig_<<RESET>>.
+### function Array:reverse(): Array
+Reverses the order of the values in `self` and returns the result.
 
-### function throw(ex: Exception): none
-Throws an exception by jumping to the next outermost <<BLUE>>catch<<RESET>> block.
+### function Array:toString(): str
+Returns a string representation of `self`.
 
-### function sysPrettyString(): str
-Returns a string containing the OS name and architecture.
+### function Array:remove(val: any): none
+Removes the first occurrence of `val` from `self`.
 
-### function setSignalHandler(handlerFun: lambda(int): none, signal: int): none
-Sets the signal handler for the given signal.
+### function Array:removeAll(val: any): none
+Removes all occurrences of `val` from `self`.
 
-### function resetSignalHandler(sig: int): none
-Resets the signal handler for the given signal to the default signal handler.
+### function Array:map(x: lambda(any): none): none
+Applies `x` to each value in `self`.
 
-@std.io
-## ConsoleColor
-### static function ConsoleColor::reset(): str
-Returns the ANSI escape code to reset the color.
+### function Array:filter(x: lambda(any): bool): Array
+Returns a new array containing the values of `self` for which `x` returns true.
 
-### static function ConsoleColor::black(): str
-Returns the ANSI escape code for the color black.
+### function Array:clone(): Array
+Returns a new instance of `Array` that is a clone of `self`.
 
-### static function ConsoleColor::red(): str
-Returns the ANSI escape code for the color red.
+### function Array:*(): none
+Unpacks the values of `self` onto the stack.
 
-### static function ConsoleColor::green(): str
-Returns the ANSI escape code for the color green.
+### static function Array::fromPointerCollection(count: int, values: [any]): Array
+Returns a new instance of `Array` with the values `values`.
 
-### static function ConsoleColor::yellow(): str
-Returns the ANSI escape code for the color yellow.
+### struct ArrayIterator is Iterator
+The struct `ArrayIterator` is an iterator over the values of an array.
 
-### static function ConsoleColor::blue(): str
-Returns the ANSI escape code for the color blue.
+### static function ArrayIterator::new(arr: Array): ArrayIterator
+Returns a new instance of `ArrayIterator` that iterates over the values of `arr`.
 
-### static function ConsoleColor::magenta(): str
-Returns the ANSI escape code for the color magenta.
+### function ArrayIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
 
-### static function ConsoleColor::cyan(): str
-Returns the ANSI escape code for the color cyan.
-
-### static function ConsoleColor::white(): str
-Returns the ANSI escape code for the color white.
-
-### static function ConsoleColor::bold(): str
-Returns the ANSI escape code for the color bold.
-
-## FmtIO
-### static function FmtIO::puts(fmt: str): none
-Prints a formatted string to the console.
-Format specifiers:
-- <<GREEN>>"%s"<<RESET>>: format <<BLUE>>str<<RESET>>
-- <<GREEN>>"%i"<<RESET>>: format <<BLUE>>int<<RESET>>
-- <<GREEN>>"%f"<<RESET>>: format <<BLUE>>float<<RESET>>
-
-@std.util.Map
-## Map
-### static function Map::new(size: int): none
-Creates a new Map with a starting capacity of <<WHITE>>size<<RESET>> elements.
-
-### function Map:get(key: str): any?
-Returns the value for the key in the map.
-Returns <<BLUE>>nil<<RESET>> if the key has no mapping.
-
-### function Map:set(key: str, value: any): none
-Sets the value for the key in the map.
-If the key is in the map already, it's value will be updated.
-
-### function Map:toString(): str
-Returns a string representation of this map.
-
-### function Map:map(x: lambda(MapEntry): none): none
-Executes the lambda x for each entry in the map.
-
-### struct MapEntry
-Member types:
-- <<WHITE>>key<<BLUE>>: str<<RESET>>
-- <<WHITE>>value<<BLUE>>: any<<RESET>>
-
-<<WHITE>>key<<RESET>>: The key for this map entry.
-<<WHITE>>value<<RESET>>: The value of this map entry.
-
-### static function MapEntry::new(key: str, value: any): none
-Creates a new map entry with the given key and value.
-
-### function MapEntry:toString(): str
-Returns a string representation of this map entry.
+### function ArrayIterator:next(): any
+Returns the next value in the array.
 
 @std.util.Cloneable
-## Cloneable
+## Util: Cloneable
 ### interface Cloneable
-Implementing this interface indicates that instances of this struct may be copied.
+The interface `Cloneable` is implemented by all types that can be cloned.
 
-### function ICloneable:clone(): ?
-The interface method to implement for cloning, where <<BLUE>>?<<RESET>> represents this struct.
+### function Cloneable:clone(): ?
+Returns a new instance of the type that is a clone of `self`.
 
 @std.util.Equatable
-## Equatable
+## Util: Equatable
 ### interface Equatable
-Implementing this interface indicates that instances of this struct implement a custom equality check.
+The interface `Equatable` is implemented by all types that can be compared for equality.
 
-### function IEquatable:equals(other: ?): bool
-Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
-The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+### function Equatable:==(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
-### function IEquatable:==(other: ?): bool
-Implementations of this interface method should return <<BLUE>>true<<RESET>> if both instances are equivalent.
-The <<BLUE>>?<<RESET>> should represent the same type as the implementing struct.
+### function Equatable:equals(other: any): bool
+Returns true if `self` and `other` represent the same value.
 
 @std.util.Hashable
-## Hashable
+## Util: Hashable
 ### interface Hashable
-Implementing this interface indicates that instances of this struct implement a custom hashCode method.
+The interface `Hashable` is implemented by all types that can be hashed.
 
-### function IHashable:hashCode(): int
-Implementations of this interface method should return a hash code value.
+### function Hashable:hashCode(): int
+Returns the hash code of `self`.
 
 @std.util.Iterable
-## Iterable
+## Util: Iterable
+### interface Iterator
+The interface `Iterator` is implemented by all types that implement some kind of iteration.
+See also: `interface Iterable`
+
+### function Iterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function Iterator:next(): ?
+Returns the next value in the iteration.
+
+### function Iterable:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
 ### interface Iterable
-Implementing this interface enables it to be used in a <<BLUE>>foreach<<RESET>>-loop
-
-### function IIterable:begin(): none
-Implementations of this interface method should set the instance up to be iterated.
-
-### function IIterable:hasNext(): bool
-Implementations of this interface method should return <<BLUE>>true<<RESET>>, if <<WHITE>>next<<RESET>> would return a valid value.
-
-### function IIterable:next(): ?
-Implementations of this interface method should return the next value in the iteration.
-The <<BLUE>>?<<RESET>> should represent a meaningful type for the iteration.
+The interface `Iterable` is implemented by all types that can be iterated over.
 
 @std.util.Stringifyable
-## Stringifyable
+## Util: Stringifyable
 ### interface Stringifyable
-Implementing this interface indicates that instances of this struct implement a custom <<WHITE>>toString<<RESET>> method.
+The interface `Stringifyable` is implemented by all types that can be converted to a string.
 
-### function IStringifyable:toString(): str
-Implementations of this interface method should return a meaningful string representation of the instance.
+### function Stringifyable:toString(): str
+Returns a string representation of `self`.
+
+@std.util.IndexOutOfBoundsException
+## Util: IndexOutOfBoundsException
+### final struct IndexOutOfBoundsException: Exception
+The struct `IndexOutOfBoundsException` represents an exception that is thrown when an index is out of bounds.
+
+### static function IndexOutOfBoundsException::new(s: str): IndexOutOfBoundsException
+Returns a new instance of `IndexOutOfBoundsException` with the message `s`.
+
+@std.util.InvalidArgumentException
+## Util: InvalidArgumentException
+### final struct InvalidArgumentException: Exception
+The struct `InvalidArgumentException` represents an exception that is thrown when an invalid argument is passed to a function.
+
+### static function InvalidArgumentException::new(s: str): InvalidArgumentException
+Returns a new instance of `InvalidArgumentException` with the message `s`.
+
+@std.util.Map
+## Util: Map
+### final struct MapEntry<T: any>
+The struct `MapEntry` represents an entry in a map.
+Declared Fields:
+- `key: str` - The key of the entry.
+- `value: T` - The value of the entry.
+
+### static function MapEntry<T: any>::new(key: str, value: T): MapEntry
+Returns a new instance of `MapEntry` with the key `key` and the value `value`.
+
+### function MapEntry:toString(): str
+Returns a string representation of this `MapEntry` instance.
+
+### struct Map<T: any> is Iterable
+The struct `Map` represents a map.
+
+### static function Map<T: any>::new(size: int): Map
+Returns a new instance of `Map` with the size `size`.
+
+### function Map:[](key: str): T
+Returns the value for the key `key` in `self`.
+Throws an `InvalidArgumentException` if `key` is not in `self`.
+
+### function Map:get(key: str): T
+Returns the value for the key `key` in `self`.
+Throws an `InvalidArgumentException` if `key` is not in `self`.
+
+### function Map:=>[](key: str, value: T): none
+Sets the value for the key `key` in `self` to `value`.
+
+### function Map:containsKey(key: str): bool
+Returns true if `key` is in `self`.
+
+### function Map:set(key: str, value: T): none
+Sets the value for the key `key` in `self` to `value`.
+
+### function Map:iterate(): Iterator
+Returns an iterator over the entries of `self`.
+
+### function Map:toString(): str
+Returns a string representation of `self`.
+
+### function Map:map(x: lambda(MapEntry): none): none
+Applies `x` to each entry in `self`.
+
+### struct MapIterator is Iterator
+The struct `MapIterator` is an iterator over the entries of a map.
+
+### static function MapIterator::new(data: Array): MapIterator
+Returns a new instance of `MapIterator` that iterates over the entries of `data`.
+
+### function MapIterator:hasNext(): bool
+Returns true if there are more entries to iterate over.
+
+### function MapIterator:next(): MapEntry
+Returns the next entry in the map.
+
+@std.util.Pair
+## Util: Pair
+### final struct Pair
+The struct `Pair` represents a pair of values.
+Declared Fields:
+- `a: any` - The first value.
+- `b: any` - The second value.
+
+### static function Pair::new(a: any, b: any): Pair
+Returns a new instance of `Pair` with the values `a` and `b`.
+
+### function Pair:toString(): str
+Returns a string representation of this `Pair` instance.
+
+@std.util.Range
+## Util: Range
+### final struct Range is Iterable
+The struct `Range` represents a range of integers.
+Declared Fields:
+- `lower: int` - The lower bound of the range.
+- `upper: int` - The upper bound of the range.
+
+### static function Range::new(theStart: int, theEnd: int): Range
+Returns a new instance of `Range` with the lower bound `theStart` and the upper bound `theEnd`.
+
+### function Range:containsRange(other: Range): int
+Returns true if `other` is contained in `self`.
+
+### function Range:overlaps(other: Range): int
+Returns true if `other` overlaps with `self`.
+
+### function Range:contains(pos: int): int
+Returns true if `pos` is contained in `self`.
+
+### function Range:toString(): str
+Returns a string representation of this `Range` instance.
+
+### function Range:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
+### function Range:toReverseRange(): ReverseRange
+Returns a reversed copy of `self`.
+
+### final struct ReverseRange is Iterable
+The struct `ReverseRange` represents a reversed range of integers.
+Declared Fields:
+- `lower: int` - The lower bound of the range.
+- `upper: int` - The upper bound of the range.
+
+### static function ReverseRange::new(theStart: int, theEnd: int): ReverseRange
+Returns a new instance of `ReverseRange` with the lower bound `theStart` and the upper bound `theEnd`.
+
+### function ReverseRange:toString(): str
+Returns a string representation of this `ReverseRange` instance.
+
+### function ReverseRange:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
+### function ReverseRange:toRange(): Range
+Returns a copy of `self`.
+
+### struct RangeIterator is Iterator
+The struct `RangeIterator` is an iterator over the values of a range.
+
+### static function RangeIterator::new(theRange: Range): RangeIterator
+Returns a new instance of `RangeIterator` that iterates over the values of `theRange`.
+
+### function RangeIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function RangeIterator:next(): int
+Returns the next value in the range.
+
+### struct ReverseRangeIterator is Iterator
+The struct `ReverseRangeIterator` is an iterator over the values of a reversed range.
+
+### static function ReverseRangeIterator::new(theRange: ReverseRange): ReverseRangeIterator
+Returns a new instance of `ReverseRangeIterator` that iterates over the values of `theRange`.
+
+### function ReverseRangeIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function ReverseRangeIterator:next(): int
+Returns the next value in the range.
+
+@std.util.ReadOnlyArray
+## Util: ReadOnlyArray
+### final struct IllegalStateException: Exception
+The struct `IllegalStateException` represents an exception that is thrown when an illegal state is encountered.
+
+### static function IllegalStateException::new(msg: str): IllegalStateException
+Returns a new instance of `ReadOnlyArray` with the message `msg`.
+
+### struct ReadOnlyArray: Array
+The struct `ReadOnlyArray` represents an array that cannot be modified.
+
+### function ReadOnlyArray:sort(): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:set(index: int, value: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:push(value: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:pop(): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:reverse(): Array
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:remove(val: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:removeAll(val: any): none
+Throws an `IllegalStateException`.
+
+### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
+Returns a new instance of `ReadOnlyArray` with the values of `arr`.
+
+### static function ReadOnlyArray::fromPointerCollection(count: int, values: [any]): ReadOnlyArray
+Returns a new instance of `ReadOnlyArray` with the values `values`.
+
+@std.util.Triple
+## Util: Triple
+### final struct Triple
+The struct `Triple` represents a triple of values.
+
+### static function Triple::new(a: any, b: any, c: any): Triple
+Returns a new instance of `Triple` with the values `a`, `b` and `c`.
+
+### function Triple:toString(): str
+Returns a string representation of this `Triple` instance.
+
+@std.util.TypedArray
+## Util: TypedArray
+### final struct InvalidTypeException: Exception
+The struct `InvalidTypeException` represents an exception that is thrown when an invalid type is encountered.
+
+### static function InvalidTypeException::new(msg: str): InvalidTypeException
+Returns a new instance of `InvalidTypeException` with the message `msg`.
+
+### final struct TypedArray<T: any>: Array
+The struct `TypedArray` represents an array that can only contain values of a certain type.
+
+### static function TypedArray<T: any>::new(size: int): TypedArray
+Returns a new instance of `TypedArray` with the size `size`.
