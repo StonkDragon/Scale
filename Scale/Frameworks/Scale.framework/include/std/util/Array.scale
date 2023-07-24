@@ -34,11 +34,11 @@ sealed struct Array is Iterable
     done
   end
 
-  function [](index: int): any?
+  function [](index: int): any
     index self:get return
   end
 
-  function get(index: int): any?
+  function get(index: int): any
     if index 0 < index self.count >= || then
       "Index "
       index:toString +
@@ -73,11 +73,11 @@ sealed struct Array is Iterable
     value => self.values[index]
   end
 
-  function top(): any?
+  function top(): any
     if self.count 0 <= then
       "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
     fi
-    self.values self.count 1 - sizeof any * + @ return
+    self.values[self.count 1 -] return
   end
 
   restrict function push(value: any): none
@@ -128,9 +128,10 @@ sealed struct Array is Iterable
   end
 
   function init(size: int): none
-    if size 1 < then
+    if size 0 < then
       "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
+    if size 0 == then 1 => size fi
     new[size] => self.values
     0 => self.count
     size => self.capacity
@@ -175,6 +176,7 @@ sealed struct Array is Iterable
     return
   end
 
+  deprecated![since: "23.8", replacement: "ReadOnlyArray", forRemoval: true]
   restrict function immutableCopy(): ImmutableArray
     new[self.count] => decl newVals: [any]
     unsafe

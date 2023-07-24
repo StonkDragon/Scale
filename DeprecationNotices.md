@@ -41,3 +41,8 @@
 |-|-|
 |`trace`|`Process::stackTrace`|
 |`throwerr`|`Exception`|
+
+## Since Version 23.8
+|Function|Replacement|
+|-|-|
+|`Array:immutableCopy`|none|

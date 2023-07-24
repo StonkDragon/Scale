@@ -47,20 +47,6 @@ final sealed struct Range is Iterable
     self RangeIterator::new return
   end
 
-  # function begin(): none
-  #   0 => self.pos
-  # end
-
-  # function hasNext(): bool
-  #   self.pos self.lower + self.upper <= return
-  # end
-
-  # function next(): int
-  #   self.lower self.pos +
-  #   self.pos 1 + => self.pos
-  #   return
-  # end
-
   function toReverseRange(): ReverseRange
     self.upper self.lower ReverseRange::new return
   end
@@ -87,20 +73,6 @@ final sealed struct ReverseRange is Iterable
   function iterate(): Iterator
     self ReverseRangeIterator::new return
   end
-
-  # function begin(): none
-  #   0 => self.pos
-  # end
-  
-  # function hasNext(): bool
-  #   self.lower self.pos - self.upper >= return
-  # end
-
-  # function next(): int
-  #   self.lower self.pos -
-  #   self.pos 1 + => self.pos
-  #   return
-  # end
 
   function toRange(): Range
     self.upper self.lower Range::new return

@@ -13,7 +13,7 @@ intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: 
   fileDescriptor string:view string:size __c_write drop
 end
 
-intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str?
+intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
   new<int8>[amount] => decl buf: [int8]
   fileDescriptor buf amount __c_read drop
   buf str::new return
