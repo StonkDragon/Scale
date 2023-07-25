@@ -1,0 +1,34 @@
+# Tree
+# --------------------------
+# This example shows how one could implement a simple binary tree in
+# Scale. The tree is represented as a recursive data structure, and
+# the example also shows how to use the `static` keyword to define
+# static functions on a struct.
+
+import std.util.Triple
+
+struct Node
+    decl data: int
+    decl left: Node?
+    decl right: Node?
+
+    static function ofTriple(t: Triple?): Node?
+        Node::new => decl n: Node
+        if t as int nil == then
+            nil return
+        fi
+        
+        t?.a Node::ofTriple => n.left
+        t?.b => n.data
+        t?.c Node::ofTriple => n.right
+        n return
+    end
+end
+
+function main(): none
+    ( (nil, 1, nil), 2, ( (nil, 3, nil), 4, (nil, 5, nil) ) ) => decl t
+
+    t Node::ofTriple => decl root: Node
+
+    t:toString " -> " + root:toString + puts
+end

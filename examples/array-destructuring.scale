@@ -4,15 +4,12 @@
 # multiple variables at once.
 
 function main(): none
-    # fruits will hold our array of fruits
-    decl fruits: Array
-
     # this is a shorthand for creating an array
-    {"Apple", "Banana", "Pineapple"} => fruits
+    {"Apple", "Banana", "Pineapple"} => decl fruits: Array
     
-    decl apple: str
-    decl banana: str
-    decl pineapple: str
+    "" => decl apple: str
+    "" => decl banana: str
+    "" => decl pineapple: str
 
     # this will store the first 3 elements of fruits into apple, banana, and pineapple
     fruits => (apple, banana, pineapple)

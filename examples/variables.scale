@@ -5,10 +5,8 @@
 
 function main(): none
     # Declare a variable named foo of type str
-    decl foo: str
-
-    # Assign the value "Hello, world!" to foo
-    "Hello, world!" => foo
+    # and assign the value "Hello, world!" to it
+    "Hello, world!" => decl foo: str
 
     # Print the value of foo
     foo puts

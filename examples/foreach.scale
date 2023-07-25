@@ -5,10 +5,8 @@
 # and execute a block of code for each element
 
 function main(): none
-    # declare a new variable of type 'Array'
-    decl arr: Array
     # split the string into an array of strings
-    " " "A B C D E F":split => arr
+    " " "A B C D E F":split => decl arr: Array
 
     # Loop over every element of the array and print it
     foreach val in arr do

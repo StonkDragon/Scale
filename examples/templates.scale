@@ -32,6 +32,7 @@ function main(): none
     "hello" f:setY
     42:asReference f:setX
 
+    ```scale
     # passing incompatible types to a templated argument
     # normally results in a runtime error like this
     # -> Cannot cast non-object to type 'str'
@@ -39,5 +40,7 @@ function main(): none
     # because 'int' cannot be cast to 'SclObject'
     # because 'SclObject' is the base type of the 
     # template argument 'U'
-    # 42 f:setY
+    
+    42 f:setY
+    ```
 end

@@ -11,12 +11,11 @@ import std.util.Pair
 import std.util.Triple
 
 function main(): none
-    decl fruits: Array
-    {"Apple", "Banana", "Pineapple"} => fruits
+    {"Apple", "Banana", "Pineapple"} => decl fruits: Array
     
-    decl apple: str
-    decl banana: str
-    decl pineapple: str
+    "" => decl apple: str
+    "" => decl banana: str
+    "" => decl pineapple: str
 
     fruits => (apple, banana, pineapple)
 

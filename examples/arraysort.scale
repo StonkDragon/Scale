@@ -19,7 +19,7 @@ function printArray(arr: Array): none
 end
 
 function main(): none
-    decl list: Array 1000 createList => list
+    1000 createList => decl list: Array
     list printArray
     list:sort
     list printArray

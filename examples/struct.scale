@@ -8,11 +8,8 @@ struct Foo
 end
 
 function main(): none
-  # declare a variable of type Foo
-  decl f: mut Foo
-  
-  # create a new Foo instance and store it into f
-  Foo::new => f
+  # create a new Foo instance and store it into new variable f
+  Foo::new => decl f: Foo
 
   # store "foo" into f.bar
   "foo" => f.bar

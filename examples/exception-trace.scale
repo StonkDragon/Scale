@@ -1,0 +1,13 @@
+function foo(): Exception
+    Exception::new return
+end
+
+function getException(): Exception
+    foo return
+end
+
+function main(): none
+    getException => decl e: Exception
+
+    e puts
+end
