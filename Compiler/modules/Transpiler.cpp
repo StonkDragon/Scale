@@ -219,7 +219,7 @@ namespace sclc {
             if (f->isExternC || f->has_expect || f->has_export) {
                 symbol = finalName;
             } else {
-                symbol = sclFunctionNameToFriendlyString(f);
+                symbol = sclFunctionNameToFriendlyString(f->getName());
                 symbol += argsToRTSignature(f);
             }
         }
@@ -1032,7 +1032,7 @@ namespace sclc {
                 functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
             }
             functionDeclaration += "): " + self->getReturnType();
-            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(self).c_str());
         }
         
         if (doActualPop) {
@@ -1311,17 +1311,7 @@ namespace sclc {
         }
 
         if (self->isExternC && !hasImplementation(result, self)) {
-            std::string functionDeclaration = "";
-
-            functionDeclaration += self->getName() + "(";
-            for (size_t i = 0; i < self->getArgs().size(); i++) {
-                if (i != 0) {
-                    functionDeclaration += ", ";
-                }
-                functionDeclaration += self->getArgs()[i].getName() + ": " + self->getArgs()[i].getType();
-            }
-            functionDeclaration += "): " + self->getReturnType();
-            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(self).c_str());
         }
         
         if (self->getArgs().size() > 0) {
@@ -1715,17 +1705,7 @@ namespace sclc {
         size_t amountOfVarargs = std::stoi(body[i].getValue());
         
         if (f->isExternC && !hasImplementation(result, f)) {
-            std::string functionDeclaration = "";
-
-            functionDeclaration += f->getName() + "(";
-            for (size_t i = 0; i < f->getArgs().size(); i++) {
-                if (i != 0) {
-                    functionDeclaration += ", ";
-                }
-                functionDeclaration += f->getArgs()[i].getName() + ": " + f->getArgs()[i].getType();
-            }
-            functionDeclaration += "): " + f->getReturnType();
-            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("*(_stack.tp++) = \"<extern %s>\";\n", sclFunctionNameToFriendlyString(f).c_str());
         }
 
         append("_stack.sp -= (%zu);\n", amountOfVarargs);
@@ -1987,33 +1967,11 @@ namespace sclc {
         } else if (body[i].getValue() == "lambda") {
             handle(Lambda);
         } else if (body[i].getValue() == "unsafe") {
-            std::string functionDeclaration = "";
-
-            if (function->isMethod) {
-                functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            } else {
-                functionDeclaration += function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            }
-
             isInUnsafe++;
             append("{\n");
             scopeDepth++;
             append("scl_int8* __prev = _stack.tp - 1;\n");
-            append("*(_stack.tp - 1) = \"unsafe %s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+            append("*(_stack.tp - 1) = \"unsafe %s\";\n", sclFunctionNameToFriendlyString(function).c_str());
             safeInc();
             while (body[i].getType() != tok_end) {
                 handle(Token);
@@ -2435,6 +2393,7 @@ namespace sclc {
         noUnused;
         safeInc();
         std::string elemSize = "sizeof(scl_any)";
+        std::string typeString = "any";
         if (body[i].getType() == tok_identifier && body[i].getValue() == "<") {
             safeInc();
             auto type = parseType(body, &i);
@@ -2442,6 +2401,7 @@ namespace sclc {
                 errors.push_back(type);
                 return;
             }
+            typeString = removeTypeModifiers(type.value);
             elemSize = "sizeof(" + sclTypeToCType(result, type.value) + ")";
             safeInc();
             safeInc();
@@ -2493,7 +2453,7 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
         }
-        typeStack.push("any");
+        typeStack.push("[" + typeString + "]");
     }
 
     handler(Repeat) {
@@ -3471,8 +3431,8 @@ namespace sclc {
                 append("}\n");
                 int openBracket = i;
                 safeInc();
-                append("scl_any* array = (--_stack.sp)->v;\n");
                 std::string arrayType = removeTypeModifiers(typeStackTop);
+                append("%s array = (--_stack.sp)->v;\n", sclTypeToCType(result, arrayType).c_str());
 
                 typePop;
             reevaluateArrayIndexing:
@@ -3628,6 +3588,7 @@ namespace sclc {
             else errors.push_back(err);
         }
         std::string name = body[i].getValue();
+        size_t start = i;
         std::string type = "any";
         safeInc();
         if (body[i].getType() == tok_column) {
@@ -3644,6 +3605,10 @@ namespace sclc {
             return;
         }
         varScopeTop().push_back(Variable(name, type));
+        if (!varScopeTop().back().canBeNil) {
+            transpilerError("Uninitialized variable '" + name + "' with non-nil type '" + type + "'", start);
+            errors.push_back(err);
+        }
         type = sclTypeToCType(result, type);
         if (type == "scl_float") {
             append("%s Var_%s = 0.0;\n", type.c_str(), name.c_str());
@@ -3745,7 +3710,6 @@ namespace sclc {
                 std::string arrayType = "[int]";
                 std::string elementType = "int";
                 if (existingArrayUsed) {
-                    append("scl_int* array = (--_stack.sp)->v;\n");
                     arrayType = removeTypeModifiers(typeStackTop);
                     typePop;
                     if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
@@ -3753,6 +3717,7 @@ namespace sclc {
                     } else {
                         elementType = "any";
                     }
+                    append("%s* array = (--_stack.sp)->v;\n", sclTypeToCType(result, elementType).c_str());
                 } else {
                     append("scl_int* array = _scl_new_array(array_size);\n");
                 }
@@ -3760,6 +3725,7 @@ namespace sclc {
                 varScopePush();
                 append("const scl_int Var_i = i;\n");
                 varScopeTop().push_back(Variable("i", "const int"));
+                size_t typeStackSize = typeStack.size();
                 if (existingArrayUsed) {
                     append("const %s Var_val = array[i];\n", sclTypeToCType(result, elementType).c_str());
                     varScopeTop().push_back(Variable("val", "const " + elementType));
@@ -3768,11 +3734,15 @@ namespace sclc {
                     handle(Token);
                     safeInc();
                 }
+                for (size_t i = typeStackSize; i < typeStack.size(); i++) {
+                    typePop;
+                }
                 varScopePop();
+                typePop;
                 append("array[i] = (--_stack.sp)->i;\n");
                 append("}\n");
                 append("(_stack.sp++)->v = array;\n");
-                typeStack.push("[int]");
+                typeStack.push(arrayType);
                 scopeDepth--;
                 append("}\n");
                 safeInc();
@@ -3795,7 +3765,7 @@ namespace sclc {
                         return;
                     }
                     append("_scl_array_check_bounds_or_throw((_stack.sp - 1)->v, %s);\n", body[i - 1].getValue().c_str());
-                    append("(_stack.sp - 1)->v = ((scl_any*) (_stack.sp - 1)->v)[%s];\n", body[i - 1].getValue().c_str());
+                    append("(_stack.sp - 1)->v = ((%s) (_stack.sp - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].getValue().c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
                     return;
@@ -3809,7 +3779,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_any* tmp = (scl_any*) (--_stack.sp)->v;\n");
+            append("%s tmp = (scl_any*) (--_stack.sp)->v;\n", sclTypeToCType(result, type).c_str());
             typePop;
             varScopePush();
             while (body[i].getType() != tok_bracket_close) {
@@ -3952,13 +3922,13 @@ namespace sclc {
             typePop;
             if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
                 if (f->getReturnType() == "float") {
-                    append("(_stack.sp++)->f = Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
+                    append("(_stack.sp++)->f = Method_Triple$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
                 } else {
-                    append("(_stack.sp++)->i = (scl_int) Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
+                    append("(_stack.sp++)->i = (scl_int) Method_Triple$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
                 }
                 typeStack.push(f->getReturnType());
             } else {
-                append("Method_Triple$init(tmp, _scl_positive_offset(1)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
+                append("Method_Triple$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v, _scl_positive_offset(2)->v);\n");
             }
             append("(_stack.sp++)->v = tmp;\n");
             typeStack.push("Triple");
@@ -5209,6 +5179,17 @@ namespace sclc {
     std::string sclFunctionNameToFriendlyString(Function* f) {
         std::string name = f->finalName();
         name = sclFunctionNameToFriendlyString(name);
+        if (f->isMethod) {
+            name = f->getMemberType() + ":" + name;
+        }
+        name += "(";
+        for (size_t i = 0; i < f->getArgs().size(); i++) {
+            const Variable& v = f->getArgs()[i];
+            if (f->isMethod && v.getName() == "self") continue;
+            if (i) name += ", ";
+            name += v.getName() + ": " + v.getType();
+        }
+        name += "): " + f->getReturnType();
         return name;
     }
 
@@ -5410,7 +5391,7 @@ namespace sclc {
                 append("(struct _scl_methodinfo) {\n");
                 scopeDepth++;
                 append(".ptr = _scl_vt_c_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
-                append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m).c_str()));
+                append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m->finalName()).c_str()));
                 append(".signature = 0x%xU,\n", id((char*) signature.c_str()));
                 scopeDepth--;
                 append("},\n");
@@ -5450,6 +5431,7 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
         append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
         append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+        append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
         append("#endif\n");
 
         for (size_t f = 0; f < result.functions.size(); f++) {
@@ -5645,7 +5627,7 @@ namespace sclc {
                     }
                 }
 
-                append("*(_stack.tp++) = \"%s\";\n", sclFunctionNameToFriendlyString(functionDeclaration).c_str());
+                append("*(_stack.tp++) = \"%s\";\n", sclFunctionNameToFriendlyString(function).c_str());
                 if (function->hasNamedReturnValue) {
                     std::string nrvName = function->getNamedReturnValue().getName();
                     if (hasFunction(result, nrvName)) {
