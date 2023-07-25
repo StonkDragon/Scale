@@ -56,9 +56,10 @@ def runTest(file, directory="examples"):
 # loop over every file in the directory examples
 # and run the tests on each file
 def run_tests(directory):
-    for file in os.listdir(directory):
-        if file.endswith(".scale"):
-            runTest(file)
+    tests = [ i for i in os.listdir(directory) if i.endswith(".scale") ]
+    tests.sort()
+    for file in tests:
+        runTest(file)
 
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))
@@ -67,9 +68,10 @@ def run_tests(directory):
 
 # Reset the tests
 def reset_tests(directory):
-    for file in os.listdir(directory):
-        if file.endswith(".scale"):
-            genTest(directory + "/" + file)
+    tests = [ i for i in os.listdir(directory) if i.endswith(".scale") ]
+    tests.sort()
+    for file in tests:
+        genTest(directory + "/" + file)
 
 if __name__ == '__main__':
     failedTests = 0
