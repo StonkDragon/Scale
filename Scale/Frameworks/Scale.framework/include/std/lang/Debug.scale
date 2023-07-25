@@ -78,7 +78,7 @@ sealed struct Exception
 
   restrict export sealed function printStackTrace(): none
     "Stacktrace of " typeof self + ":" + eputs
-    for i in self.stackTrace.count 3 - to -1 step -- do
+    for i in self.stackTrace.count 1 - to -1 step -- do
       "    " (i self.stackTrace:get as str) + eputs
     done
   end

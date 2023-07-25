@@ -124,16 +124,19 @@ scl_int8* Library$progname(void) {
 struct Struct_Array* Process$stackTrace(void) {
 	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
 	
-	arr->capacity = (_stack.tp - _stack.tbp);
-	arr->initCapacity = arr->capacity;
-	arr->count = 0;
+	scl_int8** tmp;
+	scl_int8** _callstack = tmp = _stack.tbp;
+
+	arr->count = (_stack.tp - _stack.tbp) - 1;
+
+	arr->initCapacity = arr->count;
+	arr->capacity = arr->count;
 	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
 
-	scl_int8** _callstack = _stack.tbp;
-
-	while (_callstack < _stack.tp) {
-		((scl_str*) arr->values)[(scl_int) arr->count++] = _scl_create_string(*_callstack++);
+	for (scl_int i = 0; i < arr->count; i++) {
+		arr->values[i] = str_of(_callstack[i]);
 	}
+
 	return arr;
 }
 

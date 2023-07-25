@@ -364,7 +364,7 @@ void _scl_assert(scl_int b, scl_int8* msg, ...) {
 		vsnprintf(cmsg, strlen(msg) * 8 - 1, msg, list);
 		va_end(list);
 
-		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s\n", _scl_strdup(cmsg));
+		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", _scl_strdup(cmsg));
 		scl_AssertError* err = ALLOC(AssertError);
 		virtual_call(err, "init(s;)V;", str_of(cmsg));
 
@@ -1424,7 +1424,7 @@ void printStackTraceOf(_scl_Exception e) {
 		nativeTrace();
 		return;
 	}
-	for (scl_int i = e->stackTrace->count - 3; i >= 0; i--) {
+	for (scl_int i = e->stackTrace->count - 1; i >= 0; i--) {
 		fprintf(stderr, "  %s\n", ((scl_str) ((scl_any*) e->stackTrace->values)[i])->data);
 	}
 	fprintf(stderr, "\n");
