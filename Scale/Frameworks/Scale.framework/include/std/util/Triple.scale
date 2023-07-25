@@ -10,6 +10,6 @@ final sealed struct Triple
   end
 
 	function toString(): str
-		"(" a:toString + ", " + b:toString ", " + c:toString + ")" + return
+		( ( ("(" a:toString +) (", " b:toString +) +) ( (", " c:toString +) ")" +) +) return
 	end
 end

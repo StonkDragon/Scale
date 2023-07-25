@@ -43,7 +43,7 @@ final sealed struct Range is Iterable
     lower:toString " .. " + upper:toString + return
   end
 
-  function iterate(): Iterator
+  function iterate(): RangeIterator
     self RangeIterator::new return
   end
 
@@ -70,7 +70,7 @@ final sealed struct ReverseRange is Iterable
     lower:toString " .. " + upper:toString + return
   end
 
-  function iterate(): Iterator
+  function iterate(): ReverseRangeIterator
     self ReverseRangeIterator::new return
   end
 

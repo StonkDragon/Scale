@@ -40,16 +40,9 @@ intrinsic cdecl "_scl_system" function system(command: str): int
 end
 
 intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
-  decl ptr: [int8]?
   unsafe
-    environKey:view __c_getenv => ptr
+    environKey:view __c_getenv? str::new return
   end
-  if ptr then
-    ptr!! str::new
-    return
-  fi
-  nil
-  return
 end
 
 layout timeval

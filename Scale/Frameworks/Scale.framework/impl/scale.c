@@ -124,7 +124,7 @@ scl_int8* Library$progname(void) {
 struct Struct_Array* Process$stackTrace(void) {
 	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
 	
-	arr->capacity = (_stack.tp - _stack.tbp) / sizeof(scl_int8*) + 1;
+	arr->capacity = (_stack.tp - _stack.tbp);
 	arr->initCapacity = arr->capacity;
 	arr->count = 0;
 	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));

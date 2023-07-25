@@ -164,12 +164,13 @@ sealed struct Array is Iterable
       "{}" => s
     else
       "{" => s
-      for i in 0 to self.count do
-        i self:get => decl elem: any
+      0 => decl i
+      foreach elem in self do
         if i then
           s ", " + => s
         fi
         s elem:toString + => s
+        i++ => i
       done
       s "}" + => s
     fi

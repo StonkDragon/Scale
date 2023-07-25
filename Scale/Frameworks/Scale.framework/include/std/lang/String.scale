@@ -122,24 +122,20 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function split(delimiter: str): Array
     10 Array::new => decl arr: Array
-    decl string: [int8]
-    decl cDelim: [int8]
     unsafe  
-      self:view __c_strdup => string
-      delimiter:view __c_strdup => cDelim
-    end
-    unsafe
+      self:view __c_strdup => decl string: [int8]
+      delimiter:view __c_strdup => decl cDelim: [int8]
+
       string cDelim __c_strtok => decl line
 
       while line do
         line!! str::new arr:push
         nil cDelim __c_strtok => line
       done
+      string any::delete
+      cDelim any::delete
+
     end
-
-    string any::delete
-    cDelim any::delete
-
     arr return
   end
 

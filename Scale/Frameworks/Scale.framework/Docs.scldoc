@@ -1,5 +1,6 @@
 # Scale Standard Library
 @std.Any
+@@{frameworkPath}/include/std/lang/Any.scale
 ## Any
 ### final static struct any
 The static struct `any` provides utility functions for working with the `any` type.
@@ -54,6 +55,7 @@ Returns the data pointed to by this `Any` instance.
 Returns a string representation of this `Any` instance.
 
 @std
+@@{frameworkPath}/include/std/lang/Core.scale
 ## Core
 ### unsafe function memset(ptr: [any], val: int32, len: int): [any]
 Sets `len` bytes of memory pointed to by `ptr` to `val` and returns `ptr`.
@@ -103,6 +105,7 @@ Returns a string representation of `theNumber`.
 Does nothing.
 
 @std.debug
+@@{frameworkPath}/include/std/lang/Debug.scale
 ## Debug
 ### function trace(): none
 Prints a stack trace to stdout.
@@ -178,6 +181,7 @@ The struct `UnreachableError` is thrown when the program encounters a statement 
 Returns a string representation of the system.
 
 @std.fs
+@@{frameworkPath}/include/std/lang/File.scale
 ## Filesystem
 ### final struct File
 The struct `File` represents a file on the filesystem.
@@ -278,6 +282,7 @@ This function is unsafe as it does not check for nil on its arguments.
 This function is deprecated and should not be used.
 
 @std.Float
+@@{frameworkPath}/include/std/lang/Float.scale
 ## Float
 ### final static struct float
 The static struct `float` provides utility functions for working with the `float` type.
@@ -339,6 +344,7 @@ Returns the float value of this `Float` instance.
 Returns a string representation of this `Float` instance.
 
 @std.io
+@@{frameworkPath}/include/std/lang/IO.scale
 ## IO
 ### unsafe function write(fileDescriptor: int, string: str): none
 Writes the string `string` to the file with the file descriptor `fileDescriptor`.
@@ -404,6 +410,7 @@ The static struct `FmtIO` provides utility functions for working with formatted 
 Writes the formatted string `fmt` to stdout.
 
 @std.Int
+@@{frameworkPath}/include/std/lang/Int.scale
 ## Int
 ### final static struct int8
 The static struct `int8` provides utility functions for working with the `int8` type.
@@ -537,6 +544,7 @@ Returns true if `x` is nil.
 Returns true if `x` is not nil.
 
 @std.math
+@@{frameworkPath}/include/std/lang/Math.scale
 ## Math
 ### final static struct MathConstants
 The static struct `MathConstants` provides constants for mathematical operations.
@@ -704,6 +712,7 @@ Returns the linear interpolation of `a` and `b` at `t`.
 Returns the negation of `number`.
 
 @std.SclObject
+@@{frameworkPath}/include/std/lang/SclObject.scale
 ## SclObject
 ### struct SclObject is Cloneable, Equatable, Hashable
 The struct `SclObject` is the base class for all objects in Scale.
@@ -730,6 +739,7 @@ Unlocks `self` on the current thread.
 Returns a new instance of `SclObject`.
 
 @std.String
+@@{frameworkPath}/include/std/lang/String.scale
 ## String
 ### final struct str is Equatable, Cloneable, Stringifyable, Iterable
 The struct `str` represents a string.
@@ -813,6 +823,7 @@ Returns true if there are more characters to iterate over.
 Appends the string representation of `number` to `string` and returns the result.
 
 @std.math.Fraction
+@@{frameworkPath}/include/std/math/Fraction.scale
 ## Fraction
 ### final struct Fraction
 The struct `Fraction` represents a fraction.
@@ -866,6 +877,7 @@ Returns true if `self` is not NaN.
 Returns a fraction from the float `d`.
 
 @std.runtime.GarbageCollector
+@@{frameworkPath}/include/std/runtime/GarbageCollector.scale
 ## Runtime: GarbageCollector
 ### final static struct GarbageCollector
 The static struct `GarbageCollector` provides utility functions for working with the garbage collector.
@@ -898,6 +910,7 @@ Returns true if the garbage collector is paused.
 Returns the name of the garbage collector implementation.
 
 @std.runtime.Library
+@@{frameworkPath}/include/std/runtime/Library.scale
 ## Runtime: Library
 ### final struct Library
 The struct `Library` represents a shared library.
@@ -915,6 +928,7 @@ Returns the name of this library.
 Returns the symbol with the name `name` from this library.
 
 @std.runtime.Process
+@@{frameworkPath}/include/std/runtime/Process.scale
 ## Runtime: Process
 ### final static struct Process
 The static struct `Process` provides utility functions for working with the current process.
@@ -947,6 +961,7 @@ Returns the stack pointer of the current thread.
 Returns the stack base pointer of the current thread.
 
 @std.thread.Thread
+@@{frameworkPath}/include/std/thread/Thread.scale
 ## Thread
 ### final struct ThreadException: Exception
 The struct `ThreadException` represents an exception that is thrown when an error occurs in a thread.
@@ -990,6 +1005,7 @@ Returns true if `self` and `other` represent the same thread.
 Returns true if `self` and `other` represent the same thread.
 
 @std.util.Array
+@@{frameworkPath}/include/std/util/Array.scale
 ## Util: Array
 ### struct Array is Iterable
 The struct `Array` represents an array.
@@ -1080,6 +1096,7 @@ Returns true if there are more values to iterate over.
 Returns the next value in the array.
 
 @std.util.Cloneable
+@@{frameworkPath}/include/std/util/Cloneable.scale
 ## Util: Cloneable
 ### interface Cloneable
 The interface `Cloneable` is implemented by all types that can be cloned.
@@ -1088,6 +1105,7 @@ The interface `Cloneable` is implemented by all types that can be cloned.
 Returns a new instance of the type that is a clone of `self`.
 
 @std.util.Equatable
+@@{frameworkPath}/include/std/util/Equatable.scale
 ## Util: Equatable
 ### interface Equatable
 The interface `Equatable` is implemented by all types that can be compared for equality.
@@ -1099,6 +1117,7 @@ Returns true if `self` and `other` represent the same value.
 Returns true if `self` and `other` represent the same value.
 
 @std.util.Hashable
+@@{frameworkPath}/include/std/util/Hashable.scale
 ## Util: Hashable
 ### interface Hashable
 The interface `Hashable` is implemented by all types that can be hashed.
@@ -1107,6 +1126,7 @@ The interface `Hashable` is implemented by all types that can be hashed.
 Returns the hash code of `self`.
 
 @std.util.Iterable
+@@{frameworkPath}/include/std/util/Iterable.scale
 ## Util: Iterable
 ### interface Iterator
 The interface `Iterator` is implemented by all types that implement some kind of iteration.
@@ -1125,6 +1145,7 @@ Returns an iterator over the values of `self`.
 The interface `Iterable` is implemented by all types that can be iterated over.
 
 @std.util.Stringifyable
+@@{frameworkPath}/include/std/util/Stringifyable.scale
 ## Util: Stringifyable
 ### interface Stringifyable
 The interface `Stringifyable` is implemented by all types that can be converted to a string.
@@ -1133,6 +1154,7 @@ The interface `Stringifyable` is implemented by all types that can be converted 
 Returns a string representation of `self`.
 
 @std.util.IndexOutOfBoundsException
+@@{frameworkPath}/include/std/util/IndexOutOfBoundsException.scale
 ## Util: IndexOutOfBoundsException
 ### final struct IndexOutOfBoundsException: Exception
 The struct `IndexOutOfBoundsException` represents an exception that is thrown when an index is out of bounds.
@@ -1141,6 +1163,7 @@ The struct `IndexOutOfBoundsException` represents an exception that is thrown wh
 Returns a new instance of `IndexOutOfBoundsException` with the message `s`.
 
 @std.util.InvalidArgumentException
+@@{frameworkPath}/include/std/util/InvalidArgumentException.scale
 ## Util: InvalidArgumentException
 ### final struct InvalidArgumentException: Exception
 The struct `InvalidArgumentException` represents an exception that is thrown when an invalid argument is passed to a function.
@@ -1149,6 +1172,7 @@ The struct `InvalidArgumentException` represents an exception that is thrown whe
 Returns a new instance of `InvalidArgumentException` with the message `s`.
 
 @std.util.Map
+@@{frameworkPath}/include/std/util/Map.scale
 ## Util: Map
 ### final struct MapEntry<T: any>
 The struct `MapEntry` represents an entry in a map.
@@ -1207,6 +1231,7 @@ Returns true if there are more entries to iterate over.
 Returns the next entry in the map.
 
 @std.util.Pair
+@@{frameworkPath}/include/std/util/Pair.scale
 ## Util: Pair
 ### final struct Pair
 The struct `Pair` represents a pair of values.
@@ -1221,6 +1246,7 @@ Returns a new instance of `Pair` with the values `a` and `b`.
 Returns a string representation of this `Pair` instance.
 
 @std.util.Range
+@@{frameworkPath}/include/std/util/Range.scale
 ## Util: Range
 ### final struct Range is Iterable
 The struct `Range` represents a range of integers.
@@ -1292,6 +1318,7 @@ Returns true if there are more values to iterate over.
 Returns the next value in the range.
 
 @std.util.ReadOnlyArray
+@@{frameworkPath}/include/std/util/ReadOnlyArray.scale
 ## Util: ReadOnlyArray
 ### final struct IllegalStateException: Exception
 The struct `IllegalStateException` represents an exception that is thrown when an illegal state is encountered.
@@ -1330,6 +1357,7 @@ Returns a new instance of `ReadOnlyArray` with the values of `arr`.
 Returns a new instance of `ReadOnlyArray` with the values `values`.
 
 @std.util.Triple
+@@{frameworkPath}/include/std/util/Triple.scale
 ## Util: Triple
 ### final struct Triple
 The struct `Triple` represents a triple of values.
@@ -1341,6 +1369,7 @@ Returns a new instance of `Triple` with the values `a`, `b` and `c`.
 Returns a string representation of this `Triple` instance.
 
 @std.util.TypedArray
+@@{frameworkPath}/include/std/util/TypedArray.scale
 ## Util: TypedArray
 ### final struct InvalidTypeException: Exception
 The struct `InvalidTypeException` represents an exception that is thrown when an invalid type is encountered.
