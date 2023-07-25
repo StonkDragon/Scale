@@ -786,7 +786,7 @@ namespace sclc {
         return arg;
     }
 
-    void generateUnsafeCall(Method* self, FILE* fp, TPResult result) {
+    void generateUnsafeCall(Method* self, FILE* fp, TPResult& result) {
         if (self->getArgs().size() > 0)
             append("_stack.sp -= (%zu);\n", self->getArgs().size());
         if (removeTypeModifiers(self->getReturnType()) == "none" || removeTypeModifiers(self->getReturnType()) == "nothing") {
@@ -1085,7 +1085,7 @@ namespace sclc {
         }
     }
 
-    void generateUnsafeCall(Function* self, FILE* fp, TPResult result) {
+    void generateUnsafeCall(Function* self, FILE* fp, TPResult& result) {
         if (self->getArgs().size() > 0)
             append("_stack.sp -= (%zu);\n", self->getArgs().size());
         if (removeTypeModifiers(self->getReturnType()) == "none" || removeTypeModifiers(self->getReturnType()) == "nothing") {
@@ -3555,10 +3555,11 @@ namespace sclc {
                 transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
                 warns.push_back(err);
             }
-            auto tmp = sclTypeToCType(result, currentType);
-            append("%s tmp = *(%s*) --_stack.sp;\n", tmp.c_str(), tmp.c_str());
+            if (!typeCanBeNil(currentType)) {
+                append("_scl_check_not_nil_store(*(scl_int*) (_stack.sp - 1), \"%s\");\n", v.getName().c_str());
+            }
+            append("%s = *(%s*) --_stack.sp;\n", path.c_str(), sclTypeToCType(result, currentType).c_str());
             typePop;
-            append("%s = tmp;\n", path.c_str());
             scopeDepth--;
             append("}\n");
         }

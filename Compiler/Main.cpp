@@ -78,6 +78,7 @@
 namespace sclc
 {
     std::string scaleFolder;
+    std::string scaleLatestFolder;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
@@ -607,6 +608,7 @@ namespace sclc
 #if defined(__APPLE__)
             "-dynamiclib",
 #elif defined(__linux__)
+            "-fPIC",
             "-shared",
 #endif
             "-undefined",
@@ -636,6 +638,8 @@ namespace sclc
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
         scaleFolder             = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
+        scaleLatestFolder       = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/latest";
+
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
         std::string optimizer   = "O0";
@@ -715,7 +719,7 @@ namespace sclc
                 std::string file = std::filesystem::absolute(args[i]).string();
                 if (!contains(Main.options.files, file)) {
                     Main.options.files.push_back(file);
-                    Main.options.filesFromCommandLine.push_back(std::filesystem::absolute(file).string());
+                    Main.options.filesFromCommandLine.push_back(file);
                     hasFilesFromArgs = true;
                 }
             } else {
@@ -729,10 +733,6 @@ namespace sclc
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
-                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework") && !fileExists("./" + framework + ".framework")) {
-                            std::cerr << "Framework '" << framework << "' not found" << std::endl;
-                            return 1;
-                        }
                         bool alreadyIncluded = false;
                         for (auto f : frameworks) {
                             if (f == framework) {
@@ -792,13 +792,12 @@ namespace sclc
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
                 } else if (args[i] == "-makelib") {
-                    tmpFlags.push_back(
         #if defined(__APPLE__)
-                    "-dynamiclib"
+                    tmpFlags.push_back("-dynamiclib");
         #else
-                    "-shared"
+                    tmpFlags.push_back("-shared");
+                    tmpFlags.push_back("-fPIC");
         #endif
-                    );
                     tmpFlags.push_back("-undefined");
                     tmpFlags.push_back("dynamic_lookup");
                     Main.options.noMain = true;
@@ -857,14 +856,23 @@ namespace sclc
                 } else if (args[i] == "-no-error-location") {
                     Main.options.noErrorLocation = true;
                 } else {
-                    if (args[i] == "-c")
-                        Main.options.dontSpecifyOutFile = true;
-                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O')
-                        optimizer = std::string(args[i].c_str() + 1);
-                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I')
+                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
                         Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
-                    if (args[i] == "-Werror")
+                    } else if (args[i] == "-I") {
+                        if (i + 1 < args.size()) {
+                            Main.options.includePaths.push_back(args[i + 1]);
+                            i++;
+                        } else {
+                            std::cerr << "Error: -I requires an argument" << std::endl;
+                            return 1;
+                        }
+                    } else if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O') {
+                        optimizer = std::string(args[i].c_str() + 1);
+                    } else if (args[i] == "-c") {
+                        Main.options.dontSpecifyOutFile = true;
+                    } else if (args[i] == "-Werror") {
                         Main.options.Werror = true;
+                    }
                     tmpFlags.push_back(args[i]);
                 }
             }
@@ -907,9 +915,9 @@ namespace sclc
         for (std::string& framework : frameworks) {
             checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
-        Main.options.includePaths.push_back("./");
+
         if (!Main.options.noScaleFramework) {
-            auto findModule = [&](const std::string moduleName) -> std::optional<std::vector<std::string>> {
+            auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {
                 std::vector<std::string> mods;
                 for (auto config : Main.options.mapFrameworkConfigs) {
                     auto modules = config.second->getCompound("modules");
@@ -919,7 +927,7 @@ namespace sclc
                             for (size_t j = 0; j < list->size(); j++) {
                                 FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                                 if (!find.success) {
-                                    return std::nullopt;
+                                    return std::vector<std::string>();
                                 }
                                 auto file = find.in;
                                 mods.push_back(file);
@@ -928,16 +936,14 @@ namespace sclc
                         }
                     }
                 }
-                return std::make_optional(mods);
+                return mods;
             };
 
             auto mod = findModule("std");
-            if (mod) {
-                for (auto file : *mod) {
-                    file = std::filesystem::absolute(file).string();
-                    if (!contains(Main.options.files, file)) {
-                        Main.options.files.push_back(file);
-                    }
+            for (auto file : mod) {
+                file = std::filesystem::absolute(file).string();
+                if (!contains(Main.options.files, file)) {
+                    Main.options.files.push_back(file);
                 }
             }
         }
@@ -968,10 +974,8 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
                 return 1;
             }
-            if (Main.options.debugBuild)
-                std::cout << "Tokenizing file '" << filename << "'" << std::endl;
 
-            if (strends(filename, ".smod")) {
+            if (!strends(filename, ".scale")) {
                 continue;
             }
 
@@ -1376,6 +1380,9 @@ namespace sclc
                     std::cerr << file << " " << col << line << Color::RESET;
                 } else {
                     if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
+                        continue;
+                    }
+                    if (strstarts(line, "clang: warning")) {
                         continue;
                     }
                     if (strstarts(line, "Undefined symbols for architecture ")) {
