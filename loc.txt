@@ -67,6 +67,7 @@
       32 examples/data-type-literals.scale
       29 examples/enum-indices.scale
       17 examples/enum.scale
+      12 examples/exception-trace.scale
       22 examples/fib.scale
       20 examples/fizzbuzz.scale
       19 examples/floating-point-specials.scale
@@ -74,6 +75,7 @@
       11 examples/for-step.scale
       13 examples/for.scale
       15 examples/foreach.scale
+      14 examples/fraction.scale
        8 examples/hello.scale
       31 examples/if.scale
       19 examples/label-goto.scale
@@ -84,6 +86,7 @@
       62 examples/operators.scale
       22 examples/overloading.scale
       23 examples/primitive-array.scale
+      11 examples/ranges.scale
       34 examples/ref.scale
       11 examples/repeat.scale
       11 examples/sizeof.scale
@@ -92,10 +95,12 @@
       23 examples/subscript.scale
       33 examples/switch.scale
       46 examples/templates.scale
+      34 examples/tree.scale
       33 examples/try-catch.scale
+      34 examples/uuid.scale
       13 examples/variables.scale
       17 examples/variadics.scale
       13 examples/while.scale
       16 interop-example/foo.c
       14 interop-example/main.scale
-   21322 total
+   21427 total
