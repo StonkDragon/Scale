@@ -3,6 +3,8 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
+		{"include": "#block_comment_c"},
+		{"include": "#block_comment_scale"},
 		{"include": "#block_comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
@@ -36,6 +38,30 @@
 				"name": "comment",
 				"match": "."
 			}]
+		},
+		"block_comment_c": {
+			"begin": "`c",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"endCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"name": "meta.embedded.block.c",
+			"patterns": [{"include": "source.c"}]
+		},
+		"block_comment_scale": {
+			"begin": "`scale",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"endCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"name": "meta.embedded.block.scale",
+			"patterns": [{"include": "source.scale"}]
 		},
 		"keyw_constant": {
 			"name": "entity.name.function",
