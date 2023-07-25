@@ -125,26 +125,11 @@ namespace sclc
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
-    template <typename A,typename B,typename C>
-    class triple {
-    public:
-        A first;
-        B second;
-        C third;
-
-        triple(A a, B b, C c) {
-            first = a;
-            second = b;
-            third = c;
-        }
-    };
-    using Triple = triple<std::string, std::string, std::string>;
-    using TripleList = std::vector<Triple>;
-
     struct DocumentationEntry {
         std::string name;
         std::string description;
         std::string module;
+        std::string file;
     };
 
     using DocumentationEntries = std::vector<DocumentationEntry>;
@@ -268,6 +253,14 @@ namespace sclc
         return false;
     }
 
+    std::string trimLeft(std::string s) {
+        size_t i = 0;
+        while (i < s.size() && isspace(s[i])) {
+            i++;
+        }
+        return s.substr(i);
+    }
+
     std::string compileLine(std::string line) {
         std::string out = "";
         out.reserve(line.size());
@@ -284,7 +277,11 @@ namespace sclc
                     for (size_t i = 0; i < tokens.size(); i++) {
                         if (tokens[i].type == tok_eof) continue;
                         auto t = tokens[i];
-                        if (i) theCode += " ";
+                        size_t spacesBetween = 0;
+                        if (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_eof) {
+                            spacesBetween = t.column - tokens[i - 1].column - tokens[i - 1].value.size();
+                        }
+                        theCode += std::string(spacesBetween, ' ');
                         theCode += t.formatted();
                     }
                     inCode = false;
@@ -313,11 +310,15 @@ namespace sclc
 
         std::vector<std::string> lines = split(std::string(data), "\n");
         std::string current = "";
-        std::string nextFileName = "";
+        std::string currentModule = "";
+        std::string implementedAt = "";
+        std::string parentPath = std::filesystem::path(file).parent_path().string();
         for (size_t i = 0; i < lines.size(); i++) {
             std::string line = lines[i];
-            if (strstarts(line, "@")) {
-                nextFileName = line.substr(1);
+            if (strstarts(line, "@") && !strstarts(line, "@@")) {
+                currentModule = trimLeft(line.substr(1));
+            } else if (strstarts(line, "@@")) {
+                implementedAt = trimLeft(line.substr(2));
             } else if (strstarts(line, "##") && !strstarts(line, "###")) {
                 current = line.substr(3);
                 docs.entries[current] = DocumentationEntries();
@@ -325,7 +326,12 @@ namespace sclc
                 std::string key = line.substr(4);
                 DocumentationEntry e;
                 e.name = key;
-                e.module = nextFileName;
+                e.module = currentModule;
+                implementedAt = replaceAll(implementedAt, R"(\{scaleFolder\})", scaleFolder);
+                implementedAt = replaceAll(implementedAt, R"(\{framework\})", Main.options.printDocFor);
+                implementedAt = replaceAll(implementedAt, R"(\{module\})", currentModule);
+                implementedAt = replaceAll(implementedAt, R"(\{frameworkPath\})", parentPath);
+                e.file = implementedAt;
                 
                 line = lines[++i];
                 auto isNextLine = [](std::string line) -> bool {
@@ -487,7 +493,11 @@ namespace sclc
             for (DocumentationEntry e : foundIn) {
                 std::cout << Color::BLUE << e.name << "\n";
                 if (e.module.size()) {
-                    std::cout << Color::CYAN << "Module: " << e.module << "\n";
+                    std::cout << Color::CYAN << "Module: " << e.module;
+                    if (e.file.size() == 0) std::cout << "\n";
+                }
+                if (e.file.size()) {
+                    std::cout << " (" << e.file << ")\n";
                 }
                 std::cout << Color::GREEN << e.description;
             }
