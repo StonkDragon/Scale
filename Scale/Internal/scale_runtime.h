@@ -341,6 +341,8 @@ typedef struct {
 
 extern tls _scl_stack_t _stack;
 
+typedef void(*mainFunc)(/* args: Array */ scl_any, /* env: Array */ scl_any);
+
 // call a method on an instance
 // returns `nil` if the method return type is `none`
 scl_any				virtual_call(scl_any instance, scl_int8* methodIdentifier, ...);
@@ -409,7 +411,7 @@ void				_scl_not_nil_return(scl_int val, scl_int8* name);
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
 void				_scl_throw(scl_any ex);
-int					_scl_run(int argc, char** argv, scl_any main);
+int					_scl_run(int argc, char** argv, mainFunc main);
 
 const ID_t			id(const scl_int8* data);
 

@@ -23,6 +23,8 @@ typedef struct Struct_Exception {
 	scl_str errno_str;
 }* _scl_Exception;
 
+#define EXCEPTION	((_scl_Exception) *(_stack.ex))
+
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
 } scl_NullPointerException;
@@ -662,7 +664,7 @@ void dumpStack();
 #define strequals(a, b) (strcmp(a, b) == 0)
 #define strstarts(a, b) (strncmp((a), (b), strlen((b))) == 0)
 
-void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier);
+void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, size_t methodLen);
 
 scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap) {
 	size_t methodLen = strlen(methodIdentifier);
@@ -672,14 +674,23 @@ scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIde
 	for (scl_int i = 0; i < argCount; i++) {
 		(_stack.sp++)->v = va_arg(ap, scl_any);
 	}
-	(_stack.sp++)->v = instance;
+	if (instance) {
+		(_stack.sp++)->v = instance;
 
-	virtual_call_impl0(onSuper, instance, methodIdentifier);
+		virtual_call_impl0(onSuper, instance, methodIdentifier, methodLen);
+		return strequals(returnType, "V;") ? nil : (--_stack.sp)->v;
+	}
+	
+	char* totalSym = malloc(methodLen + 8);
+	snprintf(totalSym, methodLen + 8, "%s@CALLER", methodIdentifier);
+
+	_scl_lambda func = dlsym(RTLD_DEFAULT, totalSym);
+	_scl_assert(REINTERPRET_CAST(scl_int, func), "Could not find function %s", methodIdentifier);
+	func();
 	return strequals(returnType, "V;") ? nil : (--_stack.sp)->v;
 }
 
-void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier) {
-	size_t methodLen = strlen(methodIdentifier);
+void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, size_t methodLen) {
 	scl_int8* methodName = substr_of(methodIdentifier, methodLen, 0, str_index_of(methodIdentifier, '('));
 	scl_int8* signature = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '('), methodLen);
 	ID_t methodNameHash = id(methodName);
@@ -1432,22 +1443,18 @@ void printStackTraceOf(_scl_Exception e) {
 
 _scl_no_return
 void _scl_runtime_catch() {
-	if (*(_stack.ex) == nil) {
+	if (EXCEPTION == nil) {
 		_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
 	}
-	scl_str msg = ((_scl_Exception) *(_stack.ex))->msg;
+	scl_str msg = EXCEPTION->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", ((_scl_Exception) *(_stack.ex))->rtFields.statics->type_name, msg->data);
-	printStackTraceOf(*(_stack.ex));
+	fprintf(stderr, "Uncaught %s: %s\n", EXCEPTION->rtFields.statics->type_name, msg->data);
+	printStackTraceOf(EXCEPTION);
 	if (errno) {
 		fprintf(stderr, "errno: %s\n", strerror(errno));
 	}
 	exit(EX_THROWN);
 }
-
-// Returns a function pointer with the following signature:
-// function main(args: Array, env: Array): int
-typedef void(*mainFunc)(struct Struct_Array*, struct Struct_Array*);
 
 _scl_no_return
 void* _scl_oom(scl_uint size) {
@@ -1486,11 +1493,11 @@ void _scl_setup(void) {
 	setupCalled = 1;
 }
 
-int _scl_run(int argc, char** argv, scl_any entry) {
+int _scl_run(int argc, char** argv, mainFunc entry) {
 
 	// Convert argv and envp from native arrays to Scale arrays
-	scl_Array args = (scl_Array) _scl_c_arr_to_scl_array((scl_any*) argv);
-	scl_Array env = (scl_Array) _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+	scl_any args = _scl_c_arr_to_scl_array((scl_any*) argv);
+	scl_any env = _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
 
 	extern scl_int8* argv0;
 
@@ -1498,9 +1505,7 @@ int _scl_run(int argc, char** argv, scl_any entry) {
 
 	_stack.tp = _stack.tbp;
 	TRY {
-		if (entry) {
-			((mainFunc) entry)(args, env);
-		}
+		entry(args, env);
 	} else {
 		_scl_runtime_catch();
 	}

@@ -298,6 +298,10 @@ namespace sclc
             value += c;
             c = source[++current];
             column++;
+        } else if (c == '$') {
+            value += c;
+            c = source[++current];
+            column++;
         }
 
         // Not a known token, so probably a space character
@@ -426,10 +430,8 @@ namespace sclc
         TOKEN("::",         tok_double_column, line, filename);
         TOKEN(".",          tok_dot, line, filename);
         TOKEN("?.",         tok_dot, line, filename);
+        TOKEN("$",          tok_dollar, line, filename);
 
-        // if (current >= strlen(source)) {
-        //     return Token(tok_eof, "", line, filename, begin);
-        // }
         return Token(tok_identifier, value, line, filename, begin);
     }
 

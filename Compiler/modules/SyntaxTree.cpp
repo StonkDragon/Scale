@@ -36,6 +36,9 @@ const std::vector<std::string> intrinsics({
 namespace sclc {
     std::map<std::string, std::string> templateArgs;
 
+    std::string typeToRTSigIdent(std::string type);
+    std::string argsToRTSignatureIdent(Function* f);
+
     Function* parseFunction(std::string name, Token& nameToken, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
@@ -1020,16 +1023,77 @@ namespace sclc {
         return std::string(1, c);
     }
 
+    std::string specToCIdent(std::string in);
+
+    struct Macro {
+        std::vector<std::string> args;
+        std::vector<Token> tokens;
+
+        void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
+            #define token this->tokens[j]
+            #define nextToken this->tokens[j + 1]
+            #define MacroError(msg) ({ \
+                FPResult error; \
+                error.success = false; \
+                error.message = msg; \
+                error.in = tokens[i].getFile(); \
+                error.line = tokens[i].getLine(); \
+                error.column = tokens[i].getColumn(); \
+                error.type = tokens[i].getType(); \
+                error.value = tokens[i].getValue(); \
+                error; \
+            })
+            for (size_t j = 0; j < this->tokens.size(); j++) {
+                if (token.getType() == tok_identifier && token.getValue() == "expand") {
+                    j++;
+                    if (token.getType() != tok_curly_open) {
+                        errors.push_back(MacroError("Expected '{' after 'expand'"));
+                        return;
+                    }
+                    j++;
+                    size_t depth = 1;
+                    std::vector<Token> expanded;
+                    while (depth > 0) {
+                        if (token.getType() == tok_curly_open) {
+                            depth++;
+                        } else if (token.getType() == tok_curly_close) {
+                            depth--;
+                        }
+                        if (token.getType() == tok_dollar) {
+                            if (nextToken.getType() == tok_identifier) {
+                                if (args.find(nextToken.getValue()) != args.end()) {
+                                    expanded.push_back(args[nextToken.getValue()]);
+                                } else {
+                                    errors.push_back(MacroError("Unknown macro argument '" + nextToken.getValue() + "'"));
+                                }
+                            } else {
+                                errors.push_back(MacroError("Expected identifier after '$'"));
+                            }
+                            j++;
+                        } else {
+                            expanded.push_back(token);
+                        }
+                        j++;
+                    }
+                    otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
+                    i += expanded.size();
+                }
+            }
+            #undef token
+            #undef nextToken
+        }
+    };
+    
     TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
         Function* currentFunction = nullptr;
         Container* currentContainer = nullptr;
         Struct* currentStruct = nullptr;
+        std::vector<Struct> currentStructs;
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
 
         int isInLambda = 0;
         int isInUnsafe = 0;
-        int overloadedFunctions = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -1080,9 +1144,82 @@ namespace sclc {
             }
         }
 
+        std::unordered_map<std::string, Macro> macros;
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].getType() != tok_identifier || tokens[i].getValue() != "macro!") {
+                continue;
+            }
+            size_t start = i;
+            i++;
+            std::string name = tokens[i].getValue();
+            i++;
+            Macro macro;
+            if (tokens[i].getType() == tok_paren_open) {
+                i++;
+                while (tokens[i].getType() != tok_paren_close) {
+                    macro.args.push_back(tokens[i].getValue());
+                    i++;
+                    if (tokens[i].getType() == tok_comma) {
+                        i++;
+                    }
+                }
+            } else {
+                errors.push_back(MacroError("Expected '(' after macro name"));
+            }
+            i++;
+            if (tokens[i].getType() != tok_curly_open) {
+                errors.push_back(MacroError("Expected '{' after macro name"));
+            }
+            i++;
+            ssize_t depth = 1;
+            while (depth > 0) {
+                if (tokens[i].getType() == tok_curly_open) {
+                    depth++;
+                } else if (tokens[i].getType() == tok_curly_close) {
+                    depth--;
+                }
+                if (depth <= 0) {
+                    i++;
+                    break;
+                }
+                macro.tokens.push_back(tokens[i]);
+                i++;
+            }
+            // delete macro declaration
+            tokens.erase(tokens.begin() + start, tokens.begin() + i);
+            i = start;
+            i--;
+            macros[name] = macro;
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (
+                tokens[i].getType() != tok_identifier ||
+                macros.find(tokens[i].getValue()) == macros.end() ||
+                i + 1 >= tokens.size() ||
+                tokens[i + 1].getValue() != "!" ||
+                tokens[i + 1].getLine() != tokens[i].getLine()
+            ) {
+                continue;
+            }
+            Macro& macro = macros[tokens[i].getValue()];
+            std::unordered_map<std::string, Token> args;
+            size_t start = i;
+            i += 2;
+            for (size_t j = 0; j < macro.args.size(); j++) {
+                args[macro.args[j]] = tokens[i];
+                i++;
+            }
+            // delete macro call
+            tokens.erase(tokens.begin() + start, tokens.begin() + i);
+            i = start;
+            macro.expand(tokens, i, args, errors);
+            i--;
+        }
+
         // Builtins
         if (!Main.options.noScaleFramework) {
-            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "<builtinIsInstanceOf>"));
+            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "builtinIsInstanceOf.scale@"));
             builtinIsInstanceOf->addModifier("export");
 
             builtinIsInstanceOf->addArgument(Variable("obj", "any"));
@@ -1091,24 +1228,24 @@ namespace sclc {
             builtinIsInstanceOf->setReturnType("int");
             
             // if typeStr "any" == then true return
-            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "<builtinIsInstanceOf>"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "<builtinIsInstanceOf>"));
+            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
             functions.push_back(builtinIsInstanceOf);
 
-            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "<builtinHash>"));
+            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "builtinHash.scale@"));
             builtinHash->isExternC = true;
             builtinHash->addModifier("extern");
             builtinHash->addModifier("cdecl");
@@ -1119,7 +1256,7 @@ namespace sclc {
             builtinHash->setReturnType("int32");
             functions.push_back(builtinHash);
 
-            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "<builtinIdentityHash>"));
+            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "builtinIdentityHash.scale@"));
             builtinIdentityHash->isExternC = true;
             builtinIdentityHash->addModifier("extern");
             builtinIdentityHash->addModifier("cdecl");
@@ -1130,7 +1267,7 @@ namespace sclc {
             builtinIdentityHash->setReturnType("int");
             functions.push_back(builtinIdentityHash);
 
-            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "<builtinAtomicClone>"));
+            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "builtinAtomicClone.scale@"));
             builtinAtomicClone->isExternC = true;
             builtinAtomicClone->addModifier("extern");
             builtinAtomicClone->addModifier("cdecl");
@@ -1141,7 +1278,7 @@ namespace sclc {
             builtinAtomicClone->setReturnType("any");
             functions.push_back(builtinAtomicClone);
 
-            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "<builtinTypeEquals>"));
+            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "builtinTypeEquals.scale@"));
             builtinTypeEquals->isExternC = true;
             builtinTypeEquals->addModifier("extern");
             builtinTypeEquals->addModifier("cdecl");
@@ -1153,7 +1290,7 @@ namespace sclc {
             builtinTypeEquals->setReturnType("int");
             functions.push_back(builtinTypeEquals);
 
-            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "<builtinToString>"));
+            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "builtinToString.scale@"));
             builtinToString->addModifier("export");
             
             builtinToString->addArgument(Variable("val", "any"));
@@ -1161,27 +1298,27 @@ namespace sclc {
             builtinToString->setReturnType("str");
 
             // if val is SclObject then val as SclObject:toString return else val int::toString return fi
-            builtinToString->addToken(Token(tok_if, "if", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_is, "is", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_then, "then", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_as, "as", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_column, ":", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_fi, "fi", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "int", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_double_column, "::", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "<builtinToString>"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "<builtinToString>"));
+            builtinToString->addToken(Token(tok_if, "if", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_is, "is", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_then, "then", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_as, "as", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_column, ":", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_fi, "fi", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "int", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_double_column, "::", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_identifier, "toString", 0, "builtinToString.scale@"));
+            builtinToString->addToken(Token(tok_return, "return", 0, "builtinToString.scale@"));
 
             functions.push_back(builtinToString);
 
-            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "<builtinUnreachable>"));
+            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "builtinUnreachable.scale@"));
             builtinUnreachable->isExternC = true;
             builtinUnreachable->addModifier("extern");
             builtinUnreachable->setReturnType("none");
@@ -1258,6 +1395,22 @@ namespace sclc {
                     continue;
                 }
                 if (currentStruct != nullptr) {
+                    if (tokens[i + 2].getType() == tok_column) {
+                        std::string name = tokens[i + 1].getValue();
+                        if (name != currentStruct->getName()) {
+                            FPResult result;
+                            result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStruct->getName();
+                            result.value = tokens[i + 1].getValue();
+                            result.line = tokens[i + 1].getLine();
+                            result.in = tokens[i + 1].getFile();
+                            result.type = tokens[i + 1].getType();
+                            result.column = tokens[i + 1].getColumn();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        i += 2;
+                    }
                     if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
                         std::string name = tokens[i + 1].getValue();
                         Token& func = tokens[i + 1];
@@ -1271,7 +1424,7 @@ namespace sclc {
                         }
                         Function* f = findFunctionByName(currentFunction->getName());
                         if (f) {
-                            currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
+                            currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
                         }
                         if (contains<std::string>(nextAttributes, "expect")) {
                             currentFunction->isExternC = true;
@@ -1296,7 +1449,7 @@ namespace sclc {
                     }
                     Function* f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
                     if (f) {
-                        currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
+                        currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
                     }
                     if (contains<std::string>(nextAttributes, "expect")) {
                         currentFunction->isExternC = true;
@@ -1391,7 +1544,7 @@ namespace sclc {
                     f = findFunctionByName(currentFunction->getName());
                 }
                 if (f) {
-                    currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
+                    currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
                     currentFunction->isExternC = true;
@@ -1458,7 +1611,7 @@ namespace sclc {
                                     currentFunction = nullptr;
                                     continue;
                                 }
-                                currentFunction->setName(currentFunction->getName() + "$$ol" + std::to_string(++overloadedFunctions));
+                                currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
                                 functionWasOverloaded = true;
                             } else if (currentFunction != f) {
                                 if (currentFunction->has_intrinsic) {
@@ -1606,8 +1759,6 @@ namespace sclc {
                 }
                 currentContainer = new Container(tokens[i].getValue());
                 currentContainer->name_token = new Token(tokens[i]);
-            } else if (token.getType() == tok_struct_def && ((((long) i) - 1) >= 0) && tokens[i - 1].getType() == tok_double_column && currentFunction != nullptr) {
-                currentFunction->addToken(token);
             } else if (token.getType() == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -1686,13 +1837,6 @@ namespace sclc {
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
-                for (size_t i = 0; i < nextAttributes.size(); i++) {
-                    if (nextAttributes[i] == "autoimpl") {
-                        i++;
-                        currentStruct->toImplementFunctions.push_back(nextAttributes[i]);
-                    }
-                }
-
                 bool open = contains<std::string>(nextAttributes, "open");
                 
                 nextAttributes.clear();
@@ -2515,7 +2659,7 @@ namespace sclc {
         result.typealiases = typealiases;
         result.enums = enums;
 
-        // std::vector<Struct> newStructs;
+        std::vector<Struct> newStructs;
 
         for (auto&& s : result.structs) {
             Struct super = getStructByName(result, s.extends());
@@ -2624,10 +2768,10 @@ namespace sclc {
                 oldSuper = super;
                 super = getStructByName(result, super.extends());
             }
-            // newStructs.push_back(s);
-        nextIter: (void) 0;
+            newStructs.push_back(s);
+            nextIter:;
         }
-        // result.structs = std::move(newStructs);
+        result.structs = std::move(newStructs);
         if (result.errors.size()) {
             return result;
         }
@@ -2635,7 +2779,7 @@ namespace sclc {
             return result.typealiases.find(name) != result.typealiases.end();
         };
         auto createToStringMethod = [&](Struct& s) -> Method* {
-            Token t(tok_identifier, "toString", 0, "<generated>");
+            Token t(tok_identifier, "toString", 0, s.name_token.file);
             Method* toString = new Method(s.getName(), std::string("toString"), t);
             std::string stringify = s.getName() + " {";
             toString->setReturnType("str");
@@ -2677,14 +2821,24 @@ namespace sclc {
             toString->forceAdd(true);
             return toString;
         };
+
+        auto indexOfFirstMethodOnType = [&](std::string type) -> size_t {
+            for (size_t i = 0; i < result.functions.size(); i++) {
+                if (result.functions[i]->getMemberType() == type) return i;
+            }
+            return result.functions.size();
+        };
+
         for (Struct s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
             Method* toString = getMethodByName(result, "toString", s.getName());
-            if (!toString || contains<std::string>(toString->getModifiers(), "<generated>")) {
-                result.functions.push_back(createToStringMethod(s));
+            if (toString == nullptr || contains<std::string>(toString->getModifiers(), "<generated>")) {
+                size_t index = indexOfFirstMethodOnType(s.getName());
+                result.functions.insert(result.functions.begin() + index, createToStringMethod(s));
                 hasImplementedToString = true;
             }
+
             for (auto& toImplement : s.toImplementFunctions) {
                 if (!hasImplementedToString && toImplement == "toString") {
                     result.functions.push_back(createToStringMethod(s));
@@ -2694,15 +2848,17 @@ namespace sclc {
         return result;
     }
 
-    std::pair<std::string, std::string> pairAt(std::map<std::string, std::string> map, size_t index) {
+    std::pair<const std::string, std::string> emptyPair("", "");
+
+    std::pair<const std::string, std::string>& pairAt(std::map<std::string, std::string> map, size_t index) {
         size_t i = 0;
-        for (auto& pair : map) {
+        for (auto&& pair : map) {
             if (i == index) {
                 return pair;
             }
             i++;
         }
-        return std::pair<std::string, std::string>("", "");
+        return emptyPair;
     }
 
     std::string specToCIdent(std::string in) {

@@ -314,7 +314,6 @@ namespace sclc
     }
 
     FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
-        // int, str, any, none, Struct
         FPResult r;
         r.success = true;
         r.value = "";
@@ -516,6 +515,24 @@ namespace sclc
         return nullptr;
     }
 
+    Method* getMethodWithActualName(TPResult& result, std::string name, std::string type, bool doCheck) {
+        if (type == "") {
+            return nullptr;
+        }
+
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->getName() == name && func->getMemberType() == type) {
+                return (Method*) func;
+            }
+        }
+        Struct s = getStructByName(result, type);
+        if (getInterfaceByName(result, type)) {
+            return nullptr;
+        }
+        return getMethodByNameWithArgs(result, name, s.extends(), doCheck);
+    }
+
     Method* getMethodByNameWithArgs(TPResult& result, std::string name, std::string type, bool doCheck) {
         (void) doCheck;
         type = removeTypeModifiers(type);
@@ -551,23 +568,9 @@ namespace sclc
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
-        name = replaceAll(name, R"(\$\$ol\d+)", "");
+        name = name.substr(0, name.find("$$ol"));
 
-        if (type == "") {
-            return nullptr;
-        }
-
-        for (Function* func : result.functions) {
-            if (!func->isMethod) continue;
-            if (func->getName() == name && func->getMemberType() == type) {
-                return (Method*) func;
-            }
-        }
-        Struct s = getStructByName(result, type);
-        if (getInterfaceByName(result, type)) {
-            return nullptr;
-        }
-        return getMethodByNameWithArgs(result, name, s.extends(), doCheck);
+        return getMethodWithActualName(result, name, type, doCheck);
     }
 
     Method* getMethodByName(TPResult& result, std::string name, std::string type) {
@@ -833,6 +836,12 @@ namespace sclc
 
     bool featureEnabled(std::string feat) {
         return contains<std::string>(Main.options.features, feat);
+    }
+
+    time_t file_modified_time(const std::string& path) {
+        struct stat attr;
+        stat(path.c_str(), &attr);
+        return attr.st_mtime;
     }
 
     ID_t id(char* data) {

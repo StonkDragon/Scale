@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <stack>
+#include <sys/stat.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
@@ -108,6 +109,7 @@ namespace sclc {
         static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeContainers(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+        static void writeTables(FILE* fp, TPResult& result, std::string filename);
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename);
     };
 
@@ -124,6 +126,7 @@ namespace sclc {
         long long writeStructsTime;
         long long writeGlobalsTime;
         long long writeFunctionHeadersTime;
+        long long writeTablesTime;
         long long writeFunctionsTime;
         struct options {
             bool doRun;
@@ -150,6 +153,7 @@ namespace sclc {
             size_t docPrinterArgsStart;
             std::string docsIncludeFolder;
             std::string operatorRandomData;
+            std::vector<std::string> flags;
             std::vector<std::string> files;
             std::vector<std::string> features;
             std::vector<std::string> includePaths;
@@ -193,6 +197,7 @@ namespace sclc {
     Method* getMethodByName(TPResult& result, std::string name, std::string type);
     Method* getMethodByNameOnThisType(TPResult& result, std::string name, std::string type);
     Method* getMethodByNameWithArgs(TPResult& result, std::string name, std::string type, bool doCheck = true);
+    Method* getMethodWithActualName(TPResult& result, std::string name, std::string type, bool doCheck = true);
     Function* getFunctionByNameWithArgs(TPResult& result, std::string name, bool doCheck = true);
     Container getContainerByName(TPResult& result, std::string name);
     Struct getStructByName(TPResult& result, std::string name);
@@ -218,6 +223,7 @@ namespace sclc {
     bool featureEnabled(std::string feat);
     bool isInitFunction(Function* f);
     bool isDestroyFunction(Function* f);
+    time_t file_modified_time(const std::string& path);
     
     template<typename T>
     bool contains(std::vector<T> v, T val) {

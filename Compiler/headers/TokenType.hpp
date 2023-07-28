@@ -90,6 +90,7 @@ namespace sclc
         tok_string_literal,         // "foo"
         tok_char_string_literal,    // c"foo"
         tok_char_literal,           // 'a'
+        tok_dollar,                 // $
 
         tok_MAX                     // ADD NOTHING AFTER THIS
     };

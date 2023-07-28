@@ -2,6 +2,8 @@
 #include <stack>
 #include <functional>
 #include <csignal>
+#include <cstdlib>
+#include <unistd.h>
 
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"
@@ -19,11 +21,18 @@
 namespace sclc {
     Function* currentFunction;
     Struct currentStruct("");
+    std::unordered_map<std::string, std::vector<Function*>> functionsByFile;
 
     std::map<std::string, std::vector<Method*>> vtables;
 
     std::string sclFunctionNameToFriendlyString(Function* f);
     std::string sclFunctionNameToFriendlyString(std::string name);
+
+    std::string capitalize(std::string s) {
+        if (s.size() == 0) return s;
+        s[0] = std::toupper(s[0]);
+        return s;
+    }
 
     bool hasTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
@@ -227,7 +236,7 @@ namespace sclc {
         if (f->isExternC || f->has_expect || f->has_export) {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
         }
-        return "\"" + symbol + "\"";
+        return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
     }
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
@@ -258,8 +267,6 @@ namespace sclc {
             append("#include <%s>\n", header.c_str());
         }
         append("\n");
-
-        append("const char _scl_version[] = \"%s\";\n\n", std::string(VERSION).c_str());
     }
 
     void ConvertC::writeFunctionHeaders(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -350,7 +357,7 @@ namespace sclc {
         append("/* GLOBALS */\n");
 
         for (Variable& s : result.globals) {
-            append("%s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+            append("extern %s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             globals.push_back(s);
         }
 
@@ -382,11 +389,12 @@ namespace sclc {
         
         append("/* CONTAINERS */\n");
         for (Container& c : result.containers) {
-            append("struct {\n");
+            append("struct _Container_%s {\n", c.getName().c_str());
             for (Variable& s : c.getMembers()) {
                 append("  %s %s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
             }
-            append("} Container_%s = {0};\n", c.getName().c_str());
+            append("};\n");
+            append("extern struct _Container_%s Container_%s;\n", c.getName().c_str(), c.getName().c_str());
         }
     }
 
@@ -410,6 +418,28 @@ namespace sclc {
             arg += removeTypeModifiers(v.getType());
         }
         return arg;
+    }
+
+    template<typename T>
+    std::vector<T>& operator&(const std::vector<T>& a, std::function<bool(T)> b) {
+        std::vector<T> result;
+        for (T& t : a) {
+            if (b(t)) {
+                result.push_back(t);
+            }
+        }
+        return result;
+    }
+
+    template<typename T>
+    void operator&=(std::vector<T>& a, std::function<bool(T)> b) {
+        std::vector<T> result;
+        for (T& t : a) {
+            if (b(t)) {
+                result.push_back(t);
+            }
+        }
+        a = result;
     }
 
     void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -467,7 +497,7 @@ namespace sclc {
                     }
                     Struct argType = getStructByName(result, m->getReturnType());
                     bool implementedInterface = false;
-                if (argType != Struct::Null) {
+                    if (argType != Struct::Null) {
                         Interface* interface = getInterfaceByName(result, f->getReturnType());
                         if (interface != nullptr) {
                             implementedInterface = structImplements(result, argType, interface->getName());
@@ -737,6 +767,16 @@ namespace sclc {
             }
         }
         return true;
+    }
+
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
+        return f && f->has_getter ? f : nullptr;
+    }
+
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
+        return f && f->has_setter ? f : nullptr;
     }
 
     bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false) {
@@ -1085,7 +1125,7 @@ namespace sclc {
         }
     }
 
-    void generateUnsafeCall(Function* self, FILE* fp, TPResult& result) {
+    void generateUnsafeCallF(Function* self, FILE* fp, TPResult& result) {
         if (self->getArgs().size() > 0)
             append("_stack.sp -= (%zu);\n", self->getArgs().size());
         if (removeTypeModifiers(self->getReturnType()) == "none" || removeTypeModifiers(self->getReturnType()) == "nothing") {
@@ -1152,7 +1192,6 @@ namespace sclc {
                op == "pow_fi" ||
                op == "pow_ff";
     }
-
 
     bool operatorBool(std::string op) {
         return op == "eq_ii" ||
@@ -1413,7 +1452,7 @@ namespace sclc {
             f = new Function("$lambda$" + std::to_string(lambdaCount++) + "$" + function->finalName(), body[i]);
         }
         f->addModifier("<lambda>");
-        f->addModifier(generateSymbolForFunction(function));
+        f->addModifier(generateSymbolForFunction(function).substr(44));
         f->setReturnType("none");
         safeInc();
         if (body[i].getType() == tok_paren_open) {
@@ -1525,6 +1564,7 @@ namespace sclc {
         append("(_stack.sp++)->v = Function_$lambda%d$%s;\n", lambdaCount - 1, function->finalName().c_str());
         typeStack.push(lambdaType);
         result.functions.push_back(f);
+        functionsByFile[function->nameToken.file].push_back(f);
     }
 
     handler(ReturnOnNil) {
@@ -1636,24 +1676,6 @@ namespace sclc {
 
     handler(Pragma) {
         noUnused;
-        if (body[i].getValue() == "macro!") {
-            safeInc();
-            FPResult type = parseType(body, &i, getTemplates(result, function));
-            if (!type.success) {
-                errors.push_back(type);
-                return;
-            }
-            std::string ctype = sclTypeToCType(result, type.value);
-            safeInc();
-            std::string macro = body[i].getValue();
-            if (type.value == "float") {
-                append("(_stack.sp++)->f = %s;\n", macro.c_str());
-            } else {
-                append("(_stack.sp++)->v = (scl_any) %s;\n", macro.c_str());
-            }
-            typeStack.push(type.value);
-            return;
-        }
         safeInc();
         if (body[i].getValue() == "print") {
             safeInc();
@@ -1683,6 +1705,32 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
             typeStack.push("[any]");
+        } else if (body[i].getValue() == "unset") {
+            safeInc();
+
+            std::string var = body[i].getValue();
+            if (!hasVar(var)) {
+                transpilerError("Trying to unset unknown variable '" + var + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            Variable v = getVar(var);
+            if (v.isConst) {
+                transpilerError("Trying to unset constant variable '" + var + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            if (v.type.size() < 2 || v.type.front() != '[' || v.type.back() != ']') {
+                transpilerError("Trying to unset non-reference variable '" + var + "'", i);
+                errors.push_back(err);
+                return;
+            }
+
+            if (removeTypeModifiers(v.type) == "float") {
+                append("*Var_%s = 0.0;\n", var.c_str());
+            } else {
+                append("*Var_%s = NULL;\n", var.c_str());
+            }
         }
     }
 
@@ -1967,11 +2015,11 @@ namespace sclc {
         } else if (body[i].getValue() == "lambda") {
             handle(Lambda);
         } else if (body[i].getValue() == "unsafe") {
-            isInUnsafe++;
             append("{\n");
             scopeDepth++;
             append("scl_int8* __prev = _stack.tp - 1;\n");
             append("*(_stack.tp - 1) = \"unsafe %s\";\n", sclFunctionNameToFriendlyString(function).c_str());
+            isInUnsafe++;
             safeInc();
             while (body[i].getType() != tok_end) {
                 handle(Token);
@@ -1982,7 +2030,7 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
 
-        } else if (body[i].getValue() == "pragma!" || body[i].getValue() == "macro!") {
+        } else if (body[i].getValue() == "pragma!") {
             handle(Pragma);
     #ifdef __APPLE__
     #pragma endregion
@@ -2001,7 +2049,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->i = %zu;\n", e.indexOf(body[i].getValue()));
+            append("(_stack.sp++)->i = %zuUL;\n", e.indexOf(body[i].getValue()));
             typeStack.push("int");
         } else if (hasFunction(result, body[i].getValue())) {
             Function* f = getFunctionByName(result, body[i].getValue());
@@ -2363,6 +2411,14 @@ namespace sclc {
                 functionCall(f, fp, result, warns, errors, body, i);
             } else if (s.hasMember(body[i].getValue())) {
                 Variable mem = s.getMember(body[i].getValue());
+
+                Method* f = nullptr;
+                if ((f = attributeAccessor(result, s.getName(), body[i].getValue()))) {
+                    append("(_stack.sp++)->i = (scl_int) Var_self;\n");
+                    typeStack.push(f->getMemberType());
+                    methodCall(f, fp, result, warns, errors, body, i);
+                    return;
+                }
 
                 if (mem.getType() == "float") {
                     append("(_stack.sp++)->f = Var_self->%s;\n", body[i].getValue().c_str());
@@ -2870,10 +2926,13 @@ namespace sclc {
             *currentType = typePointedTo(*currentType);
         }
         if (i + 1 >= body.size() || body[i + 1].getType() != tok_dot) {
-            if (!v.isWritableFrom(currentFunction)) {
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
                 transpilerError("Variable '" + v.getName() + "' is not mutable", i);
                 errors.push_back(err);
                 return std::string("(void) 0");
+            }
+            if (doesWriteAfter) {
+                path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
             }
             return path;
         }
@@ -2904,7 +2963,7 @@ namespace sclc {
             if (deref) {
                 *currentType = typePointedTo(*currentType);
             }
-            if (!v.isWritableFrom(currentFunction) && doesWriteAfter) {
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
                 transpilerError("Variable '" + v.getName() + "' is not mutable", i);
                 errors.push_back(err);
                 return std::string("(void) 0");
@@ -2915,18 +2974,41 @@ namespace sclc {
                 return std::string("(void) 0");
             }
             if (i + 1 >= body.size() || body[i + 1].getType() != tok_dot) {
-                if (!v.isWritableFrom(currentFunction) && doesWriteAfter) {
+                if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
                     transpilerError("Member '" + v.getName() + "' of struct '" + s.getName() + "' is not mutable", i);
                     errors.push_back(err);
                     return std::string("(void) 0");
                 }
-                path = path + "->" + body[i].getValue();
+                Method* f = attributeMutator(result, s.getName(), v.getName());
+                if (deref && f) {
+                    f = attributeAccessor(result, s.getName(), v.getName());
+                }
+                if (f) {
+                    if (deref || !doesWriteAfter) {
+                        path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ")";
+                    } else {
+                        path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ", *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp)";
+                    }
+                } else {
+                    path = path + "->" + body[i].getValue();
+                    if (!deref && doesWriteAfter) {
+                        path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                    }
+                }
                 if (deref) {
                     path = "(*" + path + ")";
+                    if (doesWriteAfter) {
+                        path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                    }
                 }
                 return path;
             } else {
-                path = path + "->" + body[i].getValue();
+                Method* f = attributeAccessor(result, s.getName(), v.getName());
+                if (f) {
+                    path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ")";
+                } else {
+                    path = path + "->" + body[i].getValue();
+                }
                 if (deref) {
                     path = "(*" + path + ")";
                 }
@@ -3209,6 +3291,11 @@ namespace sclc {
                             }
                             if (!typeCanBeNil(mem.getType())) {
                                 append("_scl_check_not_nil_store((scl_int) tmp%d, \"self.%s\");\n", destructureIndex, mem.getName().c_str());
+                            }
+                            Method* f = attributeMutator(result, s.getName(), mem.getName());
+                            if (f) {
+                                append("Method_%s$%s(Var_%s, *(%s*) &tmp%d);\n", f->getMemberType().c_str(), f->getName().c_str(), loadFrom.c_str(), sclTypeToCType(result, f->getArgs()[0].getType()).c_str(), destructureIndex);
+                                return;
                             }
                             append("(*(scl_any*) &Var_%s->%s) = tmp%d;\n", loadFrom.c_str(), body[i].getValue().c_str(), destructureIndex);
                             scopeDepth--;
@@ -3558,7 +3645,7 @@ namespace sclc {
             if (!typeCanBeNil(currentType)) {
                 append("_scl_check_not_nil_store(*(scl_int*) (_stack.sp - 1), \"%s\");\n", v.getName().c_str());
             }
-            append("%s = *(%s*) --_stack.sp;\n", path.c_str(), sclTypeToCType(result, currentType).c_str());
+            append("%s;\n", path.c_str());
             typePop;
             scopeDepth--;
             append("}\n");
@@ -4768,6 +4855,40 @@ namespace sclc {
             return;
         }
 
+        Method* m = attributeAccessor(result, s.getName(), mem.getName());
+        if (m) {
+            if (dot.getValue() == "?.") {
+                if (deref) {
+                    append("*(%s*) (_stack.sp - 1) = (_stack.sp - 1)->i ? *(Method_%s$%s(*(%s*) (_stack.sp - 1))) : 0%s;\n", sclTypeToCType(result, m->getReturnType()).c_str(), m->getMemberType().c_str(), m->getName().c_str(), sclTypeToCType(result, m->getMemberType()).c_str(), removeTypeModifiers(m->getReturnType()) == "float" ? ".0" : "");
+                    std::string type = m->getReturnType();
+                    if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+                        type = type.substr(1, type.size() - 2);
+                    } else {
+                        type = "any";
+                    }
+                    typeStack.push(type);
+                } else {
+                    append("*(%s*) (_stack.sp - 1) = (_stack.sp - 1)->i ? Method_%s$%s(*(%s*) (_stack.sp - 1)) : 0%s;\n", sclTypeToCType(result, m->getReturnType()).c_str(), m->getMemberType().c_str(), m->getName().c_str(), sclTypeToCType(result, m->getMemberType()).c_str(), removeTypeModifiers(m->getReturnType()) == "float" ? ".0" : "");
+                    typeStack.push(m->getReturnType());
+                }
+            } else {
+                if (deref) {
+                    append("*(%s*) (_stack.sp - 1) = *(Method_%s$%s(*(%s*) (_stack.sp - 1)));\n", sclTypeToCType(result, m->getReturnType()).c_str(), m->getMemberType().c_str(), m->getName().c_str(), sclTypeToCType(result, m->getMemberType()).c_str());
+                    std::string type = m->getReturnType();
+                    if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+                        type = type.substr(1, type.size() - 2);
+                    } else {
+                        type = "any";
+                    }
+                    typeStack.push(type);
+                } else {
+                    append("*(%s*) (_stack.sp - 1) = Method_%s$%s(*(%s*) (_stack.sp - 1));\n", sclTypeToCType(result, m->getReturnType()).c_str(), m->getMemberType().c_str(), m->getName().c_str(), sclTypeToCType(result, m->getMemberType()).c_str());
+                    typeStack.push(m->getReturnType());
+                }
+            }
+            return;
+        }
+
         if (dot.getValue() == "?.") {
             if (removeTypeModifiers(mem.getType()) == "float") {
                 append("(_stack.sp - 1)->f = (_stack.sp - 1)->i ? ((%s) (_stack.sp - 1)->v)->%s : 0.0f;\n", sclTypeToCType(result, s.getName()).c_str(), body[i].getValue().c_str());
@@ -5064,8 +5185,13 @@ namespace sclc {
 
     handler(INVALID) {
         noUnused;
-        transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
-        errors.push_back(err);
+        if (i < body.size() && ((ssize_t) i) >= 0) {
+            transpilerError("Unknown token: '" + body[i].getValue() + "'", i);
+            errors.push_back(err);
+        } else {
+            transpilerError("Unknown token: '" + body.back().getValue() + "'", i);
+            errors.push_back(err);
+        }
     }
 
     void (*handleRefs[tok_MAX])(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, FILE*, TPResult&);
@@ -5279,6 +5405,48 @@ namespace sclc {
         return args;
     }
 
+    std::string typeToRTSigIdent(std::string type) {
+        type = removeTypeModifiers(type);
+        if (type == "any") return "a$";
+        if (type == "int" || type == "bool") return "i$";
+        if (type == "float") return "f$";
+        if (type == "str") return "s$";
+        if (type == "none") return "V$";
+        if (type == "[int8]") return "cs$";
+        if (type == "[any]") return "p$";
+        if (type == "lambda" || strstarts(type, "lambda(")) return "F$";
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            return "A" + typeToRTSigIdent(type.substr(1, type.size() - 2));
+        }
+        if (type == "uint") return "u$";
+        if (type == "int8") return "i8$";
+        if (type == "int16") return "i16$";
+        if (type == "int32") return "i32$";
+        if (type == "int64") return "i64$";
+        if (type == "uint8") return "u8$";
+        if (type == "uint16") return "u16$";
+        if (type == "uint32") return "u32$";
+        if (type == "uint64") return "u64$";
+        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+            return typeToRTSigIdent(currentStruct.templates[type]);
+        }
+        return "L" + type + "$";
+    }
+
+    std::string argsToRTSignatureIdent(Function* f) {
+        std::string args = "$$";
+        for (const Variable& v : f->getArgs()) {
+            std::string type = removeTypeModifiers(v.getType());
+            if (v.getName() == "self" && f->isMethod) {
+                continue;
+            }
+            args += typeToRTSigIdent(type);
+        }
+        args += "$$";
+        args += typeToRTSigIdent(f->getReturnType());
+        return args;
+    }
+
     bool argVecEquals(std::vector<Variable>& a, std::vector<Variable>& b) {
         if (a.size() != b.size()) {
             return false;
@@ -5328,18 +5496,13 @@ namespace sclc {
         return vtable;
     }
 
-    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename) {
-        (void) warns;
-
+    extern "C" void ConvertC::writeTables(FILE* fp, TPResult& result, std::string filename) {
+        (void) filename;
         populateTokenJumpTable();
 
         scopeDepth = 0;
         append("extern tls _scl_stack_t _stack;\n\n");
 
-        fclose(fp);
-        fp = fopen((filename.substr(0, filename.size() - 2) + ".typeinfo.h").c_str(), "a");
-        append("#include \"%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
-        
         for (Function* function : result.functions) {
             if (function->isMethod) {
                 if (getInterfaceByName(result, function->member_type)) {
@@ -5356,6 +5519,8 @@ namespace sclc {
             }
             append("extern const StaticMembers _scl_statics_%s;\n", s.getName().c_str());
             append("extern const struct _scl_methodinfo _scl_vtable_%s[];\n", s.getName().c_str());
+            append("extern const ID_t _scl_supers_%s[];\n", s.getName().c_str());
+            continue;
             append("const ID_t _scl_supers_%s[] = {\n", s.getName().c_str());
             scopeDepth++;
             Struct current = s;
@@ -5369,6 +5534,8 @@ namespace sclc {
         }
         for (Struct& s : result.structs) {
             if (s.isStatic()) continue;
+            append("extern const StaticMembers _scl_statics_%s;\n", s.getName().c_str());
+            continue;
             append("const StaticMembers _scl_statics_%s = {\n", s.getName().c_str());
             scopeDepth++;
             append(".type = 0x%xU,\n", id((char*) s.getName().c_str()));
@@ -5385,6 +5552,8 @@ namespace sclc {
         }
 
         for (auto&& vtable : vtables) {
+            append("extern const struct _scl_methodinfo _scl_vtable_%s[];\n", vtable.first.c_str());
+            continue;
             append("const struct _scl_methodinfo _scl_vtable_%s[] = {\n", vtable.first.c_str());
             scopeDepth++;
             for (auto&& m : vtable.second) {
@@ -5405,173 +5574,248 @@ namespace sclc {
         append("extern const ID_t id(const char*);\n\n");
 
         fclose(fp);
-        fp = fopen(filename.c_str(), "a");
-        
-        append("#include \"%s.typeinfo.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+    }
 
-        for (auto&& f : result.functions) {
-            if (f->isMethod) {
-                if (getInterfaceByName(result, f->member_type)) {
+    std::unordered_map<std::string, std::vector<Function*>> functionsByFileMap(std::vector<Function*> functions) {
+        std::unordered_map<std::string, std::vector<Function*>> result;
+        for (std::string& file : Main.options.files) {
+            result[file] = std::vector<Function*>();
+        }
+        for (Function* f : functions) {
+            result[f->nameToken.file].push_back(f);
+        }
+        return result;
+    }
+
+    extern std::vector<std::string> cflags;
+
+    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename) {
+        (void) warns;
+        
+        std::string tmpDir = scaleFolder + "/tmp";
+        if (!std::filesystem::exists(tmpDir)) {
+            std::filesystem::create_directories(tmpDir);
+        }
+        std::string currentOutputFilename;
+        (void) filename;
+
+        auto filePreamble = [&]() {
+            append("#include \"./%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
+            currentStruct = Struct::Null;
+
+            append("#if defined(__clang__)\n");
+            append("#pragma clang diagnostic push\n");
+            append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+            append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+            append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+            append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+            append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+            append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
+            append("#endif\n\n");
+        };
+
+        auto filePostamble = [&]() {
+            append("#if defined(__clang__)\n");
+            append("#pragma clang diagnostic pop\n");
+            append("#endif\n");
+        };
+
+        auto replaceChars = [](const std::string str, char from, char to) {
+            std::string result;
+            result.reserve(str.size());
+            for (size_t i = 0; i < str.size(); i++) {
+                if (str[i] == from) {
+                    result += to;
+                } else {
+                    result += str[i];
+                }
+            }
+            return result;
+        };
+
+        functionsByFile = functionsByFileMap(result.functions);
+        
+        std::string currentOutputFile = "out.c";
+
+        std::vector<int> pids;
+        pids.reserve(functionsByFile.size());
+
+        for (std::pair<const std::string, std::vector<Function*>>& funcs : functionsByFile) {
+
+            currentOutputFile = tmpDir + "/" + replaceChars(funcs.first, '/', '@') + ".c";
+            if (!contains(Main.options.flags, currentOutputFile)) {
+                Main.options.flags.push_back(currentOutputFile);
+            }
+            
+            if (std::filesystem::exists(currentOutputFile)) {
+                if (file_modified_time(currentOutputFile) > file_modified_time(funcs.first)) {
+                    auto tmpFlags = cflags;
+
+                    tmpFlags.push_back(currentOutputFile);
+                    tmpFlags.push_back("-c");
+
+                    tmpFlags.push_back("-o");
+                    tmpFlags.push_back(currentOutputFile + ".o");
+
+                    char** args = (char**) malloc(sizeof(char*) * tmpFlags.size() + 1);
+                    int index = 0;
+                    for (size_t i = 0; i < tmpFlags.size(); i++) {
+                        if (strstarts(tmpFlags[i], "-l")) continue;
+                        if (strstarts(tmpFlags[i], "-L")) continue;
+
+                        args[index++] = (char*) malloc(sizeof(char) * tmpFlags[i].size() + 1);
+                        strcpy(args[index - 1], tmpFlags[i].c_str());
+                    }
+                    args[index] = NULL;
+
+                    int pid = fork();
+                    if (pid == 0) {
+                        int ret = execvp(args[0], (char**) args);
+                        if (ret == -1) {
+                            std::cerr << "Failed to execute command: " << args[0] << std::endl;
+                            return;
+                        }
+                    } else if (pid < 0) {
+                        std::cerr << "Failed to fork process" << std::endl;
+                        return;
+                    }
                     continue;
                 }
-                currentStruct = getStructByName(result, f->member_type);
-                auto m = (Method*) f;
-                append("static void _scl_vt_c_%s$%s() {\n", m->getMemberType().c_str(), f->finalName().c_str());
-                scopeDepth++;
-                generateUnsafeCall(m, fp, result);
-                scopeDepth--;
-                append("}\n");
-            }
-        }
-        currentStruct = Struct::Null;
-
-        append("#if defined(__clang__)\n");
-        append("#pragma clang diagnostic push\n");
-        append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
-        append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
-        append("#endif\n");
-
-        for (size_t f = 0; f < result.functions.size(); f++) {
-            Function* function = currentFunction = result.functions[f];
-            if (function->isExternC) continue;
-            if (contains<std::string>(function->getModifiers(), "<binary-inherited>")) {
-                continue;
-            }
-            if (getInterfaceByName(result, function->member_type)) {
-                continue;
-            }
-            if (function->isMethod) {
-                currentStruct = getStructByName(result, ((Method*) function)->getMemberType());
-            } else {
-                currentStruct = Struct::Null;
             }
 
-            for (long t = typeStack.size() - 1; t >= 0; t--) {
-                typePop;
-            }
-            vars.clear();
-            varScopePush();
-            for (Variable& g : globals) {
-                varScopeTop().push_back(g);
-            }
-
-            scopeDepth = 0;
-            noWarns = false;
-            lambdaCount = 0;
-
-            for (std::string& modifier : function->getModifiers()) {
-                if (modifier == "nowarn") {
-                    noWarns = true;
+            if (currentOutputFilename != currentOutputFile) {
+                if (currentOutputFilename.size()) {
+                    filePostamble();
+                    fclose(fp);
                 }
+                currentOutputFilename = currentOutputFile;
+                remove(currentOutputFilename.c_str());
+                remove((currentOutputFilename + ".o").c_str());
+                fp = fopen(currentOutputFilename.c_str(), "a");
+                filePreamble();
             }
 
-            std::string functionDeclaration = "";
+            for (size_t f = 0; f < funcs.second.size(); f++) {
+                Function* function = currentFunction = funcs.second[f];
+                if (function->isExternC) continue;
+                if (contains<std::string>(function->getModifiers(), "<binary-inherited>")) {
+                    continue;
+                }
+                if (getInterfaceByName(result, function->member_type)) {
+                    continue;
+                }
+                if (function->isMethod) {
+                    currentStruct = getStructByName(result, ((Method*) function)->getMemberType());
+                } else {
+                    currentStruct = Struct::Null;
+                }
 
-            if (function->isMethod) {
-                functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
+                for (long t = typeStack.size() - 1; t >= 0; t--) {
+                    typePop;
+                }
+                vars.clear();
+                varScopePush();
+                for (Variable& g : globals) {
+                    varScopeTop().push_back(g);
+                }
+
+                scopeDepth = 0;
+                noWarns = false;
+                lambdaCount = 0;
+
+                for (std::string& modifier : function->getModifiers()) {
+                    if (modifier == "nowarn") {
+                        noWarns = true;
                     }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
                 }
-                functionDeclaration += "): " + function->getReturnType();
-            } else {
-                functionDeclaration += function->getName() + "(";
-                for (size_t i = 0; i < function->getArgs().size(); i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                }
-                functionDeclaration += "): " + function->getReturnType();
-            }
 
-            return_type = "void";
+                std::string functionDeclaration = "";
 
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclTypeToCType(result, t);
-            } else {
-                FPResult err;
-                err.success = false;
-                err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
-                err.line = function->getNameToken().getLine();
-                err.in = function->getNameToken().getFile();
-                err.column = function->getNameToken().getColumn();
-                err.value = function->getNameToken().getValue();
-                err.type = function->getNameToken().getType();
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
-            }
-
-            return_type = "void";
-
-            std::string arguments = "";
-            if (function->isMethod) {
-                arguments = sclTypeToCType(result, function->member_type) + " Var_self";
-                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                    std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                    arguments += ", " + type;
-                    if (type == "varargs" || type == "/* varargs */ ...") continue;
-                    if (function->getArgs()[i].getName().size())
-                        arguments += " Var_" + function->getArgs()[i].getName();
-                }
-            } else {
-                if (function->getArgs().size() > 0) {
-                    for (size_t i = 0; i < function->getArgs().size(); i++) {
-                        std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                        if (i) {
-                            arguments += ", ";
+                if (function->isMethod) {
+                    functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
+                    for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                        if (i != 0) {
+                            functionDeclaration += ", ";
                         }
-                        arguments += type;
+                        functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                    }
+                    functionDeclaration += "): " + function->getReturnType();
+                } else {
+                    functionDeclaration += function->getName() + "(";
+                    for (size_t i = 0; i < function->getArgs().size(); i++) {
+                        if (i != 0) {
+                            functionDeclaration += ", ";
+                        }
+                        functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                    }
+                    functionDeclaration += "): " + function->getReturnType();
+                }
+
+                return_type = "void";
+
+                if (function->getReturnType().size() > 0) {
+                    std::string t = function->getReturnType();
+                    return_type = sclTypeToCType(result, t);
+                } else {
+                    FPResult err;
+                    err.success = false;
+                    err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
+                    err.line = function->getNameToken().getLine();
+                    err.in = function->getNameToken().getFile();
+                    err.column = function->getNameToken().getColumn();
+                    err.value = function->getNameToken().getValue();
+                    err.type = function->getNameToken().getType();
+                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                    else errors.push_back(err);
+                }
+
+                return_type = "void";
+
+                std::string arguments = "";
+                if (function->isMethod) {
+                    arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                    for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                        std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                        arguments += ", " + type;
                         if (type == "varargs" || type == "/* varargs */ ...") continue;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
                     }
+                } else {
+                    if (function->getArgs().size() > 0) {
+                        for (size_t i = 0; i < function->getArgs().size(); i++) {
+                            std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                            if (i) {
+                                arguments += ", ";
+                            }
+                            arguments += type;
+                            if (type == "varargs" || type == "/* varargs */ ...") continue;
+                            if (function->getArgs()[i].getName().size())
+                                arguments += " Var_" + function->getArgs()[i].getName();
+                        }
+                    }
                 }
-            }
 
-            if (arguments.empty()) {
-                arguments = "void";
-            }
-
-            std::string file = function->getNameToken().getFile();
-            if (strstarts(file, scaleFolder)) {
-                file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-            } else {
-                file = std::filesystem::path(file).relative_path();
-            }
-
-            if (function->getReturnType().size() > 0) {
-                std::string t = function->getReturnType();
-                return_type = sclTypeToCType(result, t);
-            }
-
-            if (function->isMethod) {
-                if (!(((Method*) function))->addAnyway() && getStructByName(result, function->getMemberType()).isSealed()) {
-                    FPResult result;
-                    result.message = "Struct '" + function->getMemberType() + "' is sealed!";
-                    result.value = function->getNameToken().getValue();
-                    result.line = function->getNameToken().getLine();
-                    result.in = function->getNameToken().getFile();
-                    result.column = function->getNameToken().getColumn();
-                    result.type = function->getNameToken().getType();
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                if (arguments.empty()) {
+                    arguments = "void";
                 }
-                append("%s Method_%s$%s(%s) {\n", return_type.c_str(), function->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
-                if (function->getName() == "init") {
-                    Method* thisMethod = (Method*) function;
-                    Struct s = getStructByName(result, thisMethod->getMemberType());
-                    if (s == Struct::Null) {
+
+                std::string file = function->getNameToken().getFile();
+                if (strstarts(file, scaleFolder)) {
+                    file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+                } else {
+                    file = std::filesystem::path(file).relative_path();
+                }
+
+                if (function->getReturnType().size() > 0) {
+                    std::string t = function->getReturnType();
+                    return_type = sclTypeToCType(result, t);
+                }
+
+                if (function->isMethod) {
+                    if (!(((Method*) function))->addAnyway() && getStructByName(result, function->getMemberType()).isSealed()) {
                         FPResult result;
-                        result.message = "Struct '" + thisMethod->getMemberType() + "' does not exist!";
+                        result.message = "Struct '" + function->getMemberType() + "' is sealed!";
                         result.value = function->getNameToken().getValue();
                         result.line = function->getNameToken().getLine();
                         result.in = function->getNameToken().getFile();
@@ -5581,40 +5825,52 @@ namespace sclc {
                         errors.push_back(result);
                         continue;
                     }
-                    if (s.extends().size()) {
-                        Method* parentInit = getMethodByName(result, "init", s.extends());
-                        // implicit call to parent init, if it takes no arguments
-                        if (parentInit && parentInit->getArgs().size() == 1) {
-                            scopeDepth++;
-                            append("(_stack.sp++)->v = Var_self;\n");
-                            generateUnsafeCall(parentInit, fp, result);
-                            scopeDepth--;
+                    append("%s Method_%s$%s(%s) {\n", return_type.c_str(), function->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
+                    if (function->getName() == "init") {
+                        Method* thisMethod = (Method*) function;
+                        Struct s = getStructByName(result, thisMethod->getMemberType());
+                        if (s == Struct::Null) {
+                            FPResult result;
+                            result.message = "Struct '" + thisMethod->getMemberType() + "' does not exist!";
+                            result.value = function->getNameToken().getValue();
+                            result.line = function->getNameToken().getLine();
+                            result.in = function->getNameToken().getFile();
+                            result.column = function->getNameToken().getColumn();
+                            result.type = function->getNameToken().getType();
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                        if (s.extends().size()) {
+                            Method* parentInit = getMethodByName(result, "init", s.extends());
+                            // implicit call to parent init, if it takes no arguments
+                            if (parentInit && parentInit->getArgs().size() == 1) {
+                                scopeDepth++;
+                                append("(_stack.sp++)->v = Var_self;\n");
+                                generateUnsafeCall(parentInit, fp, result);
+                                scopeDepth--;
+                            }
                         }
                     }
+                } else {
+                    if (function->has_restrict) {
+                        append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->finalName().c_str());
+                    }
+                    if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
+                        append("_scl_no_return ");
+                    }
+                    if (function->has_lambda) {
+                        append("_scl_noinline %s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
+                        append("_scl_noinline ");
+                    }
+                    append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
+                    if (function->has_restrict) {
+                        append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
+                    }
                 }
-            } else {
-                if (function->has_restrict) {
-                    append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->finalName().c_str());
-                }
-                if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
-                    append("_scl_no_return ");
-                }
-                if (function->has_lambda) {
-                    append("_scl_noinline %s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
-                    append("_scl_noinline ");
-                }
-                append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
-                if (function->has_restrict) {
-                    append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
-                }
-            }
-            
-            scopeDepth++;
-
-            {
+                
+                scopeDepth++;
                 std::vector<Token> body = function->getBody();
-                if (body.size() == 0)
-                    goto emptyFunction;
 
                 varScopePush();
                 if (function->hasNamedReturnValue) {
@@ -5744,24 +6000,15 @@ namespace sclc {
 
                 append("--_stack.tp;\n");
                 append("_stack.sp = __current_base_ptr;\n");
-            }
 
-        emptyFunction:
-            scopeDepth = 0;
-            append("}\n\n");
+                scopeDepth = 0;
+                append("}\n\n");
+            }
         }
 
-        append("#if defined(__clang__)\n");
-        append("#pragma clang diagnostic pop\n");
-        append("#endif\n");
-
-        if (Main.options.noMain)
-            return;
-        
-        append("int main(int argc, char** argv) {\n");
-        scopeDepth++;
-        append("return _scl_run(argc, argv, Function_main);\n");
-        scopeDepth--;
-        append("}\n");
+        for (size_t i = 0; i < pids.size(); i++) {
+            int status;
+            waitpid(pids[i], &status, 0);
+        }
     }
 } // namespace sclc
