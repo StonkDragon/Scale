@@ -28,6 +28,7 @@ syn match scaleKeyword '}'
 syn match scaleKeyword '('
 syn match scaleKeyword ')'
 syn match scaleKeyword '?'
+syn match scaleKeyword '$'
 
 syn match scaleNumber '-\?\d\+'
 syn match scaleNumber '-\?0x\(\d\|[a-f]\|[A-F]\)\+'

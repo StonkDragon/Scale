@@ -63,6 +63,7 @@ gen.js
 scale_support.h
 scale-symbol-table.txt
 .chglog
+target/
 
 # Build
 Dragon

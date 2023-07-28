@@ -2,6 +2,8 @@ VERSION: "23.8";
 
 build: {
   incrementalBuild: "true";
+  parallelBuild: "true";
+  fullRebuildOnConfigChange: "true";
   compiler: "clang++";
   sourceDir: "Compiler";
   outputDir: "target";
@@ -21,6 +23,9 @@ build: {
     "modules/InfoDumper.cpp";
     "Common.cpp";
   ];
+  watch: [
+    ".*\.hpp";
+  ];
   defines: [
     "VERSION=\"$(VERSION)\"";
     "C_VERSION=\"gnu17\"";
@@ -32,6 +37,7 @@ build: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-Wno-gnu-statement-expression";
     "-O2";
   ];
   preBuild: [
