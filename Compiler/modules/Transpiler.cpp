@@ -421,25 +421,14 @@ namespace sclc {
     }
 
     template<typename T>
-    std::vector<T>& operator&(const std::vector<T>& a, std::function<bool(T)> b) {
+    std::vector<T> operator&(const std::vector<T>& a, std::function<bool(T)> b) {
         std::vector<T> result;
-        for (T& t : a) {
+        for (auto&& t : a) {
             if (b(t)) {
                 result.push_back(t);
             }
         }
         return result;
-    }
-
-    template<typename T>
-    void operator&=(std::vector<T>& a, std::function<bool(T)> b) {
-        std::vector<T> result;
-        for (T& t : a) {
-            if (b(t)) {
-                result.push_back(t);
-            }
-        }
-        a = result;
     }
 
     void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -1441,6 +1430,8 @@ namespace sclc {
 
     bool handleOverriddenOperator(TPResult& result, FILE* fp, int scopeDepth, std::string op, std::string type);
 
+    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter = true);
+
     int lambdaCount = 0;
 
     handler(Lambda) {
@@ -1830,6 +1821,17 @@ namespace sclc {
         return newVec;
     };
 
+#define LOAD_PATH(path, type)                                       \
+    if (removeTypeModifiers(type) == "float")                       \
+    {                                                               \
+        append("(_stack.sp++)->f = %s;\n", path.c_str());           \
+    }                                                               \
+    else                                                            \
+    {                                                               \
+        append("(_stack.sp++)->i = (scl_int) %s;\n", path.c_str()); \
+    }                                                               \
+    typeStack.push(type);
+
     handler(Identifier) {
         noUnused;
     #ifdef __APPLE__
@@ -2091,12 +2093,11 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            if (removeTypeModifiers(container.getMemberType(memberName)) == "float") {
-                append("(_stack.sp++)->f = Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) Container_%s.%s;\n", containerName.c_str(), memberName.c_str());
-            }
-            typeStack.push(container.getMemberType(memberName));
+            Variable v = container.getMember(memberName);
+            std::string lastType = "";
+            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "Container_" + containerName + ".", &lastType, /* doesWriteAfter */ false);
+            
+            LOAD_PATH(path, lastType);
         } else if (getStructByName(result, body[i].getValue()) != Struct::Null) {
             Struct s = getStructByName(result, body[i].getValue());
             std::map<std::string, std::string> templates;
@@ -2247,19 +2248,12 @@ namespace sclc {
                         }
                         functionCall(f, fp, result, warns, errors, body, i);
                     } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                        std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                        const Variable& v = getVar(loadFrom);
-                        if (!v.isAccessible(currentFunction)) {
-                            transpilerError("'" + body[i].getValue() + "' has private access in Struct '" + s.getName() + "'", i);
-                            errors.push_back(err);
-                            return;
-                        }
-                        if (removeTypeModifiers(v.getType()) == "float") {
-                            append("(_stack.sp++)->f = Var_%s;\n", loadFrom.c_str());
-                        } else {
-                            append("(_stack.sp++)->i = (scl_int) Var_%s;\n", loadFrom.c_str());
-                        }
-                        typeStack.push(v.getType());
+                        Variable v = getVar(s.getName() + "$" + body[i].getValue());
+                        
+                        std::string lastType = "";
+                        std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
+                        
+                        LOAD_PATH(path, lastType);
                     } else {
                         transpilerError("Unknown static member of struct '" + s.getName() + "'", i);
                         errors.push_back(err);
@@ -2303,11 +2297,9 @@ namespace sclc {
                 }
 
                 while (body[i].getType() != tok_curly_close) {
-                    if (body[i].getType() == tok_paren_open) {
-                        handle(ParenOpen);
-                    } else {
-                        handle(Token);
-                    }
+                    append("{\n");
+                    scopeDepth++;
+                    handle(Token);
                     safeInc();
                     if (body[i].getType() != tok_store) {
                         transpilerError("Expected store, but got '" + body[i].getValue() + "'", i);
@@ -2324,19 +2316,25 @@ namespace sclc {
                     std::string lastType = typeStackTop;
 
                     missedMembers = vecWithout(missedMembers, body[i].getValue());
+
+                    Method* mutator = attributeMutator(result, s.getName(), body[i].getValue());
                     
-                    if (hasMethod(result, "attribute_mutator$" + body[i].getValue(), s.getName())) {
-                        if (removeTypeModifiers(lastType) == "float")
-                            append("Method_%s$attribute_mutator$%s(tmp, (--_stack.sp)->f);\n", s.getName().c_str(), body[i].getValue().c_str());
-                        else
-                            append("Method_%s$attribute_mutator$%s(tmp, (%s) (--_stack.sp)->i);\n", s.getName().c_str(), body[i].getValue().c_str(), sclTypeToCType(result, lastType).c_str());
+                    if (mutator) {
+                        if (removeTypeModifiers(lastType) == "float") {
+                            append("Method_%s$%s(tmp, (--_stack.sp)->f);\n", mutator->member_type.c_str(), mutator->finalName().c_str());
+                        } else {
+                            append("Method_%s$%s(tmp, (%s) (--_stack.sp)->i);\n", mutator->member_type.c_str(), mutator->finalName().c_str(), sclTypeToCType(result, lastType).c_str());
+                        }
                     } else {
-                        if (removeTypeModifiers(lastType) == "float")
+                        if (removeTypeModifiers(lastType) == "float") {
                             append("tmp->%s = (--_stack.sp)->f;\n", body[i].getValue().c_str());
-                        else
+                        } else {
                             append("tmp->%s = (%s) (--_stack.sp)->i;\n", body[i].getValue().c_str(), sclTypeToCType(result, lastType).c_str());
+                        }
                     }
                     typePop;
+                    scopeDepth--;
+                    append("}\n");
                     append("_stack.sp = stack_start;\n");
                     safeInc();
                     count++;
@@ -2361,14 +2359,12 @@ namespace sclc {
                 }
             }
         } else if (hasVar(body[i].getValue())) {
-            std::string loadFrom = body[i].getValue();
-            const Variable& v = getVar(body[i].getValue());
-            if (removeTypeModifiers(v.getType()) == "float") {
-                append("(_stack.sp++)->f = Var_%s;\n", loadFrom.c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) Var_%s;\n", loadFrom.c_str());
-            }
-            typeStack.push(v.getType());
+        normalVar:
+            Variable v = getVar(body[i].getValue());
+            std::string lastType = "";
+            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
+            
+            LOAD_PATH(path, lastType);
         } else if (body[i].getValue() == "field" && (function->has_setter || function->has_getter)) {
             Struct s = getStructByName(result, function->member_type);
             std::string attribute = function->getModifier((function->has_setter ? function->has_setter : function->has_getter) + 1);
@@ -2380,14 +2376,11 @@ namespace sclc {
             }
             typeStack.push(v.getType());
         } else if (hasVar(function->member_type + "$" + body[i].getValue())) {
-            std::string loadFrom = function->member_type + "$" + body[i].getValue();
-            const Variable& v = getVar(loadFrom);
-            if (removeTypeModifiers(v.getType()) == "float") {
-                append("(_stack.sp++)->f = Var_%s;\n", loadFrom.c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) Var_%s;\n", loadFrom.c_str());
-            }
-            typeStack.push(v.getType());
+            Variable v = getVar(function->member_type + "$" + body[i].getValue());
+            std::string lastType = "";
+            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
+            
+            LOAD_PATH(path, lastType);
         } else if (function->isMethod) {
             Method* m = ((Method*) function);
             Struct s = getStructByName(result, m->getMemberType());
@@ -2403,38 +2396,19 @@ namespace sclc {
                     createVariadicCall(f, fp, result, errors, body, i);
                     return;
                 }
-                if (f->isMethod) {
-                    transpilerError("'" + f->getName() + "' is not static", i);
-                    errors.push_back(err);
-                    return;
-                }
                 functionCall(f, fp, result, warns, errors, body, i);
             } else if (s.hasMember(body[i].getValue())) {
-                Variable mem = s.getMember(body[i].getValue());
 
-                Method* f = nullptr;
-                if ((f = attributeAccessor(result, s.getName(), body[i].getValue()))) {
-                    append("(_stack.sp++)->i = (scl_int) Var_self;\n");
-                    typeStack.push(f->getMemberType());
-                    methodCall(f, fp, result, warns, errors, body, i);
-                    return;
-                }
-
-                if (mem.getType() == "float") {
-                    append("(_stack.sp++)->f = Var_self->%s;\n", body[i].getValue().c_str());
-                } else {
-                    append("(_stack.sp++)->i = (scl_int) Var_self->%s;\n", body[i].getValue().c_str());
-                }
-                typeStack.push(mem.getType());
+                Token here = body[i];
+                body.insert(body.begin() + i, Token(tok_dot, ".", here.getLine(), here.getFile()));
+                body.insert(body.begin() + i, Token(tok_identifier, "self", here.getLine(), here.getFile()));
+                goto normalVar;
             } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
-                std::string loadFrom = s.getName() + "$" + body[i].getValue();
-                const Variable& v = getVar(loadFrom);
-                if (v.getType() == "float") {
-                    append("(_stack.sp++)->f = Var_%s;\n", loadFrom.c_str());
-                } else {
-                    append("(_stack.sp++)->i = (scl_int) Var_%s;\n", loadFrom.c_str());
-                }
-                typeStack.push(v.getType());
+                Variable v = getVar(s.getName() + "$" + body[i].getValue());
+                std::string lastType = "";
+                std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
+
+                LOAD_PATH(path, lastType);
             } else {
                 transpilerError("Unknown member of struct '" + m->getMemberType() + "': '" + body[i].getValue() + "'", i);
                 errors.push_back(err);
@@ -2792,15 +2766,13 @@ namespace sclc {
         append("%sVar_%s = (%s) virtual_call(%s, \"next%s\");\n", var_prefix.c_str(), iter_var_tok.getValue().c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
     }
 
-    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter = true);
-
     handler(AddrRef) {
         noUnused;
         safeInc();
         Token toGet = body[i];
 
         Variable v("", "");
-        std::string containerBegin = "";
+        std::string variablePrefix = "";
 
         std::string lastType;
         std::string path;
@@ -2858,7 +2830,7 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                containerBegin = "(Container_" + c.getName() + "." + body[i].getValue() + ")";
+                variablePrefix = "Container_" + c.getName() + ".";
                 v = c.getMember(memberName);
             } else if (function->isMethod) {
                 Method* m = ((Method*) function);
@@ -2901,7 +2873,7 @@ namespace sclc {
         } else {
             v = getVar(body[i].getValue());
         }
-        path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
+        path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, variablePrefix, &lastType, /* doesWriteAfter */ false);
         append("(_stack.sp++)->i = (scl_int) &(%s);\n", path.c_str());
         typeStack.push("[" + lastType + "]");
     }
@@ -2932,7 +2904,26 @@ namespace sclc {
                 return std::string("(void) 0");
             }
             if (doesWriteAfter) {
-                path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                    return f && (f->getName() == v.getType() + "$operator$store" || strstarts(f->getName(), v.getType() + "$operator$store$"));
+                });
+
+                bool funcFound = false;
+                for (Function* f : funcs) {
+                    if (
+                        f->isMethod ||
+                        f->args.size() != 1 ||
+                        f->getReturnType() != v.getType() ||
+                        !typesCompatible(result, typeStackTop, f->args[0].getType(), true)
+                    ) {
+                        continue;
+                    }
+                    path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->getArgs()[0].getType()) + "*) --_stack.sp)";
+                    funcFound = true;
+                }
+                if (!funcFound) {
+                    path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                }
             }
             return path;
         }
@@ -2979,20 +2970,62 @@ namespace sclc {
                     errors.push_back(err);
                     return std::string("(void) 0");
                 }
-                Method* f = attributeMutator(result, s.getName(), v.getName());
-                if (deref && f) {
+                Method* f = nullptr;
+                if (deref || !doesWriteAfter) {
                     f = attributeAccessor(result, s.getName(), v.getName());
+                } else {
+                    f = attributeMutator(result, s.getName(), v.getName());
                 }
                 if (f) {
                     if (deref || !doesWriteAfter) {
                         path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ")";
                     } else {
-                        path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ", *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp)";
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->getName() == v.getType() + "$operator$store" || strstarts(f->getName(), v.getType() + "$operator$store$"));
+                        });
+
+                        path = "Method_" + f->getMemberType() + "$" + f->finalName() + "(" + path + ", ";
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->getReturnType() != v.getType() ||
+                                !typesCompatible(result, typeStackTop, f->args[0].getType(), true)
+                            ) {
+                                continue;
+                            }
+                            path += "Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->getArgs()[0].getType()) + "*) --_stack.sp)";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += "*(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp)";
+                        }
                     }
                 } else {
                     path = path + "->" + body[i].getValue();
                     if (!deref && doesWriteAfter) {
-                        path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->getName() == v.getType() + "$operator$store" || strstarts(f->getName(), v.getType() + "$operator$store$"));
+                        });
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->getReturnType() != v.getType() ||
+                                !typesCompatible(result, typeStackTop, f->args[0].getType(), true)
+                            ) {
+                                continue;
+                            }
+                            path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->getArgs()[0].getType()) + "*) --_stack.sp)";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += " = *(" + sclTypeToCType(result, v.getType()) + "*) --_stack.sp";
+                        }
                     }
                 }
                 if (deref) {
@@ -3375,10 +3408,32 @@ namespace sclc {
                 i--;
             }
             varScopeTop().push_back(Variable(name, type));
+            
+            auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                return f && (f->getName() == type + "$operator$store" || strstarts(f->getName(), type + "$operator$store$"));
+            });
+
+            for (Function* f : funcs) {
+                if (
+                    f->isMethod ||
+                    f->args.size() != 1 ||
+                    f->getReturnType() != type ||
+                    !typesCompatible(result, typeStackTop, f->args[0].getType(), true)
+                ) {
+                    continue;
+                }
+                append("%s Var_%s = Function_%s(*(%s*) --_stack.sp);\n", sclTypeToCType(result, type).c_str(), name.c_str(), f->finalName().c_str(), sclTypeToCType(result, f->args[0].getType()).c_str());
+                typePop;
+                return;
+            }
             if (!varScopeTop().back().canBeNil) {
                 append("_scl_check_not_nil_store((_stack.sp - 1)->i, \"%s\");\n", varScopeTop().back().getName().c_str());
             }
-            append("%s Var_%s = (%s) (--_stack.sp)->%s;\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str(), removeTypeModifiers(type) == "float" ? "f" : "v");
+            if (!typesCompatible(result, typeStackTop, type, true)) {
+                transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
+                warns.push_back(err);
+            }
+            append("%s Var_%s = *(%s*) --_stack.sp;\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
             typePop;
         } else {
             if (body[i].getType() != tok_identifier && body[i].getType() != tok_addr_of) {
@@ -3401,7 +3456,6 @@ namespace sclc {
             }
             Variable v("", "");
             std::string containerBegin = "";
-            std::string getStaticVar = "";
             std::string lastType = "";
 
             std::string variablePrefix = "";
@@ -3468,7 +3522,6 @@ namespace sclc {
                         return;
                     }
                     v = getVar(s.getName() + "$" + body[i].getValue());
-                    getStaticVar = s.getName();
                 } else {
                     transpilerError("Struct '" + body[i].getValue() + "' does not exist", i);
                     errors.push_back(err);
@@ -3478,14 +3531,13 @@ namespace sclc {
                 Method* m = ((Method*) function);
                 Struct s = getStructByName(result, m->getMemberType());
                 if (s.hasMember(body[i].getValue())) {
-                    v = s.getMember(body[i].getValue());
+                    // v = s.getMember(body[i].getValue());
                     Token here = body[i];
                     body.insert(body.begin() + i, Token(tok_dot, ".", here.getLine(), here.getFile()));
                     body.insert(body.begin() + i, Token(tok_identifier, "self", here.getLine(), here.getFile()));
                     goto normalVar;
                 } else if (hasGlobal(result, s.getName() + "$" + body[i].getValue())) {
                     v = getVar(s.getName() + "$" + body[i].getValue());
-                    getStaticVar = s.getName();
                 } else {
                     transpilerError("Struct '" + s.getName() + "' has no member named '" + body[i].getValue() + "'", i);
                     errors.push_back(err);
@@ -4686,9 +4738,15 @@ namespace sclc {
             typeStack.push("float");
             return;
         }
-        if (type.value == "int" || type.value == "float" || type.value == "any") {
+        if ((type.value == "int" && typeStackTop != "float") || type.value == "float" || type.value == "any") {
             typePop;
             typeStack.push(type.value);
+            return;
+        }
+        if (type.value == "int") {
+            append("(_stack.sp - 1)->i = (scl_int) (_stack.sp - 1)->f;\n");
+            typePop;
+            typeStack.push("int");
             return;
         }
         if (type.value == "lambda" || strstarts(type.value, "lambda(")) {
@@ -5290,6 +5348,8 @@ namespace sclc {
         else if (name == "operator$inc") name = "++";
         else if (name == "operator$dec") name = "--";
         else if (name == "operator$at") name = "@";
+        else if (name == "operator$store") name = "=>";
+        else if (strcontains(name, "operator$store")) name = replaceAll(name, "operator\\$store", "=>");
         else if (name == "operator$set") name = "=>[]";
         else if (name == "operator$get") name = "[]";
         else if (name == "operator$wildcard") name = "?";

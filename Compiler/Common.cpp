@@ -474,6 +474,7 @@ namespace sclc
         else if (name == "++") name = "operator$inc";
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
+        else if (name == "=>") name = "operator$store";
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
@@ -565,6 +566,7 @@ namespace sclc
         else if (name == "++") name = "operator$inc";
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
+        else if (name == "=>") name = "operator$store";
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
@@ -666,6 +668,7 @@ namespace sclc
         else if (name == "++") name = "operator$inc";
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
+        else if (name == "=>") name = "operator$store";
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
