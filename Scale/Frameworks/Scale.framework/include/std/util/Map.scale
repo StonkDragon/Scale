@@ -36,7 +36,7 @@ sealed struct Map<T: any> is Iterable
 
   restrict function get(key: str): T
     for i in 0 to self.data.count do
-      self.data[i] => decl entry: MapEntry
+      self.data[i] as MapEntry => decl entry: MapEntry
       if entry.key key == then
         entry.value return
       fi

@@ -807,6 +807,9 @@ Returns an iterator over the characters of `self`.
 ### function str:hashCode(): int
 Returns the hash code of `self`.
 
+### static function str::=>(data: [int8]): str
+Allows assigning C strings to `str` variables.
+
 ### final struct StringIterator is Iterator
 The struct `StringIterator` is an iterator over the characters of a string.
 

@@ -98,7 +98,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function reverse(): str
-    self:size any::new => decl out: [int8]
+    self:size any::new as [int8] => decl out: [int8]
     0 => decl i: int
     unsafe
       for i in self.length 1 - to -1 step -- do
@@ -195,6 +195,10 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function hashCode(): int
     self.hash return
+  end
+
+  static function =>(cStr: [int8]): str
+    cStr str::new return
   end
 
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
