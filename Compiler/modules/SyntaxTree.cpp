@@ -80,6 +80,8 @@ namespace sclc {
         else if (name == "++") name = "operator$inc";
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
+        else if (name == "=>") name = "operator$store";
+        else if (strcontains(name, "=>")) name = replaceAll(name, "=>", "operator$store");
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
@@ -345,6 +347,7 @@ namespace sclc {
         else if (name == "++") name = "operator$inc";
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
+        else if (name == "=>") name = "operator$store";
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
@@ -1043,40 +1046,129 @@ namespace sclc {
                 error.value = tokens[i].getValue(); \
                 error; \
             })
+
+            struct stackframe {
+                std::string name;
+                void* value;
+            };
+
+            std::stack<stackframe> stack;
+            std::unordered_map<std::string, stackframe> vars;
             for (size_t j = 0; j < this->tokens.size(); j++) {
-                if (token.getType() == tok_identifier && token.getValue() == "expand") {
-                    j++;
-                    if (token.getType() != tok_curly_open) {
-                        errors.push_back(MacroError("Expected '{' after 'expand'"));
-                        return;
-                    }
-                    j++;
-                    size_t depth = 1;
-                    std::vector<Token> expanded;
-                    while (depth > 0) {
-                        if (token.getType() == tok_curly_open) {
-                            depth++;
-                        } else if (token.getType() == tok_curly_close) {
-                            depth--;
-                        }
-                        if (token.getType() == tok_dollar) {
-                            if (nextToken.getType() == tok_identifier) {
-                                if (args.find(nextToken.getValue()) != args.end()) {
-                                    expanded.push_back(args[nextToken.getValue()]);
-                                } else {
-                                    errors.push_back(MacroError("Unknown macro argument '" + nextToken.getValue() + "'"));
-                                }
-                            } else {
-                                errors.push_back(MacroError("Expected identifier after '$'"));
-                            }
-                            j++;
-                        } else {
-                            expanded.push_back(token);
+                if (token.getType() == tok_identifier) {
+                    if (token.getValue() == "expand") {
+                        j++;
+                        if (token.getType() != tok_curly_open) {
+                            errors.push_back(MacroError("Expected '{' after 'expand'"));
+                            return;
                         }
                         j++;
+                        size_t depth = 1;
+                        std::vector<Token> expanded;
+                        while (depth > 0) {
+                            if (token.getType() == tok_curly_open) {
+                                depth++;
+                            } else if (token.getType() == tok_curly_close) {
+                                depth--;
+                                if (depth == 0) {
+                                    break;
+                                }
+                            }
+                            if (token.getType() == tok_dollar) {
+                                if (nextToken.getType() != tok_identifier) {
+                                    errors.push_back(MacroError("Unknown expansion token"));
+                                } else if (args.find(nextToken.getValue()) != args.end()) {
+                                    expanded.push_back(args[nextToken.getValue()]);
+                                } else if (vars.find(nextToken.getValue()) != vars.end()) {
+                                    stackframe var = vars[nextToken.getValue()];
+                                    if (var.name == "Token") {
+                                        expanded.push_back(*((Token*) var.value));
+                                    } else if (var.name == "String") {
+                                        expanded.push_back(Token(tok_string_literal, (char*) var.value, 0, ""));
+                                    } else {
+                                        errors.push_back(MacroError("Expected Token, got " + var.name));
+                                    }
+                                } else {
+                                    errors.push_back(MacroError("Expected identifier after '$'"));
+                                }
+                                j++;
+                            } else {
+                                expanded.push_back(token);
+                            }
+                            j++;
+                        }
+                        otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
+                        i += expanded.size();
+                    } else if (token.getValue() == "peekAndConsume") {
+                        Token* next = new Token(otherTokens[i]);
+                        otherTokens.erase(otherTokens.begin() + i);
+                        stack.push({"Token", (void*) next});
+                    } else if (token.getValue() == "peek") {
+                        Token* next = new Token(otherTokens[i]);
+                        stack.push({"Token", (void*) next});
+                    } else if (token.getValue() == "drop") {
+                        stack.pop();
+                    } else if (token.getValue() == "consume") {
+                        otherTokens.erase(otherTokens.begin() + i);
+                    } else if (token.getValue() == "dup") {
+                        stackframe t = stack.top();
+                        stack.push(t);
+                    } else if (token.getValue() == "swap") {
+                        stackframe t1 = stack.top();
+                        stack.pop();
+                        stackframe t2 = stack.top();
+                        stack.pop();
+                        stack.push(t1);
+                        stack.push(t2);
+                    } else {
+                        if (vars.find(token.getValue()) != vars.end()) {
+                            stack.push(vars[token.getValue()]);
+                        } else if (args.find(token.getValue()) != args.end()) {
+                            stack.push({"Token", (void*) new Token(args[token.getValue()])});
+                        } else {
+                            errors.push_back(MacroError("Unknown variable '" + token.getValue() + "'"));
+                        }
                     }
-                    otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
-                    i += expanded.size();
+                } else if (token.type == tok_number) {
+                    long long n = parseNumber(token.value);
+                    stack.push({"Number", (void*) n});
+                } else if (token.type == tok_store) {
+                    stackframe t = stack.top();
+                    stack.pop();
+                    if (nextToken.type != tok_identifier) {
+                        errors.push_back(MacroError("Expected identifier after '=>'"));
+                        return;
+                    }
+                    vars[nextToken.value] = t;
+                } else if (token.type == tok_dot) {
+                    stackframe t = stack.top();
+                    stack.pop();
+                    if (t.name == "Token") {
+                        j++;
+                        if (token.type != tok_identifier) {
+                            errors.push_back(MacroError("Expected identifier after '.'"));
+                            return;
+                        }
+                        if (t.value == nullptr) {
+                            errors.push_back(MacroError("Expected Token, got nullptr"));
+                            return;
+                        }
+                        Token* next = (Token*) t.value;
+                        if (token.value == "type") {
+                            stack.push({"Number", (void*) (long long) next->getType()});
+                        } else if (token.value == "value") {
+                            stack.push({"String", (void*) strdup((const char*) next->getValue().c_str())});
+                        } else if (token.value == "line") {
+                            stack.push({"Number", (void*) (long long) next->getLine()});
+                        } else if (token.value == "column") {
+                            stack.push({"Number", (void*) (long long) next->getColumn()});
+                        } else if (token.value == "file") {
+                            stack.push({"String", (void*) strdup((const char*) next->getFile().c_str())});
+                        } else {
+                            errors.push_back(MacroError("Unknown Token property '" + token.value + "'"));
+                            return;
+                        }
+                    }
                 }
             }
             #undef token
@@ -1527,12 +1619,23 @@ namespace sclc {
                         continue;
                     }
                 } else {
-                    i--;
-                    std::string name = tokens[i + 1].getValue();
-                    Token& func = tokens[i + 1];
-                    currentFunction = parseFunction(name, func, errors, i, tokens);
-                    currentFunction->deprecated = currentDeprecation;
-                    currentDeprecation.clear();
+                    if (tokens[i + 1].getType() == tok_double_column) {
+                        std::string memberType = tokens[i].getValue();
+                        i++;
+                        std::string name = tokens[i + 1].getValue();
+                        Token& func = tokens[i + 1];
+                        currentFunction = parseFunction(memberType + "$" + name, func, errors, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
+                        currentFunction->addModifier("static");
+                    } else {
+                        i--;
+                        std::string name = tokens[i + 1].getValue();
+                        Token& func = tokens[i + 1];
+                        currentFunction = parseFunction(name, func, errors, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
+                    }
                 }
                 for (std::string& s : nextAttributes) {
                     currentFunction->addModifier(s);
@@ -2778,6 +2881,9 @@ namespace sclc {
         auto hasTypeAlias = [&](std::string name) -> bool {
             return result.typealiases.find(name) != result.typealiases.end();
         };
+        auto isPointer = [](std::string s) -> bool {
+            return (s.size() > 2 && s.front() == '[' && s.back() == ']');
+        };
         auto createToStringMethod = [&](Struct& s) -> Method* {
             Token t(tok_identifier, "toString", 0, s.name_token.file);
             Method* toString = new Method(s.getName(), std::string("toString"), t);
@@ -2803,9 +2909,11 @@ namespace sclc {
                 toString->addToken(Token(tok_identifier, "self", 0, s.getName() + ":toString"));
                 toString->addToken(Token(tok_dot, ".", 0, s.getName() + ":toString"));
                 toString->addToken(Token(tok_identifier, member.getName(), 0, s.getName() + ":toString"));
-                if (typeCanBeNil(member.getType())) {
+                bool canBeNil = typeCanBeNil(member.getType());
+                std::string type = removeTypeModifiers(member.getType());
+                if (canBeNil) {
                     toString->addToken(Token(tok_identifier, "builtinToString", 0, s.getName() + ":toString"));
-                } else if (removeTypeModifiers(member.getType()) == "lambda" || strstarts(removeTypeModifiers(member.getType()), "lambda(") || hasTypeAlias(removeTypeModifiers(member.getType()))) {
+                } else if (isPointer(type) || hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                     toString->addToken(Token(tok_identifier, "any", 0, s.getName() + ":toString"));
                     toString->addToken(Token(tok_double_column, "::", 0, s.getName() + ":toString"));
                     toString->addToken(Token(tok_identifier, "toHexString", 0, s.getName() + ":toString"));
