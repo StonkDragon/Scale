@@ -12,7 +12,7 @@ layout Layout
 end
 
 function main(): none
-    sizeof Layout any::new => decl l: Layout
+    sizeof Layout any::new as Layout => decl l: Layout
 
     1 => l.x
     2 => l.y

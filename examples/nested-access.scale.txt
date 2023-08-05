@@ -1,0 +1,3 @@
+42
+42
+Bar {baz: Baz {value: 42}}

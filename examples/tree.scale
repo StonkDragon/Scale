@@ -28,7 +28,7 @@ end
 function main(): none
     ( (nil, 1, nil), 2, ( (nil, 3, nil), 4, (nil, 5, nil) ) ) => decl t
 
-    t Node::ofTriple => decl root: Node
+    t Node::ofTriple!! => decl root: Node
 
     t:toString " -> " + root:toString + puts
 end

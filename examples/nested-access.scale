@@ -1,0 +1,36 @@
+struct Foo
+    decl bar: [Bar]
+
+    function init(b: Bar): none
+        any::default as [Bar] => self.bar
+        b => self.@bar
+    end
+end
+
+struct Bar
+    decl baz: Baz
+end
+
+struct Baz
+    decl value: int
+end
+
+container Cont
+    decl foo: int
+end
+
+function main(): none
+    Bar {
+        Baz {
+            42 => value
+        } => baz        
+    } => decl tmp: Bar
+    tmp Foo::new => decl foo: Foo
+
+    foo.@bar.baz.value puts # these two are equivalent
+    foo.bar@.baz.value puts # these two are equivalent
+
+    foo.bar @ puts
+
+    1 => Cont.foo
+end

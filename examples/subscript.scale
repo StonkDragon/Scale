@@ -5,7 +5,7 @@
 
 function main(): none
     # array allocation
-    new[4] => decl arr: [int]
+    new<int>[4] => decl arr: [int]
 
     # =>[] subscript operator
     # set value at index

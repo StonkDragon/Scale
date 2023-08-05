@@ -6,7 +6,7 @@
 
 function main(): none
     # Create a new array of 8 integers
-    new[8] => decl s: [int]
+    new<int>[8] => decl s: [int]
 
     # This will set all the values of the array to their index times 3
     [(s => i 3 *)] drop

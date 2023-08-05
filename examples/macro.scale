@@ -1,0 +1,53 @@
+macro! ImplMove(on) {
+    expand {
+        function $on:init(other: const [const $on]): none
+            unsafe
+                self as int 16 + other@ as int 16 + self any::size 16 - memcpy
+                other@ any::delete
+            end
+        end
+    }
+}
+
+macro! ImplCopy(on) {
+    expand {
+        function $on:init(other: const $on): none
+            unsafe
+                self as int 16 + other as int 16 + self any::size 16 - memcpy
+            end
+        end
+    }
+}
+
+ImplCopy! Vec3
+ImplMove! Vec3
+struct Vec3
+    decl x: int
+    decl y: int
+    decl z: int
+
+    function init(x: int, y: int, z: int): none
+        x => self.x
+        y => self.y
+        z => self.z
+    end
+end
+
+function main(): none
+    # Constructor
+    1 2 3   Vec3::new => decl v1: Vec3
+
+    # Copy constructor
+    v1      Vec3::new => decl v2: Vec3
+
+    # Move constructor
+    ref v1  Vec3::new => decl v3: Vec3
+
+    # v1 is now invalid
+    v2 puts
+    v3 puts
+
+    c"Hello, world!" => decl s: str
+
+    s puts
+end
