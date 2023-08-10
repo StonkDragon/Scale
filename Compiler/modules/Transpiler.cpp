@@ -141,42 +141,16 @@ namespace sclc {
             if (func->isMethod || i)
                 args += ", ";
 
-            if (removeTypeModifiers(arg.getType()) == "float") {
-                if (i) {
-                    args += "_scl_positive_offset(" + std::to_string(i) + ")->f";
-                } else {
-                    args += "_scl_positive_offset(0)->f";
-                }
-            } else if (removeTypeModifiers(arg.getType()) == "int" || removeTypeModifiers(arg.getType()) == "bool") {
-                if (i) {
-                    args += "_scl_positive_offset(" + std::to_string(i) + ")->i";
-                } else {
-                    args += "_scl_positive_offset(0)->i";
-                }
-            } else if (removeTypeModifiers(arg.getType()) == "str") {
-                if (i) {
-                    args += "_scl_positive_offset(" + std::to_string(i) + ")->s";
-                } else {
-                    args += "_scl_positive_offset(0)->s";
-                }
-            } else if (removeTypeModifiers(arg.getType()) == "any") {
-                if (i) {
-                    args += "_scl_positive_offset(" + std::to_string(i) + ")->v";
-                } else {
-                    args += "_scl_positive_offset(0)->v";
-                }
-            } else if (isPrimitiveIntegerType(arg.getType())) {
-                if (i) {
-                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _scl_positive_offset(" + std::to_string(i) + ")->i)";
-                } else {
-                    args += sclIntTypeToConvert(arg.getType()) + "((scl_any) _scl_positive_offset(0)->i)";
-                }
+            std::string typeRemoved = removeTypeModifiers(arg.getType());
+
+            if (typeRemoved == "float") {
+                args += "_scl_positive_offset(" + std::to_string(i) + ")->f";
+            } else if (typeRemoved == "str") {
+                args += "_scl_positive_offset(" + std::to_string(i) + ")->s";
+            } else if (typeRemoved == "any") {
+                args += "_scl_positive_offset(" + std::to_string(i) + ")->v";
             } else {
-                if (i) {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_positive_offset(" + std::to_string(i) + ")->i";
-                } else {
-                    args += "(" + sclTypeToCType(result, arg.getType()) + ") _scl_positive_offset(0)->i";
-                }
+                args += "(" + sclTypeToCType(result, typeRemoved) + ") _scl_positive_offset(" + std::to_string(i) + ")->i";
             }
         }
         return args;
@@ -1283,22 +1257,19 @@ namespace sclc {
             if (op != "lnot" && op != "not") {
                 typeStack.pop();
                 typeStack.pop();
+                append("_stack.sp -= 2;\n");
             } else {
                 typeStack.pop();
+                append("_stack.sp -= 1;\n");
             }
+            std::string args = generateArgumentsForFunction(result, self);
 
-            append("_scl_%s%s();\n", op.c_str(), (Main.options.debugBuild ? "_chk" : ""));
-
-            if (operatorInt(op)) {
-                typeStack.push("int");
-            } else if (operatorFloat(op)) {
-                typeStack.push("float");
-            } else if (operatorBool(op)) {
-                typeStack.push("bool");
-            } else {
-                transpilerError("Unknown operator: " + op, i);
-                errors.push_back(err);
+            if (Main.options.debugBuild) {
+                append("_scl_assert(_scl_stack_size() >= %d, \"_scl_%s() failed: Not enough data on the stack!\");\n", (1 + (op != "lnot" && op != "not")), op.c_str());
             }
+            append("*(%s*) (_stack.sp++) = _scl_%s(%s);\n", sclTypeToCType(result, self->getReturnType()).c_str(), op.c_str(), args.c_str());
+
+            typeStack.push(self->getReturnType());
 
             return;
         }
@@ -2316,6 +2287,13 @@ namespace sclc {
                     std::string lastType = typeStackTop;
 
                     missedMembers = vecWithout(missedMembers, body[i].getValue());
+                    const Variable& v = s.getMember(body[i].getValue());
+
+                    if (!typesCompatible(result, lastType, v.getType(), true)) {
+                        transpilerError("Incompatible types: '" + v.getType() + "' and '" + lastType + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
 
                     Method* mutator = attributeMutator(result, s.getName(), body[i].getValue());
                     
@@ -4575,6 +4553,11 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
+                    if (!typesCompatible(result, typeStackTop, function->getReturnType(), true)) {
+                        transpilerError("Returning type '" + typeStackTop + "' from function with return type '" + function->getReturnType() + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
                 }
                 if (function->hasNamedReturnValue)
                     append("_scl_not_nil_return(*(scl_int*) &Var_%s, \"%s\");\n", function->getNamedReturnValue().getName().c_str(), function->getReturnType().c_str());
@@ -5651,13 +5634,6 @@ namespace sclc {
 
     extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename) {
         (void) warns;
-        
-        std::string tmpDir = scaleFolder + "/tmp";
-        if (!std::filesystem::exists(tmpDir)) {
-            std::filesystem::create_directories(tmpDir);
-        }
-        std::string currentOutputFilename;
-        (void) filename;
 
         auto filePreamble = [&]() {
             append("#include \"./%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
@@ -5680,202 +5656,150 @@ namespace sclc {
             append("#endif\n");
         };
 
-        auto replaceChars = [](const std::string str, char from, char to) {
-            std::string result;
-            result.reserve(str.size());
-            for (size_t i = 0; i < str.size(); i++) {
-                if (str[i] == from) {
-                    result += to;
-                } else {
-                    result += str[i];
-                }
+        fp = fopen(("./" + filename).c_str(), "a");
+        if (!fp) {
+            fprintf(stderr, "Failed to open file %s\n", filename.c_str());
+            exit(1);
+        }
+        filePreamble();
+
+        for (size_t f = 0; f < result.functions.size(); f++) {
+            Function* function = currentFunction = result.functions[f];
+            if (function->isExternC) continue;
+            if (contains<std::string>(function->getModifiers(), "<binary-inherited>")) {
+                continue;
             }
-            return result;
-        };
-
-        functionsByFile = functionsByFileMap(result.functions);
-        
-        std::string currentOutputFile = "out.c";
-
-        std::vector<int> pids;
-        pids.reserve(functionsByFile.size());
-
-        for (std::pair<const std::string, std::vector<Function*>>& funcs : functionsByFile) {
-
-            currentOutputFile = tmpDir + "/" + replaceChars(funcs.first, '/', '@') + ".c";
-            if (!contains(Main.options.flags, currentOutputFile)) {
-                Main.options.flags.push_back(currentOutputFile);
+            if (getInterfaceByName(result, function->member_type)) {
+                continue;
             }
-            
-            if (std::filesystem::exists(currentOutputFile)) {
-                if (file_modified_time(currentOutputFile) > file_modified_time(funcs.first)) {
-                    auto tmpFlags = cflags;
+            if (function->isMethod) {
+                currentStruct = getStructByName(result, ((Method*) function)->getMemberType());
+            } else {
+                currentStruct = Struct::Null;
+            }
 
-                    tmpFlags.push_back(currentOutputFile);
-                    tmpFlags.push_back("-c");
+            for (long t = typeStack.size() - 1; t >= 0; t--) {
+                typePop;
+            }
+            vars.clear();
+            varScopePush();
+            for (Variable& g : globals) {
+                varScopeTop().push_back(g);
+            }
 
-                    tmpFlags.push_back("-o");
-                    tmpFlags.push_back(currentOutputFile + ".o");
+            scopeDepth = 0;
+            noWarns = false;
+            lambdaCount = 0;
 
-                    char** args = (char**) malloc(sizeof(char*) * tmpFlags.size() + 1);
-                    int index = 0;
-                    for (size_t i = 0; i < tmpFlags.size(); i++) {
-                        if (strstarts(tmpFlags[i], "-l")) continue;
-                        if (strstarts(tmpFlags[i], "-L")) continue;
-
-                        args[index++] = (char*) malloc(sizeof(char) * tmpFlags[i].size() + 1);
-                        strcpy(args[index - 1], tmpFlags[i].c_str());
-                    }
-                    args[index] = NULL;
-
-                    int pid = fork();
-                    if (pid == 0) {
-                        int ret = execvp(args[0], (char**) args);
-                        if (ret == -1) {
-                            std::cerr << "Failed to execute command: " << args[0] << std::endl;
-                            return;
-                        }
-                    } else if (pid < 0) {
-                        std::cerr << "Failed to fork process" << std::endl;
-                        return;
-                    }
-                    continue;
+            for (std::string& modifier : function->getModifiers()) {
+                if (modifier == "nowarn") {
+                    noWarns = true;
                 }
             }
 
-            if (currentOutputFilename != currentOutputFile) {
-                if (currentOutputFilename.size()) {
-                    filePostamble();
-                    fclose(fp);
+            std::string functionDeclaration = "";
+
+            if (function->isMethod) {
+                functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
                 }
-                currentOutputFilename = currentOutputFile;
-                remove(currentOutputFilename.c_str());
-                remove((currentOutputFilename + ".o").c_str());
-                fp = fopen(currentOutputFilename.c_str(), "a");
-                filePreamble();
+                functionDeclaration += "): " + function->getReturnType();
+            } else {
+                functionDeclaration += function->getName() + "(";
+                for (size_t i = 0; i < function->getArgs().size(); i++) {
+                    if (i != 0) {
+                        functionDeclaration += ", ";
+                    }
+                    functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
+                }
+                functionDeclaration += "): " + function->getReturnType();
             }
 
-            for (size_t f = 0; f < funcs.second.size(); f++) {
-                Function* function = currentFunction = funcs.second[f];
-                if (function->isExternC) continue;
-                if (contains<std::string>(function->getModifiers(), "<binary-inherited>")) {
-                    continue;
-                }
-                if (getInterfaceByName(result, function->member_type)) {
-                    continue;
-                }
-                if (function->isMethod) {
-                    currentStruct = getStructByName(result, ((Method*) function)->getMemberType());
-                } else {
-                    currentStruct = Struct::Null;
-                }
+            return_type = "void";
 
-                for (long t = typeStack.size() - 1; t >= 0; t--) {
-                    typePop;
+            if (function->getReturnType().size() > 0) {
+                std::string t = function->getReturnType();
+                return_type = sclTypeToCType(result, t);
+            } else {
+                FPResult err;
+                err.success = false;
+                err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
+                err.line = function->getNameToken().getLine();
+                err.in = function->getNameToken().getFile();
+                err.column = function->getNameToken().getColumn();
+                err.value = function->getNameToken().getValue();
+                err.type = function->getNameToken().getType();
+                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                else errors.push_back(err);
+            }
+
+            return_type = "void";
+
+            std::string arguments = "";
+            if (function->isMethod) {
+                arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
+                    std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
+                    arguments += ", " + type;
+                    if (type == "varargs" || type == "/* varargs */ ...") continue;
+                    if (function->getArgs()[i].getName().size())
+                        arguments += " Var_" + function->getArgs()[i].getName();
                 }
-                vars.clear();
-                varScopePush();
-                for (Variable& g : globals) {
-                    varScopeTop().push_back(g);
-                }
-
-                scopeDepth = 0;
-                noWarns = false;
-                lambdaCount = 0;
-
-                for (std::string& modifier : function->getModifiers()) {
-                    if (modifier == "nowarn") {
-                        noWarns = true;
-                    }
-                }
-
-                std::string functionDeclaration = "";
-
-                if (function->isMethod) {
-                    functionDeclaration += ((Method*) function)->getMemberType() + ":" + function->getName() + "(";
-                    for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
-                        if (i != 0) {
-                            functionDeclaration += ", ";
-                        }
-                        functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                    }
-                    functionDeclaration += "): " + function->getReturnType();
-                } else {
-                    functionDeclaration += function->getName() + "(";
+            } else {
+                if (function->getArgs().size() > 0) {
                     for (size_t i = 0; i < function->getArgs().size(); i++) {
-                        if (i != 0) {
-                            functionDeclaration += ", ";
-                        }
-                        functionDeclaration += function->getArgs()[i].getName() + ": " + function->getArgs()[i].getType();
-                    }
-                    functionDeclaration += "): " + function->getReturnType();
-                }
-
-                return_type = "void";
-
-                if (function->getReturnType().size() > 0) {
-                    std::string t = function->getReturnType();
-                    return_type = sclTypeToCType(result, t);
-                } else {
-                    FPResult err;
-                    err.success = false;
-                    err.message = "Function '" + function->getName() + "' does not specify a return type, defaults to none.";
-                    err.line = function->getNameToken().getLine();
-                    err.in = function->getNameToken().getFile();
-                    err.column = function->getNameToken().getColumn();
-                    err.value = function->getNameToken().getValue();
-                    err.type = function->getNameToken().getType();
-                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                    else errors.push_back(err);
-                }
-
-                return_type = "void";
-
-                std::string arguments = "";
-                if (function->isMethod) {
-                    arguments = sclTypeToCType(result, function->member_type) + " Var_self";
-                    for (size_t i = 0; i < function->getArgs().size() - 1; i++) {
                         std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                        arguments += ", " + type;
+                        if (i) {
+                            arguments += ", ";
+                        }
+                        arguments += type;
                         if (type == "varargs" || type == "/* varargs */ ...") continue;
                         if (function->getArgs()[i].getName().size())
                             arguments += " Var_" + function->getArgs()[i].getName();
                     }
-                } else {
-                    if (function->getArgs().size() > 0) {
-                        for (size_t i = 0; i < function->getArgs().size(); i++) {
-                            std::string type = sclTypeToCType(result, function->getArgs()[i].getType());
-                            if (i) {
-                                arguments += ", ";
-                            }
-                            arguments += type;
-                            if (type == "varargs" || type == "/* varargs */ ...") continue;
-                            if (function->getArgs()[i].getName().size())
-                                arguments += " Var_" + function->getArgs()[i].getName();
-                        }
-                    }
                 }
+            }
 
-                if (arguments.empty()) {
-                    arguments = "void";
+            if (arguments.empty()) {
+                arguments = "void";
+            }
+
+            std::string file = function->getNameToken().getFile();
+            if (strstarts(file, scaleFolder)) {
+                file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
+            } else {
+                file = std::filesystem::path(file).relative_path();
+            }
+
+            if (function->getReturnType().size() > 0) {
+                std::string t = function->getReturnType();
+                return_type = sclTypeToCType(result, t);
+            }
+
+            if (function->isMethod) {
+                if (!(((Method*) function))->addAnyway() && getStructByName(result, function->getMemberType()).isSealed()) {
+                    FPResult result;
+                    result.message = "Struct '" + function->getMemberType() + "' is sealed!";
+                    result.value = function->getNameToken().getValue();
+                    result.line = function->getNameToken().getLine();
+                    result.in = function->getNameToken().getFile();
+                    result.column = function->getNameToken().getColumn();
+                    result.type = function->getNameToken().getType();
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
-
-                std::string file = function->getNameToken().getFile();
-                if (strstarts(file, scaleFolder)) {
-                    file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-                } else {
-                    file = std::filesystem::path(file).relative_path();
-                }
-
-                if (function->getReturnType().size() > 0) {
-                    std::string t = function->getReturnType();
-                    return_type = sclTypeToCType(result, t);
-                }
-
-                if (function->isMethod) {
-                    if (!(((Method*) function))->addAnyway() && getStructByName(result, function->getMemberType()).isSealed()) {
+                append("%s Method_%s$%s(%s) {\n", return_type.c_str(), function->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
+                if (function->getName() == "init") {
+                    Method* thisMethod = (Method*) function;
+                    Struct s = getStructByName(result, thisMethod->getMemberType());
+                    if (s == Struct::Null) {
                         FPResult result;
-                        result.message = "Struct '" + function->getMemberType() + "' is sealed!";
+                        result.message = "Struct '" + thisMethod->getMemberType() + "' does not exist!";
                         result.value = function->getNameToken().getValue();
                         result.line = function->getNameToken().getLine();
                         result.in = function->getNameToken().getFile();
@@ -5885,190 +5809,170 @@ namespace sclc {
                         errors.push_back(result);
                         continue;
                     }
-                    append("%s Method_%s$%s(%s) {\n", return_type.c_str(), function->getMemberType().c_str(), function->finalName().c_str(), arguments.c_str());
-                    if (function->getName() == "init") {
-                        Method* thisMethod = (Method*) function;
-                        Struct s = getStructByName(result, thisMethod->getMemberType());
-                        if (s == Struct::Null) {
-                            FPResult result;
-                            result.message = "Struct '" + thisMethod->getMemberType() + "' does not exist!";
-                            result.value = function->getNameToken().getValue();
-                            result.line = function->getNameToken().getLine();
-                            result.in = function->getNameToken().getFile();
-                            result.column = function->getNameToken().getColumn();
-                            result.type = function->getNameToken().getType();
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                        if (s.extends().size()) {
-                            Method* parentInit = getMethodByName(result, "init", s.extends());
-                            // implicit call to parent init, if it takes no arguments
-                            if (parentInit && parentInit->getArgs().size() == 1) {
-                                scopeDepth++;
-                                append("(_stack.sp++)->v = Var_self;\n");
-                                generateUnsafeCall(parentInit, fp, result);
-                                scopeDepth--;
-                            }
+                    if (s.extends().size()) {
+                        Method* parentInit = getMethodByName(result, "init", s.extends());
+                        // implicit call to parent init, if it takes no arguments
+                        if (parentInit && parentInit->getArgs().size() == 1) {
+                            scopeDepth++;
+                            append("(_stack.sp++)->v = Var_self;\n");
+                            generateUnsafeCall(parentInit, fp, result);
+                            scopeDepth--;
                         }
                     }
-                } else {
-                    if (function->has_restrict) {
-                        append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->finalName().c_str());
-                    }
-                    if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
-                        append("_scl_no_return ");
-                    }
-                    if (function->has_lambda) {
-                        append("_scl_noinline %s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
-                        append("_scl_noinline ");
-                    }
-                    append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
-                    if (function->has_restrict) {
-                        append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
-                    }
                 }
-                
-                scopeDepth++;
-                std::vector<Token> body = function->getBody();
-
-                varScopePush();
-                if (function->hasNamedReturnValue) {
-                    varScopeTop().push_back(function->getNamedReturnValue());
-                }
-                if (function->getArgs().size() > 0) {
-                    for (size_t i = 0; i < function->getArgs().size(); i++) {
-                        const Variable& var = function->getArgs()[i];
-                        if (var.getType() == "varargs") continue;
-                        varScopeTop().push_back(var);
-                    }
-                }
-
-                append("*(_stack.tp++) = \"%s\";\n", sclFunctionNameToFriendlyString(function).c_str());
-                if (function->hasNamedReturnValue) {
-                    std::string nrvName = function->getNamedReturnValue().getName();
-                    if (hasFunction(result, nrvName)) {
-                        {
-                            FPResult err;
-                            err.message = "Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'";
-                            err.value = function->getNameToken().getValue();
-                            err.line = function->getNameToken().getLine();
-                            err.in = function->getNameToken().getFile();
-                            err.column = function->getNameToken().getColumn();
-                            err.type = function->getNameToken().getType();
-                            err.success = false;
-                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                            else errors.push_back(err);
-                        }
-                    }
-                    if (hasContainer(result, nrvName)) {
-                        {
-                            FPResult err;
-                            err.message = "Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'";
-                            err.value = function->getNameToken().getValue();
-                            err.line = function->getNameToken().getLine();
-                            err.in = function->getNameToken().getFile();
-                            err.column = function->getNameToken().getColumn();
-                            err.type = function->getNameToken().getType();
-                            err.success = false;
-                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                            else errors.push_back(err);
-                        }
-                    }
-                    if (getStructByName(result, nrvName) != Struct::Null) {
-                        {
-                            FPResult err;
-                            err.message = "Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'";
-                            err.value = function->getNameToken().getValue();
-                            err.line = function->getNameToken().getLine();
-                            err.in = function->getNameToken().getFile();
-                            err.column = function->getNameToken().getColumn();
-                            err.type = function->getNameToken().getType();
-                            err.success = false;
-                            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                            else errors.push_back(err);
-                        }
-                    }
-                    append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
-                }
-                if (function->isMethod) {
-                    Struct s = getStructByName(result, function->getMemberType());
-                    std::string superType = s.extends();
-                    if (superType.size() > 0) {
-                        append("%s Var_super = (%s) Var_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str());
-                        varScopeTop().push_back(Variable("super", "const " + superType));
-                    }
-                }
-                append("const _scl_frame_t* __current_base_ptr = _stack.sp;\n");
-
-                for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
-                    Variable& arg = function->getArgs()[a];
-                    if (arg.getName().size() == 0) continue;
-                    if (!typeCanBeNil(arg.getType())) {
-                        if (function->isMethod && arg.getName() == "self") continue;
-                        if (arg.getType() == "varargs") continue;
-                        append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
-                    }
-                    if (arg.typeFromTemplate.size()) {
-                        append("_scl_checked_cast(*(scl_any*) &Var_%s, Var_self->$template_arg_%s, Var_self->$template_argname_%s);\n", arg.getName().c_str(), arg.typeFromTemplate.c_str(), arg.typeFromTemplate.c_str());
-                    }
-                }
-                
-                if (function->has_unsafe) {
-                    isInUnsafe++;
-                }
+            } else {
                 if (function->has_restrict) {
-                    if (function->isMethod) {
-                        append("Function_Process$lock((scl_SclObject) Var_self);\n");
-                    } else {
-                        append("Function_Process$lock(function_lock$%s);\n", function->finalName().c_str());
-                    }
+                    append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->finalName().c_str());
                 }
-
-                if (function->isCVarArgs()) {
-                    if (function->varArgsParam().getName().size()) {
-                        append("va_list _cvarargs;\n");
-                        append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().getName().c_str());
-                        append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().getName().c_str());
-                        append("scl_Array Var_%s = _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().getName().c_str());
-                        append("va_end(_cvarargs);\n");
-                        Variable v(function->varArgsParam().getName(), "const ReadOnlyArray");
-                        varScopeTop().push_back(v);
-                    }
+                if (function->getName() == "throw" || function->getName() == "builtinUnreachable") {
+                    append("_scl_no_return ");
                 }
-
-                for (i = 0; i < body.size(); i++) {
-                    handle(Token);
+                if (function->has_lambda) {
+                    append("_scl_noinline %s Function_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
+                    append("_scl_noinline ");
                 }
-                
-                if (function->has_unsafe) {
-                    isInUnsafe--;
-                }
+                append("%s Function_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
                 if (function->has_restrict) {
-                    if (function->isMethod) {
-                        append("Function_Process$unlock((scl_SclObject) Var_self);\n");
-                    } else {
-                        append("Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
-                    }
+                    append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
                 }
-                
-                scopeDepth = 1;
-
-                while (vars.size() > 1) {
-                    varScopePop();
-                }
-
-                append("--_stack.tp;\n");
-                append("_stack.sp = __current_base_ptr;\n");
-
-                scopeDepth = 0;
-                append("}\n\n");
             }
-        }
+            
+            scopeDepth++;
+            std::vector<Token> body = function->getBody();
 
-        for (size_t i = 0; i < pids.size(); i++) {
-            int status;
-            waitpid(pids[i], &status, 0);
+            varScopePush();
+            if (function->hasNamedReturnValue) {
+                varScopeTop().push_back(function->getNamedReturnValue());
+            }
+            if (function->getArgs().size() > 0) {
+                for (size_t i = 0; i < function->getArgs().size(); i++) {
+                    const Variable& var = function->getArgs()[i];
+                    if (var.getType() == "varargs") continue;
+                    varScopeTop().push_back(var);
+                }
+            }
+
+            append("*(_stack.tp++) = \"%s\";\n", sclFunctionNameToFriendlyString(function).c_str());
+            if (function->hasNamedReturnValue) {
+                std::string nrvName = function->getNamedReturnValue().getName();
+                if (hasFunction(result, nrvName)) {
+                    {
+                        FPResult err;
+                        err.message = "Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'";
+                        err.value = function->getNameToken().getValue();
+                        err.line = function->getNameToken().getLine();
+                        err.in = function->getNameToken().getFile();
+                        err.column = function->getNameToken().getColumn();
+                        err.type = function->getNameToken().getType();
+                        err.success = false;
+                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                        else errors.push_back(err);
+                    }
+                }
+                if (hasContainer(result, nrvName)) {
+                    {
+                        FPResult err;
+                        err.message = "Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'";
+                        err.value = function->getNameToken().getValue();
+                        err.line = function->getNameToken().getLine();
+                        err.in = function->getNameToken().getFile();
+                        err.column = function->getNameToken().getColumn();
+                        err.type = function->getNameToken().getType();
+                        err.success = false;
+                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                        else errors.push_back(err);
+                    }
+                }
+                if (getStructByName(result, nrvName) != Struct::Null) {
+                    {
+                        FPResult err;
+                        err.message = "Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'";
+                        err.value = function->getNameToken().getValue();
+                        err.line = function->getNameToken().getLine();
+                        err.in = function->getNameToken().getFile();
+                        err.column = function->getNameToken().getColumn();
+                        err.type = function->getNameToken().getType();
+                        err.success = false;
+                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
+                        else errors.push_back(err);
+                    }
+                }
+                append("%s Var_%s;\n", sclTypeToCType(result, function->getNamedReturnValue().getType()).c_str(), function->getNamedReturnValue().getName().c_str());
+            }
+            if (function->isMethod) {
+                Struct s = getStructByName(result, function->getMemberType());
+                std::string superType = s.extends();
+                if (superType.size() > 0) {
+                    append("%s Var_super = (%s) Var_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str());
+                    varScopeTop().push_back(Variable("super", "const " + superType));
+                }
+            }
+            append("const _scl_frame_t* __current_base_ptr = _stack.sp;\n");
+
+            for (ssize_t a = (ssize_t) function->getArgs().size() - 1; a >= 0; a--) {
+                Variable& arg = function->getArgs()[a];
+                if (arg.getName().size() == 0) continue;
+                if (!typeCanBeNil(arg.getType())) {
+                    if (function->isMethod && arg.getName() == "self") continue;
+                    if (arg.getType() == "varargs") continue;
+                    append("_scl_check_not_nil_argument(*(scl_int*) &Var_%s, \"%s\");\n", arg.getName().c_str(), arg.getName().c_str());
+                }
+                if (arg.typeFromTemplate.size()) {
+                    append("_scl_checked_cast(*(scl_any*) &Var_%s, Var_self->$template_arg_%s, Var_self->$template_argname_%s);\n", arg.getName().c_str(), arg.typeFromTemplate.c_str(), arg.typeFromTemplate.c_str());
+                }
+            }
+            
+            if (function->has_unsafe) {
+                isInUnsafe++;
+            }
+            if (function->has_restrict) {
+                if (function->isMethod) {
+                    append("Function_Process$lock((scl_SclObject) Var_self);\n");
+                } else {
+                    append("Function_Process$lock(function_lock$%s);\n", function->finalName().c_str());
+                }
+            }
+
+            if (function->isCVarArgs()) {
+                if (function->varArgsParam().getName().size()) {
+                    append("va_list _cvarargs;\n");
+                    append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().getName().c_str());
+                    append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().getName().c_str());
+                    append("scl_Array Var_%s = _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().getName().c_str());
+                    append("va_end(_cvarargs);\n");
+                    Variable v(function->varArgsParam().getName(), "const ReadOnlyArray");
+                    varScopeTop().push_back(v);
+                }
+            }
+
+            for (i = 0; i < body.size(); i++) {
+                handle(Token);
+            }
+            
+            if (function->has_unsafe) {
+                isInUnsafe--;
+            }
+            if (function->has_restrict) {
+                if (function->isMethod) {
+                    append("Function_Process$unlock((scl_SclObject) Var_self);\n");
+                } else {
+                    append("Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
+                }
+            }
+            
+            scopeDepth = 1;
+
+            while (vars.size() > 1) {
+                varScopePop();
+            }
+
+            append("--_stack.tp;\n");
+            append("_stack.sp = __current_base_ptr;\n");
+
+            scopeDepth = 0;
+            append("}\n\n");
         }
+    
+        filePostamble();
     }
 } // namespace sclc

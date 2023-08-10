@@ -34,6 +34,7 @@ namespace sclc
         std::vector<Variable> globals;
 
         remove((filename.substr(0, filename.size() - 2) + ".h").c_str());
+        remove(filename.c_str());
         FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
 
         Function* mainFunction = nullptr;
@@ -102,13 +103,9 @@ namespace sclc
         Main.writeFunctionsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeFunctionsEnd - writeFunctionsStart).count();
 
         fclose(fp);
-        std::string tmpFile = scaleFolder + "/tmp/" + filename.substr(0, filename.size() - 2) + ".c";
-        remove(tmpFile.c_str());
-        fopen(tmpFile.c_str(), "a");
+        fp = fopen(filename.c_str(), "a");
 
-        append("#include \"./%s.h\"\n\n", filename.substr(0, filename.size() - 2).c_str());
-
-        Main.options.flags.push_back(tmpFile);
+        Main.options.flags.push_back(filename);
 
         std::vector<std::string> alreadyGenerated;
 
@@ -122,19 +119,6 @@ namespace sclc
                 append("static void _scl_vt_c_%s$%s() {\n", m->getMemberType().c_str(), f->finalName().c_str());
                 scopeDepth++;
                 generateUnsafeCall(m, fp, result);
-                scopeDepth--;
-                append("}\n");
-            } else {
-                if (f->isExternC) continue;
-                std::string fn = generateSymbolForFunction(f);
-                if (contains(alreadyGenerated, fn)) continue;
-                alreadyGenerated.push_back(fn);
-
-                currentStruct = getStructByName(result, f->member_type);
-                append("void _scl_c_%s() __asm(%s\"@CALLER\");\n", f->finalName().c_str(), fn.c_str());
-                append("void _scl_c_%s() {\n", f->finalName().c_str());
-                scopeDepth++;
-                generateUnsafeCallF(f, fp, result);
                 scopeDepth--;
                 append("}\n");
             }
@@ -199,6 +183,8 @@ namespace sclc
             append("struct _Container_%s Container_%s = {0};\n", c.getName().c_str(), c.getName().c_str());
         }
 
+        scopeDepth = 0;
+
         append("_scl_constructor void init_this() {\n");
         scopeDepth++;
         append("_scl_setup();\n");
@@ -227,6 +213,7 @@ namespace sclc
 
         append("}\n\n");
         append("_scl_destructor void destroy_this() {\n");
+        scopeDepth++;
         append("TRY {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isDestroyFunction(f)) {
