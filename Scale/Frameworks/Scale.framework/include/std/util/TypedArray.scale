@@ -7,7 +7,7 @@ final struct InvalidTypeException : Exception
     end
 end
 
-final sealed struct TypedArray<T: any>: Array
+final sealed struct TypedArray<T: SclObject>: Array
     private function checkTypeOrThrow(val: any): none
         if val typeof T builtinIsInstanceOf then
             return

@@ -2,7 +2,7 @@ import std.util.Pair
 import std.util.Iterable
 import std.util.InvalidArgumentException
 
-final sealed struct MapEntry<T: any>
+final sealed struct MapEntry<T: SclObject>
   decl key: str
   decl value: T
 
@@ -23,7 +23,7 @@ final sealed struct MapEntry<T: any>
   end
 end
 
-sealed struct Map<T: any> is Iterable
+sealed struct Map<T: SclObject> is Iterable
   private decl data: TypedArray
 
   function init(size: int): none
