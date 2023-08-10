@@ -762,6 +762,10 @@ Returns true if `self` and `other` represent the same string.
 ### function str:==(other: any): bool
 Returns true if `self` and `other` represent the same string.
 
+### function str:!=(other: any): bool
+Returns true if `self` and `other` do not represent the same string.
+Returns false if `other` is not a string.
+
 ### function str:size(): int
 Returns the size of `self`.
 

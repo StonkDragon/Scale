@@ -71,6 +71,13 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     other self:equals return
   end
 
+  function !=(other: any): bool
+    if other is str ! then
+      false return
+    fi
+    self.hash other as str.hash != return
+  end
+
   function size(): int
     self.length return
   end
