@@ -676,9 +676,7 @@ namespace sclc
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             std::string funcName = func->getName();
-            if (funcName.find("$$ol") != std::string::npos) {
-                funcName = funcName.substr(0, funcName.find("$$ol"));
-            }
+            funcName = funcName.substr(0, funcName.find("$$ol"));
             if (funcName == name) {
                 return true;
             }
@@ -768,15 +766,7 @@ namespace sclc
     }
 
     bool memberOfStruct(const Variable* self, Function* f) {
-        if (f->isMethod) {
-            Method* m = static_cast<Method*>(f);
-            if (m->getMemberType() == self->internalMutableFrom) {
-                return true;
-            }
-        } else if (strstarts(self->getName(), f->member_type + "$")) {
-            return true;
-        }
-        return false;
+        return f->member_type == self->internalMutableFrom || strstarts(self->getName(), f->member_type + "$");
     }
 
     bool Variable::isAccessible(Function* f) const {
