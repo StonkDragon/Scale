@@ -671,23 +671,16 @@ scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIde
 	scl_int8* args = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '(') + 1, str_last_index_of(methodIdentifier, ')'));
 	scl_int8* returnType = substr_of(methodIdentifier, methodLen, str_last_index_of(methodIdentifier, ')') + 1, methodLen);
 	scl_int argCount = str_num_of_occurences(args, ';');
+	_scl_free(args);
 	for (scl_int i = 0; i < argCount; i++) {
 		(_stack.sp++)->v = va_arg(ap, scl_any);
 	}
-	if (instance) {
-		(_stack.sp++)->v = instance;
+	(_stack.sp++)->v = instance;
 
-		virtual_call_impl0(onSuper, instance, methodIdentifier, methodLen);
-		return strequals(returnType, "V;") ? nil : (--_stack.sp)->v;
-	}
-	
-	char* totalSym = malloc(methodLen + 8);
-	snprintf(totalSym, methodLen + 8, "%s@CALLER", methodIdentifier);
-
-	_scl_lambda func = dlsym(RTLD_DEFAULT, totalSym);
-	_scl_assert(REINTERPRET_CAST(scl_int, func), "Could not find function %s", methodIdentifier);
-	func();
-	return strequals(returnType, "V;") ? nil : (--_stack.sp)->v;
+	virtual_call_impl0(onSuper, instance, methodIdentifier, methodLen);
+	int tmp = strequals(returnType, "V;");
+	_scl_free(returnType);
+	return tmp ? nil : (--_stack.sp)->v;
 }
 
 void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, size_t methodLen) {
@@ -697,6 +690,9 @@ void virtual_call_impl0(scl_int onSuper, scl_any instance, scl_int8* methodIdent
 	ID_t signatureHash = id(signature);
 
 	_scl_call_method_or_throw(instance, methodNameHash, signatureHash, onSuper, methodName, signature);
+
+	_scl_free(methodName);
+	_scl_free(signature);
 }
 
 void _scl_call_method_or_throw(scl_any instance_, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
