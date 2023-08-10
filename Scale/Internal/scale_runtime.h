@@ -460,643 +460,110 @@ mutex_t				_scl_mutex_new(void);
 __deprecated_msg("Stack resizing has been removed. This function does nothing.")
 void				_scl_resize_stack(void);
 
-_scl_always_inline static inline _scl_frame_t* _scl_push() {
-	return _stack.sp++;
-}
-
-_scl_always_inline static inline _scl_frame_t* _scl_pop() {
-#if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.sp <= _stack.bp, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp);
-	}
-#endif
-
-	return --_stack.sp;
-}
-
-_scl_always_inline static inline _scl_frame_t* _scl_offset(scl_int offset) {
-	return _stack.bp + offset;
-}
-
-_scl_always_inline static inline _scl_frame_t* _scl_positive_offset(scl_int offset) {
-	return _stack.sp + offset;
-}
-
-_scl_always_inline static inline _scl_frame_t* _scl_top() {
-#if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.sp <= _stack.bp, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp);
-	}
-#endif
-
-	return _stack.sp - 1;
-}
-
-_scl_always_inline static inline void _scl_popn(scl_int n) {
-	_stack.sp -= n;
+#define _scl_push()						(_stack.sp++)
 
 #if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.sp < _stack.bp, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp);
-	}
+#define _scl_pop() \
+	({ \
+		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+		--_stack.sp; \
+	})
 #endif
-}
-
-_scl_always_inline static inline void _scl_swap() {
-	_scl_frame_t a = *(_stack.sp - 2);
-	_scl_frame_t b = *(_stack.sp - 2);
-	*(_stack.sp - 2) = b;
-	*(_stack.sp - 2) = a;
-}
-
-_scl_always_inline static inline void _scl_over() {
-	_scl_frame_t a = *(_stack.sp - 2);
-	_scl_frame_t b = *(_stack.sp - 2);
-	_scl_frame_t c = *(_stack.sp - 3);
-	*(_stack.sp - 2) = c;
-	*(_stack.sp - 2) = b;
-	*(_stack.sp - 3) = a;
-}
-
-_scl_always_inline static inline void _scl_sdup2() {
-	_scl_frame_t a = *(_stack.sp - 2);
-	_scl_frame_t b = *(_stack.sp - 2);
-
-	*(_stack.sp) = b;
-	*(_stack.sp - 2) = a;
-	*(_stack.sp - 2) = b;
-	_stack.sp++;
-}
-
-_scl_always_inline static inline void _scl_swap2() {
-	_scl_frame_t c = *(_stack.sp - 2);
-	_scl_frame_t b = *(_stack.sp - 2);
-	_scl_frame_t a = *(_stack.sp - 3);
-	*(_stack.sp - 2) = c;
-	*(_stack.sp - 2) = a;
-	*(_stack.sp - 3) = b;
-}
-
-_scl_always_inline static inline void _scl_add_ii() {
-	(_stack.sp - 2)->i += (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_add_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_add_ii_chk() failed: Not enough data on the stack!");
-	_scl_add_ii();
-}
-
-_scl_always_inline static inline void _scl_add_if() {
-	(_stack.sp - 2)->f = ((scl_float) (_stack.sp - 2)->i) + (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_add_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_add_if_chk() failed: Not enough data on the stack!");
-	_scl_add_if();
-}
-
-_scl_always_inline static inline void _scl_add_fi() {
-	(_stack.sp - 2)->f += ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_add_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_add_fi_chk() failed: Not enough data on the stack!");
-	_scl_add_fi();
-}
-
-_scl_always_inline static inline void _scl_add_ff() {
-	(_stack.sp - 2)->f += (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_add_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_add_ff_chk() failed: Not enough data on the stack!");
-	_scl_add_ff();
-}
-
-_scl_always_inline static inline void _scl_sub_ii() {
-	(_stack.sp - 2)->i -= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_sub_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_sub_ii_chk() failed: Not enough data on the stack!");
-	_scl_sub_ii();
-}
-
-_scl_always_inline static inline void _scl_sub_if() {
-	(_stack.sp - 2)->f = ((scl_float) (_stack.sp - 2)->i) - (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_sub_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_sub_if_chk() failed: Not enough data on the stack!");
-	_scl_sub_if();
-}
-
-_scl_always_inline static inline void _scl_sub_fi() {
-	(_stack.sp - 2)->f -= ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_sub_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_sub_fi_chk() failed: Not enough data on the stack!");
-	_scl_sub_fi();
-}
-
-_scl_always_inline static inline void _scl_sub_ff() {
-	(_stack.sp - 2)->f -= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_sub_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_sub_ff_chk() failed: Not enough data on the stack!");
-	_scl_sub_ff();
-}
-
-_scl_always_inline static inline void _scl_mul_ii() {
-	(_stack.sp - 2)->i *= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_mul_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_mul_ii_chk() failed: Not enough data on the stack!");
-	_scl_mul_ii();
-}
-
-_scl_always_inline static inline void _scl_mul_if() {
-	(_stack.sp - 2)->f = ((scl_float) (_stack.sp - 2)->i) * (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_mul_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_mul_if_chk() failed: Not enough data on the stack!");
-	_scl_mul_if();
-}
-
-_scl_always_inline static inline void _scl_mul_fi() {
-	(_stack.sp - 2)->f *= ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_mul_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_mul_fi_chk() failed: Not enough data on the stack!");
-	_scl_mul_fi();
-}
-
-_scl_always_inline static inline void _scl_mul_ff() {
-	(_stack.sp - 2)->f *= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_mul_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_mul_ff_chk() failed: Not enough data on the stack!");
-	_scl_mul_ff();
-}
-
-_scl_always_inline static inline void _scl_div_ii() {
-	(_stack.sp - 2)->i /= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_div_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_div_ii_chk() failed: Not enough data on the stack!");
-	_scl_div_ii();
-}
-
-_scl_always_inline static inline void _scl_div_if() {
-	(_stack.sp - 2)->f = ((scl_float) (_stack.sp - 2)->i) / (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_div_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_div_if_chk() failed: Not enough data on the stack!");
-	_scl_div_if();
-}
-
-_scl_always_inline static inline void _scl_div_fi() {
-	(_stack.sp - 2)->f /= ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_div_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_div_fi_chk() failed: Not enough data on the stack!");
-	_scl_div_fi();
-}
-
-_scl_always_inline static inline void _scl_div_ff() {
-	(_stack.sp - 2)->f /= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_div_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_div_ff_chk() failed: Not enough data on the stack!");
-	_scl_div_ff();
-}
-
-
-_scl_always_inline static inline void _scl_pow_ii() {
-	(_stack.sp - 2)->i = (scl_int) pow((_stack.sp - 2)->i, (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_pow_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_pow_ii_chk() failed: Not enough data on the stack!");
-	_scl_pow_ii();
-}
-
-_scl_always_inline static inline void _scl_pow_if() {
-	(_stack.sp - 2)->f = pow((scl_float) (_stack.sp - 2)->i, (_stack.sp - 1)->f);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_pow_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_pow_if_chk() failed: Not enough data on the stack!");
-	_scl_pow_if();
-}
-
-_scl_always_inline static inline void _scl_pow_fi() {
-	(_stack.sp - 2)->f = pow((_stack.sp - 2)->f, (scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_pow_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_pow_fi_chk() failed: Not enough data on the stack!");
-	_scl_pow_fi();
-}
-
-_scl_always_inline static inline void _scl_pow_ff() {
-	(_stack.sp - 2)->f = pow((_stack.sp - 2)->f, (_stack.sp - 1)->f);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_pow_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_pow_ff_chk() failed: Not enough data on the stack!");
-	_scl_pow_ff();
-}
-
-_scl_always_inline static inline void _scl_mod() {
-	(_stack.sp - 2)->i %= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_mod_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_mod_chk() failed: Not enough data on the stack!");
-	_scl_mod();
-}
-
-_scl_always_inline static inline void _scl_land() {
-	(_stack.sp - 2)->i &= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_land_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_land_chk() failed: Not enough data on the stack!");
-	_scl_land();
-}
-
-_scl_always_inline static inline void _scl_lor() {
-	(_stack.sp - 2)->i |= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lor_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lor_chk() failed: Not enough data on the stack!");
-	_scl_lor();
-}
-
-_scl_always_inline static inline void _scl_lxor() {
-	(_stack.sp - 2)->i ^= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lxor_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lxor_chk() failed: Not enough data on the stack!");
-	_scl_lxor();
-}
-
-_scl_always_inline static inline void _scl_lnot() {
-	(_stack.sp - 1)->i = ~((_stack.sp - 1)->i);
-}
-
-_scl_always_inline static inline void _scl_lnot_chk() {
-	_scl_assert(_scl_stack_size() >= 1, "_scl_lnot_chk() failed: Not enough data on the stack!");
-	_scl_lnot();
-}
-
-_scl_always_inline static inline void _scl_lsr() {
-	(_stack.sp - 2)->i >>= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lsr_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lsr_chk() failed: Not enough data on the stack!");
-	_scl_lsr();
-}
-
-_scl_always_inline static inline void _scl_lsl() {
-	(_stack.sp - 2)->i <<= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lsl_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lsl_chk() failed: Not enough data on the stack!");
-	_scl_lsl();
-}
-
-
-_scl_always_inline static inline void _scl_eq_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i == (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_eq_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_eq_ii_chk() failed: Not enough data on the stack!");
-	_scl_eq_ii();
-}
-
-_scl_always_inline static inline void _scl_eq_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) == (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_eq_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_eq_if_chk() failed: Not enough data on the stack!");
-	_scl_eq_if();
-}
-
-_scl_always_inline static inline void _scl_eq_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f == ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_eq_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_eq_fi_chk() failed: Not enough data on the stack!");
-	_scl_eq_fi();
-}
-
-_scl_always_inline static inline void _scl_eq_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i == (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_eq_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_eq_ff_chk() failed: Not enough data on the stack!");
-	_scl_eq_ff();
-}
-
-_scl_always_inline static inline void _scl_ne_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i != (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ne_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ne_ii_chk() failed: Not enough data on the stack!");
-	_scl_ne_ii();
-}
-
-_scl_always_inline static inline void _scl_ne_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) != (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ne_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ne_if_chk() failed: Not enough data on the stack!");
-	_scl_ne_if();
-}
-
-_scl_always_inline static inline void _scl_ne_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f != ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ne_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ne_fi_chk() failed: Not enough data on the stack!");
-	_scl_ne_fi();
-}
-
-_scl_always_inline static inline void _scl_ne_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f != (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ne_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ne_ff_chk() failed: Not enough data on the stack!");
-	_scl_ne_ff();
-}
-
-_scl_always_inline static inline void _scl_gt_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i > (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_gt_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_gt_ii_chk() failed: Not enough data on the stack!");
-	_scl_gt_ii();
-}
-
-_scl_always_inline static inline void _scl_gt_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) > (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_gt_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_gt_if_chk() failed: Not enough data on the stack!");
-	_scl_gt_if();
-}
-
-_scl_always_inline static inline void _scl_gt_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f > ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_gt_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_gt_fi_chk() failed: Not enough data on the stack!");
-	_scl_gt_fi();
-}
-
-_scl_always_inline static inline void _scl_gt_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f > (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_gt_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_gt_ff_chk() failed: Not enough data on the stack!");
-	_scl_gt_ff();
-}
-
-_scl_always_inline static inline void _scl_ge_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i >= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ge_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ge_ii_chk() failed: Not enough data on the stack!");
-	_scl_ge_ii();
-}
-
-_scl_always_inline static inline void _scl_ge_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) >= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ge_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ge_if_chk() failed: Not enough data on the stack!");
-	_scl_ge_if();
-}
-
-_scl_always_inline static inline void _scl_ge_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f >= ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ge_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ge_fi_chk() failed: Not enough data on the stack!");
-	_scl_ge_fi();
-}
-
-_scl_always_inline static inline void _scl_ge_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f >= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ge_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ge_ff_chk() failed: Not enough data on the stack!");
-	_scl_ge_ff();
-}
-
-_scl_always_inline static inline void _scl_lt_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i < (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lt_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lt_ii_chk() failed: Not enough data on the stack!");
-	_scl_lt_ii();
-}
-
-_scl_always_inline static inline void _scl_lt_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) < (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lt_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lt_if_chk() failed: Not enough data on the stack!");
-	_scl_lt_if();
-}
-
-_scl_always_inline static inline void _scl_lt_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f < ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lt_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lt_fi_chk() failed: Not enough data on the stack!");
-	_scl_lt_fi();
-}
-
-_scl_always_inline static inline void _scl_lt_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f < (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_lt_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_lt_ff_chk() failed: Not enough data on the stack!");
-	_scl_lt_ff();
-}
-
-_scl_always_inline static inline void _scl_le_ii() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i <= (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_le_ii_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_le_ii_chk() failed: Not enough data on the stack!");
-	_scl_le_ii();
-}
-
-_scl_always_inline static inline void _scl_le_if() {
-	(_stack.sp - 2)->i = ((scl_float) (_stack.sp - 2)->i) <= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_le_if_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_le_if_chk() failed: Not enough data on the stack!");
-	_scl_le_if();
-}
-
-_scl_always_inline static inline void _scl_le_fi() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f <= ((scl_float) (_stack.sp - 1)->i);
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_le_fi_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_le_fi_chk() failed: Not enough data on the stack!");
-	_scl_le_fi();
-}
-
-_scl_always_inline static inline void _scl_le_ff() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->f <= (_stack.sp - 1)->f;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_le_ff_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_le_ff_chk() failed: Not enough data on the stack!");
-	_scl_le_ff();
-}
-
-_scl_always_inline static inline void _scl_and() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i && (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_and_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_and_chk() failed: Not enough data on the stack!");
-	_scl_and();
-}
-
-_scl_always_inline static inline void _scl_or() {
-	(_stack.sp - 2)->i = (_stack.sp - 2)->i || (_stack.sp - 1)->i;
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_or_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_or_chk() failed: Not enough data on the stack!");
-	_scl_or();
-}
-
-_scl_always_inline static inline void _scl_not() {
-	(_stack.sp - 1)->i = !(_stack.sp - 1)->i;
-}
-
-_scl_always_inline static inline void _scl_not_chk() {
-	_scl_assert(_scl_stack_size() >= 1, "_scl_not_chk() failed: Not enough data on the stack!");
-	_scl_not();
-}
-
-_scl_always_inline static inline void _scl_ror() {
-	// rotate right
-	(_stack.sp - 2)->i = ((_stack.sp - 2)->i >> (_stack.sp - 1)->i) | ((_stack.sp - 2)->i << (sizeof(scl_int) * 8 - (_stack.sp - 1)->i));
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_ror_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_ror_chk() failed: Not enough data on the stack!");
-	_scl_ror();
-}
-
-_scl_always_inline static inline void _scl_rol() {
-	// rotate left
-	(_stack.sp - 2)->i = ((_stack.sp - 2)->i << (_stack.sp - 1)->i) | ((_stack.sp - 2)->i >> (sizeof(scl_int) * 8 - (_stack.sp - 1)->i));
-	_stack.sp--;
-}
-
-_scl_always_inline static inline void _scl_rol_chk() {
-	_scl_assert(_scl_stack_size() >= 2, "_scl_rol_chk() failed: Not enough data on the stack!");
-	_scl_rol();
-}
+#define _scl_pop()						(--_stack.sp)
+
+#define _scl_positive_offset(offset)	(_stack.sp + offset)
+#define _scl_offset(offset)				(_stack.bp + offset)
+#if defined(SCL_DEBUG)
+#define _scl_top() \
+	({ \
+		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+		_stack.sp - 1; \
+	})
+#else
+#define _scl_top()						(_stack.sp - 1)
+#endif
+
+#if defined(SCL_DEBUG)
+#define _scl_popn(n) \
+	({ \
+		_stack.sp -= (n); \
+		if (_scl_expect(_stack.sp < _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+	})
+#else
+#define _scl_popn(n)					(_stack.sp -= (n))
+#endif
+
+#define _scl_swap() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = tmp; \
+	})
+
+#define _scl_over() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_sdup2() \
+	({ \
+		*(_stack.sp) = *(_stack.sp - 2); \
+		_stack.sp++; \
+	})
+
+#define _scl_swap2() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_rot() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = tmp; \
+	})
+
+#define _scl_unrot() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_add(a, b)			(a) + (b)
+#define _scl_sub(a, b)			(a) - (b)
+#define _scl_mul(a, b)			(a) * (b)
+#define _scl_div(a, b)			(a) / (b)
+#define _scl_pow(a, b)			pow((a), (b))
+#define _scl_mod(a, b)			(a) % (b)
+#define _scl_land(a, b)			(a) & (b)
+#define _scl_lor(a, b)			(a) | (b)
+#define _scl_lxor(a, b)			(a) ^ (b)
+#define _scl_lnot(a)			~((a))
+#define _scl_lsr(a, b)			(a) >> (b)
+#define _scl_lsl(a, b)			(a) << (b)
+#define _scl_eq(a, b)			(a) == (b)
+#define _scl_ne(a, b)			(a) != (b)
+#define _scl_gt(a, b)			(a) > (b)
+#define _scl_ge(a, b)			(a) >= (b)
+#define _scl_lt(a, b)			(a) < (b)
+#define _scl_le(a, b)			(a) <= (b)
+#define _scl_and(a, b)			(a) && (b)
+#define _scl_or(a, b)			(a) || (b)
+#define _scl_not(a)				!(a)
+#define _scl_ror(a, b)			((a) >> (b)) | ((a) << (sizeof(scl_int) * 8 - (b)))
+#define _scl_rol(a, b)			((a) << (b)) | ((a) >> (sizeof(scl_int) * 8 - (b)))
 
 #endif // __SCALE_RUNTIME_H__
