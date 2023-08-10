@@ -54,7 +54,7 @@ cdecl "gettimeofday"
 private expect unsafe function __c_gettimeofday(:timeval, :any): int
 
 intrinsic cdecl "_scl_time" function time(): float
-  sizeof timeval any::new => decl tv: timeval
+  sizeof timeval any::new as timeval => decl tv: timeval
   
   unsafe
     tv nil __c_gettimeofday drop
