@@ -207,6 +207,8 @@ void _scl_puts(scl_any val) {
 	scl_str s;
 	if (_scl_is_instance_of(val, SclObjectHash)) {
 		s = virtual_call(val, "toString()s;");
+	} else if (_scl_is_array(val)) {
+		s = _scl_array_to_string(val);
 	} else {
 		s = int$toString((scl_int) val);
 	}
@@ -221,6 +223,8 @@ void _scl_eputs(scl_any val) {
 	scl_str s;
 	if (_scl_is_instance_of(val, SclObjectHash)) {
 		s = virtual_call(val, "toString()s;");
+	} else if (_scl_is_array(val)) {
+		s = _scl_array_to_string(val);
 	} else {
 		s = int$toString((scl_int) val);
 	}
