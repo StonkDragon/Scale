@@ -2780,9 +2780,17 @@ namespace sclc {
                     result.errors.push_back(r);
                     continue;
                 }
-                if (!isPrimitiveType(t.second) && getStructByName(result, t.second) == Struct::Null) {
+                Struct tmp = getStructByName(result, t.second);
+                bool primitive = false;
+                if ((primitive = isPrimitiveType(t.second)) || tmp == Struct::Null || tmp.isStatic()) {
                     FPResult r;
-                    r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which does not appear to be a struct or primitive type";
+                    if (tmp == Struct::Null) {
+                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which does not appear to be a struct or primitive type";
+                    } else if (tmp.isStatic()) {
+                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a static struct";
+                    } else {
+                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a primitive type";
+                    }
                     r.value = t.second;
                     r.line = s.getNameToken().getLine();
                     r.in = s.getNameToken().getFile();
