@@ -311,10 +311,6 @@ namespace sclc
             return nextToken();
         }
 
-        if (value == "store") {
-            syntaxWarn("The 'store' keyword is deprecated! Use '=>' instead.");
-        }
-
         if (value == "pragma" || value == "c" || value == "macro" || value == "deprecated") {
             if (c == '!') {
                 value += c;
@@ -323,15 +319,11 @@ namespace sclc
             }
         }
 
-        if (value == "inline_c" || value == "c!") {
-            bool newInline = value == "c!";
-            if (!newInline) {
-                syntaxWarn("The 'inline_c' keyword is deprecated! Use 'c!' instead.");
-            }
+        if (value == "c!") {
             value = "";
             int startLine = line;
             int startColumn = column;
-            while (strncmp((newInline ? "end" : "end_inline"), (source + current), strlen((newInline ? "end" : "end_inline"))) != 0) {
+            while (strncmp("end", (source + current), 3) != 0) {
                 value += c;
                 c = source[current++];
                 column++;
@@ -340,12 +332,8 @@ namespace sclc
                     column = 0;
                 }
             }
-            current += strlen((newInline ? "end" : "end_inline"));
+            current += 3;
             return Token(tok_extern_c, value, startLine, filename, startColumn);
-        }
-
-        if (value == "addr") {
-            syntaxWarn("'addr' is deprecated! Use 'ref' instead!");
         }
 
         TOKEN("function",   tok_function, line, filename);
@@ -369,10 +357,8 @@ namespace sclc
         TOKEN("in",         tok_in, line, filename);
         TOKEN("to",         tok_to, line, filename);
         TOKEN("load",       tok_load, line, filename);
-        TOKEN("store",      tok_store, line, filename);
         TOKEN("=>",         tok_store, line, filename);
         TOKEN("decl",       tok_declare, line, filename);
-        TOKEN("addr",       tok_addr_ref, line, filename);
         TOKEN("ref",        tok_addr_ref, line, filename);
         TOKEN("nil",        tok_nil, line, filename);
         TOKEN("true",       tok_true, line, filename);
@@ -519,7 +505,7 @@ namespace sclc
         current = 0;
 
         token = nextToken();
-        while (token.getType() != tok_eof) {
+        while (token.type != tok_eof) {
             this->tokens.push_back(token);
             if (additional) {
                 this->tokens.push_back(additionalToken);
@@ -545,12 +531,12 @@ namespace sclc
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
-            if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "import") {
+            if (tokens[i].type == tok_identifier && tokens[i].value == "import") {
                 i++;
-                std::string moduleName = tokens[i].getValue();
-                while (i + 1 < (long long) tokens.size() && tokens[i + 1].getType() == tok_dot) {
+                std::string moduleName = tokens[i].value;
+                while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
                     i += 2;
-                    moduleName += "." + tokens[i].getValue();
+                    moduleName += "." + tokens[i].value;
                 }
                 bool found = false;
                 for (auto config : Main.options.mapFrameworkConfigs) {
@@ -563,11 +549,11 @@ namespace sclc
                                 FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                                 if (!find.success) {
                                     FPResult r;
-                                    r.column = tokens[i].getColumn();
-                                    r.value = tokens[i].getValue();
-                                    r.in = tokens[i].getFile();
-                                    r.line = tokens[i].getLine();
-                                    r.type = tokens[i].getType();
+                                    r.column = tokens[i].column;
+                                    r.value = tokens[i].value;
+                                    r.in = tokens[i].file;
+                                    r.line = tokens[i].line;
+                                    r.type = tokens[i].type;
                                     r.success = false;
                                     r.message = find.message;
                                     return r;
@@ -585,30 +571,30 @@ namespace sclc
                 if (!found) {
                     FPResult r;
                     r.success = false;
-                    r.column = tokens[i].getColumn();
-                    r.value = tokens[i].getValue();
-                    r.in = tokens[i].getFile();
-                    r.line = tokens[i].getLine();
-                    r.type = tokens[i].getType();
+                    r.column = tokens[i].column;
+                    r.value = tokens[i].value;
+                    r.in = tokens[i].file;
+                    r.line = tokens[i].line;
+                    r.type = tokens[i].type;
                     r.message = "Could not find module '" + moduleName + "'";
                     return r;
                 }
-            } else if (tokens[i].getType() == tok_identifier && tokens[i].getValue() == "__file_import") {
+            } else if (tokens[i].type == tok_identifier && tokens[i].value == "__file_import") {
                 i++;
                 std::string file = "";
                 FPResult r;
-                r.column = tokens[i].getColumn();
-                r.value = tokens[i].getValue();
-                r.in = tokens[i].getFile();
-                r.line = tokens[i].getLine();
-                r.type = tokens[i].getType();
+                r.column = tokens[i].column;
+                r.value = tokens[i].value;
+                r.in = tokens[i].file;
+                r.line = tokens[i].line;
+                r.type = tokens[i].type;
                 while (true) {
                     if (file.size() == 0)
-                        file = tokens[i].getValue();
+                        file = tokens[i].value;
                     else
-                        file += PATH_SEPARATOR + tokens[i].getValue();
+                        file += PATH_SEPARATOR + tokens[i].value;
                     
-                    if (tokens[i + 1].getType() != tok_dot) {
+                    if (tokens[i + 1].type != tok_dot) {
                         i--;
                         break;
                     }

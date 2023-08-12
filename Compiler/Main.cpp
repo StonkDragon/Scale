@@ -155,7 +155,7 @@ namespace sclc
         tk.current = 0;
 
         Token token = tk.nextToken();
-        while (token.getType() != tok_eof) {
+        while (token.type != tok_eof) {
             tk.tokens.push_back(token);
             if (tk.additional) {
                 tk.tokens.push_back(tk.additionalToken);
@@ -1333,50 +1333,50 @@ namespace sclc
             return 0;
         }
 
-        std::vector<int> pids;
+        // std::vector<int> pids;
 
-        for (std::string& s : Main.options.flags) {
-            if (std::filesystem::exists(s + ".o") && file_modified_time(s + ".o") > file_modified_time(s)) continue;
+        // for (std::string& s : Main.options.flags) {
+        //     if (std::filesystem::exists(s + ".o") && file_modified_time(s + ".o") > file_modified_time(s)) continue;
 
-            auto tmpFlags = cflags;
+        //     auto tmpFlags = cflags;
 
-            tmpFlags.push_back(s);
-            tmpFlags.push_back("-c");
+        //     tmpFlags.push_back(s);
+        //     tmpFlags.push_back("-c");
 
-            tmpFlags.push_back("-o");
-            tmpFlags.push_back(s + ".o");
+        //     tmpFlags.push_back("-o");
+        //     tmpFlags.push_back(s + ".o");
 
-            char** args = (char**) malloc(sizeof(char*) * tmpFlags.size() + 1);
-            int index = 0;
-            for (size_t i = 0; i < tmpFlags.size(); i++) {
-                if (strstarts(tmpFlags[i], "-l")) continue;
-                if (strstarts(tmpFlags[i], "-L")) continue;
+        //     char** args = (char**) malloc(sizeof(char*) * tmpFlags.size() + 1);
+        //     int index = 0;
+        //     for (size_t i = 0; i < tmpFlags.size(); i++) {
+        //         if (strstarts(tmpFlags[i], "-l")) continue;
+        //         if (strstarts(tmpFlags[i], "-L")) continue;
 
-                args[index++] = (char*) malloc(sizeof(char) * tmpFlags[i].size() + 1);
-                strcpy(args[index - 1], tmpFlags[i].c_str());
-            }
-            args[index] = NULL;
+        //         args[index++] = (char*) malloc(sizeof(char) * tmpFlags[i].size() + 1);
+        //         strcpy(args[index - 1], tmpFlags[i].c_str());
+        //     }
+        //     args[index] = NULL;
 
-            int pid = fork();
-            if (pid == 0) {
-                int ret = execvp(args[0], (char**) args);
-                if (ret == -1) {
-                    std::cerr << "Failed to execute command: " << args[0] << std::endl;
-                    return ret;
-                }
-            } else if (pid < 0) {
-                std::cerr << "Failed to fork process" << std::endl;
-                return 1;
-            }
-            pids.push_back(pid);
-        }
+        //     int pid = fork();
+        //     if (pid == 0) {
+        //         int ret = execvp(args[0], (char**) args);
+        //         if (ret == -1) {
+        //             std::cerr << "Failed to execute command: " << args[0] << std::endl;
+        //             return ret;
+        //         }
+        //     } else if (pid < 0) {
+        //         std::cerr << "Failed to fork process" << std::endl;
+        //         return 1;
+        //     }
+        //     pids.push_back(pid);
+        // }
 
         for (std::string& file : nonScaleFiles) {
             cflags.push_back("\"" + file + "\"");
         }
 
         for (std::string& s : Main.options.flags) {
-            cflags.push_back("\"" + s + ".o\"");
+            cflags.push_back("\"" + s + "\"");
         }
 
         if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
@@ -1396,14 +1396,14 @@ namespace sclc
             cmd += "-DSCL_DEBUG ";
         }
 
-        for (int pid : pids) {
-            int status;
-            waitpid(pid, &status, 0);
-            if (status != 0) {
-                std::cerr << Color::RED << "Failed to compile!" << Color::RESET << std::endl;
-                return 1;
-            }
-        }
+        // for (int pid : pids) {
+        //     int status;
+        //     waitpid(pid, &status, 0);
+        //     if (status != 0) {
+        //         std::cerr << Color::RED << "Failed to compile!" << Color::RESET << std::endl;
+        //         return 1;
+        //     }
+        // }
 
         int errors = 0;
         if (Main.options.printCflags) {

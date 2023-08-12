@@ -15,6 +15,7 @@
 
 // optimize this :
 #define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
+#define append2(...) do { fprintf(fp, __VA_ARGS__); } while (0)
 
 #undef INT_MAX
 #undef INT_MIN
@@ -44,7 +45,6 @@ namespace sclc {
 #include "Container.hpp"
 #include "Interface.hpp"
 #include "Struct.hpp"
-#include "Prototype.hpp"
 #include "DragonConfig.hpp"
 #include "Enum.hpp"
 
@@ -187,30 +187,30 @@ namespace sclc {
     int isOperator(char c);
     bool fileExists(const std::string& name);
     void addIfAbsent(std::vector<Function*>& vec, Function* str);
-    std::string replaceAll(std::string src, std::string from, std::string to);
-    std::string replaceFirstAfter(std::string src, std::string from, std::string to, int index);
+    std::string replaceAll(const std::string& src, const std::string& from, const std::string& to);
+    std::string replaceFirstAfter(const std::string& src, const std::string& from, const std::string& to, int index);
     int lastIndexOf(char* src, char c);
-    bool hasVar(std::string name);
-    Variable getVar(std::string name);
-    Function* getFunctionByName(TPResult& result, std::string name);
-    Interface* getInterfaceByName(TPResult& result, std::string name);
-    Method* getMethodByName(TPResult& result, std::string name, std::string type);
-    Method* getMethodByNameOnThisType(TPResult& result, std::string name, std::string type);
-    Method* getMethodByNameWithArgs(TPResult& result, std::string name, std::string type, bool doCheck = true);
-    Method* getMethodWithActualName(TPResult& result, std::string name, std::string type, bool doCheck = true);
-    Function* getFunctionByNameWithArgs(TPResult& result, std::string name, bool doCheck = true);
-    Container getContainerByName(TPResult& result, std::string name);
-    Struct getStructByName(TPResult& result, std::string name);
-    Layout getLayout(TPResult& result, std::string name);
-    bool hasLayout(TPResult& result, std::string name);
-    bool hasFunction(TPResult& result, std::string name);
-    bool hasEnum(TPResult& result, std::string name);
-    Enum getEnumByName(TPResult& result, std::string name);
+    bool hasVar(const std::string& name);
+    Variable getVar(const std::string& name);
+    Function* getFunctionByName(TPResult& result, const std::string& name);
+    Interface* getInterfaceByName(TPResult& result, const std::string& name);
+    Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type);
+    Method* getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type);
+    Method* getMethodByNameWithArgs(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
+    Method* getMethodWithActualName(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
+    Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name, bool doCheck = true);
+    Container getContainerByName(TPResult& result, const std::string& name);
+    const Struct& getStructByName(TPResult& result, const std::string& name);
+    Layout getLayout(TPResult& result, const std::string& name);
+    bool hasLayout(TPResult& result, const std::string& name);
+    bool hasFunction(TPResult& result, const std::string& name);
+    bool hasEnum(TPResult& result, const std::string& name);
+    Enum getEnumByName(TPResult& result, const std::string& name);
     std::vector<std::string> supersToVector(TPResult& r, Struct& s);
     std::string supersToHashedCList(TPResult& r, Struct& s);
     std::string supersToCList(TPResult& r, Struct& s);
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
-    bool hasMethod(TPResult& result, std::string name, std::string type);
+    bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasContainer(TPResult& result, std::string name);
     bool hasGlobal(TPResult& result, std::string name);
     FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());

@@ -34,7 +34,7 @@ sealed struct Map<T: SclObject> is Iterable
     key self:get return
   end
 
-  restrict function get(key: str): T
+  function get(key: str): T
     for i in 0 to self.data.count do
       self.data[i] as MapEntry => decl entry: MapEntry
       if entry.key key == then
@@ -57,7 +57,7 @@ sealed struct Map<T: SclObject> is Iterable
     false return
   end
 
-  restrict function set(key: str, value: T): none
+  function set(key: str, value: T): none
     for i in 0 to self.data.count do
       i self.data:get => decl entry: mut MapEntry?
       if entry nil == then
@@ -79,7 +79,7 @@ sealed struct Map<T: SclObject> is Iterable
     self.data:toString return
   end
 
-  restrict function map(x: lambda(MapEntry): none): none
+  function map(x: lambda(MapEntry): none): none
     foreach value in self.data do
       if value then
         value x:accept

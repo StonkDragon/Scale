@@ -3,7 +3,8 @@
 extern const ID_t SclObjectHash; // SclObject
 
 typedef struct Struct {
-	StaticMembers*	statics;
+	_scl_lambda*	vtable_fast;
+	TypeInfo*	statics;
 	mutex_t			mutex;
 } Struct;
 
@@ -16,11 +17,11 @@ typedef struct Struct_Exception {
 	scl_str msg;
 	struct Struct_Array* stackTrace;
 	scl_str errno_str;
-}* _scl_Exception;
+}* scl_Exception;
 
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
-} scl_NullPointerException;
+}* scl_NullPointerException;
 
 typedef struct Struct_IllegalStateException {
 	struct Struct_Exception self;
@@ -62,14 +63,14 @@ typedef struct Struct_AssertError {
 	scl_str msg;
 	struct Struct_Array* stackTrace;
 	scl_str errno_str;
-} scl_AssertError;
+}* scl_AssertError;
 
 typedef struct Struct_UnreachableError {
 	Struct rtFields;
 	scl_str msg;
 	struct Struct_Array* stackTrace;
 	scl_str errno_str;
-} scl_UnreachableError;
+}* scl_UnreachableError;
 
 struct Struct_str {
 	struct scale_string s;
@@ -134,6 +135,7 @@ struct Struct_Array* Process$stackTrace(void) {
 	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
 
 	for (scl_int i = 0; i < arr->count; i++) {
+		_scl_array_check_bounds_or_throw(arr->values, i);
 		arr->values[i] = str_of(_callstack[i]);
 	}
 
@@ -299,7 +301,7 @@ void dumpStack(void) {
 scl_any Library$self0(void) {
 	scl_any lib = dlopen(nil, RTLD_LAZY);
 	if (!lib) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
@@ -314,7 +316,7 @@ scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
 scl_any Library$open0(scl_int8* name) {
 	scl_any lib = dlopen(name, RTLD_LAZY);
 	if (!lib) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
 		e->self.msg = str_of("Failed to load library");
 		_scl_throw(e);
@@ -360,7 +362,11 @@ void Thread$run(scl_Thread self) {
 
 	virtual_call(Var_Thread$threads, "push(a;)V;", self);
 	
-	self->function();
+	TRY {
+		self->function();
+	} else {
+		_scl_runtime_catch();
+	}
 
 	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
 	
@@ -397,13 +403,14 @@ _scl_constructor
 void _scale_framework_init(void) {
     _scl_setup();
 	
-    extern const StaticMembers _scl_statics_Int;
+    extern const TypeInfo _scl_statics_Int;
 
 	ID_t intHash = id("Int");
 	for (scl_int i = -128; i < 127; i++) {
 		_ints[i + 128] = (struct Struct_Int) {
 			.rtFields = {
-				.statics = (StaticMembers*) &_scl_statics_Int,
+				.vtable_fast = (_scl_lambda*) _scl_statics_Int.vtable_fast,
+				.statics = (TypeInfo*) &_scl_statics_Int,
 				.mutex = _scl_mutex_new(),
 			},
 			.value = i

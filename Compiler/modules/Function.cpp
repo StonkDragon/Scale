@@ -2,8 +2,8 @@
 
 using namespace sclc;
 
-Function::Function(std::string name, Token nameToken) : Function(name, false, nameToken) {}
-Function::Function(std::string name, bool isMethod, Token nameToken) : namedReturnValue("", "") {
+Function::Function(std::string name, Token name_token) : Function(name, false, name_token) {}
+Function::Function(std::string name, bool isMethod, Token name_token) : namedReturnValue("", "") {
     if (name == "+") name = "operator$add";
     else if (name == "-") name = "operator$sub";
     else if (name == "*") name = "operator$mul";
@@ -37,10 +37,9 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     else if (name == "[]") name = "operator$get";
     else if (name == "?") name = "operator$wildcard";
 
-    this->nameToken = nameToken;
+    this->name_token = name_token;
     this->name = name;
     this->isMethod = isMethod;
-    this->hasNamedReturnValue = false;
     this->isPrivate = false;
     this->isExternC = false;
     this->member_type = "";
@@ -59,9 +58,6 @@ Function::Function(std::string name, bool isMethod, Token nameToken) : namedRetu
     this->has_unsafe = 0;
     this->has_operator = 0;
 }
-std::string Function::getName() {
-    return name;
-}
 std::string Function::finalName() {
     if (
         !isMethod && 
@@ -78,16 +74,13 @@ std::string Function::finalName() {
                "$" +
                std::to_string(id((char*) name.c_str())) +
                "$" +
-               std::to_string(id((char*) nameToken.getFile().c_str())) +
+               std::to_string(id((char*) name_token.file.c_str())) +
                "$" +
-               std::to_string(nameToken.getLine());
+               std::to_string(name_token.line);
     }
     return name;
 }
 std::vector<Token>& Function::getBody() {
-    return body;
-}
-std::vector<Token>& Function::getBodyRef() {
     return body;
 }
 void Function::addToken(Token token) {
@@ -120,35 +113,8 @@ void Function::addModifier(std::string modifier) {
     else if (!has_getter && modifier == "@getter") has_getter = modifiers.size();
     else if (!has_setter && modifier == "@setter") has_setter = modifiers.size();
 }
-std::vector<std::string>& Function::getModifiers() {
-    return modifiers;
-}
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
-}
-std::vector<Variable>& Function::getArgs() {
-    return args;
-}
-std::string Function::getFile() {
-    return file;
-}
-void Function::setFile(std::string file) {
-    this->file = file;
-}
-void Function::setName(std::string name) {
-    this->name = name;
-}
-std::string Function::getReturnType() {
-    return return_type;
-}
-void Function::setReturnType(std::string type) {
-    return_type = type;
-}
-Token Function::getNameToken() {
-    return this->nameToken;
-}
-void Function::setNameToken(Token t) {
-    this->nameToken = t;
 }
 bool Function::operator!=(const Function& other) const {
     return !(*this == other);
@@ -160,7 +126,7 @@ bool Function::operator==(const Function& other) const {
         Method* thisM = (Method*) this;
         Function* f = (Function*) &other;
         Method* otherM = (Method*) f;
-        return name == other.name && thisM->getMemberType() == otherM->getMemberType();
+        return name == other.name && thisM->member_type == otherM->member_type;
     }
     return name == other.name;
 }
@@ -174,28 +140,18 @@ bool Function::operator==(const Function* other) const {
     if (other->isMethod && this->isMethod) {
         Method* thisM = (Method*) this;
         Method* otherM = (Method*) other;
-        return name == other->name && thisM->getMemberType() == otherM->getMemberType();
+        return name == other->name && thisM->member_type == otherM->member_type;
     }
     return name == other->name;
 }
-Variable& Function::getNamedReturnValue() {
-    if (this->hasNamedReturnValue)
-        return this->namedReturnValue;
-    
-    return Variable::emptyVar();
-}
-void Function::setNamedReturnValue(Variable v) {
-    this->namedReturnValue = v;
-    this->hasNamedReturnValue = true;
-}
 bool Function::belongsToType(std::string typeName) {
-    return (!this->isMethod && !strstarts(this->getName(), typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->getMemberType() != typeName);
+    return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);
 }
 void Function::clearArgs() {
     this->args = std::vector<Variable>();
 }
 bool Function::isCVarArgs() {
-    return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args[this->args.size() - (1 + ((size_t) this->isMethod))].getType() == "varargs";
+    return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args[this->args.size() - (1 + ((size_t) this->isMethod))].type == "varargs";
 }
 Variable& Function::varArgsParam() {
     if (this->isCVarArgs()) {

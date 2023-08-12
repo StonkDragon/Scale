@@ -39,14 +39,14 @@ namespace sclc {
     std::string typeToRTSigIdent(std::string type);
     std::string argsToRTSignatureIdent(Function* f);
 
-    Function* parseFunction(std::string name, Token& nameToken, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+    Function* parseFunction(std::string name, Token& name_token, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
-            if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
+            if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
                 i += 2;
                 name += "[]";
             }
         } else if (name == "[") {
-            if (tokens[i + 2].getType() == tok_bracket_close) {
+            if (tokens[i + 2].type == tok_bracket_close) {
                 i++;
                 name += "]";
             }
@@ -86,22 +86,21 @@ namespace sclc {
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
 
-        Function* func = new Function(name, nameToken);
-        func->setFile(nameToken.getFile());
+        Function* func = new Function(name, name_token);
         i += 2;
-        if (tokens[i].getType() == tok_paren_open) {
+        if (tokens[i].type == tok_paren_open) {
             i++;
-            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+            while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
-                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
-                    std::string name = tokens[i].getValue();
+                if (tokens[i].type == tok_identifier || tokens[i].type == tok_column) {
+                    std::string name = tokens[i].value;
                     std::string type = "any";
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         name = "";
                     } else {
                         i++;
                     }
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
@@ -113,11 +112,11 @@ namespace sclc {
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -125,11 +124,11 @@ namespace sclc {
                     } else {
                         FPResult result;
                         result.message = "A type is required!";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -141,34 +140,34 @@ namespace sclc {
                     func->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
                     }));
-                } else if (tokens[i].getType() == tok_curly_open) {
+                } else if (tokens[i].type == tok_curly_open) {
                     std::vector<std::string> multi;
                     multi.reserve(10);
                     i++;
-                    while (tokens[i].getType() != tok_curly_close) {
-                        if (tokens[i].getType() == tok_comma) {
+                    while (tokens[i].type != tok_curly_close) {
+                        if (tokens[i].type == tok_comma) {
                             i++;
                         }
-                        if (tokens[i].getType() != tok_identifier) {
+                        if (tokens[i].type != tok_identifier) {
                             FPResult result;
-                            result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             i++;
                             continue;
                         }
-                        std::string name = tokens[i].getValue();
+                        std::string name = tokens[i].value;
                         multi.push_back(name);
                         i++;
                     }
                     i++;
                     std::string type;
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
@@ -180,11 +179,11 @@ namespace sclc {
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -192,11 +191,11 @@ namespace sclc {
                     } else {
                         FPResult result;
                         result.message = "A type is required!";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -209,42 +208,42 @@ namespace sclc {
                     }
                 } else {
                     FPResult result;
-                    result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     i++;
                     continue;
                 }
                 i++;
-                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                    if (tokens[i].getType() == tok_comma) {
+                if (tokens[i].type == tok_comma || tokens[i].type == tok_paren_close) {
+                    if (tokens[i].type == tok_comma) {
                         i++;
                     }
                     continue;
                 }
                 FPResult result;
-                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                result.value = tokens[i].getValue();
-                result.line = tokens[i].getLine();
-                result.in = tokens[i].getFile();
-                result.type = tokens[i].getType();
-                result.column = tokens[i].getColumn();
+                result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 continue;
             }
             i++;
             std::string namedReturn = "";
-            if (tokens[i].getType() == tok_identifier) {
-                namedReturn = tokens[i].getValue();
+            if (tokens[i].type == tok_identifier) {
+                namedReturn = tokens[i].value;
                 i++;
             }
-            if (tokens[i].getType() == tok_column) {
+            if (tokens[i].type == tok_column) {
                 i++;
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
@@ -253,22 +252,22 @@ namespace sclc {
                 }
                 std::string type = r.value;
                 std::string fromTemplate = r.message;
-                func->setReturnType(type);
+                func->return_type = type;
                 func->templateArg = r.message;
                 if (namedReturn.size()) {
-                    func->setNamedReturnValue(Variable(namedReturn, "mut " + type).also([fromTemplate](Variable& v) {
-                        v.canBeNil = typeCanBeNil(v.getType());
+                    func->namedReturnValue = Variable(namedReturn, "mut " + type).also([fromTemplate](Variable& v) {
+                        v.canBeNil = typeCanBeNil(v.type);
                         v.typeFromTemplate = fromTemplate;
-                    }));
+                    });
                 }
             } else {
                 FPResult result;
                 result.message = "A type is required!";
-                result.value = tokens[i].getValue();
-                result.line = tokens[i].getLine();
-                result.in = tokens[i].getFile();
-                result.type = tokens[i].getType();
-                result.column = tokens[i].getColumn();
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 i++;
@@ -276,12 +275,12 @@ namespace sclc {
             }
         } else {
             FPResult result;
-            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-            result.value = tokens[i].getValue();
-            result.line = tokens[i].getLine();
-            result.in = tokens[i].getFile();
-            result.type = tokens[i].getType();
-            result.column = tokens[i].getColumn();
+            result.message = "Expected '(', but got '" + tokens[i].value + "'";
+            result.value = tokens[i].value;
+            result.line = tokens[i].line;
+            result.in = tokens[i].file;
+            result.type = tokens[i].type;
+            result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
             return nullptr;
@@ -289,33 +288,33 @@ namespace sclc {
         return func;
     }
 
-    Method* parseMethod(std::string name, Token& nameToken, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+    Method* parseMethod(std::string name, Token& name_token, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
-            if (tokens[i + 2].getType() == tok_bracket_open && tokens[i + 3].getType() == tok_bracket_close) {
+            if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
                 i += 2;
                 name += "[]";
             }
         } else if (name == "[") {
-            if (tokens[i + 2].getType() == tok_bracket_close) {
+            if (tokens[i + 2].type == tok_bracket_close) {
                 i++;
                 name += "]";
             }
         } else if (name == "*") {
-            if (tokens[i + 2].getType() == tok_identifier) {
+            if (tokens[i + 2].type == tok_identifier) {
                 i++;
-                if (tokens[i + 1].getValue() != memberName) {
+                if (tokens[i + 1].value != memberName) {
                     FPResult result;
-                    result.message = "Expected '" + memberName + "', but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Expected '" + memberName + "', but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     return nullptr;
                 }
-                name += tokens[i + 1].getValue();
+                name += tokens[i + 1].value;
             }
         }
 
@@ -352,26 +351,25 @@ namespace sclc {
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
 
-        Method* method = new Method(memberName, name, nameToken);
-        method->setFile(nameToken.getFile());
-        method->forceAdd(true);
-        if (method->getName() == "init" || strstarts(method->getName(), "init")) {
+        Method* method = new Method(memberName, name, name_token);
+        method->force_add = true;
+        if (method->name == "init" || strstarts(method->name, "init")) {
             method->addModifier("<constructor>");
         }
         i += 2;
-        if (tokens[i].getType() == tok_paren_open) {
+        if (tokens[i].type == tok_paren_open) {
             i++;
-            while (i < tokens.size() && tokens[i].getType() != tok_paren_close) {
+            while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
-                if (tokens[i].getType() == tok_identifier || tokens[i].getType() == tok_column) {
-                    std::string name = tokens[i].getValue();
+                if (tokens[i].type == tok_identifier || tokens[i].type == tok_column) {
+                    std::string name = tokens[i].value;
                     std::string type = "any";
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         name = "";
                     } else {
                         i++;
                     }
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
@@ -383,11 +381,11 @@ namespace sclc {
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -395,11 +393,11 @@ namespace sclc {
                     } else {
                         FPResult result;
                         result.message = "A type is required!";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -408,33 +406,33 @@ namespace sclc {
                     method->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
                     }));
-                } else if (tokens[i].getType() == tok_curly_open) {
+                } else if (tokens[i].type == tok_curly_open) {
                     std::vector<std::string> multi;
                     i++;
-                    while (tokens[i].getType() != tok_curly_close) {
-                        if (tokens[i].getType() == tok_comma) {
+                    while (tokens[i].type != tok_curly_close) {
+                        if (tokens[i].type == tok_comma) {
                             i++;
                         }
-                        if (tokens[i].getType() != tok_identifier) {
+                        if (tokens[i].type != tok_identifier) {
                             FPResult result;
-                            result.message = "Expected identifier for argument name, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             i++;
                             continue;
                         }
-                        std::string name = tokens[i].getValue();
+                        std::string name = tokens[i].value;
                         multi.push_back(name);
                         i++;
                     }
                     i++;
                     std::string type;
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
@@ -446,11 +444,11 @@ namespace sclc {
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -458,11 +456,11 @@ namespace sclc {
                     } else {
                         FPResult result;
                         result.message = "A type is required!";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -475,31 +473,31 @@ namespace sclc {
                     }
                 } else {
                     FPResult result;
-                    result.message = "Expected identifier for method argument, but got '" + tokens[i].getValue() + "'";
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Expected identifier for method argument, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     i++;
                     continue;
                 }
                 i++;
-                if (tokens[i].getType() == tok_comma || tokens[i].getType() == tok_paren_close) {
-                    if (tokens[i].getType() == tok_comma) {
+                if (tokens[i].type == tok_comma || tokens[i].type == tok_paren_close) {
+                    if (tokens[i].type == tok_comma) {
                         i++;
                     }
                     continue;
                 }
                 FPResult result;
-                result.message = "Expected ',' or ')', but got '" + tokens[i].getValue() + "'";
-                result.value = tokens[i].getValue();
-                result.line = tokens[i].getLine();
-                result.in = tokens[i].getFile();
-                result.type = tokens[i].getType();
-                result.column = tokens[i].getColumn();
+                result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 continue;
@@ -508,11 +506,11 @@ namespace sclc {
             method->addArgument(Variable("self", "mut " + memberName));
 
             std::string namedReturn = "";
-            if (tokens[i].getType() == tok_identifier) {
-                namedReturn = tokens[i].getValue();
+            if (tokens[i].type == tok_identifier) {
+                namedReturn = tokens[i].value;
                 i++;
             }
-            if (tokens[i].getType() == tok_column) {
+            if (tokens[i].type == tok_column) {
                 i++;
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
@@ -522,21 +520,21 @@ namespace sclc {
 
                 std::string fromTemplate = r.message;
                 std::string type = r.value;
-                method->setReturnType(type);
+                method->return_type = type;
                 method->templateArg = fromTemplate;
                 if (namedReturn.size()) {
-                    method->setNamedReturnValue(Variable(namedReturn, type).also([fromTemplate](Variable& v) {
+                    method->namedReturnValue = Variable(namedReturn, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
-                    }));
+                    });
                 }
             } else {
                 FPResult result;
                 result.message = "A type is required!";
-                result.value = tokens[i].getValue();
-                result.line = tokens[i].getLine();
-                result.in = tokens[i].getFile();
-                result.type = tokens[i].getType();
-                result.column = tokens[i].getColumn();
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 i++;
@@ -544,12 +542,12 @@ namespace sclc {
             }
         } else {
             FPResult result;
-            result.message = "Expected '(', but got '" + tokens[i].getValue() + "'";
-            result.value = tokens[i].getValue();
-            result.line = tokens[i].getLine();
-            result.in = tokens[i].getFile();
-            result.type = tokens[i].getType();
-            result.column = tokens[i].getColumn();
+            result.message = "Expected '(', but got '" + tokens[i].value + "'";
+            result.value = tokens[i].value;
+            result.line = tokens[i].line;
+            result.in = tokens[i].file;
+            result.type = tokens[i].type;
+            result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
             return nullptr;
@@ -568,14 +566,14 @@ namespace sclc {
         return c;
     };
 
-    #define expect(value, ...) if (!(__VA_ARGS__)) { \
+    #define expect(_value, ...) if (!(__VA_ARGS__)) { \
             FPResult result; \
-            result.message = "Expected " + std::string(value) + ", but got '" + tokens[i].getValue() + "'"; \
-            result.va ## lue = tokens[i].getValue(); \
-            result.line = tokens[i].getLine(); \
-            result.in = tokens[i].getFile(); \
-            result.type = tokens[i].getType(); \
-            result.column = tokens[i].getColumn(); \
+            result.message = "Expected " + std::string(_value) + ", but got '" + tokens[i].value + "'"; \
+            result.va ## lue = tokens[i].value; \
+            result.line = tokens[i].line; \
+            result.in = tokens[i].file; \
+            result.type = tokens[i].type; \
+            result.column = tokens[i].column; \
             result.success = false; \
             errors.push_back(result); \
             continue; \
@@ -780,7 +778,7 @@ namespace sclc {
                 func = new Function(name, Token(tok_identifier, name, 0, file));
             }
 
-            func->setReturnType(returnType);
+            func->return_type = returnType;
 
             func->isExternC = func->has_expect;
 
@@ -796,8 +794,8 @@ namespace sclc {
                 func->addModifier(modifier);
             }
 
-            if (isMethod && contains<std::string>(func->getModifiers(), "<virtual>")) {
-                ((Method*) func)->forceAdd(true);
+            if (isMethod && contains<std::string>(func->modifiers, "<virtual>")) {
+                ((Method*) func)->force_add = true;
             }
 
             if (!ast)
@@ -1039,11 +1037,11 @@ namespace sclc {
                 FPResult error; \
                 error.success = false; \
                 error.message = msg; \
-                error.in = tokens[i].getFile(); \
-                error.line = tokens[i].getLine(); \
-                error.column = tokens[i].getColumn(); \
-                error.type = tokens[i].getType(); \
-                error.value = tokens[i].getValue(); \
+                error.in = tokens[i].file; \
+                error.line = tokens[i].line; \
+                error.column = tokens[i].column; \
+                error.type = tokens[i].type; \
+                error.value = tokens[i].value; \
                 error; \
             })
 
@@ -1055,10 +1053,10 @@ namespace sclc {
             std::stack<stackframe> stack;
             std::unordered_map<std::string, stackframe> vars;
             for (size_t j = 0; j < this->tokens.size(); j++) {
-                if (token.getType() == tok_identifier) {
-                    if (token.getValue() == "expand") {
+                if (token.type == tok_identifier) {
+                    if (token.value == "expand") {
                         j++;
-                        if (token.getType() != tok_curly_open) {
+                        if (token.type != tok_curly_open) {
                             errors.push_back(MacroError("Expected '{' after 'expand'"));
                             return;
                         }
@@ -1066,21 +1064,21 @@ namespace sclc {
                         size_t depth = 1;
                         std::vector<Token> expanded;
                         while (depth > 0) {
-                            if (token.getType() == tok_curly_open) {
+                            if (token.type == tok_curly_open) {
                                 depth++;
-                            } else if (token.getType() == tok_curly_close) {
+                            } else if (token.type == tok_curly_close) {
                                 depth--;
                                 if (depth == 0) {
                                     break;
                                 }
                             }
-                            if (token.getType() == tok_dollar) {
-                                if (nextToken.getType() != tok_identifier) {
+                            if (token.type == tok_dollar) {
+                                if (nextToken.type != tok_identifier) {
                                     errors.push_back(MacroError("Unknown expansion token"));
-                                } else if (args.find(nextToken.getValue()) != args.end()) {
-                                    expanded.push_back(args[nextToken.getValue()]);
-                                } else if (vars.find(nextToken.getValue()) != vars.end()) {
-                                    stackframe var = vars[nextToken.getValue()];
+                                } else if (args.find(nextToken.value) != args.end()) {
+                                    expanded.push_back(args[nextToken.value]);
+                                } else if (vars.find(nextToken.value) != vars.end()) {
+                                    stackframe var = vars[nextToken.value];
                                     if (var.name == "Token") {
                                         expanded.push_back(*((Token*) var.value));
                                     } else if (var.name == "String") {
@@ -1099,21 +1097,21 @@ namespace sclc {
                         }
                         otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
                         i += expanded.size();
-                    } else if (token.getValue() == "peekAndConsume") {
+                    } else if (token.value == "peekAndConsume") {
                         Token* next = new Token(otherTokens[i]);
                         otherTokens.erase(otherTokens.begin() + i);
                         stack.push({"Token", (void*) next});
-                    } else if (token.getValue() == "peek") {
+                    } else if (token.value == "peek") {
                         Token* next = new Token(otherTokens[i]);
                         stack.push({"Token", (void*) next});
-                    } else if (token.getValue() == "drop") {
+                    } else if (token.value == "drop") {
                         stack.pop();
-                    } else if (token.getValue() == "consume") {
+                    } else if (token.value == "consume") {
                         otherTokens.erase(otherTokens.begin() + i);
-                    } else if (token.getValue() == "dup") {
+                    } else if (token.value == "dup") {
                         stackframe t = stack.top();
                         stack.push(t);
-                    } else if (token.getValue() == "swap") {
+                    } else if (token.value == "swap") {
                         stackframe t1 = stack.top();
                         stack.pop();
                         stackframe t2 = stack.top();
@@ -1121,12 +1119,12 @@ namespace sclc {
                         stack.push(t1);
                         stack.push(t2);
                     } else {
-                        if (vars.find(token.getValue()) != vars.end()) {
-                            stack.push(vars[token.getValue()]);
-                        } else if (args.find(token.getValue()) != args.end()) {
-                            stack.push({"Token", (void*) new Token(args[token.getValue()])});
+                        if (vars.find(token.value) != vars.end()) {
+                            stack.push(vars[token.value]);
+                        } else if (args.find(token.value) != args.end()) {
+                            stack.push({"Token", (void*) new Token(args[token.value])});
                         } else {
-                            errors.push_back(MacroError("Unknown variable '" + token.getValue() + "'"));
+                            errors.push_back(MacroError("Unknown variable '" + token.value + "'"));
                         }
                     }
                 } else if (token.type == tok_number) {
@@ -1155,15 +1153,15 @@ namespace sclc {
                         }
                         Token* next = (Token*) t.value;
                         if (token.value == "type") {
-                            stack.push({"Number", (void*) (long long) next->getType()});
+                            stack.push({"Number", (void*) (long long) next->type});
                         } else if (token.value == "value") {
-                            stack.push({"String", (void*) strdup((const char*) next->getValue().c_str())});
+                            stack.push({"String", (void*) strdup((const char*) next->value.c_str())});
                         } else if (token.value == "line") {
-                            stack.push({"Number", (void*) (long long) next->getLine()});
+                            stack.push({"Number", (void*) (long long) next->line});
                         } else if (token.value == "column") {
-                            stack.push({"Number", (void*) (long long) next->getColumn()});
+                            stack.push({"Number", (void*) (long long) next->column});
                         } else if (token.value == "file") {
-                            stack.push({"String", (void*) strdup((const char*) next->getFile().c_str())});
+                            stack.push({"String", (void*) strdup((const char*) next->file.c_str())});
                         } else {
                             errors.push_back(MacroError("Unknown Token property '" + token.value + "'"));
                             return;
@@ -1238,20 +1236,20 @@ namespace sclc {
 
         std::unordered_map<std::string, Macro> macros;
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].getType() != tok_identifier || tokens[i].getValue() != "macro!") {
+            if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
                 continue;
             }
             size_t start = i;
             i++;
-            std::string name = tokens[i].getValue();
+            std::string name = tokens[i].value;
             i++;
             Macro macro;
-            if (tokens[i].getType() == tok_paren_open) {
+            if (tokens[i].type == tok_paren_open) {
                 i++;
-                while (tokens[i].getType() != tok_paren_close) {
-                    macro.args.push_back(tokens[i].getValue());
+                while (tokens[i].type != tok_paren_close) {
+                    macro.args.push_back(tokens[i].value);
                     i++;
-                    if (tokens[i].getType() == tok_comma) {
+                    if (tokens[i].type == tok_comma) {
                         i++;
                     }
                 }
@@ -1259,15 +1257,15 @@ namespace sclc {
                 errors.push_back(MacroError("Expected '(' after macro name"));
             }
             i++;
-            if (tokens[i].getType() != tok_curly_open) {
+            if (tokens[i].type != tok_curly_open) {
                 errors.push_back(MacroError("Expected '{' after macro name"));
             }
             i++;
             ssize_t depth = 1;
             while (depth > 0) {
-                if (tokens[i].getType() == tok_curly_open) {
+                if (tokens[i].type == tok_curly_open) {
                     depth++;
-                } else if (tokens[i].getType() == tok_curly_close) {
+                } else if (tokens[i].type == tok_curly_close) {
                     depth--;
                 }
                 if (depth <= 0) {
@@ -1286,15 +1284,15 @@ namespace sclc {
 
         for (size_t i = 0; i < tokens.size(); i++) {
             if (
-                tokens[i].getType() != tok_identifier ||
-                macros.find(tokens[i].getValue()) == macros.end() ||
+                tokens[i].type != tok_identifier ||
+                macros.find(tokens[i].value) == macros.end() ||
                 i + 1 >= tokens.size() ||
-                tokens[i + 1].getValue() != "!" ||
-                tokens[i + 1].getLine() != tokens[i].getLine()
+                tokens[i + 1].value != "!" ||
+                tokens[i + 1].line != tokens[i].line
             ) {
                 continue;
             }
-            Macro& macro = macros[tokens[i].getValue()];
+            Macro& macro = macros[tokens[i].value];
             std::unordered_map<std::string, Token> args;
             size_t start = i;
             i += 2;
@@ -1317,7 +1315,7 @@ namespace sclc {
             builtinIsInstanceOf->addArgument(Variable("obj", "any"));
             builtinIsInstanceOf->addArgument(Variable("typeStr", "str"));
 
-            builtinIsInstanceOf->setReturnType("int");
+            builtinIsInstanceOf->return_type = "int";
             
             // if typeStr "any" == then true return
             builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "builtinIsInstanceOf.scale@"));
@@ -1345,7 +1343,7 @@ namespace sclc {
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
-            builtinHash->setReturnType("int32");
+            builtinHash->return_type = "int32";
             functions.push_back(builtinHash);
 
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "builtinIdentityHash.scale@"));
@@ -1356,7 +1354,7 @@ namespace sclc {
             
             builtinIdentityHash->addArgument(Variable("obj", "any"));
             
-            builtinIdentityHash->setReturnType("int");
+            builtinIdentityHash->return_type = "int";
             functions.push_back(builtinIdentityHash);
 
             Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "builtinAtomicClone.scale@"));
@@ -1367,7 +1365,7 @@ namespace sclc {
             
             builtinAtomicClone->addArgument(Variable("obj", "any"));
             
-            builtinAtomicClone->setReturnType("any");
+            builtinAtomicClone->return_type = "any";
             functions.push_back(builtinAtomicClone);
 
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "builtinTypeEquals.scale@"));
@@ -1379,7 +1377,7 @@ namespace sclc {
             builtinTypeEquals->addArgument(Variable("obj", "any"));
             builtinTypeEquals->addArgument(Variable("typeId", "int32"));
 
-            builtinTypeEquals->setReturnType("int");
+            builtinTypeEquals->return_type = "int";
             functions.push_back(builtinTypeEquals);
 
             Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "builtinToString.scale@"));
@@ -1387,7 +1385,7 @@ namespace sclc {
             
             builtinToString->addArgument(Variable("val", "any"));
 
-            builtinToString->setReturnType("str");
+            builtinToString->return_type = "str";
 
             // if val is SclObject then val as SclObject:toString return else val int::toString return fi
             builtinToString->addToken(Token(tok_if, "if", 0, "builtinToString.scale@"));
@@ -1413,7 +1411,7 @@ namespace sclc {
             Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "builtinUnreachable.scale@"));
             builtinUnreachable->isExternC = true;
             builtinUnreachable->addModifier("extern");
-            builtinUnreachable->setReturnType("none");
+            builtinUnreachable->return_type = "none";
 
             functions.push_back(builtinUnreachable);
         }
@@ -1423,7 +1421,7 @@ namespace sclc {
                 if (functions[i]->isMethod) {
                     continue;
                 }
-                if (functions[i]->getName() == name) {
+                if (functions[i]->name == name) {
                     return functions[i];
                 }
             }
@@ -1431,7 +1429,7 @@ namespace sclc {
                 if (functions[i]->isMethod) {
                     continue;
                 }
-                if (functions[i]->getName() == name) {
+                if (functions[i]->name == name) {
                     return functions[i];
                 }
             }
@@ -1443,7 +1441,7 @@ namespace sclc {
                 if (!functions[i]->isMethod) {
                     continue;
                 }
-                if (functions[i]->getName() == name && ((Method*) functions[i])->getMemberType() == memberType) {
+                if (functions[i]->name == name && ((Method*) functions[i])->member_type == memberType) {
                     return (Method*) functions[i];
                 }
             }
@@ -1451,7 +1449,7 @@ namespace sclc {
                 if (!functions[i]->isMethod) {
                     continue;
                 }
-                if (functions[i]->getName() == name && ((Method*) functions[i])->getMemberType() == memberType) {
+                if (functions[i]->name == name && ((Method*) functions[i])->member_type == memberType) {
                     return (Method*) functions[i];
                 }
             }
@@ -1461,42 +1459,42 @@ namespace sclc {
         for (size_t i = 0; i < tokens.size(); i++) {
             Token& token = tokens[i];
 
-            if (token.getType() == tok_function) {
+            if (token.type == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define function inside another function. Current function: " + currentFunction->getName();
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Cannot define function inside another function. Current function: " + currentFunction->name;
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define function inside of a container. Current container: " + currentContainer->getName();
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Cannot define function inside of a container. Current container: " + currentContainer->name;
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
-                    if (tokens[i + 2].getType() == tok_column) {
-                        std::string name = tokens[i + 1].getValue();
-                        if (name != currentStruct->getName()) {
+                    if (tokens[i + 2].type == tok_column) {
+                        std::string name = tokens[i + 1].value;
+                        if (name != currentStruct->name) {
                             FPResult result;
-                            result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStruct->getName();
-                            result.value = tokens[i + 1].getValue();
-                            result.line = tokens[i + 1].getLine();
-                            result.in = tokens[i + 1].getFile();
-                            result.type = tokens[i + 1].getType();
-                            result.column = tokens[i + 1].getColumn();
+                            result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStruct->name;
+                            result.value = tokens[i + 1].value;
+                            result.line = tokens[i + 1].line;
+                            result.in = tokens[i + 1].file;
+                            result.type = tokens[i + 1].type;
+                            result.column = tokens[i + 1].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -1504,19 +1502,19 @@ namespace sclc {
                         i += 2;
                     }
                     if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
-                        std::string name = tokens[i + 1].getValue();
+                        std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
-                        currentFunction = parseFunction(currentStruct->getName() + "$" + name, func, errors, i, tokens);
+                        currentFunction = parseFunction(currentStruct->name + "$" + name, func, errors, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
-                        currentFunction->member_type = currentStruct->getName();
+                        currentFunction->member_type = currentStruct->name;
                         currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        Function* f = findFunctionByName(currentFunction->getName());
+                        Function* f = findFunctionByName(currentFunction->name);
                         if (f) {
-                            currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
+                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                         }
                         if (contains<std::string>(nextAttributes, "expect")) {
                             currentFunction->isExternC = true;
@@ -1524,7 +1522,7 @@ namespace sclc {
                             currentFunction = nullptr;
                         }
                         if (contains<std::string>(nextAttributes, "intrinsic")) {
-                            if (contains<std::string>(intrinsics, "F:" + currentFunction->getName())) {
+                            if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
                                 currentFunction->isExternC = true;
                                 functions.push_back(currentFunction);
                             }
@@ -1533,15 +1531,15 @@ namespace sclc {
                         continue;
                     }
                     Token& func = tokens[i + 1];
-                    std::string name = func.getValue();
-                    currentFunction = parseMethod(name, func, currentStruct->getName(), errors, i, tokens);
+                    std::string name = func.value;
+                    currentFunction = parseMethod(name, func, currentStruct->name, errors, i, tokens);
                     currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
-                    Function* f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                    Function* f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
                     if (f) {
-                        currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
+                        currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                     }
                     if (contains<std::string>(nextAttributes, "expect")) {
                         currentFunction->isExternC = true;
@@ -1549,7 +1547,7 @@ namespace sclc {
                         currentFunction = nullptr;
                     }
                     if (contains<std::string>(nextAttributes, "intrinsic")) {
-                        if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->getMemberType() + "::" + currentFunction->getName())) {
+                        if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->member_type + "::" + currentFunction->name)) {
                             currentFunction->isExternC = true;
                             functions.push_back(currentFunction);
                         }
@@ -1560,37 +1558,37 @@ namespace sclc {
                 if (currentInterface != nullptr) {
                     if (contains<std::string>(nextAttributes, "default")) {
                         Token& func = tokens[i + 1];
-                        std::string name = func.getValue();
+                        std::string name = func.value;
                         currentFunction = parseMethod(name, func, "", errors, i, tokens);
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
                         currentInterface->addToImplement(currentFunction);
-                        Method* m = new Method(currentInterface->getName(), name, func);
-                        for (Variable& v : currentFunction->getArgs()) {
+                        Method* m = new Method(currentInterface->name, name, func);
+                        for (Variable& v : currentFunction->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->getName()));
-                        m->setReturnType(currentFunction->getReturnType());
-                        for (std::string& s : currentFunction->getModifiers()) {
+                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->return_type = currentFunction->return_type;
+                        for (std::string& s : currentFunction->modifiers) {
                             m->addModifier(s);
                         }
                         functions.push_back(m);
                     } else {
-                        std::string name = tokens[i + 1].getValue();
+                        std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
                         Function* functionToImplement = parseFunction(name, func, errors, i, tokens);
                         functionToImplement->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentInterface->addToImplement(functionToImplement);
 
-                        Method* m = new Method(currentInterface->getName(), name, func);
-                        for (Variable& v : functionToImplement->getArgs()) {
+                        Method* m = new Method(currentInterface->name, name, func);
+                        for (Variable& v : functionToImplement->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->getName()));
-                        m->setReturnType(functionToImplement->getReturnType());
-                        for (std::string& s : functionToImplement->getModifiers()) {
+                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->return_type = functionToImplement->return_type;
+                        for (std::string& s : functionToImplement->modifiers) {
                             m->addModifier(s);
                         }
                         functions.push_back(m);
@@ -1599,30 +1597,30 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i + 1].getType() == tok_column) {
-                    std::string member_type = tokens[i].getValue();
+                if (tokens[i + 1].type == tok_column) {
+                    std::string member_type = tokens[i].value;
                     i++;
                     Token& func = tokens[i + 1];
-                    std::string name = func.getValue();
+                    std::string name = func.value;
                     currentFunction = parseMethod(name, func, member_type, errors, i, tokens);
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
-                        result.value = func.getValue();
-                        result.line = func.getLine();
-                        result.in = func.getFile();
-                        result.type = func.getType();
-                        result.column = func.getColumn();
+                        result.value = func.value;
+                        result.line = func.line;
+                        result.in = func.file;
+                        result.type = func.type;
+                        result.column = func.column;
                         result.success = false;
                         errors.push_back(result);
                         nextAttributes.clear();
                         continue;
                     }
                 } else {
-                    if (tokens[i + 1].getType() == tok_double_column) {
-                        std::string memberType = tokens[i].getValue();
+                    if (tokens[i + 1].type == tok_double_column) {
+                        std::string memberType = tokens[i].value;
                         i++;
-                        std::string name = tokens[i + 1].getValue();
+                        std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
                         currentFunction = parseFunction(memberType + "$" + name, func, errors, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
@@ -1630,7 +1628,7 @@ namespace sclc {
                         currentFunction->addModifier("static");
                     } else {
                         i--;
-                        std::string name = tokens[i + 1].getValue();
+                        std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
                         currentFunction = parseFunction(name, func, errors, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
@@ -1642,12 +1640,12 @@ namespace sclc {
                 }
                 Function* f;
                 if (currentFunction->isMethod) {
-                    f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                    f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
                 } else {
-                    f = findFunctionByName(currentFunction->getName());
+                    f = findFunctionByName(currentFunction->name);
                 }
                 if (f) {
-                    currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
+                    currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
                     currentFunction->isExternC = true;
@@ -1655,13 +1653,13 @@ namespace sclc {
                     currentFunction = nullptr;
                 }
                 if (contains<std::string>(nextAttributes, "intrinsic")) {
-                    if (contains<std::string>(intrinsics, "F:" + currentFunction->getName())) {
+                    if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
                         currentFunction->isExternC = true;
                         functions.push_back(currentFunction);
                     }
                 }
                 nextAttributes.clear();
-            } else if (token.getType() == tok_end) {
+            } else if (token.type == tok_end) {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
                         isInLambda--;
@@ -1681,60 +1679,60 @@ namespace sclc {
                     if (currentInterface == nullptr) {
                         Function* f;
                         if (currentFunction->isMethod) {
-                            f = findMethodByName(currentFunction->getName(), ((Method*) currentFunction)->getMemberType());
+                            f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
                         } else {
-                            f = findFunctionByName(currentFunction->getName());
+                            f = findFunctionByName(currentFunction->name);
                         }
                         if (f) {
                             if (f->isCVarArgs()) {
                                 FPResult result;
-                                result.message = "Cannot overload varargs function " + f->getName() + "!";
-                                result.value = f->getName();
-                                result.line = f->getNameToken().getLine();
-                                result.in = f->getNameToken().getFile();
-                                result.type = f->getNameToken().getType();
-                                result.column = f->getNameToken().getColumn();
+                                result.message = "Cannot overload varargs function " + f->name + "!";
+                                result.value = f->name;
+                                result.line = f->name_token.line;
+                                result.in = f->name_token.file;
+                                result.type = f->name_token.type;
+                                result.column = f->name_token.column;
                                 result.success = false;
                                 errors.push_back(result);
                                 nextAttributes.clear();
                                 currentFunction = nullptr;
                                 continue;
                             } else if (!currentFunction->has_intrinsic) {
-                                if (currentFunction->getArgs() == f->getArgs()) {
+                                if (currentFunction->args == f->args) {
                                     FPResult result;
-                                    result.message = "Function " + currentFunction->getName() + " is already defined!";
-                                    result.value = currentFunction->getName();
-                                    result.line = currentFunction->getNameToken().getLine();
-                                    result.in = currentFunction->getNameToken().getFile();
-                                    result.type = currentFunction->getNameToken().getType();
-                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.message = "Function " + currentFunction->name + " is already defined!";
+                                    result.value = currentFunction->name;
+                                    result.line = currentFunction->name_token.line;
+                                    result.in = currentFunction->name_token.file;
+                                    result.type = currentFunction->name_token.type;
+                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                     nextAttributes.clear();
                                     currentFunction = nullptr;
                                     continue;
                                 }
-                                currentFunction->setName(currentFunction->getName() + "$$ol" + argsToRTSignatureIdent(currentFunction));
+                                currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                                 functionWasOverloaded = true;
                             } else if (currentFunction != f) {
                                 if (currentFunction->has_intrinsic) {
                                     FPResult result;
-                                    result.message = "Cannot overload intrinsic function " + currentFunction->getName() + "!";
-                                    result.value = currentFunction->getName();
-                                    result.line = currentFunction->getNameToken().getLine();
-                                    result.in = currentFunction->getNameToken().getFile();
-                                    result.type = currentFunction->getNameToken().getType();
-                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.message = "Cannot overload intrinsic function " + currentFunction->name + "!";
+                                    result.value = currentFunction->name;
+                                    result.line = currentFunction->name_token.line;
+                                    result.in = currentFunction->name_token.file;
+                                    result.type = currentFunction->name_token.type;
+                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                 } else if (f->has_intrinsic) {
                                     FPResult result;
-                                    result.message = "Cannot overload function " + currentFunction->getName() + " with intrinsic function!";
-                                    result.value = currentFunction->getName();
-                                    result.line = currentFunction->getNameToken().getLine();
-                                    result.in = currentFunction->getNameToken().getFile();
-                                    result.type = currentFunction->getNameToken().getType();
-                                    result.column = currentFunction->getNameToken().getColumn();
+                                    result.message = "Cannot overload function " + currentFunction->name + " with intrinsic function!";
+                                    result.value = currentFunction->name;
+                                    result.line = currentFunction->name_token.line;
+                                    result.in = currentFunction->name_token.file;
+                                    result.type = currentFunction->name_token.type;
+                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                 }
@@ -1751,11 +1749,11 @@ namespace sclc {
                         } else {
                             FPResult result;
                             result.message = "Expected a method, but got a function. If you see this error, something has gone very wrong! Report this: ERR_INTERFACE_DEFAULT_NO_METHOD";
-                            result.value = currentFunction->getNameToken().getValue();
-                            result.line = currentFunction->getNameToken().getLine();
-                            result.in = currentFunction->getNameToken().getFile();
-                            result.type = currentFunction->getNameToken().getType();
-                            result.column = currentFunction->getNameToken().getColumn();
+                            result.value = currentFunction->name_token.value;
+                            result.line = currentFunction->name_token.line;
+                            result.in = currentFunction->name_token.file;
+                            result.type = currentFunction->name_token.type;
+                            result.column = currentFunction->name_token.column;
                             result.success = false;
                             errors.push_back(result);
                         }
@@ -1777,166 +1775,166 @@ namespace sclc {
                 } else {
                     FPResult result;
                     result.message = "Unexpected 'end' keyword outside of function, container, struct or interface body. Remove this:";
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.getType() == tok_container_def) {
+            } else if (token.type == tok_container_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                if (tokens[i + 1].getType() != tok_identifier) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for container name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Expected identifier for container name, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "nothing" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
+                if (tokens[i].value == "str" || tokens[i].value == "int" || tokens[i].value == "float" || tokens[i].value == "none" || tokens[i].value == "nothing" || tokens[i].value == "any" || isPrimitiveIntegerType(tokens[i].value)) {
                     FPResult result;
-                    result.message = "Invalid name for container: '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Invalid name for container: '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                currentContainer = new Container(tokens[i].getValue());
+                currentContainer = new Container(tokens[i].value);
                 currentContainer->name_token = new Token(tokens[i]);
-            } else if (token.getType() == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].getType() != tok_double_column))) {
+            } else if (token.type == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].type != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                if (tokens[i + 1].getType() != tok_identifier) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for struct name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i + 1].getType();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Expected identifier for struct name, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i + 1].type;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "none") {
+                if (tokens[i].value == "none") {
                     FPResult result;
-                    result.message = "Invalid name for struct: '" + tokens[i].getValue() + "'";
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Invalid name for struct: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                currentStruct = new Struct(tokens[i].getValue(), tokens[i]);
+                currentStruct = new Struct(tokens[i].value, tokens[i]);
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
@@ -1944,35 +1942,35 @@ namespace sclc {
                 
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
-                if (tokens[i + 1].getValue() == "<") {
+                if (tokens[i + 1].value == "<") {
                     i++;
                     // *i = "<"
                     i++;
                     // *i = first template argument
-                    while (tokens[i].getValue() != ">") {
-                        if (tokens[i].getType() != tok_identifier) {
+                    while (tokens[i].value != ">") {
+                        if (tokens[i].type != tok_identifier) {
                             FPResult result;
-                            result.message = "Expected identifier for template argument name, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.message = "Expected identifier for template argument name, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
                         }
-                        std::string key = tokens[i].getValue();
+                        std::string key = tokens[i].value;
                         i++;
                         // *i = ":"
-                        if (tokens[i].getType() != tok_column) {
+                        if (tokens[i].type != tok_column) {
                             FPResult result;
-                            result.message = "Expected ':' after template argument name, but got '" + tokens[i].getValue() + "'";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.message = "Expected ':' after template argument name, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -1989,74 +1987,74 @@ namespace sclc {
                         currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
                         templateArgs[key] = value.value;
                         i++;
-                        if (tokens[i].getValue() == ",") {
+                        if (tokens[i].value == ",") {
                             i++;
                         }
                     }
                 }
-                if (tokens[i + 1].getType() == tok_column) {
+                if (tokens[i + 1].type == tok_column) {
                     i += 2;
-                    if (currentStruct->getName() == tokens[i].getValue()) {
+                    if (currentStruct->name == tokens[i].value) {
                         FPResult result;
                         result.message = "Structs cannot extend themselves. Defaulted to 'SclObject'!";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                     } else {
-                        if (tokens[i].getValue() == "SclObject") {
+                        if (tokens[i].value == "SclObject") {
                             FPResult result;
                             result.message = "Explicit inherit of struct 'SclObject' not neccessary.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = true;
                             warns.push_back(result);
                         }
-                        currentStruct->setExtends(tokens[i].getValue());
+                        currentStruct->super = (tokens[i].value);
                         hasSuperSpecified = true;
                     }
                 }
                 if (!hasSuperSpecified) {
-                    if (currentStruct->getName() != "SclObject")
-                        currentStruct->setExtends("SclObject");
+                    if (currentStruct->name != "SclObject")
+                        currentStruct->super = ("SclObject");
                 }
-                if (tokens[i + 1].getType() == tok_is) {
+                if (tokens[i + 1].type == tok_is) {
                     i++;
-                    if (tokens[i + 1].getType() != tok_identifier) {
+                    if (tokens[i + 1].type != tok_identifier) {
                         FPResult result;
-                        result.message = "Expected identifier for interface name, but got'" + tokens[i + 1].getValue() + "'";
-                        result.value = tokens[i + 1].getValue();
-                        result.line = tokens[i + 1].getLine();
-                        result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i + 1].getType();
-                        result.column = tokens[i + 1].getColumn();
+                        result.message = "Expected identifier for interface name, but got'" + tokens[i + 1].value + "'";
+                        result.value = tokens[i + 1].value;
+                        result.line = tokens[i + 1].line;
+                        result.in = tokens[i + 1].file;
+                        result.type = tokens[i + 1].type;
+                        result.column = tokens[i + 1].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                     i++;
-                    while (tokens[i].getType() != tok_declare && tokens[i].getType() != tok_end && tokens[i].getType() != tok_function && tokens[i].getType() != tok_extern && tokens[i].getValue() != "static" && tokens[i].getValue() != "private") {
-                        if (tokens[i].getType() == tok_identifier)
-                            currentStruct->implement(tokens[i].getValue());
+                    while (tokens[i].type != tok_declare && tokens[i].type != tok_end && tokens[i].type != tok_function && tokens[i].type != tok_extern && tokens[i].value != "static" && tokens[i].value != "private") {
+                        if (tokens[i].type == tok_identifier)
+                            currentStruct->implement(tokens[i].value);
                         i++;
-                        if (tokens[i].getType() == tok_declare || tokens[i].getType() == tok_end || tokens[i].getType() == tok_function || tokens[i].getType() == tok_extern || tokens[i].getValue() == "static" || tokens[i].getValue() == "private") {
+                        if (tokens[i].type == tok_declare || tokens[i].type == tok_end || tokens[i].type == tok_function || tokens[i].type == tok_extern || tokens[i].value == "static" || tokens[i].value == "private") {
                             i--;
                             break;
                         }
                         if (i >= tokens.size()) {
                             FPResult result;
                             result.message = "Unexpected end of file!";
-                            result.value = tokens[i - 1].getValue();
-                            result.line = tokens[i - 1].getLine();
-                            result.in = tokens[i - 1].getFile();
-                            result.type = tokens[i - 1].getType();
-                            result.column = tokens[i - 1].getColumn();
+                            result.value = tokens[i - 1].value;
+                            result.line = tokens[i - 1].line;
+                            result.in = tokens[i - 1].file;
+                            result.type = tokens[i - 1].type;
+                            result.column = tokens[i - 1].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -2068,89 +2066,89 @@ namespace sclc {
                     structs.push_back(*currentStruct);
                     currentStruct = nullptr;
                 }
-            } else if (token.getType() == tok_identifier && token.getValue() == "layout") {
+            } else if (token.type == tok_identifier && token.value == "layout") {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a layout inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a layout inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a layout inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a layout inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define a layout inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define a layout inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                std::string name = tokens[i].getValue();
+                std::string name = tokens[i].value;
                 i++;
                 Layout layout(name);
 
-                while (tokens[i].getType() != tok_end) {
-                    if (tokens[i].getType() != tok_declare) {
+                while (tokens[i].type != tok_end) {
+                    if (tokens[i].type != tok_declare) {
                         FPResult result;
                         result.message = "Only declarations are allowed inside of a layout.";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         break;
                     }
                     i++;
-                    if (tokens[i].getType() != tok_identifier) {
+                    if (tokens[i].type != tok_identifier) {
                         FPResult result;
-                        result.message = "Expected identifier for variable name, but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.column = tokens[i].getColumn();
+                        result.message = "Expected identifier for variable name, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         break;
                     }
-                    std::string name = tokens[i].getValue();
+                    std::string name = tokens[i].value;
                     std::string type = "any";
                     i++;
-                    if (tokens[i].getType() == tok_column) {
+                    if (tokens[i].type == tok_column) {
                         i++;
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
@@ -2161,12 +2159,12 @@ namespace sclc {
                         if (type == "none" || type == "nothing") {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
-                            result.value = tokens[i].getValue();
-                            result.line = tokens[i].getLine();
-                            result.in = tokens[i].getFile();
-                            result.type = tokens[i].getType();
-                            result.column = tokens[i].getColumn();
-                            result.column = tokens[i].getColumn();
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -2178,202 +2176,202 @@ namespace sclc {
                 }
 
                 layouts.push_back(layout);
-            } else if (token.getType() == tok_enum) {
+            } else if (token.type == tok_enum) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an enum inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define an enum inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an enum inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define an enum inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an enum inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define an enum inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an enum inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define an enum inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                if (tokens[i].getType() != tok_identifier) {
+                if (tokens[i].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for enum name, but got '" + tokens[i].getValue() + "'";
-                    result.value = tokens[i].getValue();
-                    result.line = tokens[i].getLine();
-                    result.in = tokens[i].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Expected identifier for enum name, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                std::string name = tokens[i].getValue();
+                std::string name = tokens[i].value;
                 i++;
                 Enum e = Enum(name);
                 e.name_token = new Token(tokens[i - 1]);
-                while (tokens[i].getType() != tok_end) {
+                while (tokens[i].type != tok_end) {
                     long next = e.nextValue;
-                    if (tokens[i].getType() == tok_bracket_open) {
+                    if (tokens[i].type == tok_bracket_open) {
                         i++;
-                        expect("number", tokens[i].getType() == tok_number);
-                        next = parseNumber(tokens[i].getValue());
+                        expect("number", tokens[i].type == tok_number);
+                        next = parseNumber(tokens[i].value);
                         i++;
-                        expect("]", tokens[i].getType() == tok_bracket_close);
+                        expect("]", tokens[i].type == tok_bracket_close);
                         i++;
                     }
-                    if (tokens[i].getType() != tok_identifier) {
+                    if (tokens[i].type != tok_identifier) {
                         FPResult result;
-                        result.message = "Expected identifier for enum member, but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.message = "Expected identifier for enum member, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
                         continue;
                     }
                     try {
-                        e.addMember(tokens[i].getValue(), next);
+                        e.addMember(tokens[i].value, next);
                     } catch (const std::runtime_error& e) {
                         FPResult result;
                         result.message = e.what();
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                     }
                     i++;
                 }
                 enums.push_back(e);
-            } else if (token.getType() == tok_interface_def) {
+            } else if (token.type == tok_interface_def) {
                 if (currentContainer != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = token.getType();
-                    result.column = token.getColumn();
+                    result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentStruct != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->getName();
-                    result.value = token.getValue();
-                    result.line = token.getLine();
-                    result.in = token.getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                if (tokens[i + 1].getType() != tok_identifier) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for interface declaration, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Expected identifier for interface declaration, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                if (tokens[i].getValue() == "str" || tokens[i].getValue() == "int" || tokens[i].getValue() == "float" || tokens[i].getValue() == "none" || tokens[i].getValue() == "any" || isPrimitiveIntegerType(tokens[i].getValue())) {
+                if (tokens[i].value == "str" || tokens[i].value == "int" || tokens[i].value == "float" || tokens[i].value == "none" || tokens[i].value == "any" || isPrimitiveIntegerType(tokens[i].value)) {
                     FPResult result;
-                    result.message = "Invalid name for interface: '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.type = tokens[i].getType();
-                    result.column = tokens[i].getColumn();
+                    result.message = "Invalid name for interface: '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                currentInterface = new Interface(tokens[i].getValue());
+                currentInterface = new Interface(tokens[i].value);
                 currentInterface->name_token = new Token(tokens[i]);
-            } else if (token.getType() == tok_addr_of) {
+            } else if (token.type == tok_addr_of) {
                 if (currentFunction == nullptr) {
-                    if (tokens[i + 1].getType() == tok_identifier) {
-                        nextAttributes.push_back(tokens[i + 1].getValue());
-                        if (tokens[i + 1].getValue() == "relocatable") {
+                    if (tokens[i + 1].type == tok_identifier) {
+                        nextAttributes.push_back(tokens[i + 1].value);
+                        if (tokens[i + 1].value == "relocatable") {
                             nextAttributes.push_back("export");
                         }
                     } else {
                         FPResult result;
-                        result.message = "'" + tokens[i + 1].getValue() + "' is not a valid modifier.";
-                        result.value = tokens[i + 1].getValue();
-                        result.line = tokens[i + 1].getLine();
-                        result.in = tokens[i + 1].getFile();
-                        result.type = tokens[i + 1].getType();
-                        result.column = tokens[i + 1].getColumn();
+                        result.message = "'" + tokens[i + 1].value + "' is not a valid modifier.";
+                        result.value = tokens[i + 1].value;
+                        result.line = tokens[i + 1].line;
+                        result.in = tokens[i + 1].file;
+                        result.type = tokens[i + 1].type;
+                        result.column = tokens[i + 1].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2384,34 +2382,34 @@ namespace sclc {
                 }
             } else if (currentFunction != nullptr && currentContainer == nullptr) {
                 if (
-                    token.getType() == tok_identifier &&
-                    token.getValue() == "lambda" &&
-                    (((ssize_t) i) - 3 >= 0 && tokens[i - 3].getType() != tok_declare) &&
-                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_as) &&
-                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_comma) &&
-                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].getType() != tok_paren_open)
+                    token.type == tok_identifier &&
+                    token.value == "lambda" &&
+                    (((ssize_t) i) - 3 >= 0 && tokens[i - 3].type != tok_declare) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_comma) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_paren_open)
                 ) isInLambda++;
-                if (token.getType() == tok_identifier && token.getValue() == "unsafe") {
+                if (token.type == tok_identifier && token.value == "unsafe") {
                     isInUnsafe++;
                 }
                 if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
-            } else if (token.getType() == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
-                if (tokens[i + 1].getType() != tok_identifier) {
+            } else if (token.type == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                std::string name = tokens[i].getValue();
+                std::string name = tokens[i].value;
                 std::string type = "any";
                 i++;
-                if (tokens[i].getType() == tok_column) {
+                if (tokens[i].type == tok_column) {
                     i++;
                     FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
@@ -2422,11 +2420,11 @@ namespace sclc {
                     if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2438,22 +2436,22 @@ namespace sclc {
                     globals.push_back(Variable(name, type));
                 }
                 nextAttributes.clear();
-            } else if (token.getType() == tok_declare && currentContainer != nullptr) {
-                if (tokens[i + 1].getType() != tok_identifier) {
+            } else if (token.type == tok_declare && currentContainer != nullptr) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                std::string name = tokens[i].getValue();
+                std::string name = tokens[i].value;
                 std::string type = "any";
                 i++;
-                if (tokens[i].getType() == tok_column) {
+                if (tokens[i].type == tok_column) {
                     i++;
                     FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
@@ -2464,12 +2462,12 @@ namespace sclc {
                     if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2477,27 +2475,27 @@ namespace sclc {
                 }
                 nextAttributes.clear();
                 currentContainer->addMember(Variable(name, type));
-            } else if (token.getType() == tok_declare && currentStruct != nullptr) {
-                if (tokens[i + 1].getType() != tok_identifier) {
+            } else if (token.type == tok_declare && currentStruct != nullptr) {
+                if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].getValue() + "'";
-                    result.value = tokens[i + 1].getValue();
-                    result.line = tokens[i + 1].getLine();
-                    result.in = tokens[i + 1].getFile();
-                    result.column = tokens[i + 1].getColumn();
+                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.line = tokens[i + 1].line;
+                    result.in = tokens[i + 1].file;
+                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 i++;
-                Token& nameToken = tokens[i];
-                std::string name = tokens[i].getValue();
+                Token& name_token = tokens[i];
+                std::string name = tokens[i].value;
                 std::string type = "any";
                 i++;
                 bool isInternalMut = false;
                 bool isPrivate = false;
                 std::string fromTemplate = "";
-                if (tokens[i].getType() == tok_column) {
+                if (tokens[i].type == tok_column) {
                     i++;
                     FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
@@ -2511,12 +2509,12 @@ namespace sclc {
                     if (type == "none" || type == "nothing") {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.column = tokens[i].getColumn();
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2525,8 +2523,8 @@ namespace sclc {
                 
                 Variable& v = Variable::emptyVar();
                 if (currentStruct->isStatic() || contains<std::string>(nextAttributes, "static")) {
-                    v = Variable(currentStruct->getName() + "$" + name, type, currentStruct->getName());
-                    v.name_token = new Token(nameToken);
+                    v = Variable(currentStruct->name + "$" + name, type, currentStruct->name);
+                    v.name_token = new Token(name_token);
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     globals.push_back(v);
@@ -2534,18 +2532,18 @@ namespace sclc {
                     if (typeIsConst(type) && isInternalMut) {
                         FPResult result;
                         result.message = "The 'const' and 'readonly' modifiers are mutually exclusive!";
-                        result.value = nameToken.getValue();
-                        result.line = nameToken.getLine();
-                        result.in = nameToken.getFile();
-                        result.column = nameToken.getColumn();
-                        result.type = nameToken.getType();
-                        result.column = nameToken.getColumn();
+                        result.value = name_token.value;
+                        result.line = name_token.line;
+                        result.in = name_token.file;
+                        result.column = name_token.column;
+                        result.type = name_token.type;
+                        result.column = name_token.column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
-                    v = Variable(name, type, currentStruct->getName());
-                    v.name_token = new Token(nameToken);
+                    v = Variable(name, type, currentStruct->name);
+                    v.name_token = new Token(name_token);
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     currentStruct->addMember(v);
@@ -2556,40 +2554,40 @@ namespace sclc {
             } else {
 
                 auto validAttribute = [](Token& t) -> bool {
-                    return t.getType()  == tok_string_literal ||
-                           t.getValue() == "sinceVersion:" ||
-                           t.getValue() == "replaceWith:" ||
-                           t.getValue() == "deprecated!" ||
-                           t.getValue() == "overload!" ||
-                           t.getValue() == "construct" ||
-                           t.getValue() == "intrinsic" ||
-                           t.getValue() == "autoimpl" ||
-                           t.getValue() == "restrict" ||
-                           t.getValue() == "operator" ||
-                           t.getValue() == "default" ||
-                           t.getValue() == "private" ||
-                           t.getValue() == "static" ||
-                           t.getValue() == "export" ||
-                           t.getValue() == "expect" ||
-                           t.getValue() == "sealed" ||
-                           t.getValue() == "unsafe" ||
-                           t.getValue() == "cdecl" ||
-                           t.getValue() == "final" ||
-                           t.getValue() == "open" ||
-                           t.getValue() == "asm";
+                    return t.type  == tok_string_literal ||
+                           t.value == "sinceVersion:" ||
+                           t.value == "replaceWith:" ||
+                           t.value == "deprecated!" ||
+                           t.value == "overload!" ||
+                           t.value == "construct" ||
+                           t.value == "intrinsic" ||
+                           t.value == "autoimpl" ||
+                           t.value == "restrict" ||
+                           t.value == "operator" ||
+                           t.value == "default" ||
+                           t.value == "private" ||
+                           t.value == "static" ||
+                           t.value == "export" ||
+                           t.value == "expect" ||
+                           t.value == "sealed" ||
+                           t.value == "unsafe" ||
+                           t.value == "cdecl" ||
+                           t.value == "final" ||
+                           t.value == "open" ||
+                           t.value == "asm";
                 };
 
-                if ((tokens[i].getValue() == "get" || tokens[i].getValue() == "set") && currentStruct != nullptr && currentFunction == nullptr) {
-                    std::string varName = lastDeclaredVariable.getName();
-                    if (tokens[i].getValue() == "get") {
+                if ((tokens[i].value == "get" || tokens[i].value == "set") && currentStruct != nullptr && currentFunction == nullptr) {
+                    std::string varName = lastDeclaredVariable.name;
+                    if (tokens[i].value == "get") {
                         Token& getToken = tokens[i];
                         i++;
-                        expect("'('", tokens[i].getType() == tok_paren_open);
+                        expect("'('", tokens[i].type == tok_paren_open);
                         i++;
-                        expect("')'", tokens[i].getType() == tok_paren_close);
+                        expect("')'", tokens[i].type == tok_paren_close);
                         i++;
-                        expect("'=>'", tokens[i].getType() == tok_store);
-                        if (tokens[i + 1].getType() == tok_identifier && tokens[i + 1].getValue() == "lambda") {
+                        expect("'=>'", tokens[i].type == tok_store);
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
                             i++;
                         }
                         
@@ -2597,24 +2595,24 @@ namespace sclc {
                         name += (char) std::toupper(varName[0]);
                         name += varName.substr(1);
 
-                        Method* getter = new Method(currentStruct->getName(), name, getToken);
-                        getter->setReturnType(lastDeclaredVariable.getType());
+                        Method* getter = new Method(currentStruct->name, name, getToken);
+                        getter->return_type = lastDeclaredVariable.type;
                         getter->addModifier("@getter");
                         getter->addModifier(varName);
-                        getter->addArgument(Variable("self", "mut " + currentStruct->getName()));
+                        getter->addArgument(Variable("self", "mut " + currentStruct->name));
                         currentFunction = getter;
                     } else {
                         Token& setToken = tokens[i];
                         i++;
-                        expect("'('", tokens[i].getType() == tok_paren_open);
+                        expect("'('", tokens[i].type == tok_paren_open);
                         i++;
-                        expect("identifier", tokens[i].getType() == tok_identifier);
-                        std::string argName = tokens[i].getValue();
+                        expect("identifier", tokens[i].type == tok_identifier);
+                        std::string argName = tokens[i].value;
                         i++;
-                        expect("')'", tokens[i].getType() == tok_paren_close);
+                        expect("')'", tokens[i].type == tok_paren_close);
                         i++;
-                        expect("'=>'", tokens[i].getType() == tok_store);
-                        if (tokens[i + 1].getType() == tok_identifier && tokens[i + 1].getValue() == "lambda") {
+                        expect("'=>'", tokens[i].type == tok_store);
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
                             i++;
                         }
 
@@ -2622,57 +2620,57 @@ namespace sclc {
                         name += (char) std::toupper(varName[0]);
                         name += varName.substr(1);
 
-                        Method* setter = new Method(currentStruct->getName(), name, setToken);
-                        setter->setReturnType("none");
+                        Method* setter = new Method(currentStruct->name, name, setToken);
+                        setter->return_type = "none";
                         setter->addModifier("@setter");
                         setter->addModifier(varName);
-                        setter->addArgument(Variable(argName, lastDeclaredVariable.getType()));
-                        setter->addArgument(Variable("self", "mut " + currentStruct->getName()));
+                        setter->addArgument(Variable(argName, lastDeclaredVariable.type));
+                        setter->addArgument(Variable("self", "mut " + currentStruct->name));
                         currentFunction = setter;
                     }
-                } else if (tokens[i].getValue() == "typealias") {
+                } else if (tokens[i].value == "typealias") {
                     i++;
-                    std::string type = tokens[i].getValue();
+                    std::string type = tokens[i].value;
                     i++;
-                    if (tokens[i].getType() != tok_string_literal) {
+                    if (tokens[i].type != tok_string_literal) {
                         FPResult result;
-                        result.message = "Expected string, but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.column = tokens[i].getColumn();
+                        result.message = "Expected string, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
-                    std::string replacement = tokens[i].getValue();
+                    std::string replacement = tokens[i].value;
                     typealiases[type] = replacement;
-                } else if (tokens[i].getValue() == "deprecated!") {
+                } else if (tokens[i].value == "deprecated!") {
                     i++;
-                    if (tokens[i].getType() != tok_bracket_open) {
+                    if (tokens[i].type != tok_bracket_open) {
                         FPResult result;
-                        result.message = "Expected '[', but got '" + tokens[i].getValue() + "'";
-                        result.value = tokens[i].getValue();
-                        result.line = tokens[i].getLine();
-                        result.in = tokens[i].getFile();
-                        result.type = tokens[i].getType();
-                        result.column = tokens[i].getColumn();
-                        result.column = tokens[i].getColumn();
+                        result.message = "Expected '[', but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                     i++;
-                    #define invalidKey(key, type) do {\
+                    #define invalidKey(key, _type) do {\
                         FPResult result; \
-                        result.message = "Invalid key for '" + std::string(type) + "': '" + key + "'"; \
-                        result.value = tokens[i].getValue(); \
-                        result.line = tokens[i].getLine(); \
-                        result.in = tokens[i].getFile(); \
-                        result.ty ## pe = tokens[i].getType(); \
-                        result.column = tokens[i].getColumn(); \
+                        result.message = "Invalid key for '" + std::string(_type) + "': '" + key + "'"; \
+                        result.value = tokens[i].value; \
+                        result.line = tokens[i].line; \
+                        result.in = tokens[i].file; \
+                        result.ty ## pe = tokens[i].type; \
+                        result.column = tokens[i].column; \
                         result.success = false; \
                         errors.push_back(result); \
                         continue; \
@@ -2680,36 +2678,36 @@ namespace sclc {
 
                     currentDeprecation[".name"] = "deprecated!";
                     
-                    while (tokens[i].getType() != tok_bracket_close && i < tokens.size()) {
-                        std::string key = tokens[i].getValue();
+                    while (tokens[i].type != tok_bracket_close && i < tokens.size()) {
+                        std::string key = tokens[i].value;
                         i++;
 
-                        expect("':'", tokens[i].getType() == tok_column);
+                        expect("':'", tokens[i].type == tok_column);
                         i++;
 
                         if (key == "since" || key == "replacement") {
-                            expect("string", tokens[i].getType() == tok_string_literal);
+                            expect("string", tokens[i].type == tok_string_literal);
                         } else if (key == "forRemoval") {
-                            expect("boolean", tokens[i].getType() == tok_true || tokens[i].getType() == tok_false);
+                            expect("boolean", tokens[i].type == tok_true || tokens[i].type == tok_false);
                         } else {
                             invalidKey(key, "deprecated!");
                         }
-                        std::string value = tokens[i].getValue();
+                        std::string value = tokens[i].value;
                         currentDeprecation[key] = value;
                         i++;
-                        if (tokens[i].getType() == tok_comma) {
+                        if (tokens[i].type == tok_comma) {
                             i++;
                         }
                     }
 
                     #undef invalidKey
                 } else if (validAttribute(tokens[i])) {
-                    if (tokens[i].getValue() == "construct" && currentStruct != nullptr) {
+                    if (tokens[i].value == "construct" && currentStruct != nullptr) {
                         nextAttributes.push_back("private");
                         nextAttributes.push_back("static");
                     }
-                    nextAttributes.push_back(tokens[i].getValue());
-                    if (tokens[i].getValue() == "relocatable") {
+                    nextAttributes.push_back(tokens[i].value);
+                    if (tokens[i].value == "relocatable") {
                         nextAttributes.push_back("export");
                     }
                 }
@@ -2720,7 +2718,7 @@ namespace sclc {
             if (self->isMethod) {
                 Function* f2 = self;
                 Method* self = (Method*) f2;
-                std::string name = self->getName();
+                std::string name = self->name;
                 self->overloads.push_back(self);
                 if (name.find("$$ol") != std::string::npos) {
                     name = name.substr(0, name.find("$$ol"));
@@ -2728,13 +2726,13 @@ namespace sclc {
                 for (Function* f : functions) {
                     if (f == self) continue;
                     if (!f->isMethod) continue;
-                    if ((strstarts(f->getName(), name + "$$ol") || f->getName() == name) && ((Method*)f)->getMemberType() == self->getMemberType()) {
+                    if ((strstarts(f->name, name + "$$ol") || f->name == name) && ((Method*)f)->member_type == self->member_type) {
                         self->overloads.push_back(f);
                     }
                 }
                 continue;
             }
-            std::string name = self->getName();
+            std::string name = self->name;
             self->overloads.push_back(self);
             if (name.find("$$ol") != std::string::npos) {
                 name = name.substr(0, name.find("$$ol"));
@@ -2742,7 +2740,7 @@ namespace sclc {
             for (Function* f : functions) {
                 if (f == self) continue;
                 if (f->isMethod) continue;
-                if (strstarts(f->getName(), name + "$$ol") || f->getName() == name) {
+                if (strstarts(f->name, name + "$$ol") || f->name == name) {
                     self->overloads.push_back(f);
                 }
             }
@@ -2765,17 +2763,17 @@ namespace sclc {
         std::vector<Struct> newStructs;
 
         for (auto&& s : result.structs) {
-            Struct super = getStructByName(result, s.extends());
+            Struct super = getStructByName(result, s.super);
             for (auto t : s.templates) {
                 if (t.second.size() > 2 && t.second.front() == '[' && t.second.back() == ']') {
                     FPResult r;
                     r.message = "Default value for template '" + t.first + "' is an array, which is not allowed";
                     r.value = t.second;
-                    r.line = s.getNameToken().getLine();
-                    r.in = s.getNameToken().getFile();
-                    r.type = s.getNameToken().getType();
-                    r.column = s.getNameToken().getColumn();
-                    r.column = s.getNameToken().getColumn();
+                    r.line = s.name_token.line;
+                    r.in = s.name_token.file;
+                    r.type = s.name_token.type;
+                    r.column = s.name_token.column;
+                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     continue;
@@ -2792,37 +2790,37 @@ namespace sclc {
                         r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a primitive type";
                     }
                     r.value = t.second;
-                    r.line = s.getNameToken().getLine();
-                    r.in = s.getNameToken().getFile();
-                    r.type = s.getNameToken().getType();
-                    r.column = s.getNameToken().getColumn();
-                    r.column = s.getNameToken().getColumn();
+                    r.line = s.name_token.line;
+                    r.in = s.name_token.file;
+                    r.type = s.name_token.type;
+                    r.column = s.name_token.column;
+                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     continue;
                 }
             }
             Struct oldSuper = s;
-            while (super.getName().size()) {
-                if (super.getName() == s.getName()) {
+            while (super.name.size()) {
+                if (super.name == s.name) {
                     FPResult r;
-                    r.message = "Struct '" + s.getName() + "' has Struct '" + oldSuper.getName() + "' in it's inheritance chain, which inherits from '" + super.getName() + "'";
-                    r.value = s.nameToken().getValue();
-                    r.line = s.nameToken().getLine();
-                    r.in = s.nameToken().getFile();
-                    r.type = s.nameToken().getType();
-                    r.column = s.nameToken().getColumn();
-                    r.column = s.nameToken().getColumn();
+                    r.message = "Struct '" + s.name + "' has Struct '" + oldSuper.name + "' in it's inheritance chain, which inherits from '" + super.name + "'";
+                    r.value = s.name_token.value;
+                    r.line = s.name_token.line;
+                    r.in = s.name_token.file;
+                    r.type = s.name_token.type;
+                    r.column = s.name_token.column;
+                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     FPResult r2;
-                    r2.message = "Struct '" + oldSuper.getName() + "' declared here:";
-                    r2.value = oldSuper.nameToken().getValue();
-                    r2.line = oldSuper.nameToken().getLine();
-                    r2.in = oldSuper.nameToken().getFile();
-                    r2.type = oldSuper.nameToken().getType();
-                    r2.column = oldSuper.nameToken().getColumn();
-                    r2.column = oldSuper.nameToken().getColumn();
+                    r2.message = "Struct '" + oldSuper.name + "' declared here:";
+                    r2.value = oldSuper.name_token.value;
+                    r2.line = oldSuper.name_token.line;
+                    r2.in = oldSuper.name_token.file;
+                    r2.type = oldSuper.name_token.type;
+                    r2.column = oldSuper.name_token.column;
+                    r2.column = oldSuper.name_token.column;
                     r2.success = false;
                     r2.isNote = true;
                     result.errors.push_back(r2);
@@ -2831,23 +2829,23 @@ namespace sclc {
                 }
                 if (super.isFinal()) {
                     FPResult r;
-                    r.message = "Struct '" + super.getName() + "' is final";
-                    r.value = s.nameToken().getValue();
-                    r.line = s.nameToken().getLine();
-                    r.in = s.nameToken().getFile();
-                    r.type = s.nameToken().getType();
-                    r.column = s.nameToken().getColumn();
-                    r.column = s.nameToken().getColumn();
+                    r.message = "Struct '" + super.name + "' is final";
+                    r.value = s.name_token.value;
+                    r.line = s.name_token.line;
+                    r.in = s.name_token.file;
+                    r.type = s.name_token.type;
+                    r.column = s.name_token.column;
+                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     FPResult r2;
                     r2.message = "Declared here:";
-                    r2.value = super.nameToken().getValue();
-                    r2.line = super.nameToken().getLine();
-                    r2.in = super.nameToken().getFile();
-                    r2.type = super.nameToken().getType();
-                    r2.column = super.nameToken().getColumn();
-                    r2.column = super.nameToken().getColumn();
+                    r2.value = super.name_token.value;
+                    r2.line = super.name_token.line;
+                    r2.in = super.name_token.file;
+                    r2.type = super.name_token.type;
+                    r2.column = super.name_token.column;
+                    r2.column = super.name_token.column;
                     r2.success = false;
                     r2.isNote = true;
                     result.errors.push_back(r2);
@@ -2861,13 +2859,13 @@ namespace sclc {
                 }
                 if (super.templates.size() && super.templates.size() != s.templates.size()) {
                     FPResult r;
-                    r.message = "Struct '" + s.getName() + "' has " + std::to_string(s.templates.size()) + " template arguments, but '" + super.getName() + "' has " + std::to_string(super.templates.size());
-                    r.value = s.nameToken().getValue();
-                    r.line = s.nameToken().getLine();
-                    r.in = s.nameToken().getFile();
-                    r.type = s.nameToken().getType();
-                    r.column = s.nameToken().getColumn();
-                    r.column = s.nameToken().getColumn();
+                    r.message = "Struct '" + s.name + "' has " + std::to_string(s.templates.size()) + " template arguments, but '" + super.name + "' has " + std::to_string(super.templates.size());
+                    r.value = s.name_token.value;
+                    r.line = s.name_token.line;
+                    r.in = s.name_token.file;
+                    r.type = s.name_token.type;
+                    r.column = s.name_token.column;
+                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     goto nextIter;
@@ -2877,7 +2875,7 @@ namespace sclc {
                     s.addMember(vars[i], true);
                 }
                 oldSuper = super;
-                super = getStructByName(result, super.extends());
+                super = getStructByName(result, super.super);
             }
             newStructs.push_back(s);
             nextIter:;
@@ -2894,53 +2892,53 @@ namespace sclc {
         };
         auto createToStringMethod = [&](Struct& s) -> Method* {
             Token t(tok_identifier, "toString", 0, s.name_token.file);
-            Method* toString = new Method(s.getName(), std::string("toString"), t);
-            std::string stringify = s.getName() + " {";
-            toString->setReturnType("str");
+            Method* toString = new Method(s.name, std::string("toString"), t);
+            std::string stringify = s.name + " {";
+            toString->return_type = "str";
             toString->addModifier("<generated>");
-            toString->addArgument(Variable("self", "mut " + s.getName()));
-            toString->addToken(Token(tok_string_literal, stringify, 0, s.getName() + ":toString"));
+            toString->addArgument(Variable("self", "mut " + s.name));
+            toString->addToken(Token(tok_string_literal, stringify, 0, s.name + ":toString"));
 
             size_t membersAdded = 0;
 
-            for (size_t i = 0; i < s.getMembers().size(); i++) {
-                auto member = s.getMembers()[i];
-                if (member.getName().front() == '$') continue;
+            for (size_t i = 0; i < s.members.size(); i++) {
+                auto member = s.members[i];
+                if (member.name.front() == '$') continue;
                 if (membersAdded) {
-                    toString->addToken(Token(tok_string_literal, ", ", 0, s.getName() + ":toString"));
-                    toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_string_literal, ", ", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
                 }
                 membersAdded++;
 
-                toString->addToken(Token(tok_string_literal, member.getName() + ": ", 0, s.getName() + ":toString"));
-                toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
-                toString->addToken(Token(tok_identifier, "self", 0, s.getName() + ":toString"));
-                toString->addToken(Token(tok_dot, ".", 0, s.getName() + ":toString"));
-                toString->addToken(Token(tok_identifier, member.getName(), 0, s.getName() + ":toString"));
-                bool canBeNil = typeCanBeNil(member.getType());
-                std::string type = removeTypeModifiers(member.getType());
+                toString->addToken(Token(tok_string_literal, member.name + ": ", 0, s.name + ":toString"));
+                toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
+                toString->addToken(Token(tok_identifier, "self", 0, s.name + ":toString"));
+                toString->addToken(Token(tok_dot, ".", 0, s.name + ":toString"));
+                toString->addToken(Token(tok_identifier, member.name, 0, s.name + ":toString"));
+                bool canBeNil = typeCanBeNil(member.type);
+                std::string type = removeTypeModifiers(member.type);
                 if (canBeNil) {
-                    toString->addToken(Token(tok_identifier, "builtinToString", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_identifier, "builtinToString", 0, s.name + ":toString"));
                 } else if (isPointer(type) || hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
-                    toString->addToken(Token(tok_identifier, "any", 0, s.getName() + ":toString"));
-                    toString->addToken(Token(tok_double_column, "::", 0, s.getName() + ":toString"));
-                    toString->addToken(Token(tok_identifier, "toHexString", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_identifier, "any", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_double_column, "::", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_identifier, "toHexString", 0, s.name + ":toString"));
                 } else {
-                    toString->addToken(Token(tok_column, ":", 0, s.getName() + ":toString"));
-                    toString->addToken(Token(tok_identifier, "toString", 0, s.getName() + ":toString"));
+                    toString->addToken(Token(tok_column, ":", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_identifier, "toString", 0, s.name + ":toString"));
                 }
-                toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
+                toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
             }
-            toString->addToken(Token(tok_string_literal, "}", 0, s.getName() + ":toString"));
-            toString->addToken(Token(tok_identifier, "+", 0, s.getName() + ":toString"));
-            toString->addToken(Token(tok_return, "return", 0, s.getName() + ":toString"));
-            toString->forceAdd(true);
+            toString->addToken(Token(tok_string_literal, "}", 0, s.name + ":toString"));
+            toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
+            toString->addToken(Token(tok_return, "return", 0, s.name + ":toString"));
+            toString->force_add = true;
             return toString;
         };
 
         auto indexOfFirstMethodOnType = [&](std::string type) -> size_t {
             for (size_t i = 0; i < result.functions.size(); i++) {
-                if (result.functions[i]->getMemberType() == type) return i;
+                if (result.functions[i]->member_type == type) return i;
             }
             return result.functions.size();
         };
@@ -2948,9 +2946,9 @@ namespace sclc {
         for (Struct s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
-            Method* toString = getMethodByName(result, "toString", s.getName());
-            if (toString == nullptr || contains<std::string>(toString->getModifiers(), "<generated>")) {
-                size_t index = indexOfFirstMethodOnType(s.getName());
+            Method* toString = getMethodByName(result, "toString", s.name);
+            if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
+                size_t index = indexOfFirstMethodOnType(s.name);
                 result.functions.insert(result.functions.begin() + index, createToStringMethod(s));
                 hasImplementedToString = true;
             }

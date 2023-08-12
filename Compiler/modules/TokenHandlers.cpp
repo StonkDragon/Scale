@@ -103,7 +103,7 @@ namespace sclc {
 #define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
     bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false);
-    std::string argVectorToString(std::vector<Variable> args);
+    std::string argVectorToString(std::vector<Variable>& args);
     std::string stackSliceToString(size_t amount);
 
     bool handleOverriddenOperator(TPResult& result, FILE* fp, int scopeDepth, std::string op, std::string type) {
@@ -116,26 +116,26 @@ namespace sclc {
         if (hasMethod(result, op, type)) {
             Method* f = getMethodByName(result, op, type);
             
-            if (f->getArgs().size() > 0) {
-                append("_stack.sp -= (%zu);\n", f->getArgs().size());
+            if (f->args.size() > 0) {
+                append("_stack.sp -= (%zu);\n", f->args.size());
             }
-            bool argsCorrect = checkStackType(result, f->getArgs());
+            bool argsCorrect = checkStackType(result, f->args);
             if (!argsCorrect) {
                 return false;
             }
-            for (size_t m = 0; m < f->getArgs().size(); m++) {
+            for (size_t m = 0; m < f->args.size(); m++) {
                 if (typeStack.size())
                     typeStack.pop();
             }
-            if (f->getReturnType().size() > 0 && f->getReturnType() != "none" && f->getReturnType() != "nothing") {
-                if (f->getReturnType() == "float") {
-                    append("(_stack.sp++)->f = Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
+            if (f->return_type.size() > 0 && f->return_type != "none" && f->return_type != "nothing") {
+                if (f->return_type == "float") {
+                    append("(_stack.sp++)->f = Method_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 } else {
-                    append("(_stack.sp++)->i = (scl_int) Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                    append("(_stack.sp++)->i = (scl_int) Method_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 }
-                typeStack.push(f->getReturnType());
+                typeStack.push(f->return_type);
             } else {
-                append("Method_%s$%s(%s);\n", f->getMemberType().c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                append("Method_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
             }
             return true;
         }

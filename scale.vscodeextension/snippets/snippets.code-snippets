@@ -157,6 +157,22 @@
 		],
 		"description": "Fi statement"
 	},
+	"Assert": {
+		"scope": "source.scale",
+		"prefix": "assert",
+		"body": [
+			"assert (${1:condition})"
+		],
+		"description": "Assert statement"
+	},
+	"Assert Else": {
+		"scope": "source.scale",
+		"prefix": "assert",
+		"body": [
+			"assert (${1:condition}) else (${2:when false})",
+		],
+		"description": "Assert statement"
+	},
 	"Extern Function": {
 		"scope": "source.scale",
 		"prefix": "expect function",

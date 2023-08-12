@@ -9,10 +9,9 @@
 
 namespace sclc
 {
-    class Container {
+    struct Container {
         std::string name;
         std::vector<Variable> members;
-    public:
         Token* name_token;
         Container(std::string name) {
             this->name = name;
@@ -22,25 +21,23 @@ namespace sclc
         }
         bool hasMember(std::string member) {
             for (Variable& m : members) {
-                if (m.getName() == member) {
+                if (m.name == member) {
                     return true;
                 }
             }
             return false;
         }
-        std::string getName() { return name; }
-        std::vector<Variable> getMembers() { return members; }
         std::string getMemberType(std::string member) {
             for (Variable& m : members) {
-                if (m.getName() == member) {
-                    return m.getType();
+                if (m.name == member) {
+                    return m.type;
                 }
             }
             return "";
         }
         Variable getMember(std::string member) {
             for (Variable& m : members) {
-                if (m.getName() == member) {
+                if (m.name == member) {
                     return m;
                 }
             }

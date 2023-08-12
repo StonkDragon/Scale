@@ -76,10 +76,10 @@ sealed struct Exception
     "" => self.msg
   end
 
-  restrict export sealed function printStackTrace(): none
-    "Stacktrace of " typeof self + ":" + eputs
-    for i in self.stackTrace.count 1 - to -1 step -- do
-      "    " (i self.stackTrace:get as str) + eputs
+  sealed function printStackTrace(): none
+    "Stacktrace of " typeof self + ": " + self.msg + eputs
+    for i in self.stackTrace.count to 0 step -- do
+      "    " (i 1 - self.stackTrace:get as str) + eputs
     done
   end
 end

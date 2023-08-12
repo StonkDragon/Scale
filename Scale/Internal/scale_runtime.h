@@ -228,26 +228,28 @@ typedef unsigned int		scl_uint32;
 typedef unsigned short		scl_uint16;
 typedef unsigned char		scl_uint8;
 
-typedef void(*_scl_lambda)(void);
+typedef void*(*_scl_lambda)();
 
 typedef unsigned int ID_t;
 
 struct _scl_methodinfo {
 	const _scl_lambda					ptr;
+	const _scl_lambda					rt_ptr;
 	const ID_t							pure_name;
 	const ID_t							signature;
 };
 
-typedef struct StaticMembers {
-	const struct _scl_methodinfo* const	vtable;
-	const struct _scl_methodinfo* const	super_vtable;
+typedef struct TypeInfo {
+	const _scl_lambda*					vtable_fast;
 	const ID_t							type;
-	const ID_t*							supers;
+	const struct TypeInfo*				super;
 	const scl_int8*						type_name;
-} StaticMembers;
+	const struct _scl_methodinfo* const	vtable;
+} TypeInfo;
 
 struct scale_string {
-	const StaticMembers* const			$statics;
+	const _scl_lambda* const			$vtable;
+	const TypeInfo* const				$statics;
 	const mutex_t						$mutex;
 	scl_int8*							data;
 	scl_int								length;
@@ -299,7 +301,8 @@ typedef union {
 	scl_float	f;
 	scl_any		v;
 	struct {
-		StaticMembers*	$statics;
+		_scl_lambda*	$fast;
+		TypeInfo*	$statics;
 		mutex_t			$mutex;
 	}*			o;
 } _scl_frame_t;
@@ -320,12 +323,12 @@ typedef struct {
 	scl_any*		ex_base; // exception base pointer
 	scl_int8***		et; // exception trace pointer
 	scl_int8***		et_base; // exception trace base pointer
-	_scl_frame_t**	sp_save; // base pointer save
+	_scl_frame_t**	sp_save; // stack pointer save
 	_scl_frame_t**	sp_save_base; // stack pointer save base
 } _scl_stack_t;
 
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const StaticMembers _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
+#define ALLOC(_type)	({ extern const TypeInfo _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
@@ -416,7 +419,7 @@ int					_scl_run(int argc, char** argv, mainFunc main);
 const ID_t			id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
+scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);

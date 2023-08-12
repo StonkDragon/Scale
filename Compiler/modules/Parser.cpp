@@ -59,8 +59,8 @@ namespace sclc
         }
 
         if (mainFunction && !Main.options.noMain) {
-            Main.options.mainReturnsNone = mainFunction->getReturnType() == "none" || mainFunction->getReturnType() == "nothing";
-            Main.options.mainArgCount  = mainFunction->getArgs().size();
+            Main.options.mainReturnsNone = mainFunction->return_type == "none" || mainFunction->return_type == "nothing";
+            Main.options.mainArgCount  = mainFunction->args.size();
         }
 
         std::vector<Variable> defaultScope;
@@ -116,7 +116,7 @@ namespace sclc
                 }
                 currentStruct = getStructByName(result, f->member_type);
                 auto m = (Method*) f;
-                append("static void _scl_vt_c_%s$%s() {\n", m->getMemberType().c_str(), f->finalName().c_str());
+                append("static void _scl_vt_c_%s$%s() {\n", m->member_type.c_str(), f->finalName().c_str());
                 scopeDepth++;
                 generateUnsafeCall(m, fp, result);
                 scopeDepth--;
@@ -126,30 +126,17 @@ namespace sclc
 
         for (Struct& s : result.structs) {
             if (s.isStatic()) continue;
-            append("const ID_t _scl_supers_%s[] = {\n", s.getName().c_str());
+            append("const TypeInfo _scl_statics_%s = {\n", s.name.c_str());
             scopeDepth++;
-            Struct current = s;
-            while (current.extends().size()) {
-                append("0x%xU,\n", id((char*) current.extends().c_str()));
-                current = getStructByName(result, current.extends());
-            }
-            append("0x0U\n");
-            scopeDepth--;
-            append("};\n");
-        }
-        for (Struct& s : result.structs) {
-            if (s.isStatic()) continue;
-            append("const StaticMembers _scl_statics_%s = {\n", s.getName().c_str());
-            scopeDepth++;
-            append(".type = 0x%xU,\n", id((char*) s.getName().c_str()));
-            append(".type_name = \"%s\",\n", s.getName().c_str());
-            append(".vtable = _scl_vtable_%s,\n", s.getName().c_str());
-            if (s.extends().size()) {
-                append(".super_vtable = _scl_vtable_%s,\n", s.extends().c_str());
+            append(".type = 0x%xU,\n", id((char*) s.name.c_str()));
+            append(".type_name = \"%s\",\n", s.name.c_str());
+            append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
+            append(".vtable_fast = _scl_fast_vtable_%s,\n", s.name.c_str());
+            if (s.name != "SclObject") {
+                append(".super = &_scl_statics_%s,\n", s.super.c_str());
             } else {
-                append(".super_vtable = 0,\n");
+                append(".super = 0,\n");
             }
-            append(".supers = _scl_supers_%s,\n", s.getName().c_str());
             scopeDepth--;
             append("};\n");
         }
@@ -161,7 +148,8 @@ namespace sclc
                 std::string signature = argsToRTSignature(m);
                 append("(struct _scl_methodinfo) {\n");
                 scopeDepth++;
-                append(".ptr = _scl_vt_c_%s$%s,\n", m->getMemberType().c_str(), m->finalName().c_str());
+                append(".ptr = (const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                append(".rt_ptr = (const _scl_lambda) _scl_vt_c_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
                 append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m->finalName()).c_str()));
                 append(".signature = 0x%xU,\n", id((char*) signature.c_str()));
                 scopeDepth--;
@@ -170,17 +158,25 @@ namespace sclc
             append("{0}\n");
             scopeDepth--;
             append("};\n\n");
+            append("const _scl_lambda _scl_fast_vtable_%s[] = {\n", vtable.first.c_str());
+            scopeDepth++;
+            for (auto&& m : vtable.second) {
+                append("(const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+            }
+            append("0\n");
+            scopeDepth--;
+            append("};\n\n");
         }
 
         append("extern const ID_t id(const char*);\n\n");
 
         for (Variable& s : result.globals) {
-            append("%s Var_%s;\n", sclTypeToCType(result, s.getType()).c_str(), s.getName().c_str());
+            append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             globals.push_back(s);
         }
 
         for (Container& c : result.containers) {
-            append("struct _Container_%s Container_%s = {0};\n", c.getName().c_str(), c.getName().c_str());
+            append("struct _Container_%s Container_%s = {0};\n", c.name.c_str(), c.name.c_str());
         }
 
         scopeDepth = 0;
@@ -191,15 +187,15 @@ namespace sclc
         append("TRY {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isInitFunction(f)) {
-                if (f->getArgs().size()) {
+                if (f->args.size()) {
                     FPResult result;
                     result.success = false;
                     result.message = "Constructor functions cannot have arguments";
-                    result.line = f->getNameToken().getLine();
-                    result.in = f->getNameToken().getFile();
-                    result.column = f->getNameToken().getColumn();
-                    result.type = f->getNameToken().getType();
-                    result.value = f->getNameToken().getValue();
+                    result.line = f->name_token.line;
+                    result.in = f->name_token.file;
+                    result.column = f->name_token.column;
+                    result.type = f->name_token.type;
+                    result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
                     append("  Function_%s();\n", f->finalName().c_str());
@@ -217,15 +213,15 @@ namespace sclc
         append("TRY {\n");
         for (Function* f : result.functions) {
             if (!f->isMethod && isDestroyFunction(f)) {
-                if (f->getArgs().size()) {
+                if (f->args.size()) {
                     FPResult result;
                     result.success = false;
                     result.message = "Finalizer functions cannot have arguments";
-                    result.line = f->getNameToken().getLine();
-                    result.in = f->getNameToken().getFile();
-                    result.column = f->getNameToken().getColumn();
-                    result.type = f->getNameToken().getType();
-                    result.value = f->getNameToken().getValue();
+                    result.line = f->name_token.line;
+                    result.in = f->name_token.file;
+                    result.column = f->name_token.column;
+                    result.type = f->name_token.type;
+                    result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
                     append("  Function_%s();\n", f->finalName().c_str());

@@ -57,7 +57,7 @@ final sealed struct Thread
     private expect unsafe function stop0(): int
     private expect unsafe function run(): none
 
-    restrict function start(): none
+    function start(): none
         if tid then
             "Thread started" ThreadException::new
             throw
@@ -71,7 +71,7 @@ final sealed struct Thread
         end
     end
 
-    restrict function join(): none
+    function join(): none
         unless tid then
             "Thread ended" ThreadException::new
             throw
@@ -86,7 +86,7 @@ final sealed struct Thread
         nil => self.tid
     end
 
-    restrict function equals(other: any): bool
+    function equals(other: any): bool
         if other is Thread ! then
             false return
         fi
@@ -96,7 +96,7 @@ final sealed struct Thread
         return
     end
 
-    restrict function ==(other: any): bool
+    function ==(other: any): bool
         if other is Thread ! then
             false return
         fi

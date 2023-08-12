@@ -31,6 +31,18 @@ namespace sclc
     bool typeIsMut(std::string s);
 
     struct Variable : public Also<Variable> {
+        struct Hasher {
+            size_t operator()(const Variable& v) const {
+                return std::hash<std::string>()(v.name) ^ std::hash<std::string>()(v.type);
+            }
+        };
+
+        struct Equator {
+            bool operator()(const Variable& v1, const Variable& v2) const {
+                return v1 == v2;
+            }
+        };
+
         std::string name;
         std::string type;
         std::string internalMutableFrom;
@@ -56,28 +68,14 @@ namespace sclc
             this->typeFromTemplate = "";
         }
         virtual ~Variable() {}
-        std::string getName() const {
-            return name;
-        }
-        std::string getType() const {
-            return type;
-        }
-        void setName(std::string name) {
-            this->name = name;
-        }
-        void setType(std::string type) {
-            this->type = type;
-        }
-        bool isWritable() const {
-            return !isConst;
-        }
+
         bool isWritableFrom(Function* f) const;
         bool isAccessible(Function* f) const;
         inline bool operator==(const Variable& other) const {
-            if (this->getType() == "?" || other.getType() == "?") {
+            if (this->type == "?" || other.type == "?") {
                 return this->name == other.name;
             }
-            return this->name == other.name && removeTypeModifiers(this->getType()) == removeTypeModifiers(other.getType());
+            return this->name == other.name && removeTypeModifiers(this->type) == removeTypeModifiers(other.type);
         }
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);

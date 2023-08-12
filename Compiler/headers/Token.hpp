@@ -19,6 +19,7 @@ namespace sclc
         std::string file;
         std::string value;
         int column;
+
         std::string tostring() const {
             return "Token(value=" + value + ", type=" + std::to_string(type) + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ", file=" + file + ")";
         }
@@ -33,21 +34,37 @@ namespace sclc
             this->file = file;
             this->column = column;
         }
-        std::string getValue() {
-            return value;
+        Token(const Token& other) {
+            this->type = other.type;
+            this->value = other.value;
+            this->line = other.line;
+            this->file = other.file;
+            this->column = other.column;
         }
-        TokenType getType() {
-            return type;
+        Token(Token&& other) {
+            this->type = std::move(other.type);
+            this->value = std::move(other.value);
+            this->line = std::move(other.line);
+            this->file = std::move(other.file);
+            this->column = std::move(other.column);
         }
-        int getLine() {
-            return line;
+        Token& operator=(const Token& other) {
+            this->type = other.type;
+            this->value = other.value;
+            this->line = other.line;
+            this->file = other.file;
+            this->column = other.column;
+            return *this;
         }
-        std::string getFile() {
-            return file;
+        Token& operator=(Token&& other) {
+            this->type = std::move(other.type);
+            this->value = std::move(other.value);
+            this->line = std::move(other.line);
+            this->file = std::move(other.file);
+            this->column = std::move(other.column);
+            return *this;
         }
-        int getColumn() {
-            return this->column;
-        }
+        ~Token() {}
         std::string formatted() const {
             if (type == tok_eof) return "";
             std::string colorFormat = color();
