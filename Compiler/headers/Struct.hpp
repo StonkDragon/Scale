@@ -146,12 +146,6 @@ namespace sclc
         void toggleFinal() {
             flags ^= 0b00100000;
         }
-        void toggleSealed() {
-            flags ^= 0b00000100;
-        }
-        void toggleStatic() {
-            flags ^= 0b00010000;
-        }
         void addModifier(std::string m) {
             if (m == "final") {
                 flags |= 0b00100000;

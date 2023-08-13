@@ -1833,9 +1833,94 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
+                i++;
+                if (tokens[i].type != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier for container name, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (tokens[i].value == "str" || tokens[i].value == "int" || tokens[i].value == "float" || tokens[i].value == "none" || tokens[i].value == "nothing" || tokens[i].value == "any" || isPrimitiveIntegerType(tokens[i].value)) {
+                    FPResult result;
+                    result.message = "Invalid name for container: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                FPResult result;
+                result.message = "Containers are deprecated. Use a static struct instead.";
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
+                result.success = false;
+                warns.push_back(result);
+                currentContainer = new Container(tokens[i].value);
+                currentContainer->name_token = new Token(tokens[i]);
+            } else if (token.type == tok_union_def) {
+                if (currentContainer != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a union struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentFunction != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a union struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentStruct != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a union struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                if (currentInterface != nullptr) {
+                    FPResult result;
+                    result.message = "Cannot define a union struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
+                    result.value = token.value;
+                    result.line = token.line;
+                    result.in = token.file;
+                    result.type = token.type;
+                    result.column = token.column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
-                    result.message = "Expected identifier for container name, but got '" + tokens[i + 1].value + "'";
+                    result.message = "Expected identifier for union struct name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
                     result.line = tokens[i + 1].line;
                     result.in = tokens[i + 1].file;
@@ -1846,20 +1931,120 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                if (tokens[i].value == "str" || tokens[i].value == "int" || tokens[i].value == "float" || tokens[i].value == "none" || tokens[i].value == "nothing" || tokens[i].value == "any" || isPrimitiveIntegerType(tokens[i].value)) {
+                currentStruct = new Struct(tokens[i].value, tokens[i]);
+                for (std::string& m : nextAttributes) {
+                    currentStruct->addModifier(m);
+                }
+                nextAttributes.clear();
+                currentStruct->super = "Union";
+                i++;
+
+                auto makeGetter = [](const Variable& v, const std::string& unionName, int n) {
+                    const std::string& varName = v.name;
+                    std::string name = "get";
+                    name += (char) std::toupper(varName[0]);
+                    name += varName.substr(1);
+
+                    Method* getter = new Method(unionName, name, *(v.name_token));
+                    getter->return_type = v.type;
+                    getter->addModifier("@getter");
+                    getter->addModifier(varName);
+                    getter->addArgument(Variable("self", unionName));
+                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_column, ":", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_identifier, "expected", v.name_token->line, v.name_token->file, v.name_token->column));
+                    std::string removed = removeTypeModifiers(v.type);
+                    if (removed == "none" || removed == "nothing") {
+                        return getter;
+                    }
+                    getter->addToken(Token(tok_identifier, "self", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_dot, ".", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_identifier, "__value", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_as, "as", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_return, "return", v.name_token->line, v.name_token->file, v.name_token->column));
+                    return getter;
+                };
+
+                auto makeSetter = [](const Variable& v, const std::string& unionName, int n) {
+                    Function* setter = new Function(unionName + "$" + v.name, *(v.name_token));
+                    setter->member_type = unionName;
+                    setter->return_type = unionName;
+                    setter->addModifier("static");
+                    std::string removed = removeTypeModifiers(v.type);
+                    if (removed != "none" && removed != "nothing") {
+                        setter->addArgument(Variable("what", v.type));
+                    }
+                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token->line, v.name_token->file, v.name_token->column));
+                    if (removed != "none" && removed != "nothing") {
+                        setter->addToken(Token(tok_identifier, "what", v.name_token->line, v.name_token->file, v.name_token->column));
+                    } else {
+                        setter->addToken(Token(tok_nil, "nil", v.name_token->line, v.name_token->file, v.name_token->column));
+                    }
+                    setter->addToken(Token(tok_identifier, unionName, v.name_token->line, v.name_token->file, v.name_token->column));
+                    setter->addToken(Token(tok_double_column, "::", v.name_token->line, v.name_token->file, v.name_token->column));
+                    setter->addToken(Token(tok_identifier, "new", v.name_token->line, v.name_token->file, v.name_token->column));
+                    setter->addToken(Token(tok_return, "return", v.name_token->line, v.name_token->file, v.name_token->column));
+                    return setter;
+                };
+
+                while (tokens[i].type != tok_end) {
+                    if (tokens[i].type != tok_identifier) {
+                        FPResult result;
+                        result.message = "Expected identifier for union struct member name, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.success = false;
+                        errors.push_back(result);
+                        i++;
+                        continue;
+                    }
+                    std::string name = tokens[i].value;
+                    size_t start = i;
+                    i++;
+                    std::string type;
+                    if (tokens[i].type == tok_column) {
+                        i++;
+                        FPResult result = parseType(tokens, &i);
+                        if (!result.success) {
+                            errors.push_back(result);
+                            i++;
+                            break;
+                        }
+                        i++;
+                        type = result.value;
+                    } else {
+                        type = name;
+                    }
+                    Variable v = Variable(name, type);
+                    v.name_token = new Token(tokens[start]);
+                    v.isConst = true;
+                    v.isVirtual = true;
+                    currentStruct->addMember(v);
+                    Method* getter = makeGetter(v, currentStruct->name, currentStruct->members.size());
+                    functions.push_back(getter);
+                    Function* setter = makeSetter(v, currentStruct->name, currentStruct->members.size());
+                    functions.push_back(setter);
+                }
+                if (tokens[i].type != tok_end) {
                     FPResult result;
-                    result.message = "Invalid name for container: '" + tokens[i + 1].value + "'";
-                    result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
-                    result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
+                    result.message = "Expected 'end' for union struct, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
-                currentContainer = new Container(tokens[i].value);
-                currentContainer->name_token = new Token(tokens[i]);
+                currentStruct->toggleFinal();
+                structs.push_back(*currentStruct);
+                currentStruct = nullptr;
             } else if (token.type == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].type != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -2546,6 +2731,7 @@ namespace sclc {
                     v.name_token = new Token(name_token);
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
+                    v.isVirtual = contains<std::string>(nextAttributes, "virtual");
                     currentStruct->addMember(v);
                     nextAttributes.clear();
                 }
@@ -2564,6 +2750,7 @@ namespace sclc {
                            t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
+                           t.value == "virtual" ||
                            t.value == "default" ||
                            t.value == "private" ||
                            t.value == "static" ||
@@ -2959,6 +3146,14 @@ namespace sclc {
                 }
             }
         }
+
+        if (Main.options.Werror) {
+            for (auto warn : result.warns) {
+                result.errors.push_back(warn);
+            }
+            result.warns.clear();
+        }
+
         return result;
     }
 

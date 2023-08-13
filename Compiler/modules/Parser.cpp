@@ -244,6 +244,13 @@ namespace sclc
         
         fclose(fp);
 
+        if (Main.options.Werror) {
+            for (auto warn : warns) {
+                errors.push_back(warn);
+            }
+            warns.clear();
+        }
+
         FPResult parseResult;
         parseResult.success = true;
         parseResult.message = "";

@@ -635,6 +635,97 @@ namespace sclc
         return system(cmdStr.c_str());
     }
 
+    void logWarns(std::vector<FPResult>& warns) {
+        for (FPResult error : warns) {
+            if (error.type > tok_char_literal) continue;
+            if (error.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            if (!f) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            char* line = (char*) malloc(sizeof(char) * 500);
+            int i = 1;
+            if (f) fseek(f, 0, SEEK_SET);
+            std::string colString = Color::BOLDMAGENTA;
+            std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            i = 1;
+            while (fgets(line, 500, f) != NULL) {
+                if (i == error.line) {
+                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                } else if (i == error.line - 1 || i == error.line - 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                } else if (i == error.line + 1 || i == error.line + 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                }
+                i++;
+            }
+            fclose(f);
+            free(line);
+        }
+    }
+
+    void logErrors(std::vector<FPResult>& errors) {
+        for (FPResult error : errors) {
+            if (error.type > tok_char_literal) continue;
+            std::string colorStr;
+            ssize_t addAtCol = -1;
+            std::string strToAdd = "";
+            if (error.isNote) {
+                colorStr = Color::BOLDCYAN;
+                size_t i = error.message.find('\\');
+                if (i != std::string::npos) {
+                    std::string cmd = error.message.substr(i + 1);
+                    auto data = split(cmd, ";");
+                    error.message = error.message.substr(0, i);
+                    if (data[0] == "insertText") {
+                        strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
+                        auto pos = split(data[2], ":");
+                        addAtCol = std::atoi(pos[1].c_str()) - 1;
+                    }
+                }
+            } else {
+                colorStr = Color::BOLDRED;
+            }
+            if (error.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            if (!f) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            char* line = (char*) malloc(sizeof(char) * 500);
+            int i = 1;
+            if (f) fseek(f, 0, SEEK_SET);
+            std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            i = 1;
+            while (fgets(line, 500, f) != NULL) {
+                if (i == error.line) {
+                    if (strToAdd.size())
+                        std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                    else
+                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                } else if (i == error.line - 1 || i == error.line - 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                } else if (i == error.line + 1 || i == error.line + 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                }
+                i++;
+            }
+            fclose(f);
+            free(line);
+        }
+    }
+
     int main(std::vector<std::string> args) {
         using clock = std::chrono::high_resolution_clock;
 
@@ -799,12 +890,12 @@ namespace sclc
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
                 } else if (args[i] == "-makelib") {
-        #if defined(__APPLE__)
+                    #if defined(__APPLE__)
                     tmpFlags.push_back("-dynamiclib");
-        #else
+                    #else
                     tmpFlags.push_back("-shared");
                     tmpFlags.push_back("-fPIC");
-        #endif
+                    #endif
                     tmpFlags.push_back("-undefined");
                     tmpFlags.push_back("dynamic_lookup");
                     Main.options.noMain = true;
@@ -865,8 +956,6 @@ namespace sclc
                         std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
                     }
-                } else if (args[i] == "-no-error-location") {
-                    Main.options.noErrorLocation = true;
                 } else {
                     if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
                         Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
@@ -995,89 +1084,10 @@ namespace sclc
             FPResult result = Main.tokenizer->tokenize(filename);
 
             if (result.warns.size() > 0) {
-                for (FPResult error : result.warns) {
-                    if (error.type > tok_char_literal) continue;
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    std::string colString = Color::BOLDMAGENTA;
-                    if (Main.options.noErrorLocation) colString = "";
-                    std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
+                logWarns(result.warns);
             }
             if (result.errors.size() > 0) {
-                for (FPResult error : result.errors) {
-                    if (error.type > tok_char_literal) continue;
-                    std::string colorStr;
-                    if (error.isNote) {
-                        colorStr = Color::BOLDCYAN;
-                    } else {
-                        colorStr = Color::BOLDRED;
-                    }
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    if (Main.options.noErrorLocation) colorStr = "";
-                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
+                logErrors(result.errors);
                 std::cout << "Failed!" << std::endl;
                 return result.errors.size();
             }
@@ -1112,90 +1122,10 @@ namespace sclc
         }
 
         if (!Main.options.printCflags && result.warns.size() > 0) {
-            for (FPResult error : result.warns) {
-                if (error.type > tok_char_literal) continue;
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                std::string colString = Color::BOLDMAGENTA;
-                if (Main.options.noErrorLocation) colString = "";
-                std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logWarns(result.warns);
         }
         if (!Main.options.printCflags && result.errors.size() > 0) {
-            for (FPResult error : result.errors) {
-                if (error.type > tok_char_literal) continue;
-                std::string colorStr;
-                if (error.isNote) {
-                    colorStr = Color::BOLDCYAN;
-                } else {
-                    colorStr = Color::BOLDRED;
-                }
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                
-                
-                std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logErrors(result.errors);
             std::cout << "Failed!" << std::endl;
             return result.errors.size();
         }
@@ -1223,105 +1153,10 @@ namespace sclc
 
         FPResult parseResult = Main.parser->parse(source);
         if (parseResult.warns.size() > 0) {
-            for (FPResult error : parseResult.warns) {
-                if (error.type > tok_char_literal) continue;
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                std::string colString = Color::BOLDMAGENTA;
-                if (Main.options.noErrorLocation) colString = "";
-                std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logWarns(parseResult.warns);
         }
         if (parseResult.errors.size() > 0) {
-            for (FPResult error : parseResult.errors) {
-                if (error.type > tok_char_literal) continue;
-                std::string colorStr;
-                ssize_t addAtCol = -1;
-                std::string strToAdd = "";
-                if (error.isNote) {
-                    colorStr = Color::BOLDCYAN;
-                    size_t i = error.message.find('\\');
-                    if (i != std::string::npos) {
-                        std::string cmd = error.message.substr(i + 1);
-                        auto data = split(cmd, ";");
-                        error.message = error.message.substr(0, i);
-                        if (data[0] == "insertText") {
-                            strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
-                            auto pos = split(data[2], ":");
-                            addAtCol = std::atoi(pos[1].c_str()) - 1;
-                        }
-                    }
-                } else {
-                    colorStr = Color::BOLDRED;
-                }
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                if (Main.options.noErrorLocation) colorStr = "";
-                std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            if (strToAdd.size())
-                                std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
-                            else
-                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logErrors(parseResult.errors);
             std::cout << "Failed!" << std::endl;
             return parseResult.errors.size();
         }
@@ -1332,44 +1167,6 @@ namespace sclc
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
             return 0;
         }
-
-        // std::vector<int> pids;
-
-        // for (std::string& s : Main.options.flags) {
-        //     if (std::filesystem::exists(s + ".o") && file_modified_time(s + ".o") > file_modified_time(s)) continue;
-
-        //     auto tmpFlags = cflags;
-
-        //     tmpFlags.push_back(s);
-        //     tmpFlags.push_back("-c");
-
-        //     tmpFlags.push_back("-o");
-        //     tmpFlags.push_back(s + ".o");
-
-        //     char** args = (char**) malloc(sizeof(char*) * tmpFlags.size() + 1);
-        //     int index = 0;
-        //     for (size_t i = 0; i < tmpFlags.size(); i++) {
-        //         if (strstarts(tmpFlags[i], "-l")) continue;
-        //         if (strstarts(tmpFlags[i], "-L")) continue;
-
-        //         args[index++] = (char*) malloc(sizeof(char) * tmpFlags[i].size() + 1);
-        //         strcpy(args[index - 1], tmpFlags[i].c_str());
-        //     }
-        //     args[index] = NULL;
-
-        //     int pid = fork();
-        //     if (pid == 0) {
-        //         int ret = execvp(args[0], (char**) args);
-        //         if (ret == -1) {
-        //             std::cerr << "Failed to execute command: " << args[0] << std::endl;
-        //             return ret;
-        //         }
-        //     } else if (pid < 0) {
-        //         std::cerr << "Failed to fork process" << std::endl;
-        //         return 1;
-        //     }
-        //     pids.push_back(pid);
-        // }
 
         for (std::string& file : nonScaleFiles) {
             cflags.push_back("\"" + file + "\"");
@@ -1395,15 +1192,6 @@ namespace sclc
         if (Main.options.debugBuild) {
             cmd += "-DSCL_DEBUG ";
         }
-
-        // for (int pid : pids) {
-        //     int status;
-        //     waitpid(pid, &status, 0);
-        //     if (status != 0) {
-        //         std::cerr << Color::RED << "Failed to compile!" << Color::RESET << std::endl;
-        //         return 1;
-        //     }
-        // }
 
         int errors = 0;
         if (Main.options.printCflags) {

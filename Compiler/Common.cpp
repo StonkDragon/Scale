@@ -299,16 +299,23 @@ namespace sclc
         return value;
     }
 
-    double parseDouble(std::string str) {
+    Result<double, FPResult> parseDouble(const Token& tok) {
         double num;
         try
         {
-            num = std::stold(str);
+            num = std::stold(tok.value);
         }
         catch(const std::exception& e)
         {
-            std::cerr << "Number out of range: " << str << std::endl;
-            return 0.0;
+            FPResult r;
+            r.message = "Number out of range: " + tok.value;
+            r.column = tok.column;
+            r.type = tok.type;
+            r.in = tok.file;
+            r.line = tok.line;
+            r.value = tok.value;
+            r.success = false;
+            return Result<double, FPResult>(r);
         }
         return num;
     }

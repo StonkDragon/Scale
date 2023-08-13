@@ -74,4 +74,89 @@ namespace sclc
         std::vector<Enum> enums;
         std::unordered_map<std::string, std::string> typealiases;
     };
+
+    template<typename R, typename E>
+    class Result {
+        union {
+            R result;
+            E error;
+        };
+        bool success;
+
+    public:
+        Result(R result) {
+            this->result = result;
+            success = true;
+        }
+
+        Result(E error) {
+            this->error = error;
+            success = false;
+        }
+
+        ~Result() {
+            if (success) {
+                result.~R();
+            } else {
+                error.~E();
+            }
+        }
+
+        bool isSuccess() const {
+            return success;
+        }
+
+        bool isError() const {
+            return !success;
+        }
+
+        R unwrap() const {
+            if (success) {
+                return result;
+            }
+            throw std::runtime_error("Result is not a success");
+        }
+
+        R unwrapOr(R orValue) const {
+            if (success) {
+                return result;
+            }
+            return orValue;
+        }
+
+        R unwrapOr(R (*orValue)()) const {
+            if (success) {
+                return result;
+            }
+            return orValue();
+        }
+
+        R unwrapOr(R (*orValue)(E)) const {
+            if (success) {
+                return result;
+            }
+            return orValue(error);
+        }
+
+        R unwrapOr(std::function<R()> orValue) const {
+            if (success) {
+                return result;
+            }
+            return orValue();
+        }
+
+        R unwrapOr(std::function<R(E)> orValue) const {
+            if (success) {
+                return result;
+            }
+            return orValue(error);
+        }
+
+        E unwrapErr() const {
+            if (!success) {
+                return error;
+            }
+            throw std::runtime_error("Result is not an error");
+        }
+    };
 } // namespace sclc

@@ -145,7 +145,6 @@ namespace sclc {
             size_t mainArgCount;
             bool preprocessOnly;
             bool mainReturnsNone;
-            bool noErrorLocation;
             bool noScaleFramework;
             std::string optimizer;
             bool dontSpecifyOutFile;
@@ -171,7 +170,7 @@ namespace sclc {
     extern std::vector<size_t> var_indices;
 
     long long parseNumber(std::string str);
-    double parseDouble(std::string str);
+    Result<double, FPResult> parseDouble(const Token& tok);
     void signalHandler(int signum);
     bool strends(const std::string& str, const std::string& suffix);
     bool strstarts(const std::string& str, const std::string& prefix);
