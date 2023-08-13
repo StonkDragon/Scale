@@ -320,6 +320,16 @@
 		],
 		"description": "Struct"
 	},
+	"Union": {
+		"scope": "source.scale",
+		"prefix": "union",
+		"body": [
+			"union ${1:name}",
+			"\t$0",
+			"end"
+		],
+		"description": "Union"
+	},
 	"Layout": {
 		"scope": "source.scale",
 		"prefix": "layout",
