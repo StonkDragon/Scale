@@ -4826,6 +4826,15 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+        const Struct& s = getStructByName(result, switchTypes.back());
+        if (s.super == "Union") {
+            append("default: {\n");
+            scopeDepth++;
+            varScopePush();
+            append("%s Var_it = *(%s*) &(_stack.sp)->u;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
+            varScopeTop().push_back(Variable("it", s.name));
+            return;
+        }
         append("default: {\n");
         scopeDepth++;
         varScopePush();
