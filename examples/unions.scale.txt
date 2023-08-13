@@ -1,3 +1,10 @@
+Foo {Hello!}
+Hello!
+Foo {42}
+int
+42
+Foo {Other}
+Foo {Other}
 Some {Hello!}
 Hello!
 None
