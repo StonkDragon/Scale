@@ -21,5 +21,5 @@ function main(): none
 
     typeof (foo.bar.baz.f) puts
     
-    assert (foo.bar.baz.f "Hello, World!" !=) else ("Assertion failed!" eputs)
+    assert (foo.bar.baz.f "Hello, World!" !=) else ("Assertion failed!" puts)
 end

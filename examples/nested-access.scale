@@ -15,10 +15,6 @@ struct Baz
     decl value: int
 end
 
-container Cont
-    decl foo: int
-end
-
 function main(): none
     Bar {
         Baz {
@@ -31,6 +27,4 @@ function main(): none
     foo.bar@.baz.value puts # these two are equivalent
 
     foo.bar @ puts
-
-    1 => Cont.foo
 end
