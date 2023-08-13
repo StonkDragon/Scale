@@ -1,0 +1,31 @@
+union Result
+    Ok: any
+    Err: any
+end
+
+function Result:expected(id: int): none
+    assert (id __tag ==) else (
+        if id 1 == then
+            "Expected Ok, got Err"
+        else
+            "Expected Err, got Ok"
+        fi
+        AssertError::new throw
+    )
+end
+
+function Result:isOk(): bool
+    self.__tag 1 == return
+end
+
+function Result:isErr(): bool
+    self.__tag 2 == return
+end
+
+function Result:toString(): str
+    if self:isOk then
+        "Ok {" self.Ok:toString + "}" +
+    else
+        "Err {" self.Err:toString + "}" +
+    fi return
+end

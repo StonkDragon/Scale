@@ -1,0 +1,31 @@
+union Option
+    Some: any
+    None: none
+end
+
+function Option:expected(id: int): none
+    assert (id __tag ==) else (
+        if __tag 1 == then
+            "Unexpected Union value: Some {" self.Some:toString + "}" +
+        else
+            "Unexpected Union value: None"
+        fi
+        AssertError::new throw
+    )
+end
+
+function Option:isSome(): bool
+    self.__tag 1 == return
+end
+
+function Option:isNone(): bool
+    self.__tag 2 == return
+end
+
+function Option:toString(): str
+    if self:isSome then
+        "Some {" self.Some:toString + "}" +
+    else
+        "None"
+    fi return
+end

@@ -1,0 +1,8 @@
+Some {Hello!}
+Hello!
+None
+None
+Ok {Everything is fine!}
+Everything is fine!
+Err {404: Error not found}
+404: Error not found

@@ -1,0 +1,35 @@
+function main(): none
+    # Results
+    { "Everything is fine!" Result::Ok, "404: Error not found" Result::Err } => decl results: Array
+
+    # Options
+    { "Hello!" Option::Some, Option::None } => decl options: Array
+
+    foreach opt in options do
+        opt puts
+
+        # Switch statements can be used to match against the union values
+        opt as Option switch
+            case Some(s: str)
+                s puts
+            esac
+            case None
+                "None" puts
+            esac
+        done
+    done
+
+    foreach res in results do
+        res puts
+
+        # Switch statements can be used to match against the union values
+        res as Result switch
+            case Ok(s: str)
+                s puts
+            esac
+            case Err(e: str)
+                e puts
+            esac
+        done
+    done
+end

@@ -19,9 +19,17 @@ framework: {
             "std/lang/Any.scale";
             "std/lang/Float.scale";
             "std/lang/Union.scale";
+            "std/lang/Result.scale";
+            "std/lang/Option.scale";
         ];
         std.Union: [
             "std/lang/Union.scale";
+        ];
+        std.Result: [
+            "std/lang/Result.scale";
+        ];
+        std.Option: [
+            "std/lang/Option.scale";
         ];
         std.Int: [
             "std/lang/Int.scale";

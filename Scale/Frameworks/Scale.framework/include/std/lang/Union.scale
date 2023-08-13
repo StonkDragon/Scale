@@ -22,4 +22,8 @@ struct Union
 
         other as Union.__value self.__value == return
     end
+
+    function !=(other: any): bool
+        other self == ! return
+    end
 end
