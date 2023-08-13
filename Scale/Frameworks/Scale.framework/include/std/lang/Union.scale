@@ -8,7 +8,7 @@ struct Union
     end
 
     function toString(): str
-        "Union {" __value:toString + "}" + return
+        typeof self " {" + __value:toString + "}" + return
     end
 
     function expected(s: int): none
