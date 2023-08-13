@@ -18,6 +18,10 @@ framework: {
             "std/lang/Debug.scale";
             "std/lang/Any.scale";
             "std/lang/Float.scale";
+            "std/lang/Union.scale";
+        ];
+        std.Union: [
+            "std/lang/Union.scale";
         ];
         std.Int: [
             "std/lang/Int.scale";

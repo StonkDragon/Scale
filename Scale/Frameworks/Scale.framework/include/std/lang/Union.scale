@@ -1,0 +1,25 @@
+struct Union
+    decl __tag: readonly int
+    decl __value: readonly any
+
+    function init(tag: int, val: any): none
+        tag => self.__tag
+        val => self.__value
+    end
+
+    function toString(): str
+        "Union {" __value:toString + "}" + return
+    end
+
+    function expected(s: int): none
+        assert (s __tag ==) else ("Unexpected Union value: " typeof (self.__value) + AssertError::new throw)
+    end
+
+    function ==(other: any): bool
+        if other is Union ! then false return fi
+        if other typeof self builtinIsInstanceOf ! then false return fi
+        if other as Union.__tag self.__tag != then false return fi
+
+        other as Union.__value self.__value == return
+    end
+end

@@ -406,6 +406,16 @@ namespace sclc {
     std::vector<Method*> makeVTable(TPResult& res, std::string name);
     std::string argsToRTSignatureIdent(Function* f);
 
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
+        return f && f->has_getter ? f : nullptr;
+    }
+
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
+        return f && f->has_setter ? f : nullptr;
+    }
+
     void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
         (void) errors;
         (void) warns;
@@ -541,6 +551,35 @@ namespace sclc {
             append("  const TypeInfo* $statics;\n");
             append("  mutex_t $mutex;\n");
             for (Variable& s : c.members) {
+                if (s.isVirtual) {
+                    Method* getter = attributeAccessor(result, c.name, s.name);
+                    if (!getter) {
+                        FPResult res;
+                        res.success = false;
+                        res.message = "No getter for virtual member '" + s.name + "'";
+                        res.line = s.name_token->line;
+                        res.in = s.name_token->file;
+                        res.column = s.name_token->column;
+                        res.value = s.name_token->value;
+                        res.type = s.name_token->type;
+                        errors.push_back(res);
+                    }
+                    if (!s.isConst) {
+                        Method* setter = attributeMutator(result, c.name, s.name);
+                        if (!setter) {
+                            FPResult res;
+                            res.success = false;
+                            res.message = "No setter for virtual member '" + s.name + "'";
+                            res.line = s.name_token->line;
+                            res.in = s.name_token->file;
+                            res.column = s.name_token->column;
+                            res.value = s.name_token->value;
+                            res.type = s.name_token->type;
+                            errors.push_back(res);
+                        }
+                    }
+                    continue;
+                }
                 append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
             append("};\n");
@@ -553,6 +592,7 @@ namespace sclc {
     size_t i = 0;
     size_t condCount = 0;
     std::vector<char> whatWasIt;
+    std::vector<std::string> switchTypes;
 
     template<typename T>
     void addIfAbsent(std::vector<T>& vec, T val) {
@@ -734,16 +774,6 @@ namespace sclc {
             }
         }
         return true;
-    }
-
-    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
-        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
-        return f && f->has_getter ? f : nullptr;
-    }
-
-    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
-        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
-        return f && f->has_setter ? f : nullptr;
     }
 
     bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false) {
@@ -1595,8 +1625,7 @@ namespace sclc {
         }
         if (!typeCanBeNil(function->return_type) && function->return_type != "none") {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
-            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-            else errors.push_back(err);
+            warns.push_back(err);
             append("_scl_assert((_stack.sp - 1)->i, \"Not nil assertion failed!\");\n");
         } else {
             append("if ((_stack.sp - 1)->i == 0) {\n");
@@ -1844,15 +1873,19 @@ namespace sclc {
         return newVec;
     };
 
-#define LOAD_PATH(path, type)                                       \
-    if (removeTypeModifiers(type) == "float")                       \
-    {                                                               \
-        append("(_stack.sp++)->f = %s;\n", path.c_str());           \
-    }                                                               \
-    else                                                            \
-    {                                                               \
-        append("(_stack.sp++)->i = (scl_int) %s;\n", path.c_str()); \
-    }                                                               \
+#define LOAD_PATH(path, type)                                                               \
+    if (removeTypeModifiers(type) == "float")                                               \
+    {                                                                                       \
+        append("(_stack.sp++)->f = %s;\n", path.c_str());                                   \
+    }                                                                                       \
+    else if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing") \
+    {                                                                                       \
+        append("%s;\n", path.c_str());                                                      \
+    }                                                                                       \
+    else                                                                                    \
+    {                                                                                       \
+        append("(_stack.sp++)->i = (scl_int) %s;\n", path.c_str());                         \
+    }                                                                                       \
     typeStack.push(type);
 
     handler(Identifier) {
@@ -1918,8 +1951,7 @@ namespace sclc {
                 append("_scl_assert((_stack.sp - 1)->i, \"Not nil assertion failed!\");\n");
             } else {
                 transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                warns.push_back(err);
                 append("_scl_assert((_stack.sp - 1)->i, \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
         } else if (body[i].value == "?") {
@@ -1964,7 +1996,8 @@ namespace sclc {
                     transpilerError("Expected expression evaluating to a value after 'typeof'", i);
                     errors.push_back(err);
                 }
-                if (getStructByName(result, typeStackTop) != Struct::Null) {
+                const Struct& s = getStructByName(result, typeStackTop);
+                if (s != Struct::Null && !s.isStatic()) {
                     append("(_stack.sp - 1)->s = _scl_create_string((_stack.sp - 1)->o->$statics->type_name);\n");
                 } else {
                     append("(_stack.sp - 1)->s = _scl_create_string(_scl_find_index_of_struct(*(scl_any*) (_stack.sp - 1)) != -1 ? (_stack.sp - 1)->o->$statics->type_name : \"%s\");\n", typeStackTop.c_str());
@@ -3428,8 +3461,7 @@ namespace sclc {
             }
             if (destructureIndex == 0) {
                 transpilerError("Empty Array destructure", i);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                warns.push_back(err);
             }
             scopeDepth--;
             append("}\n");
@@ -3443,22 +3475,19 @@ namespace sclc {
             if (hasFunction(result, body[i].value)) {
                 {
                     transpilerError("Variable '" + body[i].value + "' shadowed by function '" + body[i].value + "'", i);
-                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                    else errors.push_back(err);
+                    warns.push_back(err);
                 }
             }
             if (hasContainer(result, body[i].value)) {
                 {
                     transpilerError("Variable '" + body[i].value + "' shadowed by container '" + body[i].value + "'", i);
-                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                    else errors.push_back(err);
+                    warns.push_back(err);
                 }
             }
             if (getStructByName(result, body[i].value) != Struct::Null) {
                 {
                     transpilerError("Variable '" + body[i].value + "' shadowed by struct '" + body[i].value + "'", i);
-                    if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                    else errors.push_back(err);
+                    warns.push_back(err);
                 }
             }
             std::string name = body[i].value;
@@ -3786,18 +3815,15 @@ namespace sclc {
         }
         if (hasFunction(result, body[i].value)) {
             transpilerError("Variable '" + body[i].value + "' shadowed by function '" + body[i].value + "'", i+1);
-            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-            else errors.push_back(err);
+            warns.push_back(err);
         }
         if (hasContainer(result, body[i].value)) {
             transpilerError("Variable '" + body[i].value + "' shadowed by container '" + body[i].value + "'", i+1);
-            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-            else errors.push_back(err);
+            warns.push_back(err);
         }
         if (getStructByName(result, body[i].value) != Struct::Null) {
             transpilerError("Variable '" + body[i].value + "' shadowed by struct '" + body[i].value + "'", i+1);
-            if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-            else errors.push_back(err);
+            warns.push_back(err);
         }
         std::string name = body[i].value;
         size_t start = i;
@@ -4280,18 +4306,13 @@ namespace sclc {
     handler(FloatLiteral) {
         noUnused;
 
-        // only parse to verify bounds and make very large float literals defined behavior
-        try {
-            std::stod(body[i].value);
-        } catch (const std::invalid_argument& e) {
-            transpilerError("Invalid float literal: '" + body[i].value + "'", i);
-            errors.push_back(err);
-            return;
-        } catch (const std::out_of_range& e) {
-            transpilerError("Integer literal out of range: '" + body[i].value + "' " + e.what(), i);
-            errors.push_back(err);
+        // only parse to verify
+        auto num = parseDouble(body[i]);
+        if (num.isError()) {
+            errors.push_back(num.unwrapErr());
             return;
         }
+        // we still want the original value from source code here
         append("(_stack.sp++)->f = %s;\n", body[i].value.c_str());
         typeStack.push("float");
     }
@@ -4596,6 +4617,9 @@ namespace sclc {
         if (repeat_depth > 0 && wasRepeat()) {
             repeat_depth--;
         }
+        if (wasSwitch()) {
+            switchTypes.pop_back();
+        }
         popOther();
     }
 
@@ -4721,6 +4745,61 @@ namespace sclc {
             transpilerError("String literal in case statement is not supported", i);
             errors.push_back(err);
         } else {
+            const Struct& s = getStructByName(result, switchTypes.back());
+            if (s.super == "Union") {
+                size_t index = 2;
+                if (!s.hasMember(body[i].value)) {
+                    transpilerError("Unknown member '" + body[i].value + "' in union '" + s.name + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                for (; index < s.members.size(); index++) {
+                    if (s.members[index].name == body[i].value) {
+                        break;
+                    }
+                }
+                append("case %zu: {\n", index - 1);
+                scopeDepth++;
+                varScopePush();
+                if (i + 1 < body.size() && body[i + 1].type == tok_paren_open) {
+                    safeInc();
+                    safeInc();
+                    if (body[i].type != tok_identifier) {
+                        transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                    }
+                    std::string name = body[i].value;
+                    safeInc();
+                    if (body[i].type != tok_column) {
+                        transpilerError("Expected ':', but got '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                    }
+                    safeInc();
+                    FPResult res = parseType(body, &i, getTemplates(result, function));
+                    if (!res.success) {
+                        errors.push_back(res);
+                        return;
+                    }
+                    const Struct& requested = getStructByName(result, res.value);
+                    if (requested != Struct::Null && !requested.isStatic()) {
+                        append("_scl_checked_cast((_stack.sp)->u->__value, %d, \"%s\");\n", id((char*) res.value.c_str()), res.value.c_str());
+                    }
+                    append("%s Var_%s = *(%s*) &((_stack.sp)->u->__value);\n", sclTypeToCType(result, res.value).c_str(), name.c_str(), sclTypeToCType(result, res.value).c_str());
+                    varScopeTop().push_back(Variable(name, res.value));
+                    safeInc();
+                    if (body[i].type != tok_paren_close) {
+                        transpilerError("Expected ')', but got '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                    }
+                } else {
+                    std::string removed = removeTypeModifiers(s.members[index].type);
+                    if (removed != "none" && removed != "nothing") {
+                        append("%s Var_it = *(%s*) &(_stack.sp)->u->__value;\n", sclTypeToCType(result, s.members[index].type).c_str(), sclTypeToCType(result, s.members[index].type).c_str());
+                        varScopeTop().push_back(Variable("it", s.members[index].type));
+                    }
+                }
+                return;
+            }
             append("case %s: {\n", body[i].value.c_str());
             scopeDepth++;
             varScopePush();
@@ -4754,7 +4833,17 @@ namespace sclc {
 
     handler(Switch) {
         noUnused;
+        std::string type = typeStackTop;
+        switchTypes.push_back(type);
         typePop;
+        const Struct& s = getStructByName(result, type);
+        if (s.super == "Union") {
+            append("switch ((--_stack.sp)->u->__tag) {\n");
+            scopeDepth++;
+            varScopePush();
+            pushSwitch();
+            return;
+        }
         append("switch ((--_stack.sp)->i) {\n");
         scopeDepth++;
         varScopePush();
@@ -4867,8 +4956,7 @@ namespace sclc {
         if (i + 1 < body.size() && body[i + 1].value == "?") {
             if (!typeCanBeNil(typeStackTop)) {
                 transpilerError("Unneccessary cast to maybe-nil type '" + type.value + "?' from not-nil type '" + typeStackTop + "'", i - 1);
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                warns.push_back(err);
             }
             typePop;
             typeStack.push(type.value + "?");
@@ -5789,8 +5877,7 @@ namespace sclc {
                 err.column = function->name_token.column;
                 err.value = function->name_token.value;
                 err.type = function->name_token.type;
-                if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                else errors.push_back(err);
+                warns.push_back(err);
             }
 
             return_type = "void";
@@ -5922,8 +6009,7 @@ namespace sclc {
                         err.column = function->name_token.column;
                         err.type = function->name_token.type;
                         err.success = false;
-                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                        else errors.push_back(err);
+                        warns.push_back(err);
                     }
                 }
                 if (hasContainer(result, nrvName)) {
@@ -5936,8 +6022,7 @@ namespace sclc {
                         err.column = function->name_token.column;
                         err.type = function->name_token.type;
                         err.success = false;
-                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                        else errors.push_back(err);
+                        warns.push_back(err);
                     }
                 }
                 if (getStructByName(result, nrvName) != Struct::Null) {
@@ -5950,8 +6035,7 @@ namespace sclc {
                         err.column = function->name_token.column;
                         err.type = function->name_token.type;
                         err.success = false;
-                        if (!Main.options.Werror) { if (!noWarns) warns.push_back(err); }
-                        else errors.push_back(err);
+                        warns.push_back(err);
                     }
                 }
                 append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());

@@ -302,9 +302,16 @@ typedef union {
 	scl_any		v;
 	struct {
 		_scl_lambda*	$fast;
-		TypeInfo*	$statics;
+		TypeInfo*		$statics;
 		mutex_t			$mutex;
 	}*			o;
+	struct {
+		_scl_lambda*	$fast;
+		TypeInfo*		$statics;
+		mutex_t			$mutex;
+		scl_int			__tag;
+		scl_any			__value;
+	}*			u;
 } _scl_frame_t;
 
 typedef struct {

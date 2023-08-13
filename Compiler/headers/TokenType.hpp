@@ -45,6 +45,7 @@ namespace sclc
         tok_container_def,          // container
         tok_repeat,                 // repeat
         tok_struct_def,             // struct
+        tok_union_def,              // union
         tok_new,                    // new
         tok_is,                     // is
         tok_cdecl,                  // cdecl

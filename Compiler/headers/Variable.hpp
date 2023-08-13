@@ -50,6 +50,7 @@ namespace sclc
         bool isInternalMut;
         bool isMut;
         bool isReadonly;
+        bool isVirtual;
         Token* name_token;
         bool isPrivate;
         bool canBeNil;
@@ -66,6 +67,7 @@ namespace sclc
             this->isInternalMut = memberType.size() != 0;
             this->isPrivate = false;
             this->typeFromTemplate = "";
+            this->isVirtual = false;
         }
         virtual ~Variable() {}
 

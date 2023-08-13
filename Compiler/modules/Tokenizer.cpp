@@ -366,6 +366,7 @@ namespace sclc
         TOKEN("container",  tok_container_def, line, filename);
         TOKEN("repeat",     tok_repeat, line, filename);
         TOKEN("struct",     tok_struct_def, line, filename);
+        TOKEN("union",      tok_union_def, line, filename);
         TOKEN("new",        tok_new, line, filename);
         TOKEN("is",         tok_is, line, filename);
         TOKEN("cdecl",      tok_cdecl, line, filename);
