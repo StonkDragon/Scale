@@ -9,7 +9,7 @@
 *.scale.c
 out.c
 out.h
-scale.h
+scale_interop.h
 out.typeinfo.h
 *.wasm
 *.js
