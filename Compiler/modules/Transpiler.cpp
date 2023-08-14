@@ -24,6 +24,7 @@ namespace sclc {
     std::unordered_map<std::string, std::vector<Function*>> functionsByFile;
 
     std::map<std::string, std::vector<Method*>> vtables;
+    FILE* scale_header = NULL;
 
     std::string sclFunctionNameToFriendlyString(Function* f);
     std::string sclFunctionNameToFriendlyString(std::string name);
@@ -36,22 +37,12 @@ namespace sclc {
 
     bool hasTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
-        for (const auto& p : r.typealiases) {
-            if (p.first == t) {
-                return true;
-            }
-        }
-        return false;
+        return r.typealiases.find(t) != r.typealiases.end();
     }
 
     std::string getTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
-        for (const auto& p : r.typealiases) {
-            if (p.first == t) {
-                return p.second;
-            }
-        }
-        return "";
+        return r.typealiases[t];
     }
 
     std::string notNilTypeOf(std::string t) {
@@ -89,20 +80,22 @@ namespace sclc {
         if (t == "bool") return "scl_bool";
         if (t == "varargs") return "...";
         if (!(getStructByName(result, t) == Struct::Null)) {
-            return "scl_" + getStructByName(result, t).name;
+            return "scl_" + t;
         }
         if (t.size() > 2 && t.front() == '[') {
-            std::string type = sclTypeToCType(result, t.substr(1, t.size() - 2));
-            return type + "*";
+            return sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*";
         }
         if (getInterfaceByName(result, t)) {
-            return "scl_any";
+            return "scl_SclObject";
         }
         if (hasTypealias(result, t)) {
             return getTypealias(result, t);
         }
+        if (hasEnum(result, t)) {
+            return "scl_int";
+        }
         if (hasLayout(result, t)) {
-            return "scl_" + getLayout(result, t).name;
+            return "scl_" + t;
         }
 
         return "scl_any";
@@ -291,11 +284,52 @@ namespace sclc {
                 }
                 append("%s Function_%s(%s)\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
                 append("    __asm(%s);\n", symbol.c_str());
+                if (function->has_export) {
+                    if (function->member_type.size()) {
+                        if (hasMethod(result, function->name, function->member_type)) {
+                            FPResult res;
+                            res.success = false;
+                            res.message = "Function '" + function->member_type + "::" + function->name + "' conflicts with method '" + function->member_type + ":" + function->name + "'";
+                            res.line = function->name_token.line;
+                            res.in = function->name_token.file;
+                            res.column = function->name_token.column;
+                            res.value = function->name_token.value;
+                            res.type = function->name_token.type;
+                            errors.push_back(res);
+                            continue;
+                        }
+                    }
+                    fprintf(scale_header, "extern ");
+                    if (function->name == "throw" || function->name == "builtinUnreachable") {
+                        fprintf(scale_header, "_scl_no_return ");
+                    }
+                    fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                }
             } else {
                 append("%s Method_%s$%s(%s)\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str());
                 append("    __asm(%s);\n", symbol.c_str());
+                if (function->has_export) {
+                    if (hasFunction(result, function->member_type + "$" + function->finalName())) {
+                        FPResult res;
+                        res.success = false;
+                        res.message = "Method '" + function->member_type + ":" + function->name + "' conflicts with function '" + function->member_type + "::" + function->name + "'";
+                        res.line = function->name_token.line;
+                        res.in = function->name_token.file;
+                        res.column = function->name_token.column;
+                        res.value = function->name_token.value;
+                        res.type = function->name_token.type;
+                        errors.push_back(res);
+                        continue;
+                    }
+                    fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                }
             }
         }
+
+        fprintf(scale_header, "#endif\n");
+
+        fclose(scale_header);
+        scale_header = NULL;
 
         append("\n");
     }
@@ -330,6 +364,12 @@ namespace sclc {
 
         for (Variable& s : result.globals) {
             append("extern %s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            fprintf(scale_header, "extern %s %s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"Var_%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.name.c_str());
+            globals.push_back(s);
+        }
+        for (Variable& s : result.extern_globals) {
+            append("extern %s Var_%s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.name.c_str());
+            fprintf(scale_header, "extern %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             globals.push_back(s);
         }
 
@@ -422,6 +462,21 @@ namespace sclc {
         int scopeDepth = 0;
         if (result.structs.size() == 0) return;
         append("/* STRUCT DEFINITIONS */\n");
+
+        remove("scale_interop.h");
+        scale_header = fopen("scale_interop.h", "a+");
+        if (!scale_header) {
+            std::cerr << "Could not open scale_interop.h" << std::endl;
+            std::raise(SIGSEGV);
+        }
+        fprintf(scale_header, "#if !defined(SCALE_INTEROP_H)\n");
+        fprintf(scale_header, "#define SCALE_INTEROP_H\n");
+        fprintf(scale_header, "#include <scale_runtime.h>\n\n");
+
+        for (Struct& c : result.structs) {
+            if (c.name == "str" || c.name == "any" || c.name == "int" || c.name == "float" || isPrimitiveIntegerType(c.name)) continue;
+            fprintf(scale_header, "typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
+        }
 
         for (Struct& c : result.structs) {
             if (c.isStatic()) continue;
@@ -583,6 +638,16 @@ namespace sclc {
                 append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
             append("};\n");
+
+            fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
+            fprintf(scale_header, "  const _scl_lambda* const $fast;\n");
+            fprintf(scale_header, "  const TypeInfo* $statics;\n");
+            fprintf(scale_header, "  mutex_t $mutex;\n");
+            for (Variable& s : c.members) {
+                if (s.isVirtual) continue;
+                fprintf(scale_header, "  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            }
+            fprintf(scale_header, "};\n");
         }
         currentStruct = Struct::Null;
         append("\n");
@@ -731,21 +796,11 @@ namespace sclc {
             return true;
         }
 
-        if (allowIntPromotion) {
-            if (isPrimitiveIntegerType(arg) && isPrimitiveIntegerType(stack)) {
-                return true;
-            }
-        } else {
-            if (isPrimitiveIntegerType(arg) && isPrimitiveIntegerType(stack)) {
-                if (typeIsUnsigned(arg) && typeIsSigned(stack)) {
-                    return false;
-                } else if (typeIsSigned(arg) && typeIsUnsigned(stack)) {
-                    return false;
-                } else if (intBitWidth(arg) != intBitWidth(stack)) {
-                    return false;
-                }
-                return true;
-            }
+        if (hasEnum(result, stack)) stack = "int";
+        if (hasEnum(result, arg)) arg = "int";
+
+        if (isPrimitiveIntegerType(arg) && isPrimitiveIntegerType(stack)) {
+            return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
         if (arg == "any" || arg == "[any]" || (argIsNilable && arg != "float" && (stack == "any" || stack == "[any]"))) {

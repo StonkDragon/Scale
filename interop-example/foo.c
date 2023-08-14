@@ -1,6 +1,4 @@
-#include <scale_runtime.h>
-
-void bar(scl_str str);
+#include "scale_interop.h"
 
 // Define function `foo` and export it to scale
 void foo() {
@@ -11,6 +9,6 @@ void foo() {
     // calls the `append` method on the string
     s = virtual_call(s, "append(s;)s;", str_of("!"));
 
-    // calls the `bar` function
+    // calls the `bar` function defined in `main.scale`
     bar(s);
 }
