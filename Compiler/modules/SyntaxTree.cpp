@@ -81,8 +81,8 @@ namespace sclc {
         else if (name == "--") name = "operator$dec";
         else if (name == "@") name = "operator$at";
         else if (name == "=>") name = "operator$store";
-        else if (strcontains(name, "=>")) name = replaceAll(name, "=>", "operator$store");
         else if (name == "=>[]") name = "operator$set";
+        else if (strcontains(name, "=>")) name = replaceAll(name, "=>", "operator$store");
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
 
