@@ -1184,6 +1184,7 @@ namespace sclc
         cflags.push_back("-lm");
 #endif
         cflags.push_back("-lScaleRuntime");
+        cflags.push_back("-lgc");
 
         std::string cmd = "";
         for (std::string& s : cflags) {
