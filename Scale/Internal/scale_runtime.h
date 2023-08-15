@@ -467,7 +467,9 @@ void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
 mutex_t				_scl_mutex_new(void);
 
+#if defined(__deprecated_msg)
 __deprecated_msg("Stack resizing has been removed. This function does nothing.")
+#endif
 void				_scl_resize_stack(void);
 
 #define _scl_push()						(_stack.sp++)

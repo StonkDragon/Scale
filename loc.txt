@@ -1,7 +1,7 @@
      879 Compiler/Common.cpp
     1332 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
-     246 Compiler/headers/Common.hpp
+     247 Compiler/headers/Common.hpp
       47 Compiler/headers/Container.hpp
      107 Compiler/headers/DragonConfig.hpp
       31 Compiler/headers/Enum.hpp
@@ -59,7 +59,7 @@
       17 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       30 Scale/Internal/runtime_vars.c
     1601 Scale/Internal/scale_runtime.c
-     579 Scale/Internal/scale_runtime.h
+     581 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -109,4 +109,4 @@
       14 interop-example/foo.c
       14 interop-example/main.scale
      272 interop-example/scale_interop.h
-   22050 total
+   22053 total

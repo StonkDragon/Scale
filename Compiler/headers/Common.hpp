@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <stack>
 #include <sys/stat.h>
+#include <chrono>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 

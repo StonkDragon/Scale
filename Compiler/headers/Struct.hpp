@@ -109,18 +109,18 @@ namespace sclc
             }
             return false;
         }
-        Variable& getMember(std::string&& name) const {
+        const Variable& getMember(std::string&& name) const {
             for (const Variable& v : members) {
                 if (v.name == name) {
-                    return __CAST_AWAY_QUALIFIER(v, const, Variable&);
+                    return v;
                 }
             }
             return Variable::emptyVar();
         }
-        Variable& getMember(std::string& name) const {
+        const Variable& getMember(std::string& name) const {
             for (const Variable& v : members) {
                 if (v.name == name) {
-                    return __CAST_AWAY_QUALIFIER(v, const, Variable&);
+                    return v;
                 }
             }
             return Variable::emptyVar();
