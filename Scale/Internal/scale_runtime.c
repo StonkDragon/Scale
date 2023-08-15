@@ -913,7 +913,7 @@ void _scl_reset_signal_handler(scl_int sig) {
 
 void _scl_set_up_signal_handler(void) {
 	static struct sigaction act = {
-		.__sigaction_u.__sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_handle_signal,
+		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_handle_signal,
 		.sa_flags = SA_SIGINFO,
 		.sa_mask = sigmask(SIGINT) | sigmask(SIGILL) | sigmask(SIGTRAP) | sigmask(SIGABRT) | sigmask(SIGBUS) | sigmask(SIGSEGV)
 	};
