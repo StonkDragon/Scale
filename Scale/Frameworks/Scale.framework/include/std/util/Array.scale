@@ -14,7 +14,7 @@ sealed struct Array is Iterable
 
   private function checkTypeOrThrow(value: any): none end
   
-  restrict function sort(): none
+  function sort(): none
     0 => decl i
 
     while i self.count < do
@@ -34,11 +34,11 @@ sealed struct Array is Iterable
     done
   end
 
-  function [](index: int): any?
+  function [](index: int): any
     index self:get return
   end
 
-  function get(index: int): any?
+  function get(index: int): any
     if index 0 < index self.count >= || then
       "Index "
       index:toString +
@@ -54,7 +54,7 @@ sealed struct Array is Iterable
     index value self:set
   end
 
-  restrict function set(index: int, value: any): none
+  function set(index: int, value: any): none
     value self:checkTypeOrThrow
     if index 0 < index self.capacity >= || then
       "Index "
@@ -73,14 +73,14 @@ sealed struct Array is Iterable
     value => self.values[index]
   end
 
-  function top(): any?
+  function top(): any
     if self.count 0 <= then
       "Cannot invoke Array:top on an empty Array!" IndexOutOfBoundsException::new throw
     fi
-    self.values self.count 1 - sizeof any * + @ return
+    self.values[self.count 1 -] return
   end
 
-  restrict function push(value: any): none
+  function push(value: any): none
     value self:checkTypeOrThrow
 
     if self.count self.capacity >= then
@@ -92,7 +92,7 @@ sealed struct Array is Iterable
     self.count 1 + => self.count
   end
 
-  restrict function pop(): none
+  function pop(): none
     if self.count 0 <= then
       "Cannot invoke Array:pop on an empty Array!" IndexOutOfBoundsException::new
       throw
@@ -100,7 +100,7 @@ sealed struct Array is Iterable
     self.count 1 - => self.count
   end
 
-  restrict function indexOf(val: any): int
+  function indexOf(val: any): int
     val self:checkTypeOrThrow
     for i in 0 to self.count do
       if i self:get is SclObject then
@@ -128,9 +128,10 @@ sealed struct Array is Iterable
   end
 
   function init(size: int): none
-    if size 1 < then
+    if size 0 < then
       "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
+    if size 0 == then 1 => size fi
     new[size] => self.values
     0 => self.count
     size => self.capacity
@@ -141,7 +142,7 @@ sealed struct Array is Iterable
     self ArrayIterator::new return
   end
 
-  restrict function reverse(): Array
+  function reverse(): Array
     if self.count 0 <= then self return fi
     
     self.count Array::new => decl tmp
@@ -158,24 +159,26 @@ sealed struct Array is Iterable
     self return
   end
 
-  restrict function toString() s: str
+  function toString() s: str
     if self.count 0 == then
       "{}" => s
     else
       "{" => s
-      for i in 0 to self.count do
-        i self:get => decl elem: any
+      0 => decl i
+      foreach elem in self do
         if i then
           s ", " + => s
         fi
         s elem:toString + => s
+        i++ => i
       done
       s "}" + => s
     fi
     return
   end
 
-  restrict function immutableCopy(): ImmutableArray
+  deprecated![since: "23.8", replacement: "ReadOnlyArray", forRemoval: true]
+  function immutableCopy(): ImmutableArray
     new[self.count] => decl newVals: [any]
     unsafe
       newVals self.values self.count sizeof any * memcpy => newVals
@@ -186,7 +189,7 @@ sealed struct Array is Iterable
     return
   end
 
-  restrict function remove(val: any): none
+  function remove(val: any): none
     val self:checkTypeOrThrow
     val self:indexOf => decl index
     for i in index to self.count 1 - do
@@ -202,13 +205,13 @@ sealed struct Array is Iterable
     done
   end
 
-  restrict function map(x: lambda(any): none): none
+  function map(x: lambda(any): none): none
     foreach elem in self do
       elem x:accept
     done
   end
 
-  restrict function filter(x: lambda(any): bool) arr: Array
+  function filter(x: lambda(any): bool) arr: Array
     self.capacity Array::new => arr
     foreach elem in self do
       if elem x:accept then
@@ -218,20 +221,20 @@ sealed struct Array is Iterable
     return
   end
 
-  restrict function clone(): Array
+  function clone(): Array
     self builtinAtomicClone as Array => decl clone: mut Array
     self.values builtinAtomicClone => clone.values
     clone return
   end
 
-  restrict function *(): none
+  function *(): none
     foreach elem in self do
       elem
     done
     unsafe
       c!
-        scl_int* begin_sp = (scl_int*) &__begin_stack_size;
-        *begin_sp = _stack.ptr;
+        _scl_frame_t** begin_sp = (_scl_frame_t**) &__current_base_ptr;
+        *begin_sp = _stack.sp;
       end
     end
   end

@@ -1,4 +1,9 @@
-# This function has 3 arguments
+# Function Arguments
+# --------------------------
+# Functions can take arguments, which are passed on the stack
+# in the order they are specified. The function can then access
+# these arguments like any other variable.
+
 function doStuff(foo: str, bar: str, baz: str): none
   foo puts
   bar puts
@@ -6,6 +11,5 @@ function doStuff(foo: str, bar: str, baz: str): none
 end
 
 function main(): none
-  # call the function with 3 arguments
   "foo" "bar" "baz" doStuff
 end

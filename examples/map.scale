@@ -1,6 +1,13 @@
+# Map
+# --------------------------
+# This example shows how to use the Map struct.
+# Map is a key-value pair data structure.
+
 import std.util.Map
 
 function main(): none
+    # A new map that maps str to str
+    # the key type is always str
     10 Map<str>::new => decl map
     "Apple" => map["A"]
     "Banana" " " + "Pineapple" + => map["B"]

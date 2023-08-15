@@ -1,5 +1,10 @@
+# Repeat
+# --------------------------
+# This example shows how to use the repeat keyword to repeat a block of code
+# a certain number of times.
+
 function main(): none
-  # this will print "Hello" 10 times
+  # print "Hello" 10 times
   repeat 10 do
     "Hello" puts
   done

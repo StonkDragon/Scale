@@ -1,0 +1,75 @@
+# Example Union
+union Foo
+    SomeValue: str
+    SomeOtherValue: int
+    SomeThirdValue: str
+end
+
+function foo(f: Foo): none
+    f puts
+
+    f switch
+        # This binds the contained value to the variable `s`
+        case SomeValue(i: int)
+            i puts
+        esac
+
+        # When not specifying a name to bind the contained value to,
+        # the union value is bound to the variable `it`
+        case SomeOtherValue
+            typeof it puts
+            it puts
+        esac
+
+        # In the default case, the union instance (not value) is bound to the variable `it`
+        default
+            it puts
+        esac
+    done
+end
+
+function main(): none
+    # Results
+    { "Everything is fine!" Result::Ok, "404: Error not found" Result::Err } => decl results: Array
+
+    # Options
+    { "Hello!" Option::Some, Option::None } => decl options: Array
+
+    {
+        "Hello!" Foo::SomeValue,
+        42 Foo::SomeOtherValue,
+        "Other" Foo::SomeThirdValue
+    } => decl foos: Array
+
+    foreach f in foos do
+        f as Foo foo
+    done
+
+    foreach opt in options do
+        opt puts
+
+        # Switch statements can be used to match against the union values
+        opt as Option switch
+            case Some(s: str)
+                s puts
+            esac
+            case None
+                "None" puts
+            esac
+        done
+    done
+
+    foreach res in results do
+        res puts
+
+        # Switch statements can be used to match against the union values
+        res as Result switch
+            case Ok(s: str)
+                s puts
+            esac
+            case Err(e: str)
+                e puts
+            esac
+        done
+    done
+end

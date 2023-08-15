@@ -8,6 +8,6 @@ final sealed struct Pair
 	end
 
 	function toString(): str
-		"(" a:toString + ", " + b:toString + ")" + return
+		( ( ("(" a:toString +) (", " b:toString +) +) ")" +) return
 	end
 end

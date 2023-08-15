@@ -1,0 +1,34 @@
+# Reference
+# --------------------------
+# This example shows how to use the ref keyword to get the address of a variable
+# or field. The address can be used to modify the value of the variable or field
+# from another location in the program.
+
+# New struct
+struct Foo
+    decl x: int
+    decl y: Bar
+end
+
+# New struct
+struct Bar
+    decl b: Baz
+end
+
+# New struct
+struct Baz
+    decl x: int
+end
+
+function main(): none
+    Foo::new => decl f: Foo # Create a new Foo struct and store it in f
+    123      => f.x         # Set the value of f.x to 123
+    Bar::new => f.y         # Create a new Bar struct and store it in f.y
+    Baz::new => f.y.b       # Create a new Baz struct and store it in f.y.b
+    456      => f.y.b.x     # Set the value of f.y.b.x to 456
+
+    # Grab the address of f.x
+    (ref f.x @)     puts    # Prints 123
+    # Grab the address of f.y.b.x
+    (ref f.y.b.x @) puts    # Prints 456
+end

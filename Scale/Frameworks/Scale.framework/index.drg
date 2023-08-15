@@ -1,8 +1,10 @@
 framework: {
-    version: "23.7";
+    version: "23.8";
     headerDir: "include";
     implDir: "impl";
-    implementers: [];
+    implementers: [
+        "scale.c";
+    ];
     implHeaderDir: "impl";
     implHeaders: [];
     docfile: "Docs.scldoc";
@@ -16,6 +18,18 @@ framework: {
             "std/lang/Debug.scale";
             "std/lang/Any.scale";
             "std/lang/Float.scale";
+            "std/lang/Union.scale";
+            "std/lang/Result.scale";
+            "std/lang/Option.scale";
+        ];
+        std.Union: [
+            "std/lang/Union.scale";
+        ];
+        std.Result: [
+            "std/lang/Result.scale";
+        ];
+        std.Option: [
+            "std/lang/Option.scale";
         ];
         std.Int: [
             "std/lang/Int.scale";
@@ -70,16 +84,16 @@ framework: {
             "std/util/IndexOutOfBoundsException.scale";
         ];
         std.util.Cloneable: [
-            "std/util/ICloneable.scale";
+            "std/util/Cloneable.scale";
         ];
         std.util.Equatable: [
-            "std/util/IEquatable.scale";
+            "std/util/Equatable.scale";
         ];
         std.util.Hashable: [
-            "std/util/IHashable.scale";
+            "std/util/Hashable.scale";
         ];
         std.util.Iterable: [
-            "std/util/IIterable.scale";
+            "std/util/Iterable.scale";
         ];
         std.util.Map: [
             "std/util/Map.scale";
@@ -91,13 +105,10 @@ framework: {
             "std/util/Range.scale";
         ];
         std.util.Stringifyable: [
-            "std/util/IStringifyable.scale";
+            "std/util/Stringifyable.scale";
         ];
         std.util.Triple: [
             "std/util/Triple.scale";
-        ];
-        std.reflect.Struct: [
-            "std/reflect/Struct.scale";
         ];
         std.runtime.Process: [
             "std/runtime/Process.scale";

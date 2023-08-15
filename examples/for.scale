@@ -1,3 +1,6 @@
+# For loop
+# --------------------------
+# This example shows how to use for loops
 
 function main(): none
   # this will print the numbers from 1 to 9

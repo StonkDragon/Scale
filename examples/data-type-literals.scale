@@ -1,14 +1,21 @@
+# Data type literals
+# --------------------------
+# This example shows the usage of data type literals.
+# The following data type literals are supported:
+# - Array: { elements }
+# - Pair: ( first, second )
+# - Triple: ( first, second, third )
+
 import std.util.Map
 import std.util.Pair
 import std.util.Triple
 
 function main(): none
-    decl fruits: Array
-    {"Apple", "Banana", "Pineapple"} => fruits
+    {"Apple", "Banana", "Pineapple"} => decl fruits: Array
     
-    decl apple: str
-    decl banana: str
-    decl pineapple: str
+    "" => decl apple: str
+    "" => decl banana: str
+    "" => decl pineapple: str
 
     fruits => (apple, banana, pineapple)
 

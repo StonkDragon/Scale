@@ -1,8 +1,31 @@
+# If statement
+# --------------------------
+# This example shows how to use the if statement.
+# 
+
 function main(): none
+  # The code inside the if statement will only be executed if the condition is true.
   if 1 1 == then
     "1 == 1" puts
+
+  # The code inside the elif statement will only be executed if the condition is true
+  # and any of the previous conditions are false.
+  elif 2 3 == then
+    "2 == 3" puts
+
+  # The code inside the else statement will only be executed if all of the previous
+  # conditions are false.
+  else
+    "1 != 1 and 2 != 3" puts
   fi
-  if 1 2 != then
+
+  # The code inside the unless statement will only be executed if the condition is false.
+  unless 1 2 == then
     "1 != 2" puts
+  
+  # The code inside the unelss statement will only be executed if the condition is false
+  # and any of the previous conditions are true.
+  elunless 1 1 == then
+    "1 == 1" puts
   fi
 end

@@ -3,14 +3,17 @@
 	"name": "scale",
 	"patterns": [
 		{"include": "#comment"},
+		{"include": "#block_comment_c"},
+		{"include": "#block_comment_scale"},
+		{"include": "#block_comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
+		{"include": "#quoted_string"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#deprecation"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#quoted_string"},
 		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
 		{"include": "#stack_operators"},
@@ -27,6 +30,39 @@
 				"match": "."
 			}]
 		},
+		"block_comment": {
+			"name": "comment",
+			"begin": "`",
+			"end": "`",
+			"patterns": [{
+				"name": "comment",
+				"match": "."
+			}]
+		},
+		"block_comment_c": {
+			"begin": "`c",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"endCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"name": "meta.embedded.block.c",
+			"patterns": [{"include": "source.c"}]
+		},
+		"block_comment_scale": {
+			"begin": "`scale",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"endCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"name": "meta.embedded.block.scale",
+			"patterns": [{"include": "source.scale"}]
+		},
 		"keyw_constant": {
 			"name": "entity.name.function",
 			"patterns": [{
@@ -37,7 +73,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|layout|enum|interface|new|is|cdecl|asm|goto|label|nothing|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|unsafe|restrict|const|readonly|mut|try|catch|throw|open|intrinsic|lambda)\\b"
+				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|goto|label|nothing|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|unsafe|restrict|const|readonly|mut|try|catch|throw|open|intrinsic|lambda)\\b"
 			},{
 				"name": "keyword.control",
 				"match": "((macro|pragma)!)"
@@ -79,7 +115,7 @@
 		},
 		"quoted_string": {
 			"name": "string.quoted.double",
-			"begin": "\"",
+			"begin": "(c\"|\")",
 			"end": "\"",
 			"patterns": [{
 				"name": "string",
@@ -117,7 +153,7 @@
 		},
 		"keyw_operator": {
 			"name": "keyword.control",
-			"match": "(:|\\.|,|(\\+|-|\\*|/|%|\\||\\^|~)>?|@|&|=(=|>)|!=?|<(<|=)?|>(>|=)?|\\[|\\]|\\{|\\}|\\(|\\)|\\?)"
+			"match": "(:|\\.|,|(\\+|-|\\*|/|%|\\||\\^|~)>?|@|&|\\$|=(=|>)|!=?|<(<|=)?|>(>|=)?|\\[|\\]|\\{|\\}|\\(|\\)|\\?)"
 		}
 	},
 	"scopeName": "source.scale"

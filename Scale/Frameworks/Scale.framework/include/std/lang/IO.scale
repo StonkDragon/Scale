@@ -13,8 +13,8 @@ intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: 
   fileDescriptor string:view string:size __c_write drop
 end
 
-intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str?
-  new[amount] => decl buf: [int8]
+intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
+  new<int8>[amount] => decl buf: [int8]
   fileDescriptor buf amount __c_read drop
   buf str::new return
 end
@@ -39,7 +39,7 @@ function puts(value: any): none  value:toString puts end
 function eputs(s: [int8]): none
   unsafe
     c!
-      _scl_push()->v = stderr;
+      (_stack.sp++)->v = stderr;
     end
     "%s\n":view s __c_fprintf! 1
   end

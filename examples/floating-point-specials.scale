@@ -1,15 +1,19 @@
+# Math constants
+# --------------------------
+# This example shows the usage of the MathConstants struct.
+
 import std.math
 
 function main(): none
-    MathConstants::nan              :toString puts
-    MathConstants::infinity         :toString puts
-    MathConstants::negativeInfinity :toString puts
+    MathConstants::nan              :toString puts # prints "nan"
+    MathConstants::infinity         :toString puts # prints "inf"
+    MathConstants::negativeInfinity :toString puts # prints "-inf"
 
     unsafe
         c!
             _scl_push()->i = Var_MathConstants$infinity == (1.0 / 0.0);
-        end as int puts
+        end as int puts # prints "1"
 
-        1.0 0.0 / :toString puts
+        1.0 0.0 / :toString puts # prints "inf"
     end
 end

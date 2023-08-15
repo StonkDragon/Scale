@@ -1,0 +1,15 @@
+Foo {Hello!}
+Hello!
+Foo {42}
+int
+42
+Foo {Other}
+Foo {Other}
+Some {Hello!}
+Hello!
+None
+None
+Ok {Everything is fine!}
+Everything is fine!
+Err {404: Error not found}
+404: Error not found

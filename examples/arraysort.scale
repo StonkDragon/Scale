@@ -1,3 +1,5 @@
+# This is a file used to test the Array:sort method
+
 function createList(len: int): Array
     len Array::new => decl arr: Array
     decl i: int 0 => i
@@ -17,7 +19,7 @@ function printArray(arr: Array): none
 end
 
 function main(): none
-    decl list: Array 1000 createList => list
+    1000 createList => decl list: Array
     list printArray
     list:sort
     list printArray

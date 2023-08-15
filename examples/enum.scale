@@ -1,9 +1,15 @@
+# Enum
+# --------------------------
+# Enum is a special type of class that has a fixed set of constants.
+# Each entry in the enum has a certain value.
+
 enum Enum
-    zero
-    one
-    two
+    zero # 0
+    one  # 1
+    two  # 2
 end
 
+# prints 0, 2, 1
 function main(): none
     Enum::zero putint
     Enum::two  putint

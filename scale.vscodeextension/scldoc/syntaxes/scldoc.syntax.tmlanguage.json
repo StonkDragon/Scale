@@ -2,7 +2,7 @@
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "scldoc",
 	"patterns": [
-		{"include": "#code"},
+		{"include": "#inline_scale"},
 		{"include": "#heading"},
 		{"include": "#file"},
 		{"include": "#color-coding"}
@@ -13,32 +13,35 @@
 			"match": "<<(RESET|BLACK|RED|GREEN|YELLOW|BLUE|MAGENTA|CYAN|WHITE|BOLDBLACK|BOLDRED|BOLDGREEN|BOLDYELLOW|BOLDBLUE|BOLDMAGENTA|BOLDCYAN|BOLDWHITE)>>"
 		},
 		"heading": {
-			"name": "variable.name",
+			"name": "keyword.control",
 			"begin": "^#",
 			"end": "\n",
 			"patterns": [{
-				"name": "variable.name",
+				"name": "keyword.control",
 				"match": "."
 			}]
 		},
+		"inline_scale": {
+			"begin": "`",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"endCaptures": {
+			  "0": { "name": "keyword.control" }
+			},
+			"name": "meta.embedded.block.scale",
+			"patterns": [{"include": "source.scale"}]
+		},
 		"file": {
-			"name": "variable.name",
+			"name": "keyword.control",
 			"begin": "^@",
 			"end": "\n",
 			"patterns": [{
-				"name": "variable.name",
+				"name": "keyword.control",
 				"match": "."
 			}]
 		}
-	},
-	"code": {
-		"name": "string.quoted.double",
-		"begin": "`",
-		"end": "`",
-		"patterns": [{
-			"name": "string",
-			"match": "\\\\."
-		}]
 	},
 	"scopeName": "source.scldoc"
 }

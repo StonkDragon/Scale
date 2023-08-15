@@ -1,0 +1,16 @@
+import std.util.Range
+
+function main(): none
+    2 7 Range::new => decl range
+    range:toReverseRange => decl reverseRange
+
+    range puts
+    foreach i in range do
+        i puts
+    done
+
+    reverseRange puts
+    foreach i in reverseRange do
+        i puts
+    done
+end

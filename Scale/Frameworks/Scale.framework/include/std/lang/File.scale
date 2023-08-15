@@ -15,31 +15,31 @@ final struct File
     self._name return
   end
 
-  restrict function close(): none
+  function close(): none
     unsafe
       _file File::__c_fclose
     end
   end
 
-  restrict function append(s: str): none
+  function append(s: str): none
     unsafe
       s:view 1 s:size _file File::__c_fwrite
     end
   end
 
-  restrict function puts(s: any): none
+  function puts(s: any): none
     s builtinToString => decl val: str
     val self:append
     "\n" self:append
   end
 
-  restrict function writeBinary(buf: any, sz: int): none
+  function writeBinary(buf: any, sz: int): none
     unsafe
       buf 1 sz _file File::__c_fwrite
     end
   end
 
-  restrict function read(sz: int): any
+  function read(sz: int): any
     new[sz] => decl buffer: [any]?
     unsafe
       buffer 1 sz _file File::__c_fread
@@ -48,46 +48,46 @@ final struct File
     return
   end
 
-  restrict function offsetFromBegin(offset: int): none
+  function offsetFromBegin(offset: int): none
     unsafe
       _file offset 0 File::__c_fseek
     end
   end
 
-  restrict function offsetFromEnd(offset: int): none
+  function offsetFromEnd(offset: int): none
     unsafe
       _file offset 2 File::__c_fseek
     end
   end
 
-  restrict function offset(offset: int): none
+  function offset(offset: int): none
     unsafe
       _file offset 1 File::__c_fseek
     end
   end
 
-  restrict function fileno(): int
+  function fileno(): int
     unsafe
       _file File::__c_fileno
       return
     end
   end
 
-  restrict function pos(): int
+  function pos(): int
     unsafe
       _file File::__c_ftell
       return
     end
   end
 
-  restrict function delete(): bool
+  function delete(): bool
     unsafe
       self._name:view __c_remove 0 ==
       return
     end
   end
 
-  restrict function create(): none
+  function create(): none
     "" self:append
   end
 

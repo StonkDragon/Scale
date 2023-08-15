@@ -1,19 +1,19 @@
-# declare a struct named Foo
+# Struct
+# --------------------------
+# This example shows how to declare a struct and instanciate it.
+
+# Struct declaration
 struct Foo
   decl bar: str
 end
 
 function main(): none
-  decl f: mut Foo
-  
-  # instanciate Foo
-  # Foo::new and new Foo are functionally equivalent
-  # but Foo::new is recommended
-  Foo::new => f
+  # create a new Foo instance and store it into new variable f
+  Foo::new => decl f: Foo
 
-  # stores the string "foo" into f's 'bar' field
+  # store "foo" into f.bar
   "foo" => f.bar
   
-  # prints "foo"
+  # print the value of f.bar
   f.bar puts
 end

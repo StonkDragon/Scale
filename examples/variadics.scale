@@ -1,8 +1,17 @@
+# Variadic functions
+# --------------------------
+# This example shows how to use variadic functions.
+# Variadic functions are functions that can take a variable number of arguments.
+
+# The variadic function is declared with the varargs type.
 function variadicTest(args: varargs): none
     args.count puts
     args puts
 end
 
 function main(): none
+    # The number of variadic arguments must be specified
+    # after a '!' after the function name.
+    # This must be a constant.
     "a" "b" "c" variadicTest! 3
 end

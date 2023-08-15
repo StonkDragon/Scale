@@ -1,6 +1,11 @@
+# Subscript
+# --------------------------
+# This example shows how to use the subscript operator
+# to set and get values in an array.
+
 function main(): none
     # array allocation
-    new[4] => decl arr: [int]
+    new<int>[4] => decl arr: [int]
 
     # =>[] subscript operator
     # set value at index

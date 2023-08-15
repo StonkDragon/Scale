@@ -1,4 +1,9 @@
-# new struct named Foo
+# Structs
+# --------------------------
+# This example shows how to create a struct
+# and how to create member functions for that struct.
+# Structs are similar to classes in other languages
+
 struct Foo
     decl foo: str
 end
@@ -9,9 +14,7 @@ function Foo:bar(): none
 end
 
 # member function of Foo called init
-# this function will be called
-# every time an instance of Foo is created
-# think of a constructor in Java or C++
+# this is the constructor for Foo
 function Foo:init(msg: str): none
     msg => self.foo
 end
@@ -19,10 +22,13 @@ end
 function main(): none
     # create an instance of Foo with "Hello!" as the msg
     "Hello!" Foo::new => decl f: Foo
+
     # prints "Hello!"
     f:bar
+
     # create another instance of Foo with "Hello again!" as the msg
     "Hello again!" Foo::new => decl g: Foo
+    
     # prints "Hello again!"
     g:bar
 end

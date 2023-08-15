@@ -1,3 +1,8 @@
+# Operator overloading
+# --------------------------
+# You can overload operators in structs by defining methods
+# with the same name as the operator.
+
 struct Foo
     function +(): str  "+ operator"  return end
     function -(): str  "- operator"  return end

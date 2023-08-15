@@ -16,6 +16,8 @@ for f in /opt/Scale/*; do
         echo "Linking $f/sclc to sclc-${f:11}"
         sudo rm -rf /usr/local/bin/sclc-${f:11}
         sudo ln -s $f/sclc /usr/local/bin/sclc-${f:11}
+        sudo rm -rf /usr/local/bin/scaledoc-${f:11}
+        sudo ln -s $f/sclc /usr/local/bin/scaledoc-${f:11}
     fi
 done
 

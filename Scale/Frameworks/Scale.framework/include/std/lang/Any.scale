@@ -1,11 +1,30 @@
+private expect unsafe function _scl_realloc(ptr: any, size: int): any
+private expect unsafe function _scl_alloc(size: int): any
+private expect unsafe function _scl_free(ptr: any): none
+private expect unsafe function _scl_sizeof(ptr: any): int
+
 final static sealed struct any
-    cdecl "_scl_alloc"  expect function new(size: int): any
-    cdecl "_scl_free"   expect function delete(ptr: any): none
-    cdecl "_scl_sizeof" expect function size(ptr: any): int
+    function new(sz: int): any
+        unsafe
+            sz _scl_alloc return
+        end
+    end
+
+    function delete(ptr: any): none
+        unsafe
+            ptr _scl_free return
+        end
+    end
+    
+    function size(ptr: any): int
+        unsafe
+            ptr _scl_sizeof return
+        end
+    end
 
     function resize(newSize: int, ptr: any): any
         unsafe
-            ptr newSize __c_realloc return
+            ptr newSize _scl_realloc return
         end
     end
 
@@ -27,9 +46,9 @@ final static sealed struct any
         one as int other as int == return
     end
 
-    expect cdecl "Any$valueOf" function asReference(x: any): Any
-
-    cdecl "_scl_realloc" private expect unsafe function __c_realloc(ptr: any, size: int): any
+    function asReference(x: any): Any
+        x Any::valueOf return
+    end
 end
 
 struct Any

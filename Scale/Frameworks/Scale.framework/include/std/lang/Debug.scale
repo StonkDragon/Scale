@@ -9,10 +9,8 @@ expect function trace(): none
 cdecl "_scl_throw"
 expect function throw(ex: Exception): nothing
 
-cdecl "_scl_security_safe_exit"
-private expect unsafe function __c_exit(i: int): none
-cdecl "_scl_default_signal_handler"
-private expect unsafe function __c_scl_default_signal_handler(sigNum: int): none
+private expect unsafe function _scl_security_safe_exit(i: int): none
+private expect unsafe function _scl_default_signal_handler(sigNum: int): none
 cdecl "raise"
 private expect unsafe function __c_raise(sigNum: int): int
 cdecl "_scl_errno"
@@ -25,21 +23,22 @@ cdecl "_scl_reset_signal_handler"
 expect function resetSignalHandler(sig: int): none
 
 intrinsic function dumpStack(): none
+  "Dump:" puts
   unsafe
     c!
-      printf("Dump:\n");
-      for (ssize_t i = _stack.ptr - 1; i >= 0; i--) {
-        scl_int v = _stack.data[i].i;
-        printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", i, v, v);
+      _scl_frame_t* frame = _stack.sp;
+      while (frame != _stack.bp) {
+        frame--;
+        printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
       }
-      printf("\n");
     end
   end
+  "" puts
 end
 
 function crash(): none
   unsafe
-    1 __c_exit
+    1 _scl_security_safe_exit
   end
 end
 
@@ -47,7 +46,7 @@ function raise(sigNum: int): none
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
-      sigNum __c_scl_default_signal_handler
+      sigNum _scl_default_signal_handler
     fi
   end
 end
@@ -77,10 +76,10 @@ sealed struct Exception
     "" => self.msg
   end
 
-  restrict export sealed function printStackTrace(): none
-    "Stacktrace of " typeof self + ":" + eputs
-    for i in self.stackTrace.count 3 - to -1 step -- do
-      "    " (i self.stackTrace:get as str) + eputs
+  sealed function printStackTrace(): none
+    "Stacktrace of " typeof self + ": " + self.msg + eputs
+    for i in self.stackTrace.count to 0 step -- do
+      "    " (i 1 - self.stackTrace:get as str) + eputs
     done
   end
 end
@@ -106,7 +105,7 @@ final sealed open struct CastError: Error
 final sealed open struct UnreachableError: Error
 
 function sysPrettyString(): str
-  new[40] => decl sPtr: [int8]
+  new<int8>[40] => decl sPtr: [int8]
   unsafe
     c!
       snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);

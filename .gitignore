@@ -9,6 +9,7 @@
 *.scale.c
 out.c
 out.h
+scale_interop.h
 out.typeinfo.h
 *.wasm
 *.js
@@ -63,6 +64,7 @@ gen.js
 scale_support.h
 scale-symbol-table.txt
 .chglog
+target/
 
 # Build
 Dragon
@@ -91,4 +93,5 @@ scale-find-virtual-calls
 scale-find-virtual-calls.c
 *.smod
 changes.md
+utf8.h
 e.log

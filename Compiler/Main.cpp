@@ -46,7 +46,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "23.7"
+#define FRAMEWORK_VERSION_REQ "23.8"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -78,6 +78,9 @@
 namespace sclc
 {
     std::string scaleFolder;
+    std::string scaleLatestFolder;
+    std::vector<std::string> nonScaleFiles;
+    std::vector<std::string> cflags;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
@@ -125,109 +128,251 @@ namespace sclc
 
     std::vector<std::string> split(const std::string& str, const std::string& delimiter);
 
-    template <typename A,typename B,typename C>
-    class triple {
-    public:
-        A first;
-        B second;
-        C third;
+    struct DocumentationEntry {
+        std::string name;
+        std::string description;
+        std::string module;
+        std::string file;
+    };
 
-        triple(A a, B b, C c) {
-            first = a;
-            second = b;
-            third = c;
+    using DocumentationEntries = std::vector<DocumentationEntry>;
+
+    struct Documentation {
+        std::map<std::string, DocumentationEntries> entries;
+
+        auto begin() {
+            return entries.begin();
+        }
+        auto end() {
+            return entries.end();
         }
     };
-    using Triple = triple<std::string, std::string, std::string>;
-    using TripleList = std::vector<Triple>;
 
-    auto parseSclDoc(std::string file) {
-        std::map<std::string, TripleList> docs;
-        FILE* fp = fopen(file.c_str(), "rb");
-        if (fp) fseek(fp, 0, SEEK_END);
-        long sz = ftell(fp);
-        if (fp) fseek(fp, 0, SEEK_SET);
+    std::vector<Token> parseString(std::string s) {
+        Tokenizer tk;
+
+        tk.source = strdup(s.c_str());
+        tk.current = 0;
+
+        Token token = tk.nextToken();
+        while (token.type != tok_eof) {
+            tk.tokens.push_back(token);
+            if (tk.additional) {
+                tk.tokens.push_back(tk.additionalToken);
+                tk.additional = false;
+            }
+            token = tk.nextToken();
+        }
+
+        return tk.tokens;
+    }
+
+    bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
+        for (auto path : Main.options.includePaths) {
+            if (fileExists(path + "/" + framework + ".framework/index.drg")) {
+                DragonConfig::ConfigParser parser;
+                DragonConfig::CompoundEntry* root = parser.parse(path + "/" + framework + ".framework/index.drg");
+                if (root == nullptr) {
+                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
+                    return false;
+                }
+                root = root->getCompound("framework");
+                Main.options.mapFrameworkConfigs[framework] = root;
+                DragonConfig::ListEntry* implementers = root->getList("implementers");
+                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
+                DragonConfig::ListEntry* depends = root->getList("depends");
+                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+
+                DragonConfig::StringEntry* versionTag = root->getString("version");
+                std::string version = versionTag->getValue();
+                if (versionTag == nullptr) {
+                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
+                    return false;
+                }
+                
+                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
+                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
+                
+                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
+                
+                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
+
+                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
+                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + "/" + framework + ".framework/" + docfileTag->getValue();
+
+                Version ver = Version(version);
+                Version compilerVersion = Version(VERSION);
+                if (ver > compilerVersion) {
+                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
+                    return false;
+                }
+                if (ver < FrameworkMinimumVersion) {
+                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    return false;
+                }
+
+                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
+                    std::string depend = depends->getString(i)->getValue();
+                    if (!contains(frameworks, depend)) {
+                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
+                    std::string flag = compilerFlags->getString(i)->getValue();
+                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                        hasCppFiles = true;
+                    }
+                    tmpFlags.push_back(flag);
+                }
+
+                Main.frameworks.push_back(framework);
+
+                if (headerDir.size() > 0) {
+                    Main.options.includePaths.push_back(path + "/" + framework + ".framework/" + headerDir);
+                    Main.options.mapIncludePathsToFrameworks[framework] = path + "/" + framework + ".framework/" + headerDir;
+                }
+                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
+                for (unsigned long i = 0; i < implementersSize; i++) {
+                    std::string implementer = implementers->getString(i)->getValue();
+                    if (!Main.options.assembleOnly) {
+                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                            hasCppFiles = true;
+                        }
+                        nonScaleFiles.push_back(path + "/" + framework + ".framework/" + implDir + "/" + implementer);
+                    }
+                }
+                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
+                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
+                    Main.frameworkNativeHeaders.push_back(header);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::string trimLeft(std::string s) {
+        size_t i = 0;
+        while (i < s.size() && isspace(s[i])) {
+            i++;
+        }
+        return s.substr(i);
+    }
+
+    std::string compileLine(std::string line) {
+        std::string out = "";
+        out.reserve(line.size());
+        bool inCode = false;
+        for (size_t i = 0; i < line.size(); i++) {
+            if (line[i] == '`') {
+                inCode = !inCode;
+            } else {
+                if (inCode) {
+                    std::string theCode = line.substr(i, line.find("`", i) - i);
+                    i += theCode.size();
+                    auto tokens = parseString(theCode);
+                    theCode = "";
+                    for (size_t i = 0; i < tokens.size(); i++) {
+                        if (tokens[i].type == tok_eof) continue;
+                        auto t = tokens[i];
+                        size_t spacesBetween = 0;
+                        if (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_eof) {
+                            spacesBetween = t.column - tokens[i - 1].column - tokens[i - 1].value.size();
+                        }
+                        theCode += std::string(spacesBetween, ' ');
+                        theCode += t.formatted();
+                    }
+                    inCode = false;
+                    out += Color::RESET + theCode + Color::GREEN;
+                } else {
+                    out += line[i];
+                }
+            }
+        }
+        return out;
+    }
+
+    Documentation parseSclDoc(std::string file) {
+        FILE* docFile = fopen(file.c_str(), "rb");
+        
+        if (docFile) fseek(docFile, 0, SEEK_END);
+        long sz = ftell(docFile);
+        if (docFile) fseek(docFile, 0, SEEK_SET);
+
         char* data = new char[sz];
-        fread(data, 1, sz, fp);
-        fclose(fp);
+
+        fread(data, 1, sz, docFile);
+        fclose(docFile);
+
+        Documentation docs;
 
         std::vector<std::string> lines = split(std::string(data), "\n");
         std::string current = "";
-        std::string nextFileName = "";
+        std::string currentModule = "";
+        std::string implementedAt = "";
+        std::string parentPath = std::filesystem::path(file).parent_path().string();
         for (size_t i = 0; i < lines.size(); i++) {
             std::string line = lines[i];
-            try {
-                line = replaceAll(line, "`", "");
-            } catch (std::out_of_range& e) {}
-            if (strstarts(line, "@")) {
-                try {
-                    nextFileName = line.substr(1);
-                } catch (std::out_of_range& e) {}
+            if (strstarts(line, "@") && !strstarts(line, "@@")) {
+                currentModule = trimLeft(line.substr(1));
+            } else if (strstarts(line, "@@")) {
+                implementedAt = trimLeft(line.substr(2));
             } else if (strstarts(line, "##") && !strstarts(line, "###")) {
-                try {
-                    current = line.substr(3);
-                    TripleList key_value;
-                    docs[current] = key_value;
-                } catch (std::out_of_range& e) {}
+                current = line.substr(3);
+                docs.entries[current] = DocumentationEntries();
             } else if (strstarts(line, "###")) {
                 std::string key = line.substr(4);
-                docs[current].push_back(triple(key, std::string(""), nextFileName));
+                DocumentationEntry e;
+                e.name = key;
+                e.module = currentModule;
+                implementedAt = replaceAll(implementedAt, R"(\{scaleFolder\})", scaleFolder);
+                implementedAt = replaceAll(implementedAt, R"(\{framework\})", Main.options.printDocFor);
+                implementedAt = replaceAll(implementedAt, R"(\{module\})", currentModule);
+                implementedAt = replaceAll(implementedAt, R"(\{frameworkPath\})", parentPath);
+                e.file = implementedAt;
+                
                 line = lines[++i];
-                std::string linePrefix = "";
-                while (i < lines.size() && !strstarts(line, "##") && !strstarts(line, "@")) {
-                    while (strstarts(line, "<div")) {
-                        line = lines[++i];
+                auto isNextLine = [](std::string line) -> bool {
+                    return strstarts(line, "##") || strstarts(line, "@");
+                };
+                while (i < lines.size()) {
+                    line = lines[i++];
+                    if (isNextLine(line)) {
+                        i -= 2;
+                        break;
                     }
-                    if (line == "<pre>" || strstarts(line, "<pre>")) {
-                        linePrefix = Color::CYAN + "  ";
-                    } else if (line == "</pre>" || strstarts(line, "</pre>")) {
-                        linePrefix = "";
-                    } else {
-                        docs[current].back().second += "  " + linePrefix + line + "\n";
-                    }
-                    line = lines[++i];
+                    e.description += "  " + compileLine(line) + "\n";
                 }
-                std::string prev = docs[current].back().second;
-                std::string now = replaceAll(prev, "\n  \n", "\n");
-                now = replaceAll(now, "<<RESET>>", Color::GREEN);
-                now = replaceAll(now, "<<BLACK>>", Color::BLACK);
-                now = replaceAll(now, "<<RED>>", Color::RED);
-                now = replaceAll(now, "<<GREEN>>", Color::GREEN);
-                now = replaceAll(now, "<<YELLOW>>", Color::YELLOW);
-                now = replaceAll(now, "<<BLUE>>", Color::BLUE);
-                now = replaceAll(now, "<<MAGENTA>>", Color::MAGENTA);
-                now = replaceAll(now, "<<CYAN>>", Color::CYAN);
-                now = replaceAll(now, "<<WHITE>>", Color::WHITE);
-                now = replaceAll(now, "<<BOLDBLACK>>", Color::BOLDBLACK);
-                now = replaceAll(now, "<<BOLDRED>>", Color::BOLDRED);
-                now = replaceAll(now, "<<BOLDGREEN>>", Color::BOLDGREEN);
-                now = replaceAll(now, "<<BOLDYELLOW>>", Color::BOLDYELLOW);
-                now = replaceAll(now, "<<BOLDBLUE>>", Color::BOLDBLUE);
-                now = replaceAll(now, "<<BOLDMAGENTA>>", Color::BOLDMAGENTA);
-                now = replaceAll(now, "<<BOLDCYAN>>", Color::BOLDCYAN);
-                now = replaceAll(now, "<<BOLDWHITE>>", Color::BOLDWHITE);
-
-                docs[current].back().second = now;
-                i--;
+                docs.entries[current].push_back(e);
             }
         }
         return docs;
     }
 
     auto docHandler(std::vector<std::string> args) {
-        std::map<std::string, TripleList> docs;
+        Documentation docs;
+        std::vector<std::string> tmpFlags;
+        std::vector<std::string> frameworks = {Main.options.printDocFor};
+        bool hasCppFiles;
+        Version FrameworkMinimumVersion(FRAMEWORK_VERSION_REQ);
+        if (!checkFramework(Main.options.printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {
+            return 1;
+        }
         
         struct {
             std::vector<std::string> find;
             std::vector<std::string> find_category;
             bool help;
-            bool info;
             bool categories;
         } DocOps = {
             std::vector<std::string>(),
             std::vector<std::string>(),
             false,
-            Main.options.printDocFor.size() == 0,
             false
         };
 
@@ -251,271 +396,113 @@ namespace sclc
                 }
             } else if (arg == "help" || arg == "-h" || arg == "--help") {
                 DocOps.help = true;
-            } else if (arg == "info") {
-                DocOps.info = true;
             } else if (arg == "categories") {
                 DocOps.categories = true;
+            } else if (arg == "for") {
+                if (i + 1 < args.size()) {
+                    Main.options.printDocFor = args[i + 1];
+                    i++;
+                } else {
+                    std::cerr << "Error: for requires an argument" << std::endl;
+                    return 1;
+                }
             } else {
                 std::cout << "Unknown argument: " << arg << std::endl;
                 DocOps.help = true;
             }
         }
-        
+
         if (DocOps.help) {
             std::cout << "Scale Doc-Viewer help:" << std::endl;
             std::cout << "" << std::endl;
             std::cout << "  find <regex>             Find <regex> in documentation." << std::endl;
             std::cout << "  find-category <category> Find <category> in documentation." << std::endl;
-            std::cout << "  info                     Display Scale language documentation." << std::endl;
             std::cout << "  help                     Display this help." << std::endl;
             std::cout << "  categories               Display categories." << std::endl;
             std::cout << "" << std::endl;
             return 0;
         }
+        std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
+        std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
-        if (DocOps.categories) {
-            if (Main.options.printDocFor.size()) {
-                std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-                std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-                if (file.size() == 0 || !fileExists(file)) {
-                    std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-                    return 1;
-                }
-                std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-                Main.options.docsIncludeFolder = includeFolder;
-                if (docFileFormat == "markdown") {
-                    std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
-                    return 1;
-                } else if (docFileFormat == "scldoc") {
-                    docs = parseSclDoc(file);
-                } else {
-                    std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-                    return 1;
-                }
-                std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
-                std::cout << "Categories: " << std::endl;
-
-                std::string current = "";
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
-                }
-                return 0;
-            } else {
-                docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
-                std::cout << "Scale Documentation" << std::endl;
-                std::cout << "Categories: " << std::endl;
-
-                std::string current;
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
-                }
-                return 0;
-            }
+        if (file.size() == 0 || !fileExists(file)) {
+            std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+            return 1;
         }
 
-        if (DocOps.info) {
-            std::cout << "Scale Documentation" << std::endl;
-            docs = parseSclDoc(scaleFolder + "/Internal/Docs.scldoc");
+        std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
+        Main.options.docsIncludeFolder = includeFolder;
 
-            std::string current;
-            if (DocOps.find.size() == 0) {
-                for (std::pair<std::string, TripleList> section : docs) {
-                    current = section.first;
-                    std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                    for (Triple kv : section.second) {
-                        if (kv.third.size())
-                            std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                        else
-                            std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                    }
-                }
-            } else {
-                for (std::string f : DocOps.find) {
-                    bool found = false;
-                    std::string sec = "";
-                    bool hasSection = false;
-                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                                hasSection = true;
-                            }
-                        }
-                        if (!found) {
-                            for (Triple kv : section.second) {
-                                std::string matchCurrent = current;
-                                std::string matchKey = kv.first;
-                                std::string matchDescription = kv.second;
-                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                    found = true;
-                                    sec = current;
-                                }
-                            }
-                        }
-                    }
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        if (found && current == sec)
-                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::string s = kv.second;
-                                std::smatch matches;
-                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                    }
-                }
+        if (docFileFormat == "markdown") {
+            std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
+            return 1;
+        } else if (docFileFormat == "scldoc") {
+            docs = parseSclDoc(file);
+        } else {
+            std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
+            return 1;
+        }
+
+        if (DocOps.categories) {
+            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+            std::cout << "Categories: " << std::endl;
+
+            std::string current = "";
+            for (auto section : docs) {
+                current = section.first;
+                std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
             }
             return 0;
         }
 
-        if (Main.options.printDocFor.size()) {
-            std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-            std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-            if (file.size() == 0 || !fileExists(file)) {
-                std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-                return 1;
-            }
-            std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-            Main.options.docsIncludeFolder = includeFolder;
-            if (docFileFormat == "markdown") {
-                std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
-                return 1;
-            } else if (docFileFormat == "scldoc") {
-                docs = parseSclDoc(file);
-            } else {
-                std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-                return 1;
-            }
-            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+        std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
 
-            std::string current = "";
-            if (DocOps.find.size() == 0) {
-                if (DocOps.find_category.size() == 0) {
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            if (kv.third.size())
-                                std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            else
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
+        std::string current = "";
+        for (auto&& section : docs) {
+            current = section.first;
+
+            bool found = true;
+            if (DocOps.find_category.size()) {
+                found = false;
+                for (auto&& cat : DocOps.find_category) {
+                    if (std::regex_search(current, std::regex(cat))) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) continue;
+
+            std::vector<DocumentationEntry> foundIn;
+
+            for (DocumentationEntry e : section.second) {
+                if (DocOps.find.size()) {
+                    for (auto&& f : DocOps.find) {
+                        if (
+                            std::regex_search(e.name.begin(), e.name.end(), std::regex(f, std::regex::icase)) ||
+                            std::regex_search(e.module.begin(), e.module.end(), std::regex(f, std::regex::icase)) ||
+                            std::regex_search(e.description.begin(), e.description.end(), std::regex(f, std::regex::icase))
+                        ) {
+                            foundIn.push_back(e);
                         }
                     }
                 } else {
-                    for (std::string f : DocOps.find_category) {
-                        bool found = false;
-                        std::string sec = "";
-                        std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                        for (std::pair<std::string, TripleList> section : docs) {
-                            current = section.first;
-                            std::string matchCurrent = current;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                            }
-                        }
-                        for (std::pair<std::string, TripleList> section : docs) {
-                            current = section.first;
-                            if (found && current == sec) {
-                                std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                                for (Triple kv : section.second) {
-                                    if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                    else
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                }
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            std::cout << Color::RED << "Could not find category '" << f << "'" << std::endl;
-                        }
-                    }
+                    foundIn.push_back(e);
                 }
-            } else {
-                for (std::string f : DocOps.find) {
-                    bool found = false;
-                    std::string sec = "";
-                    bool hasSection = false;
-                    std::cout << Color::RESET << "Searching for '" + f + "'" << std::endl;
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                found = true;
-                                sec = current;
-                                hasSection = true;
-                            }
-                        }
-                        if (!found) {
-                            for (Triple kv : section.second) {
-                                std::string matchCurrent = current;
-                                std::string matchKey = kv.first;
-                                std::string matchDescription = kv.second;
-                                if (std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                    found = true;
-                                    sec = current;
-                                }
-                            }
-                        }
-                    }
-                    for (std::pair<std::string, TripleList> section : docs) {
-                        current = section.first;
-                        if (found && current == sec)
-                            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-                        for (Triple kv : section.second) {
-                            std::string matchCurrent = current;
-                            std::string matchKey = kv.first;
-                            std::string matchDescription = kv.second;
-                            if (std::regex_search(matchCurrent.begin(), matchCurrent.end(), std::regex(f, std::regex_constants::icase)) || std::regex_search(matchKey.begin(),matchKey.end(), std::regex(f, std::regex_constants::icase))) {
-                                if (kv.third.size())
-                                        std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                                    else
-                                        std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << kv.second << std::endl;
-                            } else if (!hasSection && std::regex_search(matchDescription.begin(), matchDescription.end(), std::regex(f, std::regex_constants::icase))) {
-                                std::string s = kv.second;
-                                std::smatch matches;
-                                std::regex_search(s, matches, std::regex(f, std::regex_constants::icase));
-                                std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                if (kv.third.size())
-                                    std::cout << Color::BLUE << kv.first << Color::CYAN << "\nModule: " << kv.third << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                                else
-                                    std::cout << Color::BLUE << kv.first << "\n" << Color::RESET << Color::GREEN << s << std::endl;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        std::cout << Color::RED << "Could not find '" << f << "'" << std::endl;
-                    }
+            }
+
+            if (foundIn.size() == 0) continue;
+            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
+            for (DocumentationEntry e : foundIn) {
+                std::cout << Color::BLUE << e.name << "\n";
+                if (e.module.size()) {
+                    std::cout << Color::CYAN << "Module: " << e.module;
+                    if (e.file.size() == 0) std::cout << "\n";
                 }
+                if (e.file.size()) {
+                    std::cout << " (" << e.file << ")\n";
+                }
+                std::cout << Color::GREEN << e.description;
             }
         }
 
@@ -531,7 +518,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "23.7");
+        framework->addString("version", "23.8");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -558,6 +545,30 @@ namespace sclc
 
     std::string rtTypeToSclType(std::string rtType);
 
+    std::string demangleSymbol(std::string sym);
+
+    std::string demangleLambda(std::string sym) {
+        // "lambda[0@lambda[0@main()V;]()V;]()V;"
+        std::string subExpr = sym.substr(sym.find("[") + 1, sym.find_last_of("]") - sym.find("[") - 1);
+        std::string num = subExpr.substr(0, subExpr.find("@"));
+        std::string ofFunction = subExpr.substr(subExpr.find("@") + 1);
+
+        std::string args = sym.substr(("lambda[" + num + "@" + ofFunction + "]").size());
+        std::string returnType = args.substr(args.find(")") + 1, args.size() - args.find(")") - 2);
+        args = sym.substr(args.find("(") + 1, args.find(")") - args.find("(") - 1);
+        std::vector<std::string> argTypes = split(args, ";");
+        std::string demangled = "lambda(";
+        for (size_t i = 0; i < argTypes.size() - 1; i++) {
+            if (i)
+                demangled += ", ";
+            demangled += ":" + rtTypeToSclType(argTypes[i]);
+        }
+        demangled += "): " + rtTypeToSclType(returnType);
+        demangled += " #" + std::to_string(std::atoi(num.c_str()) + 1);
+        demangled += " in " + demangleSymbol(ofFunction);
+        return demangled;
+    }
+
     std::string demangleSymbol(std::string sym) {
         std::string varPrefix = TO_STRING(__USER_LABEL_PREFIX__) + std::string("Var_");
         if (strstarts(sym, varPrefix) || strstarts(sym, "Var_")) {
@@ -568,6 +579,12 @@ namespace sclc
             
             sym = replaceAll(sym, "\\$", "::");
             return sym;
+        }
+        if (strstarts(sym, TO_STRING(__USER_LABEL_PREFIX__))) {
+            sym = sym.substr(std::string(TO_STRING(__USER_LABEL_PREFIX__)).size());
+        }
+        if (strstarts(sym, "lambda[")) {
+            return demangleLambda(sym);
         }
         if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
             return sym;
@@ -596,6 +613,7 @@ namespace sclc
 #if defined(__APPLE__)
             "-dynamiclib",
 #elif defined(__linux__)
+            "-fPIC",
             "-shared",
 #endif
             "-undefined",
@@ -617,12 +635,98 @@ namespace sclc
         return system(cmdStr.c_str());
     }
 
-    int main(std::vector<std::string> args) {
-        if (args.size() < 2) {
-            usage(args[0]);
-            return 1;
+    void logWarns(std::vector<FPResult>& warns) {
+        for (FPResult error : warns) {
+            if (error.type > tok_char_literal) continue;
+            if (error.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            if (!f) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            char* line = (char*) malloc(sizeof(char) * 500);
+            int i = 1;
+            if (f) fseek(f, 0, SEEK_SET);
+            std::string colString = Color::BOLDMAGENTA;
+            std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            i = 1;
+            while (fgets(line, 500, f) != NULL) {
+                if (i == error.line) {
+                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
+                } else if (i == error.line - 1 || i == error.line - 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                } else if (i == error.line + 1 || i == error.line + 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                }
+                i++;
+            }
+            fclose(f);
+            free(line);
         }
+    }
 
+    void logErrors(std::vector<FPResult>& errors) {
+        for (FPResult error : errors) {
+            if (error.type > tok_char_literal) continue;
+            std::string colorStr;
+            ssize_t addAtCol = -1;
+            std::string strToAdd = "";
+            if (error.isNote) {
+                colorStr = Color::BOLDCYAN;
+                size_t i = error.message.find('\\');
+                if (i != std::string::npos) {
+                    std::string cmd = error.message.substr(i + 1);
+                    auto data = split(cmd, ";");
+                    error.message = error.message.substr(0, i);
+                    if (data[0] == "insertText") {
+                        strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
+                        auto pos = split(data[2], ":");
+                        addAtCol = std::atoi(pos[1].c_str()) - 1;
+                    }
+                }
+            } else {
+                colorStr = Color::BOLDRED;
+            }
+            if (error.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            if (!f) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                continue;
+            }
+            char* line = (char*) malloc(sizeof(char) * 500);
+            int i = 1;
+            if (f) fseek(f, 0, SEEK_SET);
+            std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            i = 1;
+            while (fgets(line, 500, f) != NULL) {
+                if (i == error.line) {
+                    if (strToAdd.size())
+                        std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                    else
+                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
+                } else if (i == error.line - 1 || i == error.line - 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                } else if (i == error.line + 1 || i == error.line + 2) {
+                    if (strlen(line) > 0)
+                        std::cerr << "  " << line;
+                }
+                i++;
+            }
+            fclose(f);
+            free(line);
+        }
+    }
+
+    int main(std::vector<std::string> args) {
         using clock = std::chrono::high_resolution_clock;
 
         auto start = clock::now();
@@ -630,14 +734,32 @@ namespace sclc
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
         scaleFolder             = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
+        scaleLatestFolder       = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/latest";
+
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O2";
+        std::string optimizer   = "O0";
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;
+
+        Main.options.includePaths.push_back(scaleFolder + "/Frameworks");
+        Main.options.includePaths.push_back(".");
+
+        if (args[0] == "scaledoc") {
+            Main.options.docPrinterArgsStart = 0;
+            Main.options.printDocFor = "Scale";
+            return docHandler(args);
+        }
+
+        if (args.size() < 2) {
+            usage(args[0]);
+            return 1;
+        }
+
         srand(time(NULL));
         Main.options.operatorRandomData = gen_random();
+        tmpFlags.reserve(args.size());
 
         Main.version = new Version(std::string(VERSION));
 
@@ -686,14 +808,16 @@ namespace sclc
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
                 hasCppFiles = true;
             }
-            if (strends(std::string(args[i]), ".scale") || strends(std::string(args[i]), ".smod")) {
+            if (strends(args[i], ".c") || strends(args[i], ".cpp") || strends(args[i], ".c++")) {
+                nonScaleFiles.push_back(args[i]);
+            } else if (strends(std::string(args[i]), ".scale") || strends(std::string(args[i]), ".smod")) {
                 if (!fileExists(args[i])) {
                     continue;
                 }
                 std::string file = std::filesystem::absolute(args[i]).string();
                 if (!contains(Main.options.files, file)) {
                     Main.options.files.push_back(file);
-                    Main.options.filesFromCommandLine.push_back(std::filesystem::absolute(file).string());
+                    Main.options.filesFromCommandLine.push_back(file);
                     hasFilesFromArgs = true;
                 }
             } else {
@@ -707,10 +831,6 @@ namespace sclc
                 } else if (args[i] == "-f") {
                     if (i + 1 < args.size()) {
                         std::string framework = args[i + 1];
-                        if (!fileExists(scaleFolder + "/Frameworks/" + framework + ".framework") && !fileExists("./" + framework + ".framework")) {
-                            std::cerr << "Framework '" << framework << "' not found" << std::endl;
-                            return 1;
-                        }
                         bool alreadyIncluded = false;
                         for (auto f : frameworks) {
                             if (f == framework) {
@@ -770,13 +890,12 @@ namespace sclc
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
                 } else if (args[i] == "-makelib") {
-                    tmpFlags.push_back(
-        #if defined(__APPLE__)
-                    "-dynamiclib"
-        #else
-                    "-shared"
-        #endif
-                    );
+                    #if defined(__APPLE__)
+                    tmpFlags.push_back("-dynamiclib");
+                    #else
+                    tmpFlags.push_back("-shared");
+                    tmpFlags.push_back("-fPIC");
+                    #endif
                     tmpFlags.push_back("-undefined");
                     tmpFlags.push_back("dynamic_lookup");
                     Main.options.noMain = true;
@@ -823,6 +942,11 @@ namespace sclc
                         std::cerr << "Error: -stack-size requires an argument" << std::endl;
                         return 1;
                     }
+                } else if (args[i] == "-clear-cache") {
+                    std::string cacheDir = scaleFolder + "/tmp";
+                    std::filesystem::remove_all(cacheDir);
+                    std::filesystem::create_directory(cacheDir);
+                    return 0;
                 } else if (args[i] == "-doc-for") {
                     if (i + 1 < args.size()) {
                         Main.options.printDocFor = args[i + 1];
@@ -832,21 +956,24 @@ namespace sclc
                         std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
                     }
-                } else if (args[i] == "-doc") {
-                    Main.options.printDocs = true;
-                    Main.options.docPrinterArgsStart = i;
-                    break;
-                } else if (args[i] == "-no-error-location") {
-                    Main.options.noErrorLocation = true;
                 } else {
-                    if (args[i] == "-c")
-                        Main.options.dontSpecifyOutFile = true;
-                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O')
-                        optimizer = std::string(args[i].c_str() + 1);
-                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I')
+                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
                         Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
-                    if (args[i] == "-Werror")
+                    } else if (args[i] == "-I") {
+                        if (i + 1 < args.size()) {
+                            Main.options.includePaths.push_back(args[i + 1]);
+                            i++;
+                        } else {
+                            std::cerr << "Error: -I requires an argument" << std::endl;
+                            return 1;
+                        }
+                    } else if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O') {
+                        optimizer = std::string(args[i].c_str() + 1);
+                    } else if (args[i] == "-c") {
+                        Main.options.dontSpecifyOutFile = true;
+                    } else if (args[i] == "-Werror") {
                         Main.options.Werror = true;
+                    }
                     tmpFlags.push_back(args[i]);
                 }
             }
@@ -858,7 +985,7 @@ namespace sclc
                 Main.options.outfile = outfile = "a.out";
         }
 
-        std::vector<std::string> cflags;
+        cflags.reserve(tmpFlags.size() + 10);
         Main.options.optimizer = optimizer;
 
         if (!Main.options.printCflags)
@@ -871,7 +998,6 @@ namespace sclc
         cflags.push_back("-lScaleRuntime");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-        cflags.push_back("-DSCL_DEFAULT_STACK_FRAME_COUNT=" + std::to_string(Main.options.stackSize));
         
         std::string source;
         bool alreadyIncluded = false;
@@ -886,174 +1012,12 @@ namespace sclc
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
-        for (std::string framework : frameworks) {
-            if (fileExists(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg")) {
-                DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse(scaleFolder + "/Frameworks/" + framework + ".framework/index.drg");
-                if (root == nullptr) {
-                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
-                    return 1;
-                }
-                root = root->getCompound("framework");
-                Main.options.mapFrameworkConfigs[framework] = root;
-                DragonConfig::ListEntry* implementers = root->getList("implementers");
-                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                DragonConfig::ListEntry* depends = root->getList("depends");
-                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                DragonConfig::StringEntry* versionTag = root->getString("version");
-                std::string version = versionTag->getValue();
-                if (versionTag == nullptr) {
-                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                    continue;
-                }
-                
-                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                
-                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                
-                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : scaleFolder + "/Frameworks/" + framework + ".framework/" + docfileTag->getValue();
-
-                Version ver = Version(version);
-                Version compilerVersion = Version(VERSION);
-                if (ver > compilerVersion) {
-                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                    return 1;
-                }
-                if (ver < FrameworkMinimumVersion) {
-                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                    return 1;
-                }
-
-                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                    std::string depend = depends->getString(i)->getValue();
-                    if (!contains(frameworks, depend)) {
-                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                        return 1;
-                    }
-                }
-
-                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                    std::string flag = compilerFlags->getString(i)->getValue();
-                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                        hasCppFiles = true;
-                    }
-                    tmpFlags.push_back(flag);
-                }
-
-                Main.frameworks.push_back(framework);
-
-                if (headerDir.size() > 0) {
-                    Main.options.includePaths.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir);
-                    Main.options.mapIncludePathsToFrameworks[framework] = scaleFolder + "/Frameworks/" + framework + ".framework/" + headerDir;
-                }
-                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                for (unsigned long i = 0; i < implementersSize; i++) {
-                    std::string implementer = implementers->getString(i)->getValue();
-                    if (!Main.options.assembleOnly) {
-                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back(scaleFolder + "/Frameworks/" + framework + ".framework/" + implDir + "/" + implementer);
-                    }
-                }
-                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                    Main.frameworkNativeHeaders.push_back(header);
-                }
-            } else if (fileExists("./" + framework + ".framework/index.drg")) {
-                DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse("./" + framework + ".framework/index.drg");
-                if (root == nullptr) {
-                    std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
-                    return 1;
-                }
-                root = root->getCompound("framework");
-                Main.options.mapFrameworkConfigs[framework] = root;
-                DragonConfig::ListEntry* implementers = root->getList("implementers");
-                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                DragonConfig::ListEntry* depends = root->getList("depends");
-                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-
-                DragonConfig::StringEntry* versionTag = root->getString("version");
-                std::string version = versionTag->getValue();
-                if (versionTag == nullptr) {
-                    std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
-                    continue;
-                }
-                
-                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
-                std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
-                
-                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
-                std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
-                
-                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
-                std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : "./" + framework + ".framework/" + docfileTag->getValue();
-                
-                Version ver = Version(version);
-                Version compilerVersion = Version(VERSION);
-                if (ver > compilerVersion) {
-                    std::cerr << "Error: Framework '" << framework << "' requires Scale v" << version << " but you are using " << VERSION << std::endl;
-                    return 1;
-                }
-                if (ver < FrameworkMinimumVersion) {
-                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
-                    return 1;
-                }
-
-                for (size_t i = 0; depends != nullptr && i < depends->size(); i++) {
-                    std::string depend = depends->getString(i)->getValue();
-                    if (!contains(frameworks, depend)) {
-                        std::cerr << "Error: Framework '" << framework << "' depends on '" << depend << "' but it is not included" << std::endl;
-                        return 1;
-                    }
-                }
-
-                for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
-                    std::string flag = compilerFlags->getString(i)->getValue();
-                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
-                        hasCppFiles = true;
-                    }
-                    tmpFlags.push_back(flag);
-                }
-
-                Main.frameworks.push_back(framework);
-
-                if (headerDir.size() > 0) {
-                    Main.options.includePaths.push_back("./" + framework + ".framework/" + headerDir);
-                    Main.options.mapIncludePathsToFrameworks[framework] = "./" + framework + ".framework/" + headerDir;
-                }
-                unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
-                for (unsigned long i = 0; i < implementersSize && implDir.size() > 0; i++) {
-                    std::string implementer = implementers->getString(i)->getValue();
-                    if (!Main.options.assembleOnly) {
-                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
-                            hasCppFiles = true;
-                        }
-                        tmpFlags.push_back("./" + framework + ".framework/" + implDir + "/" + implementer);
-                    }
-                }
-                for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                    Main.frameworkNativeHeaders.push_back(header);
-                }
-            }
+        for (std::string& framework : frameworks) {
+            checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
-        Main.options.includePaths.push_back("./");
+
         if (!Main.options.noScaleFramework) {
-            auto findModule = [&](const std::string moduleName) -> std::optional<std::vector<std::string>> {
+            auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {
                 std::vector<std::string> mods;
                 for (auto config : Main.options.mapFrameworkConfigs) {
                     auto modules = config.second->getCompound("modules");
@@ -1063,7 +1027,7 @@ namespace sclc
                             for (size_t j = 0; j < list->size(); j++) {
                                 FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                                 if (!find.success) {
-                                    return std::nullopt;
+                                    return std::vector<std::string>();
                                 }
                                 auto file = find.in;
                                 mods.push_back(file);
@@ -1072,16 +1036,14 @@ namespace sclc
                         }
                     }
                 }
-                return std::make_optional(mods);
+                return mods;
             };
 
             auto mod = findModule("std");
-            if (mod) {
-                for (auto file : *mod) {
-                    file = std::filesystem::absolute(file).string();
-                    if (!contains(Main.options.files, file)) {
-                        Main.options.files.push_back(file);
-                    }
+            for (auto file : mod) {
+                file = std::filesystem::absolute(file).string();
+                if (!contains(Main.options.files, file)) {
+                    Main.options.files.push_back(file);
                 }
             }
         }
@@ -1100,7 +1062,7 @@ namespace sclc
 
         for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
             using path = std::filesystem::path;
-            path s = Main.options.files.at(i);
+            path s = Main.options.files[i];
             if (s.parent_path().string().size())
                 Main.options.includePaths.push_back(s.parent_path().string());
         }
@@ -1112,10 +1074,8 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
                 return 1;
             }
-            if (Main.options.debugBuild)
-                std::cout << "Tokenizing file '" << filename << "'" << std::endl;
 
-            if (strends(filename, ".smod")) {
+            if (!strends(filename, ".scale")) {
                 continue;
             }
 
@@ -1124,89 +1084,10 @@ namespace sclc
             FPResult result = Main.tokenizer->tokenize(filename);
 
             if (result.warns.size() > 0) {
-                for (FPResult error : result.warns) {
-                    if (error.type > tok_char_literal) continue;
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    std::string colString = Color::BOLDMAGENTA;
-                    if (Main.options.noErrorLocation) colString = "";
-                    std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
+                logWarns(result.warns);
             }
             if (result.errors.size() > 0) {
-                for (FPResult error : result.errors) {
-                    if (error.type > tok_char_literal) continue;
-                    std::string colorStr;
-                    if (error.isNote) {
-                        colorStr = Color::BOLDCYAN;
-                    } else {
-                        colorStr = Color::BOLDRED;
-                    }
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    if (Main.options.noErrorLocation) colorStr = "";
-                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
+                logErrors(result.errors);
                 std::cout << "Failed!" << std::endl;
                 return result.errors.size();
             }
@@ -1232,7 +1113,7 @@ namespace sclc
             SyntaxTree lexer(tokens);
             Main.lexer = &lexer;
             std::vector<std::string> binaryHeaders;
-            for (std::string header : Main.options.files) {
+            for (std::string& header : Main.options.files) {
                 if (strends(header, ".smod")) {
                     binaryHeaders.push_back(header);
                 }
@@ -1241,90 +1122,10 @@ namespace sclc
         }
 
         if (!Main.options.printCflags && result.warns.size() > 0) {
-            for (FPResult error : result.warns) {
-                if (error.type > tok_char_literal) continue;
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                std::string colString = Color::BOLDMAGENTA;
-                if (Main.options.noErrorLocation) colString = "";
-                std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logWarns(result.warns);
         }
         if (!Main.options.printCflags && result.errors.size() > 0) {
-            for (FPResult error : result.errors) {
-                if (error.type > tok_char_literal) continue;
-                std::string colorStr;
-                if (error.isNote) {
-                    colorStr = Color::BOLDCYAN;
-                } else {
-                    colorStr = Color::BOLDRED;
-                }
-                if (error.line == 0) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                FILE* f = fopen(std::string(error.in).c_str(), "r");
-                if (!f) {
-                    std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                    continue;
-                }
-                char* line = (char*) malloc(sizeof(char) * 500);
-                int i = 1;
-                if (f) fseek(f, 0, SEEK_SET);
-                
-                
-                std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                i = 1;
-                if (Main.options.noErrorLocation) {
-                    std::cout << "Token: " << error.value << std::endl;
-                } else {
-                    while (fgets(line, 500, f) != NULL) {
-                        if (i == error.line) {
-                            std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                        } else if (i == error.line - 1 || i == error.line - 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        } else if (i == error.line + 1 || i == error.line + 2) {
-                            if (strlen(line) > 0)
-                                std::cerr << "  " << line;
-                        }
-                        i++;
-                    }
-                }
-                fclose(f);
-                if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                free(line);
-            }
+            logErrors(result.errors);
             std::cout << "Failed!" << std::endl;
             return result.errors.size();
         }
@@ -1335,122 +1136,8 @@ namespace sclc
         }
 
         source = "out.c";
-        if (!Main.options.printCflags) {
-            Parser parser(result);
-            Main.parser = &parser;
-
-            FPResult parseResult = Main.parser->parse(source);
-            if (parseResult.warns.size() > 0) {
-                for (FPResult error : parseResult.warns) {
-                    if (error.type > tok_char_literal) continue;
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    std::string colString = Color::BOLDMAGENTA;
-                    if (Main.options.noErrorLocation) colString = "";
-                    std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
-            }
-            if (parseResult.errors.size() > 0) {
-                for (FPResult error : parseResult.errors) {
-                    if (error.type > tok_char_literal) continue;
-                    std::string colorStr;
-                    ssize_t addAtCol = -1;
-                    std::string strToAdd = "";
-                    if (error.isNote) {
-                        colorStr = Color::BOLDCYAN;
-                        size_t i = error.message.find('\\');
-                        if (i != std::string::npos) {
-                            std::string cmd = error.message.substr(i + 1);
-                            auto data = split(cmd, ";");
-                            error.message = error.message.substr(0, i);
-                            if (data[0] == "insertText") {
-                                strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
-                                auto pos = split(data[2], ":");
-                                addAtCol = std::atoi(pos[1].c_str()) - 1;
-                            }
-                        }
-                    } else {
-                        colorStr = Color::BOLDRED;
-                    }
-                    if (error.line == 0) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    FILE* f = fopen(std::string(error.in).c_str(), "r");
-                    if (!f) {
-                        std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
-                        continue;
-                    }
-                    char* line = (char*) malloc(sizeof(char) * 500);
-                    int i = 1;
-                    if (f) fseek(f, 0, SEEK_SET);
-                    if (Main.options.noErrorLocation) colorStr = "";
-                    std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
-                    i = 1;
-                    if (Main.options.noErrorLocation) {
-                        std::cout << "Token: " << error.value << std::endl;
-                    } else {
-                        while (fgets(line, 500, f) != NULL) {
-                            if (i == error.line) {
-                                if (strToAdd.size())
-                                    std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
-                                else
-                                    std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                            } else if (i == error.line - 1 || i == error.line - 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            } else if (i == error.line + 1 || i == error.line + 2) {
-                                if (strlen(line) > 0)
-                                    std::cerr << "  " << line;
-                            }
-                            i++;
-                        }
-                    }
-                    fclose(f);
-                    if (!Main.options.noErrorLocation) std::cerr << std::endl;
-                    free(line);
-                }
-                std::cout << "Failed!" << std::endl;
-                return parseResult.errors.size();
-            }
-        }
-
-        if (Main.options.transpileOnly) {
-            auto end = clock::now();
-            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
-            std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
-            return 0;
-        }
+        Parser parser(result);
+        Main.parser = &parser;
 
         if (!hasCppFiles) {
             // -std= only works when there are no c++ files to build
@@ -1460,28 +1147,50 @@ namespace sclc
             cflags.push_back("-lc++");
         }
 
+        for (std::string& s : tmpFlags) {
+            cflags.push_back(s);
+        }
+
+        FPResult parseResult = Main.parser->parse(source);
+        if (parseResult.warns.size() > 0) {
+            logWarns(parseResult.warns);
+        }
+        if (parseResult.errors.size() > 0) {
+            logErrors(parseResult.errors);
+            std::cout << "Failed!" << std::endl;
+            return parseResult.errors.size();
+        }
+
+        if (Main.options.transpileOnly) {
+            auto end = clock::now();
+            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+            std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
+            return 0;
+        }
+
+        for (std::string& file : nonScaleFiles) {
+            cflags.push_back("\"" + file + "\"");
+        }
+
+        for (std::string& s : Main.options.flags) {
+            cflags.push_back("\"" + s + "\"");
+        }
+
         if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
             cflags.push_back("-o");
             cflags.push_back("\"" + outfile + "\"");
         }
-
-        for (std::string s : tmpFlags) {
-            cflags.push_back(s);
-        }
         
-        if (source.size())
-            cflags.push_back(source);
-
 #ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
 
         std::string cmd = "";
-        for (std::string s : cflags) {
+        for (std::string& s : cflags) {
             cmd += s + " ";
         }
         if (Main.options.debugBuild) {
-            cmd += "-DSCL_DEBUG";
+            cmd += "-DSCL_DEBUG ";
         }
 
         int errors = 0;
@@ -1519,10 +1228,11 @@ namespace sclc
                     }
                     std::cerr << file << " " << col << line << Color::RESET;
                 } else {
-                    if (doCheckForSymbols) {
-                        if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
-                            continue;
-                        }
+                    if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
+                        continue;
+                    }
+                    if (strstarts(line, "clang: warning")) {
+                        continue;
                     }
                     if (strstarts(line, "Undefined symbols for architecture ")) {
                         doCheckForSymbols = true;
@@ -1533,6 +1243,10 @@ namespace sclc
                         undefinedSymbols[sym] = std::vector<std::string>();
                     } else if (doCheckForSymbols && !strstarts(line, "  \"")) {
                         undefinedSymbols[currentUndefinedSymbol].push_back(line.find_first_not_of(" ") == std::string::npos ? "" : line.substr(line.find_first_not_of(" ")));
+                    } else if (strstarts(line, "ld: library not found for -l")) {
+                        std::string lib = line.substr(28);
+                        lib = replaceAll(lib, "\n", "");
+                        std::cerr << Color::RED << "Error: " << Color::RESET << "Library '" << lib << "' not found." << std::endl;
                     } else {
                         std::cerr << Color::BOLDRED << line << Color::RESET;
                     }
@@ -1561,8 +1275,6 @@ namespace sclc
 
             remove(source.c_str());
             remove((source.substr(0, source.size() - 2) + ".h").c_str());
-            remove((source.substr(0, source.size() - 2) + ".typeinfo.h").c_str());
-            remove("scale_support.h");
         }
 
         if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
@@ -1589,12 +1301,28 @@ int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
     signal(SIGILL, sclc::signalHandler);
-    signal(SIGFPE, sclc::signalHandler);
     signal(SIGINT, sclc::signalHandler);
     signal(SIGTERM, sclc::signalHandler);
-#ifdef SIGQUIT
-    signal(SIGQUIT, sclc::signalHandler);
-#endif
+
+    if (!isatty(fileno(stdout))) {
+        sclc::Color::RESET = "";
+        sclc::Color::BLACK = "";
+        sclc::Color::RED = "";
+        sclc::Color::GREEN = "";
+        sclc::Color::YELLOW = "";
+        sclc::Color::BLUE = "";
+        sclc::Color::MAGENTA = "";
+        sclc::Color::CYAN = "";
+        sclc::Color::WHITE = "";
+        sclc::Color::BOLDBLACK = "";
+        sclc::Color::BOLDRED = "";
+        sclc::Color::BOLDGREEN = "";
+        sclc::Color::BOLDYELLOW = "";
+        sclc::Color::BOLDBLUE = "";
+        sclc::Color::BOLDMAGENTA = "";
+        sclc::Color::BOLDCYAN = "";
+        sclc::Color::BOLDWHITE = "";
+    }
 
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {

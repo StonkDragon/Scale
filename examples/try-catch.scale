@@ -1,3 +1,10 @@
+# Try-Catch
+# --------------------------
+# This example demonstrates the use of try-catch blocks to handle exceptions.
+# The foo() function throws a TestException, which is caught by the catch block
+# in foo(). The catch block in foo() re-throws the exception, which is caught
+# by the catch block in main().
+
 struct TestException : Exception
     function init(m: str): none
         m => self.msg
@@ -7,6 +14,10 @@ end
 function foo(): none
     try
         "Hello!" TestException::new throw
+    
+    # typeof specifies the type of exception to catch
+    # as specifies the name of the exception variable, this is optional
+    # if no name is specified, the name of the exception variable is 'exception'
     catch typeof TestException as e
         "Caught TestException: " e.msg + puts
         e throw

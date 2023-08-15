@@ -2,7 +2,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword scaleKeyword function import end while do done construct final unless if elif elunless then else fi switch case esac default return break continue for foreach in to step decl ref nil true false typeof nameof sizeof typealias as container repeat struct layout enum interface new is cdecl asm goto label nothing none int float int32 int16 int8 uint32 uint16 uint8 uint int64 uint64 any str varargs self super bool sealed static private export expect unsafe restrict const readonly mut try catch lambda deprecated throw open intrinsic
+syn keyword scaleKeyword function import end while do done construct final unless if elif elunless then else fi assert switch case esac default return break continue for foreach in to step decl ref nil true false typeof nameof sizeof typealias as container repeat struct union layout enum interface new is cdecl asm goto label nothing none int float int32 int16 int8 uint32 uint16 uint8 uint int64 uint64 any str varargs self super bool sealed static private export expect unsafe restrict const readonly mut try catch lambda deprecated throw open intrinsic
 syn match scaleKeyword 'c!'
 syn match scaleKeyword ':'
 syn match scaleKeyword '\.'
@@ -28,6 +28,7 @@ syn match scaleKeyword '}'
 syn match scaleKeyword '('
 syn match scaleKeyword ')'
 syn match scaleKeyword '?'
+syn match scaleKeyword '$'
 
 syn match scaleNumber '-\?\d\+'
 syn match scaleNumber '-\?0x\(\d\|[a-f]\|[A-F]\)\+'

@@ -1,0 +1,25 @@
+struct Foo
+    decl bar: Bar
+end
+
+struct Bar
+    decl baz: Baz
+end
+
+struct Baz
+    decl f: str
+end
+
+function main(): none
+    Foo {
+        Bar {
+            Baz {
+                "Hello, World!" => f
+            } => baz
+        } => bar
+    } => decl foo: Foo
+
+    typeof (foo.bar.baz.f) puts
+    
+    assert (foo.bar.baz.f "Hello, World!" !=) else ("Assertion failed!" puts)
+end

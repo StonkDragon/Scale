@@ -1,3 +1,8 @@
+# Fibonacci sequence
+# --------------------------
+# The Fibonacci sequence is a sequence of numbers where each
+# number is the sum of the two previous numbers.
+
 function main(): none
     # N is 4000000
     decl N: int 4000000 => N

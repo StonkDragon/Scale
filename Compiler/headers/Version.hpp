@@ -31,6 +31,35 @@ namespace sclc
             }
         }
         Version(int major, int minor, int patch) : major(major), minor(minor), patch(patch) {}
+        Version() : Version(0, 0, 0) {}
+        Version(const Version& other) {
+            this->major = other.major;
+            this->minor = other.minor;
+            this->patch = other.patch;
+        }
+        Version(Version&& other) {
+            this->major = other.major;
+            other.major = 0;
+            this->minor = other.minor;
+            other.minor = 0;
+            this->patch = other.patch;
+            other.patch = 0;
+        }
+        Version& operator=(const Version& other) {
+            this->major = other.major;
+            this->minor = other.minor;
+            this->patch = other.patch;
+            return *this;
+        }
+        Version& operator=(Version&& other) {
+            this->major = other.major;
+            other.major = 0;
+            this->minor = other.minor;
+            other.minor = 0;
+            this->patch = other.patch;
+            other.patch = 0;
+            return *this;
+        }
         ~Version() {}
 
         inline bool operator==(Version& v) const {

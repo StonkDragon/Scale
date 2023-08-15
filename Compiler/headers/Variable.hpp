@@ -11,7 +11,7 @@
 
 namespace sclc
 {
-    class Function;
+    struct Function;
 
     enum VarAccess {
         Dereference,
@@ -20,57 +20,76 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
-    class Variable {
+    template<typename T>
+    struct Also {
+        virtual T& also(std::function<void(T&)> func) = 0;
+    };
+
+    bool typeCanBeNil(std::string s);
+    bool typeIsReadonly(std::string s);
+    bool typeIsConst(std::string s);
+    bool typeIsMut(std::string s);
+
+    struct Variable : public Also<Variable> {
+        struct Hasher {
+            size_t operator()(const Variable& v) const {
+                return std::hash<std::string>()(v.name) ^ std::hash<std::string>()(v.type);
+            }
+        };
+
+        struct Equator {
+            bool operator()(const Variable& v1, const Variable& v2) const {
+                return v1 == v2;
+            }
+        };
+
         std::string name;
         std::string type;
         std::string internalMutableFrom;
         bool isConst;
         bool isInternalMut;
         bool isMut;
-    public:
+        bool isReadonly;
+        bool isVirtual;
         Token* name_token;
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;
-        Variable(std::string name, std::string type) : Variable(name, type, false, "") {}
-        Variable(std::string name, std::string type, bool isConst, bool isMut) : Variable(name, type, isConst, isMut, "") {}
-        Variable(std::string name, std::string type, std::string memberType) : Variable(name, type, false, false, memberType) {}
-        Variable(std::string name, std::string type, bool isConst, bool isMut, std::string memberType) {
+        Variable(std::string name, std::string type) : Variable(name, type, "") {}
+        Variable(std::string name, std::string type, std::string memberType) {
             this->name = name;
             this->type = type;
-            this->isMut = isMut;
-            this->isConst = isConst;
+            this->isMut = typeIsMut(type);
+            this->isConst = typeIsConst(type);
+            this->isReadonly = typeIsReadonly(type);
+            this->canBeNil = typeCanBeNil(type);
             this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
-            this->canBeNil = false;
             this->isPrivate = false;
             this->typeFromTemplate = "";
+            this->isVirtual = false;
         }
-        ~Variable() {}
-        std::string getName() {
-            return name;
-        }
-        std::string getType() const {
-            return type;
-        }
-        void setName(std::string name) {
-            this->name = name;
-        }
-        void setType(std::string type) {
-            this->type = type;
-        }
-        bool isWritable() {
-            return !isConst;
-        }
-        bool isWritableFrom(Function* f, VarAccess accessType);
+        virtual ~Variable() {}
+
+        bool isWritableFrom(Function* f) const;
+        bool isAccessible(Function* f) const;
         inline bool operator==(const Variable& other) const {
-            if (this->getType() == "?" || other.getType() == "?") {
+            if (this->type == "?" || other.type == "?") {
                 return this->name == other.name;
             }
-            return this->name == other.name && removeTypeModifiers(this->getType()) == removeTypeModifiers(other.getType());
+            return this->name == other.name && removeTypeModifiers(this->type) == removeTypeModifiers(other.type);
         }
         inline bool operator!=(const Variable& other) const {
             return !((*this) == other);
+        }
+        virtual Variable& also(std::function<void(Variable&)> f) {
+            f(*this);
+            return *this;
+        }
+
+        static Variable& emptyVar() {
+            static Variable empty("", "");
+            return empty;
         }
     };
 } // namespace sclc

@@ -29,7 +29,6 @@
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
-#define GC_DL
 #define GC_THREADS
 #if __has_include(<gc/gc.h>)
 #include <gc/gc.h>
@@ -77,6 +76,12 @@
 #define _scl_symbol_hidden
 #endif
 
+#if __has_attribute(noinline)
+#define _scl_noinline __attribute__((noinline))
+#else
+#define _scl_noinline
+#endif
+
 #define nullable __nullable
 #define nonnull  __nonnull
 #define tls __thread
@@ -84,9 +89,9 @@
 #define _scl_macro_to_string_(x) # x
 #define _scl_macro_to_string(x) _scl_macro_to_string_(x)
 
-#define system_allocate(size)				({*(_scl_callstack_push()) = "<libc malloc()>"; scl_any tmp = malloc(size); _callstack.ptr--; tmp; })
-#define system_free(_ptr)					({*(_scl_callstack_push()) = "<libc free()>"; free(_ptr); _callstack.ptr--; })
-#define system_realloc(_ptr, size)			({*(_scl_callstack_push()) = "<libc realloc()>"; scl_any tmp = realloc(_ptr, size); _callstack.ptr--; tmp; })
+#define system_allocate(size)				malloc(size)
+#define system_free(_ptr)					free(_ptr)
+#define system_realloc(_ptr, size)			realloc(_ptr, size)
 
 // Scale expects this function
 #define expect
@@ -97,7 +102,7 @@
 #define nil NULL
 
 #define str_of(_cstr) _scl_create_string((_cstr))
-#define cstr_of(Struct_str) ((Struct_str)->_data)
+#define cstr_of(Struct_str) ((Struct_str)->data)
 
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
@@ -108,6 +113,14 @@
 #else
 #define _scl_expect(expr, c) (expr)
 #endif
+
+#if __has_attribute(always_inline)
+#define _scl_always_inline __attribute__((always_inline))
+#else
+#define _scl_always_inline
+#endif
+
+#define AKA(_sym) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) # _sym)
 
 // Define scale-specific signals
 #define EX_BAD_PTR				128
@@ -215,57 +228,32 @@ typedef unsigned int		scl_uint32;
 typedef unsigned short		scl_uint16;
 typedef unsigned char		scl_uint8;
 
-typedef void(*_scl_lambda)(void);
+typedef void*(*_scl_lambda)();
 
 typedef unsigned int ID_t;
 
 struct _scl_methodinfo {
 	const _scl_lambda					ptr;
+	const _scl_lambda					rt_ptr;
 	const ID_t							pure_name;
-	const scl_any						actual_handle;
-	const scl_int8* const				actual_name;
 	const ID_t							signature;
-	const scl_int8* const				signature_str;
 };
 
-struct _scl_membertype {
-	const ID_t							pure_name;
-	const scl_int8* const				actual_name;
-	const scl_int8* const				type_name;
-	const scl_int						offset;
-	const scl_int						access_flags;
-};
-
-struct _scl_typeinfo {
+typedef struct TypeInfo {
+	const _scl_lambda*					vtable_fast;
 	const ID_t							type;
-	const ID_t							super;
-	const scl_int						alloc_size;
-	const scl_int8* const				name;
-	const scl_int						memberscount;
-	const struct _scl_membertype* const	members;
-	const scl_int						methodscount;
-	const struct _scl_methodinfo* const	methods;
-	const scl_int						isStatic;
-};
-
-typedef struct StaticMembers {
-	const ID_t							type;
+	const struct TypeInfo*				super;
 	const scl_int8*						type_name;
-	const ID_t							super;
-	const scl_int						size;
-	const scl_int						vtable_size;
 	const struct _scl_methodinfo* const	vtable;
-	const scl_int						super_vtable_size;
-	const struct _scl_methodinfo* const	super_vtable;
-	const ID_t*							supers;
-} StaticMembers;
+} TypeInfo;
 
 struct scale_string {
-	const StaticMembers* const			$statics;
+	const _scl_lambda* const			$vtable;
+	const TypeInfo* const				$statics;
 	const mutex_t						$mutex;
-	scl_int8*							_data;
-	scl_int								_len;
-	scl_int								_hash;
+	scl_int8*							data;
+	scl_int								length;
+	scl_int								hash;
 };
 
 #if defined(__ANDROID__)
@@ -313,35 +301,48 @@ typedef union {
 	scl_float	f;
 	scl_any		v;
 	struct {
-		StaticMembers*	$statics;
+		_scl_lambda*	$fast;
+		TypeInfo*		$statics;
 		mutex_t			$mutex;
 	}*			o;
+	struct {
+		_scl_lambda*	$fast;
+		TypeInfo*		$statics;
+		mutex_t			$mutex;
+		scl_int			__tag;
+		scl_any			__value;
+	}*			u;
 } _scl_frame_t;
 
 typedef struct {
-	_scl_frame_t*	data;
-	scl_int			ptr;
-	scl_int			cap;
+	// Stack
+	_scl_frame_t*	sp; // stack pointer
+	_scl_frame_t*	bp; // base pointer
+
+	// Trace
+	scl_int8**		tp; // trace pointer
+	scl_int8**		tbp; // trace base pointer
+
+	// Exception
+	jmp_buf*		jmp; // jump pointer
+	jmp_buf*		jmp_base; // jump base pointer
+	scl_any*		ex; // exception pointer
+	scl_any*		ex_base; // exception base pointer
+	scl_int8***		et; // exception trace pointer
+	scl_int8***		et_base; // exception trace base pointer
+	_scl_frame_t**	sp_save; // stack pointer save
+	_scl_frame_t**	sp_save_base; // stack pointer save base
 } _scl_stack_t;
 
-typedef struct {
-	scl_int8**		func;
-	scl_int			ptr;
-	scl_int			cap;
-} _scl_callstack_t;
-
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const StaticMembers _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
+#define ALLOC(_type)	({ extern const TypeInfo _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
 // Try to cast the given instance to the given type
 #define CAST(_obj, _type) CAST0(_obj, _type, id(#_type))
 
-// Check vtable bounds
-#define VTABLE_BOUNDS_CHECK(_vtable_size, _index) _scl_assert(_index < _vtable_size, "Index for vtable out of bounds")
-
-#define TRY			if (setjmp(_extable.jump_table[_extable.current_pointer - 1]) != 666)
+#define TRY			if (setjmp(*(_stack.jmp - 1)) != 666)
 
 // Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
@@ -349,6 +350,8 @@ typedef struct {
 #define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
 
 extern tls _scl_stack_t _stack;
+
+typedef void(*mainFunc)(/* args: Array */ scl_any, /* env: Array */ scl_any);
 
 // call a method on an instance
 // returns `nil` if the method return type is `none`
@@ -360,22 +363,41 @@ scl_any				virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...)
 scl_float			virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...);
 // call a method on the super class of an instance
 scl_float			virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...);
+// Throws the given exception
+_scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
+// Returns the current size of the stack
+scl_int				stack_size(void) AKA(_scl_stack_size);
+// Reallocates the given pointer to the given size
+scl_any				managed_realloc(scl_any ptr, scl_int size) AKA(_scl_realloc);
+// Allocates a new pointer of the given size
+scl_any				managed_alloc(scl_int size) AKA(_scl_alloc);
+// Frees the given pointer
+void				managed_free(scl_any ptr) AKA(_scl_free);
+// Returns the size of the given pointer
+scl_int				size_of(scl_any ptr) AKA(_scl_sizeof);
+// Asserts that 'b' is true, otherwise throws an 'AssertError' with the given message
+void				scl_assert(scl_int b, scl_int8* msg, ...) AKA(_scl_assert);
+// Creates a new array with the given size
+scl_any				array_of(scl_int size, scl_int element_size) AKA(_scl_new_array_by_size);
+// Returns the size of the given array. Throws an 'InvalidArgumentException' if the given object is not an array
+scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
+
+#define TYPEID(_type) id(#_type)
 
 _scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
+_scl_no_return void	_scl_runtime_catch();
 
 _scl_constructor
-void				_scl_setup();
-_scl_destructor
-void				_scl_shutdown();
+void				_scl_setup(void);
 
 void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
 scl_str				_scl_create_string(scl_int8* data);
-void				_scl_stack_new();
-void				_scl_stack_free();
+void				_scl_stack_new(void);
+void				_scl_stack_free(void);
 void				_scl_stack_resize_fit(scl_int sz);
 
 void				_scl_remove_ptr(scl_any ptr);
@@ -396,29 +418,30 @@ void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
 void				_scl_not_nil_return(scl_int val, scl_int8* name);
-void				_scl_exception_push();
+void				_scl_exception_push(void);
+void				_scl_exception_drop(void);
 void				_scl_throw(scl_any ex);
-int					_scl_run(int argc, char** argv, scl_any main);
+int					_scl_run(int argc, char** argv, mainFunc main);
 
 const ID_t			id(const scl_int8* data);
+
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(scl_int size, const StaticMembers* statics);
+scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
 scl_any				_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 void				_scl_call_method_or_throw(scl_any instance, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
-scl_int8**			_scl_callstack_push();
+scl_int8**			_scl_callstack_push(void);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
-void				_scl_remove_stack(_scl_stack_t* stack);
-scl_int				_scl_stack_index(_scl_stack_t* stack);
-void				_scl_remove_stack_at(scl_int index);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 
 scl_any*			_scl_new_array(scl_int num_elems);
+scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
 scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]);
+scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[dimensions], scl_int elem_size);
 scl_int				_scl_array_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
@@ -426,101 +449,131 @@ scl_any*			_scl_array_sort(scl_any* arr);
 scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
 
-void				_scl_cleanup_stack_allocations();
+void				_scl_cleanup_stack_allocations(void);
 void				_scl_add_stackallocation(scl_any ptr, scl_int size);
 void				_scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index);
 scl_int				_scl_index_of_stackalloc(scl_any ptr);
 void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
+int					_scl_gc_is_disabled(void);
+int					_scl_gc_pthread_create(pthread_t*, const pthread_attr_t*, scl_any(*)(scl_any), scl_any);
+int					_scl_gc_pthread_join(pthread_t, scl_any*);
+
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_search_method_index(void** methods, scl_int count, ID_t id, ID_t sig);
+scl_int				_scl_search_method_index(scl_any* methods, scl_int count, ID_t id, ID_t sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
-mutex_t				_scl_mutex_new();
+mutex_t				_scl_mutex_new(void);
 
-void				_scl_resize_stack();
+__deprecated_msg("Stack resizing has been removed. This function does nothing.")
+void				_scl_resize_stack(void);
 
-static inline _scl_frame_t* _scl_push() {
-	_stack.ptr++;
-
-	if (_scl_expect(_stack.ptr >= _stack.cap, 0)) {
-		_scl_resize_stack();
-	}
-
-	return &(_stack.data[_stack.ptr - 1]);
-}
-
-static inline _scl_frame_t* _scl_pop() {
-#if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
-#endif
-
-	return &(_stack.data[--_stack.ptr]);
-}
-
-static inline _scl_frame_t* _scl_offset(scl_int offset) {
-	return &(_stack.data[offset]);
-}
-
-static inline _scl_frame_t* _scl_positive_offset(scl_int offset) {
-	return &(_stack.data[_stack.ptr + offset]);
-}
-
-static inline _scl_frame_t* _scl_top() {
-#if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.ptr <= 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
-#endif
-
-	return &_stack.data[_stack.ptr - 1];
-}
-
-static inline void _scl_popn(scl_int n) {
-	_stack.ptr -= n;
+#define _scl_push()						(_stack.sp++)
 
 #if defined(SCL_DEBUG)
-	if (_scl_expect(_stack.ptr < 0, 0)) {
-		_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_INT_FMT, _stack.ptr);
-	}
+#define _scl_pop() \
+	({ \
+		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+		--_stack.sp; \
+	})
 #endif
-}
+#define _scl_pop()						(--_stack.sp)
 
-static inline void _scl_swap() {
-	scl_any b = _scl_pop()->v;
-	scl_any a = _scl_pop()->v;
-	_scl_push()->v = b;
-	_scl_push()->v = a;
-}
+#define _scl_positive_offset(offset)	(_stack.sp + offset)
+#define _scl_offset(offset)				(_stack.bp + offset)
+#if defined(SCL_DEBUG)
+#define _scl_top() \
+	({ \
+		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+		_stack.sp - 1; \
+	})
+#else
+#define _scl_top()						(_stack.sp - 1)
+#endif
 
-static inline void _scl_over() {
-	scl_any c = _scl_pop()->v;
-	scl_any b = _scl_pop()->v;
-	scl_any a = _scl_pop()->v;
-	_scl_push()->v = c;
-	_scl_push()->v = b;
-	_scl_push()->v = a;
-}
+#if defined(SCL_DEBUG)
+#define _scl_popn(n) \
+	({ \
+		_stack.sp -= (n); \
+		if (_scl_expect(_stack.sp < _stack.bp, 0)) { \
+			_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
+		} \
+	})
+#else
+#define _scl_popn(n)					(_stack.sp -= (n))
+#endif
 
-static inline void _scl_sdup2() {
-	scl_any b = _scl_pop()->v;
-	scl_any a = _scl_pop()->v;
-	_scl_push()->v = a;
-	_scl_push()->v = b;
-	_scl_push()->v = a;
-}
+#define _scl_swap() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = tmp; \
+	})
 
-static inline void _scl_swap2() {
-	scl_any c = _scl_pop()->v;
-	scl_any b = _scl_pop()->v;
-	scl_any a = _scl_pop()->v;
-	_scl_push()->v = b;
-	_scl_push()->v = a;
-	_scl_push()->v = c;
-}
+#define _scl_over() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_sdup2() \
+	({ \
+		*(_stack.sp) = *(_stack.sp - 2); \
+		_stack.sp++; \
+	})
+
+#define _scl_swap2() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_rot() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = tmp; \
+	})
+
+#define _scl_unrot() \
+	({ \
+		_scl_frame_t tmp = *(_stack.sp - 1); \
+		*(_stack.sp - 1) = *(_stack.sp - 2); \
+		*(_stack.sp - 2) = *(_stack.sp - 3); \
+		*(_stack.sp - 3) = tmp; \
+	})
+
+#define _scl_add(a, b)			(a) + (b)
+#define _scl_sub(a, b)			(a) - (b)
+#define _scl_mul(a, b)			(a) * (b)
+#define _scl_div(a, b)			(a) / (b)
+#define _scl_pow(a, b)			pow((a), (b))
+#define _scl_mod(a, b)			(a) % (b)
+#define _scl_land(a, b)			(a) & (b)
+#define _scl_lor(a, b)			(a) | (b)
+#define _scl_lxor(a, b)			(a) ^ (b)
+#define _scl_lnot(a)			~((a))
+#define _scl_lsr(a, b)			(a) >> (b)
+#define _scl_lsl(a, b)			(a) << (b)
+#define _scl_eq(a, b)			(a) == (b)
+#define _scl_ne(a, b)			(a) != (b)
+#define _scl_gt(a, b)			(a) > (b)
+#define _scl_ge(a, b)			(a) >= (b)
+#define _scl_lt(a, b)			(a) < (b)
+#define _scl_le(a, b)			(a) <= (b)
+#define _scl_and(a, b)			(a) && (b)
+#define _scl_or(a, b)			(a) || (b)
+#define _scl_not(a)				!(a)
+#define _scl_ror(a, b)			((a) >> (b)) | ((a) << (sizeof(scl_int) * 8 - (b)))
+#define _scl_rol(a, b)			((a) << (b)) | ((a) >> (sizeof(scl_int) * 8 - (b)))
 
 #endif // __SCALE_RUNTIME_H__

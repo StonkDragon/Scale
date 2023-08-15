@@ -1,3 +1,11 @@
+# Function overloading
+# --------------------------
+# This example shows how to overload functions in the same scope.
+# The compiler will choose the function with the most specific type signature.
+# A function taking any is always chosen if no PREVIOUS function is more specific.
+# Thus, the order of function definitions is important, as the compiler will
+# choose the first function that matches the call.
+
 function foo(x: int): none
     "I am foo" puts
     x puts

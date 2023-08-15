@@ -8,7 +8,7 @@
     "icon": "icon.png",
     "publisher": "StonkDragon",
     "description": "Language Support for the Scale Programming Language",
-    "version": "23.7.0",
+    "version": "23.8.0",
     "engines": {
         "vscode": "^1.61.0"
     },
@@ -35,12 +35,16 @@
             "language": "scale",
             "scopeName": "source.scale",
             "embeddedLanguages": {
-              "meta.embedded.block.c": "c"
+              "meta.embedded.block.c": "c",
+              "meta.embedded.block.scale": "scale"
             },
             "path": "./syntaxes/scale.syntax.tmlanguage.json"
         },{
             "language": "scldoc",
             "scopeName": "source.scldoc",
+            "embeddedLanguages": {
+              "meta.embedded.block.scale": "scale"
+            },
             "path": "./scldoc/syntaxes/scldoc.syntax.tmlanguage.json"
         }],
         "snippets": [{

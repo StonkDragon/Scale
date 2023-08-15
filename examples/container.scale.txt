@@ -1,2 +1,0 @@
-load/store
-ref/deref

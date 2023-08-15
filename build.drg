@@ -1,6 +1,9 @@
-VERSION: "23.7";
+VERSION: "23.8";
 
 build: {
+  incrementalBuild: "true";
+  parallelBuild: "true";
+  fullRebuildOnConfigChange: "true";
   compiler: "clang++";
   sourceDir: "Compiler";
   outputDir: "target";
@@ -20,6 +23,9 @@ build: {
     "modules/InfoDumper.cpp";
     "Common.cpp";
   ];
+  watch: [
+    ".*\.hpp";
+  ];
   defines: [
     "VERSION=\"$(VERSION)\"";
     "C_VERSION=\"gnu17\"";
@@ -31,6 +37,8 @@ build: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-Wno-gnu-statement-expression";
+    "-O2";
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
@@ -43,7 +51,8 @@ build: {
     "sudo mv target/sclc /opt/Scale/$(VERSION)";
     "sudo rm -f /usr/local/bin/sclc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
-    "rm -rf target";
+    "sudo rm -f /usr/local/bin/scaledoc";
+    "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/scaledoc";
     "python3 tests.py run";
   ];
 };
@@ -79,6 +88,7 @@ install: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-O2";
   ];
   preBuild: [
     "rm -rf /opt/Scale/$(VERSION)";
@@ -90,6 +100,8 @@ install: {
     "sudo mv target/sclc /opt/Scale/$(VERSION)";
     "sudo rm -f /usr/local/bin/sclc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
+    "sudo rm -f /usr/local/bin/scaledoc";
+    "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/scaledoc";
     "rm -rf target";
     "sh install_post.sh";
   ];

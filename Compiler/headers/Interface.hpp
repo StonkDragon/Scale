@@ -11,18 +11,17 @@
 
 namespace sclc
 {
-    class Interface {
+    struct Interface {
         std::string name;
         std::vector<Function*> toImplement;
         std::vector<Method*> defaultImplementations;
-    public:
         Token* name_token;
         Interface(std::string name) {
             this->name = name;
         }
         bool hasToImplement(std::string func) {
             for (Function* f : toImplement) {
-                if (f->getName() == func) {
+                if (f->name == func) {
                     return true;
                 }
             }
@@ -30,7 +29,7 @@ namespace sclc
         }
         bool hasDefaultImplementation(std::string func) {
             for (Method* f : defaultImplementations) {
-                if (f->getName() == func) {
+                if (f->name == func) {
                     return true;
                 }
             }
@@ -38,7 +37,7 @@ namespace sclc
         }
         Function* getToImplement(std::string func) {
             for (Function* f : toImplement) {
-                if (f->getName() == func) {
+                if (f->name == func) {
                     return f;
                 }
             }
@@ -46,29 +45,17 @@ namespace sclc
         }
         Method* getDefaultImplementation(std::string func) {
             for (Method* f : defaultImplementations) {
-                if (f->getName() == func) {
+                if (f->name == func) {
                     return f;
                 }
             }
             return nullptr;
-        }
-        std::vector<Function*> getImplements() {
-            return toImplement;
-        }
-        std::vector<Method*> getDefaultImplementations() {
-            return defaultImplementations;
         }
         void addToImplement(Function* func) {
             toImplement.push_back(func);
         }
         void addDefaultImplementation(Method* func) {
             defaultImplementations.push_back(func);
-        }
-        std::string getName() {
-            return name;
-        }
-        void setName(std::string name) {
-            this->name = name;
         }
 
         inline bool operator==(const Interface& other) const {
