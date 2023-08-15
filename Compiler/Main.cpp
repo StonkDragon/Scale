@@ -1183,6 +1183,10 @@ namespace sclc
 #ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
+#ifndef __APPLE__
+        cflags.push_back("-Wl,-R");
+        cflags.push_back("-Wl," + scaleFolder + "/Internal");
+#endif
         cflags.push_back("-lScaleRuntime");
         cflags.push_back("-lgc");
 

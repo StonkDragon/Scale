@@ -1,5 +1,5 @@
      879 Compiler/Common.cpp
-    1332 Compiler/Main.cpp
+    1337 Compiler/Main.cpp
       32 Compiler/headers/Color.hpp
      247 Compiler/headers/Common.hpp
       47 Compiler/headers/Container.hpp
@@ -109,4 +109,4 @@
       14 interop-example/foo.c
       14 interop-example/main.scale
      272 interop-example/scale_interop.h
-   22058 total
+   22063 total
