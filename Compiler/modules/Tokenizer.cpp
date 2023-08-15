@@ -532,87 +532,57 @@ namespace sclc
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
-            if (tokens[i].type == tok_identifier && tokens[i].value == "import") {
-                i++;
-                std::string moduleName = tokens[i].value;
-                while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
-                    i += 2;
-                    moduleName += "." + tokens[i].value;
-                }
-                bool found = false;
-                for (auto config : Main.options.mapFrameworkConfigs) {
-                    auto modules = config.second->getCompound("modules");
-                    if (modules) {
-                        auto list = modules->getList(moduleName);
-                        if (list) {
-                            found = true;
-                            for (size_t j = 0; j < list->size(); j++) {
-                                FPResult find = findFileInIncludePath(list->getString(j)->getValue());
-                                if (!find.success) {
-                                    FPResult r;
-                                    r.column = tokens[i].column;
-                                    r.value = tokens[i].value;
-                                    r.in = tokens[i].file;
-                                    r.line = tokens[i].line;
-                                    r.type = tokens[i].type;
-                                    r.success = false;
-                                    r.message = find.message;
-                                    return r;
-                                }
-                                auto file = find.in;
-                                file = std::filesystem::absolute(file).string();
-                                if (!contains(Main.options.files, file)) {
-                                    Main.options.files.push_back(file);
-                                }
-                            }
-                            break;
-                        }
+            if (tokens[i].type != tok_identifier || tokens[i].value != "import") continue;
+
+            i++;
+            std::string moduleName = tokens[i].value;
+            while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
+                i += 2;
+                moduleName += "." + tokens[i].value;
+            }
+            bool found = false;
+            for (auto config : Main.options.mapFrameworkConfigs) {
+                if (!config.second) continue;
+
+                auto modules = config.second->getCompound("modules");
+                if (!modules) continue;
+                
+                auto list = modules->getList(moduleName);
+                if (!list) continue;
+                found = true;
+
+                for (size_t j = 0; j < list->size(); j++) {
+                    FPResult find = findFileInIncludePath(list->getString(j)->getValue());
+                    if (!find.success) {
+                        FPResult r;
+                        r.column = tokens[i].column;
+                        r.value = tokens[i].value;
+                        r.in = tokens[i].file;
+                        r.line = tokens[i].line;
+                        r.type = tokens[i].type;
+                        r.success = false;
+                        r.message = find.message;
+                        return r;
+                    }
+                    auto file = find.in;
+                    file = std::filesystem::absolute(file).string();
+                    if (!contains(Main.options.files, file)) {
+                        Main.options.files.push_back(file);
                     }
                 }
-                if (!found) {
-                    FPResult r;
-                    r.success = false;
-                    r.column = tokens[i].column;
-                    r.value = tokens[i].value;
-                    r.in = tokens[i].file;
-                    r.line = tokens[i].line;
-                    r.type = tokens[i].type;
-                    r.message = "Could not find module '" + moduleName + "'";
-                    return r;
-                }
-            } else if (tokens[i].type == tok_identifier && tokens[i].value == "__file_import") {
-                i++;
-                std::string file = "";
-                FPResult r;
-                r.column = tokens[i].column;
-                r.value = tokens[i].value;
-                r.in = tokens[i].file;
-                r.line = tokens[i].line;
-                r.type = tokens[i].type;
-                while (true) {
-                    if (file.size() == 0)
-                        file = tokens[i].value;
-                    else
-                        file += PATH_SEPARATOR + tokens[i].value;
-                    
-                    if (tokens[i + 1].type != tok_dot) {
-                        i--;
-                        break;
-                    }
-                    i += 2;
-                }
-                file += ".scale";
-                FPResult find = findFileInIncludePath(file);
-                if (!find.success) {
-                    r.success = false;
-                    r.message = find.message;
-                    return r;
-                }
-                file = find.in;
-                file = std::filesystem::absolute(file).string();
-                if (!contains(Main.options.files, file)) {
-                    Main.options.files.push_back(file);
-                }
+                break;
+            }
+            if (found) continue;
+            
+            std::string file = replaceAll(moduleName, R"(\.)", PATH_SEPARATOR);
+            file += ".scale";
+            FPResult r = findFileInIncludePath(file);
+            if (!r.success) {
+                return r;
+            }
+            file = std::filesystem::absolute(r.in).string();
+            if (!contains(Main.options.files, file)) {
+                Main.options.files.push_back(file);
             }
         }
         FPResult r;
@@ -623,16 +593,15 @@ namespace sclc
     FPResult findFileInIncludePath(std::string file) {
         for (std::string& path : Main.options.includePaths) {
             using namespace std::filesystem;
-            if (exists(path + PATH_SEPARATOR + file)) {
-                FPResult r;
-                r.success = true;
-                if (path == "." || path == "./") {
-                    r.in = file;
-                } else {
-                    r.in = path + PATH_SEPARATOR + file;
-                }
-                return r;
+            if (!exists(path + PATH_SEPARATOR + file)) continue;
+            FPResult r;
+            r.success = true;
+            if (path == "." || path == "./") {
+                r.in = file;
+            } else {
+                r.in = path + PATH_SEPARATOR + file;
             }
+            return r;
         }
         FPResult r;
         r.success = false;
