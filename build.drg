@@ -88,6 +88,7 @@ install: {
     "-Wextra";
     "-Werror";
     "-pedantic";
+    "-Wno-gnu-statement-expression";
     "-O2";
   ];
   preBuild: [
