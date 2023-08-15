@@ -995,7 +995,6 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder + "/Internal");
-        cflags.push_back("-lScaleRuntime");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         
@@ -1184,6 +1183,7 @@ namespace sclc
 #ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
+        cflags.push_back("-lScaleRuntime");
 
         std::string cmd = "";
         for (std::string& s : cflags) {
