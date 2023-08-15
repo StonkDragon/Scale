@@ -299,11 +299,13 @@ namespace sclc {
                             continue;
                         }
                     }
-                    fprintf(scale_header, "extern ");
-                    if (function->name == "throw" || function->name == "builtinUnreachable") {
-                        fprintf(scale_header, "_scl_no_return ");
+                    if (scale_header) {
+                        fprintf(scale_header, "extern ");
+                        if (function->name == "throw" || function->name == "builtinUnreachable") {
+                            fprintf(scale_header, "_scl_no_return ");
+                        }
+                        fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
                     }
-                    fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
                 }
             } else {
                 append("%s Method_%s$%s(%s)\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str());
@@ -321,15 +323,18 @@ namespace sclc {
                         errors.push_back(res);
                         continue;
                     }
-                    fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    if (scale_header) {
+                        fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str(), symbol.c_str());
+                    }
                 }
             }
         }
 
-        fprintf(scale_header, "#endif\n");
-
-        fclose(scale_header);
-        scale_header = NULL;
+        if (scale_header) {
+            fprintf(scale_header, "#endif\n");
+            fclose(scale_header);
+            scale_header = NULL;
+        }
 
         append("\n");
     }
