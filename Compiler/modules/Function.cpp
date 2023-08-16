@@ -159,9 +159,11 @@ Variable& Function::varArgsParam() {
     if (this->isCVarArgs()) {
         return this->args[this->args.size() - (1 + ((size_t) this->isMethod))];
     }
-    throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
+    throw std::runtime_error(std::string(__func__) + " called on non-varargs function");
 }
 std::string& Function::getModifier(size_t index) {
-    assert(index > 0 && index <= this->modifiers.size());
+    if (index <= 0 || index > this->modifiers.size()) {
+        throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
+    }
     return this->modifiers.at(index - 1);
 }
