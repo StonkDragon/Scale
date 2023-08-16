@@ -34,7 +34,7 @@
 #endif
 
 #ifndef C_VERSION
-#define C_VERSION "gnu2x"
+#define C_VERSION "gnu17"
 #endif
 
 #ifndef SCALE_INSTALL_DIR
@@ -46,7 +46,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "23.8.1"
+#define FRAMEWORK_VERSION_REQ "23.9"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -518,7 +518,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "23.8.1");
+        framework->addString("version", "23.9");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -1216,7 +1216,7 @@ namespace sclc
             std::string currentUndefinedSymbol = "";
             while (fgets(cline, 1024, compile_command) != NULL) {
                 std::string line = cline;
-                if (strstarts(line, "out.c") || strstarts(line, "out.h") || strstarts(line, "out.typeinfo.h")) {
+                if (strstarts(line, "out.m") || strstarts(line, "out.h") || strstarts(line, "out.typeinfo.h")) {
                     size_t space = line.find(" ");
                     std::string file = line.substr(0, space);
                     line = line.substr(space + 1);

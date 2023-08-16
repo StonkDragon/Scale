@@ -1,6 +1,10 @@
 #include <scale_runtime.h>
 
-extern const ID_t SclObjectHash; // SclObject
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+ID_t SclObjectHash; // SclObject
 
 typedef struct Struct {
 	_scl_lambda*	vtable_fast;
@@ -36,7 +40,11 @@ typedef struct Struct_Array {
 }* scl_Array;
 
 typedef struct Struct_ReadOnlyArray {
-	struct Struct_Array self;
+	Struct rtFields;
+	scl_any* values;
+	scl_int count;
+	scl_int capacity;
+	scl_int initCapacity;
 }* scl_ReadOnlyArray;
 
 typedef struct Struct_IndexOutOfBoundsException {
@@ -122,24 +130,24 @@ scl_int8* Library$progname(void) {
 	return argv0;
 }
 
-struct Struct_Array* Process$stackTrace(void) {
-	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
+scl_Array Process$stackTrace(void) {
+	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
 	
-	scl_int8** tmp;
-	scl_int8** _callstack = tmp = _stack.tbp;
+	const scl_int8** tmp;
+	const scl_int8** _callstack = tmp = _stack.tbp;
 
 	arr->count = (_stack.tp - _stack.tbp) - 1;
 
 	arr->initCapacity = arr->count;
 	arr->capacity = arr->count;
-	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
+	arr->values = (scl_any*) _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
 
 	for (scl_int i = 0; i < arr->count; i++) {
 		_scl_array_check_bounds_or_throw(arr->values, i);
 		arr->values[i] = str_of(_callstack[i]);
 	}
 
-	return arr;
+	return (scl_Array) arr;
 }
 
 scl_bool Process$gcEnabled(void) {
@@ -185,21 +193,21 @@ VALID(uint64, UInt64)
 VALID(uint, UInt)
 
 scl_str int$toString(scl_int val) {
-	scl_int8* str = _scl_alloc(32);
+	scl_int8* str = (scl_int8*) _scl_alloc(32);
 	snprintf(str, 32, SCL_INT_FMT, val);
 	scl_str s = str_of(str);
 	return s;
 }
 
 scl_str int$toHexString(scl_int val) {
-	scl_int8* str = _scl_alloc(19);
+	scl_int8* str = (scl_int8*) _scl_alloc(19);
 	snprintf(str, 19, SCL_INT_HEX_FMT, val);
 	scl_str s = str_of(str);
 	return s;
 }
 
 scl_str int8$toString(scl_int8 val) {
-	scl_int8* str = _scl_alloc(5);
+	scl_int8* str = (scl_int8*) _scl_alloc(5);
 	snprintf(str, 5, "%c", val);
 	scl_str s = str_of(str);
 	return s;
@@ -207,10 +215,11 @@ scl_str int8$toString(scl_int8 val) {
 
 void _scl_puts(scl_any val) {
 	scl_str s;
+	if (SclObjectHash == 0) SclObjectHash = typeid("SclObject");
 	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = virtual_call(val, "toString()s;");
-	} else if (_scl_is_array(val)) {
-		s = _scl_array_to_string(val);
+		s = (scl_str) virtual_call(val, "toString()s;");
+	} else if (_scl_is_array((scl_any*) val)) {
+		s = _scl_array_to_string((scl_any*) val);
 	} else {
 		s = int$toString((scl_int) val);
 	}
@@ -223,10 +232,11 @@ void _scl_puts_str(scl_str str) {
 
 void _scl_eputs(scl_any val) {
 	scl_str s;
+	if (SclObjectHash == 0) SclObjectHash = typeid("SclObject");
 	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = virtual_call(val, "toString()s;");
-	} else if (_scl_is_array(val)) {
-		s = _scl_array_to_string(val);
+		s = (scl_str) virtual_call(val, "toString()s;");
+	} else if (_scl_is_array((scl_any*) val)) {
+		s = _scl_array_to_string((scl_any*) val);
 	} else {
 		s = int$toString((scl_int) val);
 	}
@@ -238,7 +248,7 @@ void _scl_write(scl_int fd, scl_str str) {
 }
 
 scl_str _scl_read(scl_int fd, scl_int len) {
-	scl_int8* buf = _scl_alloc(len + 1);
+	scl_int8* buf = (scl_int8*) _scl_alloc(len + 1);
 	read(fd, buf, len);
 	scl_str str = str_of(buf);
 	return str;
@@ -260,14 +270,14 @@ scl_float _scl_time(void) {
 }
 
 scl_str float$toString(scl_float val) {
-	scl_int8* str = _scl_alloc(64);
+	scl_int8* str = (scl_int8*) _scl_alloc(64);
 	snprintf(str, 64, "%f", val);
 	scl_str s = str_of(str);
 	return s;
 }
 
 scl_str float$toPrecisionString(scl_float val) {
-	scl_int8* str = _scl_alloc(256);
+	scl_int8* str = (scl_int8*) _scl_alloc(256);
 	snprintf(str, 256, "%.17f", val);
 	scl_str s = str_of(str);
 	return s;
@@ -338,21 +348,21 @@ scl_Int Int$valueOf(scl_int val) {
 	if (val >= -128 && val <= 127) {
 		return &_ints[val + 128];
 	}
-	scl_Int new = ALLOC(Int);
-	new->value = val;
-	return new;
+	scl_Int newInt = ALLOC(Int);
+	newInt->value = val;
+	return newInt;
 }
 
 scl_Any Any$valueOf(scl_any val) {
-	scl_Any new = ALLOC(Any);
-	new->value = val;
-	return new;
+	scl_Any newFloat = ALLOC(Any);
+	newFloat->value = val;
+	return newFloat;
 }
 
 scl_Float Float$valueOf(scl_float val) {
-	scl_Float new = ALLOC(Float);
-	new->value = val;
-	return new;
+	scl_Float newAny = ALLOC(Float);
+	newAny->value = val;
+	return newAny;
 }
 
 void Thread$run(scl_Thread self) {
@@ -376,7 +386,7 @@ void Thread$run(scl_Thread self) {
 }
 
 scl_int Thread$start0(scl_Thread self) {
-	int ret = _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any) Thread$run, self);
+	int ret = _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any(*)(scl_any)) Thread$run, self);
 	return ret;
 }
 
@@ -405,7 +415,7 @@ void _scale_framework_init(void) {
 	
     extern const TypeInfo _scl_statics_Int;
 
-	ID_t intHash = id("Int");
+	ID_t intHash = typeid("Int");
 	for (scl_int i = -128; i < 127; i++) {
 		_ints[i + 128] = (struct Struct_Int) {
 			.rtFields = {
@@ -420,3 +430,7 @@ void _scale_framework_init(void) {
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 }
+
+#if defined(__cplusplus)
+}
+#endif

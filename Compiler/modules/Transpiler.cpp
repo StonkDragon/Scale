@@ -461,12 +461,67 @@ namespace sclc {
         return f && f->has_setter ? f : nullptr;
     }
 
+    struct StructTreeNode {
+        Struct s;
+        std::vector<StructTreeNode*> children;
+
+        StructTreeNode(Struct s) : s(s), children() {}
+
+        ~StructTreeNode() {
+            for (StructTreeNode* child : children) {
+                delete child;
+            }
+        }
+
+        void addChild(StructTreeNode* child) {
+            children.push_back(child);
+        }
+
+        std::string toString(int indent = 0) {
+            std::string result = "";
+            for (int i = 0; i < indent; i++) {
+                result += "  ";
+            }
+            result += s.name + "\n";
+            for (StructTreeNode* child : children) {
+                result += child->toString(indent + 1);
+            }
+            return result;
+        }
+
+        void forEach(std::function<void(StructTreeNode*)> f) {
+            f(this);
+            for (StructTreeNode* child : children) {
+                child->forEach(f);
+            }
+        }
+
+        static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
+            StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
+            for (Struct& s : result.structs) {
+                if (s.super == name) {
+                    node->addChild(directSubstructsOf(root, result, s.name));
+                }
+            }
+            return node;
+        }
+
+        static StructTreeNode* fromArrayOfStructs(TPResult& result) {
+            StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
+            return directSubstructsOf(root, result, "SclObject");
+        }
+    };
+
+    StructTreeNode* structTree;
+
     void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
         (void) errors;
         (void) warns;
         int scopeDepth = 0;
         if (result.structs.size() == 0) return;
         append("/* STRUCT DEFINITIONS */\n");
+
+        structTree = StructTreeNode::fromArrayOfStructs(result);
 
         remove("scale_interop.h");
         scale_header = fopen("scale_interop.h", "a+");
@@ -606,17 +661,26 @@ namespace sclc {
 
             makeVTable(result, c.name);
 
-            append("struct Struct_%s {\n", c.name.c_str());
-            append("  const _scl_lambda* const $fast;\n");
-            append("  const TypeInfo* $statics;\n");
-            append("  mutex_t $mutex;\n");
             for (Variable& s : c.members) {
-                if (s.isVirtual) {
-                    Method* getter = attributeAccessor(result, c.name, s.name);
-                    if (!getter) {
+                if (!s.isVirtual) continue;
+                Method* getter = attributeAccessor(result, c.name, s.name);
+                if (!getter) {
+                    FPResult res;
+                    res.success = false;
+                    res.message = "No getter for virtual member '" + s.name + "'";
+                    res.line = s.name_token->line;
+                    res.in = s.name_token->file;
+                    res.column = s.name_token->column;
+                    res.value = s.name_token->value;
+                    res.type = s.name_token->type;
+                    errors.push_back(res);
+                }
+                if (!s.isConst) {
+                    Method* setter = attributeMutator(result, c.name, s.name);
+                    if (!setter) {
                         FPResult res;
                         res.success = false;
-                        res.message = "No getter for virtual member '" + s.name + "'";
+                        res.message = "No setter for virtual member '" + s.name + "'";
                         res.line = s.name_token->line;
                         res.in = s.name_token->file;
                         res.column = s.name_token->column;
@@ -624,36 +688,32 @@ namespace sclc {
                         res.type = s.name_token->type;
                         errors.push_back(res);
                     }
-                    if (!s.isConst) {
-                        Method* setter = attributeMutator(result, c.name, s.name);
-                        if (!setter) {
-                            FPResult res;
-                            res.success = false;
-                            res.message = "No setter for virtual member '" + s.name + "'";
-                            res.line = s.name_token->line;
-                            res.in = s.name_token->file;
-                            res.column = s.name_token->column;
-                            res.value = s.name_token->value;
-                            res.type = s.name_token->type;
-                            errors.push_back(res);
-                        }
-                    }
-                    continue;
                 }
-                append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
-            append("};\n");
+        }
 
+        structTree->forEach([&](StructTreeNode* currentNode) {
+            Struct c = currentNode->s;
+            append("struct Struct_%s {\n", c.name.c_str());
+            append("  const _scl_lambda* const $fast;\n");
+            append("  const TypeInfo* $statics;\n");
+            append("  mutex_t $mutex;\n");
+            
             fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
             fprintf(scale_header, "  const _scl_lambda* const $fast;\n");
             fprintf(scale_header, "  const TypeInfo* $statics;\n");
             fprintf(scale_header, "  mutex_t $mutex;\n");
+            
             for (Variable& s : c.members) {
                 if (s.isVirtual) continue;
+                append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
                 fprintf(scale_header, "  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
+
+            append("};\n");
             fprintf(scale_header, "};\n");
-        }
+        });
+
         currentStruct = Struct::Null;
         append("\n");
     }
@@ -1698,7 +1758,7 @@ namespace sclc {
                 }
             }
             append("_stack.tp--\n");
-            append("_stack.sp = __current_base_ptr;\n");
+            append("_stack.sp = (_scl_frame_t*) __current_base_ptr;\n");
             if (function->return_type == "none")
                 append("return;\n");
             else {
@@ -1735,7 +1795,7 @@ namespace sclc {
                 popTry();
                 append("  _scl_exception_drop();\n");
                 append("} else if (_scl_is_instance_of(*(_stack.ex), 0x%xU)) {\n", id((char*) "Error"));
-                append("  Function_throw(*(_stack.ex));\n");
+                append("  Function_throw((scl_Exception) *(_stack.ex));\n");
             } else if (wasCatch()) {
                 popCatch();
             }
@@ -1954,7 +2014,7 @@ namespace sclc {
     #pragma region Identifier functions
     #endif
         if (body[i].value == "drop") {
-            append("--_stack.sp;\n");
+            append("_scl_pop();\n");
             typePop;
         } else if (body[i].value == "dup") {
             append("(_stack.sp++)->v = (_stack.sp - 1)->v;\n");
@@ -2027,7 +2087,7 @@ namespace sclc {
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].value == "exit") {
-            append("exit((--_stack.sp)->i);\n");
+            append("exit(_scl_pop()->i);\n");
             typePop;
         } else if (body[i].value == "abort") {
             append("abort();\n");
@@ -2139,7 +2199,7 @@ namespace sclc {
         } else if (body[i].value == "unsafe") {
             append("{\n");
             scopeDepth++;
-            append("scl_int8* __prev = _stack.tp - 1;\n");
+            append("const scl_int8* __prev = *(_stack.tp - 1);\n");
             append("*(_stack.tp - 1) = \"unsafe %s\";\n", sclFunctionNameToFriendlyString(function).c_str());
             isInUnsafe++;
             safeInc();
@@ -2277,7 +2337,7 @@ namespace sclc {
                             return;
                         }
                         auto nth = nthTemplate(s, templates.size());
-                        append("scl_str $template%s = (--_stack.sp)->s;\n", nth.first.c_str());
+                        append("scl_str $template%s = _scl_pop()->s;\n", nth.first.c_str());
                         typePop;
                         templates[nth.first] = "$template" + nth.first;
                     } else {
@@ -2340,14 +2400,14 @@ namespace sclc {
                     scopeDepth++;
                     append("(_stack.sp++)->v = ALLOC(%s);\n", s.name.c_str());
                     append("_scl_struct_allocation_failure((_stack.sp - 1)->i, \"%s\");\n", s.name.c_str());
-                    append("%s tmp = (_stack.sp - 1)->v;\n", sclTypeToCType(result, s.name).c_str());
+                    append("%s tmp = (%s) (_stack.sp - 1)->v;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
                     for (auto&& t : templates) {
                         if (t.second.front() == '$') {
                             append("tmp->$template_arg_%s = %s->hash;\n", t.first.c_str(), t.second.c_str());
                             append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
                         } else {
                             append("tmp->$template_arg_%s = 0x%xU;\n", t.first.c_str(), id((char*) t.second.c_str()));
-                            append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
+                            append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
                         }
                     }
                     
@@ -2365,7 +2425,7 @@ namespace sclc {
                     if (templates.size()) {
                         append("{\n");
                         scopeDepth++;
-                        append("%s tmp = (_stack.sp - 1)->v;\n", sclTypeToCType(result, s.name).c_str());
+                        append("%s tmp = (%s) (_stack.sp - 1)->v;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
                     }
                     for (auto&& t : templates) {
                         if (t.second.front() == '$') {
@@ -2373,7 +2433,7 @@ namespace sclc {
                             append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
                         } else {
                             append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
-                            append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
+                            append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
                         }
                     }
                     if (templates.size()) {
@@ -2426,7 +2486,7 @@ namespace sclc {
                         append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
                     } else {
                         append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id((char*) t.second.c_str()));
-                        append("tmp->$template_argname_%s = \"%s\";\n", t.first.c_str(), t.second.c_str());
+                        append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
                     }
                 }
                 append("_scl_frame_t* stack_start = _stack.sp;\n");
@@ -2482,15 +2542,15 @@ namespace sclc {
                     
                     if (mutator) {
                         if (removeTypeModifiers(lastType) == "float") {
-                            append("Method_%s$%s(tmp, (--_stack.sp)->f);\n", mutator->member_type.c_str(), mutator->finalName().c_str());
+                            append("Method_%s$%s(tmp, _scl_pop()->f);\n", mutator->member_type.c_str(), mutator->finalName().c_str());
                         } else {
-                            append("Method_%s$%s(tmp, (%s) (--_stack.sp)->i);\n", mutator->member_type.c_str(), mutator->finalName().c_str(), sclTypeToCType(result, lastType).c_str());
+                            append("Method_%s$%s(tmp, (%s) _scl_pop()->i);\n", mutator->member_type.c_str(), mutator->finalName().c_str(), sclTypeToCType(result, lastType).c_str());
                         }
                     } else {
                         if (removeTypeModifiers(lastType) == "float") {
-                            append("tmp->%s = (--_stack.sp)->f;\n", body[i].value.c_str());
+                            append("tmp->%s = _scl_pop()->f;\n", body[i].value.c_str());
                         } else {
-                            append("tmp->%s = (%s) (--_stack.sp)->i;\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                            append("tmp->%s = (%s) _scl_pop()->i;\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
                         }
                     }
                     typePop;
@@ -2618,7 +2678,7 @@ namespace sclc {
             scopeDepth++;
             std::string dims = "";
             for (int i = 0; i < dimensions; i++) {
-                append("scl_int _scl_dim%d = (--_stack.sp)->i;\n", i);
+                append("scl_int _scl_dim%d = _scl_pop()->i;\n", i);
                 if (i > 0) dims += ", ";
                 dims += "_scl_dim" + std::to_string(i);
                 if (!isPrimitiveIntegerType(typeStackTop)) {
@@ -2702,7 +2762,7 @@ namespace sclc {
             return;
         }
         safeInc();
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         typePop;
         scopeDepth--;
         append("}); Var_%s != ({\n", var.value.c_str());
@@ -2793,7 +2853,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         if (iterator_direction == "") {
             append("});) {\n");
@@ -2863,7 +2923,7 @@ namespace sclc {
 
         std::string type = removeTypeModifiers(typeStackTop);
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            append("%s %s = (%s) (--_stack.sp)->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+            append("%s %s = (%s) _scl_pop()->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
             typePop;
             append("for (scl_int i = 0; i < _scl_array_size(%s); i++) {\n", iterator_name.c_str());
             scopeDepth++;
@@ -2893,7 +2953,7 @@ namespace sclc {
             return;
         }
         methodCall(iterateMethod, fp, result, warns, errors, body, i);
-        append("%s %s = (%s) (--_stack.sp)->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+        append("%s %s = (%s) _scl_pop()->i;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         type = typeStackTop;
         typePop;
         
@@ -2918,7 +2978,7 @@ namespace sclc {
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok.value).type);
         append("while (virtual_call(%s, \"hasNext()i;\")) {\n", iterator_name.c_str());
         scopeDepth++;
-        append("%sVar_%s = (%s) virtual_call(%s, \"next%s\");\n", var_prefix.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
+        append("%sVar_%s = (%s) ((scl_int) virtual_call(%s, \"next%s\"));\n", var_prefix.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
     }
 
     handler(AddrRef) {
@@ -3073,11 +3133,11 @@ namespace sclc {
                     ) {
                         continue;
                     }
-                    path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) --_stack.sp)";
+                    path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
                     funcFound = true;
                 }
                 if (!funcFound) {
-                    path += " = *(" + sclTypeToCType(result, v.type) + "*) --_stack.sp";
+                    path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
                 }
             }
             return path;
@@ -3151,11 +3211,11 @@ namespace sclc {
                             ) {
                                 continue;
                             }
-                            path += "Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) --_stack.sp)";
+                            path += "Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += "*(" + sclTypeToCType(result, v.type) + "*) --_stack.sp)";
+                            path += "*(" + sclTypeToCType(result, *currentType) + "*) _scl_pop())";
                         }
                     }
                 } else {
@@ -3175,18 +3235,18 @@ namespace sclc {
                             ) {
                                 continue;
                             }
-                            path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) --_stack.sp)";
+                            path += " = Function_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += " = *(" + sclTypeToCType(result, v.type) + "*) --_stack.sp";
+                            path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
                         }
                     }
                 }
                 if (deref) {
                     path = "(*" + path + ")";
                     if (doesWriteAfter) {
-                        path += " = *(" + sclTypeToCType(result, v.type) + "*) --_stack.sp";
+                        path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
                     }
                 }
                 return path;
@@ -3214,7 +3274,7 @@ namespace sclc {
         if (body[i].type == tok_paren_open) {
             append("{\n");
             scopeDepth++;
-            append("scl_Array tmp = (scl_Array) (--_stack.sp)->i;\n");
+            append("scl_Array tmp = (scl_Array) _scl_pop()->i;\n");
             typePop;
             safeInc();
             int destructureIndex = 0;
@@ -3573,7 +3633,7 @@ namespace sclc {
                 ) {
                     continue;
                 }
-                append("%s Var_%s = Function_%s(*(%s*) --_stack.sp);\n", sclTypeToCType(result, type).c_str(), name.c_str(), f->finalName().c_str(), sclTypeToCType(result, f->args[0].type).c_str());
+                append("%s Var_%s = Function_%s(*(%s*) _scl_pop());\n", sclTypeToCType(result, type).c_str(), name.c_str(), f->finalName().c_str(), sclTypeToCType(result, f->args[0].type).c_str());
                 typePop;
                 return;
             }
@@ -3584,7 +3644,7 @@ namespace sclc {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
                 warns.push_back(err);
             }
-            append("%s Var_%s = *(%s*) --_stack.sp;\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+            append("%s Var_%s = *(%s*) _scl_pop();\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
             typePop;
         } else {
             if (body[i].type != tok_identifier && body[i].type != tok_addr_of) {
@@ -3607,7 +3667,7 @@ namespace sclc {
                         safeInc();
                         append("{\n");
                         scopeDepth++;
-                        append("scl_int _scl_value_to_store = (--_stack.sp)->i;\n");
+                        append("scl_int _scl_value_to_store = _scl_pop()->i;\n");
                         typePop;
                         append("{\n");
                         scopeDepth++;
@@ -3618,7 +3678,7 @@ namespace sclc {
                         scopeDepth--;
                         append("}\n");
                         typePop;
-                        append("*(scl_int*) (--_stack.sp)->i = _scl_value_to_store;\n");
+                        append("*(scl_int*) _scl_pop()->i = _scl_value_to_store;\n");
                         scopeDepth--;
                         append("}\n");
                     } else {
@@ -3693,7 +3753,7 @@ namespace sclc {
                 i = start;
                 append("{\n");
                 scopeDepth++;
-                append("scl_any value = (--_stack.sp)->v;\n");
+                append("scl_any value = _scl_pop()->v;\n");
                 std::string valueType = removeTypeModifiers(typeStackTop);
                 typePop;
 
@@ -3708,7 +3768,7 @@ namespace sclc {
                 int openBracket = i;
                 safeInc();
                 std::string arrayType = removeTypeModifiers(typeStackTop);
-                append("%s array = (--_stack.sp)->v;\n", sclTypeToCType(result, arrayType).c_str());
+                append("%s array = (%s) _scl_pop()->v;\n", sclTypeToCType(result, arrayType).c_str(), sclTypeToCType(result, arrayType).c_str());
 
                 typePop;
             reevaluateArrayIndexing:
@@ -3737,7 +3797,7 @@ namespace sclc {
 
                 scopeDepth++;
                 append("{\n");
-                append("%s index = (%s) (--_stack.sp)->i;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
+                append("%s index = (%s) _scl_pop()->i;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
                 std::string indexType = removeTypeModifiers(typeStackTop);
                 if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
                     transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", i);
@@ -3749,7 +3809,7 @@ namespace sclc {
 
                 if (multiDimensional) {
                     if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                        append("_scl_array_check_bounds_or_throw(array, index);\n");
+                        append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
                         append("array = array[index];\n");
                         if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
                             arrayType = arrayType.substr(1, arrayType.size() - 2);
@@ -3790,8 +3850,8 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_array_check_bounds_or_throw(array, index);\n");
-                    append("array[index] = value;\n");
+                    append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
+                    append("((scl_any*) array)[index] = value;\n");
                 } else {
                     if (hasMethod(result, "=>[]", arrayType)) {
                         Method* m = getMethodByName(result, "=>[]", arrayType);
@@ -3931,7 +3991,7 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("Method_Array$push(tmp, (--_stack.sp)->v);\n");
+                append("Method_Array$push(tmp, _scl_pop()->v);\n");
                 typePop;
             }
         }
@@ -3974,9 +4034,9 @@ namespace sclc {
                         return;
                     }
                     if (existingArrayUsed) {
-                        append("scl_int array_size = _scl_array_size((_stack.sp - 1)->v);\n");
+                        append("scl_int array_size = _scl_array_size((scl_any*) (_stack.sp - 1)->v);\n");
                     } else {
-                        append("scl_int array_size = (--_stack.sp)->i;\n");
+                        append("scl_int array_size = _scl_pop()->i;\n");
                         typePop;
                     }
                     safeInc();
@@ -3991,11 +4051,12 @@ namespace sclc {
                     } else {
                         elementType = "any";
                     }
-                    append("%s* array = (--_stack.sp)->v;\n", sclTypeToCType(result, elementType).c_str());
+                    append("%s* array = (%s*) _scl_pop()->v;\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
                 } else {
                     append("scl_int* array = _scl_new_array(array_size);\n");
                 }
                 append("for (scl_int i = 0; i < array_size; i++) {\n");
+                scopeDepth++;
                 varScopePush();
                 append("const scl_int Var_i = i;\n");
                 varScopeTop().push_back(Variable("i", "const int"));
@@ -4013,7 +4074,8 @@ namespace sclc {
                 }
                 varScopePop();
                 typePop;
-                append("array[i] = (--_stack.sp)->i;\n");
+                append("array[i] = _scl_pop()->i;\n");
+                scopeDepth--;
                 append("}\n");
                 append("(_stack.sp++)->v = array;\n");
                 typeStack.push(arrayType);
@@ -4038,8 +4100,8 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_array_check_bounds_or_throw((_stack.sp - 1)->v, %s);\n", body[i - 1].value.c_str());
-                    append("(_stack.sp - 1)->v = ((%s) (_stack.sp - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                    append("_scl_array_check_bounds_or_throw((scl_any*) (_stack.sp - 1)->v, %s);\n", body[i - 1].value.c_str());
+                    append("(_stack.sp - 1)->v = (scl_any) ((%s) (_stack.sp - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
                     return;
@@ -4053,7 +4115,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("%s tmp = (scl_any*) (--_stack.sp)->v;\n", sclTypeToCType(result, type).c_str());
+            append("%s tmp = (%s) _scl_pop()->v;\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
             typePop;
             varScopePush();
             while (body[i].type != tok_bracket_close) {
@@ -4067,9 +4129,9 @@ namespace sclc {
                 return;
             }
             typePop;
-            append("scl_int index = (--_stack.sp)->i;\n");
-            append("_scl_array_check_bounds_or_throw(tmp, index);\n");
-            append("(_stack.sp++)->v = tmp[index];\n");
+            append("scl_int index = _scl_pop()->i;\n");
+            append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
+            append("(_stack.sp++)->v = (scl_any) tmp[index];\n");
             typeStack.push(type.substr(1, type.size() - 2));
             scopeDepth--;
             append("}\n");
@@ -4090,7 +4152,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_any instance = (--_stack.sp)->v;\n");
+            append("scl_any instance = _scl_pop()->v;\n");
             std::string indexType = typeStackTop;
             typePop;
 
@@ -4143,7 +4205,7 @@ namespace sclc {
             // Last-returns expression
             if (typeStack.size() > stackSizeHere) {
                 std::string returns = typeStackTop;
-                append("_scl_frame_t* return_value = (--_stack.sp);\n");
+                append("_scl_frame_t* return_value = _scl_pop();\n");
                 append("_stack.sp = begin_stack_size;\n");
                 while (typeStack.size() > stackSizeHere) {
                     typeStack.pop();
@@ -4222,7 +4284,7 @@ namespace sclc {
             if (body[i + 1].type == tok_column) {
                 if (body[i + 2].type == tok_identifier) {
                     if (body[i + 2].value == "view") {
-                        append("(_stack.sp++)->v = \"%s\";\n", body[i].value.c_str());
+                        append("(_stack.sp++)->cs = \"%s\";\n", body[i].value.c_str());
                         typeStack.push("[int8]");
                         safeInc();
                         safeInc();
@@ -4252,7 +4314,7 @@ namespace sclc {
 
     handler(CharStringLiteral) {
         noUnused;
-        append("(_stack.sp++)->v = \"%s\";\n", body[i].value.c_str());
+        append("(_stack.sp++)->cs = \"%s\";\n", body[i].value.c_str());
         typeStack.push("[int8]");
     }
 
@@ -4281,7 +4343,7 @@ namespace sclc {
         }
         append("{// Start C\n");
         scopeDepth++;
-        append("scl_int8* __prev = *(_stack.tp - 1);\n");
+        append("const scl_int8* __prev = *(_stack.tp - 1);\n");
         append("*(_stack.tp - 1) = \"<%s:native code>\";\n", function->name.c_str());
         std::string file = body[i].file;
         if (strstarts(file, scaleFolder)) {
@@ -4417,7 +4479,7 @@ namespace sclc {
         }
         safeInc();
         varScopePop();
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4485,7 +4547,7 @@ namespace sclc {
         }
         safeInc();
         varScopePop();
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4569,7 +4631,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4591,7 +4653,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4620,7 +4682,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("(--_stack.sp)->i;\n");
+        append("_scl_pop()->i;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4631,7 +4693,7 @@ namespace sclc {
     handler(Do) {
         noUnused;
         typePop;
-        append("if (!(--_stack.sp)->v) break;\n");
+        append("if (!_scl_pop()->v) break;\n");
     }
 
     handler(DoneLike) {
@@ -4647,7 +4709,7 @@ namespace sclc {
                     append("  Function_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
                 }
             }
-            append("  Function_throw(*(_stack.ex));\n");
+            append("  Function_throw((scl_Exception) *(_stack.ex));\n");
         }
         append("}\n");
         if (repeat_depth > 0 && wasRepeat()) {
@@ -4672,7 +4734,7 @@ namespace sclc {
         scopeDepth++;
 
         if (function->return_type != "none" && !function->namedReturnValue.name.size()) {
-            append("_scl_frame_t* returnFrame = (--_stack.sp);\n");
+            append("_scl_frame_t* returnFrame = _scl_pop();\n");
         }
         if (function->has_restrict) {
             if (function->isMethod) {
@@ -4691,7 +4753,7 @@ namespace sclc {
             }
         }
         append("--_stack.tp;\n");
-        append("_stack.sp = __current_base_ptr;\n");
+        append("_stack.sp = (_scl_frame_t*) __current_base_ptr;\n");
 
         if (function->return_type != "none" && function->return_type != "nothing") {
             if (!typeCanBeNil(function->return_type)) {
@@ -4883,13 +4945,13 @@ namespace sclc {
         typePop;
         const Struct& s = getStructByName(result, type);
         if (s.super == "Union") {
-            append("switch ((--_stack.sp)->u->__tag) {\n");
+            append("switch (_scl_pop()->u->__tag) {\n");
             scopeDepth++;
             varScopePush();
             pushSwitch();
             return;
         }
-        append("switch ((--_stack.sp)->i) {\n");
+        append("switch (_scl_pop()->i) {\n");
         scopeDepth++;
         varScopePush();
         pushSwitch();
@@ -5081,7 +5143,7 @@ namespace sclc {
                 
                 append("{\n");
                 scopeDepth++;
-                append("scl_any tmp = (--_stack.sp)->v;\n");
+                append("scl_any tmp = _scl_pop()->v;\n");
                 std::string t = type;
                 append("(_stack.sp++)->s = _scl_create_string(\"%s\");\n", body[i].value.c_str());
                 typeStack.push("str");
@@ -5242,16 +5304,19 @@ namespace sclc {
                 append("{\n");
                 scopeDepth++;
                 if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
-                    append("void(*lambda)(%s) = (--_stack.sp)->v;\n", argTypes.c_str());
+                    append("typedef void(*lambda_t)(%s);\n", argTypes.c_str());
+                    append("lambda_t lambda = (lambda_t) _scl_pop()->v;\n");
                     append("_stack.sp -= (%zu);\n", argAmount);
                     append("lambda(%s);\n", argGet.c_str());
                 } else if (removeTypeModifiers(returnType) == "float") {
-                    append("scl_float(*lambda)(%s) = (--_stack.sp)->v;\n", argTypes.c_str());
+                    append("typedef scl_float(*lambda_t)(%s);\n", argTypes.c_str());
+                    append("lambda_t lambda = (lambda_t) _scl_pop()->v;\n");
                     append("_stack.sp -= (%zu);\n", argAmount);
                     append("(_stack.sp++)->f = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 } else {
-                    append("scl_any(*lambda)(%s) = (--_stack.sp)->v;\n", argTypes.c_str());
+                    append("typedef scl_any(*lambda_t)(%s);\n", argTypes.c_str());
+                    append("lambda_t lambda = (lambda_t) _scl_pop()->v;\n");
                     append("_stack.sp -= (%zu);\n", argAmount);
                     append("(_stack.sp++)->v = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
@@ -5277,23 +5342,23 @@ namespace sclc {
             if (op == "resize") {
                 append("{\n");
                 scopeDepth++;
-                append("scl_any* array = (--_stack.sp)->v;\n");
+                append("scl_any* array = (scl_any*) _scl_pop()->v;\n");
                 typePop;
-                append("scl_int size = (--_stack.sp)->i;\n");
+                append("scl_int size = _scl_pop()->i;\n");
                 typePop;
-                append("array = _scl_array_resize(array, size);\n");
+                append("array = (scl_any*) _scl_array_resize((scl_any*) array, size);\n");
                 append("(_stack.sp++)->v = array;\n");
                 typeStack.push(type);
                 scopeDepth--;
                 append("}\n");
             } else if (op == "sort") {
-                append("(_stack.sp - 1)->v = _scl_array_sort((_stack.sp - 1)->v);\n");
+                append("(_stack.sp - 1)->v = _scl_array_sort((scl_any*) (_stack.sp - 1)->v);\n");
                 typeStack.push(type);
             } else if (op == "reverse") {
-                append("(_stack.sp - 1)->v = _scl_array_reverse((_stack.sp - 1)->v);\n");
+                append("(_stack.sp - 1)->v = _scl_array_reverse((scl_any*) (_stack.sp - 1)->v);\n");
                 typeStack.push(type);
             } else if (op == "toString") {
-                append("(_stack.sp - 1)->s = _scl_array_to_string((_stack.sp - 1)->v);\n");
+                append("(_stack.sp - 1)->s = _scl_array_to_string((scl_any*) (_stack.sp - 1)->v);\n");
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown method '" + body[i].value + "' on type '" + type + "'", i);
@@ -5335,7 +5400,7 @@ namespace sclc {
                 append("{\n");
                 scopeDepth++;
 
-                append("%s tmp = (--_stack.sp)->v;\n", sclTypeToCType(result, s.name).c_str());
+                append("%s tmp = _scl_pop()->v;\n", sclTypeToCType(result, s.name).c_str());
                 typePop;
 
                 if (typeStack.size() < argAmount) {
@@ -5803,7 +5868,7 @@ namespace sclc {
             append("extern const struct _scl_methodinfo _scl_vtable_%s[];\n", vtable.first.c_str());
         }
 
-        append("extern const ID_t id(const char*);\n\n");
+        append("extern const ID_t typeid(const char*);\n\n");
 
         fclose(fp);
     }
@@ -6124,7 +6189,7 @@ namespace sclc {
                     append("va_list _cvarargs;\n");
                     append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
                     append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
-                    append("scl_Array Var_%s = _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
+                    append("scl_Array Var_%s = (scl_Array) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
                     append("va_end(_cvarargs);\n");
                     Variable v(function->varArgsParam().name, "const ReadOnlyArray");
                     varScopeTop().push_back(v);
@@ -6169,7 +6234,7 @@ namespace sclc {
             }
 
             append("--_stack.tp;\n");
-            append("_stack.sp = __current_base_ptr;\n");
+            append("_stack.sp = (_scl_frame_t*) __current_base_ptr;\n");
 
             scopeDepth = 0;
             append("}\n\n");

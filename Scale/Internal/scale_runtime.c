@@ -1,5 +1,9 @@
 #include "scale_runtime.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
 #define SCL_DEFAULT_STACK_FRAME_COUNT 4096
 #endif
@@ -31,7 +35,7 @@ typedef struct Struct_Exception {
 
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
-} scl_NullPointerException;
+}* scl_NullPointerException;
 
 typedef struct Struct_Array {
 	Struct rtFields;
@@ -116,7 +120,13 @@ scl_int binary_next_smallest_or_equal_index(scl_any* arr, scl_int size, scl_any 
 // will not insert value, if it is already present in the array
 scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
 	if (*array == nil) {
-		(*array) = system_allocate(sizeof(scl_any) * (*cap));
+		(*array) = (scl_any*) system_allocate(sizeof(scl_any) * (*cap));
+	}
+
+	if (_scl_expect(*size == 0, 0)) {
+		(*array)[0] = value;
+		(*size)++;
+		return 0;
 	}
 
 	scl_int i = 0;
@@ -129,7 +139,7 @@ scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* ca
 
 	if ((*size) + 1 >= (*cap)) {
 		(*cap) += 64;
-		(*array) = system_realloc((*array), (*cap) * sizeof(scl_any*));
+		(*array) = (scl_any*) system_realloc((*array), (*cap) * sizeof(scl_any*));
 		if ((*array) == nil) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
 			exit(1);
@@ -176,7 +186,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 	scl_int arridx = _scl_binary_search(stackalloc_arrays, stackalloc_arrays_count, ptr);
 	if (arridx < 0) {
 		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-		scl_int8* str = _scl_alloc(64);
+		scl_int8* str = (scl_int8*) _scl_alloc(64);
 		snprintf(str, 63, "Pointer " SCL_PTR_HEX_FMT " is not a stack allocated array", (scl_int) ptr);
 		virtual_call(e, "init(s;)V;", str_of(str));
 		_scl_throw(e);
@@ -185,7 +195,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 		return;
 	}
 	scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-	scl_int8* str = _scl_alloc(64);
+	scl_int8* str = (scl_int8*) _scl_alloc(64);
 	snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[arridx]);
 	virtual_call(e, "init(s;)V;", str_of(str));
 	_scl_throw(e);
@@ -205,13 +215,16 @@ scl_int _scl_index_of_stackalloc(scl_any ptr) {
 
 void _scl_remove_array(scl_any* arr);
 
-void _scl_remove_ptr(scl_any ptr) {
-	_scl_remove_array(ptr);
+scl_int _scl_remove_ptr(scl_any ptr) {
+	_scl_remove_array((scl_any*) ptr);
 	scl_int index;
+	scl_int size = -1;
 	// Finds all indices of the pointer in the table and removes them
 	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
+		size = memsizes[index];
 		_scl_remove_ptr_at_index(index);
 	}
+	return size;
 }
 
 // Returns the next index of a given pointer in the allocated-pointers array
@@ -238,12 +251,12 @@ scl_int _scl_sizeof(scl_any ptr) {
 
 scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, scl_any value) {
 	if (*array == nil) {
-		(*array) = system_allocate(sizeof(scl_any) * (*cap));
+		(*array) = (scl_any*) system_allocate(sizeof(scl_any) * (*cap));
 	}
 
 	if ((*count) + 1 >= (*cap)) {
 		(*cap) += 64;
-		(*array) = system_realloc((*array), (*cap) * sizeof(scl_any*));
+		(*array) = (scl_any*) system_realloc((*array), (*cap) * sizeof(scl_any*));
 		if ((*array) == nil) {
 			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
 			return -1;
@@ -306,7 +319,7 @@ scl_any _scl_alloc(scl_int size) {
 // the memory will always have a size of a multiple of sizeof(scl_int)
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (size == 0) {
-		scl_NullPointerException* ex = ALLOC(NullPointerException);
+		scl_NullPointerException ex = ALLOC(NullPointerException);
 		virtual_call(ex, "init()V;");
 		ex->self.msg = str_of("realloc() called with size 0");
 		_scl_throw(ex);
@@ -351,7 +364,7 @@ void _scl_free(scl_any ptr) {
 		_scl_free_struct(ptr);
 
 		// Remove the pointer from our table
-		_scl_remove_ptr(ptr);
+		memset(ptr, 0, _scl_remove_ptr(ptr));
 
 		// Finally, free the memory
 		// accessing the pointer is now unsafe!
@@ -359,10 +372,10 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
-scl_int8* _scl_strdup(scl_int8*);
+scl_int8* _scl_strdup(const scl_int8*);
 
 // Assert, that 'b' is true
-void _scl_assert(scl_int b, scl_int8* msg, ...) {
+void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (!b) {
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) * 8);
 		va_list list;
@@ -386,12 +399,12 @@ void builtinUnreachable(void) {
 }
 
 // Hard-throw an exception
-_scl_no_return void _scl_security_throw(int code, scl_int8* msg, ...) {
+_scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	printf("\n");
 
 	va_list args;
 	va_start(args, msg);
-	char* str = malloc(strlen(msg) * 8);
+	scl_int8* str = (scl_int8*) malloc(strlen(msg) * 8);
 	vsnprintf(str, strlen(msg) * 8, msg, args);
 	printf("Exception: %s\n", str);
 
@@ -412,31 +425,31 @@ _scl_no_return void _scl_security_safe_exit(int code) {
 	exit(code);
 }
 
-scl_int8* _scl_strndup(scl_int8* str, scl_int len) {
-	scl_int8* new = _scl_alloc(len + 1);
-	strncpy(new, str, len);
-	return new;
+scl_int8* _scl_strndup(const scl_int8* str, scl_int len) {
+	scl_int8* newStr = (scl_int8*) _scl_alloc(len + 1);
+	strncpy(newStr, str, len);
+	return newStr;
 }
 
-scl_int8* _scl_strdup(scl_int8* str) {
+scl_int8* _scl_strdup(const scl_int8* str) {
 	scl_int len = strlen(str);
 	return _scl_strndup(str, len);
 }
 
-scl_str _scl_create_string(scl_int8* data) {
+scl_str _scl_create_string(const scl_int8* data) {
 	scl_str self = ALLOC(str);
 	if (_scl_expect(self == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
 		return nil;
 	}
 	self->length = strlen(data);
-	self->hash = id(data);
+	self->hash = typeid(data);
 	self->data = _scl_strndup(data, self->length);
 	return self;
 }
 
 scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
-	scl_Array arr = ALLOC(ReadOnlyArray);
+	scl_Array arr = (scl_Array) ALLOC(ReadOnlyArray);
 	_scl_struct_allocation_failure(REINTERPRET_CAST(scl_int, arr), "ReadOnlyArray");
 	virtual_call(arr, "init(i;)V;", count);
 	for (scl_int i = 0; i < count; i++) {
@@ -455,7 +468,7 @@ void print_stacktrace(void) {
 }
 
 void _scl_handle_signal(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
-	scl_int8* signalString;
+	const scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) {
 		signalString = nil;
@@ -499,7 +512,7 @@ void _scl_handle_signal(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 // final signal handler
 // if we get here, something has gone VERY wrong
 void _scl_default_signal_handler(scl_int sig_num) {
-	scl_int8* signalString;
+	const scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) {
 		signalString = nil;
@@ -549,7 +562,7 @@ void _scl_default_signal_handler(scl_int sig_num) {
 
 // Converts C nil-terminated array to ReadOnlyArray-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
-	struct Struct_Array* array = ALLOC(ReadOnlyArray);
+	scl_Array array = (scl_Array) ALLOC(ReadOnlyArray);
 	scl_int cap = 0;
 	while (arr[cap] != nil) {
 		cap++;
@@ -560,7 +573,7 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	array->count = 0;
 	array->values = _scl_new_array(cap * sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
-		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(arr[i]);
+		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(((scl_int8**) arr)[i]);
 	}
 	return array;
 }
@@ -577,7 +590,7 @@ void _scl_sleep(scl_int millis) {
 #define __pure2
 #endif
 
-__pure2 const ID_t id(const char* data) {
+__pure2 const ID_t typeid(const scl_int8* data) {
 	ID_t h = 3323198485UL;
 	for (;*data;++data) {
 		h ^= *data;
@@ -604,7 +617,7 @@ scl_int _scl_identity_hash(scl_any _obj) {
 	scl_int size = _scl_sizeof(obj);
 	scl_int hash = REINTERPRET_CAST(scl_int, obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
-		hash = _scl_rotl(hash, 5) ^ ((char*) obj)[i];
+		hash = _scl_rotl(hash, 5) ^ ((scl_int8*) obj)[i];
 	}
 	Process$unlock((volatile scl_any) obj);
 	return hash;
@@ -623,7 +636,7 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 }
 
 // returns the method handle of a method on a struct, or a parent struct
-scl_any _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
+_scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
 	if (_scl_expect(!_scl_is_instance_of(type, SclObjectHash), 0)) {
 		_scl_security_throw(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
@@ -640,9 +653,9 @@ scl_any _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int o
 	return nil;
 }
 
-static scl_int8* substr_of(scl_int8* str, size_t len, size_t beg, size_t end);
+static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end);
 
-static size_t str_index_of(scl_int8* str, char c) {
+static size_t str_index_of(const scl_int8* str, char c) {
 	size_t i = 0;
 	while (str[i] != c) {
 		i++;
@@ -650,7 +663,7 @@ static size_t str_index_of(scl_int8* str, char c) {
 	return i;
 }
 
-static size_t str_last_index_of(scl_int8* str, char c) {
+static size_t str_last_index_of(const scl_int8* str, char c) {
 	size_t i = strlen(str) - 1;
 	while (str[i] != c) {
 		i--;
@@ -658,7 +671,7 @@ static size_t str_last_index_of(scl_int8* str, char c) {
 	return i;
 }
 
-static size_t str_num_of_occurences(scl_int8* str, char c) {
+static size_t str_num_of_occurences(const scl_int8* str, char c) {
 	size_t i = 0;
 	size_t count = 0;
 	while (str[i] != '\0') {
@@ -670,9 +683,9 @@ static size_t str_num_of_occurences(scl_int8* str, char c) {
 	return count;
 }
 
-static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap);
+static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier, va_list ap);
 
-scl_any virtual_call(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_any virtual_call(scl_any instance, const scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
 	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
@@ -680,7 +693,7 @@ scl_any virtual_call(scl_any instance, scl_int8* methodIdentifier, ...) {
 	return result;
 }
 
-scl_any virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_any virtual_call_super(scl_any instance, const scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
 	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
@@ -688,7 +701,7 @@ scl_any virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...) {
 	return result;
 }
 
-scl_float virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_float virtual_callf(scl_any instance, const scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
 	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
@@ -696,7 +709,7 @@ scl_float virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...) {
 	return REINTERPRET_CAST(scl_float, result);
 }
 
-scl_float virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...) {
+scl_float virtual_call_superf(scl_any instance, const scl_int8* methodIdentifier, ...) {
 	va_list ap;
 	va_start(ap, methodIdentifier);
 	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
@@ -709,12 +722,12 @@ void dumpStack();
 #define strequals(a, b) (strcmp(a, b) == 0)
 #define strstarts(a, b) (strncmp((a), (b), strlen((b))) == 0)
 
-static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_int8* methodIdentifier, va_list ap) {
+static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier, va_list ap) {
 	size_t methodLen = strlen(methodIdentifier);
 	scl_int8* methodName = substr_of(methodIdentifier, methodLen, 0, str_index_of(methodIdentifier, '('));
 	scl_int8* signature = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '('), methodLen);
-	ID_t methodNameHash = id(methodName);
-	ID_t signatureHash = id(signature);
+	ID_t methodNameHash = typeid(methodName);
+	ID_t signatureHash = typeid(signature);
 	scl_int8* args = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '(') + 1, str_last_index_of(methodIdentifier, ')'));
 	scl_int argCount = str_num_of_occurences(args, ';');
 	free(args);
@@ -734,7 +747,7 @@ static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, scl_i
 	free(returnType);
 
 	m();
-	return tmp ? nil : (--_stack.sp)->v;
+	return tmp ? nil : _scl_pop()->v;
 }
 
 void _scl_call_method_or_throw(scl_any instance_, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
@@ -756,7 +769,7 @@ scl_any _scl_add_struct(scl_any ptr) {
 }
 
 mutex_t _scl_mutex_new(void) {
-	mutex_t m = GC_malloc(sizeof(pthread_mutex_t));
+	mutex_t m = (mutex_t) GC_malloc(sizeof(pthread_mutex_t));
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -877,11 +890,11 @@ int _scl_gc_pthread_join(pthread_t t, scl_any* r) {
 
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
-		struct Struct_InvalidSignalException {
+		typedef struct Struct_InvalidSignalException {
 			struct Struct_Exception self;
 			scl_int sig;
-		};
-		scl_Exception e = ALLOC(InvalidSignalException);
+		}* scl_InvalidSignalException;
+		scl_Exception e = (scl_Exception) ALLOC(InvalidSignalException);
 		virtual_call(e, "init(i;)V;", sig);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
@@ -895,11 +908,11 @@ void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 
 void _scl_reset_signal_handler(scl_int sig) {
 	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
-		struct Struct_InvalidSignalException {
+		typedef struct Struct_InvalidSignalException {
 			struct Struct_Exception self;
 			scl_int sig;
-		};
-		scl_Exception e = ALLOC(InvalidSignalException);
+		}* scl_InvalidSignalException;
+		scl_Exception e = (scl_Exception) ALLOC(InvalidSignalException);
 		virtual_call(e, "init(i;)V;", sig);
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
@@ -949,12 +962,12 @@ scl_int8** _scl_platform_get_env(void) {
 #if defined(WIN) && (_MSC_VER >= 1900)
 	return *__p__environ();
 #else
-	extern char** environ;
+	extern scl_int8** environ;
 	return environ;
 #endif
 }
 
-void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout) {
+void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout) {
 	scl_int size = _scl_sizeof(ptr);
 	if (size < layoutSize) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(layout) + 256);
@@ -963,7 +976,7 @@ void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout) {
 	}
 }
 
-void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
+void _scl_check_not_nil_argument(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Argument '%s' is nil", name);
@@ -973,14 +986,14 @@ void _scl_check_not_nil_argument(scl_int val, scl_int8* name) {
 
 #define as(type, val) ((scl_ ## type) _scl_checked_cast((scl_any) val, hash_of(#type), #type))
 
-scl_any _scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_type_name) {
+scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
 	if (!_scl_is_instance_of(instance, target_type)) {
 		typedef struct Struct_CastError {
 			Struct rtFields;
 			scl_str msg;
 			struct Struct_Array* stackTrace;
 			scl_str errno_str;
-		} _scl_CastError;
+		}* scl_CastError;
 
 		scl_int size;
 		scl_int8* cmsg;
@@ -988,7 +1001,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_t
 			size = 96 + strlen(target_type_name);
 			cmsg = (scl_int8*) _scl_alloc(size);
 			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
-			_scl_CastError* err = ALLOC(CastError);
+			scl_CastError err = ALLOC(CastError);
 			virtual_call(err, "init(s;)V;", str_of(cmsg));
 			_scl_throw(err);
 		}
@@ -1004,14 +1017,14 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_t
 			cmsg = (scl_int8*) _scl_alloc(size);
 			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
 		}
-		_scl_CastError* err = ALLOC(CastError);
+		scl_CastError err = ALLOC(CastError);
 		virtual_call(err, "init(s;)V;", str_of(cmsg));
 		_scl_throw(err);
 	}
 	return instance;
 }
 
-void _scl_not_nil_cast(scl_int val, scl_int8* name) {
+void _scl_not_nil_cast(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Nil cannot be cast to non-nil type '%s'!", name);
@@ -1019,7 +1032,7 @@ void _scl_not_nil_cast(scl_int val, scl_int8* name) {
 	}
 }
 
-void _scl_struct_allocation_failure(scl_int val, scl_int8* name) {
+void _scl_struct_allocation_failure(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Failed to allocate memory for struct '%s'!", name);
@@ -1027,7 +1040,7 @@ void _scl_struct_allocation_failure(scl_int val, scl_int8* name) {
 	}
 }
 
-void _scl_nil_ptr_dereference(scl_int val, scl_int8* name) {
+void _scl_nil_ptr_dereference(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Tried dereferencing nil pointer '%s'!", name);
@@ -1035,7 +1048,7 @@ void _scl_nil_ptr_dereference(scl_int val, scl_int8* name) {
 	}
 }
 
-void _scl_check_not_nil_store(scl_int val, scl_int8* name) {
+void _scl_check_not_nil_store(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Nil cannot be stored in non-nil variable '%s'!", name);
@@ -1043,7 +1056,7 @@ void _scl_check_not_nil_store(scl_int val, scl_int8* name) {
 	}
 }
 
-void _scl_not_nil_return(scl_int val, scl_int8* name) {
+void _scl_not_nil_return(scl_int val, const scl_int8* name) {
 	if (val == 0) {
 		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
 		snprintf(msg, 64 + strlen(name), "Tried returning nil from function returning not-nil type '%s'!", name);
@@ -1055,13 +1068,13 @@ void _scl_stack_new(void) {
 	// These use C's malloc, keep it that way
 	// They should NOT be affected by any future
 	// stuff we might do with _scl_alloc()
-	if (_scl_expect((_stack.bp = _stack.sp = GC_malloc_uncollectable(sizeof(_scl_frame_t) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))			_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack!");
-	if (_scl_expect((_stack.tbp = _stack.tp = system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))						_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
+	if (_scl_expect((_stack.bp = _stack.sp = (_scl_frame_t*) GC_malloc_uncollectable(sizeof(_scl_frame_t) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))			_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack!");
+	if (_scl_expect((_stack.tbp = _stack.tp = (const scl_int8**) system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))					_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
 
-	if (_scl_expect((_stack.ex_base = _stack.ex = GC_malloc_uncollectable(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))			_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception stack!");
-	if (_scl_expect((_stack.et_base = _stack.et = system_allocate(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))					_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception trace stack!");
-	if (_scl_expect((_stack.jmp_base = _stack.jmp = system_allocate(sizeof(jmp_buf) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))					_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception jump stack!");
-	if (_scl_expect((_stack.sp_save_base = _stack.sp_save = system_allocate(sizeof(_scl_frame_t*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack pointer save stack!");
+	if (_scl_expect((_stack.ex_base = _stack.ex = (scl_any*) GC_malloc_uncollectable(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))				_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception stack!");
+	if (_scl_expect((_stack.et_base = _stack.et = (const scl_int8***) system_allocate(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))				_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception trace stack!");
+	if (_scl_expect((_stack.jmp_base = _stack.jmp = (jmp_buf*) system_allocate(sizeof(jmp_buf) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))						_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception jump stack!");
+	if (_scl_expect((_stack.sp_save_base = _stack.sp_save = (_scl_frame_t**) system_allocate(sizeof(_scl_frame_t*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack pointer save stack!");
 }
 
 scl_int _scl_errno(void) {
@@ -1115,7 +1128,7 @@ void Process$unlock(volatile scl_any obj) {
 	pthread_mutex_unlock(((volatile Struct*) obj)->mutex);
 }
 
-scl_int8* GarbageCollector$getImplementation0(void) {
+const scl_int8* GarbageCollector$getImplementation0(void) {
 	return "Boehm GC";
 }
 
@@ -1189,14 +1202,14 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 		virtual_call(e, "init(s;)V;", str_of("Array size must not be less than 1"));
 		_scl_throw(e);
 	}
-	scl_any* arr = _scl_alloc(num_elems * elem_size + sizeof(scl_int));
+	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(scl_int));
 	((scl_int*) arr)[0] = num_elems;
 	insert_sorted(&arrays, &arrays_count, arr, &arrays_capacity);
 	return arr + 1;
 }
 
 scl_any* _scl_new_array(scl_int num_elems) {
-	return _scl_new_array_by_size(num_elems, sizeof(scl_any));
+	return (scl_any*) _scl_new_array_by_size(num_elems, sizeof(scl_any));
 }
 
 scl_int _scl_is_array(scl_any* arr) {
@@ -1219,16 +1232,16 @@ void _scl_remove_array(scl_any* arr) {
 	remove_at(&arrays, &arrays_count, index);
 }
 
-scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[dimensions], scl_int elem_size) {
+scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
 	if (_scl_expect(dimensions < 1, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
 		virtual_call(e, "init(s;)V;", str_of("Array dimensions must not be less than 1"));
 		_scl_throw(e);
 	}
 	if (dimensions == 1) {
-		return _scl_new_array_by_size(sizes[0], elem_size);
+		return (scl_any*) _scl_new_array_by_size(sizes[0], elem_size);
 	}
-	scl_any* arr = _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(scl_int));
+	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(scl_int));
 	((scl_int*) arr)[0] = sizes[0];
 	for (scl_int i = 1; i <= sizes[0]; i++) {
 		arr[i] = _scl_multi_new_array_by_size(dimensions - 1, &(sizes[1]), elem_size);
@@ -1236,7 +1249,7 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[dimensio
 	return arr + 1;
 }
 
-scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]) {
+scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[]) {
 	return _scl_multi_new_array_by_size(dimensions, sizes, sizeof(scl_any));
 }
 
@@ -1249,7 +1262,7 @@ scl_int _scl_array_size_unchecked(scl_any* arr) {
 
 scl_int _scl_array_size(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1266,7 +1279,7 @@ scl_int _scl_array_size(scl_any* arr) {
 
 void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1281,7 +1294,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	scl_int size = *((scl_int*) arr - 1);
 	if (index < 0 || index >= size) {
 		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-		scl_int8* str = _scl_alloc(64);
+		scl_int8* str = (scl_int8*) _scl_alloc(64);
 		snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
 		virtual_call(e, "init(s;)V;", str_of(str));
 		_scl_throw(e);
@@ -1290,7 +1303,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 
 scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1310,7 +1323,7 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 		_scl_throw(e);
 	}
 	scl_int size = *((scl_int*) arr - 1);
-	scl_any* new_arr = _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
+	scl_any* new_arr = (scl_any*) _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
 	insert_sorted(&arrays, &arrays_count, new_arr, &arrays_capacity);
 	((scl_int*) new_arr)[0] = new_size;
 	return new_arr + 1;
@@ -1318,7 +1331,7 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 
 scl_any* _scl_array_sort(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1348,7 +1361,7 @@ scl_any* _scl_array_sort(scl_any* arr) {
 
 scl_any* _scl_array_reverse(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1368,7 +1381,7 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 }
 
 scl_str int_to_string(scl_int i) {
-	scl_int8* str = _scl_alloc(32);
+	scl_int8* str = (scl_int8*) _scl_alloc(32);
 	snprintf(str, 32, SCL_INT_FMT, i);
 	scl_str s = str_of(str);
 	return s;
@@ -1376,7 +1389,7 @@ scl_str int_to_string(scl_int i) {
 
 scl_str _scl_array_to_string(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
-		scl_NullPointerException* e = ALLOC(NullPointerException);
+		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
 		_scl_throw(e);
 	}
@@ -1389,27 +1402,27 @@ scl_str _scl_array_to_string(scl_any* arr) {
 	scl_str s = str_of("[");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
-			s = virtual_call(s, "append(s;)s;", str_of(", "));
+			s = (scl_str) virtual_call(s, "append(s;)s;", str_of(", "));
 		}
 		scl_str tmp;
 		if (_scl_is_instance_of(arr[i], SclObjectHash)) {
-			tmp = virtual_call(arr[i], "toString()s;");
+			tmp = (scl_str) virtual_call(arr[i], "toString()s;");
 		} else {
 			tmp = int_to_string((scl_int) arr[i]);
 		}
-		s = virtual_call(s, "append(s;)s;", tmp);
+		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
 	}
-	return virtual_call(s, "append(s;)s;", str_of("]"));
+	return (scl_str) virtual_call(s, "append(s;)s;", str_of("]"));
 }
 
-static scl_int8* substr_of(scl_int8* str, size_t len, size_t beg, size_t end) {
-	scl_int8* sub = malloc(len);
+static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end) {
+	scl_int8* sub = (scl_int8*) malloc(len);
 	strcpy(sub, str + beg);
 	sub[end - beg] = '\0';
 	return sub;
 }
 
-scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
+const scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
 	if (strequals(type, "any")) return "a;";
 	if (strequals(type, "int") || strequals(type, "bool")) return "i;";
 	if (strequals(type, "float")) return "f;";
@@ -1420,7 +1433,7 @@ scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
 	if (strequals(type, "[any]")) return "p;";
 	size_t len = strlen(type);
 	if (len > 2 && type[0] == '[' && type[len - 1] == ']') {
-		scl_int8* tmp = _scl_alloc(len + 2);
+		scl_int8* tmp = (scl_int8*) _scl_alloc(len + 2);
 		scl_int8* tmp2 = substr_of(type, len, 1, len - 1);
 		snprintf(tmp, len + 2, "[%s", _scl_type_to_rt_sig(tmp2));
 		free(tmp2);
@@ -1435,36 +1448,36 @@ scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
 	if (strequals(type, "uint32")) return "uint32;";
 	if (strequals(type, "uint64")) return "uint64;";
 	if (strequals(type, "uint")) return "u;";
-	scl_int8* tmp = _scl_alloc(len + 3);
+	scl_int8* tmp = (scl_int8*) _scl_alloc(len + 3);
 	snprintf(tmp, len + 3, "L%s;", type);
 	return tmp;
 }
 
 scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 	scl_str s = str_of("");
-	scl_int strHash = id("str");
-	scl_int getHash = id("get");
-	scl_int getSigHash = id("(i;)a;");
-	scl_int appendHash = id("append");
-	scl_int appendSigHash = id("(cs;)s;");
+	scl_int strHash = typeid("str");
+	scl_int getHash = typeid("get");
+	scl_int getSigHash = typeid("(i;)a;");
+	scl_int appendHash = typeid("append");
+	scl_int appendSigHash = typeid("(cs;)s;");
 	for (scl_int i = 0; i < arr->count; i++) {
-		scl_str type = virtual_call(arr, "get(i;)a;", i);
+		scl_str type = (scl_str) virtual_call(arr, "get(i;)a;", i);
 		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
-		s = virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->data));
+		s = (scl_str) virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->data));
 	}
 	return s;
 }
 
 scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
-	scl_int8* retType = _scl_type_to_rt_sig(returnType->data);
+	const scl_int8* retType = _scl_type_to_rt_sig(returnType->data);
 	scl_str argTypes = _scl_type_array_to_rt_sig(args);
 	scl_str sig = str_of("(");
-	sig = virtual_call(sig, "append(s;)s;", argTypes);
-	sig = virtual_call(sig, "append(cs;)s;", ")");
-	return virtual_call(sig, "append(cs;)s;", retType);
+	sig = (scl_str) virtual_call(sig, "append(s;)s;", argTypes);
+	sig = (scl_str) virtual_call(sig, "append(cs;)s;", ")");
+	return (scl_str) virtual_call(sig, "append(cs;)s;", retType);
 }
 
-scl_int8** _scl_callstack_push(void) {
+const scl_int8** _scl_callstack_push(void) {
 	return _stack.tp++;
 }
 
@@ -1478,13 +1491,13 @@ void _scl_create_stack(void) {
 	// stuff we might do with _scl_alloc()
 	_scl_stack_new();
 
-	allocated = system_allocate(allocated_cap * sizeof(scl_any));
-	memsizes = system_allocate(memsizes_cap * sizeof(scl_int));
-	instances = system_allocate(instances_cap * sizeof(Struct*));
+	allocated = (scl_any*) system_allocate(allocated_cap * sizeof(scl_any));
+	memsizes = (scl_int*) system_allocate(memsizes_cap * sizeof(scl_int));
+	instances = (Struct**) system_allocate(instances_cap * sizeof(Struct*));
 }
 
 static void _scl_unwind(scl_any ex) {
-	if (_scl_is_instance_of(ex, id("Error"))) {
+	if (_scl_is_instance_of(ex, typeid("Error"))) {
 		_stack.jmp = _stack.jmp_base;
 		_stack.ex = _stack.ex_base;
 		_stack.et = _stack.et_base;
@@ -1527,6 +1540,72 @@ static inline void printStackTraceOf(scl_Exception e) {
 	nativeTrace();
 }
 
+struct arc {
+	scl_any* pool;
+	scl_int* refcounts;
+	scl_int count;
+	scl_int capacity;
+};
+static struct arc _scl_arc = {
+	.pool = nil,
+	.refcounts = nil,
+	.count = 0,
+	.capacity = 0
+};
+
+void _scl_arc_new() {
+	if (_scl_arc.pool) return;
+	_scl_arc.pool = (scl_any*) malloc(sizeof(scl_any) * 16);
+	_scl_arc.refcounts = (scl_int*) malloc(sizeof(scl_int) * 16);
+	_scl_arc.count = 0;
+	_scl_arc.capacity = 16;
+}
+
+#define log(...) ({ printf("%s:%d: %s: ", __FILE__, __LINE__, __func__); printf(__VA_ARGS__); printf("\n"); })
+
+void _scl_arc_add_tracked(scl_any ptr) {
+	scl_int index = insert_sorted(&(_scl_arc.pool), &(_scl_arc.count), ptr, &(_scl_arc.capacity));
+	if (_scl_expect(index == -1, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "Failed to add ARC-tracked pointer to pool!");
+	}
+
+	_scl_arc.refcounts[index] = 1;
+	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
+}
+
+scl_any _scl_arc_retain(scl_any ptr) {
+	scl_int index = _scl_binary_search(_scl_arc.pool, _scl_arc.count, ptr);
+	if (index < 0) {
+		return ptr;
+	}
+	_scl_arc.refcounts[index]++;
+	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
+	return ptr;
+}
+
+scl_any _scl_arc_release(scl_any ptr) {
+	scl_int index = _scl_binary_search(_scl_arc.pool, _scl_arc.count, ptr);
+	if (index < 0) {
+		log("Untracked pointer %p", ptr);
+		return ptr;
+	}
+
+	_scl_arc.refcounts[index]--;
+	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
+	if (_scl_arc.refcounts[index] <= 0) {
+		_scl_free(_scl_arc.pool[index]);
+		_scl_arc.pool[index] = nil;
+		remove_at(&(_scl_arc.pool), &(_scl_arc.count), index);
+	}
+	return _scl_arc.pool[index];
+}
+
+void _scl_drop(void* ptr) {
+	if (_scl_expect(!ptr, 0)) return;
+
+	_scl_arc_release(*(scl_any*) ptr);
+}
+
 _scl_no_return
 void _scl_runtime_catch() {
 	if (EXCEPTION == nil) {
@@ -1559,7 +1638,7 @@ void _scl_setup(void) {
 #if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
 	short word = 0x0001;
-	char *byte = (char*) &word;
+	char *byte = (scl_int8*) &word;
 	if (!byte[0]) {
 		fprintf(stderr, "Invalid byte order detected!");
 		exit(-1);
@@ -1579,7 +1658,7 @@ void _scl_setup(void) {
 	setupCalled = 1;
 }
 
-int _scl_run(int argc, char** argv, mainFunc entry) {
+int _scl_run(int argc, scl_int8** argv, mainFunc entry) {
 	assert(_stack.bp);
 	assert(_stack.tbp);
 
@@ -1599,3 +1678,7 @@ int _scl_run(int argc, char** argv, mainFunc entry) {
 	}
 	return 0;
 }
+
+#if defined(__cplusplus)
+}
+#endif

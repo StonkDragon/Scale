@@ -168,7 +168,7 @@ namespace sclc
             append("};\n\n");
         }
 
-        append("extern const ID_t id(const char*);\n\n");
+        append("extern const ID_t typeid(const char*);\n\n");
 
         for (Variable& s : result.globals) {
             append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());

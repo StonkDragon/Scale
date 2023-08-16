@@ -1,3 +1,7 @@
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define _SCL_NO_STACK_OPS
 #include <scale_runtime.h>
 #undef _SCL_NO_STACK_OPS
@@ -28,3 +32,7 @@ tls scl_int     stackalloc_arrays_count = 0;
 tls scl_int     stackalloc_arrays_cap = 64;
 
 tls scl_any     _currentThread = nil;
+
+#if defined(__cplusplus)
+}
+#endif

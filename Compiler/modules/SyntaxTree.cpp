@@ -1339,7 +1339,7 @@ namespace sclc {
             builtinHash->isExternC = true;
             builtinHash->addModifier("extern");
             builtinHash->addModifier("cdecl");
-            builtinHash->addModifier("id");
+            builtinHash->addModifier("typeid");
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
@@ -2169,7 +2169,7 @@ namespace sclc {
                         currentStruct->required_typed_arguments++;
                         currentStruct->addTemplateArgument(key, value.value);
                         currentStruct->addMember(Variable("$template_arg_" + key, "uint32"));
-                        currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
+                        currentStruct->addMember(Variable("$template_argname_" + key, "[const int8]"));
                         templateArgs[key] = value.value;
                         i++;
                         if (tokens[i].value == ",") {

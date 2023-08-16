@@ -707,7 +707,7 @@ The index.drg file of the Scale Framework looks like this:
 
 <pre>
 framework: {
-    version: "23.8.1";
+    version: "23.9";
     headerDir: "include";
     implDir: "impl";
     implementers: [];

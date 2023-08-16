@@ -15,19 +15,19 @@
       95 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
-     164 Compiler/modules/Function.cpp
+     172 Compiler/modules/Function.cpp
      651 Compiler/modules/InfoDumper.cpp
      261 Compiler/modules/Parser.cpp
     3189 Compiler/modules/SyntaxTree.cpp
      144 Compiler/modules/TokenHandlers.cpp
      611 Compiler/modules/Tokenizer.cpp
-    6180 Compiler/modules/Transpiler.cpp
-     422 Scale/Frameworks/Scale.framework/impl/scale.c
+    6245 Compiler/modules/Transpiler.cpp
+     436 Scale/Frameworks/Scale.framework/impl/scale.c
       76 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      106 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      115 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
      161 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
-      92 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
+     110 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       53 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
       61 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      287 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
@@ -57,9 +57,9 @@
        3 Scale/Frameworks/Scale.framework/include/std/util/Stringifyable.scale
       15 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
       17 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
-      30 Scale/Internal/runtime_vars.c
-    1601 Scale/Internal/scale_runtime.c
-     581 Scale/Internal/scale_runtime.h
+      38 Scale/Internal/runtime_vars.c
+    1684 Scale/Internal/scale_runtime.c
+     606 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -109,4 +109,4 @@
       14 interop-example/foo.c
       14 interop-example/main.scale
      272 interop-example/scale_interop.h
-   22055 total
+   22276 total

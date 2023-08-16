@@ -1,6 +1,10 @@
 #if !defined(_SCALE_RUNTIME_H_)
 #define _SCALE_RUNTIME_H_
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,6 +49,8 @@
 #else
 #error <setjmp.h> not found, which is required for Scale!
 #endif
+
+#include <objc/NSObject.h>
 
 #if __has_attribute(__noreturn__)
 #define _scl_no_return __attribute__((__noreturn__))
@@ -99,6 +105,7 @@
 // This function was declared in Scale code
 #define export
 
+#undef nil
 #define nil NULL
 
 #define str_of(_cstr) _scl_create_string((_cstr))
@@ -296,51 +303,52 @@ struct scale_string {
 #endif
 
 typedef union {
-	scl_int		i;
-	scl_str		s;
-	scl_float	f;
-	scl_any		v;
+	scl_int				i;
+	scl_str				s;
+	scl_float			f;
+	scl_any				v;
 	struct {
 		_scl_lambda*	$fast;
 		TypeInfo*		$statics;
 		mutex_t			$mutex;
-	}*			o;
+	}*					o;
 	struct {
 		_scl_lambda*	$fast;
 		TypeInfo*		$statics;
 		mutex_t			$mutex;
 		scl_int			__tag;
 		scl_any			__value;
-	}*			u;
+	}*					u;
+	const scl_int8*		cs;
 } _scl_frame_t;
 
 typedef struct {
 	// Stack
-	_scl_frame_t*	sp; // stack pointer
-	_scl_frame_t*	bp; // base pointer
+	_scl_frame_t*		sp; // stack pointer
+	_scl_frame_t*		bp; // base pointer
 
 	// Trace
-	scl_int8**		tp; // trace pointer
-	scl_int8**		tbp; // trace base pointer
+	const scl_int8**	tp; // trace pointer
+	const scl_int8**	tbp; // trace base pointer
 
 	// Exception
-	jmp_buf*		jmp; // jump pointer
-	jmp_buf*		jmp_base; // jump base pointer
-	scl_any*		ex; // exception pointer
-	scl_any*		ex_base; // exception base pointer
-	scl_int8***		et; // exception trace pointer
-	scl_int8***		et_base; // exception trace base pointer
-	_scl_frame_t**	sp_save; // stack pointer save
-	_scl_frame_t**	sp_save_base; // stack pointer save base
+	jmp_buf*			jmp; // jump pointer
+	jmp_buf*			jmp_base; // jump base pointer
+	scl_any*			ex; // exception pointer
+	scl_any*			ex_base; // exception base pointer
+	const scl_int8***	et; // exception trace pointer
+	const scl_int8***	et_base; // exception trace base pointer
+	_scl_frame_t**		sp_save; // stack pointer save
+	_scl_frame_t**		sp_save_base; // stack pointer save base
 } _scl_stack_t;
 
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const TypeInfo _scl_statics_ ## _type; _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
+#define ALLOC(_type)	({ extern const TypeInfo _scl_statics_ ## _type; (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
 // Try to cast the given instance to the given type
-#define CAST(_obj, _type) CAST0(_obj, _type, id(#_type))
+#define CAST(_obj, _type) CAST0(_obj, _type, typeid(#_type))
 
 #define TRY			if (setjmp(*(_stack.jmp - 1)) != 666)
 
@@ -355,14 +363,14 @@ typedef void(*mainFunc)(/* args: Array */ scl_any, /* env: Array */ scl_any);
 
 // call a method on an instance
 // returns `nil` if the method return type is `none`
-scl_any				virtual_call(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_any				virtual_call(scl_any instance, const scl_int8* methodIdentifier, ...);
 // call a method on the super class of an instance
 // returns `nil` if the method return type is `none`
-scl_any				virtual_call_super(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_any				virtual_call_super(scl_any instance, const scl_int8* methodIdentifier, ...);
 // call a method on an instance
-scl_float			virtual_callf(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_float			virtual_callf(scl_any instance, const scl_int8* methodIdentifier, ...);
 // call a method on the super class of an instance
-scl_float			virtual_call_superf(scl_any instance, scl_int8* methodIdentifier, ...);
+scl_float			virtual_call_superf(scl_any instance, const scl_int8* methodIdentifier, ...);
 // Throws the given exception
 _scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
 // Returns the current size of the stack
@@ -382,9 +390,9 @@ scl_any				array_of(scl_int size, scl_int element_size) AKA(_scl_new_array_by_si
 // Returns the size of the given array. Throws an 'InvalidArgumentException' if the given object is not an array
 scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
 
-#define TYPEID(_type) id(#_type)
+#define TYPEID(_type) typeid(#_type)
 
-_scl_no_return void	_scl_security_throw(int code, scl_int8* msg, ...);
+_scl_no_return void	_scl_security_throw(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 _scl_no_return void	_scl_runtime_catch();
 
@@ -395,12 +403,12 @@ void				_scl_default_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
-scl_str				_scl_create_string(scl_int8* data);
+scl_str				_scl_create_string(const scl_int8* data);
 void				_scl_stack_new(void);
 void				_scl_stack_free(void);
 void				_scl_stack_resize_fit(scl_int sz);
 
-void				_scl_remove_ptr(scl_any ptr);
+scl_int				_scl_remove_ptr(scl_any ptr);
 scl_int				_scl_get_index_of_ptr(scl_any ptr);
 void				_scl_remove_ptr_at_index(scl_int index);
 void				_scl_add_ptr(scl_any ptr, scl_int size);
@@ -409,30 +417,30 @@ scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
-void				_scl_assert(scl_int b, scl_int8* msg, ...);
-void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, scl_int8* layout);
-void				_scl_check_not_nil_argument(scl_int val, scl_int8* name);
-scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, scl_int8* target_type_name);
-void				_scl_not_nil_cast(scl_int val, scl_int8* name);
-void				_scl_struct_allocation_failure(scl_int val, scl_int8* name);
-void				_scl_nil_ptr_dereference(scl_int val, scl_int8* name);
-void				_scl_check_not_nil_store(scl_int val, scl_int8* name);
-void				_scl_not_nil_return(scl_int val, scl_int8* name);
+void				_scl_assert(scl_int b, const scl_int8* msg, ...);
+void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout);
+void				_scl_check_not_nil_argument(scl_int val, const scl_int8* name);
+scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
+void				_scl_not_nil_cast(scl_int val, const scl_int8* name);
+void				_scl_struct_allocation_failure(scl_int val, const scl_int8* name);
+void				_scl_nil_ptr_dereference(scl_int val, const scl_int8* name);
+void				_scl_check_not_nil_store(scl_int val, const scl_int8* name);
+void				_scl_not_nil_return(scl_int val, const scl_int8* name);
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
 void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, mainFunc main);
 
-const ID_t			id(const scl_int8* data);
+const ID_t			typeid(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
-scl_any				_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
+_scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 void				_scl_call_method_or_throw(scl_any instance, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
-scl_int8**			_scl_callstack_push(void);
+const scl_int8**	_scl_callstack_push(void);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
@@ -440,8 +448,8 @@ scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 scl_any*			_scl_new_array(scl_int num_elems);
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
-scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[dimensions]);
-scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[dimensions], scl_int elem_size);
+scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[]);
+scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size);
 scl_int				_scl_array_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
@@ -471,6 +479,7 @@ mutex_t				_scl_mutex_new(void);
 __deprecated_msg("Stack resizing has been removed. This function does nothing.")
 #endif
 void				_scl_resize_stack(void);
+void				_scl_drop(void* ptr);
 
 #define _scl_push()						(_stack.sp++)
 
@@ -482,8 +491,15 @@ void				_scl_resize_stack(void);
 		} \
 		--_stack.sp; \
 	})
-#endif
+#else
 #define _scl_pop()						(--_stack.sp)
+#endif
+
+#if defined(SCL_REFCOUNT) && __has_attribute(__cleanup__)
+#define AUTORELEASE						__attribute__((__cleanup__(_scl_drop)))
+#else
+#define AUTORELEASE
+#endif
 
 #define _scl_positive_offset(offset)	(_stack.sp + offset)
 #define _scl_offset(offset)				(_stack.bp + offset)
@@ -575,7 +591,16 @@ void				_scl_resize_stack(void);
 #define _scl_and(a, b)			(a) && (b)
 #define _scl_or(a, b)			(a) || (b)
 #define _scl_not(a)				!(a)
-#define _scl_ror(a, b)			((a) >> (b)) | ((a) << (sizeof(scl_int) * 8 - (b)))
-#define _scl_rol(a, b)			((a) << (b)) | ((a) >> (sizeof(scl_int) * 8 - (b)))
+
+#if !defined(__CHAR_BIT__)
+#define __CHAR_BIT__ 8
+#endif
+
+#define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
+#define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
 
 #endif // __SCALE_RUNTIME_H__
+
+#if defined(__cplusplus)
+}
+#endif
