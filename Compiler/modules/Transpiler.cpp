@@ -2526,16 +2526,6 @@ namespace sclc {
             std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
 
             LOAD_PATH(path, lastType);
-        } else if (body[i].value == "field" && (function->has_setter || function->has_getter)) {
-            Struct s = getStructByName(result, function->member_type);
-            const std::string& attribute = function->getModifier((function->has_setter ? function->has_setter : function->has_getter) + 1);
-            const Variable& v = s.getMember(attribute);
-            if (removeTypeModifiers(v.type) == "float") {
-                append("(_stack.sp++)->f = Var_self->%s;\n", attribute.c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) Var_self->%s;\n", attribute.c_str());
-            }
-            typeStack.push(v.type);
         } else if (hasVar(function->member_type + "$" + body[i].value)) {
             Variable v = getVar(function->member_type + "$" + body[i].value);
             std::string lastType = "";
@@ -3600,20 +3590,6 @@ namespace sclc {
             if (body[i].type != tok_identifier && body[i].type != tok_addr_of) {
                 transpilerError("'" + body[i].value + "' is not an identifier", i);
                 errors.push_back(err);
-            }
-            if (function->has_setter || function->has_getter) {
-                if (body[i].value == "field") {
-                    Struct s = getStructByName(result, function->member_type);
-                    std::string attribute = function->getModifier((function->has_setter ? function->has_setter : function->has_getter) + 1);
-                    const Variable& v = s.getMember(attribute);
-                    if (removeTypeModifiers(v.type) == "float") {
-                        append("Var_self->%s = (--_stack.sp)->f;\n", attribute.c_str());
-                    } else {
-                        append("Var_self->%s = (%s) (--_stack.sp)->i;\n", attribute.c_str(), sclTypeToCType(result, v.type).c_str());
-                    }
-                    typeStack.pop();
-                    return;
-                }
             }
             Variable v("", "");
             std::string containerBegin = "";
@@ -6155,8 +6131,24 @@ namespace sclc {
                 }
             }
 
+            if (function->has_setter || function->has_getter) {
+                std::string fieldName;
+                if (function->has_setter) {
+                    fieldName = function->getModifier(function->has_setter + 1);
+                } else {
+                    fieldName = function->getModifier(function->has_getter + 1);
+                }
+                append("#define Var_field (Var_self->%s)\n", fieldName.c_str());
+
+                varScopeTop().push_back(Variable("field", currentStruct.getMember(fieldName).type));
+            }
+
             for (i = 0; i < body.size(); i++) {
                 handle(Token);
+            }
+
+            if (function->has_setter || function->has_getter) {
+                append("#undef Var_field\n");
             }
             
             if (function->has_unsafe) {
