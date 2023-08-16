@@ -50,8 +50,6 @@ extern "C" {
 #error <setjmp.h> not found, which is required for Scale!
 #endif
 
-#include <objc/NSObject.h>
-
 #if __has_attribute(__noreturn__)
 #define _scl_no_return __attribute__((__noreturn__))
 #else
