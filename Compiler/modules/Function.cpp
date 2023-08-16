@@ -89,29 +89,29 @@ void Function::addToken(Token token) {
 void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 
-    if (!has_expect && modifier == "expect") {
+    if (has_expect == 0 && modifier == "expect") {
         has_expect = modifiers.size();
         isExternC = true;
     }
-    else if (!has_export && modifier == "export") has_export = modifiers.size();
-    else if (!has_private && modifier == "private") {
+    else if (has_export == 0 && modifier == "export") has_export = modifiers.size();
+    else if (has_private == 0 && modifier == "private") {
         has_private = modifiers.size();
         isPrivate = true;
     }
-    else if (!has_construct && modifier == "construct") has_construct = modifiers.size();
-    else if (!has_constructor && modifier == "<constructor>") has_constructor = modifiers.size();
-    else if (!has_final && modifier == "final") has_final = modifiers.size();
-    else if (!has_final && modifier == "<destructor>") has_final = modifiers.size();
-    else if (!has_cdecl && modifier == "cdecl") has_cdecl = modifiers.size();
-    else if (!has_intrinsic && modifier == "intrinsic") has_intrinsic = modifiers.size();
-    else if (!has_asm && modifier == "asm") has_asm = modifiers.size();
-    else if (!has_lambda && modifier == "<lambda>") has_lambda = modifiers.size();
-    else if (!has_sealed && modifier == "sealed") has_sealed = modifiers.size();
-    else if (!has_unsafe && modifier == "unsafe") has_unsafe = modifiers.size();
-    else if (!has_operator && modifier == "operator") has_operator = modifiers.size();
-    else if (!has_restrict && modifier == "restrict") has_restrict = modifiers.size();
-    else if (!has_getter && modifier == "@getter") has_getter = modifiers.size();
-    else if (!has_setter && modifier == "@setter") has_setter = modifiers.size();
+    else if (has_construct == 0 && modifier == "construct") has_construct = modifiers.size();
+    else if (has_constructor == 0 && modifier == "<constructor>") has_constructor = modifiers.size();
+    else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
+    else if (has_final == 0 && modifier == "<destructor>") has_final = modifiers.size();
+    else if (has_cdecl == 0 && modifier == "cdecl") has_cdecl = modifiers.size();
+    else if (has_intrinsic == 0 && modifier == "intrinsic") has_intrinsic = modifiers.size();
+    else if (has_asm == 0 && modifier == "asm") has_asm = modifiers.size();
+    else if (has_lambda == 0 && modifier == "<lambda>") has_lambda = modifiers.size();
+    else if (has_sealed == 0 && modifier == "sealed") has_sealed = modifiers.size();
+    else if (has_unsafe == 0 && modifier == "unsafe") has_unsafe = modifiers.size();
+    else if (has_operator == 0 && modifier == "operator") has_operator = modifiers.size();
+    else if (has_restrict == 0 && modifier == "restrict") has_restrict = modifiers.size();
+    else if (has_getter == 0 && modifier == "@getter") has_getter = modifiers.size();
+    else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -160,5 +160,6 @@ Variable& Function::varArgsParam() {
     throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
 }
 std::string& Function::getModifier(size_t index) {
+    assert(index > 0 && index <= this->modifiers.size());
     return this->modifiers.at(index - 1);
 }
