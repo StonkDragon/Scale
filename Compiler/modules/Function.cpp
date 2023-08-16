@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "../headers/Common.hpp"
 
 using namespace sclc;
