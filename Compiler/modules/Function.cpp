@@ -51,14 +51,17 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_private = 0;
     this->has_construct = 0;
     this->has_final = 0;
-    this->has_cdecl = 0;
     this->has_constructor = 0;
+    this->has_cdecl = 0;
     this->has_intrinsic = 0;
     this->has_lambda = 0;
     this->has_asm = 0;
     this->has_sealed = 0;
     this->has_unsafe = 0;
     this->has_operator = 0;
+    this->has_restrict = 0;
+    this->has_getter = 0;
+    this->has_setter = 0;
 }
 std::string Function::finalName() {
     if (
@@ -161,7 +164,7 @@ Variable& Function::varArgsParam() {
     }
     throw std::runtime_error(std::string(__func__) + " called on non-varargs function");
 }
-std::string& Function::getModifier(size_t index) {
+const std::string& Function::getModifier(size_t index) {
     if (index <= 0 || index > this->modifiers.size()) {
         throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
     }

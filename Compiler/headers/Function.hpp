@@ -54,7 +54,7 @@ namespace sclc
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
         // IMPORTANT: Function takes index starting at 1
-        virtual std::string& getModifier(size_t index);
+        virtual const std::string& getModifier(size_t index);
         virtual void addArgument(Variable arg);
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
