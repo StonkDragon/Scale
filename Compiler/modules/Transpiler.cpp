@@ -59,7 +59,7 @@ namespace sclc {
             }
         }
         if (t.size() && t != "?" && t.back() == '?') {
-            t = t.substr(0, t.size() - 1);
+            t.pop_back();
         }
         return t;
     }
@@ -2528,7 +2528,7 @@ namespace sclc {
             LOAD_PATH(path, lastType);
         } else if (body[i].value == "field" && (function->has_setter || function->has_getter)) {
             Struct s = getStructByName(result, function->member_type);
-            std::string attribute = function->getModifier((function->has_setter ? function->has_setter : function->has_getter) + 1);
+            const std::string& attribute = function->getModifier((function->has_setter ? function->has_setter : function->has_getter) + 1);
             const Variable& v = s.getMember(attribute);
             if (removeTypeModifiers(v.type) == "float") {
                 append("(_stack.sp++)->f = Var_self->%s;\n", attribute.c_str());
