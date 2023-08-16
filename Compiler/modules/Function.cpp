@@ -160,5 +160,5 @@ Variable& Function::varArgsParam() {
     throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
 }
 std::string& Function::getModifier(size_t index) {
-    return this->modifiers[index - 1];
+    return this->modifiers.at(index - 1);
 }
