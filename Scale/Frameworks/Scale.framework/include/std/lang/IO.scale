@@ -9,11 +9,11 @@ private expect foreign unsafe function __c_printf(fmt: [int8], :varargs): int32
 cdecl "getchar"
 private expect foreign unsafe function __c_getchar(): int8
 
-cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
+unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
 end
 
-cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
+function read(fileDescriptor: int, amount: int): str
   new<int8>[amount] => decl buf: [int8]
   unsafe
     fileDescriptor buf amount __c_read drop

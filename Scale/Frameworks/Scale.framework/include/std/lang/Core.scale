@@ -32,14 +32,14 @@ private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): 
 
 typealias varargs "/* varargs */ ..."
 
-cdecl "_scl_system" function system(command: str): int
+function system(command: str): int
   unsafe
     command:view __c_system
     return
   end
 end
 
-cdecl "_scl_getenv" function getenv(environKey: str): str?
+function getenv(environKey: str): str?
   unsafe
     environKey:view __c_getenv? str::new return
   end
@@ -53,7 +53,7 @@ end
 cdecl "gettimeofday"
 private expect foreign unsafe function __c_gettimeofday(:timeval, :any): int
 
-cdecl "_scl_time" function time(): float
+function time(): float
   sizeof timeval any::new as timeval => decl tv: timeval
   
   unsafe
