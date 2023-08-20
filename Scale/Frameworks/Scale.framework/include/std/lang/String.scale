@@ -209,6 +209,17 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     cStr str::new return
   end
 
+  static function of(cStr: [int8]): str
+    "" => decl s: str
+    unsafe
+      cStr __c_strlen => s.length
+    end
+    s.data any::delete
+    cStr => s.data
+    cStr builtinHash => s.hash
+    s return
+  end
+
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
     firstCStr __c_strlen => decl len: int
     secondCStr __c_strlen => decl len2: int
