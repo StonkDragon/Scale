@@ -11,6 +11,7 @@
 #include <stack>
 #include <sys/stat.h>
 #include <chrono>
+#include <dlfcn.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
