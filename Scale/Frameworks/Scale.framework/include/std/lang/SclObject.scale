@@ -6,15 +6,18 @@ struct SclObject is Cloneable, Equatable, Hashable
     function ==(other: any): bool
         other self:equals return
     end
+    function !=(other: any): bool
+        other self:equals ! return
+    end
 
     function equals(other: any): bool
         if other is SclObject ! then false return fi
         self:hashCode other as SclObject:hashCode == return
     end
 
-    expect cdecl "_scl_atomic_clone" function clone(): SclObject
+    expect foreign cdecl "_scl_atomic_clone" function clone(): SclObject
 
-    expect cdecl "_scl_identity_hash" function hashCode(): int
+    expect foreign cdecl "_scl_identity_hash" function hashCode(): int
 
     sealed function lock(): none
         self Process::lock
@@ -25,4 +28,6 @@ struct SclObject is Cloneable, Equatable, Hashable
     end
 
     function init(): none end
+
+    function finalize(): none end
 end

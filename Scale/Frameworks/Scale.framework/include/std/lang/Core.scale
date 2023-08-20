@@ -2,44 +2,44 @@ import std.io
 import std.util.Array
 
 cdecl "_scl_memset"
-expect unsafe function memset(ptr: [any], val: int32, len: int): [any]
+expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "_scl_memcpy"
-expect unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
 cdecl "_scl_stack_size"
-expect function sizeofStack(): int
+expect foreign function sizeofStack(): int
 cdecl "_scl_sleep"
-expect function sleep(millis: int): none
+expect foreign function sleep(millis: int): none
 cdecl "_scl_alloc"
 deprecated![since: "23.7", replacement: "any::new", forRemoval: true]
-expect function malloc(size: int): [any]
+expect foreign function malloc(size: int): [any]
 cdecl "_scl_free"
 deprecated![since: "23.7", replacement: "any::delete", forRemoval: true]
-expect function free(pointer: [any]): none
+expect foreign function free(pointer: [any]): none
 cdecl "_scl_realloc"
 deprecated![since: "23.7", replacement: "any::resize", forRemoval: true]
-expect function realloc(pointer: [any], size: int): [any]
+expect foreign function realloc(pointer: [any], size: int): [any]
 
 cdecl "system"
-private expect unsafe function __c_system(:[int8]): int
+private expect foreign unsafe function __c_system(:[int8]): int
 cdecl "getenv"
-private expect unsafe function __c_getenv(:[int8]): [int8]?
+private expect foreign unsafe function __c_getenv(:[int8]): [int8]?
 cdecl "atoll"
-private expect unsafe function __c_atoll(:[int8]): int64
+private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
-private expect unsafe function __c_atof(:[int8]): float
+private expect foreign unsafe function __c_atof(:[int8]): float
 cdecl "sprintf"
-private expect unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
 typealias varargs "/* varargs */ ..."
 
-intrinsic cdecl "_scl_system" function system(command: str): int
+cdecl "_scl_system" function system(command: str): int
   unsafe
     command:view __c_system
     return
   end
 end
 
-intrinsic cdecl "_scl_getenv" function getenv(environKey: str): str?
+cdecl "_scl_getenv" function getenv(environKey: str): str?
   unsafe
     environKey:view __c_getenv? str::new return
   end
@@ -51,9 +51,9 @@ layout timeval
 end
 
 cdecl "gettimeofday"
-private expect unsafe function __c_gettimeofday(:timeval, :any): int
+private expect foreign unsafe function __c_gettimeofday(:timeval, :any): int
 
-intrinsic cdecl "_scl_time" function time(): float
+cdecl "_scl_time" function time(): float
   sizeof timeval any::new as timeval => decl tv: timeval
   
   unsafe

@@ -2,11 +2,11 @@ final sealed struct Library
     private decl _handle: any
     private decl _name: str
 
-    private static expect unsafe function getSymbol0(handle: any, name: [int8]): any
-    private static expect unsafe function open0(name: [int8]): any
-    private static expect unsafe function close0(handle: any): none
-    private static expect unsafe function dlerror0(): str
-    private static expect unsafe function self0(): any
+    private static expect foreign unsafe function getSymbol0(handle: any, name: [int8]): any
+    private static expect foreign unsafe function open0(name: [int8]): any
+    private static expect foreign unsafe function close0(handle: any): none
+    private static expect foreign unsafe function dlerror0(): str
+    private static expect foreign unsafe function self0(): any
     
     function init(name: str): none
         name => self._name

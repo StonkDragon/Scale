@@ -33,6 +33,23 @@ typedef struct Struct_Library* scl_Library;
 typedef struct Struct_ThreadException* scl_ThreadException;
 typedef struct Struct_AtomicOperationException* scl_AtomicOperationException;
 typedef struct Struct_Thread* scl_Thread;
+typedef scl_int64 ta_int64;
+typedef scl_int16 ta_int16;
+typedef scl_uint64 ta_uint64;
+typedef scl_int32 ta_int32;
+typedef scl_uint8 ta_uint8;
+typedef pthread_mutexattr_t ta_pthread_mutexattr_t;
+typedef _scl_lambda ta_lambda;
+typedef scl_uint16 ta_uint16;
+typedef pthread_t ta_pthread_t;
+typedef scl_int8 ta_int8;
+typedef pthread_mutex_t ta_pthread_mutex_t;
+typedef scl_uint32 ta_uint32;
+struct Struct_SclObject {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
 struct Struct_str {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
@@ -48,7 +65,12 @@ struct Struct_StringIterator {
   scl_str _str;
   scl_int _pos;
 };
-struct Struct_SclObject {
+struct Struct_int8 {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
+struct Struct_int {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
   mutex_t $mutex;
@@ -116,11 +138,69 @@ struct Struct_UnreachableError {
   scl_Array stackTrace;
   scl_str errnoStr;
 };
+struct Struct_InvalidArgumentException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_IndexOutOfBoundsException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_InvalidTypeException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_IllegalStateException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_ThreadException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_AtomicOperationException {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_str msg;
+  scl_Array stackTrace;
+  scl_str errnoStr;
+};
+struct Struct_any {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
 struct Struct_Any {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
   mutex_t $mutex;
   scl_any value;
+};
+struct Struct_float {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
 };
 struct Struct_Float {
   const _scl_lambda* const $fast;
@@ -149,7 +229,37 @@ struct Struct_Option {
   scl_int __tag;
   scl_any __value;
 };
+struct Struct_ConsoleColor {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
+struct Struct_FmtIO {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
 struct Struct_Array {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_any* values;
+  scl_int count;
+  scl_int capacity;
+  scl_int initCap;
+};
+struct Struct_TypedArray {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+  scl_any* values;
+  scl_int count;
+  scl_int capacity;
+  scl_int initCap;
+  ta_uint32 $template_arg_T;
+  scl_int8* $template_argname_T;
+};
+struct Struct_ReadOnlyArray {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
   mutex_t $mutex;
@@ -165,6 +275,11 @@ struct Struct_ArrayIterator {
   scl_Array array;
   scl_int pos;
 };
+struct Struct_Process {
+  const _scl_lambda* const $fast;
+  const TypeInfo* $statics;
+  mutex_t $mutex;
+};
 struct Struct_ImmutableArray {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
@@ -174,58 +289,6 @@ struct Struct_ImmutableArray {
   scl_int capacity;
   scl_int pos;
 };
-struct Struct_InvalidArgumentException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
-struct Struct_IndexOutOfBoundsException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
-struct Struct_InvalidTypeException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
-struct Struct_TypedArray {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_any* values;
-  scl_int count;
-  scl_int capacity;
-  scl_int initCap;
-  scl_uint32 $template_arg_T;
-  scl_int8* $template_argname_T;
-};
-struct Struct_IllegalStateException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
-struct Struct_ReadOnlyArray {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_any* values;
-  scl_int count;
-  scl_int capacity;
-  scl_int initCap;
-};
 struct Struct_Library {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
@@ -233,28 +296,12 @@ struct Struct_Library {
   scl_any _handle;
   scl_str _name;
 };
-struct Struct_ThreadException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
-struct Struct_AtomicOperationException {
-  const _scl_lambda* const $fast;
-  const TypeInfo* $statics;
-  mutex_t $mutex;
-  scl_str msg;
-  scl_Array stackTrace;
-  scl_str errnoStr;
-};
 struct Struct_Thread {
   const _scl_lambda* const $fast;
   const TypeInfo* $statics;
   mutex_t $mutex;
   _scl_lambda func;
-  pthread_t tid;
+  ta_pthread_t tid;
   scl_str name;
 };
 extern scl_int8 int8$minValue __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_int8$minValue");
@@ -266,7 +313,7 @@ extern scl_int float$minExponent __asm(_scl_macro_to_string(__USER_LABEL_PREFIX_
 extern scl_Array Thread$threads __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Thread$threads");
 extern scl_int Thread$nextID __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Thread$nextID");
 extern scl_Thread Thread$mainThread __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "Var_Thread$mainThread");
-extern scl_int builtinIsInstanceOf(scl_any Var_obj, scl_str Var_typeStr) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "builtinIsInstanceOf");
-extern scl_str builtinToString(scl_any Var_val) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "builtinToString");
-extern void bar(scl_str Var_a) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "bar");
+extern scl_int builtinIsInstanceOf(scl_any Var_obj, scl_str Var_typeStr) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "builtinIsInstanceOf(a;s;)i;");
+extern scl_str builtinToString(scl_any Var_val) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "builtinToString(a;)s;");
+extern void bar(scl_str Var_a) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) "bar(s;)V;");
 #endif

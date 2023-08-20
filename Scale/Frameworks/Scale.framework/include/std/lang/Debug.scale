@@ -5,24 +5,24 @@ typealias nothing "_scl_no_return scl_any"
 
 cdecl "print_stacktrace"
 deprecated![since: "23.7", replacement: "Process::stackTrace", forRemoval: true]
-expect function trace(): none
+expect foreign function trace(): none
 cdecl "_scl_throw"
-expect function throw(ex: Exception): nothing
+expect foreign function throw(ex: Exception): nothing
 
-private expect unsafe function _scl_security_safe_exit(i: int): none
-private expect unsafe function _scl_default_signal_handler(sigNum: int): none
+private expect foreign unsafe function _scl_security_safe_exit(i: int): none
+private expect foreign unsafe function _scl_default_signal_handler(sigNum: int): none
 cdecl "raise"
-private expect unsafe function __c_raise(sigNum: int): int
+private expect foreign unsafe function __c_raise(sigNum: int): int
 cdecl "_scl_errno"
-expect function errno(): int
+expect foreign function errno(): int
 cdecl "_scl_errno_str"
-expect function strerror(): str
+expect foreign function strerror(): str
 cdecl "_scl_set_signal_handler"
-expect function setSignalHandler(fun: lambda(int): none, sig: int): none
+expect foreign function setSignalHandler(fun: lambda(int): none, sig: int): none
 cdecl "_scl_reset_signal_handler"
-expect function resetSignalHandler(sig: int): none
+expect foreign function resetSignalHandler(sig: int): none
 
-intrinsic function dumpStack(): none
+function dumpStack(): none
   "Dump:" puts
   unsafe
     c!
@@ -52,7 +52,7 @@ function raise(sigNum: int): none
 end
 
 cdecl "getchar"
-private expect unsafe function __c_getchar(): int8
+private expect foreign unsafe function __c_getchar(): int8
 
 function breakPoint(): none
   "Hit breakPoint. Press enter to continue." puts

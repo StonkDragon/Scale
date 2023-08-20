@@ -97,14 +97,14 @@ final struct File
     end
   end
 
-  static expect unsafe cdecl "fopen"  function __c_fopen(fileName: [int8], mode: [int8]): __c_file?
-  static expect unsafe cdecl "fwrite" function __c_fwrite(buffer: any, elemSize: int, numElems: int, filePtr: __c_file): none
-  static expect unsafe cdecl "fread"  function __c_fread(buffer: any, numElems: int, elemSize: int, filePtr: __c_file): none
-  static expect unsafe cdecl "fclose" function __c_fclose(filePtr: __c_file): none
-  static expect unsafe cdecl "ftell"  function __c_ftell(filePtr: __c_file): int
-  static expect unsafe cdecl "fileno" function __c_fileno(filePtr: __c_file): int
-  static expect unsafe cdecl "remove" function __c_remove(fileName: [int8]): int
-  static expect unsafe cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
+  static expect foreign unsafe cdecl "fopen"  function __c_fopen(fileName: [int8], mode: [int8]): __c_file?
+  static expect foreign unsafe cdecl "fwrite" function __c_fwrite(buffer: any, elemSize: int, numElems: int, filePtr: __c_file): none
+  static expect foreign unsafe cdecl "fread"  function __c_fread(buffer: any, numElems: int, elemSize: int, filePtr: __c_file): none
+  static expect foreign unsafe cdecl "fclose" function __c_fclose(filePtr: __c_file): none
+  static expect foreign unsafe cdecl "ftell"  function __c_ftell(filePtr: __c_file): int
+  static expect foreign unsafe cdecl "fileno" function __c_fileno(filePtr: __c_file): int
+  static expect foreign unsafe cdecl "remove" function __c_remove(fileName: [int8]): int
+  static expect foreign unsafe cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
 end
 
 deprecated![since: "23.5", replacement: "File::new", forRemoval: true]

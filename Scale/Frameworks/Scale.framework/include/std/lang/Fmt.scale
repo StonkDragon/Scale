@@ -13,7 +13,7 @@ final static sealed struct ConsoleColor
 end
 
 final static sealed struct FmtIO
-  cdecl "putchar" private expect function putchar(char: int8): none
+  cdecl "putchar" private expect foreign function putchar(char: int8): none
 
   private function printStrNoNewline(s: str): none
     foreach c in s do
