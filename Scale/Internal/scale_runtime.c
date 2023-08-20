@@ -19,7 +19,7 @@ typedef struct Struct {
 	// Actual function ptrs for this object
 	_scl_lambda*	vtable;
 	// Typeinfo for this object
-	TypeInfo*	statics;
+	TypeInfo*		statics;
 	// Mutex for this object
 	mutex_t			mutex;
 } Struct;
@@ -285,6 +285,10 @@ scl_int _scl_check_allocated(scl_any ptr) {
 }
 
 void _scl_pointer_destroy(scl_any ptr) {
+	if (_scl_is_instance_of(ptr, SclObjectHash)) {
+		Struct* instance = (Struct*) ptr;
+		virtual_call(instance, "finalize()V;");
+	}
 	_scl_free_struct(ptr);
 	_scl_remove_ptr(ptr);
 }
@@ -344,7 +348,6 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	// Hard-throw if memory allocation failed
 	if (_scl_expect(ptr == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
-		return nil;
 	}
 
 	// Add the pointer to the table
@@ -640,20 +643,33 @@ _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, i
 	if (_scl_expect(!_scl_is_instance_of(type, SclObjectHash), 0)) {
 		_scl_security_throw(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
-	Struct* instance = (Struct*) type;
-	scl_int index = -1;
-	if (onSuper) {
-		index = _scl_search_method_index((scl_any*) instance->statics->super->vtable, -1, method, signature);
-	} else {
-		index = _scl_search_method_index((scl_any*) instance->statics->vtable, -1, method, signature);
-	}
-	if (index >= 0) {
-		return instance->statics->vtable[index].rt_ptr;
-	}
-	return nil;
+
+	scl_int index = _scl_search_method_index(
+		(
+			!onSuper ?
+			((Struct*) type)->statics :
+			((Struct*) type)->statics->super
+		)->vtable_info,
+		method,
+		signature
+	);
+
+	return
+		index >= 0 ?
+		(
+			!onSuper ?
+			((Struct*) type)->statics->vtable :
+			((Struct*) type)->statics->super->vtable
+		)[index] :
+		nil;
 }
 
-static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end);
+static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end) {
+	scl_int8* sub = (scl_int8*) malloc(len);
+	strcpy(sub, str + beg);
+	sub[end - beg] = '\0';
+	return sub;
+}
 
 static size_t str_index_of(const scl_int8* str, char c) {
 	size_t i = 0;
@@ -683,38 +699,14 @@ static size_t str_num_of_occurences(const scl_int8* str, char c) {
 	return count;
 }
 
-static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier, va_list ap);
+static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8** left, scl_int8** right) {
+	*left = (scl_int8*) malloc(len - (len - index) + 1);
+	strncpy(*left, str, index);
+	(*left)[index] = '\0';
 
-scl_any virtual_call(scl_any instance, const scl_int8* methodIdentifier, ...) {
-	va_list ap;
-	va_start(ap, methodIdentifier);
-	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
-	va_end(ap);
-	return result;
-}
-
-scl_any virtual_call_super(scl_any instance, const scl_int8* methodIdentifier, ...) {
-	va_list ap;
-	va_start(ap, methodIdentifier);
-	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
-	va_end(ap);
-	return result;
-}
-
-scl_float virtual_callf(scl_any instance, const scl_int8* methodIdentifier, ...) {
-	va_list ap;
-	va_start(ap, methodIdentifier);
-	scl_any result = virtual_call_impl(0, instance, methodIdentifier, ap);
-	va_end(ap);
-	return REINTERPRET_CAST(scl_float, result);
-}
-
-scl_float virtual_call_superf(scl_any instance, const scl_int8* methodIdentifier, ...) {
-	va_list ap;
-	va_start(ap, methodIdentifier);
-	scl_any result = virtual_call_impl(1, instance, methodIdentifier, ap);
-	va_end(ap);
-	return REINTERPRET_CAST(scl_float, result);
+	*right = (scl_int8*) malloc(len - index + 1);
+	strncpy(*right, str + index, len - index);
+	(*right)[len - index] = '\0';
 }
 
 void dumpStack();
@@ -722,19 +714,14 @@ void dumpStack();
 #define strequals(a, b) (strcmp(a, b) == 0)
 #define strstarts(a, b) (strncmp((a), (b), strlen((b))) == 0)
 
-static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier, va_list ap) {
+scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
 	size_t methodLen = strlen(methodIdentifier);
-	scl_int8* methodName = substr_of(methodIdentifier, methodLen, 0, str_index_of(methodIdentifier, '('));
-	scl_int8* signature = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '('), methodLen);
+	size_t methodNameLen = str_index_of(methodIdentifier, '(');
+	scl_int8* methodName;
+	scl_int8* signature;
+	split_at(methodIdentifier, methodLen, methodNameLen, &methodName, &signature);
 	ID_t methodNameHash = typeid(methodName);
 	ID_t signatureHash = typeid(signature);
-	scl_int8* args = substr_of(methodIdentifier, methodLen, str_index_of(methodIdentifier, '(') + 1, str_last_index_of(methodIdentifier, ')'));
-	scl_int argCount = str_num_of_occurences(args, ';');
-	free(args);
-	for (scl_int i = 0; i < argCount; i++) {
-		(_stack.sp++)->v = va_arg(ap, scl_any);
-	}
-	(_stack.sp++)->v = instance;
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (_scl_expect(m == nil, 0)) {
@@ -742,24 +729,7 @@ static inline scl_any virtual_call_impl(scl_int onSuper, scl_any instance, const
 	}
 	free(methodName);
 	free(signature);
-	scl_int8* returnType = substr_of(methodIdentifier, methodLen, str_last_index_of(methodIdentifier, ')') + 1, methodLen);
-	int tmp = strequals(returnType, "V;");
-	free(returnType);
-
-	m();
-	return tmp ? nil : _scl_pop()->v;
-}
-
-void _scl_call_method_or_throw(scl_any instance_, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str) {
-	if (_scl_expect(!_scl_is_instance_of(instance_, SclObjectHash), 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Method call on non-object");
-	}
-	Struct* instance = (Struct*) instance_; 
-	_scl_lambda m = _scl_get_method_on_type(instance, method, signature, on_super);
-	if (_scl_expect(m == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", method_name, signature_str, instance->statics->type_name);
-	}
-	m();
+	return m;
 }
 
 // adds an instance to the table of tracked instances
@@ -783,10 +753,6 @@ scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
 	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
 
-	if (_scl_expect(ptr == nil, 0)) {
-		return nil;
-	}
-
 	// Callstack
 	((Struct*) ptr)->mutex = _scl_mutex_new();
 
@@ -794,10 +760,15 @@ scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
 	((Struct*) ptr)->statics = (TypeInfo*) statics;
 	
 	// Vtable
-	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable_fast;
+	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
 
 	// Add struct to allocated table
-	return _scl_add_struct(ptr);
+	ptr = _scl_add_struct(ptr);
+	if (_scl_expect(ptr == nil, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for struct");
+	}
+
+	return ptr;
 }
 
 // Removes an instance from the allocated table by index
@@ -862,12 +833,11 @@ scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
 	return -1;
 }
 
-scl_int _scl_search_method_index(scl_any* methods, const scl_int count, ID_t id, ID_t sig) {
+scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
 	if (_scl_expect(methods == nil, 0)) return -1;
-	struct _scl_methodinfo* methods_ = (struct _scl_methodinfo*) methods;
 
-	for (scl_int i = 0; (count == -1 ? (*(scl_int*) &(methods_[i].ptr)) : i < count); i++) {
-		if (methods_[i].pure_name == id && (sig == 0 || methods_[i].signature == sig)) {
+	for (scl_int i = 0; *(scl_int*) &(methods[i].pure_name); i++) {
+		if (methods[i].pure_name == id && (sig == 0 || methods[i].signature == sig)) {
 			return i;
 		}
 	}
@@ -1413,13 +1383,6 @@ scl_str _scl_array_to_string(scl_any* arr) {
 		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
 	}
 	return (scl_str) virtual_call(s, "append(s;)s;", str_of("]"));
-}
-
-static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end) {
-	scl_int8* sub = (scl_int8*) malloc(len);
-	strcpy(sub, str + beg);
-	sub[end - beg] = '\0';
-	return sub;
 }
 
 const scl_int8* _scl_type_to_rt_sig(scl_int8* type) {

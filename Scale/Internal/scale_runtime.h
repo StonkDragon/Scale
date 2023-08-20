@@ -245,11 +245,12 @@ struct _scl_methodinfo {
 };
 
 typedef struct TypeInfo {
-	const _scl_lambda*					vtable_fast;
 	const ID_t							type;
+	const _scl_lambda*					vtable;
 	const struct TypeInfo*				super;
 	const scl_int8*						type_name;
-	const struct _scl_methodinfo* const	vtable;
+	const size_t						size;
+	const struct _scl_methodinfo* const	vtable_info;
 } TypeInfo;
 
 struct scale_string {
@@ -341,7 +342,7 @@ typedef struct {
 } _scl_stack_t;
 
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const TypeInfo _scl_statics_ ## _type; (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_statics_ ## _type); })
+#define ALLOC(_type)	({ extern const TypeInfo _scl_ti_ ## _type; (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
@@ -359,16 +360,47 @@ extern tls _scl_stack_t _stack;
 
 typedef void(*mainFunc)(/* args: Array */ scl_any, /* env: Array */ scl_any);
 
+#include "preproc.h"
+
+#define				func_ptr_on(instance, methodIdentifier) \
+						_scl_get_vtable_function(0, (instance), (methodIdentifier))
+
+#define				func_ptr_on_super(instance, methodIdentifier) \
+						_scl_get_vtable_function(1, (instance), (methodIdentifier))
+
 // call a method on an instance
-// returns `nil` if the method return type is `none`
-scl_any				virtual_call(scl_any instance, const scl_int8* methodIdentifier, ...);
-// call a method on the super class of an instance
-// returns `nil` if the method return type is `none`
-scl_any				virtual_call_super(scl_any instance, const scl_int8* methodIdentifier, ...);
+// return value is undefined if the method return type is `none`
+#define				virtual_call(instance, methodIdentifier, ...) \
+						_Pragma("clang diagnostic push") \
+						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
+						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
+						({ \
+							scl_any _tmp = (instance); \
+							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+						}) \
+						_Pragma("clang diagnostic pop")
 // call a method on an instance
-scl_float			virtual_callf(scl_any instance, const scl_int8* methodIdentifier, ...);
+#define				virtual_callf(instance, methodIdentifier, ...) \
+						_Pragma("clang diagnostic push") \
+						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
+						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
+						(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						_Pragma("clang diagnostic pop")
 // call a method on the super class of an instance
-scl_float			virtual_call_superf(scl_any instance, const scl_int8* methodIdentifier, ...);
+// return value is undefined if the method return type is `none`
+#define				virtual_call_super(instance, methodIdentifier, ...) \
+						_Pragma("clang diagnostic push") \
+						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
+						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
+						(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						_Pragma("clang diagnostic pop")
+// call a method on the super class of an instance
+#define				virtual_call_superf(instance, methodIdentifier, ...) \
+						_Pragma("clang diagnostic push") \
+						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
+						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
+						(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						_Pragma("clang diagnostic pop")
 // Throws the given exception
 _scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
 // Returns the current size of the stack
@@ -437,7 +469,7 @@ void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
-void				_scl_call_method_or_throw(scl_any instance, ID_t method, ID_t signature, int on_super, scl_int8* method_name, scl_int8* signature_str);
+scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 const scl_int8**	_scl_callstack_push(void);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
@@ -467,7 +499,7 @@ int					_scl_gc_pthread_create(pthread_t*, const pthread_attr_t*, scl_any(*)(scl
 int					_scl_gc_pthread_join(pthread_t, scl_any*);
 
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_search_method_index(scl_any* methods, scl_int count, ID_t id, ID_t sig);
+scl_int				_scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
 void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
