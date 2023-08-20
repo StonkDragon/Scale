@@ -804,6 +804,7 @@ namespace sclc
         Main.options.minify = true;
         Main.options.stackSize = 16;
 
+        size_t endArgs = args.size();
         for (size_t i = 1; i < args.size(); i++) {
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
                 hasCppFiles = true;
@@ -956,6 +957,9 @@ namespace sclc
                         std::cerr << "Error: -doc-for requires an argument" << std::endl;
                         return 1;
                     }
+                } else if (args[i] == "--") {
+                    endArgs = i;
+                    break;
                 } else {
                     if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
                         Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
@@ -1286,17 +1290,26 @@ namespace sclc
         double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
         if (!Main.options.doRun) std::cout << "Took " << duration << " seconds." << std::endl;
 
-        if (Main.options.doRun) {
-            const char** argv = new const char*[1];
-            argv[0] = (const char*) outfile.c_str();
-            #ifdef _WIN32
-                return execv(argv[0], (const char* const*) argv);
-            #else
-                return execv(argv[0], (char* const*) argv);
-            #endif
+        if (!Main.options.doRun) {
+            return 0;
         }
 
-        return 0;
+        void* handle = dlopen((std::filesystem::absolute(outfile).string()).c_str(), RTLD_LAZY);
+        if (!handle) {
+            std::cerr << Color::RED << "Failed to load executable: " << Color::RESET << dlerror() << std::endl;
+            return 1;
+        }
+        int(*mainFunc)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
+        if (!mainFunc) {
+            std::cerr << Color::RED << "Failed to load main function: " << Color::RESET << dlerror() << std::endl;
+            return 1;
+        }
+        char** argv = new char*[args.size() - endArgs + 1];
+        argv[0] = strdup(outfile.c_str());
+        for (size_t i = endArgs + 1; i < args.size(); i++) {
+            argv[i - endArgs] = strdup(args[i].c_str());
+        }
+        return mainFunc(args.size() - endArgs - 1, argv);
     }
 }
 
