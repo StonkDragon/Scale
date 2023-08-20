@@ -188,7 +188,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 		scl_int8* str = (scl_int8*) _scl_alloc(64);
 		snprintf(str, 63, "Pointer " SCL_PTR_HEX_FMT " is not a stack allocated array", (scl_int) ptr);
-		virtual_call(e, "init(s;)V;", str_of(str));
+		virtual_call(e, "init(s;)V;", str_of_exact(str));
 		_scl_throw(e);
 	}
 	if (index >= 0 && index < stackalloc_array_sizes[arridx]) {
@@ -197,7 +197,7 @@ void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
 	scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 	scl_int8* str = (scl_int8*) _scl_alloc(64);
 	snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[arridx]);
-	virtual_call(e, "init(s;)V;", str_of(str));
+	virtual_call(e, "init(s;)V;", str_of_exact(str));
 	_scl_throw(e);
 }
 
@@ -325,7 +325,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (size == 0) {
 		scl_NullPointerException ex = ALLOC(NullPointerException);
 		virtual_call(ex, "init()V;");
-		ex->self.msg = str_of("realloc() called with size 0");
+		ex->self.msg = str_of_exact("realloc() called with size 0");
 		_scl_throw(ex);
 	}
 
@@ -375,8 +375,6 @@ void _scl_free(scl_any ptr) {
 	}
 }
 
-scl_int8* _scl_strdup(const scl_int8*);
-
 // Assert, that 'b' is true
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (!b) {
@@ -388,7 +386,7 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 
 		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", _scl_strdup(cmsg));
 		scl_AssertError err = ALLOC(AssertError);
-		virtual_call(err, "init(s;)V;", str_of(cmsg));
+		virtual_call(err, "init(s;)V;", str_of_exact(cmsg));
 
 		_scl_throw(err);
 	}
@@ -396,9 +394,25 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 
 void builtinUnreachable(void) {
 	scl_UnreachableError err = ALLOC(UnreachableError);
-	virtual_call(err, "init(s;)V;", str_of("Unreachable!"));
+	virtual_call(err, "init(s;)V;", str_of_exact("Unreachable!"));
 
 	_scl_throw(err);
+}
+
+scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
+	return _scl_is_instance_of(obj, type->hash);
+}
+
+scl_str builtinToString(scl_any obj) {
+	if (_scl_is_instance_of(obj, SclObjectHash)) {
+		return virtual_call(obj, "toString()s;");
+	}
+	if (_scl_is_array(obj)) {
+		return _scl_array_to_string((scl_any*) obj);
+	}
+	scl_int8* data = (scl_int8*) _scl_alloc(32);
+	snprintf(data, 31, SCL_INT_FMT, (scl_int) obj);
+	return str_of_exact(data);
 }
 
 // Hard-throw an exception
@@ -447,7 +461,7 @@ scl_str _scl_create_string(const scl_int8* data) {
 	}
 	self->length = strlen(data);
 	self->hash = typeid(data);
-	self->data = _scl_strndup(data, self->length);
+	self->data = data;
 	return self;
 }
 
@@ -571,10 +585,9 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 		cap++;
 	}
 
-	array->capacity = cap;
-	array->initCapacity = cap;
+	array->capacity = array->initCapacity = cap;
 	array->count = 0;
-	array->values = _scl_new_array(cap * sizeof(scl_str));
+	array->values = _scl_new_array_by_size(cap, sizeof(scl_str));
 	for (scl_int i = 0; i < cap; i++) {
 		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(((scl_int8**) arr)[i]);
 	}
@@ -869,7 +882,7 @@ void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
-		e->msg = str_of(p);
+		e->msg = str_of_exact(p);
 		
 		_scl_throw(e);
 	}
@@ -887,7 +900,7 @@ void _scl_reset_signal_handler(scl_int sig) {
 
 		scl_int8* p = (scl_int8*) _scl_alloc(64);
 		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
-		e->msg = str_of(p);
+		e->msg = str_of_exact(p);
 		
 		_scl_throw(e);
 	}
@@ -972,7 +985,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			cmsg = (scl_int8*) _scl_alloc(size);
 			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
 			scl_CastError err = ALLOC(CastError);
-			virtual_call(err, "init(s;)V;", str_of(cmsg));
+			virtual_call(err, "init(s;)V;", str_of_exact(cmsg));
 			_scl_throw(err);
 		}
 
@@ -988,7 +1001,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
 		}
 		scl_CastError err = ALLOC(CastError);
-		virtual_call(err, "init(s;)V;", str_of(cmsg));
+		virtual_call(err, "init(s;)V;", str_of_exact(cmsg));
 		_scl_throw(err);
 	}
 	return instance;
@@ -1169,7 +1182,7 @@ scl_int GarbageCollector$totalMemory(void) {
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 1, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array size must not be less than 1"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array size must not be less than 1"));
 		_scl_throw(e);
 	}
 	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(scl_int));
@@ -1205,7 +1218,7 @@ void _scl_remove_array(scl_any* arr) {
 scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
 	if (_scl_expect(dimensions < 1, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array dimensions must not be less than 1"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array dimensions must not be less than 1"));
 		_scl_throw(e);
 	}
 	if (dimensions == 1) {
@@ -1233,7 +1246,7 @@ scl_int _scl_array_size_unchecked(scl_any* arr) {
 scl_int _scl_array_size(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_index_of_stackalloc(arr) >= 0) {
@@ -1241,7 +1254,7 @@ scl_int _scl_array_size(scl_any* arr) {
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	return *((scl_int*) arr - 1);
@@ -1250,7 +1263,7 @@ scl_int _scl_array_size(scl_any* arr) {
 void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_index_of_stackalloc(arr) >= 0) {
@@ -1258,7 +1271,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]')"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]')"));
 		_scl_throw(e);
 	}
 	scl_int size = *((scl_int*) arr - 1);
@@ -1266,7 +1279,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
 		scl_int8* str = (scl_int8*) _scl_alloc(64);
 		snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
-		virtual_call(e, "init(s;)V;", str_of(str));
+		virtual_call(e, "init(s;)V;", str_of_exact(str));
 		_scl_throw(e);
 	}
 }
@@ -1274,22 +1287,22 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(_scl_index_of_stackalloc(arr) >= 0, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Cannot resize stack-allocated array"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Cannot resize stack-allocated array"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(new_size < 1, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("New array size must not be less than 1"));
+		virtual_call(e, "init(s;)V;", str_of_exact("New array size must not be less than 1"));
 		_scl_throw(e);
 	}
 	scl_int size = *((scl_int*) arr - 1);
@@ -1302,12 +1315,12 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 scl_any* _scl_array_sort(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -1332,12 +1345,12 @@ scl_any* _scl_array_sort(scl_any* arr) {
 scl_any* _scl_array_reverse(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -1353,26 +1366,26 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 scl_str int_to_string(scl_int i) {
 	scl_int8* str = (scl_int8*) _scl_alloc(32);
 	snprintf(str, 32, SCL_INT_FMT, i);
-	scl_str s = str_of(str);
+	scl_str s = str_of_exact(str);
 	return s;
 }
 
 scl_str _scl_array_to_string(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init(s;)V;", str_of("nil pointer detected"));
+		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
 	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of("Array must be initialized with 'new[]'"));
+		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
-	scl_str s = str_of("[");
+	scl_str s = str_of_exact("[");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
-			s = (scl_str) virtual_call(s, "append(s;)s;", str_of(", "));
+			s = (scl_str) virtual_call(s, "append(s;)s;", str_of_exact(", "));
 		}
 		scl_str tmp;
 		if (_scl_is_instance_of(arr[i], SclObjectHash)) {
@@ -1382,10 +1395,10 @@ scl_str _scl_array_to_string(scl_any* arr) {
 		}
 		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
 	}
-	return (scl_str) virtual_call(s, "append(s;)s;", str_of("]"));
+	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
 }
 
-const scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
+const scl_int8* _scl_type_to_rt_sig(const scl_int8* type) {
 	if (strequals(type, "any")) return "a;";
 	if (strequals(type, "int") || strequals(type, "bool")) return "i;";
 	if (strequals(type, "float")) return "f;";
@@ -1417,7 +1430,7 @@ const scl_int8* _scl_type_to_rt_sig(scl_int8* type) {
 }
 
 scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
-	scl_str s = str_of("");
+	scl_str s = str_of_exact("");
 	scl_int strHash = typeid("str");
 	scl_int getHash = typeid("get");
 	scl_int getSigHash = typeid("(i;)a;");
@@ -1434,7 +1447,7 @@ scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
 	const scl_int8* retType = _scl_type_to_rt_sig(returnType->data);
 	scl_str argTypes = _scl_type_array_to_rt_sig(args);
-	scl_str sig = str_of("(");
+	scl_str sig = str_of_exact("(");
 	sig = (scl_str) virtual_call(sig, "append(s;)s;", argTypes);
 	sig = (scl_str) virtual_call(sig, "append(cs;)s;", ")");
 	return (scl_str) virtual_call(sig, "append(cs;)s;", retType);
@@ -1621,21 +1634,27 @@ void _scl_setup(void) {
 	setupCalled = 1;
 }
 
-int _scl_run(int argc, scl_int8** argv, mainFunc entry) {
-	assert(_stack.bp);
-	assert(_stack.tbp);
+int _scl_run(int argc, scl_int8** argv, mainFunc entry, scl_int main_argc) {
+#if! __has_attribute(constructor)
+	// If we don't support constructor attributes, we need to call _scl_setup() manually
+	_scl_setup();
+#endif
 
-	// Convert argv and envp from native arrays to Scale arrays
-	scl_any args = _scl_c_arr_to_scl_array((scl_any*) argv);
-	scl_any env = _scl_c_arr_to_scl_array((scl_any*) _scl_platform_get_env());
+	// Convert argv from native array to ReadOnlyArray
+	scl_any args = nil;
+	if (_scl_expect(main_argc, 0)) {
+		args = _scl_c_arr_to_scl_array((scl_any*) argv);
+	}
 
-	extern scl_int8* argv0;
+	// Set argv0 to the name of the executable
+	scl_int8** argv0 = (scl_int8**) dlsym(RTLD_DEFAULT, "argv0");
 
-	argv0 = argv[0];
+	if (argv0)
+		*argv0 = argv[0];
 
 	*(_stack.et - 1) = _stack.tp = _stack.tbp;
 	TRY {
-		entry(args, env);
+		entry(args);
 	} else {
 		_scl_runtime_catch();
 	}

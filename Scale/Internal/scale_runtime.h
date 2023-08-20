@@ -106,8 +106,15 @@ extern "C" {
 #undef nil
 #define nil NULL
 
-#define str_of(_cstr) _scl_create_string((_cstr))
-#define cstr_of(Struct_str) ((Struct_str)->data)
+// Creates a new string from a C string
+// The given C string is copied
+#define str_of(_cstr)		_scl_create_string(_scl_strdup((_cstr)))
+
+// Creates a new string from a C string
+// The given C string is not copied
+#define str_of_exact(_cstr)	_scl_create_string((_cstr))
+
+#define cstr_of(Struct_str)	((Struct_str)->data)
 
 #if !defined(STACK_SIZE)
 #define STACK_SIZE			131072
@@ -238,8 +245,6 @@ typedef void*(*_scl_lambda)();
 typedef unsigned int ID_t;
 
 struct _scl_methodinfo {
-	const _scl_lambda					ptr;
-	const _scl_lambda					rt_ptr;
 	const ID_t							pure_name;
 	const ID_t							signature;
 };
@@ -257,7 +262,7 @@ struct scale_string {
 	const _scl_lambda* const			$vtable;
 	const TypeInfo* const				$statics;
 	const mutex_t						$mutex;
-	scl_int8*							data;
+	const scl_int8*						data;
 	scl_int								length;
 	scl_int								hash;
 };
@@ -342,7 +347,7 @@ typedef struct {
 } _scl_stack_t;
 
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const TypeInfo _scl_ti_ ## _type; (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
+#define ALLOC(_type)	({ extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
@@ -358,7 +363,7 @@ typedef struct {
 
 extern tls _scl_stack_t _stack;
 
-typedef void(*mainFunc)(/* args: Array */ scl_any, /* env: Array */ scl_any);
+typedef void(*mainFunc)(/* args: Array */ scl_any);
 
 #include "preproc.h"
 
@@ -447,6 +452,7 @@ scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
+scl_int8*			_scl_strdup(const scl_int8* str);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout);
 void				_scl_check_not_nil_argument(scl_int val, const scl_int8* name);
@@ -459,7 +465,7 @@ void				_scl_not_nil_return(scl_int val, const scl_int8* name);
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
 void				_scl_throw(scl_any ex);
-int					_scl_run(int argc, char** argv, mainFunc main);
+int					_scl_run(int argc, char** argv, mainFunc main, scl_int main_argc);
 
 const ID_t			typeid(const scl_int8* data);
 

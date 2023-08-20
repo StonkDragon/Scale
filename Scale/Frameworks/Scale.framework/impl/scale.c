@@ -144,7 +144,7 @@ scl_Array Process$stackTrace(void) {
 
 	for (scl_int i = 0; i < arr->count; i++) {
 		_scl_array_check_bounds_or_throw(arr->values, i);
-		arr->values[i] = str_of(_callstack[i]);
+		arr->values[i] = str_of_exact(_callstack[i]);
 	}
 
 	return (scl_Array) arr;
@@ -191,7 +191,7 @@ scl_any Library$self0(void) {
 	if (!lib) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
-		e->self.msg = str_of("Failed to load library");
+		e->self.msg = str_of_exact("Failed to load library");
 		_scl_throw(e);
 	}
 	return lib;
@@ -206,7 +206,7 @@ scl_any Library$open0(scl_int8* name) {
 	if (!lib) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init()V;");
-		e->self.msg = str_of("Failed to load library");
+		e->self.msg = str_of_exact("Failed to load library");
 		_scl_throw(e);
 	}
 	return lib;
@@ -241,19 +241,17 @@ void Thread$run(scl_Thread self) {
 }
 
 scl_int Thread$start0(scl_Thread self) {
-	int ret = _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any(*)(scl_any)) Thread$run, self);
-	return ret;
+	return _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any(*)(scl_any)) Thread$run, self);
 }
 
 scl_int Thread$stop0(scl_Thread self) {
-	int ret = _scl_gc_pthread_join(self->nativeThread, 0);
-	return ret;
+	return _scl_gc_pthread_join(self->nativeThread, 0);
 }
 
 scl_Thread Thread$currentThread(void) {
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
-		_currentThread->name = str_of("Main Thread");
+		_currentThread->name = str_of_exact("Main Thread");
 		_currentThread->nativeThread = pthread_self();
 		_currentThread->function = nil;
 	}
