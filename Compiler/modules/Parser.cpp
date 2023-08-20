@@ -12,9 +12,63 @@
 
 namespace sclc
 {
+
+    struct StructTreeNode {
+        Struct s;
+        std::vector<StructTreeNode*> children;
+
+        StructTreeNode(Struct s) : s(s), children() {}
+
+        ~StructTreeNode() {
+            for (StructTreeNode* child : children) {
+                delete child;
+            }
+        }
+
+        void addChild(StructTreeNode* child) {
+            children.push_back(child);
+        }
+
+        std::string toString(int indent = 0) {
+            std::string result = "";
+            for (int i = 0; i < indent; i++) {
+                result += "  ";
+            }
+            result += s.name + "\n";
+            for (StructTreeNode* child : children) {
+                result += child->toString(indent + 1);
+            }
+            return result;
+        }
+
+        void forEach(std::function<void(StructTreeNode*)> f) {
+            f(this);
+            for (StructTreeNode* child : children) {
+                child->forEach(f);
+            }
+        }
+
+        static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
+            StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
+            for (Struct& s : result.structs) {
+                if (s.super == name) {
+                    node->addChild(directSubstructsOf(root, result, s.name));
+                }
+            }
+            return node;
+        }
+
+        static StructTreeNode* fromArrayOfStructs(TPResult& result) {
+            StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
+            return directSubstructsOf(root, result, "SclObject");
+        }
+    };
+
+
     extern Struct currentStruct;
     extern int scopeDepth;
     extern std::map<std::string, std::vector<Method*>> vtables;
+    extern StructTreeNode* structTree;
 
     TPResult& Parser::getResult() {
         return result;
@@ -58,6 +112,18 @@ namespace sclc
             }
         }
 
+        if (mainFunction && mainFunction->args.size() > 1) {
+            FPResult result;
+            result.success = false;
+            result.message = "Entry point function must have 0 or 1 arguments";
+            result.line = mainFunction->name_token.line;
+            result.in = mainFunction->name_token.file;
+            result.column = mainFunction->name_token.column;
+            result.type = mainFunction->name_token.type;
+            result.value = mainFunction->name_token.value;
+            errors.push_back(result);
+        }
+
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
         vars.reserve(32);
@@ -73,49 +139,55 @@ namespace sclc
         fclose(fp);
         fp = fopen(filename.c_str(), "a");
 
-        for (Struct& s : result.structs) {
-            if (s.isStatic() || s.isExtern()) continue;
-            append("const TypeInfo _scl_ti_%s = {\n", s.name.c_str());
-            scopeDepth++;
-            append(".type = 0x%xU,\n", id(s.name.c_str()));
-            append(".type_name = \"%s\",\n", s.name.c_str());
-            append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
-            append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
-            if (s.name != "SclObject") {
-                append(".super = &_scl_ti_%s,\n", s.super.c_str());
-            } else {
-                append(".super = 0,\n");
-            }
-            append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
-            scopeDepth--;
-            append("};\n");
-            auto vtable = vtables.find(s.name);
-            if (vtable == vtables.end()) {
-                continue;
-            }
-            append("const struct _scl_methodinfo _scl_vtable_info_%s[] = {\n", vtable->first.c_str());
-            scopeDepth++;
-            for (auto&& m : vtable->second) {
-                std::string signature = argsToRTSignature(m);
-                std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
-                append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
+        if (structTree) {
+            structTree->forEach([fp](StructTreeNode* node) {
+                const Struct& s = node->s;
+                if (s.isStatic() || s.isExtern()) {
+                    return;
+                }
+                auto vtable = vtables.find(s.name);
+                if (vtable == vtables.end()) {
+                    return;
+                }
+                append("static const struct _scl_methodinfo _scl_vtable_info_%s[] __asm(\"Lscl_vtable_info_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
                 scopeDepth++;
-                append(".pure_name = 0x%xU, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
-                append(".signature = 0x%xU, // %s\n", id(signature.c_str()), signature.c_str());
+                for (auto&& m : vtable->second) {
+                    std::string signature = argsToRTSignature(m);
+                    std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
+                    append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
+                    scopeDepth++;
+                    append(".pure_name = 0x%xU, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
+                    append(".signature = 0x%xU, // %s\n", id(signature.c_str()), signature.c_str());
+                    scopeDepth--;
+                    append("},\n");
+                }
+                append("{0}\n");
                 scopeDepth--;
-                append("},\n");
-            }
-            append("{0}\n");
-            scopeDepth--;
-            append("};\n\n");
-            append("const _scl_lambda _scl_vtable_%s[] = {\n", vtable->first.c_str());
-            scopeDepth++;
-            for (auto&& m : vtable->second) {
-                append("(const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
-            }
-            append("0\n");
-            scopeDepth--;
-            append("};\n\n");
+                append("};\n");
+                append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
+                scopeDepth++;
+                for (auto&& m : vtable->second) {
+                    append("(const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                }
+                append("0\n");
+                scopeDepth--;
+                append("};\n");
+
+                append("const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\") = {\n", s.name.c_str(), s.name.c_str());
+                scopeDepth++;
+                append(".type = 0x%xU,\n", id(s.name.c_str()));
+                append(".type_name = \"%s\",\n", s.name.c_str());
+                append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
+                append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
+                if (s.name != "SclObject") {
+                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                } else {
+                    append(".super = 0,\n");
+                }
+                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
+                scopeDepth--;
+                append("};\n\n");
+            });
         }
 
         append("extern const ID_t typeid(const char*);\n\n");
@@ -186,7 +258,7 @@ namespace sclc
 
         if (!Main.options.noMain) {
             append("int main(int argc, char** argv) {\n");
-            append("  return _scl_run(argc, argv, (mainFunc) &Function_main);\n");
+            append("  return _scl_run(argc, argv, (mainFunc) &Function_main, %zu);\n", mainFunction->args.size());
             append("}\n\n");
         }
         

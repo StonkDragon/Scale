@@ -1493,29 +1493,13 @@ namespace sclc {
         // Builtins
         if (!Main.options.noScaleFramework) {
             Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addModifier("export");
+            builtinIsInstanceOf->addModifier("expect");
+            builtinIsInstanceOf->addModifier("foreign");
 
             builtinIsInstanceOf->addArgument(Variable("obj", "any"));
             builtinIsInstanceOf->addArgument(Variable("typeStr", "str"));
-
-            builtinIsInstanceOf->return_type = "int";
             
-            // if typeStr "any" == then true return
-            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->return_type = "int";
             functions.push_back(builtinIsInstanceOf);
 
             Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "builtinHash.scale@"));
@@ -1560,7 +1544,8 @@ namespace sclc {
             functions.push_back(builtinTypeEquals);
 
             Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "builtinToString.scale@"));
-            builtinToString->addModifier("export");
+            builtinToString->addModifier("expect");
+            builtinToString->addModifier("foreign");
             
             builtinToString->addArgument(Variable("val", "any"));
 

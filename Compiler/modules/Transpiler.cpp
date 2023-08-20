@@ -530,6 +530,7 @@ namespace sclc {
         static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
             StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
             for (Struct& s : result.structs) {
+                if (s.isStatic()) continue;
                 if (s.super == name) {
                     node->addChild(directSubstructsOf(root, result, s.name));
                 }
@@ -539,6 +540,9 @@ namespace sclc {
 
         static StructTreeNode* fromArrayOfStructs(TPResult& result) {
             StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
+            if (root->s == Struct::Null) {
+                return nullptr;
+            }
             return directSubstructsOf(root, result, "SclObject");
         }
     };
@@ -568,6 +572,7 @@ namespace sclc {
             if (c.name == "str" || c.name == "any" || c.name == "int" || c.name == "float" || isPrimitiveIntegerType(c.name)) continue;
             fprintf(scale_header, "typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
+        fprintf(scale_header, "\n");
 
         for (auto&& ta : result.typealiases) {
             if (ta.first == "nothing" || ta.first == "varargs") continue;
@@ -579,6 +584,7 @@ namespace sclc {
             }
             fprintf(scale_header, "typedef %s%s;\n", type.c_str(), name.c_str());
         }
+        fprintf(scale_header, "\n");
 
         for (Struct& c : result.structs) {
             if (c.isStatic()) continue;
@@ -734,27 +740,30 @@ namespace sclc {
             }
         }
 
-        structTree->forEach([&](StructTreeNode* currentNode) {
-            Struct c = currentNode->s;
-            append("struct Struct_%s {\n", c.name.c_str());
-            append("  const _scl_lambda* const $fast;\n");
-            append("  const TypeInfo* $statics;\n");
-            append("  mutex_t $mutex;\n");
-            
-            fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
-            fprintf(scale_header, "  const _scl_lambda* const $fast;\n");
-            fprintf(scale_header, "  const TypeInfo* $statics;\n");
-            fprintf(scale_header, "  mutex_t $mutex;\n");
-            
-            for (Variable& s : c.members) {
-                if (s.isVirtual) continue;
-                append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-                fprintf(scale_header, "  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            }
+        if (structTree) {
+            structTree->forEach([&](StructTreeNode* currentNode) {
+                Struct c = currentNode->s;
+                append("struct Struct_%s {\n", c.name.c_str());
+                append("  const _scl_lambda* const $fast;\n");
+                append("  const TypeInfo* $statics;\n");
+                append("  mutex_t $mutex;\n");
+                
+                fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
+                fprintf(scale_header, "  const _scl_lambda* const $fast;\n");
+                fprintf(scale_header, "  const TypeInfo* $statics;\n");
+                fprintf(scale_header, "  mutex_t $mutex;\n");
+                
+                for (Variable& s : c.members) {
+                    if (s.isVirtual) continue;
+                    append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+                    fprintf(scale_header, "  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+                }
 
-            append("};\n");
-            fprintf(scale_header, "};\n");
-        });
+                append("};\n");
+                fprintf(scale_header, "};\n");
+            });
+        }
+        
 
         currentStruct = Struct::Null;
         append("\n");
@@ -5934,17 +5943,16 @@ namespace sclc {
 
     extern "C" void ConvertC::writeTables(FILE* fp, TPResult& result, std::string filename) {
         (void) filename;
+        (void) result;
         populateTokenJumpTable();
 
         scopeDepth = 0;
         append("extern tls _scl_stack_t _stack;\n\n");
 
-        for (Struct& s : result.structs) {
-            if (s.isStatic()) continue;
-            append("extern const TypeInfo _scl_ti_%s;\n", s.name.c_str());
-            append("extern const struct _scl_methodinfo _scl_vtable_info_%s[];\n", s.name.c_str());
-            append("extern const _scl_lambda _scl_vtable_%s[];\n", s.name.c_str());
-        }
+        // for (Struct& s : result.structs) {
+        //     if (s.isStatic()) continue;
+        //     append("extern const TypeInfo _scl_ti_%s;\n", s.name.c_str());
+        // }
 
         append("extern const ID_t typeid(const char*);\n\n");
 
