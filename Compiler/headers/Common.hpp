@@ -143,9 +143,7 @@ namespace sclc {
             bool assembleOnly;
             bool transpileOnly;
             std::string outfile;
-            size_t mainArgCount;
             bool preprocessOnly;
-            bool mainReturnsNone;
             bool noScaleFramework;
             std::string optimizer;
             bool dontSpecifyOutFile;
@@ -153,7 +151,6 @@ namespace sclc {
             size_t docPrinterArgsStart;
             std::string docsIncludeFolder;
             std::string operatorRandomData;
-            std::vector<std::string> flags;
             std::vector<std::string> files;
             std::vector<std::string> features;
             std::vector<std::string> includePaths;
@@ -242,6 +239,6 @@ namespace sclc {
         return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
 
-    ID_t id(char* data);
+    ID_t id(const char* data);
 }
 #endif // COMMON_H

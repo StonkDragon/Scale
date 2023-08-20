@@ -515,7 +515,7 @@ namespace sclc {
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
-                    return nullptr;
+                    return method;
                 }
 
                 std::string fromTemplate = r.message;
@@ -538,7 +538,7 @@ namespace sclc {
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return nullptr;
+                return method;
             }
         } else {
             FPResult result;
@@ -550,7 +550,7 @@ namespace sclc {
             result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
-            return nullptr;
+            return method;
         }
         return method;
     }
@@ -576,7 +576,20 @@ namespace sclc {
             result.column = tokens[i].column; \
             result.success = false; \
             errors.push_back(result); \
-            continue; \
+            break; \
+        }
+
+    #define expectr(_value, ...) if (!(__VA_ARGS__)) { \
+            FPResult result; \
+            result.message = "Expected " + std::string(_value) + ", but got '" + tokens[i].value + "'"; \
+            result.va ## lue = tokens[i].value; \
+            result.line = tokens[i].line; \
+            result.in = tokens[i].file; \
+            result.type = tokens[i].type; \
+            result.column = tokens[i].column; \
+            result.success = false; \
+            errors.push_back(result); \
+            return; \
         }
 
     TPResult parseFile(std::string file) {
@@ -779,8 +792,6 @@ namespace sclc {
             }
 
             func->return_type = returnType;
-
-            func->isExternC = func->has_expect;
 
             uint32_t numModifiers = 0;
             fread(&numModifiers, sizeof(uint32_t), 1, f);
@@ -1030,7 +1041,7 @@ namespace sclc {
         std::vector<std::string> args;
         std::vector<Token> tokens;
 
-        void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
             #define token this->tokens[j]
             #define nextToken this->tokens[j + 1]
             #define MacroError(msg) ({ \
@@ -1173,6 +1184,174 @@ namespace sclc {
             #undef nextToken
         }
     };
+
+    struct CtypeMacro : public Macro {
+        CtypeMacro() {
+            args.push_back("type");
+        }
+        
+        std::unordered_map<std::string, std::string> typealiases = {
+            {"char", "int8"},
+            {"int8_t", "int8"},
+            {"signedchar", "int8"},
+
+            {"short", "int16"},
+            {"int16_t", "int16"},
+            {"signedshort", "int16"},
+            
+            {"int", "int32"},
+            {"int32_t", "int32"},
+            {"signedint", "int32"},
+            
+            {"long", "int64"},
+            {"int64_t", "int64"},
+            {"longlong", "int64"},
+            
+            {"uint8_t", "uint8"},
+            {"u_int8_t", "uint8"},
+            {"unsignedchar", "uint8"},
+            
+            {"uint16_t", "uint16"},
+            {"u_int16_t", "uint16"},
+            {"unsignedshort", "uint16"},
+            
+            {"uint32_t", "uint32"},
+            {"u_int32_t", "uint32"},
+            {"unsignedint", "uint32"},
+            
+            {"uint64_t", "uint64"},
+            {"u_int64_t", "uint64"},
+            {"unsignedlong", "uint64"},
+            {"unsignedlonglong", "uint64"},
+
+            {"char*", "[int8]"},
+            {"unsignedchar*", "[uint8]"},
+            
+            {"float64", "double"},
+            {"bool", "bool"},
+            {"void", "none"},
+            {"void*", "any"},
+            {"size_t", "uint"},
+            {"ssize_t", "int"}
+        };
+
+        std::string getRealType(std::string type) {
+            if (strstarts(type, "enum ")) {
+                return type.substr(5);
+            }
+            if (strstarts(type, "struct ")) {
+                return type.substr(7);
+            }
+            type = replaceAll(type, "const", "");
+            type = replaceAll(type, " ", "");
+            if (typealiases.find(type) != typealiases.end()) {
+                return typealiases[type];
+            }
+            return type;
+        }
+
+        bool hasType(std::string type) {
+            if (strstarts(type, "enum ")) {
+                return true;
+            }
+            if (strstarts(type, "struct ")) {
+                return true;
+            }
+            type = replaceAll(type, "const", "");
+            type = replaceAll(type, " ", "");
+            return typealiases.find(type) != typealiases.end();
+        }
+
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
+            (void) errors;
+
+            const Token& type = args["type"];
+            if (hasType(type.value)) {
+                otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, getRealType(type.value), type.line, type.file, type.column));
+                i++;
+                return;
+            }
+            std::string typeName = "ctype$" + std::to_string(id(type.file.c_str())) + "$" + std::to_string(type.line) + "$" + std::to_string(type.column);
+            typeName += " /* " + type.value + " */";
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_question_mark, "?", type.line, type.file, type.column));
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.line, type.file, type.column));
+            i += 2;
+            otherTokens.push_back(Token(tok_identifier, "typealias", type.line, type.file, type.column));
+            otherTokens.push_back(Token(tok_identifier, typeName, type.line, type.file, type.column));
+            otherTokens.push_back(Token(tok_string_literal, type.value, type.line, type.file, type.column));
+        }
+    };
+
+    struct ArrayMacro : public Macro {
+        ArrayMacro() {
+            args.push_back("type");
+            args.push_back("size");
+        }
+
+        std::unordered_map<std::string, std::string> types = {
+            {"int8", "char"},
+            {"int16", "short"},
+            {"int32", "int"},
+            {"int64", "long"},
+            {"uint8", "unsigned char"},
+            {"uint16", "unsigned short"},
+            {"uint32", "unsigned int"},
+            {"uint64", "unsigned long"},
+            {"[int8]", "char*"},
+            {"[uint8]", "unsigned char*"},
+            {"float", "double"},
+            {"bool", "long"},
+            {"any", "void*"}
+        };
+
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
+            (void) errors;
+
+            const Token& type = args["type"];
+            if (type.type != tok_identifier && type.type != tok_string_literal) {
+                errors.push_back(MacroError("Expected identifier as first argument to 'ctype'"));
+                return;
+            }
+            const Token& size = args["size"];
+            if (size.type != tok_number) {
+                errors.push_back(MacroError("Expected number as second argument to 'ctype'"));
+                return;
+            }
+
+            std::string typeName = "Array$" + size.value + "$" + std::to_string(id(type.file.c_str())) + "$" + std::to_string(type.line) + "$" + std::to_string(type.column);
+
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.line, type.file, type.column));
+            i++;
+            if (type.type == tok_identifier) {
+                if (types.find(type.value) != types.end()) {
+                    std::string ctype = types[type.value] + "%[" + size.value + "]";
+                    otherTokens.push_back(Token(tok_identifier, "typealias", type.line, type.file, type.column));
+                    otherTokens.push_back(Token(tok_identifier, typeName, type.line, type.file, type.column));
+                    otherTokens.push_back(Token(tok_string_literal, ctype, type.line, type.file, type.column));
+                    return;
+                }
+            } else {
+                std::string ctype = type.value + "%[" + size.value + "]";
+                otherTokens.push_back(Token(tok_identifier, "typealias", type.line, type.file, type.column));
+                otherTokens.push_back(Token(tok_identifier, typeName, type.line, type.file, type.column));
+                otherTokens.push_back(Token(tok_string_literal, ctype, type.line, type.file, type.column));
+                return;
+            }
+
+            auto join = [](std::unordered_map<std::string, std::string> map, std::string with) -> std::string {
+                std::string result = "";
+                for (auto it = map.begin(); it != map.end(); it++) {
+                    if (it != map.begin()) {
+                        result += with;
+                    }
+                    result += it->first;
+                }
+                return result;
+            };
+
+            errors.push_back(MacroError("Unknown type '" + type.value + "'. Supported types are: " + join(types, ", ")));
+        }
+    };
     
     TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
         Function* currentFunction = nullptr;
@@ -1234,7 +1413,11 @@ namespace sclc {
             }
         }
 
-        std::unordered_map<std::string, Macro> macros;
+        std::unordered_map<std::string, Macro*> macros;
+
+        macros["ctype"] = new CtypeMacro();
+        macros["array"] = new ArrayMacro();
+
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
                 continue;
@@ -1243,11 +1426,11 @@ namespace sclc {
             i++;
             std::string name = tokens[i].value;
             i++;
-            Macro macro;
+            Macro* macro = new Macro();
             if (tokens[i].type == tok_paren_open) {
                 i++;
                 while (tokens[i].type != tok_paren_close) {
-                    macro.args.push_back(tokens[i].value);
+                    macro->args.push_back(tokens[i].value);
                     i++;
                     if (tokens[i].type == tok_comma) {
                         i++;
@@ -1272,7 +1455,7 @@ namespace sclc {
                     i++;
                     break;
                 }
-                macro.tokens.push_back(tokens[i]);
+                macro->tokens.push_back(tokens[i]);
                 i++;
             }
             // delete macro declaration
@@ -1292,18 +1475,18 @@ namespace sclc {
             ) {
                 continue;
             }
-            Macro& macro = macros[tokens[i].value];
+            Macro* macro = macros[tokens[i].value];
             std::unordered_map<std::string, Token> args;
             size_t start = i;
             i += 2;
-            for (size_t j = 0; j < macro.args.size(); j++) {
-                args[macro.args[j]] = tokens[i];
+            for (size_t j = 0; j < macro->args.size(); j++) {
+                args[macro->args[j]] = tokens[i];
                 i++;
             }
             // delete macro call
             tokens.erase(tokens.begin() + start, tokens.begin() + i);
             i = start;
-            macro.expand(tokens, i, args, errors);
+            macro->expand(tokens, i, args, errors);
             i--;
         }
 
@@ -1336,8 +1519,7 @@ namespace sclc {
             functions.push_back(builtinIsInstanceOf);
 
             Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "builtinHash.scale@"));
-            builtinHash->isExternC = true;
-            builtinHash->addModifier("extern");
+            builtinHash->addModifier("expect");
             builtinHash->addModifier("cdecl");
             builtinHash->addModifier("typeid");
             
@@ -1347,8 +1529,7 @@ namespace sclc {
             functions.push_back(builtinHash);
 
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "builtinIdentityHash.scale@"));
-            builtinIdentityHash->isExternC = true;
-            builtinIdentityHash->addModifier("extern");
+            builtinIdentityHash->addModifier("expect");
             builtinIdentityHash->addModifier("cdecl");
             builtinIdentityHash->addModifier("_scl_identity_hash");
             
@@ -1358,8 +1539,7 @@ namespace sclc {
             functions.push_back(builtinIdentityHash);
 
             Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "builtinAtomicClone.scale@"));
-            builtinAtomicClone->isExternC = true;
-            builtinAtomicClone->addModifier("extern");
+            builtinAtomicClone->addModifier("expect");
             builtinAtomicClone->addModifier("cdecl");
             builtinAtomicClone->addModifier("_scl_atomic_clone");
             
@@ -1369,8 +1549,7 @@ namespace sclc {
             functions.push_back(builtinAtomicClone);
 
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "builtinTypeEquals.scale@"));
-            builtinTypeEquals->isExternC = true;
-            builtinTypeEquals->addModifier("extern");
+            builtinTypeEquals->addModifier("expect");
             builtinTypeEquals->addModifier("cdecl");
             builtinTypeEquals->addModifier("_scl_is_instance_of");
 
@@ -1409,8 +1588,8 @@ namespace sclc {
             functions.push_back(builtinToString);
 
             Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "builtinUnreachable.scale@"));
-            builtinUnreachable->isExternC = true;
-            builtinUnreachable->addModifier("extern");
+            builtinUnreachable->addModifier("expect");
+            builtinUnreachable->addModifier("foreign");
             builtinUnreachable->return_type = "none";
 
             functions.push_back(builtinUnreachable);
@@ -1508,7 +1687,6 @@ namespace sclc {
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->name;
-                        currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -1516,14 +1694,14 @@ namespace sclc {
                         if (f) {
                             currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                         }
-                        if (contains<std::string>(nextAttributes, "expect")) {
-                            currentFunction->isExternC = true;
+                        if (currentFunction->has_expect) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
                         }
-                        if (contains<std::string>(nextAttributes, "intrinsic")) {
+                        if (currentFunction && currentFunction->has_intrinsic) {
                             if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                                currentFunction->isExternC = true;
+                                currentFunction->addModifier("foreign");
+                                currentFunction->addModifier("expect");
                                 functions.push_back(currentFunction);
                             }
                         }
@@ -1533,22 +1711,21 @@ namespace sclc {
                     Token& func = tokens[i + 1];
                     std::string name = func.value;
                     currentFunction = parseMethod(name, func, currentStruct->name, errors, i, tokens);
-                    currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
-                    Function* f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
+                    Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
                     if (f) {
                         currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                     }
-                    if (contains<std::string>(nextAttributes, "expect")) {
-                        currentFunction->isExternC = true;
+                    if (currentFunction->has_expect) {
                         functions.push_back(currentFunction);
                         currentFunction = nullptr;
                     }
-                    if (contains<std::string>(nextAttributes, "intrinsic")) {
+                    if (currentFunction && currentFunction->has_intrinsic) {
                         if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->member_type + "::" + currentFunction->name)) {
-                            currentFunction->isExternC = true;
+                            currentFunction->addModifier("foreign");
+                            currentFunction->addModifier("expect");
                             functions.push_back(currentFunction);
                         }
                     }
@@ -1647,14 +1824,14 @@ namespace sclc {
                 if (f) {
                     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                 }
-                if (contains<std::string>(nextAttributes, "expect")) {
-                    currentFunction->isExternC = true;
+                if (currentFunction->has_expect) {
                     functions.push_back(currentFunction);
                     currentFunction = nullptr;
                 }
-                if (contains<std::string>(nextAttributes, "intrinsic")) {
+                if (currentFunction && currentFunction->has_intrinsic) {
                     if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                        currentFunction->isExternC = true;
+                        currentFunction->addModifier("foreign");
+                        currentFunction->addModifier("expect");
                         functions.push_back(currentFunction);
                     }
                 }
@@ -1715,7 +1892,7 @@ namespace sclc {
                                 currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                                 functionWasOverloaded = true;
                             } else if (currentFunction != f) {
-                                if (currentFunction->has_intrinsic) {
+                                if (currentFunction && currentFunction->has_intrinsic) {
                                     FPResult result;
                                     result.message = "Cannot overload intrinsic function " + currentFunction->name + "!";
                                     result.value = currentFunction->name;
@@ -1763,13 +1940,20 @@ namespace sclc {
                     }
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
-                    containers.push_back(*currentContainer);
+                    if (std::find(containers.begin(), containers.end(), *currentContainer) == containers.end()) {
+                        containers.push_back(*currentContainer);
+                    }
                     currentContainer = nullptr;
                 } else if (currentStruct != nullptr) {
-                    structs.push_back(*currentStruct);
+                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                        structs.push_back(*currentStruct);
+                    }
                     templateArgs.clear();
                     currentStruct = nullptr;
                 } else if (currentInterface != nullptr) {
+                    if (std::find(interfaces.begin(), interfaces.end(), currentInterface) == interfaces.end()) {
+                        interfaces.push_back(currentInterface);
+                    }
                     interfaces.push_back(currentInterface);
                     currentInterface = nullptr;
                 } else {
@@ -2026,8 +2210,14 @@ namespace sclc {
                     v.isVirtual = true;
                     currentStruct->addMember(v);
                     Method* getter = makeGetter(v, currentStruct->name, currentStruct->members.size());
+                    if (currentStruct->isExtern()) {
+                        getter->addModifier("expect");
+                    }
                     functions.push_back(getter);
                     Function* setter = makeSetter(v, currentStruct->name, currentStruct->members.size());
+                    if (currentStruct->isExtern()) {
+                        setter->addModifier("expect");
+                    }
                     functions.push_back(setter);
                 }
                 if (tokens[i].type != tok_end) {
@@ -2043,7 +2233,9 @@ namespace sclc {
                     continue;
                 }
                 currentStruct->toggleFinal();
-                structs.push_back(*currentStruct);
+                if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                    structs.push_back(*currentStruct);
+                }
                 currentStruct = nullptr;
             } else if (token.type == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].type != tok_double_column))) {
                 if (currentContainer != nullptr) {
@@ -2248,7 +2440,9 @@ namespace sclc {
                 }
 
                 if (open) {
-                    structs.push_back(*currentStruct);
+                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                        structs.push_back(*currentStruct);
+                    }
                     currentStruct = nullptr;
                 }
             } else if (token.type == tok_identifier && token.value == "layout") {
@@ -2360,7 +2554,9 @@ namespace sclc {
                     i++;
                 }
 
-                layouts.push_back(layout);
+                if (std::find(layouts.begin(), layouts.end(), layout) == layouts.end()) {
+                    layouts.push_back(layout);
+                }
             } else if (token.type == tok_enum) {
                 if (currentContainer != nullptr) {
                     FPResult result;
@@ -2616,9 +2812,15 @@ namespace sclc {
                     }
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
-                    extern_globals.push_back(Variable(name, type));
+                    Variable v(name, type);
+                    if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
+                        extern_globals.push_back(v);
+                    }
                 } else {
-                    globals.push_back(Variable(name, type));
+                    Variable v(name, type);
+                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                        globals.push_back(v);
+                    }
                 }
                 nextAttributes.clear();
             } else if (token.type == tok_declare && currentContainer != nullptr) {
@@ -2712,7 +2914,15 @@ namespace sclc {
                     v.name_token = new Token(name_token);
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
-                    globals.push_back(v);
+                    if (contains<std::string>(nextAttributes, "expect")) {
+                        if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
+                            extern_globals.push_back(v);
+                        }
+                    } else {
+                        if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                            globals.push_back(v);
+                        }
+                    }
                 } else {
                     if (typeIsConst(type) && isInternalMut) {
                         FPResult result;
@@ -2750,6 +2960,7 @@ namespace sclc {
                            t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
+                           t.value == "foreign" ||
                            t.value == "virtual" ||
                            t.value == "default" ||
                            t.value == "private" ||

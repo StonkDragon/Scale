@@ -23,8 +23,6 @@ namespace sclc
         std::string member_type;
         Token name_token;
         bool isMethod;
-        bool isExternC;
-        bool isPrivate;
         Deprecation deprecated;
         std::vector<Function*> overloads;
         std::string templateArg;
@@ -45,6 +43,7 @@ namespace sclc
         long has_restrict;
         long has_getter;
         long has_setter;
+        long has_foreign;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);

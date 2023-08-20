@@ -42,8 +42,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->name_token = name_token;
     this->name = name;
     this->isMethod = isMethod;
-    this->isPrivate = false;
-    this->isExternC = false;
     this->member_type = "";
 
     this->has_expect = 0;
@@ -62,6 +60,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_restrict = 0;
     this->has_getter = 0;
     this->has_setter = 0;
+    this->has_foreign = 0;
 }
 std::string Function::finalName() {
     if (
@@ -72,14 +71,14 @@ std::string Function::finalName() {
             this->has_private
         )
     ) {
-        if (this->isExternC || this->has_expect) {
+        if (this->has_foreign) {
             return name;
         }
         return name +
                "$" +
-               std::to_string(id((char*) name.c_str())) +
+               std::to_string(id(name.c_str())) +
                "$" +
-               std::to_string(id((char*) name_token.file.c_str())) +
+               std::to_string(id(name_token.file.c_str())) +
                "$" +
                std::to_string(name_token.line);
     }
@@ -94,15 +93,9 @@ void Function::addToken(Token token) {
 void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 
-    if (has_expect == 0 && modifier == "expect") {
-        has_expect = modifiers.size();
-        isExternC = true;
-    }
+    if (has_expect == 0 && modifier == "expect") has_expect = modifiers.size();
     else if (has_export == 0 && modifier == "export") has_export = modifiers.size();
-    else if (has_private == 0 && modifier == "private") {
-        has_private = modifiers.size();
-        isPrivate = true;
-    }
+    else if (has_private == 0 && modifier == "private") has_private = modifiers.size();
     else if (has_construct == 0 && modifier == "construct") has_construct = modifiers.size();
     else if (has_constructor == 0 && modifier == "<constructor>") has_constructor = modifiers.size();
     else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
@@ -117,6 +110,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_restrict == 0 && modifier == "restrict") has_restrict = modifiers.size();
     else if (has_getter == 0 && modifier == "@getter") has_getter = modifiers.size();
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
+    else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);

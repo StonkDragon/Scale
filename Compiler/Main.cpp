@@ -119,7 +119,7 @@ namespace sclc
 
     std::string gen_random() {
         char* s = (char*) malloc(256);
-        ID_t h = id((char*) std::string(VERSION).c_str());
+        ID_t h = id(std::string(VERSION).c_str());
         snprintf(s, 256, "%x%x%x%x", h, h, h, h);
         return std::string(s);
     }
@@ -1151,6 +1151,8 @@ namespace sclc
         }
 
         FPResult parseResult = Main.parser->parse(source);
+        cflags.push_back(source);
+        
         if (parseResult.warns.size() > 0) {
             logWarns(parseResult.warns);
         }
@@ -1169,10 +1171,6 @@ namespace sclc
 
         for (std::string& file : nonScaleFiles) {
             cflags.push_back("\"" + file + "\"");
-        }
-
-        for (std::string& s : Main.options.flags) {
-            cflags.push_back("\"" + s + "\"");
         }
 
         if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {

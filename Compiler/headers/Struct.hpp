@@ -143,6 +143,9 @@ namespace sclc
         bool isFinal() const {
             return (flags & 0b00100000) != 0;
         }
+        bool isExtern() const {
+            return (flags & 0b00000010) != 0;
+        }
         void toggleFinal() {
             flags ^= 0b00100000;
         }
@@ -153,6 +156,8 @@ namespace sclc
                 flags |= 0b00000100;
             } else if (m == "static") {
                 flags |= 0b00010000;
+            } else if (m == "expect") {
+                flags |= 0b00000010;
             }
         }
         inline bool operator==(const Struct& other) const {
@@ -199,6 +204,13 @@ namespace sclc
                 }
             }
             return Variable("", "");
+        }
+
+        bool operator==(const Layout& other) const {
+            return name == other.name;
+        }
+        bool operator!=(const Layout& other) const {
+            return name != other.name;
         }
     };
 } // namespace sclc
