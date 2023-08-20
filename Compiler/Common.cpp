@@ -335,6 +335,12 @@ namespace sclc
         bool isConst = false;
         bool isMut = false;
         bool isReadonly = false;
+
+        if (body[*i].type == tok_identifier && body[*i].value == "*") {
+            type_mods += "*";
+            (*i)++;
+        }
+
         while (body[(*i)].value == "const" || body[(*i)].value == "mut" || body[(*i)].value == "readonly") {
             if (!isConst && body[(*i)].value == "const") {
                 type_mods += "const ";
@@ -715,7 +721,7 @@ namespace sclc
                 list += ", ";
             }
             std::string super = v[i];
-            list += std::to_string(id((char*) super.c_str()));
+            list += std::to_string(id(super.c_str()));
         }
         list += "}";
         return list;
@@ -782,15 +788,15 @@ namespace sclc
     }
 
     bool Variable::isAccessible(Function* f) const {
-        if (isPrivate) {
+        if (this->isPrivate) {
             return memberOfStruct(this, f);
         }
         return true;
     }
 
     bool Variable::isWritableFrom(Function* f) const {
-        if (isReadonly || isPrivate) {
-            if (isReadonly && strstarts(this->name, f->member_type + "$")) {
+        if (this->isReadonly || this->isPrivate) {
+            if (this->isReadonly && strstarts(this->name, f->member_type + "$")) {
                 return true;
             }
             return memberOfStruct(this, f);
@@ -812,22 +818,25 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
+        if (s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "mut ") || strstarts(s, "const ")) {
-            s = s.substr(strstarts(s, "mut ") ? 4 : 6);
+            s.erase(0, strstarts(s, "mut ") ? 4 : 6);
         }
         return strstarts(s, "readonly ");
     }
 
     bool typeIsConst(std::string s) {
+        if (s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "mut ") || strstarts(s, "readonly ")) {
-            s = s.substr(strstarts(s, "mut ") ? 4 : 9);
+            s.erase(0, strstarts(s, "mut ") ? 4 : 9);
         }
         return strstarts(s, "const ");
     }
 
     bool typeIsMut(std::string s) {
+        if (s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "const ") || strstarts(s, "readonly ")) {
-            s = s.substr(strstarts(s, "const ") ? 6 : 9);
+            s.erase(0, strstarts(s, "const ") ? 6 : 9);
         }
         return strstarts(s, "mut ");
     }
@@ -849,7 +858,7 @@ namespace sclc
         return attr.st_mtime;
     }
 
-    ID_t id(char* data) {
+    ID_t id(const char* data) {
         if (strlen(data) == 0) return 0;
         ID_t h = 3323198485UL;
         for (;*data;++data) {
