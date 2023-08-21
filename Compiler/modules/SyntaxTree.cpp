@@ -1509,7 +1509,7 @@ namespace sclc {
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
-            builtinHash->return_type = "int32";
+            builtinHash->return_type = "uint32";
             functions.push_back(builtinHash);
 
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "builtinIdentityHash.scale@"));
