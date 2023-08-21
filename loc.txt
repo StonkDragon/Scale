@@ -19,10 +19,10 @@
      651 Compiler/modules/InfoDumper.cpp
      279 Compiler/modules/Parser.cpp
     3385 Compiler/modules/SyntaxTree.cpp
-     144 Compiler/modules/TokenHandlers.cpp
+      62 Compiler/modules/TokenHandlers.cpp
      611 Compiler/modules/Tokenizer.cpp
-    6331 Compiler/modules/Transpiler.cpp
-     270 Scale/Frameworks/Scale.framework/impl/scale.c
+    6184 Compiler/modules/Transpiler.cpp
+     269 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
      106 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
      115 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
@@ -59,8 +59,8 @@
       17 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       38 Scale/Internal/runtime_vars.c
-    1666 Scale/Internal/scale_runtime.c
-     642 Scale/Internal/scale_runtime.h
+    1610 Scale/Internal/scale_runtime.c
+     666 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -96,6 +96,7 @@
       11 examples/repeat.scale
       11 examples/sizeof.scale
       12 examples/std-any.scale
+      12 examples/string-hash.scale
       19 examples/struct.scale
       23 examples/subscript.scale
       33 examples/switch.scale
@@ -110,4 +111,4 @@
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
-   22676 total
+   22426 total
