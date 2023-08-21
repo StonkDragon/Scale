@@ -167,7 +167,7 @@ namespace sclc
                 append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
-                    append("(const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
                 }
                 append("0\n");
                 scopeDepth--;
@@ -220,7 +220,7 @@ namespace sclc
                     result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
-                    append("  Function_%s();\n", f->finalName().c_str());
+                    append("  fn_%s();\n", f->finalName().c_str());
                 }
             }
         }
@@ -246,7 +246,7 @@ namespace sclc
                     result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
-                    append("  Function_%s();\n", f->finalName().c_str());
+                    append("  fn_%s();\n", f->finalName().c_str());
                 }
             }
         }
@@ -258,7 +258,7 @@ namespace sclc
 
         if (!Main.options.noMain) {
             append("int main(int argc, char** argv) {\n");
-            append("  return _scl_run(argc, argv, (mainFunc) &Function_main, %zu);\n", mainFunction->args.size());
+            append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
             append("}\n\n");
         }
         

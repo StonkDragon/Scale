@@ -222,7 +222,7 @@ scl_str Library$dlerror0(void) {
 
 void Thread$run(scl_Thread self) {
 	_scl_stack_new();
-	*(_stack.tp++) = "<extern Thread:run(): none>";
+	SCL_BACKTRACE("<extern Thread:run(): none>");
 	_currentThread = self;
 
 	virtual_call(Var_Thread$threads, "push(a;)V;", self);
@@ -236,7 +236,6 @@ void Thread$run(scl_Thread self) {
 	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
 	
 	_currentThread = nil;
-	_stack.tp--;
 	_scl_stack_free();
 }
 

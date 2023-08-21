@@ -5,18 +5,19 @@
 extern "C" {
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <math.h>
+#include <stdarg.h>
+#include <stdatomic.h>
 #include <string.h>
+#include <math.h>
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
-#include <assert.h>
 #include <time.h>
 #include <sys/time.h>
-#include <stdarg.h>
 #include <dlfcn.h>
 
 #if defined(_WIN32)
@@ -361,6 +362,15 @@ typedef struct {
 
 #define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
 
+#define SCL_BACKTRACE(_func_name) \
+					scl_any __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = (scl_any) (*(_stack.tp++) = _func_name)
+void				_scl_trace_remove(void* _);
+#define SCL_SAVE_STACK \
+					const _scl_frame_t* __current_base_ptr __attribute__((cleanup(_scl_stack_cleanup))) = _stack.sp
+void				_scl_stack_cleanup(void* current_ptr);
+#define SCL_FUNCTION_LOCK(_obj) \
+					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj) \
+
 extern tls _scl_stack_t _stack;
 
 typedef void(*mainFunc)(/* args: Array */ scl_any);
@@ -439,6 +449,7 @@ void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
 scl_str				_scl_create_string(const scl_int8* data);
+scl_str				_scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len);
 void				_scl_stack_new(void);
 void				_scl_stack_free(void);
 void				_scl_stack_resize_fit(scl_int sz);
@@ -480,6 +491,7 @@ const scl_int8**	_scl_callstack_push(void);
 
 scl_int				_scl_find_index_of_struct(scl_any ptr);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
+scl_any				_scl_c_arr_to_scl_array(scl_any arr[]);
 
 scl_any*			_scl_new_array(scl_int num_elems);
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
@@ -516,6 +528,10 @@ __deprecated_msg("Stack resizing has been removed. This function does nothing.")
 #endif
 void				_scl_resize_stack(void);
 void				_scl_drop(void* ptr);
+void				_scl_arc_new();
+void				_scl_arc_add_tracked(scl_any ptr);
+scl_any				_scl_arc_retain(scl_any ptr);
+scl_any				_scl_arc_release(scl_any ptr);
 
 #define _scl_push()						(_stack.sp++)
 
@@ -531,8 +547,16 @@ void				_scl_drop(void* ptr);
 #define _scl_pop()						(--_stack.sp)
 #endif
 
-#if defined(SCL_REFCOUNT) && __has_attribute(__cleanup__)
-#define AUTORELEASE						__attribute__((__cleanup__(_scl_drop)))
+#define SCL_REFCOUNT
+
+#if defined(SCL_REFCOUNT)
+#define retain_as(type, value)			((type) _scl_arc_retain(value))
+#define release_as(type, value)			((type) _scl_arc_release(value))
+#if __has_attribute(cleanup)
+#define AUTORELEASE						__attribute__((cleanup(_scl_drop)))
+#else
+#error "Cleanup attribute not supported!"
+#endif
 #else
 #define AUTORELEASE
 #endif

@@ -453,15 +453,19 @@ scl_int8* _scl_strdup(const scl_int8* str) {
 	return _scl_strndup(str, len);
 }
 
+scl_str _scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len) {
+	scl_str self = ALLOC(str);
+	self->data = data;
+	self->length = len;
+	self->hash = hash;
+	return self;
+}
+
 scl_str _scl_create_string(const scl_int8* data) {
 	scl_str self = ALLOC(str);
-	if (_scl_expect(self == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for cstr '%s'\n", data);
-		return nil;
-	}
+	self->data = data;
 	self->length = strlen(data);
 	self->hash = typeid(data);
-	self->data = data;
 	return self;
 }
 
@@ -501,8 +505,7 @@ void _scl_handle_signal(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 		signalString = "bus error";
 	} else if (sig_num == SIGSEGV) {
 		if (
-			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT) ||
-			_stack.tp > (_stack.tbp + SCL_DEFAULT_STACK_FRAME_COUNT)
+			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT)
 		) {
 			signalString = "stack overflow";
 		} else {
@@ -545,8 +548,7 @@ void _scl_default_signal_handler(scl_int sig_num) {
 		signalString = "bus error";
 	} else if (sig_num == SIGSEGV) {
 		if (
-			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT) ||
-			_stack.tp > (_stack.tbp + SCL_DEFAULT_STACK_FRAME_COUNT)
+			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT)
 		) {
 			signalString = "stack overflow";
 		} else {
@@ -928,7 +930,7 @@ void _scl_set_up_signal_handler(void) {
 void _scl_resize_stack(void) {}
 
 void _scl_exception_push(void) {
-	++_stack.et;
+	*(_stack.et++) = _stack.tp;
 	++_stack.ex;
 	++_stack.jmp;
 	*(_stack.sp_save++) = _stack.sp;
@@ -1453,8 +1455,17 @@ scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
 	return (scl_str) virtual_call(sig, "append(cs;)s;", retType);
 }
 
-const scl_int8** _scl_callstack_push(void) {
-	return _stack.tp++;
+void _scl_trace_remove(void* _) {
+	--_stack.tp;
+}
+
+void _scl_stack_cleanup(void* current_ptr) {
+	_stack.sp = *(_scl_frame_t**) current_ptr;
+}
+
+void _scl_unlock(void* lock_ptr) {
+	volatile Struct* lock = *(volatile Struct**) lock_ptr;
+	Process$unlock((scl_any) lock);
 }
 
 void _scl_stack_resize_fit(scl_int sz) {
@@ -1514,72 +1525,6 @@ static inline void printStackTraceOf(scl_Exception e) {
 
 	fprintf(stderr, "\n");
 	nativeTrace();
-}
-
-struct arc {
-	scl_any* pool;
-	scl_int* refcounts;
-	scl_int count;
-	scl_int capacity;
-};
-static struct arc _scl_arc = {
-	.pool = nil,
-	.refcounts = nil,
-	.count = 0,
-	.capacity = 0
-};
-
-void _scl_arc_new() {
-	if (_scl_arc.pool) return;
-	_scl_arc.pool = (scl_any*) malloc(sizeof(scl_any) * 16);
-	_scl_arc.refcounts = (scl_int*) malloc(sizeof(scl_int) * 16);
-	_scl_arc.count = 0;
-	_scl_arc.capacity = 16;
-}
-
-#define log(...) ({ printf("%s:%d: %s: ", __FILE__, __LINE__, __func__); printf(__VA_ARGS__); printf("\n"); })
-
-void _scl_arc_add_tracked(scl_any ptr) {
-	scl_int index = insert_sorted(&(_scl_arc.pool), &(_scl_arc.count), ptr, &(_scl_arc.capacity));
-	if (_scl_expect(index == -1, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Failed to add ARC-tracked pointer to pool!");
-	}
-
-	_scl_arc.refcounts[index] = 1;
-	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
-}
-
-scl_any _scl_arc_retain(scl_any ptr) {
-	scl_int index = _scl_binary_search(_scl_arc.pool, _scl_arc.count, ptr);
-	if (index < 0) {
-		return ptr;
-	}
-	_scl_arc.refcounts[index]++;
-	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
-	return ptr;
-}
-
-scl_any _scl_arc_release(scl_any ptr) {
-	scl_int index = _scl_binary_search(_scl_arc.pool, _scl_arc.count, ptr);
-	if (index < 0) {
-		log("Untracked pointer %p", ptr);
-		return ptr;
-	}
-
-	_scl_arc.refcounts[index]--;
-	log("ARC refcount for %p (%ld) is now %ld", ptr, index, _scl_arc.refcounts[index]);
-	if (_scl_arc.refcounts[index] <= 0) {
-		_scl_free(_scl_arc.pool[index]);
-		_scl_arc.pool[index] = nil;
-		remove_at(&(_scl_arc.pool), &(_scl_arc.count), index);
-	}
-	return _scl_arc.pool[index];
-}
-
-void _scl_drop(void* ptr) {
-	if (_scl_expect(!ptr, 0)) return;
-
-	_scl_arc_release(*(scl_any*) ptr);
 }
 
 _scl_no_return
@@ -1652,7 +1597,6 @@ int _scl_run(int argc, scl_int8** argv, mainFunc entry, scl_int main_argc) {
 	if (argv0)
 		*argv0 = argv[0];
 
-	*(_stack.et - 1) = _stack.tp = _stack.tbp;
 	TRY {
 		entry(args);
 	} else {
