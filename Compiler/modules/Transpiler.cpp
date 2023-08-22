@@ -3384,16 +3384,11 @@ namespace sclc {
         noUnused;
         if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
         append("SCL_ASSUME((_stack.sp - 1)->i, \"Tried dereferencing nil pointer!\");\n");
-        append("(_stack.sp - 1)->v = (*(scl_any*) (_stack.sp - 1)->v);\n");
         std::string ptr = removeTypeModifiers(typeStackTop);
+        std::string ctype = sclTypeToCType(result, typePointedTo(ptr));
+        append("*(%s*) (_stack.sp - 1) = (*(%s*) (_stack.sp - 1)->v);\n", ctype.c_str(), ctype.c_str());
         typePop;
-        if (ptr.size()) {
-            if (ptr.front() == '[' && ptr.back() == ']') {
-                typeStack.push(ptr.substr(1, ptr.size() - 2));
-                return;
-            }
-        }
-        typeStack.push("any");
+        typeStack.push(typePointedTo(ptr));
     }
 
     handler(Break) {
