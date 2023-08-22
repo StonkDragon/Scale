@@ -74,7 +74,7 @@ namespace sclc {
 
         for (size_t i = 0; i < amountOfVarargs; i++) {
             append("scl_any vararg%zu = _scl_positive_offset(%zu)->v;\n", i, i);
-            append("printf(\"argument %zu: %%p\\n\", vararg%zu);\n", i, i);
+            // append("printf(\"argument %zu: %%p\\n\", vararg%zu);\n", i, i);
         }
 
         std::string args = generateArgumentsForFunction(result, f);

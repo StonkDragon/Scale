@@ -24,28 +24,33 @@ final static sealed struct FmtIO
   function puts(fmt: str, args: varargs): none
     args:iterate => decl argIterator: ArrayIterator
     for i in 0 to fmt:size do
-      i fmt @ => decl char: int8
-      if char '%' == then
+      i fmt @ => decl c: int8
+      if c '%' == then
         i++ => i
-        i fmt @ => char
-        if char '%' == then
+        i fmt @ => c
+        if c '%' == then
           '%' FmtIO::putchar
         fi
         if argIterator:hasNext ! then
           "Not enough arguments for format string" InvalidArgumentException::new throw
         fi
         argIterator:next => decl arg: any
-        if char 's' == char 'i' == || then
+        if c 's' == c 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
-        elif char 'f' == then
-          arg float::fromBits float::toString FmtIO::printStrNoNewline
-        elif char 'c' == then
+        elif c 'f' == then
+          unsafe
+            c!
+              printf("%f", *(scl_float*) arg);
+            end
+          end
+          # arg float::fromBits float::toString FmtIO::printStrNoNewline
+        elif c 'c' == then
           arg FmtIO::putchar
         else
           "invalid format specifier" InvalidArgumentException::new throw
         fi
       else
-        char FmtIO::putchar
+        c FmtIO::putchar
       fi
     done
     argIterator any::delete

@@ -32,7 +32,7 @@
      115 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
      161 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
-      53 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
+      58 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
       70 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      309 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      117 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
@@ -115,4 +115,4 @@
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
-   22386 total
+   22391 total
