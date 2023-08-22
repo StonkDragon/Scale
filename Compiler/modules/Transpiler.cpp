@@ -4349,5 +4349,7 @@ namespace sclc {
         }
     
         filePostamble();
+
+        fclose(fp);
     }
 } // namespace sclc

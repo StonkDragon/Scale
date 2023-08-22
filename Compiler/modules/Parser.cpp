@@ -83,7 +83,6 @@ namespace sclc
         ConvertC::writeTables(fp, result, filename);
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
-        fclose(fp);
         fp = fopen(filename.c_str(), "a");
 
         if (structTree) {
