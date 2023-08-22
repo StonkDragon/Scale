@@ -87,7 +87,9 @@ namespace sclc {
         else if (name == "?") name = "operator$wildcard";
 
         Function* func = new Function(name, name_token);
+        std::cout << tokens[i].tostring() << std::endl;
         i += 2;
+        std::cout << tokens[i].tostring() << std::endl;
         if (tokens[i].type == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
