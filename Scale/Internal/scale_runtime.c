@@ -570,7 +570,7 @@ void _scl_default_signal_handler(scl_int sig_num) {
 		_scl_frame_t* frame = _stack.sp;
 		while (frame > _stack.bp) {
 			frame--;
-			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
+			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(scl_any), frame->i, frame->i);
 		}
 		printf("\n");
 	}
@@ -596,7 +596,7 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 }
 
 scl_int _scl_stack_size(void) {
-	return (_stack.sp - _stack.bp) / sizeof(_scl_frame_t);
+	return (_stack.sp - _stack.bp) / sizeof(scl_any);
 }
 
 void _scl_sleep(scl_int millis) {

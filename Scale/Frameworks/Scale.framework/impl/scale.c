@@ -181,7 +181,7 @@ void dumpStack(void) {
 	printf("Dump:\n");
 	_scl_frame_t* frame = _stack.bp;
 	while (frame != _stack.sp) {
-		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
+		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(scl_any), frame->i, frame->i);
 	}
 	printf("\n");
 }

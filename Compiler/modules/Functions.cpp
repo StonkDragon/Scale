@@ -24,7 +24,7 @@ namespace sclc {
         std::string args = "";
         size_t maxValue = func->args.size();
         if (func->isMethod) {
-            args = "(" + sclTypeToCType(result, func->member_type) + ") _scl_positive_offset(" + std::to_string(func->args.size() - 1) + ")->i";
+            args = "*(" + sclTypeToCType(result, func->member_type) + "*) _scl_positive_offset(" + std::to_string(func->args.size() - 1) + ")";
             maxValue--;
         }
         if (func->isCVarArgs())
@@ -36,18 +36,9 @@ namespace sclc {
                 args += ", ";
 
             bool isValueStructParam = arg.type.front() == '*';
-            std::string typeRemoved = removeTypeModifiers(arg.type);
-
-            if (typeRemoved == "float") {
-                args += "_scl_positive_offset(" + std::to_string(i) + ")->f";
-            } else if (typeRemoved == "str") {
-                args += "_scl_positive_offset(" + std::to_string(i) + ")->s";
-            } else if (typeRemoved == "any") {
-                args += "_scl_positive_offset(" + std::to_string(i) + ")->v";
-            } else {
-                if (isValueStructParam) args += "*";
-                args += "(" + sclTypeToCType(result, typeRemoved) + ") _scl_positive_offset(" + std::to_string(i) + ")->i";
-            }
+            if (isValueStructParam) args += "*(";
+            args += "*(" + sclTypeToCType(result, arg.type.substr(isValueStructParam)) + "*) _scl_positive_offset(" + std::to_string(i) + ")";
+            if (isValueStructParam) args += ")";
         }
         return args;
     }
@@ -72,8 +63,11 @@ namespace sclc {
         
         append("_scl_popn(%zu);\n", amountOfVarargs);
 
-        for (size_t i = 0; i < amountOfVarargs; i++) {
-            append("scl_any vararg%zu = _scl_positive_offset(%zu)->v;\n", i, i);
+        for (long i = amountOfVarargs - 1; i >= 0; i--) {
+            std::string nextType = typeStack.top();
+            typeStack.pop();
+            std::string ctype = sclTypeToCType(result, nextType);
+            append("%s vararg%ld = *(%s*) _scl_positive_offset(%ld);\n", ctype.c_str(), i, ctype.c_str(), i);
             // append("printf(\"argument %zu: %%p\\n\", vararg%zu);\n", i, i);
         }
 
@@ -92,18 +86,28 @@ namespace sclc {
         if (f->args.size() > 1)
             append("_scl_popn(%zu);\n", f->args.size() - 1);
 
-        for (size_t i = 0; i < (amountOfVarargs + f->args.size()); i++) {
+        for (size_t i = 0; i < f->args.size(); i++) {
             typePop;
         }
 
-        if (f->return_type == "none" || f->return_type == "nothing") {
-            append("fn_%s(%s);\n", f->name.c_str(), args.c_str());
+        if (f->return_type.size() && f->return_type.front() == '*') {
+            append("{\n");
+            scopeDepth++;
+            append("%s tmp = ", sclTypeToCType(result, f->return_type).c_str());
         } else {
-            if (f->return_type == "float") {
-                append("(_stack.sp++)->f = fn_%s(%s);\n", f->name.c_str(), args.c_str());
+            if (f->return_type != "none" && f->return_type != "nothing") {
+                append("*(%s*) _stack.sp++ = ", sclTypeToCType(result, f->return_type).c_str());
             } else {
-                append("(_stack.sp++)->v = (scl_any) fn_%s(%s);\n", f->name.c_str(), args.c_str());
+                append("");
             }
+        }
+
+        append2("fn_%s(%s);\n", f->name.c_str(), args.c_str());
+        if (f->return_type.size() && f->return_type.front() == '*') {
+            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
+            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
+            scopeDepth--;
+            append("}\n");
         }
         scopeDepth--;
         append("}\n");
@@ -385,7 +389,7 @@ namespace sclc {
                 if (method->operator==(self)) {
                     std::string functionPtrCast = getFunctionType(result, self);
 
-                    append2("((%s) _scl_positive_offset(%zu)->o->", functionPtrCast.c_str(), argc - 1);
+                    append2("((%s) (*(%s*) _scl_positive_offset(%zu))->", functionPtrCast.c_str(), sclTypeToCType(result, self->member_type).c_str(), argc - 1);
                     if (onSuperType) {
                         append2("$statics->super_vtable[%zu].ptr)(%s);\n", index, args.c_str());
                     } else {
@@ -400,7 +404,7 @@ namespace sclc {
             std::string rtSig = argsToRTSignature(self);
             std::string functionPtrCast = getFunctionType(result, self);
             append(
-                "((%s) (_scl_get_vtable_function(0, _scl_positive_offset(%zu)->v, \"%s%s\")))(%s);\n",
+                "((%s) (_scl_get_vtable_function(0, *(scl_any*) _scl_positive_offset(%zu), \"%s%s\")))(%s);\n",
                 functionPtrCast.c_str(),
                 argc - 1,
                 self->name.c_str(),
@@ -410,8 +414,8 @@ namespace sclc {
             found = true;
         }
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("*(scl_any*) _stack.sp++ = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy(*(scl_any*) (_stack.sp - 1), &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;
             append("}\n");
         }
@@ -430,11 +434,7 @@ namespace sclc {
         if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
             append("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
-            if (removeTypeModifiers(self->return_type) == "float") {
-                append("(_stack.sp++)->f = fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
-            }
+            append("*(%s*) (_stack.sp++) = fn_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         }
     }
 
@@ -444,11 +444,7 @@ namespace sclc {
         if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
             append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
-            if (removeTypeModifiers(self->return_type) == "float") {
-                append("(_stack.sp++)->f = mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
-            } else {
-                append("(_stack.sp++)->i = (scl_int) mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
-            }
+            append("*(%s*) (_stack.sp++) = mt_%s$%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         }
     }
 
@@ -678,11 +674,7 @@ namespace sclc {
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
-                if (removeTypeModifiers(self->return_type) == "float") {
-                    append("(_stack.sp++)->f = ");
-                } else {
-                    append("(_stack.sp++)->i = ");
-                }
+                append("*(%s*) _stack.sp++ = ", sclTypeToCType(result, self->return_type).c_str());
                 typeStack.push(self->return_type);
             } else {
                 append("");
@@ -690,8 +682,8 @@ namespace sclc {
         }
         append2("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("*(scl_any*) _stack.sp++ = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy(*(scl_any*) (_stack.sp - 1), &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;
             append("}\n");
         }

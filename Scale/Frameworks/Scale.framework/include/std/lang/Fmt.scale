@@ -24,10 +24,10 @@ final static sealed struct FmtIO
   function puts(fmt: str, args: varargs): none
     args:iterate => decl argIterator: ArrayIterator
     for i in 0 to fmt:size do
-      i fmt @ => decl c: int8
+      fmt[i] => decl c: int8
       if c '%' == then
         i++ => i
-        i fmt @ => c
+        fmt[i] => c
         if c '%' == then
           '%' FmtIO::putchar
         fi
@@ -38,12 +38,7 @@ final static sealed struct FmtIO
         if c 's' == c 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
         elif c 'f' == then
-          unsafe
-            c!
-              printf("%f", *(scl_float*) arg);
-            end
-          end
-          # arg float::fromBits float::toString FmtIO::printStrNoNewline
+          arg float::fromBits float::toString FmtIO::printStrNoNewline
         elif c 'c' == then
           arg FmtIO::putchar
         else

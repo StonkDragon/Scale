@@ -260,7 +260,7 @@ typedef struct TypeInfo {
 } TypeInfo;
 
 struct scale_string {
-	const _scl_lambda* const			$vtable;
+	const _scl_lambda* const			$fast;
 	const TypeInfo* const				$statics;
 	const mutex_t						$mutex;
 	const scl_int8*						data;

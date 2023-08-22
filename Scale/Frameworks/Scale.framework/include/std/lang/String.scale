@@ -18,7 +18,7 @@ private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl data: [int8]
   private decl length: int
-  private decl hash: int
+  private decl hash: uint32
 
   function +(other: str): str
     other self:prepend return

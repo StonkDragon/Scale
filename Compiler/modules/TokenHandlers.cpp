@@ -46,11 +46,7 @@ namespace sclc {
                     typeStack.pop();
             }
             if (f->return_type.size() > 0 && f->return_type != "none" && f->return_type != "nothing") {
-                if (f->return_type == "float") {
-                    append("(_stack.sp++)->f = mt_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
-                } else {
-                    append("(_stack.sp++)->i = (scl_int) mt_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
-                }
+                append("*(%s*) (_stack.sp++) = mt_%s$%s(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
                 typeStack.push(f->return_type);
             } else {
                 append("mt_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());

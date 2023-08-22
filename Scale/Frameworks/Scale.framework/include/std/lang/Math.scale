@@ -113,5 +113,5 @@ function lerp(a: float, b: float, t: float): float
 end
 
 function neg(number: int): int
-  number 0 swap - return
+  0 number - return
 end

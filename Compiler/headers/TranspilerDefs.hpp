@@ -18,19 +18,16 @@
     err.value = (tok).value;    \
     err.type = (tok).type;      \
     err.message = msg
-#define LOAD_PATH(path, type)                                                               \
-    if (removeTypeModifiers(type) == "float")                                               \
-    {                                                                                       \
-        append("(_stack.sp++)->f = %s;\n", path.c_str());                                   \
-    }                                                                                       \
-    else if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing") \
-    {                                                                                       \
-        append("%s;\n", path.c_str());                                                      \
-    }                                                                                       \
-    else                                                                                    \
-    {                                                                                       \
-        append("(_stack.sp++)->i = (scl_int) %s;\n", path.c_str());                         \
-    }                                                                                       \
+#define LOAD_PATH(path, type)                                                                           \
+    if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing")                  \
+    {                                                                                                   \
+        append("%s;\n", path.c_str());                                                                  \
+    }                                                                                                   \
+    else                                                                                                \
+    {                                                                                                   \
+        append("if (sizeof(%s) < 8) { (_stack.sp)->i = 0; }\n", sclTypeToCType(result, type).c_str());  \
+        append("*(%s*) (_stack.sp++) = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());     \
+    }                                                                                                   \
     typeStack.push(type);
 
 #define wasRepeat()     (whatWasIt.size() > 0 && whatWasIt.back() == 1)
