@@ -1,3 +1,5 @@
+#include <array>
+
 #include "../headers/Common.hpp"
 #include "../headers/TokenType.hpp"
 #include "../headers/TranspilerDefs.hpp"
