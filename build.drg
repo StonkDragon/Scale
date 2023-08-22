@@ -21,6 +21,8 @@ build: {
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
     "modules/InfoDumper.cpp";
+    "modules/Functions.cpp";
+    "modules/Types.cpp";
     "Common.cpp";
   ];
   watch: [
@@ -75,6 +77,8 @@ install: {
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
     "modules/InfoDumper.cpp";
+    "modules/Functions.cpp";
+    "modules/Types.cpp";
     "Common.cpp";
   ];
   defines: [

@@ -6,18 +6,6 @@ namespace sclc {
 
     #define print(s) std::cout << s << std::endl
 
-    template<typename T>
-    std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
-        std::vector<T> ret;
-        for (T& t : a) {
-            ret.push_back(t);
-        }
-        for (T& t : b) {
-            ret.push_back(t);
-        }
-        return ret;
-    }
-
     void binaryHeader(TPResult result) {
         remove(Main.options.outfile.c_str());
         FILE* f = fopen(Main.options.outfile.c_str(), "ab");

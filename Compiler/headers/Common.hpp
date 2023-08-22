@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <csignal>
 #include <regex>
 #include <unordered_map>
 #include <unordered_set>
@@ -221,8 +222,27 @@ namespace sclc {
     bool featureEnabled(std::string feat);
     bool isInitFunction(Function* f);
     bool isDestroyFunction(Function* f);
-    time_t file_modified_time(const std::string& path);
-    
+    std::string sclFunctionNameToFriendlyString(Function* f);
+    std::string sclFunctionNameToFriendlyString(std::string name);
+    bool isPrimitiveIntegerType(std::string type);
+    std::string argsToRTSignature(Function* f);
+    bool typeEquals(const std::string& a, const std::string& b);
+    std::vector<Method*> makeVTable(TPResult& res, std::string name);
+    std::string argsToRTSignatureIdent(Function* f);
+    bool handleOverriddenOperator(TPResult& result, FILE* fp, int scopeDepth, std::string op, std::string type);
+    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter = true);
+    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
+    std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
+    std::string unquote(const std::string& str);
+    std::string capitalize(std::string s);
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter);
+    std::string ltrim(const std::string& s);
+    std::string scaleArgs(std::vector<Variable> args);
+    bool structImplements(TPResult& result, Struct s, std::string interface);
+    std::string replace(std::string s, std::string a, std::string b);
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member);
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member);
+
     template<typename T>
     bool contains(std::vector<T> v, T val) {
         if (v.size() == 0) return false;
@@ -236,9 +256,99 @@ namespace sclc {
         }
     }
 
+    template<typename T>
+    std::vector<T> operator&(const std::vector<T>& a, std::function<bool(T)> b) {
+        std::vector<T> result;
+        for (auto&& t : a) {
+            if (b(t)) {
+                result.push_back(t);
+            }
+        }
+        return result;
+    }
+
+    template<typename T>
+    void addIfAbsent(std::vector<T>& vec, T val) {
+        if (vec.size() == 0 || !contains<T>(vec, val))
+            vec.push_back(val);
+    }
+
+    template<typename T>
+    std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
+        std::vector<T> ret;
+        for (T& t : a) {
+            ret.push_back(t);
+        }
+        for (T& t : b) {
+            ret.push_back(t);
+        }
+        return ret;
+    }
+
+    template<typename T>
+    size_t indexInVec(std::vector<T>& vec, T elem) {
+        for (size_t i = 0; i < vec.size(); i++) {
+            if (vec[i] == elem) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     inline ID_t ror(const ID_t value, ID_t shift) {
         return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
+
+    struct StructTreeNode {
+        Struct s;
+        std::vector<StructTreeNode*> children;
+
+        StructTreeNode(Struct s) : s(s), children() {}
+
+        ~StructTreeNode() {
+            for (StructTreeNode* child : children) {
+                delete child;
+            }
+        }
+
+        void addChild(StructTreeNode* child) {
+            children.push_back(child);
+        }
+
+        std::string toString(int indent = 0) {
+            std::string result = "";
+            for (int i = 0; i < indent; i++) {
+                result += "  ";
+            }
+            result += s.name + "\n";
+            for (StructTreeNode* child : children) {
+                result += child->toString(indent + 1);
+            }
+            return result;
+        }
+
+        void forEach(std::function<void(StructTreeNode*)> f) {
+            f(this);
+            for (StructTreeNode* child : children) {
+                child->forEach(f);
+            }
+        }
+
+        static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
+            StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
+            for (Struct& s : result.structs) {
+                if (s.super == name) {
+                    node->addChild(directSubstructsOf(root, result, s.name));
+                }
+            }
+            return node;
+        }
+
+        static StructTreeNode* fromArrayOfStructs(TPResult& result) {
+            StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
+            return directSubstructsOf(root, result, "SclObject");
+        }
+    };
 
     ID_t id(const char* data);
 }

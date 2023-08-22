@@ -1,11 +1,13 @@
-#include "headers/Common.hpp"
-
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
 #endif
 
 #include <unordered_set>
 #include <stack>
+
+#include "headers/Common.hpp"
+#include "headers/Types.hpp"
+#include "headers/TranspilerDefs.hpp"
 
 namespace sclc
 {
@@ -453,8 +455,6 @@ namespace sclc
         }
         return r;
     }
-    
-    bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false);
 
     Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name2, bool doCheck) {
         (void) doCheck;
@@ -626,8 +626,6 @@ namespace sclc
     }
 
     std::string removeTypeModifiers(std::string t);
-
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
 
     const Struct& getStructByName(TPResult& result, const std::string& name) {
         const std::string& typeName = removeTypeModifiers(name);
@@ -852,12 +850,6 @@ namespace sclc
         return contains<std::string>(Main.options.features, feat);
     }
 
-    time_t file_modified_time(const std::string& path) {
-        struct stat attr;
-        stat(path.c_str(), &attr);
-        return attr.st_mtime;
-    }
-
     ID_t id(const char* data) {
         if (strlen(data) == 0) return 0;
         ID_t h = 3323198485UL;
@@ -885,4 +877,300 @@ namespace sclc
         }
         return toRepeat;
     }
+
+    extern Function* currentFunction;
+    extern Struct currentStruct;
+    extern std::stack<std::string> typeStack;
+
+    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter) {
+        std::string path = prefix;
+        if (path.size()) {
+            path += v.name;
+        } else {
+            path += "Var_" + v.name;
+        }
+        *currentType = v.type;
+        if (topLevelDeref) {
+            path = "(*" + path + ")";
+            *currentType = typePointedTo(*currentType);
+        }
+        if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
+                transpilerError("Variable '" + v.name + "' is not mutable", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (doesWriteAfter) {
+                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                    return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                });
+
+                bool funcFound = false;
+                for (Function* f : funcs) {
+                    if (
+                        f->isMethod ||
+                        f->args.size() != 1 ||
+                        f->return_type != v.type ||
+                        !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                    ) {
+                        continue;
+                    }
+                    path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                    funcFound = true;
+                }
+                if (!funcFound) {
+                    path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                }
+            }
+            return path;
+        }
+        safeInc();
+        while (body[i].type == tok_dot) {
+            safeInc();
+            bool deref = body[i].type == tok_addr_of;
+            if (deref) {
+                safeInc();
+            }
+            Struct s = getStructByName(result, *currentType);
+            Layout l = getLayout(result, *currentType);
+            if (s == Struct::Null && l.name.size() == 0) {
+                transpilerError("Struct '" + *currentType + "' does not exist", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (!s.hasMember(body[i].value) && !l.hasMember(body[i].value)) {
+                transpilerError("Struct '" + *currentType + "' has no member named '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            } else if (!s.hasMember(body[i].value)) {
+                v = l.getMember(body[i].value);
+            } else {
+                v = s.getMember(body[i].value);
+            }
+            *currentType = v.type;
+            if (deref) {
+                *currentType = typePointedTo(*currentType);
+            }
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
+                transpilerError("Variable '" + v.name + "' is not mutable", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (!v.isAccessible(currentFunction)) {
+                transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
+                if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
+                    transpilerError("Member '" + v.name + "' of struct '" + s.name + "' is not mutable", i);
+                    errors.push_back(err);
+                    return std::string("(void) 0");
+                }
+                Method* f = nullptr;
+                if (deref || !doesWriteAfter) {
+                    f = attributeAccessor(result, s.name, v.name);
+                } else {
+                    f = attributeMutator(result, s.name, v.name);
+                }
+                if (f) {
+                    if (deref || !doesWriteAfter) {
+                        path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
+                    } else {
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                        });
+
+                        path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ", ";
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            path += "fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += "*(" + sclTypeToCType(result, *currentType) + "*) _scl_pop())";
+                        }
+                    }
+                } else {
+                    path = path + "->" + body[i].value;
+                    if (!deref && doesWriteAfter) {
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                        });
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                        }
+                    }
+                }
+                if (deref) {
+                    path = "(*" + path + ")";
+                    if (doesWriteAfter) {
+                        path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                    }
+                }
+                return path;
+            } else {
+                Method* f = attributeAccessor(result, s.name, v.name);
+                if (f) {
+                    path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
+                } else {
+                    path = path + "->" + body[i].value;
+                }
+                if (deref) {
+                    path = "(*" + path + ")";
+                }
+            }
+            safeInc();
+        }
+        i--;
+        return path;
+    }
+
+    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n) {
+        size_t i = 0;
+        for (auto&& member : val) {
+            if (i == n) {
+                return member;
+            }
+            i++;
+        }
+        return std::pair<std::string, std::string>("", "");
+    }
+
+    std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem) {
+        std::vector<std::string> newVec;
+        for (auto&& member : vec) {
+            if (member != elem) {
+                newVec.push_back(member);
+            }
+        }
+        return newVec;
+    }
+
+    std::string unquote(const std::string& str) {
+        std::string ret;
+        ret.reserve(str.size());
+        for (auto it = str.begin(); it != str.end(); ++it) {
+            if (*it == '\\') {
+                ++it;
+                switch (*it) {
+                    case 'n':
+                        ret.push_back('\n');
+                        break;
+                    case 'r':
+                        ret.push_back('\r');
+                        break;
+                    case 't':
+                        ret.push_back('\t');
+                        break;
+                    case '0':
+                        ret.push_back('\0');
+                        break;
+                    case '\\':
+                        ret.push_back('\\');
+                        break;
+                    case '\'':
+                        ret.push_back('\'');
+                        break;
+                    case '\"':
+                        ret.push_back('\"');
+                        break;
+                    default:
+                        std::cerr << "Unknown escape sequence: \\" << *it << std::endl;
+                        return "";
+                }
+            } else {
+                ret.push_back(*it);
+            }
+        }
+        return ret;
+    }
+
+    std::string capitalize(std::string s) {
+        if (s.size() == 0) return s;
+        s[0] = std::toupper(s[0]);
+        return s;
+    }
+
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+        std::vector<std::string> body;
+        size_t start = 0;
+        size_t end = 0;
+        while ((end = str.find(delimiter, start)) != std::string::npos)
+        {
+            body.push_back(str.substr(start, end - start));
+            start = end + delimiter.size();
+        }
+        body.push_back(str.substr(start));
+        return body;
+    }
+
+    std::string ltrim(const std::string& s) {
+        size_t start = s.find_first_not_of(" \t\r\n");
+        return (start == std::string::npos) ? "" : s.substr(start);
+    }
+
+    std::string scaleArgs(std::vector<Variable> args) {
+        std::string result = "";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i) {
+                result += ", ";
+            }
+            result += args[i].name + ": " + args[i].type;
+        }
+        return result;
+    }
+
+    bool structImplements(TPResult& result, Struct s, std::string interface) {
+        do {
+            if (s.implements(interface)) {
+                return true;
+            }
+            s = getStructByName(result, s.super);
+        } while (s.name.size());
+        return false;
+    }
+
+    std::string replace(std::string s, std::string a, std::string b) {
+        size_t pos = 0;
+        while ((pos = s.find(a, pos)) != std::string::npos) {
+            s.replace(pos, a.size(), b);
+            pos += b.size();
+        }
+        return s;
+    }
+
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
+        return f && f->has_getter ? f : nullptr;
+    }
+
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
+        return f && f->has_setter ? f : nullptr;
+    }
+
 } // namespace sclc

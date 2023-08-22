@@ -471,7 +471,6 @@ scl_str _scl_create_string(const scl_int8* data) {
 
 scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	scl_Array arr = (scl_Array) ALLOC(ReadOnlyArray);
-	_scl_struct_allocation_failure(REINTERPRET_CAST(scl_int, arr), "ReadOnlyArray");
 	virtual_call(arr, "init(i;)V;", count);
 	for (scl_int i = 0; i < count; i++) {
 		arr->values[i] = va_arg(args, scl_any);
@@ -952,27 +951,8 @@ scl_int8** _scl_platform_get_env(void) {
 #endif
 }
 
-void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout) {
-	scl_int size = _scl_sizeof(ptr);
-	if (size < layoutSize) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(layout) + 256);
-		snprintf(msg, 256 + strlen(layout), "Layout '%s' requires more memory than the pointer has available (required: " SCL_INT_FMT " found: " SCL_INT_FMT ")", layout, layoutSize, size);
-		_scl_assert(0, msg);
-	}
-}
-
-void _scl_check_not_nil_argument(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Argument '%s' is nil", name);
-		_scl_assert(0, msg);
-	}
-}
-
-#define as(type, val) ((scl_ ## type) _scl_checked_cast((scl_any) val, hash_of(#type), #type))
-
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
-	if (!_scl_is_instance_of(instance, target_type)) {
+	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
 		typedef struct Struct_CastError {
 			Struct rtFields;
 			scl_str msg;
@@ -1009,44 +989,28 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 	return instance;
 }
 
-void _scl_not_nil_cast(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Nil cannot be cast to non-nil type '%s'!", name);
-		_scl_assert(0, msg);
-	}
+void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout) {
+	SCL_ASSUME(_scl_sizeof(ptr) >= layoutSize, "Layout '%s' requires more memory than the pointer has available (required: " SCL_INT_FMT " found: " SCL_INT_FMT ")", layout, layoutSize, _scl_sizeof(ptr))
 }
 
-void _scl_struct_allocation_failure(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Failed to allocate memory for struct '%s'!", name);
-		_scl_assert(0, msg);
-	}
+void _scl_check_not_nil_argument(scl_int val, const scl_int8* name) {
+	SCL_ASSUME(val, "Argument '%s' is nil", name)
+}
+
+void _scl_not_nil_cast(scl_int val, const scl_int8* name) {
+	SCL_ASSUME(val, "Nil cannot be cast to non-nil type '%s'!", name)
 }
 
 void _scl_nil_ptr_dereference(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Tried dereferencing nil pointer '%s'!", name);
-		_scl_assert(0, msg);
-	}
+	SCL_ASSUME(val, "Tried dereferencing nil pointer '%s'!", name)
 }
 
 void _scl_check_not_nil_store(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Nil cannot be stored in non-nil variable '%s'!", name);
-		_scl_assert(0, msg);
-	}
+	SCL_ASSUME(val, "Nil cannot be stored in non-nil variable '%s'!", name)
 }
 
 void _scl_not_nil_return(scl_int val, const scl_int8* name) {
-	if (val == 0) {
-		scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * strlen(name) + 64);
-		snprintf(msg, 64 + strlen(name), "Tried returning nil from function returning not-nil type '%s'!", name);
-		_scl_assert(0, msg);
-	}
+	SCL_ASSUME(val, "Tried returning nil from function returning not-nil type '%s'!", name)
 }
 
 void _scl_stack_new(void) {

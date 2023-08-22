@@ -371,6 +371,14 @@ void				_scl_stack_cleanup(void* current_ptr);
 #define SCL_FUNCTION_LOCK(_obj) \
 					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj) \
 
+#define SCL_ASSUME(val, what, ...) \
+					if (_scl_expect(!(val), 0)) { \
+						size_t msg_len = strlen((what)) + 256; \
+						scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * msg_len); \
+						snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
+						_scl_assert(0, msg); \
+					}
+
 extern tls _scl_stack_t _stack;
 
 typedef void(*mainFunc)(/* args: Array */ scl_any);
@@ -465,14 +473,15 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 scl_int8*			_scl_strdup(const scl_int8* str);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
+scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
+
 void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout);
 void				_scl_check_not_nil_argument(scl_int val, const scl_int8* name);
-scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 void				_scl_not_nil_cast(scl_int val, const scl_int8* name);
-void				_scl_struct_allocation_failure(scl_int val, const scl_int8* name);
 void				_scl_nil_ptr_dereference(scl_int val, const scl_int8* name);
 void				_scl_check_not_nil_store(scl_int val, const scl_int8* name);
 void				_scl_not_nil_return(scl_int val, const scl_int8* name);
+
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
 void				_scl_throw(scl_any ex);

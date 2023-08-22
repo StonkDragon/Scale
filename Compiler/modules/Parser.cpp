@@ -12,59 +12,6 @@
 
 namespace sclc
 {
-
-    struct StructTreeNode {
-        Struct s;
-        std::vector<StructTreeNode*> children;
-
-        StructTreeNode(Struct s) : s(s), children() {}
-
-        ~StructTreeNode() {
-            for (StructTreeNode* child : children) {
-                delete child;
-            }
-        }
-
-        void addChild(StructTreeNode* child) {
-            children.push_back(child);
-        }
-
-        std::string toString(int indent = 0) {
-            std::string result = "";
-            for (int i = 0; i < indent; i++) {
-                result += "  ";
-            }
-            result += s.name + "\n";
-            for (StructTreeNode* child : children) {
-                result += child->toString(indent + 1);
-            }
-            return result;
-        }
-
-        void forEach(std::function<void(StructTreeNode*)> f) {
-            f(this);
-            for (StructTreeNode* child : children) {
-                child->forEach(f);
-            }
-        }
-
-        static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
-            StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
-            for (Struct& s : result.structs) {
-                if (s.super == name) {
-                    node->addChild(directSubstructsOf(root, result, s.name));
-                }
-            }
-            return node;
-        }
-
-        static StructTreeNode* fromArrayOfStructs(TPResult& result) {
-            StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
-            return directSubstructsOf(root, result, "SclObject");
-        }
-    };
-
-
     extern Struct currentStruct;
     extern int scopeDepth;
     extern std::map<std::string, std::vector<Method*>> vtables;
