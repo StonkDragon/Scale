@@ -473,7 +473,7 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	scl_Array arr = (scl_Array) ALLOC(ReadOnlyArray);
 	virtual_call(arr, "init(i;)V;", count);
 	for (scl_int i = 0; i < count; i++) {
-		arr->values[i] = va_arg(args, scl_any);
+		arr->values[i] = *(va_arg(args, scl_any*));
 	}
 	arr->count = count;
 	return arr;
@@ -909,6 +909,8 @@ void _scl_reset_signal_handler(scl_int sig) {
 }
 
 void _scl_set_up_signal_handler(void) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-W#pragma-messages"
 	static struct sigaction act = {
 		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_handle_signal,
 		.sa_flags = SA_SIGINFO,
@@ -924,6 +926,7 @@ void _scl_set_up_signal_handler(void) {
 	SIGACTION(SIGSEGV);
 
 	#undef SIGACTION
+#pragma clang diagnostic pop
 }
 
 void _scl_resize_stack(void) {}

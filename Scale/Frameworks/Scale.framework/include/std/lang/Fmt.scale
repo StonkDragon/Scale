@@ -42,7 +42,7 @@ final static sealed struct FmtIO
         elif c 'c' == then
           arg FmtIO::putchar
         else
-          "invalid format specifier" InvalidArgumentException::new throw
+          "Invalid format specifier at position #" i + InvalidArgumentException::new throw
         fi
       else
         c FmtIO::putchar

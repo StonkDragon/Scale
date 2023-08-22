@@ -1608,16 +1608,12 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        std::string var_prefix = "";
-        if (!hasVar(iter_var_tok.value)) {
-            var_prefix = sclTypeToCType(result, nextMethod->return_type) + " ";
-        }
         varScopePush();
         varScopeTop().push_back(Variable(iter_var_tok.value, nextMethod->return_type));
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok.value).type);
         append("while (virtual_call(%s, \"hasNext()i;\")) {\n", iterator_name.c_str());
         scopeDepth++;
-        append("%sVar_%s = (%s) ((scl_int) virtual_call(%s, \"next%s\"));\n", var_prefix.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
+        append("%s Var_%s = (%s) virtual_call(%s, \"next%s\");\n", sclTypeToCType(result, nextMethod->return_type).c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
     }
 
     handler(AddrRef) {
@@ -2871,8 +2867,6 @@ namespace sclc {
             typePop;
         }
         noUnused;
-        append("{\n");
-        scopeDepth++;
         append("if (({\n");
         scopeDepth++;
         varScopePush();
@@ -2939,8 +2933,6 @@ namespace sclc {
             typePop;
         }
         noUnused;
-        append("{\n");
-        scopeDepth++;
         append("if (!({\n");
         scopeDepth++;
         varScopePush();
@@ -3067,8 +3059,6 @@ namespace sclc {
     handler(Fi) {
         noUnused;
         varScopePop();
-        scopeDepth--;
-        append("}\n");
         scopeDepth--;
         append("}\n");
         condCount--;

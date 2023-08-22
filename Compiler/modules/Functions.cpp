@@ -68,15 +68,17 @@ namespace sclc {
             typeStack.pop();
             std::string ctype = sclTypeToCType(result, nextType);
             append("%s vararg%ld = *(%s*) _scl_positive_offset(%ld);\n", ctype.c_str(), i, ctype.c_str(), i);
-            // append("printf(\"argument %zu: %%p\\n\", vararg%zu);\n", i, i);
         }
 
         std::string args = generateArgumentsForFunction(result, f);
 
         for (size_t i = 0; i < amountOfVarargs; i++) {
-            args += ", vararg" + std::to_string(i);
+            args += ", ";
+            if (f->varArgsParam().name.size()) {
+                args += "&";
+            }
+            args += "vararg" + std::to_string(i);
         }
-        // args += ", NULL";
 
         if (f->varArgsParam().name.size()) {
             append("(_stack.sp++)->i = %zu;\n", amountOfVarargs);
