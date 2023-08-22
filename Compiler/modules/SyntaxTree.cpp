@@ -248,7 +248,7 @@ namespace sclc {
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
-                    return nullptr;
+                    return func;
                 }
                 std::string type = r.value;
                 std::string fromTemplate = r.message;
@@ -271,7 +271,7 @@ namespace sclc {
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return nullptr;
+                return func;
             }
         } else {
             FPResult result;
@@ -283,7 +283,7 @@ namespace sclc {
             result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
-            return nullptr;
+            return func;
         }
         return func;
     }
