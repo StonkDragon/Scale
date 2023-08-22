@@ -816,7 +816,7 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
-        if (s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "mut ") || strstarts(s, "const ")) {
             s.erase(0, strstarts(s, "mut ") ? 4 : 6);
         }
@@ -824,7 +824,7 @@ namespace sclc
     }
 
     bool typeIsConst(std::string s) {
-        if (s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "mut ") || strstarts(s, "readonly ")) {
             s.erase(0, strstarts(s, "mut ") ? 4 : 9);
         }
@@ -832,7 +832,7 @@ namespace sclc
     }
 
     bool typeIsMut(std::string s) {
-        if (s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '*') s.erase(0, 1);
         while (strstarts(s, "const ") || strstarts(s, "readonly ")) {
             s.erase(0, strstarts(s, "const ") ? 6 : 9);
         }

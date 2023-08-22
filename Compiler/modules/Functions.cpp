@@ -367,7 +367,7 @@ namespace sclc {
         if (Main.options.debugBuild) {
             append("CAST0((_stack.sp - 1)->v, %s, 0x%x);\n", self->member_type.c_str(), id(self->member_type.c_str()));
         }
-        if (self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*') {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
@@ -409,7 +409,7 @@ namespace sclc {
             );
             found = true;
         }
-        if (self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*') {
             append("*(scl_any*) _stack.sp++ = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             append("memcpy(*(scl_any*) (_stack.sp - 1), &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;
@@ -672,7 +672,7 @@ namespace sclc {
                 }
             }
         }
-        if (self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*') {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
@@ -689,7 +689,7 @@ namespace sclc {
             }
         }
         append2("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
-        if (self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*') {
             append("*(scl_any*) _stack.sp++ = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             append("memcpy(*(scl_any*) (_stack.sp - 1), &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;

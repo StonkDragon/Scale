@@ -288,7 +288,7 @@ namespace sclc {
     }
 
     std::string removeTypeModifiers(std::string t) {
-        if (t.front() == '*') {
+        if (t.size() && t.front() == '*') {
             t.erase(0, 1);
         }
         for (const std::string& modifier : removableTypeModifiers) {
@@ -396,7 +396,7 @@ namespace sclc {
     }
 
     std::string typeToRTSig(std::string type) {
-        if (type.front() == '*') {
+        if (type.size() && type.front() == '*') {
             type = removeTypeModifiers(type.substr(1, type.size() - 1));
             return "P" + typeToRTSig(type);
         }
