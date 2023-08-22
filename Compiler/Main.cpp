@@ -625,6 +625,10 @@ namespace sclc
             "-o",
             scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
         };
+        if (Main.options.debugBuild) {
+            cmd.push_back("-g");
+            cmd.push_back("-O0");
+        }
         std::string cmdStr = "";
         for (auto& s : cmd) {
             cmdStr += s + " ";
@@ -762,15 +766,6 @@ namespace sclc
         tmpFlags.reserve(args.size());
 
         Main.version = new Version(std::string(VERSION));
-
-        std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
-            int ret = compileRuntimeLib();
-            if (ret) {
-                std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
-                return ret;
-            }
-        }
 
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {
@@ -980,6 +975,15 @@ namespace sclc
                     }
                     tmpFlags.push_back(args[i]);
                 }
+            }
+        }
+
+        std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
+        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
+            int ret = compileRuntimeLib();
+            if (ret) {
+                std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
+                return ret;
             }
         }
 
