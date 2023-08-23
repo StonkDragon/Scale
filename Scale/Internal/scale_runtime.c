@@ -1,3 +1,18 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
+#if defined(_WIN32)
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#include <synchapi.h>
+#else
+#include <unistd.h>
+#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
+#endif
+
 #include "scale_runtime.h"
 
 #if defined(__cplusplus)
@@ -487,7 +502,7 @@ void print_stacktrace(void) {
 	fprintf(stderr, "\n");
 }
 
-void _scl_handle_signal(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
+void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 	const scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) {
@@ -528,9 +543,7 @@ void _scl_handle_signal(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 	exit(sig_num);
 }
 
-// final signal handler
-// if we get here, something has gone VERY wrong
-void _scl_default_signal_handler(scl_int sig_num) {
+void _scl_signal_handler(scl_int sig_num) {
 	const scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) {
@@ -753,11 +766,16 @@ scl_any _scl_add_struct(scl_any ptr) {
 }
 
 mutex_t _scl_mutex_new(void) {
+#if !defined(_WIN32)
 	mutex_t m = (mutex_t) GC_malloc(sizeof(pthread_mutex_t));
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(m, &attr);
+#else
+	mutex_t m = (mutex_t) GC_malloc(sizeof(CRITICAL_SECTION));
+	InitializeCriticalSection(m);
+#endif
 	return m;
 }
 
@@ -864,12 +882,16 @@ int _scl_gc_is_disabled(void) {
 	return GC_is_disabled();
 }
 
-int _scl_gc_pthread_create(pthread_t* t, const pthread_attr_t* a, scl_any(*f)(scl_any), scl_any arg) {
-	return GC_pthread_create(t, a, f, arg);
+int _scl_thread_new(_scl_thread_t* t, scl_any(*f)(scl_any), scl_any arg) {
+#if !defined(_WIN32)
+	return GC_pthread_create(t, NULL, f, arg);
+#else
+	return GC_pthread_create(t, NULL, (void*(*)(void*)) f, arg);
+#endif
 }
 
-int _scl_gc_pthread_join(pthread_t t, scl_any* r) {
-	return GC_pthread_join(t, r);
+int _scl_thread_wait_for(_scl_thread_t t) {
+	return GC_pthread_join(t, nil);
 }
 
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
@@ -905,14 +927,15 @@ void _scl_reset_signal_handler(scl_int sig) {
 		
 		_scl_throw(e);
 	}
-	signal(sig, (void(*)(int)) _scl_default_signal_handler);
+	signal(sig, (void(*)(int)) _scl_signal_handler);
 }
 
 void _scl_set_up_signal_handler(void) {
+#if !defined(_WIN32)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-W#pragma-messages"
 	static struct sigaction act = {
-		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_handle_signal,
+		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_sigaction_handler,
 		.sa_flags = SA_SIGINFO,
 		.sa_mask = sigmask(SIGINT) | sigmask(SIGILL) | sigmask(SIGTRAP) | sigmask(SIGABRT) | sigmask(SIGBUS) | sigmask(SIGSEGV)
 	};
@@ -927,6 +950,16 @@ void _scl_set_up_signal_handler(void) {
 
 	#undef SIGACTION
 #pragma clang diagnostic pop
+#else
+#define SIGACTION(_sig) signal(_sig, (void(*)(int)) _scl_signal_handler)
+	
+	SIGACTION(SIGINT);
+	SIGACTION(SIGILL);
+	SIGACTION(SIGTRAP);
+	SIGACTION(SIGABRT);
+	SIGACTION(SIGBUS);
+	SIGACTION(SIGSEGV);
+#endif
 }
 
 void _scl_resize_stack(void) {}
@@ -1072,12 +1105,20 @@ scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 
 void Process$lock(volatile scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
+#if !defined(_WIN32)
 	pthread_mutex_lock(((volatile Struct*) obj)->mutex);
+#else
+	EnterCriticalSection(((volatile Struct*) obj)->mutex);
+#endif
 }
 
 void Process$unlock(volatile scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
+#if !defined(_WIN32)
 	pthread_mutex_unlock(((volatile Struct*) obj)->mutex);
+#else
+	LeaveCriticalSection(((volatile Struct*) obj)->mutex);
+#endif
 }
 
 const scl_int8* GarbageCollector$getImplementation0(void) {
@@ -1451,25 +1492,13 @@ void _scl_create_stack(void) {
 }
 
 static void _scl_unwind(scl_any ex) {
-	if (_scl_is_instance_of(ex, typeid("Error"))) {
-		_stack.jmp = _stack.jmp_base;
-		_stack.ex = _stack.ex_base;
-		_stack.et = _stack.et_base;
-		_stack.sp = *(_stack.sp_save_base);
-	} else {
-		--_stack.jmp;
-		--_stack.ex;
-		--_stack.et;
-		_stack.sp = *(--_stack.sp_save);
-	}
-	if (_scl_expect(_stack.jmp < _stack.jmp_base, 0)) {
-		_stack.jmp = _stack.jmp_base;
-		_stack.ex = _stack.ex_base;
-		_stack.et = _stack.et_base;
-		_stack.sp = *(_stack.sp_save_base);
-	}
+	--_stack.jmp;
+	--_stack.ex;
+	--_stack.et;
 	*(_stack.ex) = ex;
 	_stack.tp = *(_stack.et);
+	if (*(_stack.sp_save_base) < _stack.sp)
+		_stack.sp = *(_stack.sp_save_base);
 }
 
 void _scl_throw(scl_any ex) {
@@ -1480,14 +1509,14 @@ void _scl_throw(scl_any ex) {
 void nativeTrace(void) {
 	void* callstack[1024];
 	int frames = backtrace(callstack, 1024);
-	write(STDERR_FILENO, "Backtrace:\n", 11);
-	backtrace_symbols_fd(callstack, frames, STDERR_FILENO);
-	write(STDERR_FILENO, "\n", 1);
+	write(2, "Backtrace:\n", 11);
+	backtrace_symbols_fd(callstack, frames, 2);
+	write(2, "\n", 1);
 }
 
 static inline void printStackTraceOf(scl_Exception e) {
 	for (scl_int i = e->stackTrace->count - 1; i >= 0; i--) {
-		fprintf(stderr, "  %s\n", ((scl_str*) e->stackTrace->values)[i]->data);
+		fprintf(stderr, "    %s\n", ((scl_str*) e->stackTrace->values)[i]->data);
 	}
 
 	fprintf(stderr, "\n");
@@ -1503,9 +1532,6 @@ void _scl_runtime_catch() {
 
 	fprintf(stderr, "Uncaught %s: %s\n", EXCEPTION->rtFields.statics->type_name, msg->data);
 	printStackTraceOf(EXCEPTION);
-	if (errno) {
-		fprintf(stderr, "errno: %s\n", strerror(errno));
-	}
 	exit(EX_THROWN);
 }
 
@@ -1557,12 +1583,6 @@ int _scl_run(int argc, scl_int8** argv, mainFunc entry, scl_int main_argc) {
 	if (_scl_expect(main_argc, 0)) {
 		args = _scl_c_arr_to_scl_array((scl_any*) argv);
 	}
-
-	// Set argv0 to the name of the executable
-	scl_int8** argv0 = (scl_int8**) dlsym(RTLD_DEFAULT, "argv0");
-
-	if (argv0)
-		*argv0 = argv[0];
 
 	TRY {
 		entry(args);

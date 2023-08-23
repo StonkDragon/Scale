@@ -1,14 +1,9 @@
-import std.runtime.Library
 import std.thread.Thread
 
 static final sealed struct Process
     cdecl "_scl_security_safe_exit"
     expect foreign function exit(:int): none
     expect foreign function stackTrace(): Array
-
-    function loadLibrary(name: str): Library
-        name Library::new return
-    end
 
     expect foreign function gcEnabled(): bool
 

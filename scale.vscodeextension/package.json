@@ -35,8 +35,9 @@
             "language": "scale",
             "scopeName": "source.scale",
             "embeddedLanguages": {
-              "meta.embedded.block.c": "c",
-              "meta.embedded.block.scale": "scale"
+                "meta.embedded.block.c": "c",
+                "meta.embedded.block.scale": "scale",
+                "meta.embedded.block.scldoc": "scldoc"
             },
             "path": "./syntaxes/scale.syntax.tmlanguage.json"
         },{

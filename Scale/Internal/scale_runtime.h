@@ -17,8 +17,6 @@ extern "C" {
 #include <signal.h>
 #include <errno.h>
 #include <time.h>
-#include <sys/time.h>
-#include <dlfcn.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -29,9 +27,6 @@ extern "C" {
 #if !defined(WINDOWS)
 #define WINDOWS
 #endif
-#else
-#include <unistd.h>
-#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
 #define GC_THREADS
@@ -211,7 +206,13 @@ typedef long				scl_int;
 typedef size_t				scl_uint;
 typedef scl_int				scl_bool;
 typedef double 				scl_float;
+#if !defined(_WIN32)
 typedef pthread_mutex_t*	mutex_t;
+typedef pthread_t			_scl_thread_t;
+#else
+typedef HANDLE				mutex_t;
+typedef HANDLE				_scl_thread_t;
+#endif
 
 typedef struct scale_string* scl_str;
 
@@ -369,7 +370,7 @@ void				_scl_trace_remove(void* _);
 					const _scl_frame_t* __current_base_ptr __attribute__((cleanup(_scl_stack_cleanup))) = _stack.sp
 void				_scl_stack_cleanup(void* current_ptr);
 #define SCL_FUNCTION_LOCK(_obj) \
-					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj) \
+					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj)
 
 #define SCL_ASSUME(val, what, ...) \
 					if (_scl_expect(!(val), 0)) { \
@@ -452,7 +453,7 @@ _scl_no_return void	_scl_runtime_catch();
 _scl_constructor
 void				_scl_setup(void);
 
-void				_scl_default_signal_handler(scl_int sig_num);
+void				_scl_signal_handler(scl_int sig_num);
 void				print_stacktrace(void);
 
 scl_int				_scl_stack_size(void);
@@ -522,8 +523,8 @@ void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
 int					_scl_gc_is_disabled(void);
-int					_scl_gc_pthread_create(pthread_t*, const pthread_attr_t*, scl_any(*)(scl_any), scl_any);
-int					_scl_gc_pthread_join(pthread_t, scl_any*);
+int					_scl_thread_new(_scl_thread_t*, scl_any(*)(scl_any), scl_any);
+int					_scl_thread_wait_for(_scl_thread_t);
 
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
@@ -536,11 +537,6 @@ mutex_t				_scl_mutex_new(void);
 __deprecated_msg("Stack resizing has been removed. This function does nothing.")
 #endif
 void				_scl_resize_stack(void);
-void				_scl_drop(void* ptr);
-void				_scl_arc_new();
-void				_scl_arc_add_tracked(scl_any ptr);
-scl_any				_scl_arc_retain(scl_any ptr);
-scl_any				_scl_arc_release(scl_any ptr);
 
 #define _scl_push()						(_stack.sp++)
 

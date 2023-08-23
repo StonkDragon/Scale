@@ -60,6 +60,9 @@ build: {
 };
 
 install: {
+  incrementalBuild: "true";
+  parallelBuild: "true";
+  fullRebuildOnConfigChange: "true";
   compiler: "clang++";
   sourceDir: "Compiler";
   outputDir: "target";
@@ -93,13 +96,17 @@ install: {
     "-Werror";
     "-pedantic";
     "-Wno-gnu-statement-expression";
-    "-O2";
   ];
   preBuild: [
     "rm -rf /opt/Scale/$(VERSION)";
     "sudo mkdir -p /opt/Scale";
     "sudo chmod -R 777 /opt/Scale";
     "cp -r Scale /opt/Scale/$(VERSION)";
+  ];
+  preBuildWin: [
+    "del /s /q C:\\Scale\\$(VERSION)";
+    "mkdir C:\\Scale\\$(VERSION)";
+    "xcopy /s /e /i /h /y Scale C:\\Scale\\$(VERSION)";
   ];
   postBuild: [
     "sudo mv target/sclc /opt/Scale/$(VERSION)";
@@ -108,6 +115,17 @@ install: {
     "sudo rm -f /usr/local/bin/scaledoc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/scaledoc";
     "rm -rf target";
-    "sh install_post.sh";
+    "clang++ -o nobuild-post nobuild-post.cpp -std=gnu++17";
+    "sudo ./nobuild-post";
+  ];
+  postBuildWin: [
+    "move target\\sclc.exe C:\\Scale\\$(VERSION)";
+    "del /s /q C:\\Windows\\sclc.exe";
+    "mklink C:\\Windows\\sclc.exe C:\\Scale\\$(VERSION)\\sclc.exe";
+    "del /s /q C:\\Windows\\scaledoc.exe";
+    "mklink C:\\Windows\\scaledoc.exe C:\\Scale\\$(VERSION)\\sclc.exe";
+    "rmdir /s /q target";
+    "clang++ -o nobuild-post nobuild-post.cpp -std=gnu++17";
+    ".\\nobuild-post";
   ];
 };

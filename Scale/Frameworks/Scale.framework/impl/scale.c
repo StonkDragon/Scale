@@ -124,12 +124,6 @@ extern tls scl_int*		stackalloc_array_sizes;
 extern tls scl_int		stackalloc_arrays_count;
 extern tls scl_int		stackalloc_arrays_cap;
 
-scl_int8* argv0;
-
-scl_int8* Library$progname(void) {
-	return argv0;
-}
-
 scl_Array Process$stackTrace(void) {
 	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
 	
@@ -186,46 +180,14 @@ void dumpStack(void) {
 	printf("\n");
 }
 
-scl_any Library$self0(void) {
-	scl_any lib = dlopen(nil, RTLD_LAZY);
-	if (!lib) {
-		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init()V;");
-		e->self.msg = str_of_exact("Failed to load library");
-		_scl_throw(e);
-	}
-	return lib;
-}
-
-scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
-	return dlsym(lib, name);
-}
-
-scl_any Library$open0(scl_int8* name) {
-	scl_any lib = dlopen(name, RTLD_LAZY);
-	if (!lib) {
-		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init()V;");
-		e->self.msg = str_of_exact("Failed to load library");
-		_scl_throw(e);
-	}
-	return lib;
-}
-
-void Library$close0(scl_any lib) {
-	dlclose(lib);
-}
-
-scl_str Library$dlerror0(void) {
-	return str_of(dlerror());
-}
-
 void Thread$run(scl_Thread self) {
 	_scl_stack_new();
 	SCL_BACKTRACE("<extern Thread:run(): none>");
 	_currentThread = self;
 
+	Process$lock(Var_Thread$threads);
 	virtual_call(Var_Thread$threads, "push(a;)V;", self);
+	Process$unlock(Var_Thread$threads);
 	
 	TRY {
 		self->function();
@@ -233,18 +195,20 @@ void Thread$run(scl_Thread self) {
 		_scl_runtime_catch();
 	}
 
+	Process$lock(Var_Thread$threads);
 	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
+	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;
 	_scl_stack_free();
 }
 
 scl_int Thread$start0(scl_Thread self) {
-	return _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any(*)(scl_any)) Thread$run, self);
+	return _scl_thread_new(&self->nativeThread, (scl_any(*)(scl_any)) Thread$run, self);
 }
 
 scl_int Thread$stop0(scl_Thread self) {
-	return _scl_gc_pthread_join(self->nativeThread, 0);
+	return _scl_thread_wait_for(self->nativeThread);
 }
 
 scl_Thread Thread$currentThread(void) {

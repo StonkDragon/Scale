@@ -116,9 +116,6 @@ framework: {
         std.runtime.GarbageCollector: [
             "std/runtime/GarbageCollector.scale";
         ];
-        std.runtime.Library: [
-            "std/runtime/Library.scale";
-        ];
         std.thread.Thread: [
             "std/thread/Thread.scale";
         ];

@@ -38,24 +38,13 @@ namespace sclc {
             bool isValueStructParam = arg.type.front() == '*';
             if (isValueStructParam) args += "*(";
             args += "*(" + sclTypeToCType(result, arg.type.substr(isValueStructParam)) + "*) _scl_positive_offset(" + std::to_string(i) + ")";
-            if (isValueStructParam) args += ")";
         }
         return args;
     }
 
     void createVariadicCall(Function* f, FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
-        safeInc();
-        if (body[i].value != "!") {
-            transpilerError("Expected '!' for variadic call, but got '" + body[i].value + "'", i);
-            errors.push_back(err);
-            return;
-        }
-        safeInc();
-        if (body[i].type != tok_number) {
-            transpilerError("Amount of variadic arguments needs to be specified for variadic function call", i);
-            errors.push_back(err);
-            return;
-        }
+        incrementAndExpect(body[i].value == "!", "Expected '!' for variadic call, but got '" + body[i].value + "'");
+        incrementAndExpect(body[i].type == tok_number, "Amount of variadic arguments needs to be specified for variadic function call");
 
         append("{\n");
         scopeDepth++;

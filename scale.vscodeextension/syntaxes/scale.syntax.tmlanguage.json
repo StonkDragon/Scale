@@ -5,6 +5,7 @@
 		{"include": "#comment"},
 		{"include": "#block_comment_c"},
 		{"include": "#block_comment_scale"},
+		{"include": "#block_comment_scldoc"},
 		{"include": "#block_comment"},
 		{"include": "#inline_c"},
 		{"include": "#inline_c_old"},
@@ -62,6 +63,18 @@
 			},
 			"name": "meta.embedded.block.scale",
 			"patterns": [{"include": "source.scale"}]
+		},
+		"block_comment_scldoc": {
+			"begin": "`scldoc",
+			"end": "`",
+			"beginCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"endCaptures": {
+			  "0": { "name": "comment" }
+			},
+			"name": "meta.embedded.block.scldoc",
+			"patterns": [{"include": "source.scldoc"}]
 		},
 		"keyw_constant": {
 			"name": "entity.name.function",

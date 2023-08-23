@@ -95,3 +95,5 @@ scale-find-virtual-calls.c
 changes.md
 utf8.h
 e.log
+install
+nobuild-post

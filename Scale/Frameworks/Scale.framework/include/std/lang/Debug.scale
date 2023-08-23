@@ -10,7 +10,7 @@ cdecl "_scl_throw"
 expect foreign function throw(ex: Exception): nothing
 
 private expect foreign unsafe function _scl_security_safe_exit(i: int): none
-private expect foreign unsafe function _scl_default_signal_handler(sigNum: int): none
+private expect foreign unsafe function _scl_signal_handler(sigNum: int): none
 cdecl "raise"
 private expect foreign unsafe function __c_raise(sigNum: int): int
 cdecl "_scl_errno"
@@ -46,7 +46,7 @@ function raise(sigNum: int): none
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
-      sigNum _scl_default_signal_handler
+      sigNum _scl_signal_handler
     fi
   end
 end
