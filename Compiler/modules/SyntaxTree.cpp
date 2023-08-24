@@ -1505,7 +1505,7 @@ namespace sclc {
             Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "builtinHash.scale@"));
             builtinHash->addModifier("expect");
             builtinHash->addModifier("cdecl");
-            builtinHash->addModifier("typeid");
+            builtinHash->addModifier("type_id");
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
@@ -1538,7 +1538,7 @@ namespace sclc {
             builtinTypeEquals->addModifier("_scl_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
-            builtinTypeEquals->addArgument(Variable("typeId", "int32"));
+            builtinTypeEquals->addArgument(Variable("type_id", "int32"));
 
             builtinTypeEquals->return_type = "int";
             functions.push_back(builtinTypeEquals);
@@ -2388,40 +2388,25 @@ namespace sclc {
                 }
                 if (tokens[i + 1].type == tok_is) {
                     i++;
-                    if (tokens[i + 1].type != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected identifier for interface name, but got'" + tokens[i + 1].value + "'";
-                        result.value = tokens[i + 1].value;
-                        result.line = tokens[i + 1].line;
-                        result.in = tokens[i + 1].file;
-                        result.type = tokens[i + 1].type;
-                        result.column = tokens[i + 1].column;
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    i++;
-                    while (tokens[i].type != tok_declare && tokens[i].type != tok_end && tokens[i].type != tok_function && tokens[i].type != tok_extern && tokens[i].value != "static" && tokens[i].value != "private") {
-                        if (tokens[i].type == tok_identifier)
-                            currentStruct->implement(tokens[i].value);
+                    do {
                         i++;
-                        if (tokens[i].type == tok_declare || tokens[i].type == tok_end || tokens[i].type == tok_function || tokens[i].type == tok_extern || tokens[i].value == "static" || tokens[i].value == "private") {
-                            i--;
-                            break;
-                        }
-                        if (i >= tokens.size()) {
+                        if (tokens[i].type != tok_identifier) {
                             FPResult result;
-                            result.message = "Unexpected end of file!";
-                            result.value = tokens[i - 1].value;
-                            result.line = tokens[i - 1].line;
-                            result.in = tokens[i - 1].file;
-                            result.type = tokens[i - 1].type;
-                            result.column = tokens[i - 1].column;
+                            result.message = "Expected identifier for interface name, but got'" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
-                            break;
+                            i++;
+                            continue;
                         }
-                    }
+                        currentStruct->implement(tokens[i].value);
+                        i++;
+                    } while (i < tokens.size() && tokens[i].type == tok_comma);
+                    i--;
                 }
 
                 if (open) {

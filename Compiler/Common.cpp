@@ -4,6 +4,12 @@
 
 #include <unordered_set>
 #include <stack>
+#if defined(_WIN32)
+#include <io.h>
+#define write _write
+#else
+#include <unistd.h>
+#endif
 
 #include "headers/Common.hpp"
 #include "headers/Types.hpp"
@@ -107,25 +113,44 @@ namespace sclc
     void print_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
         void* array[64];
-        char** strings;
-        int size, i;
-
-        size = backtrace(array, 64);
-        strings = backtrace_symbols(array, size);
-        if (strings != NULL) {
-            for (i = 0; i < size; i++)
-                fprintf(stderr, "  %s\n", strings[i]);
-        }
-
-        free(strings);
+        int size = backtrace(array, 64);
+        backtrace_symbols_fd(array, size, 2);
 #endif
     }
 
+    size_t static_itos(int i, char buf[4]) {
+        size_t j = 0;
+        size_t k = 0;
+        int sign = 0;
+        char tmp[4];
+        if (i < 0) {
+            sign = 1;
+            i = -i;
+        }
+        do {
+            tmp[j++] = i % 10 + '0';
+            i /= 10;
+        } while (i);
+        if (sign) {
+            tmp[j++] = '-';
+        }
+        while (j > 0) {
+            buf[k++] = tmp[--j];
+        }
+        buf[k] = 0;
+        return k;
+    }
+
+    #define WRITESIGSTRING(_sig) if (signum == _sig) write(2, #_sig, sizeof(#_sig) - 1)
+
     void signalHandler(int signum) {
-        std::cerr << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cerr << "Error: " << std::strerror(errno) << std::endl;
+        write(2, "\n", 1);
+        write(2, "Signal ", 7);
+        WRITESIGSTRING(SIGABRT);
+        WRITESIGSTRING(SIGSEGV);
+        write(2, " received.\n", 11);
         print_trace();
-        exit(signum);
+        exit(1);
     }
 
     bool strends(const std::string& str, const std::string& suffix) {

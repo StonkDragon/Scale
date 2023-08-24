@@ -420,9 +420,9 @@ scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
 
 scl_str builtinToString(scl_any obj) {
 	if (_scl_is_instance_of(obj, SclObjectHash)) {
-		return virtual_call(obj, "toString()s;");
+		return (scl_str) virtual_call(obj, "toString()s;");
 	}
-	if (_scl_is_array(obj)) {
+	if (_scl_is_array((scl_any*) obj)) {
 		return _scl_array_to_string((scl_any*) obj);
 	}
 	scl_int8* data = (scl_int8*) _scl_alloc(32);
@@ -470,7 +470,7 @@ scl_int8* _scl_strdup(const scl_int8* str) {
 
 scl_str _scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len) {
 	scl_str self = ALLOC(str);
-	self->data = data;
+	self->data = (scl_int8*) data;
 	self->length = len;
 	self->hash = hash;
 	return self;
@@ -478,9 +478,9 @@ scl_str _scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len) 
 
 scl_str _scl_create_string(const scl_int8* data) {
 	scl_str self = ALLOC(str);
-	self->data = data;
+	self->data = (scl_int8*) data;
 	self->length = strlen(data);
-	self->hash = typeid(data);
+	self->hash = type_id(data);
 	return self;
 }
 
@@ -620,7 +620,7 @@ void _scl_sleep(scl_int millis) {
 #define __pure2
 #endif
 
-__pure2 const ID_t typeid(const scl_int8* data) {
+__pure2 const ID_t type_id(const scl_int8* data) {
 	ID_t h = 3323198485UL;
 	for (;*data;++data) {
 		h ^= *data;
@@ -747,8 +747,8 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	scl_int8* methodName;
 	scl_int8* signature;
 	split_at(methodIdentifier, methodLen, methodNameLen, &methodName, &signature);
-	ID_t methodNameHash = typeid(methodName);
-	ID_t signatureHash = typeid(signature);
+	ID_t methodNameHash = type_id(methodName);
+	ID_t signatureHash = type_id(signature);
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (_scl_expect(m == nil, 0)) {
@@ -766,17 +766,7 @@ scl_any _scl_add_struct(scl_any ptr) {
 }
 
 mutex_t _scl_mutex_new(void) {
-#if !defined(_WIN32)
-	mutex_t m = (mutex_t) GC_malloc(sizeof(pthread_mutex_t));
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(m, &attr);
-#else
-	mutex_t m = (mutex_t) GC_malloc(sizeof(CRITICAL_SECTION));
-	InitializeCriticalSection(m);
-#endif
-	return m;
+	return cxx_std_recursive_mutex_new();
 }
 
 // creates a new instance with a size of 'size'
@@ -828,7 +818,7 @@ void _scl_free_struct(scl_any ptr) {
 }
 
 // Returns true, if the instance is of a given struct type
-scl_int _scl_is_instance_of(scl_any ptr, ID_t typeId) {
+scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 	if (_scl_expect(ptr == nil, 0)) return 0; // ptr is null
 
 	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
@@ -837,11 +827,11 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t typeId) {
 
 	Struct* ptrStruct = (Struct*) ptr;
 
-	if (typeId == SclObjectHash) return 1; // cast to SclObject
+	if (type_id == SclObjectHash) return 1; // cast to SclObject
 
 	// check super types
 	for (const TypeInfo* super = ptrStruct->statics; super != nil; super = super->super) {
-		if (super->type == typeId) return 1;
+		if (super->type == type_id) return 1;
 	}
 
 	return 0; // invalid cast
@@ -882,16 +872,21 @@ int _scl_gc_is_disabled(void) {
 	return GC_is_disabled();
 }
 
-int _scl_thread_new(_scl_thread_t* t, scl_any(*f)(scl_any), scl_any arg) {
-#if !defined(_WIN32)
-	return GC_pthread_create(t, NULL, f, arg);
-#else
-	return GC_pthread_create(t, NULL, (void*(*)(void*)) f, arg);
-#endif
+void _scl_thread_new(_scl_thread_t* t, scl_any(*f)(scl_any), scl_any arg) {
+	*t = cxx_std_thread_new_with_args(f, arg);
 }
 
-int _scl_thread_wait_for(_scl_thread_t t) {
-	return GC_pthread_join(t, nil);
+void _scl_thread_wait_for(_scl_thread_t t) {
+	cxx_std_thread_join(t);
+	cxx_std_thread_delete(t);
+}
+
+void _scl_thread_detach(_scl_thread_t t) {
+	cxx_std_thread_detach(t);
+}
+
+_scl_thread_t _scl_thread_current() {
+	return cxx_std_thread_new();
 }
 
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
@@ -1105,20 +1100,12 @@ scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 
 void Process$lock(volatile scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-#if !defined(_WIN32)
-	pthread_mutex_lock(((volatile Struct*) obj)->mutex);
-#else
-	EnterCriticalSection(((volatile Struct*) obj)->mutex);
-#endif
+	cxx_std_recursive_mutex_lock(((volatile Struct*) obj)->mutex);
 }
 
 void Process$unlock(volatile scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-#if !defined(_WIN32)
-	pthread_mutex_unlock(((volatile Struct*) obj)->mutex);
-#else
-	LeaveCriticalSection(((volatile Struct*) obj)->mutex);
-#endif
+	cxx_std_recursive_mutex_unlock(((volatile Struct*) obj)->mutex);
 }
 
 const scl_int8* GarbageCollector$getImplementation0(void) {
@@ -1441,11 +1428,11 @@ const scl_int8* _scl_type_to_rt_sig(const scl_int8* type) {
 
 scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
 	scl_str s = str_of_exact("");
-	scl_int strHash = typeid("str");
-	scl_int getHash = typeid("get");
-	scl_int getSigHash = typeid("(i;)a;");
-	scl_int appendHash = typeid("append");
-	scl_int appendSigHash = typeid("(cs;)s;");
+	scl_int strHash = type_id("str");
+	scl_int getHash = type_id("get");
+	scl_int getSigHash = type_id("(i;)a;");
+	scl_int appendHash = type_id("append");
+	scl_int appendSigHash = type_id("(cs;)s;");
 	for (scl_int i = 0; i < arr->count; i++) {
 		scl_str type = (scl_str) virtual_call(arr, "get(i;)a;", i);
 		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
@@ -1535,11 +1522,50 @@ void _scl_runtime_catch() {
 	exit(EX_THROWN);
 }
 
+static char oom_static_memory_pool[1024];
+size_t oom_static_memory_pool_next_block = 0;
+
+void* alloc_static(size_t size) {
+	if (oom_static_memory_pool_next_block + size > sizeof(oom_static_memory_pool)) {
+		fprintf(stderr, "Out of static memory!\n");
+		exit(-1);
+	}
+	void* ptr = oom_static_memory_pool + oom_static_memory_pool_next_block;
+	oom_static_memory_pool_next_block += size;
+	return ptr;
+}
+
+void* static_alloc_struct(size_t size, TypeInfo* ti) {
+	void* ptr = alloc_static(size);
+	((Struct*) ptr)->mutex = _scl_mutex_new();
+	((Struct*) ptr)->statics = ti;
+	((Struct*) ptr)->vtable = ti->vtable;
+	return ptr;
+}
+
+#define ALLOC_STATIC(_type) ({ extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); (scl_ ## _type) static_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
+
 _scl_no_return
 void* _scl_oom(scl_uint size) {
-	fprintf(stderr, "Out of memory! Tried to allocate " SCL_UINT_FMT " bytes.\n", size);
-	nativeTrace();
-	exit(-1);
+	typedef struct Struct_OutOfMemoryError {
+		Struct _super;
+		scl_str msg;
+		scl_any stackTrace;
+		scl_str errno_str;
+	}* scl_OutOfMemoryError;
+
+	GC_oom_func oldFunc = GC_get_oom_fn();
+
+	scl_OutOfMemoryError err = ALLOC(OutOfMemoryError);
+	if (err == nil) {
+		fprintf(stderr, "Out of memory! Tried to allocate " SCL_UINT_FMT " bytes.\n", size);
+		nativeTrace();
+		exit(-1);
+	}
+	GC_set_oom_fn((GC_oom_func) oldFunc);
+
+	virtual_call(err, "init(s;)V;", str_of_exact("Out of memory!"));
+	_scl_throw(err);
 }
 
 static int setupCalled = 0;
@@ -1564,6 +1590,7 @@ void _scl_setup(void) {
 
 	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
+	GC_allow_register_threads();
 
 	_scl_create_stack();
 

@@ -103,6 +103,7 @@ end
 final sealed open struct AssertError: Error
 final sealed open struct CastError: Error
 final sealed open struct UnreachableError: Error
+final sealed open struct OutOfMemoryError: Error
 
 function sysPrettyString(): str
   new<int8>[40] => decl sPtr: [int8]

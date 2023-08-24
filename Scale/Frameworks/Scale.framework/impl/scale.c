@@ -1,9 +1,5 @@
 #include <scale_runtime.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 ID_t SclObjectHash; // SclObject
 
 typedef struct Struct {
@@ -87,7 +83,7 @@ struct Struct_str {
 typedef struct Struct_Thread {
 	Struct rtFields;
 	_scl_lambda function;
-	pthread_t nativeThread;
+	_scl_thread_t nativeThread;
 	scl_str name;
 }* scl_Thread;
 
@@ -145,14 +141,17 @@ scl_Array Process$stackTrace(void) {
 }
 
 scl_bool Process$gcEnabled(void) {
+	SCL_BACKTRACE("Process:gcEnabled(): bool");
 	return !_scl_gc_is_disabled();
 }
 
 scl_any* Process$stackPointer() {
+	SCL_BACKTRACE("Process:stackPointer(): [any]");
 	return (scl_any*) _stack.sp;
 }
 
 scl_any* Process$basePointer() {
+	SCL_BACKTRACE("Process:basePointer(): [any]");
 	return (scl_any*) _stack.bp;
 }
 
@@ -182,7 +181,7 @@ void dumpStack(void) {
 
 void Thread$run(scl_Thread self) {
 	_scl_stack_new();
-	SCL_BACKTRACE("<extern Thread:run(): none>");
+	SCL_BACKTRACE("Thread:run(): none");
 	_currentThread = self;
 
 	Process$lock(Var_Thread$threads);
@@ -203,19 +202,27 @@ void Thread$run(scl_Thread self) {
 	_scl_stack_free();
 }
 
-scl_int Thread$start0(scl_Thread self) {
-	return _scl_thread_new(&self->nativeThread, (scl_any(*)(scl_any)) Thread$run, self);
+void Thread$start0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:start0(): none");
+	_scl_thread_new(&self->nativeThread, (scl_any(*)(scl_any)) &Thread$run, self);
 }
 
-scl_int Thread$stop0(scl_Thread self) {
-	return _scl_thread_wait_for(self->nativeThread);
+void Thread$stop0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:stop0(): none");
+	_scl_thread_wait_for(self->nativeThread);
+}
+
+void Thread$detach0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:detach0(): none");
+	_scl_thread_detach(self->nativeThread);
 }
 
 scl_Thread Thread$currentThread(void) {
+	SCL_BACKTRACE("Thread:currentThread(): Thread");
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
 		_currentThread->name = str_of_exact("Main Thread");
-		_currentThread->nativeThread = pthread_self();
+		_currentThread->nativeThread = _scl_thread_current();
 		_currentThread->function = nil;
 	}
 	return _currentThread;
@@ -227,7 +234,3 @@ void _scale_framework_init(void) {
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 }
-
-#if defined(__cplusplus)
-}
-#endif

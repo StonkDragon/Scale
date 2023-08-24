@@ -8,14 +8,14 @@ extern "C" {
 #include <cstdlib>
 
 #ifdef _WIN32
-#define DEPEND(_cmd) depend_on_system_command(_cmd " > nul 2>&1")
+#define DEPEND(_cmd, _err) depend_on_system_command(_cmd " > nul 2>&1", _err)
 #else
-#define DEPEND(_cmd) depend_on_system_command(_cmd " > /dev/null 2>&1")
+#define DEPEND(_cmd, _err) depend_on_system_command(_cmd " > /dev/null 2>&1", _err)
 #endif
-void depend_on_system_command(const char* command) {
+void depend_on_system_command(const char* command, const char* error) {
     int result = std::system(command);
     if (result != 0) {
-        std::cerr << "Command '" << command << "' failed with exit code " << result << std::endl;
+        std::cerr << error << std::endl;
         std::exit(1);
     }
 }
@@ -27,13 +27,13 @@ void depend_on_system_command(const char* command) {
 #endif
 
 int main(int argc, char const *argv[]) {
-    DEPEND("clang --version");
-    DEPEND("clang++ --version");
-    DEPEND("cmake --version");
+    DEPEND("clang --version", "clang is required!");
+    DEPEND("clang++ --version", "clang++ is required!");
+    DEPEND("cmake --version", "cmake is required!");
 #if !defined(_WIN32)
-    DEPEND("make --version");
+    DEPEND("make --version", "make is required!");
 #else
-    DEPEND("nmake /?");
+    DEPEND("nmake /?", "nmake is required!");
 #endif
 
     if (!SOFT_DEPEND("dragon help")) {

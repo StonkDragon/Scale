@@ -234,7 +234,7 @@ sealed struct Array is Iterable
     unsafe
       c!
         scl_any** begin_sp = (scl_any**) &__current_base_ptr;
-        *begin_sp = _stack.sp;
+        *begin_sp = (scl_any*) _stack.sp;
       end
     end
   end

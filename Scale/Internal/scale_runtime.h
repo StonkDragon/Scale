@@ -1,10 +1,6 @@
 #if !defined(_SCALE_RUNTIME_H_)
 #define _SCALE_RUNTIME_H_
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,13 +202,8 @@ typedef long				scl_int;
 typedef size_t				scl_uint;
 typedef scl_int				scl_bool;
 typedef double 				scl_float;
-#if !defined(_WIN32)
-typedef pthread_mutex_t*	mutex_t;
-typedef pthread_t			_scl_thread_t;
-#else
-typedef HANDLE				mutex_t;
-typedef HANDLE				_scl_thread_t;
-#endif
+typedef scl_any				mutex_t;
+typedef scl_any				_scl_thread_t;
 
 typedef struct scale_string* scl_str;
 
@@ -264,7 +255,7 @@ struct scale_string {
 	const _scl_lambda* const			$fast;
 	const TypeInfo* const				$statics;
 	const mutex_t						$mutex;
-	const scl_int8*						data;
+	scl_int8*							data;
 	scl_int								length;
 	scl_int								hash;
 };
@@ -354,7 +345,7 @@ typedef struct {
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
 // Try to cast the given instance to the given type
-#define CAST(_obj, _type) CAST0(_obj, _type, typeid(#_type))
+#define CAST(_obj, _type) CAST0(_obj, _type, type_id(#_type))
 
 #define TRY			if (setjmp(*(_stack.jmp - 1)) != 666)
 
@@ -444,11 +435,10 @@ scl_any				array_of(scl_int size, scl_int element_size) AKA(_scl_new_array_by_si
 // Returns the size of the given array. Throws an 'InvalidArgumentException' if the given object is not an array
 scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
 
-#define TYPEID(_type) typeid(#_type)
-
 _scl_no_return void	_scl_security_throw(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
 _scl_no_return void	_scl_runtime_catch();
+_scl_no_return void	_scl_throw(scl_any ex);
 
 _scl_constructor
 void				_scl_setup(void);
@@ -485,16 +475,15 @@ void				_scl_not_nil_return(scl_int val, const scl_int8* name);
 
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
-void				_scl_throw(scl_any ex);
 int					_scl_run(int argc, char** argv, mainFunc main, scl_int main_argc);
 
-const ID_t			typeid(const scl_int8* data);
+const ID_t			type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
 void				_scl_free_struct(scl_any ptr);
 scl_any				_scl_add_struct(scl_any ptr);
-scl_int				_scl_is_instance_of(scl_any ptr, ID_t typeId);
+scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 const scl_int8**	_scl_callstack_push(void);
@@ -523,8 +512,24 @@ void				_scl_remove_stackallocation(scl_any ptr);
 scl_int				_scl_stackalloc_size(scl_any ptr);
 
 int					_scl_gc_is_disabled(void);
-int					_scl_thread_new(_scl_thread_t*, scl_any(*)(scl_any), scl_any);
-int					_scl_thread_wait_for(_scl_thread_t);
+void				_scl_thread_new(_scl_thread_t*, scl_any(*)(scl_any), scl_any);
+void				_scl_thread_wait_for(_scl_thread_t);
+_scl_thread_t		_scl_thread_current();
+void				_scl_thread_detach(_scl_thread_t t);
+
+// BEGIN C++ Concurrency API wrappers
+void				cxx_std_thread_join(scl_any thread);
+void				cxx_std_thread_delete(scl_any thread);
+void				cxx_std_thread_detach(scl_any thread);
+scl_any				cxx_std_thread_new();
+scl_any				cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args);
+void				cxx_std_this_thread_yield();
+
+scl_any				cxx_std_recursive_mutex_new();
+void				cxx_std_recursive_mutex_delete(scl_any mutex);
+void				cxx_std_recursive_mutex_lock(scl_any mutex);
+void				cxx_std_recursive_mutex_unlock(scl_any mutex);
+// END C++ Concurrency API wrappers
 
 scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
 scl_int				_scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
@@ -665,7 +670,3 @@ void				_scl_resize_stack(void);
 #define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
 
 #endif // __SCALE_RUNTIME_H__
-
-#if defined(__cplusplus)
-}
-#endif

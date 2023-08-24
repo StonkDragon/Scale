@@ -758,7 +758,7 @@ Returns <<BLUE>>true<<RESET>> if the given object's type matches the given type.
 ### function builtinHash(data: [int8]): int32
 Returns the hash code of the given data.
 
-### function builtinTypeEquals(obj: any, typeId: int32): int
+### function builtinTypeEquals(obj: any, type_id: int32): int
 Returns <<BLUE>>true<<RESET>> if the given object's type id matches the given type id.
 In almost all cases it is better to use <<WHITE>>builtinIsInstanceOf<<RESET>>.
 

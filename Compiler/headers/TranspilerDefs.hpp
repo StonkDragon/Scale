@@ -1,7 +1,4 @@
 #pragma once
-
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-
 #define transpilerError(msg, _at)          \
     FPResult err;                          \
     err.success = false;                   \
@@ -21,16 +18,17 @@
     err.value = (tok).value;    \
     err.type = (tok).type;      \
     err.message = msg
-#define LOAD_PATH(path, type)                                                                           \
-    if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing")                  \
-    {                                                                                                   \
-        append("%s;\n", path.c_str());                                                                  \
-    }                                                                                                   \
-    else                                                                                                \
-    {                                                                                                   \
-        append("if (sizeof(%s) < 8) { (_stack.sp)->i = 0; }\n", sclTypeToCType(result, type).c_str());  \
-        append("*(%s*) (_stack.sp++) = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());     \
-    }                                                                                                   \
+#define LOAD_PATH(path, type)                                                          \
+    if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing") \
+    {                                                                                  \
+        append("%s;\n", path.c_str());                                                 \
+    }                                                                                  \
+    else                                                                               \
+    {                                                                                  \
+        std::string ctype = sclTypeToCType(result, type);                              \
+        append("if (sizeof(%s) < 8) { (_stack.sp)->i = 0; }\n", ctype.c_str());        \
+        append("*(%s*) (_stack.sp++) = %s;\n", ctype.c_str(), path.c_str());           \
+    }                                                                                  \
     typeStack.push(type);
 
 #define wasRepeat()     (whatWasIt.size() > 0 && whatWasIt.back() == 1)
@@ -81,64 +79,7 @@
         (void) result
 #define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
 #define typePop do { if (typeStack.size()) { typeStack.pop(); } } while (0)
-#define safeInc(...) \
-    do { \
-        if (++i >= body.size()) { \
-            __VA_OPT__(safeIncMsg("End of file: " __VA_ARGS__);) \
-            std::cerr << body.back().file << ":" << body.back().line << ":" << body.back().column << ":" << Color::RED << " Unexpected end of file!" << std::endl; \
-            std::raise(SIGSEGV); \
-        } \
-    } while (0)
-
-#define incrementAndExpectWithNote(_condition, _err, _note, ...) \
-    do { \
-        safeInc(_err __VA_OPT__(,) __VA_ARGS__); \
-        i--; \
-        if (!(_condition)) { \
-            { \
-                transpilerError(_err, i); \
-                errors.push_back(err); \
-            } \
-            transpilerError(_note, i); \
-            err.isNote = true; \
-            errors.push_back(err); \
-            return __VA_ARGS__; \
-        } \
-        i++; \
-    } while (0)
-
-#define incrementAndExpect(_condition, _err, ...) \
-    do { \
-        safeInc(_err __VA_OPT__(,) __VA_ARGS__); \
-        i--; \
-        if (!(_condition)) { \
-            transpilerError(_err, i); \
-            errors.push_back(err); \
-            return __VA_ARGS__; \
-        } \
-        i++; \
-    } while (0)
-
-#define expect(_condition, _err, ...) expectWithPos(_condition, _err, i, __VA_ARGS__)
-
-#define expectWithPos(_condition, _err, _pos, ...) \
-    do { \
-        if (!(_condition)) { \
-            transpilerError(_err, _pos); \
-            errors.push_back(err); \
-            return __VA_ARGS__; \
-        } \
-    } while (0)
-
-#define warnIf(_condition, _err) \
-    do { \
-        if (_condition) { \
-            transpilerError(_err, i); \
-            warns.push_back(err); \
-        } \
-    } while (0)
-
-#define safeIncMsg(_why, ...) i--; transpilerError(_why, i); i++; errors.push_back(err); return __VA_ARGS__
+#define safeInc() do { if (++i >= body.size()) { std::cerr << body.back().file << ":" << body.back().line << ":" << body.back().column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } } while (0)
 #define safeIncN(n) do { if ((i + n) >= body.size()) { std::cerr << body.back().file << ":" << body.back().line << ":" << body.back().column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } i += n; } while (0)
 #define THIS_INCREMENT_IS_CHECKED ++i;
 

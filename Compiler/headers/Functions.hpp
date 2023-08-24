@@ -14,7 +14,6 @@ namespace sclc {
     void generateUnsafeCall(Method* self, FILE* fp, TPResult& result);
     bool hasImplementation(TPResult& result, Function* func);
     bool shouldCall(Function* self, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i);
-    bool opFunc(std::string name);
     std::string opToString(std::string op);
     void functionCall(Function* self, FILE* fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion = false, bool hasToCallStatic = false, bool checkOverloads = true);
     bool operatorInt(const std::string& op);

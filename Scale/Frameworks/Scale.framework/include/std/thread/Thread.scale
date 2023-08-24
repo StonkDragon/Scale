@@ -1,14 +1,16 @@
-final sealed struct ThreadException : Exception
+final sealed struct ThreadException: Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
 
-final sealed struct AtomicOperationException : Exception
+final sealed struct AtomicOperationException: Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
+
+final sealed open struct MutexError: Error
 
 typealias sys_thread "_scl_thread_t"
 
@@ -43,8 +45,9 @@ final sealed struct Thread
         Thread::nextID 1 + => Thread::nextID
     end
 
-    private expect foreign unsafe function start0(): int
-    private expect foreign unsafe function stop0(): int
+    private expect foreign unsafe function detach0(): none
+    private expect foreign unsafe function start0(): none
+    private expect foreign unsafe function stop0(): none
     private expect foreign unsafe function run(): none
 
     function start(): none
@@ -53,8 +56,8 @@ final sealed struct Thread
             throw
         fi
         unsafe
-            self:start0 => decl res: int
-            if res 0 != then
+            self:start0
+            unless self.tid then
                 "Thread start failed" ThreadException::new
                 throw
             fi
@@ -67,13 +70,19 @@ final sealed struct Thread
             throw
         fi
         unsafe
-            self:stop0 => decl res: int
-            if res 0 != then
-                "Thread join failed" ThreadException::new
-                throw
-            fi
+            self:stop0
         end
         nil => self.tid
+    end
+
+    function detach(): none
+        unless tid then
+            "Non-running thread cannot be detached" ThreadException::new
+            throw
+        fi
+        unsafe
+            self:detach0
+        end
     end
 
     function equals(other: any): bool

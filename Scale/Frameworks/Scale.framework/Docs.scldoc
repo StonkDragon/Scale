@@ -1084,6 +1084,9 @@ Starts this thread.
 ### function Thread:join(): none
 Waits for this thread to finish.
 
+### function Thread:detach(): none
+Detaches this thread.
+
 ### function Thread:equals(other: any): bool
 Returns true if `self` and `other` represent the same thread.
 

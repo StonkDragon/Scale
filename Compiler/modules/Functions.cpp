@@ -38,13 +38,24 @@ namespace sclc {
             bool isValueStructParam = arg.type.front() == '*';
             if (isValueStructParam) args += "*(";
             args += "*(" + sclTypeToCType(result, arg.type.substr(isValueStructParam)) + "*) _scl_positive_offset(" + std::to_string(i) + ")";
+            if (isValueStructParam) args += ")";
         }
         return args;
     }
 
     void createVariadicCall(Function* f, FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
-        incrementAndExpect(body[i].value == "!", "Expected '!' for variadic call, but got '" + body[i].value + "'");
-        incrementAndExpect(body[i].type == tok_number, "Amount of variadic arguments needs to be specified for variadic function call");
+        safeInc();
+        if (body[i].value != "!") {
+            transpilerError("Expected '!' for variadic call, but got '" + body[i].value + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        safeInc();
+        if (body[i].type != tok_number) {
+            transpilerError("Amount of variadic arguments needs to be specified for variadic function call", i);
+            errors.push_back(err);
+            return;
+        }
 
         append("{\n");
         scopeDepth++;
@@ -464,71 +475,6 @@ namespace sclc {
         if (op == "rol") return "<<<";
         if (op == "ror") return ">>>";
         return "???";
-    }
-
-    bool operatorInt(const std::string& op) {
-        return op == "add_ii" ||
-               op == "sub_ii" ||
-               op == "mul_ii" ||
-               op == "div_ii" ||
-               op == "pow_ii" ||
-               op == "mod" ||
-               op == "land" ||
-               op == "lor" ||
-               op == "lxor" ||
-               op == "lnot" ||
-               op == "lsr" ||
-               op == "lsl" ||
-               op == "ror" ||
-               op == "rol";
-    }
-
-    bool operatorFloat(const std::string& op) {
-        return op == "add_if" ||
-               op == "add_fi" ||
-               op == "add_ff" ||
-               op == "sub_if" ||
-               op == "sub_fi" ||
-               op == "sub_ff" ||
-               op == "mul_if" ||
-               op == "mul_fi" ||
-               op == "mul_ff" ||
-               op == "div_if" ||
-               op == "div_fi" ||
-               op == "div_ff" ||
-               op == "pow_if" ||
-               op == "pow_fi" ||
-               op == "pow_ff";
-    }
-
-    bool operatorBool(const std::string& op) {
-        return op == "eq_ii" ||
-               op == "eq_if" ||
-               op == "eq_fi" ||
-               op == "eq_ff" ||
-               op == "ne_ii" ||
-               op == "ne_if" ||
-               op == "ne_fi" ||
-               op == "ne_ff" ||
-               op == "gt_ii" ||
-               op == "gt_if" ||
-               op == "gt_fi" ||
-               op == "gt_ff" ||
-               op == "ge_ii" ||
-               op == "ge_if" ||
-               op == "ge_fi" ||
-               op == "ge_ff" ||
-               op == "lt_ii" ||
-               op == "lt_if" ||
-               op == "lt_fi" ||
-               op == "lt_ff" ||
-               op == "le_ii" ||
-               op == "le_if" ||
-               op == "le_fi" ||
-               op == "le_ff" ||
-               op == "and" ||
-               op == "or" ||
-               op == "not";
     }
 
     void functionCall(Function* self, FILE* fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {

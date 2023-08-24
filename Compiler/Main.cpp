@@ -50,26 +50,19 @@
 #endif
 
 #ifndef SCL_ROOT_DIR
-#ifdef _WIN32
-#define SCL_ROOT_DIR getenv("USERPROFILE")
-#else
-#define SCL_ROOT_DIR getenv("HOME")
-#endif
+#define SCL_ROOT_DIR "/usr/local"
 #endif
 
 #if defined(__APPLE__)
 #define LIB_SCALE_FILENAME "libScaleRuntime.dylib"
-#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
-#define LIB_SCALE_EXT ".dylib"
+#define LIB_CXXGLUE_FILENAME "libCXXGlue.dylib"
 #elif defined(__linux__)
 #define LIB_SCALE_FILENAME "libScaleRuntime.so"
-#define LIB_SCALE_FILENAME_NO_EXT "libScaleRuntime"
-#define LIB_SCALE_EXT ".so"
+#define LIB_CXXGLUE_FILENAME "libCXXGlue.so"
 #elif defined(_WIN32)
 // defined, but not used
 #define LIB_SCALE_FILENAME "ScaleRuntime.dll"
-#define LIB_SCALE_FILENAME_NO_EXT "ScaleRuntime"
-#define LIB_SCALE_EXT ".dll"
+#define LIB_CXXGLUE_FILENAME "CXXGlue.dll"
 #endif
 
 #define TO_STRING2(x) #x
@@ -224,7 +217,8 @@ namespace sclc
 
                 for (size_t i = 0; compilerFlags != nullptr && i < compilerFlags->size(); i++) {
                     std::string flag = compilerFlags->getString(i)->getValue();
-                    if (!hasCppFiles && (strends(flag, ".cpp") || strends(flag, ".c++"))) {
+                    bool isCppFile = strends(flag, ".cpp") || strends(flag, ".c++");
+                    if (!hasCppFiles && isCppFile) {
                         hasCppFiles = true;
                     }
                     tmpFlags.push_back(flag);
@@ -240,7 +234,8 @@ namespace sclc
                 for (unsigned long i = 0; i < implementersSize; i++) {
                     std::string implementer = implementers->getString(i)->getValue();
                     if (!Main.options.assembleOnly) {
-                        if (!hasCppFiles && (strends(implementer, ".cpp") || strends(implementer, ".c++"))) {
+                        bool isCppFile = strends(implementer, ".cpp") || strends(implementer, ".c++");
+                        if (!hasCppFiles && isCppFile) {
                             hasCppFiles = true;
                         }
                         nonScaleFiles.push_back(path + "/" + framework + ".framework/" + implDir + "/" + implementer);
@@ -607,11 +602,15 @@ namespace sclc
     }
 
     int compileRuntimeLib() {
-        std::vector<std::string> cmd = {
-            std::string("clang"),
+        std::vector<std::string> libScaleCommand = {
+            "clang",
             "-O2",
 #if defined(__APPLE__)
             "-dynamiclib",
+            "-current_version",
+            Version(VERSION).asString().c_str(),
+            "-compatibility_version",
+            Version(VERSION).asString().c_str(),
 #elif defined(__linux__)
             "-fPIC",
             "-shared",
@@ -625,18 +624,63 @@ namespace sclc
             "-o",
             scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
         };
+        std::vector<std::string> cxxGlueCommand = {
+            "clang++",
+            "-O2",
+            "-std=c++17",
+#if defined(__APPLE__)
+            "-dynamiclib",
+            "-current_version",
+            Version(VERSION).asString().c_str(),
+            "-compatibility_version",
+            Version(VERSION).asString().c_str(),
+#elif defined(__linux__)
+            "-fPIC",
+            "-shared",
+#endif
+            "-undefined",
+            "dynamic_lookup",
+            "-lgc",
+            "-I" + scaleFolder + "/Internal",
+            scaleFolder + "/Internal/scale_cxx.cpp",
+            "-o",
+            scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME)
+        };
+
         if (Main.options.debugBuild) {
-            cmd.push_back("-g");
-            cmd.push_back("-O0");
+            libScaleCommand.push_back("-g");
+            libScaleCommand.push_back("-O0");
         }
-        std::string cmdStr = "";
-        for (auto& s : cmd) {
-            cmdStr += s + " ";
+        if (Main.options.debugBuild) {
+            cxxGlueCommand.push_back("-g");
+            cxxGlueCommand.push_back("-O0");
         }
 
+        std::string cxxGlueCompileCommmand = "";
+        for (auto& s : cxxGlueCommand) {
+            cxxGlueCompileCommmand += s + " ";
+        }
+
+        std::string libScaleCompileCommand = "";
+        for (auto& s : libScaleCommand) {
+            libScaleCompileCommand += s + " ";
+        }
+
+        int ret;
         std::cout << Color::BLUE << "Compiling runtime library..." << std::endl;
-        std::cout << Color::CYAN << cmdStr << Color::RESET << std::endl;
-        return system(cmdStr.c_str());
+        std::cout << Color::CYAN << libScaleCompileCommand << Color::RESET << std::endl;
+        if ((ret = system(libScaleCompileCommand.c_str()))) {
+            std::cerr << Color::RED << "Failed to compile runtime library" << Color::RESET << std::endl;
+            return ret;
+        }
+
+        std::cout << Color::BLUE << "Compiling c++ glue library..." << std::endl;
+        std::cout << Color::CYAN << cxxGlueCompileCommmand << Color::RESET << std::endl;
+        if ((ret = system(cxxGlueCompileCommmand.c_str()))) {
+            std::cerr << Color::RED << "Failed to compile c++ glue library" << Color::RESET << std::endl;
+            return ret;
+        }
+        return 0;
     }
 
     void logWarns(std::vector<FPResult>& warns) {
@@ -885,6 +929,7 @@ namespace sclc
                     tmpFlags.push_back("-DSCL_DEBUG=1");
                 } else if (args[i] == "-cflags") {
                     Main.options.printCflags = true;
+                    Main.options.noMain = true;
                 } else if (args[i] == "-makelib") {
                     #if defined(__APPLE__)
                     tmpFlags.push_back("-dynamiclib");
@@ -1005,6 +1050,7 @@ namespace sclc
         cflags.push_back("-L" + scaleFolder + "/Internal");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
+        cflags.push_back("-std=" + std::string(C_VERSION));
         
         std::string source;
         bool alreadyIncluded = false;
@@ -1146,10 +1192,7 @@ namespace sclc
         Parser parser(result);
         Main.parser = &parser;
 
-        if (!hasCppFiles) {
-            // -std= only works when there are no c++ files to build
-            cflags.push_back("-std=" + std::string(C_VERSION));
-        } else {
+        if (hasCppFiles) {
             // link to c++ library if needed
             cflags.push_back("-lc++");
         }
@@ -1194,6 +1237,7 @@ namespace sclc
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
 #endif
         cflags.push_back("-lScaleRuntime");
+        cflags.push_back("-lCXXGlue");
         cflags.push_back("-lgc");
 
         std::string cmd = "";
@@ -1320,9 +1364,6 @@ namespace sclc
 int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
-    signal(SIGILL, sclc::signalHandler);
-    signal(SIGINT, sclc::signalHandler);
-    signal(SIGTERM, sclc::signalHandler);
 
     if (!isatty(fileno(stdout))) {
         sclc::Color::RESET = "";
