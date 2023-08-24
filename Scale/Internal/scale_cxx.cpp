@@ -2,6 +2,7 @@
 #include <thread>
 #include <functional>
 #include <mutex>
+#include <system_error>
 
 extern "C" {
     #include "scale_runtime.h"
