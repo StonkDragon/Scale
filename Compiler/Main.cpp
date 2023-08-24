@@ -646,6 +646,8 @@ namespace sclc
             "-o",
             scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME)
         };
+        std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME));
+        std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME));
 
         if (Main.options.debugBuild) {
             libScaleCommand.push_back("-g");
@@ -1024,7 +1026,11 @@ namespace sclc
         }
 
         std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)) {
+        std::string libCxxGlueFileName = std::string(LIB_CXXGLUE_FILENAME);
+        if (
+            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName) ||
+            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libCxxGlueFileName)
+        ) {
             int ret = compileRuntimeLib();
             if (ret) {
                 std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
