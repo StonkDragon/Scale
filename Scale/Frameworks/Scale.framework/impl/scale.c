@@ -188,6 +188,7 @@ void Thread$run(scl_Thread self) {
 	virtual_call(Var_Thread$threads, "push(a;)V;", self);
 	Process$unlock(Var_Thread$threads);
 	
+	_scl_exception_push();
 	TRY {
 		self->function();
 	} else {
