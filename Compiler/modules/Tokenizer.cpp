@@ -186,15 +186,10 @@ namespace sclc
         } else if (isOperator(c)) {
             value += c;
             if (c == '>') {
-                if (source[current + 1] == '>' || source[current + 1] == '=') {
+                if (source[current + 1] == '=') {
                     c = source[++current];
                     column++;
                     value += c;
-                    if (source[current] == '>' && source[current + 1] == '>') {
-                        c = source[++current];
-                        column++;
-                        value += c;
-                    }
                 }
             } else if (c == '<') {
                 if (source[current + 1] == '<' || source[current + 1] == '=') {

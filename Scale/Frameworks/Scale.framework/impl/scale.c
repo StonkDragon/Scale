@@ -185,7 +185,7 @@ void Thread$run(scl_Thread self) {
 	_currentThread = self;
 
 	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "push(a;)V;", self);
+	virtual_call(Var_Thread$threads, "push(LThread;)V;", self);
 	Process$unlock(Var_Thread$threads);
 	
 	_scl_exception_push();
@@ -196,7 +196,7 @@ void Thread$run(scl_Thread self) {
 	}
 
 	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
+	virtual_call(Var_Thread$threads, "remove(LThread;)V;", self);
 	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;

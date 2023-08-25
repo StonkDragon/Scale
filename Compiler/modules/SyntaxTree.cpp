@@ -255,7 +255,7 @@ namespace sclc {
                 func->return_type = type;
                 func->templateArg = r.message;
                 if (namedReturn.size()) {
-                    func->namedReturnValue = Variable(namedReturn, "mut " + type).also([fromTemplate](Variable& v) {
+                    func->namedReturnValue = Variable(namedReturn, type).also([fromTemplate](Variable& v) {
                         v.canBeNil = typeCanBeNil(v.type);
                         v.typeFromTemplate = fromTemplate;
                     });
@@ -503,7 +503,7 @@ namespace sclc {
                 continue;
             }
             i++;
-            method->addArgument(Variable("self", "mut " + memberName));
+            method->addArgument(Variable("self", memberName));
 
             std::string namedReturn = "";
             if (tokens[i].type == tok_identifier) {
@@ -1036,6 +1036,270 @@ namespace sclc {
     }
 
     std::string specToCIdent(std::string in);
+
+    struct Instanciable {
+        std::string structName;
+        std::map<std::string, std::string> arguments;
+
+        std::string toString() {
+            std::string stringName = this->structName + "<";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    stringName += ", ";
+                }
+                stringName += it->first + ": " + it->second;
+            }
+            stringName += ">";
+            return stringName;
+        }
+    };
+
+    std::vector<Instanciable> instanciables;
+
+    std::optional<Instanciable> findInstanciable(std::string name) {
+        for (auto&& inst : instanciables) {
+            if (inst.structName == name) {
+                return inst;
+            }
+        }
+        return std::nullopt;
+    }
+
+    struct Template;
+
+    struct TemplateInstances {
+        static std::vector<Template> templates;
+        
+        static void addTemplate(const Template& t);
+        static bool hasTemplate(std::string name);
+        static Template& getTemplate(std::string name);
+        static void instantiate(TPResult& result);
+    };
+
+    struct Template {
+        static Template empty;
+
+        std::string structName;
+        Token instantiatingToken;
+        std::map<std::string, std::string> arguments;
+
+        void copyTo(const Struct& src, Struct& dest, TPResult& result) {
+            dest.super = src.super;
+            dest.members = src.members;
+            dest.name_token = src.name_token;
+            dest.flags = src.flags;
+            dest.members = src.members;
+            dest.memberInherited = src.memberInherited;
+            dest.interfaces = src.interfaces;
+            dest.templates = this->arguments;
+
+            for (auto&& member : dest.members) {
+                if (member.typeFromTemplate.size()) {
+                    member.type = this->arguments[member.typeFromTemplate];
+                }
+            }
+
+            auto methods = methodsOnType(result, src.name);
+            for (auto&& method : methods) {
+                Method* mt = method->cloneAs(dest.name);
+                mt->clearArgs();
+                for (Variable arg : method->args) {
+                    if (arg.typeFromTemplate.size()) {
+                        arg.type = this->arguments[arg.typeFromTemplate];
+                    } else if (arg.name == "self") {
+                        arg.type = dest.name;
+                    }
+                    mt->addArgument(arg);
+                }
+                if (mt->templateArg.size()) {
+                    mt->return_type = this->arguments[mt->templateArg];
+                }
+                result.functions.push_back(mt);
+            }
+        }
+
+        std::string& operator[](std::string key) {
+            return this->arguments[key];
+        }
+
+        std::string& operator[](size_t index) {
+            auto it = this->arguments.begin();
+            for (size_t i = 0; i < index; i++) {
+                it++;
+            }
+            return it->second;
+        }
+
+        void setNth(size_t index, std::string value) {
+            std::string key = "";
+            for (auto&& arg : this->arguments) {
+                if (index == 0) {
+                    key = arg.first;
+                    break;
+                }
+                index--;
+            }
+            this->arguments[key] = value;
+        }
+
+        void makeInstance(TPResult& result, const Struct& baseStruct) {
+            std::string instanceName = this->nameForInstance();
+            Struct instance(instanceName);
+            copyTo(baseStruct, instance, result);
+            result.structs.push_back(instance);
+        }
+
+        std::string nameForInstance() {
+            std::string instanceName = this->structName + "$";
+            for (auto&& arg : this->arguments) {
+                std::string type = arg.second;
+                instanceName += "$" + type;
+            }
+            return instanceName;
+        }
+
+        std::string toString() {
+            std::string stringName = this->structName + "<";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    stringName += ", ";
+                }
+                stringName += it->first + ": " + it->second;
+            }
+            stringName += ">";
+            return stringName;
+        }
+
+        std::optional<Template> parse(Template& t, std::vector<Token>& tokens, size_t& i, std::vector<FPResult>& errors) {
+            i++;
+            if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+                i--;
+                t = Template::empty;
+                return std::nullopt;
+            }
+            t.instantiatingToken = tokens[i - 1];
+            t.structName = tokens[i - 1].value;
+            i++;
+            size_t parameterCount = 0;
+            while (tokens[i].value != ">") {
+                auto inst = findInstanciable(tokens[i].value);
+                if (inst.has_value()) {
+                    Template t;
+                    for (auto&& arg : inst->arguments) {
+                        t.arguments[arg.first] = arg.second;
+                    }
+                    auto parsedArg = t.parse(t, tokens, i, errors);
+                    if (!parsedArg.has_value()) {
+                        FPResult result;
+                        result.message = "Expected template argument, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.line = tokens[i].line;
+                        result.in = tokens[i].file;
+                        result.type = tokens[i].type;
+                        result.column = tokens[i].column;
+                        result.success = false;
+                        errors.push_back(result);
+                        t = Template::empty;
+                        return Template::empty;
+                    }
+                    t.setNth(parameterCount++, parsedArg.value().nameForInstance());
+                    i++;
+                    if (tokens[i].type == tok_comma) {
+                        i++;
+                    }
+                    continue;
+                }
+                FPResult r = parseType(tokens, &i, {});
+                if (!r.success) {
+                    errors.push_back(r);
+                    t = Template::empty;
+                    return Template::empty;
+                }
+                t.setNth(parameterCount++, r.value);
+                i++;
+                if (tokens[i].type == tok_comma) {
+                    i++;
+                }
+            }
+            return t;
+        }
+    };
+
+    Template Template::empty = Template();
+
+    std::vector<Template> TemplateInstances::templates;
+
+    void TemplateInstances::addTemplate(const Template& t) {
+        templates.push_back(t);
+    }
+
+    bool TemplateInstances::hasTemplate(std::string name) {
+        for (Template& t : templates) {
+            if (t.structName == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    Template& TemplateInstances::getTemplate(std::string name) {
+        for (Template& t : templates) {
+            if (t.structName == name) {
+                return t;
+            }
+        }
+        return Template::empty;
+    }
+
+    void TemplateInstances::instantiate(TPResult& result) {
+        for (auto&& templateInstance : templates) {
+            const Struct& baseStruct = getStructByName(result, templateInstance.structName);
+            bool hadError = false;
+            if (!baseStruct.name.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Struct for template '" + templateInstance.toString() + "' not found!";
+                error.in = templateInstance.instantiatingToken.file;
+                error.line = templateInstance.instantiatingToken.line;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                error.column = templateInstance.instantiatingToken.column;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (!baseStruct.templates.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Struct '" + baseStruct.name + "' is not templatable!";
+                error.in = templateInstance.instantiatingToken.file;
+                error.line = templateInstance.instantiatingToken.line;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                error.column = templateInstance.instantiatingToken.column;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (baseStruct.templates.size() != templateInstance.arguments.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Expected " + std::to_string(baseStruct.templates.size()) + " template arguments, but got " + std::to_string(templateInstance.arguments.size());
+                error.in = templateInstance.instantiatingToken.file;
+                error.line = templateInstance.instantiatingToken.line;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                error.column = templateInstance.instantiatingToken.column;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (hadError) {
+                continue;
+            }
+            if (getStructByName(result, templateInstance.nameForInstance()).name.size()) {
+                continue;
+            }
+            templateInstance.makeInstance(result, baseStruct);
+        }
+    }
 
     struct Macro {
         std::vector<std::string> args;
@@ -1621,6 +1885,154 @@ namespace sclc {
         };
         
         for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_struct_def) {
+                continue;
+            }
+
+            Instanciable inst;
+            i++;
+            if (tokens[i].type == tok_identifier) {
+                inst.structName = tokens[i].value;
+            } else {
+                FPResult result;
+                result.message = "Expected identifier after 'struct'";
+                result.value = tokens[i].value;
+                result.line = tokens[i].line;
+                result.in = tokens[i].file;
+                result.type = tokens[i].type;
+                result.column = tokens[i].column;
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            i++;
+            if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+                continue;
+            }
+            i++;
+            while (i < tokens.size() && tokens[i].value != ">") {
+                if (tokens[i].type != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier after '<'";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
+                    result.success = false;
+                    errors.push_back(result);
+                    break;
+                }
+                std::string parameterName = tokens[i].value;
+                i++;
+                if (tokens[i].type != tok_column) {
+                    FPResult result;
+                    result.message = "Expected ':' after '" + parameterName + "' (" + parameterName + ")";
+                    result.value = tokens[i].value;
+                    result.line = tokens[i].line;
+                    result.in = tokens[i].file;
+                    result.type = tokens[i].type;
+                    result.column = tokens[i].column;
+                    result.success = false;
+                    errors.push_back(result);
+                    break;
+                }
+                i++;
+                FPResult result = parseType(tokens, &i);
+                if (!result.success) {
+                    errors.push_back(result);
+                    break;
+                }
+                i++;
+                inst.arguments[parameterName] = result.value;
+                if (i < tokens.size() && tokens[i].value == ",") {
+                    i++;
+                }
+            }
+            if (i >= tokens.size()) {
+                FPResult result;
+                result.message = "Expected '>' after struct parameters";
+                result.value = tokens[i - 1].value;
+                result.line = tokens[i - 1].line;
+                result.in = tokens[i - 1].file;
+                result.type = tokens[i - 1].type;
+                result.column = tokens[i - 1].column;
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            i++;
+            instanciables.push_back(inst);
+        }
+
+        for (auto&& inst : instanciables) {
+            for (size_t i = 0; i < tokens.size(); i++) {
+                if (i && (tokens[i - 1].type == tok_struct_def || tokens[i - 1].type == tok_dot)) {
+                    continue;
+                }
+                if (tokens[i].type != tok_identifier || tokens[i].value != inst.structName) {
+                    continue;
+                }
+                size_t start = i;
+                Template templ;
+                for (auto&& arg : inst.arguments) {
+                    templ.arguments[arg.first] = arg.second;
+                }
+                auto t = templ.parse(templ, tokens, i, errors);
+                if (!t.has_value()) {
+                    FPResult result;
+                    result.message = "Usage of uninstantiated template '" + inst.structName + "' is not allowed";
+                    result.value = tokens[start].value;
+                    result.line = tokens[start].line;
+                    result.in = tokens[start].file;
+                    result.type = tokens[start].type;
+                    result.column = tokens[start].column;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                tokens.erase(tokens.begin() + start, tokens.begin() + i);
+                i = start;
+                tokens.insert(tokens.begin() + i, Token(tok_identifier, templ.nameForInstance(), tokens[i].line, tokens[i].file, tokens[i].column));
+                TemplateInstances::addTemplate(t.value());
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_identifier || tokens[i].value != ">") {
+                continue;
+            }
+            if (i + 1 >= tokens.size()) {
+                continue;
+            }
+            if (tokens[i + 1].type != tok_identifier || tokens[i + 1].value != ">") {
+                continue;
+            }
+            if (tokens[i + 1].column - 1 != tokens[i].column) {
+                continue;
+            }
+            Token begin = tokens[i];
+            tokens.erase(tokens.begin() + i);
+            tokens.erase(tokens.begin() + i);
+            if (i < tokens.size() && tokens[i].type == tok_identifier && tokens[i].value == ">") {
+                if (tokens[i].column - 2 == tokens[i].column) {
+                    tokens.erase(tokens.begin() + i);
+                    tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>>", begin.line, begin.file, begin.column));
+                }
+            } else {
+                tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>", begin.line, begin.file, begin.column));
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type == tok_eof) {
+                tokens.erase(tokens.begin() + i);
+                i--;
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
             Token& token = tokens[i];
 
             if (token.type == tok_function) {
@@ -1730,7 +2142,7 @@ namespace sclc {
                         for (Variable& v : currentFunction->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->addArgument(Variable("self", currentInterface->name));
                         m->return_type = currentFunction->return_type;
                         for (std::string& s : currentFunction->modifiers) {
                             m->addModifier(s);
@@ -1748,7 +2160,7 @@ namespace sclc {
                         for (Variable& v : functionToImplement->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->addArgument(Variable("self", currentInterface->name));
                         m->return_type = functionToImplement->return_type;
                         for (std::string& s : functionToImplement->modifiers) {
                             m->addModifier(s);
@@ -2345,8 +2757,6 @@ namespace sclc {
                         }
                         currentStruct->required_typed_arguments++;
                         currentStruct->addTemplateArgument(key, value.value);
-                        currentStruct->addMember(Variable("$template_arg_" + key, "uint32"));
-                        currentStruct->addMember(Variable("$template_argname_" + key, "[const int8]"));
                         templateArgs[key] = value.value;
                         i++;
                         if (tokens[i].value == ",") {
@@ -2927,6 +3337,7 @@ namespace sclc {
                            t.value == "overload!" ||
                            t.value == "construct" ||
                            t.value == "intrinsic" ||
+                           t.value == "overrides" ||
                            t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
@@ -2967,7 +3378,7 @@ namespace sclc {
                         getter->return_type = lastDeclaredVariable.type;
                         getter->addModifier("@getter");
                         getter->addModifier(varName);
-                        getter->addArgument(Variable("self", "mut " + currentStruct->name));
+                        getter->addArgument(Variable("self", currentStruct->name));
                         currentFunction = getter;
                     } else {
                         Token& setToken = tokens[i];
@@ -2993,7 +3404,7 @@ namespace sclc {
                         setter->addModifier("@setter");
                         setter->addModifier(varName);
                         setter->addArgument(Variable(argName, lastDeclaredVariable.type));
-                        setter->addArgument(Variable("self", "mut " + currentStruct->name));
+                        setter->addArgument(Variable("self", currentStruct->name));
                         currentFunction = setter;
                     }
                 } else if (tokens[i].value == "typealias") {
@@ -3130,44 +3541,10 @@ namespace sclc {
 
         std::vector<Struct> newStructs;
 
+        TemplateInstances::instantiate(result);
+
         for (auto&& s : result.structs) {
             Struct super = getStructByName(result, s.super);
-            for (auto t : s.templates) {
-                if (t.second.size() > 2 && t.second.front() == '[' && t.second.back() == ']') {
-                    FPResult r;
-                    r.message = "Default value for template '" + t.first + "' is an array, which is not allowed";
-                    r.value = t.second;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
-                    continue;
-                }
-                Struct tmp = getStructByName(result, t.second);
-                bool primitive = false;
-                if ((primitive = isPrimitiveType(t.second)) || tmp == Struct::Null || tmp.isStatic()) {
-                    FPResult r;
-                    if (tmp == Struct::Null) {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which does not appear to be a struct or primitive type";
-                    } else if (tmp.isStatic()) {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a static struct";
-                    } else {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a primitive type";
-                    }
-                    r.value = t.second;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
-                    continue;
-                }
-            }
             Struct oldSuper = s;
             while (super.name.size()) {
                 if (super.name == s.name) {
@@ -3219,29 +3596,19 @@ namespace sclc {
                     result.errors.push_back(r2);
                     goto nextIter;
                 }
-                if (super.templates.size() && s.templates.size() == 0) {
-                    for (auto kv : super.templates) {
-                        s.addTemplateArgument(kv.first, kv.second);
-                    }
-                    s.required_typed_arguments = super.required_typed_arguments;
-                }
-                if (super.templates.size() && super.templates.size() != s.templates.size()) {
-                    FPResult r;
-                    r.message = "Struct '" + s.name + "' has " + std::to_string(s.templates.size()) + " template arguments, but '" + super.name + "' has " + std::to_string(super.templates.size());
-                    r.value = s.name_token.value;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
-                    goto nextIter;
-                }
                 std::vector<Variable> vars = super.getDefinedMembers();
                 for (ssize_t i = vars.size() - 1; i >= 0; i--) {
                     s.addMember(vars[i], true);
                 }
+                std::vector<Variable> newMembers;
+                newMembers.reserve(s.members.size());
+                for (Variable mem : s.members) {
+                    if (mem.isInternalMut) {
+                        mem.internalMutableFrom = s.name;
+                    }
+                    newMembers.push_back(mem);
+                }
+                s.members = std::move(newMembers);
                 oldSuper = super;
                 super = getStructByName(result, super.super);
             }
@@ -3264,7 +3631,7 @@ namespace sclc {
             std::string stringify = s.name + " {";
             toString->return_type = "str";
             toString->addModifier("<generated>");
-            toString->addArgument(Variable("self", "mut " + s.name));
+            toString->addArgument(Variable("self", s.name));
             toString->addToken(Token(tok_string_literal, stringify, 0, s.name + ":toString"));
 
             size_t membersAdded = 0;

@@ -611,12 +611,14 @@ namespace sclc
             Version(VERSION).asString().c_str(),
             "-compatibility_version",
             Version(VERSION).asString().c_str(),
+            "-undefined",
+            "dynamic_lookup",
 #elif defined(__linux__)
             "-fPIC",
             "-shared",
+#elif defined(_WIN32)
+            "-shared",
 #endif
-            "-undefined",
-            "dynamic_lookup",
             "-lgc",
             "-I" + scaleFolder + "/Internal",
             scaleFolder + "/Internal/runtime_vars.c",
@@ -634,12 +636,15 @@ namespace sclc
             Version(VERSION).asString().c_str(),
             "-compatibility_version",
             Version(VERSION).asString().c_str(),
+            "-undefined",
+            "dynamic_lookup",
 #elif defined(__linux__)
             "-fPIC",
             "-shared",
+#elif defined(_WIN32)
+            "-shared",
+            "-static-libstdc++",
 #endif
-            "-undefined",
-            "dynamic_lookup",
             "-lgc",
             "-I" + scaleFolder + "/Internal",
             scaleFolder + "/Internal/scale_cxx.cpp",

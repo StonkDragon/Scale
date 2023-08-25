@@ -94,8 +94,10 @@ wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
             },
             args
         );
-    } catch(const std::exception& e) {
+    } catch(const std::system_error& e) {
         _scl_throw(INTO(ThreadException, e));
+    } catch(const std::bad_alloc& e) {
+        _scl_throw(INTO(OutOfMemoryError, e));
     }
 }
 wrap void cxx_std_this_thread_yield() {

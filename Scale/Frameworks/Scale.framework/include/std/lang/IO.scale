@@ -64,7 +64,7 @@ end
 
 deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
 function throwerr(errorString: str): none
-  Exception::new => decl e: mut Exception
+  Exception::new => decl e: Exception
   errorString => e.msg
   e throw
 end

@@ -61,6 +61,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_getter = 0;
     this->has_setter = 0;
     this->has_foreign = 0;
+    this->has_overrides = 0;
 }
 std::string Function::finalName() {
     if (
@@ -111,6 +112,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_getter == 0 && modifier == "@getter") has_getter = modifiers.size();
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
+    else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);

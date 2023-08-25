@@ -94,7 +94,6 @@ namespace sclc
         "restrict",
         "const",
         "readonly",
-        "mut",
         "try",
         "catch",
         "throw",
@@ -360,7 +359,6 @@ namespace sclc
         r.value = "";
         std::string type_mods = "";
         bool isConst = false;
-        bool isMut = false;
         bool isReadonly = false;
 
         if (body[*i].type == tok_identifier && body[*i].value == "*") {
@@ -368,31 +366,10 @@ namespace sclc
             (*i)++;
         }
 
-        while (body[(*i)].value == "const" || body[(*i)].value == "mut" || body[(*i)].value == "readonly") {
+        while (body[(*i)].value == "const"|| body[(*i)].value == "readonly") {
             if (!isConst && body[(*i)].value == "const") {
                 type_mods += "const ";
                 isConst = true;
-                if (isMut) {
-                    r.success = false;
-                    r.line = body[*i].line;
-                    r.in = body[*i].file;
-                    r.column = body[*i].column;
-                    r.value = body[*i].value;
-                    r.type = body[*i].type;
-                    r.message = "Cannot specify 'const' on already 'mut' type!";
-                }
-            } else if (!isMut && body[(*i)].value == "mut") {
-                type_mods += "mut ";
-                isMut = true;
-                if (isConst) {
-                    r.success = false;
-                    r.line = body[*i].line;
-                    r.in = body[*i].file;
-                    r.column = body[*i].column;
-                    r.value = body[*i].value;
-                    r.type = body[*i].type;
-                    r.message = "Cannot specify 'mut' on already 'const' type!";
-                }
             } else if (!isReadonly && body[(*i)].value == "readonly") {
                 type_mods += "readonly ";
                 isReadonly = true;
@@ -842,26 +819,18 @@ namespace sclc
 
     bool typeIsReadonly(std::string s) {
         if (s.size() && s.front() == '*') s.erase(0, 1);
-        while (strstarts(s, "mut ") || strstarts(s, "const ")) {
-            s.erase(0, strstarts(s, "mut ") ? 4 : 6);
+        while (strstarts(s, "const ")) {
+            s.erase(0, 6);
         }
         return strstarts(s, "readonly ");
     }
 
     bool typeIsConst(std::string s) {
         if (s.size() && s.front() == '*') s.erase(0, 1);
-        while (strstarts(s, "mut ") || strstarts(s, "readonly ")) {
-            s.erase(0, strstarts(s, "mut ") ? 4 : 9);
+        while (strstarts(s, "readonly ")) {
+            s.erase(0, 9);
         }
         return strstarts(s, "const ");
-    }
-
-    bool typeIsMut(std::string s) {
-        if (s.size() && s.front() == '*') s.erase(0, 1);
-        while (strstarts(s, "const ") || strstarts(s, "readonly ")) {
-            s.erase(0, strstarts(s, "const ") ? 6 : 9);
-        }
-        return strstarts(s, "mut ");
     }
 
     bool isPrimitiveIntegerType(std::string type);
@@ -976,7 +945,7 @@ namespace sclc
             if (deref) {
                 *currentType = typePointedTo(*currentType);
             }
-            if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
                 transpilerError("Variable '" + v.name + "' is not mutable", i);
                 errors.push_back(err);
                 return std::string("(void) 0");
@@ -987,7 +956,7 @@ namespace sclc
                 return std::string("(void) 0");
             }
             if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
-                if (doesWriteAfter && !v.isWritableFrom(currentFunction) && doesWriteAfter) {
+                if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
                     transpilerError("Member '" + v.name + "' of struct '" + s.name + "' is not mutable", i);
                     errors.push_back(err);
                     return std::string("(void) 0");

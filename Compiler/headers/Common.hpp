@@ -216,7 +216,6 @@ namespace sclc {
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
     bool typeIsConst(std::string s);
-    bool typeIsMut(std::string s);
     bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s);
     bool featureEnabled(std::string feat);

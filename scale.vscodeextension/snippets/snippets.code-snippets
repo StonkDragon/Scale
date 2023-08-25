@@ -456,6 +456,14 @@
 		],
 		"description": "ASM Symbol name"
 	},
+	"Overrides": {
+		"scope": "source.scale",
+		"prefix": "overrides",
+		"body": [
+			"overrides \"${0:runtime signature}\"",
+		],
+		"description": "Set overload to override"
+	},
 	"Deprecated": {
 		"scope": "source.scale",
 		"prefix": "deprecate",
@@ -735,13 +743,5 @@
 			"readonly",
 		],
 		"description": "readonly"
-	},
-	"Keyword mut": {
-		"scope": "source.scale",
-		"prefix": "mut",
-		"body": [
-			"mut",
-		],
-		"description": "mut"
 	},
 }

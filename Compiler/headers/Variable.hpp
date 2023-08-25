@@ -28,7 +28,6 @@ namespace sclc
     bool typeCanBeNil(std::string s);
     bool typeIsReadonly(std::string s);
     bool typeIsConst(std::string s);
-    bool typeIsMut(std::string s);
 
     struct Variable : public Also<Variable> {
         struct Hasher {
@@ -48,7 +47,6 @@ namespace sclc
         std::string internalMutableFrom;
         bool isConst;
         bool isInternalMut;
-        bool isMut;
         bool isReadonly;
         bool isVirtual;
         Token* name_token;
@@ -59,7 +57,6 @@ namespace sclc
         Variable(std::string name, std::string type, std::string memberType) {
             this->name = name;
             this->type = type;
-            this->isMut = typeIsMut(type);
             this->isConst = typeIsConst(type);
             this->isReadonly = typeIsReadonly(type);
             this->canBeNil = typeCanBeNil(type);

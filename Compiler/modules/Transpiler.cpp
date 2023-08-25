@@ -751,8 +751,6 @@ namespace sclc {
                 Function* f = getFunctionByName(result, body[i].value);
                 std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
                 append("*(scl_str*) (_stack.sp++) = _scl_create_string(\"%s\");\n", lambdaType.c_str());
-            } else if (function->isMethod && templates.find(body[i].value) != templates.end()) {
-                append("*(scl_str*) (_stack.sp++) = _scl_create_string(Var_self->$template_argname_%s);\n", body[i].value.c_str());
             } else if (body[i].type == tok_paren_open) {
                 append("{\n");
                 scopeDepth++;
@@ -998,15 +996,6 @@ namespace sclc {
                     scopeDepth++;
                     std::string ctype = sclTypeToCType(result, s.name);
                     append("%s tmp = ALLOC(%s);\n", ctype.c_str(), s.name.c_str());
-                    for (auto&& t : templates) {
-                        if (t.second.front() == '$') {
-                            append("tmp->$template_arg_%s = %s->hash;\n", t.first.c_str(), t.second.c_str());
-                            append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
-                        } else {
-                            append("tmp->$template_arg_%s = 0x%xU;\n", t.first.c_str(), id(t.second.c_str()));
-                            append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
-                        }
-                    }
                     
                     typeStack.push(s.name);
                     if (hasInitMethod) {
@@ -1019,24 +1008,6 @@ namespace sclc {
                     append("});\n");
                 } else if (body[i].value == "default" && !s.isStatic()) {
                     append("(_stack.sp++)->v = ALLOC(%s);\n", s.name.c_str());
-                    if (templates.size()) {
-                        append("{\n");
-                        scopeDepth++;
-                        append("%s tmp = (%s) (_stack.sp - 1)->v;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
-                    }
-                    for (auto&& t : templates) {
-                        if (t.second.front() == '$') {
-                            append("tmp->$template_arg_%s = %s->hash;\n", t.first.c_str(), t.second.c_str());
-                            append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
-                        } else {
-                            append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id(t.second.c_str()));
-                            append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
-                        }
-                    }
-                    if (templates.size()) {
-                        scopeDepth--;
-                        append("}\n");
-                    }
                     typeStack.push(s.name);
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
@@ -1076,15 +1047,6 @@ namespace sclc {
                 scopeDepth++;
                 size_t begin = i - 1;
                 append("scl_%s tmp = ALLOC(%s);\n", s.name.c_str(), s.name.c_str());
-                for (auto&& t : templates) {
-                    if (t.second.front() == '$') {
-                        append("tmp->$template_arg_%s = %s->hash;\n", t.first.c_str(), t.second.c_str());
-                        append("tmp->$template_argname_%s = %s->data;\n", t.first.c_str(), t.second.c_str());
-                    } else {
-                        append("tmp->$template_arg_%s = %d;\n", t.first.c_str(), id(t.second.c_str()));
-                        append("tmp->$template_argname_%s = (scl_int8*) \"%s\";\n", t.first.c_str(), t.second.c_str());
-                    }
-                }
                 append("_scl_frame_t* stack_start = _stack.sp;\n");
                 safeInc();
                 size_t count = 0;
@@ -3132,18 +3094,12 @@ namespace sclc {
             append("return (%s) ({\n", sclTypeToCType(result, type).c_str());
             scopeDepth++;
 
-            std::string templateType = "";
             std::string returningType = typeStackTop;
             if (function->namedReturnValue.name.size()) {
                 returningType = function->namedReturnValue.type;
                 append("%s retVal = Var_%s;\n", sclTypeToCType(result, returningType).c_str(), function->namedReturnValue.name.c_str());
-                templateType = function->namedReturnValue.typeFromTemplate;
             } else {
                 append("%s retVal = *(%s*) --_stack.sp;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
-                templateType = function->templateArg;
-            }
-            if (templateType.size()) {
-                append("_scl_checked_cast(*(scl_any*) &retVal, Var_self->$template_arg_%s, Var_self->$template_argname_%s);\n", templateType.c_str(), templateType.c_str());
             }
             if (!typeCanBeNil(function->return_type)) {
                 if (typeCanBeNil(returningType)) {
@@ -4225,9 +4181,6 @@ namespace sclc {
                     if (function->isMethod && arg.name == "self") continue;
                     if (arg.type == "varargs") continue;
                     append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
-                }
-                if (arg.typeFromTemplate.size()) {
-                    append("_scl_checked_cast(*(scl_any*) &Var_%s, Var_self->$template_arg_%s, Var_self->$template_argname_%s);\n", arg.name.c_str(), arg.typeFromTemplate.c_str(), arg.typeFromTemplate.c_str());
                 }
             }
             

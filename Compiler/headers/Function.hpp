@@ -44,6 +44,7 @@ namespace sclc
         long has_getter;
         long has_setter;
         long has_foreign;
+        long has_overrides;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
@@ -89,6 +90,7 @@ namespace sclc
                 m->addArgument(v);
             }
             m->namedReturnValue = namedReturnValue;
+            m->templateArg = templateArg;
             return m;
         }
     };

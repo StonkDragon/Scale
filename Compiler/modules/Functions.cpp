@@ -723,7 +723,9 @@ namespace sclc {
         for (auto&& m : methodsOnType(res, name)) {
             long indexInVtable = -1;
             for (size_t i = 0; i < vtable.size(); i++) {
-                if (vtable[i]->name == m->name && argVecEquals(vtable[i]->args, m->args)) {
+                if (
+                    vtable[i]->name == m->name && (argVecEquals(vtable[i]->args, m->args) || m->has_overrides)
+                ) {
                     indexInVtable = i;
                     break;
                 }
