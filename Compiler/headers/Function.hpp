@@ -45,6 +45,8 @@ namespace sclc
         long has_setter;
         long has_foreign;
         long has_overrides;
+        long has_stacksize;
+        long has_binary_inherited;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
@@ -60,6 +62,7 @@ namespace sclc
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
+        virtual size_t stackSize();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;

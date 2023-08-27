@@ -81,7 +81,7 @@ namespace sclc {
         }
 
         if (f->varArgsParam().name.size()) {
-            append("(_stack.sp++)->i = %zu;\n", amountOfVarargs);
+            append("(localstack++)->i = %zu;\n", amountOfVarargs);
             typeStack.push("int");
         }
 
@@ -98,16 +98,19 @@ namespace sclc {
             append("%s tmp = ", sclTypeToCType(result, f->return_type).c_str());
         } else {
             if (f->return_type != "none" && f->return_type != "nothing") {
-                append("*(%s*) _stack.sp++ = ", sclTypeToCType(result, f->return_type).c_str());
+                append("*(%s*) localstack = ", sclTypeToCType(result, f->return_type).c_str());
             } else {
                 append("");
             }
         }
 
         append2("fn_%s(%s);\n", f->name.c_str(), args.c_str());
+        if (f->return_type != "none" && f->return_type != "nothing") {
+            append("localstack++;\n");
+        }
         if (f->return_type.size() && f->return_type.front() == '*') {
-            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
-            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
+            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
+            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
             scopeDepth--;
             append("}\n");
         }
@@ -371,7 +374,7 @@ namespace sclc {
         }
         std::string args = generateArgumentsForFunction(result, self);
         if (Main.options.debugBuild) {
-            append("CAST0((_stack.sp - 1)->v, %s, 0x%x);\n", self->member_type.c_str(), id(self->member_type.c_str()));
+            append("CAST0((localstack - 1)->v, %s, 0x%x);\n", self->member_type.c_str(), id(self->member_type.c_str()));
         }
         if (self->return_type.size() && self->return_type.front() == '*') {
             append("{\n");
@@ -379,7 +382,7 @@ namespace sclc {
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
         } else {
             if (self->return_type != "none" && self->return_type != "nothing") {
-                append("*(%s*) _stack.sp++ = ", sclTypeToCType(result, self->return_type).c_str());
+                append("*(%s*) localstack = ", sclTypeToCType(result, self->return_type).c_str());
             } else {
                 append("");
             }
@@ -416,10 +419,14 @@ namespace sclc {
             found = true;
         }
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;
             append("}\n");
+        } else {
+            if (self->return_type != "none" && self->return_type != "nothing") {
+                append("localstack++;\n");
+            }
         }
         if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
             typeStack.push(self->return_type.substr(self->return_type.front() == '*'));
@@ -436,7 +443,8 @@ namespace sclc {
         if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
             append("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
-            append("*(%s*) (_stack.sp++) = fn_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            append("*(%s*) (localstack) = fn_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            append("localstack++;\n");
         }
     }
 
@@ -446,7 +454,8 @@ namespace sclc {
         if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
             append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         } else {
-            append("*(%s*) (_stack.sp++) = mt_%s$%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            append("*(%s*) (localstack) = mt_%s$%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            append("localstack++;\n");
         }
     }
 
@@ -545,10 +554,8 @@ namespace sclc {
             }
             std::string args = generateArgumentsForFunction(result, self);
 
-            if (Main.options.debugBuild) {
-                append("_scl_assert(_scl_stack_size() >= %d, \"_scl_%s() failed: Not enough data on the stack!\");\n", (1 + (op != "lnot" && op != "not")), op.c_str());
-            }
-            append("*(%s*) (_stack.sp++) = _scl_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), op.c_str(), args.c_str());
+            append("*(%s*) (localstack) = _scl_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), op.c_str(), args.c_str());
+            append("localstack++;\n");
 
             typeStack.push(self->return_type);
 
@@ -611,7 +618,7 @@ namespace sclc {
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
-                append("*(%s*) _stack.sp++ = ", sclTypeToCType(result, self->return_type).c_str());
+                append("*(%s*) localstack = ", sclTypeToCType(result, self->return_type).c_str());
                 typeStack.push(self->return_type);
             } else {
                 append("");
@@ -619,10 +626,14 @@ namespace sclc {
         }
         append2("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("(_stack.sp++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy((_stack.sp - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
             scopeDepth--;
             append("}\n");
+        } else {
+            if (self->return_type != "none" && self->return_type != "nothing") {
+                append("localstack++;\n");
+            }
         }
     }
 

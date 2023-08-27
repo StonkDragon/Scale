@@ -5,8 +5,9 @@ cdecl "_scl_memset"
 expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "_scl_memcpy"
 expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
-cdecl "_scl_stack_size"
-expect foreign function sizeofStack(): int
+function sizeofStack(): int
+  0 return
+end
 cdecl "_scl_sleep"
 expect foreign function sleep(millis: int): none
 cdecl "_scl_alloc"

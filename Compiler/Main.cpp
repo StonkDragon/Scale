@@ -621,7 +621,6 @@ namespace sclc
 #endif
             "-lgc",
             "-I" + scaleFolder + "/Internal",
-            scaleFolder + "/Internal/runtime_vars.c",
             scaleFolder + "/Internal/scale_runtime.c",
             "-o",
             scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
@@ -655,10 +654,12 @@ namespace sclc
         std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME));
 
         if (Main.options.debugBuild) {
+            libScaleCommand.push_back("-DSCL_DEBUG");
             libScaleCommand.push_back("-g");
             libScaleCommand.push_back("-O0");
         }
         if (Main.options.debugBuild) {
+            cxxGlueCommand.push_back("-DSCL_DEBUG");
             cxxGlueCommand.push_back("-g");
             cxxGlueCommand.push_back("-O0");
         }
@@ -1062,6 +1063,11 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
+        if (Main.options.debugBuild) {
+            cflags.push_back("-DSCL_DEBUG");
+            cflags.push_back("-g");
+            cflags.push_back("-O0");
+        }
         
         std::string source;
         bool alreadyIncluded = false;

@@ -3338,6 +3338,7 @@ namespace sclc {
                            t.value == "construct" ||
                            t.value == "intrinsic" ||
                            t.value == "overrides" ||
+                           t.value == "stacksize" ||
                            t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
@@ -3486,7 +3487,24 @@ namespace sclc {
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].value);
-                    if (tokens[i].value == "relocatable") {
+                    if (tokens[i].value == "stackalloc") {
+                        i++;
+                        if (i < tokens.size() && tokens[i].type == tok_number) {
+                            nextAttributes.push_back(tokens[i].value);
+                        } else {
+                            FPResult result;
+                            result.message = "Expected number, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.line = tokens[i].line;
+                            result.in = tokens[i].file;
+                            result.type = tokens[i].type;
+                            result.column = tokens[i].column;
+                            result.column = tokens[i].column;
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else if (tokens[i].value == "relocatable") {
                         nextAttributes.push_back("export");
                     }
                 }

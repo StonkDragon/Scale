@@ -26,8 +26,9 @@
     else                                                                               \
     {                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                              \
-        append("if (sizeof(%s) < 8) { (_stack.sp)->i = 0; }\n", ctype.c_str());        \
-        append("*(%s*) (_stack.sp++) = %s;\n", ctype.c_str(), path.c_str());           \
+        append("if (sizeof(%s) < 8) { (localstack)->i = 0; }\n", ctype.c_str());       \
+        append("*(%s*) (localstack) = %s;\n", ctype.c_str(), path.c_str());            \
+        append("localstack++;\n");                                                     \
     }                                                                                  \
     typeStack.push(type);
 

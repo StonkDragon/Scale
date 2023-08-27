@@ -46,7 +46,8 @@ namespace sclc {
                     typeStack.pop();
             }
             if (f->return_type.size() > 0 && f->return_type != "none" && f->return_type != "nothing") {
-                append("*(%s*) (_stack.sp++) = mt_%s$%s(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                append("*(%s*) (localstack) = mt_%s$%s(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());
+                append("localstack++;\n");
                 typeStack.push(f->return_type);
             } else {
                 append("mt_%s$%s(%s);\n", f->member_type.c_str(), f->finalName().c_str(), generateArgumentsForFunction(result, f).c_str());

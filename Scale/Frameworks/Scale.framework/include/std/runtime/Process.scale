@@ -16,7 +16,4 @@ static final sealed struct Process
 
     expect foreign function lock(obj: SclObject): none
     expect foreign function unlock(obj: SclObject): none
-
-    expect foreign function stackPointer(): [any]
-    expect foreign function basePointer(): [any]
 end

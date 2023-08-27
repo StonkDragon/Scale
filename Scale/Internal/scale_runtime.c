@@ -25,10 +25,9 @@ extern "C" {
 
 const ID_t SclObjectHash = 0x49CC1B82U; // SclObject
 
-// The Stack
-tls _scl_stack_t		_stack = {0};
+tls _scl_stack_t		__cs = {0};
 
-#define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1) } while (0)
+#define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
 typedef struct Struct {
 	// Actual function ptrs for this object
@@ -46,7 +45,7 @@ typedef struct Struct_Exception {
 	scl_str errno_str;
 }* scl_Exception;
 
-#define EXCEPTION	((scl_Exception) *(_stack.ex))
+#define EXCEPTION	((scl_Exception) *(__cs.ex))
 
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
@@ -90,252 +89,65 @@ typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
 
-extern scl_any*			arrays;
-extern scl_int			arrays_count;
-extern scl_int			arrays_capacity;
+#define MARKER 0x5C105C10
 
-extern scl_any*			allocated;
-extern scl_int			allocated_count;
-extern scl_int			allocated_cap;
+typedef struct memory_layout {
+	scl_int32 marker;
+	scl_int allocation_size;
+	scl_int8 is_instance:1;
+	scl_int8 is_array:1;
+} memory_layout_t;
 
-extern scl_int*			memsizes;
-extern scl_int			memsizes_count;
-extern scl_int			memsizes_cap;
-
-extern Struct**			instances;
-extern scl_int			instances_count;
-extern scl_int			instances_cap;
-
-extern tls scl_any*		stackalloc_arrays;
-extern tls scl_int*		stackalloc_array_sizes;
-extern tls scl_int		stackalloc_arrays_count;
-extern tls scl_int		stackalloc_arrays_cap;
-
-static tls scl_int		_stackallocations_since_cleanup = 0;
-
-scl_int binary_next_smallest_or_equal_index(scl_any* arr, scl_int size, scl_any value) {
-	scl_int low = 0;
-	scl_int high = size - 1;
-	scl_int mid = 0;
-	while (low <= high) {
-		mid = (low + high) / 2;
-		if (arr[mid] < value) {
-			low = mid + 1;
-		} else if (arr[mid] > value) {
-			high = mid - 1;
-		} else {
-			return mid;
-		}
+memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
+	if (_scl_expect(ptr == nil, 0)) {
+		return nil;
 	}
-	return high;
+	if (_scl_expect(!GC_is_heap_ptr(ptr), 0)) {
+		return nil;
+	}
+	memory_layout_t* layout = (memory_layout_t*) (((char*) ptr) - sizeof(memory_layout_t));
+	if (_scl_expect(((scl_int) layout) < 0, 0)) {
+		return nil;
+	}
+	if (_scl_expect(layout->marker != MARKER, 0)) {
+		return nil;
+	}
+	return layout;
 }
 
-// Inserts value into array at it's sorted position
-// returns the index at which the value was inserted
-// will not insert value, if it is already present in the array
-scl_int insert_sorted(scl_any** array, scl_int* size, scl_any value, scl_int* cap) {
-	if (*array == nil) {
-		(*array) = (scl_any*) system_allocate(sizeof(scl_any) * (*cap));
-	}
-
-	if (_scl_expect(*size == 0, 0)) {
-		(*array)[0] = value;
-		(*size)++;
+scl_int is_array(scl_any ptr) {
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
+	if (_scl_expect(layout == nil, 0)) {
 		return 0;
 	}
-
-	scl_int i = 0;
-	if (*size) {
-		i = binary_next_smallest_or_equal_index((*array), (*size), value);
-	}
-	if ((*array)[i] == value) {
-		return i;
-	}
-
-	if ((*size) + 1 >= (*cap)) {
-		(*cap) += 64;
-		(*array) = (scl_any*) system_realloc((*array), (*cap) * sizeof(scl_any*));
-		if ((*array) == nil) {
-			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
-			exit(1);
-		}
-	}
-	i++;
-	// i is now index to insert at
-	for (scl_int j = (*size); j > i; j--) {
-		(*array)[j] = (*array)[j - 1];
-	}
-	(*array)[i] = value;
-	(*size)++;
-
-	return i;
-}
-
-scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, scl_any value);
-
-void _scl_cleanup_stack_allocations(void) {
-	for (scl_int i = 0; i < stackalloc_arrays_count; i++) {
-		if (stackalloc_arrays[i] > _stack.sp->v) {
-			for (scl_int j = i; j < stackalloc_arrays_count - 1; j++) {
-				stackalloc_arrays[j] = stackalloc_arrays[j + 1];
-				stackalloc_array_sizes[j] = stackalloc_array_sizes[j + 1];
-			}
-			stackalloc_arrays_count--;
-			i--;
-		}
-	}
-}
-
-void _scl_add_stackallocation(scl_any ptr, scl_int size) {
-	scl_int idx = insert_sorted(&stackalloc_arrays, &stackalloc_arrays_count, ptr, &stackalloc_arrays_cap);
-	insert_at((scl_any**) &stackalloc_array_sizes, &stackalloc_arrays_count, &stackalloc_arrays_cap, idx, (scl_any) size);
-
-	_stackallocations_since_cleanup++;
-	if (_stackallocations_since_cleanup > 16) {
-		_scl_cleanup_stack_allocations();
-		_stackallocations_since_cleanup = 0;
-	}
-}
-
-void _scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index) {
-	scl_int arridx = _scl_binary_search(stackalloc_arrays, stackalloc_arrays_count, ptr);
-	if (arridx < 0) {
-		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-		scl_int8* str = (scl_int8*) _scl_alloc(64);
-		snprintf(str, 63, "Pointer " SCL_PTR_HEX_FMT " is not a stack allocated array", (scl_int) ptr);
-		virtual_call(e, "init(s;)V;", str_of_exact(str));
-		_scl_throw(e);
-	}
-	if (index >= 0 && index < stackalloc_array_sizes[arridx]) {
-		return;
-	}
-	scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-	scl_int8* str = (scl_int8*) _scl_alloc(64);
-	snprintf(str, 63, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, stackalloc_array_sizes[arridx]);
-	virtual_call(e, "init(s;)V;", str_of_exact(str));
-	_scl_throw(e);
-}
-
-scl_int _scl_stackalloc_size(scl_any ptr) {
-	scl_int arridx = _scl_binary_search(stackalloc_arrays, stackalloc_arrays_count, ptr);
-	if (arridx < 0) {
-		return -1;
-	}
-	return stackalloc_array_sizes[arridx];
-}
-
-scl_int _scl_index_of_stackalloc(scl_any ptr) {
-	return _scl_binary_search(stackalloc_arrays, stackalloc_arrays_count, ptr);
-}
-
-void _scl_remove_array(scl_any* arr);
-
-scl_int _scl_remove_ptr(scl_any ptr) {
-	_scl_remove_array((scl_any*) ptr);
-	scl_int index;
-	scl_int size = -1;
-	// Finds all indices of the pointer in the table and removes them
-	while ((index = _scl_get_index_of_ptr(ptr)) != -1) {
-		size = memsizes[index];
-		_scl_remove_ptr_at_index(index);
-	}
-	return size;
-}
-
-// Returns the next index of a given pointer in the allocated-pointers array
-// Returns -1, if the pointer is not in the table
-scl_int _scl_get_index_of_ptr(scl_any ptr) {
-	return _scl_binary_search((scl_any*) allocated, allocated_count, ptr);
-}
-
-// Removes the pointer at the given index and shift everything after left
-void _scl_remove_ptr_at_index(scl_int index) {
-	for (scl_int i = index; i < allocated_count - 1; i++) {
-		allocated[i] = allocated[i + 1];
-		memsizes[i] = memsizes[i + 1];
-	}
-	allocated_count--;
-	memsizes_count--;
+	return layout->is_array;
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
-	scl_int index = _scl_get_index_of_ptr(ptr);
-	if (_scl_expect(index == -1, 0)) return -1;
-	return memsizes[index];
-}
-
-scl_int insert_at(scl_any** array, scl_int* count, scl_int* cap, scl_int index, scl_any value) {
-	if (*array == nil) {
-		(*array) = (scl_any*) system_allocate(sizeof(scl_any) * (*cap));
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
+	if (_scl_expect(layout == nil, 0)) {
+		return 0;
 	}
-
-	if ((*count) + 1 >= (*cap)) {
-		(*cap) += 64;
-		(*array) = (scl_any*) system_realloc((*array), (*cap) * sizeof(scl_any*));
-		if ((*array) == nil) {
-			_scl_security_throw(EX_BAD_PTR, "realloc() failed");
-			return -1;
-		}
-	}
-
-	scl_int j;
-	for (j = *count; j > index; j--) {
-		(*array)[j] = (*array)[j-1];
-	}
-	(*array)[index] = value;
-
-	(*count)++;
-	return index;
+	return layout->allocation_size;
 }
 
-// Adds a new pointer to the table
-void _scl_add_ptr(scl_any ptr, scl_int size) {
-	scl_int index = insert_sorted((scl_any**) &allocated, &allocated_count, ptr, &allocated_cap);
-	insert_at((scl_any**) &memsizes, &memsizes_count, &memsizes_cap, index, (scl_any) size);
-}
-
-// Returns true if the pointer was allocated using _scl_alloc()
-scl_int _scl_check_allocated(scl_any ptr) {
-	return _scl_get_index_of_ptr(ptr) != -1;
-}
-
-void _scl_pointer_destroy(scl_any ptr) {
-	if (_scl_is_instance_of(ptr, SclObjectHash)) {
-		Struct* instance = (Struct*) ptr;
-		virtual_call(instance, "finalize()V;");
-	}
-	_scl_free_struct(ptr);
-	_scl_remove_ptr(ptr);
-}
-
-// Allocates size bytes of memory
-// the memory will always have a size of a multiple of sizeof(scl_int)
 scl_any _scl_alloc(scl_int size) {
-
-	// Make size be next biggest multiple of 8
 	size = ((size + 7) >> 3) << 3;
 	if (size == 0) size = 8;
 
-	// Allocate the memory
-	scl_any ptr = GC_malloc(size);
-	GC_register_finalizer(ptr, (GC_finalization_proc) &_scl_pointer_destroy, nil, nil, nil);
+	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
 
-	// Hard-throw if memory allocation failed
+	((memory_layout_t*) ptr)->marker = MARKER;
+	((memory_layout_t*) ptr)->allocation_size = size;
+	((memory_layout_t*) ptr)->is_instance = 0;
+	((memory_layout_t*) ptr)->is_array = 0;
+
 	if (_scl_expect(ptr == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "allocate() failed!");
-		return nil;
 	}
-
-	// Set memory to zero
-	memset(ptr, 0, size);
-
-	// Add the pointer to the table
-	_scl_add_ptr(ptr, size);
-	return ptr;
+	return ptr + sizeof(memory_layout_t);
 }
 
-// Reallocates a pointer to a new size
-// the memory will always have a size of a multiple of sizeof(scl_int)
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (size == 0) {
 		scl_NullPointerException ex = ALLOC(NullPointerException);
@@ -344,53 +156,39 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		_scl_throw(ex);
 	}
 
-	// Make size be next biggest multiple of sizeof(scl_int)
 	size = ((size + 7) >> 3) << 3;
 	if (size == 0) size = 8;
 
-	int wasStruct = _scl_find_index_of_struct(ptr) != -1;
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 
-	// If this pointer points to an instance of a struct, quietly deallocate it
-	// without calling SclObject:finalize() on it
-	_scl_free_struct(ptr);
-	// Remove the pointer from the table
-	_scl_remove_ptr(ptr);
-
-	// reallocate and reassign it
-	// At this point it is unsafe to use the old pointer!
-	ptr = GC_realloc(ptr, size);
-
-	// Hard-throw if memory allocation failed
+	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (_scl_expect(ptr == nil, 0)) {
 		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
 	}
 
-	// Add the pointer to the table
-	_scl_add_ptr(ptr, size);
+	if (layout) {
+		((memory_layout_t*) ptr)->marker = MARKER;
+		((memory_layout_t*) ptr)->allocation_size = size;
+		((memory_layout_t*) ptr)->is_instance = layout->is_instance;
+		((memory_layout_t*) ptr)->is_array = layout->is_array;
+	} else {
+		((memory_layout_t*) ptr)->marker = MARKER;
+		((memory_layout_t*) ptr)->allocation_size = size;
+		((memory_layout_t*) ptr)->is_instance = 0;
+		((memory_layout_t*) ptr)->is_array = 0;
+	}
 
-	// Add the pointer back to our struct table, if it was a struct
-	if (wasStruct)
-		_scl_add_struct(ptr);
-	return ptr;
+	return ptr + sizeof(memory_layout_t);
 }
 
-// Frees a pointer
-// Will do nothing, if the pointer is nil, or wasn't allocated with _scl_alloc()
 void _scl_free(scl_any ptr) {
-	if (ptr && _scl_check_allocated(ptr)) {
-		// If this is an instance, call it's finalizer
-		_scl_free_struct(ptr);
-
-		// Remove the pointer from our table
-		memset(ptr, 0, _scl_remove_ptr(ptr));
-
-		// Finally, free the memory
-		// accessing the pointer is now unsafe!
+	if (ptr == nil) return;
+	ptr -= sizeof(memory_layout_t);
+	if (GC_is_heap_ptr(ptr)) {
 		GC_free(ptr);
 	}
 }
 
-// Assert, that 'b' is true
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (!b) {
 		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) * 8);
@@ -430,7 +228,6 @@ scl_str builtinToString(scl_any obj) {
 	return str_of_exact(data);
 }
 
-// Hard-throw an exception
 _scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	printf("\n");
 
@@ -450,10 +247,7 @@ _scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	_scl_security_safe_exit(code);
 }
 
-// exit()
 _scl_no_return void _scl_security_safe_exit(int code) {
-
-	// exit
 	exit(code);
 }
 
@@ -518,13 +312,7 @@ void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext
 	} else if (sig_num == SIGBUS) {
 		signalString = "bus error";
 	} else if (sig_num == SIGSEGV) {
-		if (
-			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT)
-		) {
-			signalString = "stack overflow";
-		} else {
-			signalString = "segmentation violation";
-		}
+		signalString = "segmentation violation";
 	} else {
 		signalString = "other signal";
 	}
@@ -545,7 +333,6 @@ void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext
 
 void _scl_signal_handler(scl_int sig_num) {
 	const scl_int8* signalString;
-	// Signals
 	if (sig_num == -1) {
 		signalString = nil;
 	} else if (sig_num == SIGINT) {
@@ -559,13 +346,7 @@ void _scl_signal_handler(scl_int sig_num) {
 	} else if (sig_num == SIGBUS) {
 		signalString = "bus error";
 	} else if (sig_num == SIGSEGV) {
-		if (
-			_stack.sp > (_stack.bp + SCL_DEFAULT_STACK_FRAME_COUNT)
-		) {
-			signalString = "stack overflow";
-		} else {
-			signalString = "segmentation violation";
-		}
+		signalString = "segmentation violation";
 	} else {
 		signalString = "other signal";
 	}
@@ -577,21 +358,10 @@ void _scl_signal_handler(scl_int sig_num) {
 		printf("errno: %s\n", strerror(errno));
 	}
 	print_stacktrace();
-	printf("Stack address: %p\n", _stack.bp);
-	if (_stack.sp) {
-		printf("Stack:\n");
-		_scl_frame_t* frame = _stack.sp;
-		while (frame > _stack.bp) {
-			frame--;
-			printf("   " SCL_INT_FMT ": 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(scl_any), frame->i, frame->i);
-		}
-		printf("\n");
-	}
 
 	exit(sig_num);
 }
 
-// Converts C nil-terminated array to ReadOnlyArray-instance
 scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 	scl_Array array = (scl_Array) ALLOC(ReadOnlyArray);
 	scl_int cap = 0;
@@ -606,10 +376,6 @@ scl_any _scl_c_arr_to_scl_array(scl_any arr[]) {
 		((scl_str*) array->values)[(scl_int) array->count++] = _scl_create_string(((scl_int8**) arr)[i]);
 	}
 	return array;
-}
-
-scl_int _scl_stack_size(void) {
-	return (_stack.sp - _stack.bp) / sizeof(scl_any);
 }
 
 void _scl_sleep(scl_int millis) {
@@ -654,18 +420,14 @@ scl_int _scl_identity_hash(scl_any _obj) {
 }
 
 scl_any _scl_atomic_clone(scl_any ptr) {
+	unimplemented;
 	scl_int size = _scl_sizeof(ptr);
 	scl_any clone = _scl_alloc(size);
-
-	if (_scl_is_instance_of(ptr, SclObjectHash)) {
-		_scl_add_struct(clone);
-	}
 
 	memcpy(clone, ptr, size);
 	return clone;
 }
 
-// returns the method handle of a method on a struct, or a parent struct
 _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
 	if (_scl_expect(!_scl_is_instance_of(type, SclObjectHash), 0)) {
 		_scl_security_throw(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
@@ -759,100 +521,42 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	return m;
 }
 
-// adds an instance to the table of tracked instances
-scl_any _scl_add_struct(scl_any ptr) {
-	scl_int index = insert_sorted((scl_any**) &instances, &instances_count, ptr, &instances_cap);
-	return index == -1 ? nil : instances[index];
-}
-
 mutex_t _scl_mutex_new(void) {
 	return cxx_std_recursive_mutex_new();
 }
 
-// creates a new instance with a size of 'size'
 scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
-
-	// Allocate the memory
 	scl_any ptr = _scl_alloc(size);
 
-	// Callstack
-	((Struct*) ptr)->mutex = _scl_mutex_new();
-
-	// Static members
-	((Struct*) ptr)->statics = (TypeInfo*) statics;
-	
-	// Vtable
-	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
-
-	// Add struct to allocated table
-	ptr = _scl_add_struct(ptr);
-	if (_scl_expect(ptr == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for struct");
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
+	if (_scl_expect(layout == nil, 0)) {
+		_scl_security_throw(EX_BAD_PTR, "Tried to access nil pointer");
 	}
+	layout->is_instance = 1;
+
+	((Struct*) ptr)->mutex = _scl_mutex_new();
+	((Struct*) ptr)->statics = (TypeInfo*) statics;
+	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
 
 	return ptr;
 }
 
-// Removes an instance from the allocated table by index
-void _scl_struct_map_remove(scl_int index) {
-	for (scl_int i = index; i < instances_count - 1; i++) {
-	   instances[i] = instances[i + 1];
-	}
-	instances_count--;
-}
-
-// Returns the next index of an instance in the allocated table
-// Returns -1, if not in table
-scl_int _scl_find_index_of_struct(scl_any ptr) {
-	if (_scl_expect(ptr == nil, 0)) return -1;
-	return _scl_binary_search((scl_any*) instances, instances_count, ptr);
-}
-
-// Removes an instance from the allocated table without calling its finalizer
-void _scl_free_struct(scl_any ptr) {
-	scl_int i = _scl_find_index_of_struct(ptr);
-	while (i != -1) {
-		_scl_struct_map_remove(i);
-		i = _scl_find_index_of_struct(ptr);
-	}
-}
-
-// Returns true, if the instance is of a given struct type
 scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
-	if (_scl_expect(ptr == nil, 0)) return 0; // ptr is null
+	if (_scl_expect(((scl_int) ptr) <= 0, 0)) return 0;
 
-	int isStruct = _scl_binary_search((scl_any*) instances, instances_count, ptr) != -1;
-
-	if (_scl_expect(!isStruct, 0)) return 0; // ptr is not an instance and cast to non primitive type attempted
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
+	if (_scl_expect(layout == nil, 0)) return 0;
+	if (_scl_expect(!layout->is_instance, 0)) return 0;
 
 	Struct* ptrStruct = (Struct*) ptr;
 
-	if (type_id == SclObjectHash) return 1; // cast to SclObject
+	if (type_id == SclObjectHash) return 1;
 
-	// check super types
 	for (const TypeInfo* super = ptrStruct->statics; super != nil; super = super->super) {
 		if (super->type == type_id) return 1;
 	}
 
-	return 0; // invalid cast
-}
-
-scl_int _scl_binary_search(scl_any* arr, scl_int count, scl_any val) {
-	scl_int left = 0;
-	scl_int right = count - 1;
-
-	while (left <= right) {
-		scl_int mid = (left + right) / 2;
-		if (arr[mid] == val) {
-			return mid;
-		} else if (arr[mid] < val) {
-			left = mid + 1;
-		} else {
-			right = mid - 1;
-		}
-	}
-
-	return -1;
+	return 0;
 }
 
 scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
@@ -957,20 +661,16 @@ void _scl_set_up_signal_handler(void) {
 #endif
 }
 
-void _scl_resize_stack(void) {}
-
 void _scl_exception_push(void) {
-	*(_stack.et++) = _stack.tp;
-	++_stack.ex;
-	++_stack.jmp;
-	*(_stack.sp_save++) = _stack.sp;
+	// *(__cs.et++) = __cs.tp;
+	// ++__cs.ex;
+	// ++__cs.jmp;
 }
 
 void _scl_exception_drop(void) {
-	--_stack.et;
-	--_stack.ex;
-	--_stack.jmp;
-	--_stack.sp_save;
+	// --__cs.et;
+	// --__cs.ex;
+	// --__cs.jmp;
 }
 
 scl_int8** _scl_platform_get_env(void) {
@@ -1002,9 +702,9 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			_scl_throw(err);
 		}
 
-		int isStruct = _scl_binary_search((scl_any*) instances, instances_count, instance) != -1;
+		memory_layout_t* layout = _scl_get_memory_layout(instance);
 
-		if (isStruct) {
+		if (layout && layout->is_instance) {
 			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
 			cmsg = (scl_int8*) _scl_alloc(size);
 			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
@@ -1020,41 +720,25 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 	return instance;
 }
 
-void _scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout) {
-	SCL_ASSUME(_scl_sizeof(ptr) >= layoutSize, "Layout '%s' requires more memory than the pointer has available (required: " SCL_INT_FMT " found: " SCL_INT_FMT ")", layout, layoutSize, _scl_sizeof(ptr))
-}
-
-void _scl_check_not_nil_argument(scl_int val, const scl_int8* name) {
-	SCL_ASSUME(val, "Argument '%s' is nil", name)
-}
-
-void _scl_not_nil_cast(scl_int val, const scl_int8* name) {
-	SCL_ASSUME(val, "Nil cannot be cast to non-nil type '%s'!", name)
-}
-
-void _scl_nil_ptr_dereference(scl_int val, const scl_int8* name) {
-	SCL_ASSUME(val, "Tried dereferencing nil pointer '%s'!", name)
-}
-
-void _scl_check_not_nil_store(scl_int val, const scl_int8* name) {
-	SCL_ASSUME(val, "Nil cannot be stored in non-nil variable '%s'!", name)
-}
-
-void _scl_not_nil_return(scl_int val, const scl_int8* name) {
-	SCL_ASSUME(val, "Tried returning nil from function returning not-nil type '%s'!", name)
+scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
+	if (_scl_is_instance_of(instance, SclObjectHash)) {
+		return (scl_int8*) ((Struct*) instance)->statics->type_name;
+	}
+	return (scl_int8*) else_;
 }
 
 void _scl_stack_new(void) {
-	// These use C's malloc, keep it that way
-	// They should NOT be affected by any future
-	// stuff we might do with _scl_alloc()
-	if (_scl_expect((_stack.bp = _stack.sp = (_scl_frame_t*) GC_malloc_uncollectable(sizeof(_scl_frame_t) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))			_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack!");
-	if (_scl_expect((_stack.tbp = _stack.tp = (const scl_int8**) system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))					_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
+	// if (_scl_expect((__cs.tbp = __cs.tp = (const scl_int8**) system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
+	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
 
-	if (_scl_expect((_stack.ex_base = _stack.ex = (scl_any*) GC_malloc_uncollectable(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))				_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception stack!");
-	if (_scl_expect((_stack.et_base = _stack.et = (const scl_int8***) system_allocate(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))				_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception trace stack!");
-	if (_scl_expect((_stack.jmp_base = _stack.jmp = (jmp_buf*) system_allocate(sizeof(jmp_buf) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))						_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception jump stack!");
-	if (_scl_expect((_stack.sp_save_base = _stack.sp_save = (_scl_frame_t**) system_allocate(sizeof(_scl_frame_t*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for stack pointer save stack!");
+	// if (_scl_expect((__cs.ex_base = __cs.ex = (scl_any*) GC_malloc_uncollectable(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
+	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception stack!");
+
+	// if (_scl_expect((__cs.et_base = __cs.et = (const scl_int8***) system_allocate(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
+	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception trace stack!");
+
+	if (_scl_expect((__cs.trace = system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
+		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
 }
 
 scl_int _scl_errno(void) {
@@ -1070,14 +754,12 @@ scl_str _scl_errno_str(void) {
 }
 
 void _scl_stack_free(void) {
-	GC_free(_stack.bp);
-	system_free(_stack.tbp);
-
-	system_free(_stack.et_base);
-	GC_free(_stack.ex_base);
-	system_free(_stack.jmp_base);
-	
-	memset(&_stack, 0, sizeof(_stack));
+	// system_free(__cs.tbp);
+	// system_free(__cs.et_base);
+	// GC_free(__cs.ex_base);
+	// system_free(__cs.jmp_base);
+	system_free(__cs.trace);
+	memset(&__cs, 0, sizeof(__cs));
 }
 
 scl_int _scl_strncmp(scl_int8* str1, scl_int8* str2, scl_int count) {
@@ -1095,8 +777,6 @@ scl_any _scl_memset(scl_any ptr, scl_int32 val, scl_int len) {
 scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 	return memcpy(dest, src, n);
 }
-
-// Region: intrinsics
 
 void Process$lock(volatile scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
@@ -1183,8 +863,8 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 		_scl_throw(e);
 	}
 	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(scl_int));
+	_scl_get_memory_layout(arr)->is_array = 1;
 	((scl_int*) arr)[0] = num_elems;
-	insert_sorted(&arrays, &arrays_count, arr, &arrays_capacity);
 	return arr + 1;
 }
 
@@ -1193,8 +873,10 @@ scl_any* _scl_new_array(scl_int num_elems) {
 }
 
 scl_int _scl_is_array(scl_any* arr) {
-	if (_scl_expect(!arr, 0)) return 0;
-	return _scl_binary_search(arrays, arrays_count, arr - 1) != -1;
+	if (_scl_expect(arr == nil, 0)) return 0;
+	memory_layout_t* layout = _scl_get_memory_layout(arr - 1);
+	if (_scl_expect(layout == nil, 0)) return 0;
+	return layout->is_array;
 }
 
 void remove_at(scl_any** arr, scl_int* count, scl_int index) {
@@ -1203,13 +885,6 @@ void remove_at(scl_any** arr, scl_int* count, scl_int index) {
 	for (scl_int i = index; i < *count; i++) {
 		arr[i] = arr[i + 1];
 	}
-}
-
-void _scl_remove_array(scl_any* arr) {
-	if (_scl_expect(!arr, 0)) return;
-	scl_int index = _scl_binary_search(arrays, arrays_count, arr - 1);
-	if (_scl_expect(index == -1, 0)) return;
-	remove_at(&arrays, &arrays_count, index);
 }
 
 scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
@@ -1234,9 +909,6 @@ scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[]) {
 }
 
 scl_int _scl_array_size_unchecked(scl_any* arr) {
-	if (_scl_index_of_stackalloc(arr) >= 0) {
-		return _scl_stackalloc_size(arr);
-	}
 	return *((scl_int*) arr - 1);
 }
 
@@ -1245,9 +917,6 @@ scl_int _scl_array_size(scl_any* arr) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
-	}
-	if (_scl_index_of_stackalloc(arr) >= 0) {
-		return _scl_stackalloc_size(arr);
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
@@ -1262,9 +931,6 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 		scl_NullPointerException e = ALLOC(NullPointerException);
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
-	}
-	if (_scl_index_of_stackalloc(arr) >= 0) {
-		return _scl_stackalloc_check_bounds_or_throw(arr, index);
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
@@ -1287,11 +953,6 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
-	if (_scl_expect(_scl_index_of_stackalloc(arr) >= 0, 0)) {
-		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
-		virtual_call(e, "init(s;)V;", str_of_exact("Cannot resize stack-allocated array"));
-		_scl_throw(e);
-	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
 		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
@@ -1302,9 +963,8 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 		virtual_call(e, "init(s;)V;", str_of_exact("New array size must not be less than 1"));
 		_scl_throw(e);
 	}
-	scl_int size = *((scl_int*) arr - 1);
 	scl_any* new_arr = (scl_any*) _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
-	insert_sorted(&arrays, &arrays_count, new_arr, &arrays_capacity);
+	_scl_get_memory_layout(new_arr)->is_array = 1;
 	((scl_int*) new_arr)[0] = new_size;
 	return new_arr + 1;
 }
@@ -1315,13 +975,12 @@ scl_any* _scl_array_sort(scl_any* arr) {
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
-	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
 		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
-	// binary sort
 	for (scl_int i = 0; i < size; i++) {
 		scl_any tmp = arr[i];
 		scl_int j = i - 1;
@@ -1345,7 +1004,7 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
-	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
 		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
@@ -1373,7 +1032,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 		virtual_call(e, "init(s;)V;", str_of_exact("nil pointer detected"));
 		_scl_throw(e);
 	}
-	if (_scl_expect(!_scl_is_array(arr) && _scl_index_of_stackalloc(arr) < 0, 0)) {
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
 		virtual_call(e, "init(s;)V;", str_of_exact("Array must be initialized with 'new[]'"));
 		_scl_throw(e);
@@ -1451,11 +1110,7 @@ scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
 }
 
 void _scl_trace_remove(void* _) {
-	--_stack.tp;
-}
-
-void _scl_stack_cleanup(void* current_ptr) {
-	_stack.sp = *(_scl_frame_t**) current_ptr;
+	--__cs.trace_index;
 }
 
 void _scl_unlock(void* lock_ptr) {
@@ -1463,34 +1118,32 @@ void _scl_unlock(void* lock_ptr) {
 	Process$unlock((scl_any) lock);
 }
 
-void _scl_stack_resize_fit(scl_int sz) {
-	_stack.sp += sz;
-}
-
-void _scl_create_stack(void) {
-	// These use C's malloc, keep it that way
-	// They should NOT be affected by any future
-	// stuff we might do with _scl_alloc()
-	_scl_stack_new();
-
-	allocated = (scl_any*) system_allocate(allocated_cap * sizeof(scl_any));
-	memsizes = (scl_int*) system_allocate(memsizes_cap * sizeof(scl_int));
-	instances = (Struct**) system_allocate(instances_cap * sizeof(Struct*));
-}
-
-static void _scl_unwind(scl_any ex) {
-	--_stack.jmp;
-	--_stack.ex;
-	--_stack.et;
-	*(_stack.ex) = ex;
-	_stack.tp = *(_stack.et);
-	if (*(_stack.sp_save_base) < _stack.sp)
-		_stack.sp = *(_stack.sp_save_base);
-}
-
 void _scl_throw(scl_any ex) {
-	_scl_unwind(ex);
-	longjmp(*(_stack.jmp), 666);
+	scl_uint* stack_top = (scl_uint*) &stack_top;
+	struct GC_stack_base sb;
+	GC_get_stack_base(&sb);
+	scl_uint* stack_bottom = sb.mem_base;
+
+	scl_int iteration_direction = 1;
+	if (stack_top > stack_bottom) {
+		iteration_direction = -1;
+	}
+
+	while (stack_top != stack_bottom) {
+		if (*stack_top != EXCEPTION_HANDLER_MARKER) {
+			stack_top += iteration_direction;
+			continue;
+		}
+
+		struct exception_handler* handler = (struct exception_handler*) stack_top;
+		__cs.trace_index = handler->trace_index;
+		handler->exception = ex;
+		handler->marker = 0;
+
+		longjmp(handler->jmp, 666);
+	}
+
+	_scl_security_throw(EX_THROWN, "No exception handler found!");
 }
 
 void nativeTrace(void) {
@@ -1511,39 +1164,14 @@ static inline void printStackTraceOf(scl_Exception e) {
 }
 
 _scl_no_return
-void _scl_runtime_catch() {
-	if (EXCEPTION == nil) {
-		_scl_security_throw(EX_BAD_PTR, "nil exception pointer");
-	}
-	scl_str msg = EXCEPTION->msg;
+void _scl_runtime_catch(scl_any _ex) {
+	scl_Exception ex = (scl_Exception) _ex;
+	scl_str msg = ex->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", EXCEPTION->rtFields.statics->type_name, msg->data);
-	printStackTraceOf(EXCEPTION);
+	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.statics->type_name, msg->data);
+	printStackTraceOf(ex);
 	exit(EX_THROWN);
 }
-
-static char oom_static_memory_pool[1024];
-size_t oom_static_memory_pool_next_block = 0;
-
-void* alloc_static(size_t size) {
-	if (oom_static_memory_pool_next_block + size > sizeof(oom_static_memory_pool)) {
-		fprintf(stderr, "Out of static memory!\n");
-		exit(-1);
-	}
-	void* ptr = oom_static_memory_pool + oom_static_memory_pool_next_block;
-	oom_static_memory_pool_next_block += size;
-	return ptr;
-}
-
-void* static_alloc_struct(size_t size, TypeInfo* ti) {
-	void* ptr = alloc_static(size);
-	((Struct*) ptr)->mutex = _scl_mutex_new();
-	((Struct*) ptr)->statics = ti;
-	((Struct*) ptr)->vtable = ti->vtable;
-	return ptr;
-}
-
-#define ALLOC_STATIC(_type) ({ extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); (scl_ ## _type) static_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
 
 _scl_no_return
 void* _scl_oom(scl_uint size) {
@@ -1588,11 +1216,10 @@ void _scl_setup(void) {
 	GC_INIT();
 	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
-	// Register signal handler for all available signals
 	_scl_set_up_signal_handler();
 	GC_allow_register_threads();
 
-	_scl_create_stack();
+	_scl_stack_new();
 
 	_scl_exception_push();
 
@@ -1605,7 +1232,6 @@ int _scl_run(int argc, scl_int8** argv, mainFunc entry, scl_int main_argc) {
 	_scl_setup();
 #endif
 
-	// Convert argv from native array to ReadOnlyArray
 	scl_any args = nil;
 	if (_scl_expect(main_argc, 0)) {
 		args = _scl_c_arr_to_scl_array((scl_any*) argv);
@@ -1614,7 +1240,7 @@ int _scl_run(int argc, scl_int8** argv, mainFunc entry, scl_int main_argc) {
 	TRY {
 		entry(args);
 	} else {
-		_scl_runtime_catch();
+		_scl_runtime_catch(_scl_exception_handler.exception);
 	}
 	return 0;
 }

@@ -62,6 +62,8 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_setter = 0;
     this->has_foreign = 0;
     this->has_overrides = 0;
+    this->has_stacksize = 0;
+    this->has_binary_inherited = 0;
 }
 std::string Function::finalName() {
     if (
@@ -113,6 +115,8 @@ void Function::addModifier(std::string modifier) {
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
     else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
+    else if (has_stacksize == 0 && modifier == "stacksize") has_stacksize = modifiers.size();
+    else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -165,4 +169,8 @@ const std::string& Function::getModifier(size_t index) {
         throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
     }
     return this->modifiers.at(index - 1);
+}
+size_t Function::stackSize() {
+    if (!this->has_stacksize) return 32;
+    return std::stoul(this->getModifier(this->has_stacksize + 1));
 }

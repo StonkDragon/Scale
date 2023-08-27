@@ -29,7 +29,6 @@ namespace sclc {
     std::vector<std::string> switchTypes;
     char repeat_depth = 0;
     int iterator_count = 0;
-    bool noWarns;
     int isInUnsafe = 0;
     std::stack<std::string> typeStack;
     std::string return_type = "";
@@ -554,7 +553,7 @@ namespace sclc {
 
         std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
 
-        append("(_stack.sp++)->v = ({\n");
+        append("(localstack++)->v = ({\n");
         scopeDepth++;
         append("%s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         append("fn_$lambda%d$%s;\n", lambdaCount - 1, function->finalName().c_str());
@@ -580,12 +579,12 @@ namespace sclc {
         if (!typeCanBeNil(function->return_type) && function->return_type != "none") {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
             warns.push_back(err);
-            append("_scl_assert((*(scl_int*) (_stack.sp - 1)), \"Not nil assertion failed!\");\n");
+            append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed!\");\n");
         } else {
             if (function->return_type == "none")
-                append("if ((*(scl_int*) (_stack.sp - 1)) == 0) return;\n");
+                append("if ((*(scl_int*) (localstack - 1)) == 0) return;\n");
             else {
-                append("if ((*(scl_int*) (_stack.sp - 1)) == 0) return 0;\n");
+                append("if ((*(scl_int*) (localstack - 1)) == 0) return 0;\n");
             }
         }
     }
@@ -600,9 +599,8 @@ namespace sclc {
             scopeDepth--;
             if (wasTry()) {
                 popTry();
-                append("  _scl_exception_drop();\n");
-                append("} else if (_scl_is_instance_of(*(_stack.ex), 0x%xU)) {\n", id("Error"));
-                append("  fn_throw((scl_Exception) *(_stack.ex));\n");
+                append("} else if (_scl_is_instance_of(_scl_exception_handler.exception, 0x%xU)) {\n", id("Error"));
+                append("  fn_throw((scl_Exception) _scl_exception_handler.exception);\n");
             } else if (wasCatch()) {
                 popCatch();
             }
@@ -621,7 +619,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("} else if (_scl_is_instance_of(*(_stack.ex), 0x%xU)) {\n", id(body[i].value.c_str()));
+            append("} else if (_scl_is_instance_of(_scl_exception_handler.exception, 0x%xU)) {\n", id(body[i].value.c_str()));
         } else {
             i--;
             {
@@ -641,7 +639,7 @@ namespace sclc {
         }
         scopeDepth++;
         varScopeTop().push_back(Variable(exName, ex));
-        append("scl_%s Var_%s = (scl_%s) *(_stack.ex);\n", ex.c_str(), exName.c_str(), ex.c_str());
+        append("scl_%s Var_%s = (scl_%s) _scl_exception_handler.exception;\n", ex.c_str(), exName.c_str(), ex.c_str());
     }
 
     handler(Pragma) {
@@ -659,22 +657,8 @@ namespace sclc {
                       << std::endl;
         } else if (body[i].value == "stackalloc") {
             safeInc();
-            std::string length = body[i].value;
-            long long len = std::stoll(length);
-            if (len <= 0) {
-                transpilerError("Can only stackalloc a positive amount of stack frames, but got '" + length + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            append("{\n");
-            scopeDepth++;
-            append("scl_any* _stackalloc_ptr = (scl_any*) _stack.sp;\n");
-            append("_scl_stack_resize_fit(%s);\n", length.c_str());
-            append("_scl_add_stackallocation(_stackalloc_ptr, %s);\n", length.c_str());
-            append("(_stack.sp++)->v = _stackalloc_ptr;\n");
-            scopeDepth--;
-            append("}\n");
-            typeStack.push("[any]");
+            transpilerError("Stackalloc arrays have been removed from Scale", i);
+            errors.push_back(err);
         } else if (body[i].value == "unset") {
             safeInc();
 
@@ -707,33 +691,33 @@ namespace sclc {
     handler(Identifier) {
         noUnused;
         if (body[i].value == "drop") {
-            append("--_stack.sp;\n");
+            append("--localstack;\n");
             typePop;
         } else if (body[i].value == "!!") {
             if (typeCanBeNil(typeStackTop)) {
                 std::string type = typeStackTop;
                 typePop;
                 typeStack.push(type.substr(0, type.size() - 1));
-                append("_scl_assert((*(scl_int*) (_stack.sp - 1)), \"Not nil assertion failed!\");\n");
+                append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed!\");\n");
             } else {
                 transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
                 warns.push_back(err);
-                append("_scl_assert((*(scl_int*) (_stack.sp - 1)), \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
+                append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
             }
         } else if (body[i].value == "?") {
             handle(ReturnOnNil);
         } else if (body[i].value == "++") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "++", typeStackTop)) return;
-            append("(*(scl_int*) (_stack.sp - 1))++;\n");
+            append("(*(scl_int*) (localstack - 1))++;\n");
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].value == "--") {
             if (handleOverriddenOperator(result, fp, scopeDepth, "--", typeStackTop)) return;
-            append("--(*(scl_int*) (_stack.sp - 1));\n");
+            append("--(*(scl_int*) (localstack - 1));\n");
             if (typeStack.size() == 0)
                 typeStack.push("int");
         } else if (body[i].value == "exit") {
-            append("exit(*(scl_int*) --_stack.sp);\n");
+            append("exit(*(scl_int*) --localstack);\n");
             typePop;
         } else if (body[i].value == "abort") {
             append("abort();\n");
@@ -743,14 +727,17 @@ namespace sclc {
             if (hasVar(body[i].value)) {
                 const Struct& s = getStructByName(result, getVar(body[i].value).type);
                 if (s != Struct::Null && !s.isStatic()) {
-                    append("*(scl_str*) (_stack.sp++) = _scl_create_string(Var_%s->$statics->type_name);\n", body[i].value.c_str());
+                    append("*(scl_str*) (localstack) = _scl_create_string(Var_%s->$statics->type_name);\n", body[i].value.c_str());
+                    append("localstack++;\n");
                 } else {
-                    append("*(scl_str*) (_stack.sp++) = _scl_create_string(_scl_find_index_of_struct(*(scl_any*) &Var_%s) != -1 ? ((scl_SclObject) Var_%s)->$statics->type_name : \"%s\");\n", getVar(body[i].value).name.c_str(), getVar(body[i].value).name.c_str(), getVar(body[i].value).type.c_str());
+                    append("*(scl_str*) (localstack) = _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\"));\n", getVar(body[i].value).name.c_str(), getVar(body[i].value).type.c_str());
+                    append("localstack++;\n");
                 }
             } else if (hasFunction(result, body[i].value)) {
                 Function* f = getFunctionByName(result, body[i].value);
                 std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-                append("*(scl_str*) (_stack.sp++) = _scl_create_string(\"%s\");\n", lambdaType.c_str());
+                append("*(scl_str*) (localstack) = _scl_create_string(\"%s\");\n", lambdaType.c_str());
+                append("localstack++;\n");
             } else if (body[i].type == tok_paren_open) {
                 append("{\n");
                 scopeDepth++;
@@ -762,9 +749,9 @@ namespace sclc {
                 }
                 const Struct& s = getStructByName(result, typeStackTop);
                 if (s != Struct::Null && !s.isStatic()) {
-                    append("*(scl_str*) (_stack.sp - 1) = _scl_create_string((_stack.sp - 1)->o->$statics->type_name);\n");
+                    append("*(scl_str*) (localstack - 1) = _scl_create_string((localstack - 1)->o->$statics->type_name);\n");
                 } else {
-                    append("*(scl_str*) (_stack.sp - 1) = _scl_create_string(_scl_find_index_of_struct((_stack.sp - 1)->v) != -1 ? (_stack.sp - 1)->o->$statics->type_name : \"%s\");\n", typeStackTop.c_str());
+                    append("*(scl_str*) (localstack - 1) = _scl_create_string(_scl_typename_or_else((localstack - 1)->v, \"%s\"));\n", typeStackTop.c_str());
                 }
                 scopeDepth--;
                 append("}\n");
@@ -775,13 +762,15 @@ namespace sclc {
                     errors.push_back(res);
                     return;
                 }
-                append("*(scl_str*) (_stack.sp++) = _scl_create_string(\"%s\");\n", res.value.c_str());
+                append("*(scl_str*) (localstack) = _scl_create_string(\"%s\");\n", res.value.c_str());
+                append("localstack++;\n");
             }
             typeStack.push("str");
         } else if (body[i].value == "nameof") {
             safeInc();
             if (hasVar(body[i].value)) {
-                append("*(scl_str*) (_stack.sp++) = _scl_create_string(\"%s\");\n", body[i].value.c_str());
+                append("*(scl_str*) (localstack) = _scl_create_string(\"%s\");\n", body[i].value.c_str());
+                append("localstack++;\n");
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].value + "'", i);
@@ -792,33 +781,33 @@ namespace sclc {
             safeInc();
             auto templates = getTemplates(result, function);
             if (body[i].value == "int") {
-                append("(_stack.sp++)->i = sizeof(scl_int);\n");
+                append("(localstack++)->i = sizeof(scl_int);\n");
             } else if (body[i].value == "float") {
-                append("(_stack.sp++)->i = sizeof(scl_float);\n");
+                append("(localstack++)->i = sizeof(scl_float);\n");
             } else if (body[i].value == "str") {
-                append("(_stack.sp++)->i = sizeof(scl_str);\n");
+                append("(localstack++)->i = sizeof(scl_str);\n");
             } else if (body[i].value == "any") {
-                append("(_stack.sp++)->i = sizeof(scl_any);\n");
+                append("(localstack++)->i = sizeof(scl_any);\n");
             } else if (body[i].value == "none" || body[i].value == "nothing") {
-                append("(_stack.sp++)->i = 0;\n");
+                append("(localstack++)->i = 0;\n");
             } else if (hasVar(body[i].value)) {
-                append("(_stack.sp++)->i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i].value).type).c_str());
+                append("(localstack++)->i = sizeof(%s);\n", sclTypeToCType(result, getVar(body[i].value).type).c_str());
             } else if (getStructByName(result, body[i].value) != Struct::Null) {
-                append("(_stack.sp++)->i = sizeof(struct Struct_%s);\n", body[i].value.c_str());
+                append("(localstack++)->i = sizeof(struct Struct_%s);\n", body[i].value.c_str());
             } else if (hasTypealias(result, body[i].value)) {
-                append("(_stack.sp++)->i = sizeof(%s);\n", sclTypeToCType(result, body[i].value).c_str());
+                append("(localstack++)->i = sizeof(%s);\n", sclTypeToCType(result, body[i].value).c_str());
             } else if (hasLayout(result, body[i].value)) {
-                append("(_stack.sp++)->i = sizeof(struct Layout_%s);\n", body[i].value.c_str());
+                append("(localstack++)->i = sizeof(struct Layout_%s);\n", body[i].value.c_str());
             } else if (templates.find(body[i].value) != templates.end()) {
                 std::string replaceWith = templates[body[i].value];
                 if (getStructByName(result, replaceWith) != Struct::Null)
-                    append("(_stack.sp++)->i = sizeof(struct Struct_%s);\n", replaceWith.c_str());
+                    append("(localstack++)->i = sizeof(struct Struct_%s);\n", replaceWith.c_str());
                 else if (hasTypealias(result, replaceWith))
-                    append("(_stack.sp++)->i = sizeof(%s);\n", sclTypeToCType(result, replaceWith).c_str());
+                    append("(localstack++)->i = sizeof(%s);\n", sclTypeToCType(result, replaceWith).c_str());
                 else if (hasLayout(result, replaceWith))
-                    append("(_stack.sp++)->i = sizeof(struct Layout_%s);\n", replaceWith.c_str());
+                    append("(localstack++)->i = sizeof(struct Layout_%s);\n", replaceWith.c_str());
                 else
-                    append("(_stack.sp++)->i = sizeof(%s);\n", sclTypeToCType(result, replaceWith).c_str());
+                    append("(localstack++)->i = sizeof(%s);\n", sclTypeToCType(result, replaceWith).c_str());
             } else {
                 FPResult type = parseType(body, &i, getTemplates(result, function));
                 if (!type.success) {
@@ -826,12 +815,13 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("(_stack.sp++)->i = sizeof(%s);\n", sclTypeToCType(result, type.value).c_str());
+                append("(localstack++)->i = sizeof(%s);\n", sclTypeToCType(result, type.value).c_str());
             }
             typeStack.push("int");
         } else if (body[i].value == "try") {
-            append("_scl_exception_push();\n");
-            append("if (setjmp(*(_stack.jmp - 1)) != 666) {\n");
+            append("{\n");
+            scopeDepth++;
+            append("TRY {\n");
             scopeDepth++;
             varScopePush();
             pushTry();
@@ -875,11 +865,11 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("if (!(*(scl_int*) (_stack.sp - 1))) {\n");
+                append("if (!(*(scl_int*) (localstack - 1))) {\n");
                 handle(ParenOpen);
                 append("}\n");
             } else {
-                append("_scl_assert((*(scl_int*) (_stack.sp - 1)), \"Assertion at %s:%d:%d failed!\");\n", assertToken.file.c_str(), assertToken.line, assertToken.column);
+                append("_scl_assert((*(scl_int*) (localstack - 1)), \"Assertion at %s:%d:%d failed!\");\n", assertToken.file.c_str(), assertToken.line, assertToken.column);
             }
             varScopePop();
             scopeDepth--;
@@ -933,7 +923,7 @@ namespace sclc {
                             return;
                         }
                         auto nth = nthTemplate(s, templates.size());
-                        append("scl_str $template%s = *(scl_str*) --_stack.sp;\n", nth.first.c_str());
+                        append("scl_str $template%s = *(scl_str*) --localstack;\n", nth.first.c_str());
                         typePop;
                         templates[nth.first] = "$template" + nth.first;
                     } else {
@@ -992,14 +982,15 @@ namespace sclc {
                     }
                 }
                 if (body[i].value == "new" && !s.isStatic()) {
-                    append("(_stack.sp++)->v = ({\n");
+                    append("(localstack++)->v = ({\n");
                     scopeDepth++;
                     std::string ctype = sclTypeToCType(result, s.name);
                     append("%s tmp = ALLOC(%s);\n", ctype.c_str(), s.name.c_str());
                     
                     typeStack.push(s.name);
                     if (hasInitMethod) {
-                        append("*(%s*) (_stack.sp++) = tmp;\n", ctype.c_str());
+                        append("*(%s*) (localstack) = tmp;\n", ctype.c_str());
+                        append("localstack++;\n");
                         methodCall(initMethod, fp, result, warns, errors, body, i);
                         typeStack.push(s.name);
                     }
@@ -1007,7 +998,7 @@ namespace sclc {
                     scopeDepth--;
                     append("});\n");
                 } else if (body[i].value == "default" && !s.isStatic()) {
-                    append("(_stack.sp++)->v = ALLOC(%s);\n", s.name.c_str());
+                    append("(localstack++)->v = ALLOC(%s);\n", s.name.c_str());
                     typeStack.push(s.name);
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
@@ -1043,11 +1034,11 @@ namespace sclc {
                 }
             } else if (body[i + 1].type == tok_curly_open) {
                 safeInc();
-                append("(_stack.sp++)->v = ({\n");
+                append("(localstack++)->v = ({\n");
                 scopeDepth++;
                 size_t begin = i - 1;
                 append("scl_%s tmp = ALLOC(%s);\n", s.name.c_str(), s.name.c_str());
-                append("_scl_frame_t* stack_start = _stack.sp;\n");
+                append("_scl_frame_t* stack_start = localstack;\n");
                 safeInc();
                 size_t count = 0;
                 varScopePush();
@@ -1106,7 +1097,7 @@ namespace sclc {
                     typePop;
                     scopeDepth--;
                     append("}\n");
-                    append("_stack.sp = stack_start;\n");
+                    append("localstack = stack_start;\n");
                     safeInc();
                     count++;
                 }
@@ -1143,7 +1134,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->v = (scl_any) _scl_alloc(sizeof(struct Layout_%s));\n", l.name.c_str());
+            append("(localstack++)->v = (scl_any) _scl_alloc(sizeof(struct Layout_%s));\n", l.name.c_str());
             typeStack.push(l.name);
         } else if (hasEnum(result, body[i].value)) {
             Enum e = getEnumByName(result, body[i].value);
@@ -1159,7 +1150,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->i = %zuUL;\n", e.indexOf(body[i].value));
+            append("(localstack++)->i = %zuUL;\n", e.indexOf(body[i].value));
             typeStack.push("int");
         } else if (hasContainer(result, body[i].value)) {
             std::string containerName = body[i].value;
@@ -1201,7 +1192,7 @@ namespace sclc {
             Method* method = getMethodByName(result, body[i].value, s.name);
             Function* f;
             if (method != nullptr) {
-                append("(_stack.sp++)->i = (scl_int) Var_self;\n");
+                append("(localstack++)->i = (scl_int) Var_self;\n");
                 typeStack.push(method->member_type);
                 methodCall(method, fp, result, warns, errors, body, i);
             } else if ((f = getFunctionByName(result, s.name + "$" + body[i].value)) != nullptr) {
@@ -1273,7 +1264,7 @@ namespace sclc {
             return;
         }
         if (dimensions == 1) {
-            append("(_stack.sp - 1)->v = _scl_new_array_by_size((*(scl_int*) (_stack.sp - 1)), %s);\n", elemSize.c_str());
+            append("(localstack - 1)->v = _scl_new_array_by_size((*(scl_int*) (localstack - 1)), %s);\n", elemSize.c_str());
         } else {
             append("{\n");
             scopeDepth++;
@@ -1291,7 +1282,7 @@ namespace sclc {
             }
 
             append("scl_int tmp[] = {%s};\n", dims.c_str());
-            append("(_stack.sp++)->v = _scl_multi_new_array_by_size(%d, tmp, %s);\n", dimensions, elemSize.c_str());
+            append("(localstack++)->v = _scl_multi_new_array_by_size(%d, tmp, %s);\n", dimensions, elemSize.c_str());
             scopeDepth--;
             append("}\n");
         }
@@ -1363,7 +1354,7 @@ namespace sclc {
             return;
         }
         safeInc();
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         typePop;
         scopeDepth--;
         append("}); Var_%s != ({\n", var.value.c_str());
@@ -1454,7 +1445,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         if (iterator_direction == "") {
             append("});) {\n");
@@ -1524,7 +1515,7 @@ namespace sclc {
 
         std::string type = removeTypeModifiers(typeStackTop);
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            append("%s %s = (%s) *(scl_int*) --_stack.sp;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+            append("%s %s = (%s) *(scl_int*) --localstack;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
             typePop;
             append("for (scl_int i = 0; i < _scl_array_size(%s); i++) {\n", iterator_name.c_str());
             scopeDepth++;
@@ -1554,7 +1545,7 @@ namespace sclc {
             return;
         }
         methodCall(iterateMethod, fp, result, warns, errors, body, i);
-        append("%s %s = (%s) *(scl_int*) --_stack.sp;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+        append("%s %s = (%s) *(scl_int*) --localstack;\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         type = typeStackTop;
         typePop;
         
@@ -1596,7 +1587,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->i = (scl_int) &fn_%s;\n", f->finalName().c_str());
+            append("(localstack++)->i = (scl_int) &fn_%s;\n", f->finalName().c_str());
             std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
             typeStack.push(lambdaType);
             return;
@@ -1619,7 +1610,7 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("(_stack.sp++)->i = (scl_int) &fn_%s;\n", f->finalName().c_str());
+                        append("(localstack++)->i = (scl_int) &fn_%s;\n", f->finalName().c_str());
                         std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
                         typeStack.push(lambdaType);
                         return;
@@ -1669,7 +1660,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("(_stack.sp++)->i = (scl_int) &mt_%s$%s;\n", s.name.c_str(), f->finalName().c_str());
+                    append("(localstack++)->i = (scl_int) &mt_%s$%s;\n", s.name.c_str(), f->finalName().c_str());
                     std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
                     typeStack.push(lambdaType);
                     return;
@@ -1686,7 +1677,7 @@ namespace sclc {
             v = getVar(body[i].value);
         }
         path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, variablePrefix, &lastType, /* doesWriteAfter */ false);
-        append("(_stack.sp++)->i = (scl_int) &(%s);\n", path.c_str());
+        append("(localstack++)->i = (scl_int) &(%s);\n", path.c_str());
         typeStack.push("[" + lastType + "]");
     }
 
@@ -1697,7 +1688,7 @@ namespace sclc {
         if (body[i].type == tok_paren_open) {
             append("{\n");
             scopeDepth++;
-            append("scl_Array tmp = (scl_Array) *(scl_int*) --_stack.sp;\n");
+            append("scl_Array tmp = (scl_Array) *(scl_int*) --localstack;\n");
             typePop;
             safeInc();
             int destructureIndex = 0;
@@ -2061,7 +2052,7 @@ namespace sclc {
                 return;
             }
             if (!varScopeTop().back().canBeNil) {
-                append("SCL_ASSUME((*(scl_int*) (_stack.sp - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", varScopeTop().back().name.c_str());
+                append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", varScopeTop().back().name.c_str());
             }
             if (!typesCompatible(result, typeStackTop, type, true)) {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
@@ -2090,7 +2081,7 @@ namespace sclc {
                         safeInc();
                         append("{\n");
                         scopeDepth++;
-                        append("scl_int _scl_value_to_store = *(scl_int*) --_stack.sp;\n");
+                        append("scl_int _scl_value_to_store = *(scl_int*) --localstack;\n");
                         typePop;
                         append("{\n");
                         scopeDepth++;
@@ -2101,7 +2092,7 @@ namespace sclc {
                         scopeDepth--;
                         append("}\n");
                         typePop;
-                        append("*(scl_int*) *(scl_int*) --_stack.sp = _scl_value_to_store;\n");
+                        append("*(scl_int*) *(scl_int*) --localstack = _scl_value_to_store;\n");
                         scopeDepth--;
                         append("}\n");
                     } else {
@@ -2220,7 +2211,7 @@ namespace sclc {
 
                 scopeDepth++;
                 append("{\n");
-                append("%s index = (%s) *(scl_int*) --_stack.sp;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
+                append("%s index = (%s) *(scl_int*) --localstack;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
                 std::string indexType = removeTypeModifiers(typeStackTop);
                 if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
                     transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", i);
@@ -2252,9 +2243,9 @@ namespace sclc {
                                 errors.push_back(err);
                                 return;
                             }
-                            append("(_stack.sp++)->v = index;\n");
+                            append("(localstack++)->v = index;\n");
                             typeStack.push(indexType);
-                            append("(_stack.sp++)->v = array;\n");
+                            append("(localstack++)->v = array;\n");
                             typeStack.push(arrayType);
                             methodCall(m, fp, result, warns, errors, body, i);
                         } else {
@@ -2288,11 +2279,11 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("(_stack.sp++)->v = index;\n");
+                        append("(localstack++)->v = index;\n");
                         typeStack.push(indexType);
-                        append("(_stack.sp++)->v = value;\n");
+                        append("(localstack++)->v = value;\n");
                         typeStack.push(valueType);
-                        append("(_stack.sp++)->v = array;\n");
+                        append("(localstack++)->v = array;\n");
                         typeStack.push(arrayType);
                         methodCall(m, fp, result, warns, errors, body, i);
                     } else {
@@ -2312,7 +2303,7 @@ namespace sclc {
                 warns.push_back(err);
             }
             if (!typeCanBeNil(currentType)) {
-                append("SCL_ASSUME((*(scl_int*) (_stack.sp - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
+                append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
             }
             append("%s;\n", path.c_str());
             typePop;
@@ -2381,7 +2372,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("(_stack.sp++)->v = ({\n");
+        append("(localstack++)->v = ({\n");
         scopeDepth++;
         Struct arr = getStructByName(result, "Array");
         append("scl_Array tmp = ALLOC(Array);\n");
@@ -2442,9 +2433,9 @@ namespace sclc {
                         return;
                     }
                     if (existingArrayUsed) {
-                        append("scl_int array_size = _scl_array_size((scl_any*) (_stack.sp - 1)->v);\n");
+                        append("scl_int array_size = _scl_array_size((scl_any*) (localstack - 1)->v);\n");
                     } else {
-                        append("scl_int array_size = *(scl_int*) --_stack.sp;\n");
+                        append("scl_int array_size = *(scl_int*) --localstack;\n");
                         typePop;
                     }
                     safeInc();
@@ -2482,10 +2473,10 @@ namespace sclc {
                 }
                 varScopePop();
                 typePop;
-                append("array[i] = *(scl_int*) --_stack.sp;\n");
+                append("array[i] = *(scl_int*) --localstack;\n");
                 scopeDepth--;
                 append("}\n");
-                append("(_stack.sp++)->v = array;\n");
+                append("(localstack++)->v = array;\n");
                 typeStack.push(arrayType);
                 scopeDepth--;
                 append("}\n");
@@ -2508,8 +2499,8 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_array_check_bounds_or_throw((scl_any*) (_stack.sp - 1)->v, %s);\n", body[i - 1].value.c_str());
-                    append("(_stack.sp - 1)->v = (scl_any) ((%s) (_stack.sp - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                    append("_scl_array_check_bounds_or_throw((scl_any*) (localstack - 1)->v, %s);\n", body[i - 1].value.c_str());
+                    append("(localstack - 1)->v = (scl_any) ((%s) (localstack - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
                     return;
@@ -2537,9 +2528,9 @@ namespace sclc {
                 return;
             }
             typePop;
-            append("scl_int index = *(scl_int*) --_stack.sp;\n");
+            append("scl_int index = *(scl_int*) --localstack;\n");
             append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
-            append("(_stack.sp++)->v = (scl_any) tmp[index];\n");
+            append("(localstack++)->v = (scl_any) tmp[index];\n");
             typeStack.push(type.substr(1, type.size() - 2));
             scopeDepth--;
             append("}\n");
@@ -2581,7 +2572,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->v = instance;\n");
+            append("(localstack++)->v = instance;\n");
             typeStack.push(type);
             methodCall(m, fp, result, warns, errors, body, i);
             scopeDepth--;
@@ -2599,7 +2590,7 @@ namespace sclc {
         safeInc();
         append("{\n");
         scopeDepth++;
-        append("_scl_frame_t* begin_stack_size = _stack.sp;\n");
+        append("_scl_frame_t* begin_stack_size = localstack;\n");
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {
                 commas++;
@@ -2614,11 +2605,11 @@ namespace sclc {
             if (typeStack.size() > stackSizeHere) {
                 std::string returns = typeStackTop;
                 append("_scl_frame_t* return_value = _scl_pop();\n");
-                append("_stack.sp = begin_stack_size;\n");
+                append("localstack = begin_stack_size;\n");
                 while (typeStack.size() > stackSizeHere) {
                     typeStack.pop();
                 }
-                append("(_stack.sp++)->i = return_value->i;\n");
+                append("(localstack++)->i = return_value->i;\n");
                 typeStack.push(returns);
             }
         } else if (commas == 1) {
@@ -2628,7 +2619,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->v = ({\n");
+            append("(localstack++)->v = ({\n");
             scopeDepth++;
             append("scl_Pair tmp = ALLOC(Pair);\n");
             append("_scl_popn(2);\n");
@@ -2646,7 +2637,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("(_stack.sp++)->v = ({\n");
+            append("(localstack++)->v = ({\n");
             scopeDepth++;
             append("scl_Triple tmp = ALLOC(Triple);\n");
             append("_scl_popn(3);\n");
@@ -2670,13 +2661,13 @@ namespace sclc {
         noUnused;
         std::string str = unquote(body[i].value);
         ID_t hash = id(str.c_str());
-        append("(_stack.sp++)->s = _scl_string_with_hash_len(\"%s\", 0x%x, %zu);\n", body[i].value.c_str(), hash, str.length());
+        append("(localstack++)->s = _scl_string_with_hash_len(\"%s\", 0x%x, %zu);\n", body[i].value.c_str(), hash, str.length());
         typeStack.push("str");
     }
 
     handler(CharStringLiteral) {
         noUnused;
-        append("(_stack.sp++)->cs = \"%s\";\n", body[i].value.c_str());
+        append("(localstack++)->cs = \"%s\";\n", body[i].value.c_str());
         typeStack.push("[int8]");
     }
 
@@ -2705,8 +2696,6 @@ namespace sclc {
         }
         append("{// Start C\n");
         scopeDepth++;
-        // append("const scl_int8* __prev = *(_stack.tp - 1);\n");
-        // append("*(_stack.tp - 1) = \"<%s:native code>\";\n", function->name.c_str());
         std::string file = body[i].file;
         if (strstarts(file, scaleFolder)) {
             file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
@@ -2727,7 +2716,6 @@ namespace sclc {
         }
         scopeDepth--;
         append("}\n");
-        // append("*(_stack.tp - 1) = __prev;\n");
         scopeDepth--;
         append("}// End C\n");
         for (long t = typeStack.size() - 1; t >= 0; t--) {
@@ -2759,7 +2747,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("(_stack.sp++)->i = %s;\n", stringValue.c_str());
+        append("(localstack++)->i = %s;\n", stringValue.c_str());
         typeStack.push("int");
     }
 
@@ -2773,13 +2761,13 @@ namespace sclc {
             return;
         }
         // we still want the original value from source code here
-        append("(_stack.sp++)->f = %s;\n", body[i].value.c_str());
+        append("(localstack++)->f = %s;\n", body[i].value.c_str());
         typeStack.push("float");
     }
 
     handler(FalsyType) {
         noUnused;
-        append("(_stack.sp++)->i = (scl_int) 0;\n");
+        append("(localstack++)->i = (scl_int) 0;\n");
         if (body[i].type == tok_nil) {
             typeStack.push("any");
         } else {
@@ -2789,7 +2777,7 @@ namespace sclc {
 
     handler(TruthyType) {
         noUnused;
-        append("(_stack.sp++)->i = (scl_int) 1;\n");
+        append("(localstack++)->i = (scl_int) 1;\n");
         typeStack.push("bool");
     }
 
@@ -2803,13 +2791,13 @@ namespace sclc {
         }
         std::string type = res.value;
         if (isPrimitiveType(type)) {
-            append("(*(scl_int*) (_stack.sp - 1)) = 1;\n");
+            append("(*(scl_int*) (localstack - 1)) = 1;\n");
             typePop;
             typeStack.push("bool");
             return;
         }
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            append("(*(scl_int*) (_stack.sp - 1)) = _scl_is_array((_stack.sp - 1)->v);\n");
+            append("(*(scl_int*) (localstack - 1)) = _scl_is_array((localstack - 1)->v);\n");
             typePop;
             typeStack.push("bool");
             return;
@@ -2819,7 +2807,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("(*(scl_int*) (_stack.sp - 1)) = (_stack.sp - 1)->v && _scl_is_instance_of((_stack.sp - 1)->v, 0x%xU);\n", id(type.c_str()));
+        append("(*(scl_int*) (localstack - 1)) = (localstack - 1)->v && _scl_is_instance_of((localstack - 1)->v, 0x%xU);\n", id(type.c_str()));
         typePop;
         typeStack.push("bool");
     }
@@ -2839,7 +2827,7 @@ namespace sclc {
         }
         safeInc();
         varScopePop();
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -2905,7 +2893,7 @@ namespace sclc {
         }
         safeInc();
         varScopePop();
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -2989,7 +2977,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -3011,7 +2999,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -3038,7 +3026,7 @@ namespace sclc {
             handle(Token);
             safeInc();
         }
-        append("*(scl_int*) --_stack.sp;\n");
+        append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -3065,7 +3053,9 @@ namespace sclc {
                     append("  fn_Process$unlock(function_lock$%s);\n", function->finalName().c_str());
                 }
             }
-            append("  fn_throw((scl_Exception) *(_stack.ex));\n");
+            append("  fn_throw((scl_Exception) _scl_exception_handler.exception);\n");
+            append("}\n");
+            scopeDepth--;
         }
         append("}\n");
         if (repeat_depth > 0 && wasRepeat()) {
@@ -3099,7 +3089,7 @@ namespace sclc {
                 returningType = function->namedReturnValue.type;
                 append("%s retVal = Var_%s;\n", sclTypeToCType(result, returningType).c_str(), function->namedReturnValue.name.c_str());
             } else {
-                append("%s retVal = *(%s*) --_stack.sp;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                append("%s retVal = *(%s*) --localstack;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
             }
             if (!typeCanBeNil(function->return_type)) {
                 if (typeCanBeNil(returningType)) {
@@ -3199,9 +3189,9 @@ namespace sclc {
                     }
                     const Struct& requested = getStructByName(result, res.value);
                     if (requested != Struct::Null && !requested.isStatic()) {
-                        append("_scl_checked_cast((_stack.sp)->u->__value, %d, \"%s\");\n", id(res.value.c_str()), res.value.c_str());
+                        append("_scl_checked_cast((localstack)->u->__value, %d, \"%s\");\n", id(res.value.c_str()), res.value.c_str());
                     }
-                    append("%s Var_%s = *(%s*) &((_stack.sp)->u->__value);\n", sclTypeToCType(result, res.value).c_str(), name.c_str(), sclTypeToCType(result, res.value).c_str());
+                    append("%s Var_%s = *(%s*) &((localstack)->u->__value);\n", sclTypeToCType(result, res.value).c_str(), name.c_str(), sclTypeToCType(result, res.value).c_str());
                     varScopeTop().push_back(Variable(name, res.value));
                     safeInc();
                     if (body[i].type != tok_paren_close) {
@@ -3211,7 +3201,7 @@ namespace sclc {
                 } else {
                     std::string removed = removeTypeModifiers(s.members[index].type);
                     if (removed != "none" && removed != "nothing") {
-                        append("%s Var_it = *(%s*) &(_stack.sp)->u->__value;\n", sclTypeToCType(result, s.members[index].type).c_str(), sclTypeToCType(result, s.members[index].type).c_str());
+                        append("%s Var_it = *(%s*) &(localstack)->u->__value;\n", sclTypeToCType(result, s.members[index].type).c_str(), sclTypeToCType(result, s.members[index].type).c_str());
                         varScopeTop().push_back(Variable("it", s.members[index].type));
                     }
                 }
@@ -3248,7 +3238,7 @@ namespace sclc {
             append("default: {\n");
             scopeDepth++;
             varScopePush();
-            append("%s Var_it = *(%s*) &(_stack.sp)->u;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
+            append("%s Var_it = *(%s*) &(localstack)->u;\n", sclTypeToCType(result, s.name).c_str(), sclTypeToCType(result, s.name).c_str());
             varScopeTop().push_back(Variable("it", s.name));
             return;
         }
@@ -3270,7 +3260,7 @@ namespace sclc {
             pushSwitch();
             return;
         }
-        append("switch (*(scl_int*) --_stack.sp) {\n");
+        append("switch (*(scl_int*) --localstack) {\n");
         scopeDepth++;
         varScopePush();
         pushSwitch();
@@ -3279,10 +3269,10 @@ namespace sclc {
     handler(AddrOf) {
         noUnused;
         if (handleOverriddenOperator(result, fp, scopeDepth, "@", typeStackTop)) return;
-        append("SCL_ASSUME((*(scl_int*) (_stack.sp - 1)), \"Tried dereferencing nil pointer!\");\n");
+        append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Tried dereferencing nil pointer!\");\n");
         std::string ptr = removeTypeModifiers(typeStackTop);
         std::string ctype = sclTypeToCType(result, typePointedTo(ptr));
-        append("*(%s*) (_stack.sp - 1) = (*(%s*) (_stack.sp - 1)->v);\n", ctype.c_str(), ctype.c_str());
+        append("*(%s*) (localstack - 1) = (*(%s*) (localstack - 1)->v);\n", ctype.c_str(), ctype.c_str());
         typePop;
         typeStack.push(typePointedTo(ptr));
     }
@@ -3306,7 +3296,7 @@ namespace sclc {
             return;
         }
         if (type.value == "float" && typeStackTop != "float") {
-            append("(_stack.sp - 1)->f = (float) (*(scl_int*) (_stack.sp - 1));\n");
+            append("(localstack - 1)->f = (float) (*(scl_int*) (localstack - 1));\n");
             typePop;
             typeStack.push("float");
             return;
@@ -3317,25 +3307,24 @@ namespace sclc {
             return;
         }
         if (type.value == "int") {
-            append("(*(scl_int*) (_stack.sp - 1)) = (scl_int) (_stack.sp - 1)->f;\n");
+            append("(*(scl_int*) (localstack - 1)) = (scl_int) (localstack - 1)->f;\n");
             typePop;
             typeStack.push("int");
             return;
         }
         if (type.value == "lambda" || strstarts(type.value, "lambda(")) {
             typePop;
-            append("_scl_not_nil_cast((*(scl_int*) (_stack.sp - 1)), \"%s\");\n", type.value.c_str());
-            append("SCL_ASSUME((*(scl_int*) (_stack.sp - 1)), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
+            append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             typeStack.push(type.value);
             return;
         }
         if (isPrimitiveIntegerType(type.value)) {
             if (typeStackTop == "float") {
-                append("(*(scl_int*) (_stack.sp - 1)) = (scl_int) (_stack.sp - 1)->f;\n");
+                append("(*(scl_int*) (localstack - 1)) = (scl_int) (localstack - 1)->f;\n");
             }
             typePop;
             typeStack.push(type.value);
-            append("(*(scl_int*) (_stack.sp - 1)) &= SCL_%s_MAX;\n", type.value.c_str());
+            append("(*(scl_int*) (localstack - 1)) &= SCL_%s_MAX;\n", type.value.c_str());
             return;
         }
         auto typeIsPtr = [type]() -> bool {
@@ -3351,7 +3340,7 @@ namespace sclc {
             return;
         }
         if (hasLayout(result, type.value)) {
-            append("SCL_ASSUME(_scl_sizeof((_stack.sp - 1)->v) >= sizeof(struct Layout_%s), \"Layout '%%s' requires more memory than the pointer has available (required: \" SCL_INT_FMT \" found: \" SCL_INT_FMT \")\", \"%s\", sizeof(struct Layout_%s), _scl_sizeof((_stack.sp - 1)->v));", type.value.c_str(), type.value.c_str(), type.value.c_str());
+            append("SCL_ASSUME(_scl_sizeof((localstack - 1)->v) >= sizeof(struct Layout_%s), \"Layout '%%s' requires more memory than the pointer has available (required: \" SCL_INT_FMT \" found: \" SCL_INT_FMT \")\", \"%s\", sizeof(struct Layout_%s), _scl_sizeof((localstack - 1)->v));", type.value.c_str(), type.value.c_str(), type.value.c_str());
             typePop;
             typeStack.push(type.value);
             return;
@@ -3371,11 +3360,11 @@ namespace sclc {
             safeInc();
         } else {
             if (typeCanBeNil(typeStackTop)) {
-                append("_scl_not_nil_cast((*(scl_int*) (_stack.sp - 1)), \"%s\");\n", type.value.c_str());
+                append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             }
             std::string typeStr = removeTypeModifiers(type.value);
             if (getStructByName(result, typeStr) != Struct::Null) {
-                append("_scl_checked_cast((_stack.sp - 1)->v, %d, \"%s\");\n", id(typeStr.c_str()), typeStr.c_str());
+                append("_scl_checked_cast((localstack - 1)->v, %d, \"%s\");\n", id(typeStr.c_str()), typeStr.c_str());
             }
             typePop;
             typeStack.push(type.value);
@@ -3399,9 +3388,9 @@ namespace sclc {
             const Variable& v = l.getMember(member);
 
             if (removeTypeModifiers(v.type) == "float") {
-                append("(_stack.sp - 1)->f = ((%s) (*(scl_int*) (_stack.sp - 1)))->%s;\n", sclTypeToCType(result, l.name).c_str(), member.c_str());
+                append("(localstack - 1)->f = ((%s) (*(scl_int*) (localstack - 1)))->%s;\n", sclTypeToCType(result, l.name).c_str(), member.c_str());
             } else {
-                append("(*(scl_int*) (_stack.sp - 1)) = (scl_int) ((%s) (*(scl_int*) (_stack.sp - 1)))->%s;\n", sclTypeToCType(result, l.name).c_str(), member.c_str());
+                append("(*(scl_int*) (localstack - 1)) = (scl_int) ((%s) (*(scl_int*) (localstack - 1)))->%s;\n", sclTypeToCType(result, l.name).c_str(), member.c_str());
             }
             typeStack.push(l.getMember(member).type);
             return;
@@ -3416,7 +3405,7 @@ namespace sclc {
             }
             std::string member = body[i].value;
             if (member == "count") {
-                append("(*(scl_int*) (_stack.sp - 1)) = _scl_array_size((_stack.sp - 1)->v);\n");
+                append("(*(scl_int*) (localstack - 1)) = _scl_array_size((localstack - 1)->v);\n");
                 typeStack.push("int");
             } else {
                 transpilerError("Unknown array member '" + member + "'", i);
@@ -3446,9 +3435,10 @@ namespace sclc {
                 scopeDepth++;
                 append("scl_any tmp = _scl_pop()->v;\n");
                 std::string t = type;
-                append("*(scl_str*) (_stack.sp++) = _scl_create_string(\"%s\");\n", body[i].value.c_str());
+                append("*(scl_str*) (localstack) = _scl_create_string(\"%s\");\n", body[i].value.c_str());
+                append("localstack++;\n");
                 typeStack.push("str");
-                append("(_stack.sp++)->v = tmp;\n");
+                append("(localstack++)->v = tmp;\n");
                 typeStack.push(t);
                 scopeDepth--;
                 append("}\n");
@@ -3459,7 +3449,7 @@ namespace sclc {
             Method* m;
             if ((m = getMethodByName(result, body[i].value, s.name)) != nullptr) {
                 std::string lambdaType = "lambda(" + std::to_string(m->args.size()) + "):" + m->return_type;
-                append("(_stack.sp++)->v = mt_%s$%s;\n", s.name.c_str(), m->name.c_str());
+                append("(localstack++)->v = mt_%s$%s;\n", s.name.c_str(), m->name.c_str());
                 typeStack.push(lambdaType);
                 return;
             }
@@ -3490,7 +3480,7 @@ namespace sclc {
         if (m) {
             if (dot.value == "?.") {
                 if (deref) {
-                    append("*(%s*) (_stack.sp - 1) = (*(scl_int*) (_stack.sp - 1)) ? *(mt_%s$%s(*(%s*) (_stack.sp - 1))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("*(%s*) (localstack - 1) = (*(scl_int*) (localstack - 1)) ? *(mt_%s$%s(*(%s*) (localstack - 1))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -3499,12 +3489,12 @@ namespace sclc {
                     }
                     typeStack.push(type);
                 } else {
-                    append("*(%s*) (_stack.sp - 1) = (*(scl_int*) (_stack.sp - 1)) ? mt_%s$%s(*(%s*) (_stack.sp - 1)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("*(%s*) (localstack - 1) = (*(scl_int*) (localstack - 1)) ? mt_%s$%s(*(%s*) (localstack - 1)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     typeStack.push(m->return_type);
                 }
             } else {
                 if (deref) {
-                    append("*(%s*) (_stack.sp - 1) = *(mt_%s$%s(*(%s*) (_stack.sp - 1)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("*(%s*) (localstack - 1) = *(mt_%s$%s(*(%s*) (localstack - 1)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -3513,7 +3503,7 @@ namespace sclc {
                     }
                     typeStack.push(type);
                 } else {
-                    append("*(%s*) (_stack.sp - 1) = mt_%s$%s(*(%s*) (_stack.sp - 1));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("*(%s*) (localstack - 1) = mt_%s$%s(*(%s*) (localstack - 1));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
                     typeStack.push(m->return_type);
                 }
             }
@@ -3522,22 +3512,22 @@ namespace sclc {
 
         if (dot.value == "?.") {
             if (removeTypeModifiers(mem.type) == "float") {
-                append("(_stack.sp - 1)->f = (*(scl_int*) (_stack.sp - 1)) ? ((%s) (_stack.sp - 1)->v)->%s : 0.0f;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+                append("(localstack - 1)->f = (*(scl_int*) (localstack - 1)) ? ((%s) (localstack - 1)->v)->%s : 0.0f;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
             } else {
-                append("(_stack.sp - 1)->v = (*(scl_int*) (_stack.sp - 1)) ? (scl_any) ((%s) (_stack.sp - 1)->v)->%s : NULL;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+                append("(localstack - 1)->v = (*(scl_int*) (localstack - 1)) ? (scl_any) ((%s) (localstack - 1)->v)->%s : NULL;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
             }
         } else {
             if (removeTypeModifiers(mem.type) == "float") {
-                append("(_stack.sp - 1)->f = ((%s) (_stack.sp - 1)->v)->%s;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+                append("(localstack - 1)->f = ((%s) (localstack - 1)->v)->%s;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
             } else {
-                append("(_stack.sp - 1)->v = (scl_any) ((%s) (_stack.sp - 1)->v)->%s;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+                append("(localstack - 1)->v = (scl_any) ((%s) (localstack - 1)->v)->%s;\n", sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
             }
         }
         typeStack.push(mem.type);
         if (deref) {
             std::string path = dot.value + "@" + body[i].value;
-            append("SCL_ASSUME((*(scl_int*) (_stack.sp - 1)), \"Tried dereferencing nil pointer '%%s'!\", \"%s\");", path.c_str());
-            append("(_stack.sp - 1)->v = *(_stack.sp - 1)->v;\n");
+            append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Tried dereferencing nil pointer '%%s'!\", \"%s\");", path.c_str());
+            append("(localstack - 1)->v = *(localstack - 1)->v;\n");
             std::string type = typeStackTop;
             typePop;
             if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
@@ -3608,10 +3598,13 @@ namespace sclc {
                 if (removed == "none" || removed == "nothing") {
                     append("");
                 } else {
-                    append("*(%s*) (_stack.sp++) = ", sclTypeToCType(result, returnType).c_str());
+                    append("*(%s*) (localstack) = ", sclTypeToCType(result, returnType).c_str());
                     typeStack.push(returnType);
                 }
-                append2("((%s) (_stack.sp + %zu)->v)(%s);\n", cType.c_str(), argAmount, argGet.c_str());
+                append2("((%s) (localstack + %zu)->v)(%s);\n", cType.c_str(), argAmount, argGet.c_str());
+                if (removed != "none" && removed != "nothing") {
+                    append("localstack++;\n");
+                }
             } else {
                 transpilerError("Unknown method '" + body[i].value + "' on type 'lambda'", i);
                 errors.push_back(err);
@@ -3633,21 +3626,21 @@ namespace sclc {
                 scopeDepth++;
                 append("scl_any* array = (scl_any*) _scl_pop()->v;\n");
                 typePop;
-                append("scl_int size = *(scl_int*) --_stack.sp;\n");
+                append("scl_int size = *(scl_int*) --localstack;\n");
                 typePop;
                 append("array = (scl_any*) _scl_array_resize((scl_any*) array, size);\n");
-                append("(_stack.sp++)->v = array;\n");
+                append("(localstack++)->v = array;\n");
                 typeStack.push(type);
                 scopeDepth--;
                 append("}\n");
             } else if (op == "sort") {
-                append("(_stack.sp - 1)->v = _scl_array_sort((scl_any*) (_stack.sp - 1)->v);\n");
+                append("(localstack - 1)->v = _scl_array_sort((scl_any*) (localstack - 1)->v);\n");
                 typeStack.push(type);
             } else if (op == "reverse") {
-                append("(_stack.sp - 1)->v = _scl_array_reverse((scl_any*) (_stack.sp - 1)->v);\n");
+                append("(localstack - 1)->v = _scl_array_reverse((scl_any*) (localstack - 1)->v);\n");
                 typeStack.push(type);
             } else if (op == "toString") {
-                append("*(scl_str*) (_stack.sp - 1) = _scl_array_to_string((scl_any*) (_stack.sp - 1)->v);\n");
+                append("*(scl_str*) (localstack - 1) = _scl_array_to_string((scl_any*) (localstack - 1)->v);\n");
                 typeStack.push("str");
             } else {
                 transpilerError("Unknown method '" + body[i].value + "' on type '" + type + "'", i);
@@ -3716,12 +3709,12 @@ namespace sclc {
                 } else if (removeTypeModifiers(returnType) == "float") {
                     append("scl_float(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("(_stack.sp++)->f = lambda(%s);\n", argGet.c_str());
+                    append("(localstack++)->f = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 } else {
                     append("scl_any(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
-                    append("(_stack.sp++)->v = lambda(%s);\n", argGet.c_str());
+                    append("(localstack++)->v = lambda(%s);\n", argGet.c_str());
                     typeStack.push(returnType);
                 }
                 scopeDepth--;
@@ -3749,7 +3742,7 @@ namespace sclc {
             if (anyMethod) {
                 Method* objMethod = getMethodByName(result, body[i].value, "SclObject");
                 if (objMethod) {
-                    append("if (_scl_is_instance_of((_stack.sp - 1)->v, 0x%xU)) {\n", id("SclObject"));
+                    append("if (_scl_is_instance_of((localstack - 1)->v, 0x%xU)) {\n", id("SclObject"));
                     scopeDepth++;
                     methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
                     if (objMethod->return_type != "none" && objMethod->return_type != "nothing") {
@@ -3784,7 +3777,7 @@ namespace sclc {
                 if (body[i].value == "toString") {
                     return;
                 } else if (body[i].value == "view") {
-                    append("(_stack.sp - 1)->v = (*(scl_str*) (_stack.sp - 1))->data;\n");
+                    append("(localstack - 1)->v = (*(scl_str*) (localstack - 1))->data;\n");
                     typePop;
                     typeStack.push("[int8]");
                     return;
@@ -3893,7 +3886,7 @@ namespace sclc {
         populateTokenJumpTable();
 
         scopeDepth = 0;
-        append("extern tls _scl_stack_t _stack;\n\n");
+        append("extern tls _scl_stack_t __cs;\n\n");
 
         append("extern const ID_t type_id(const char*);\n\n");
 
@@ -3934,15 +3927,22 @@ namespace sclc {
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
-            if (function->has_expect) continue;
-            if (contains<std::string>(function->modifiers, "<binary-inherited>")) {
+            if (function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type)) {
                 continue;
             }
-            if (getInterfaceByName(result, function->member_type)) {
+            if (function->return_type.size() == 0) {
+                transpilerErrorTok("Return type required", function->name_token);
+                errors.push_back(err);
                 continue;
             }
+
             if (function->isMethod) {
-                currentStruct = getStructByName(result, ((Method*) function)->member_type);
+                currentStruct = getStructByName(result, function->member_type);
+                if (currentStruct == Struct::Null) {
+                    transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
+                    errors.push_back(err);
+                    continue;
+                }
             } else {
                 currentStruct = Struct::Null;
             }
@@ -3952,140 +3952,43 @@ namespace sclc {
             }
             vars.clear();
             varScopePush();
-            for (Variable& g : globals) {
+            varScopeTop().reserve(globals.size());
+            for (const Variable& g : globals) {
                 varScopeTop().push_back(g);
             }
 
             scopeDepth = 0;
-            noWarns = false;
             lambdaCount = 0;
 
-            for (std::string& modifier : function->modifiers) {
-                if (modifier == "nowarn") {
-                    noWarns = true;
-                }
-            }
+            return_type = sclTypeToCType(result, function->return_type);
 
-            std::string functionDeclaration = "";
-
-            if (function->isMethod) {
-                functionDeclaration += ((Method*) function)->member_type + ":" + function->name + "(";
-                for (size_t i = 0; i < function->args.size() - 1; i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->args[i].name + ": " + function->args[i].type;
-                }
-                functionDeclaration += "): " + function->return_type;
-            } else {
-                functionDeclaration += function->name + "(";
-                for (size_t i = 0; i < function->args.size(); i++) {
-                    if (i != 0) {
-                        functionDeclaration += ", ";
-                    }
-                    functionDeclaration += function->args[i].name + ": " + function->args[i].type;
-                }
-                functionDeclaration += "): " + function->return_type;
-            }
-
-            return_type = "void";
-
-            if (function->return_type.size() > 0) {
-                std::string t = function->return_type;
-                return_type = sclTypeToCType(result, t);
-            } else {
-                FPResult err;
-                err.success = false;
-                err.message = "Function '" + function->name + "' does not specify a return type, defaults to none.";
-                err.line = function->name_token.line;
-                err.in = function->name_token.file;
-                err.column = function->name_token.column;
-                err.value = function->name_token.value;
-                err.type = function->name_token.type;
-                warns.push_back(err);
-            }
-
-            return_type = "void";
-
-            std::string arguments = "";
+            std::string arguments;
             if (function->isMethod) {
                 arguments = sclTypeToCType(result, function->member_type) + " Var_self";
-                for (size_t i = 0; i < function->args.size() - 1; i++) {
-                    std::string type = sclTypeToCType(result, function->args[i].type);
-                    arguments += ", " + type;
-                    if (type == "varargs" || type == "...") continue;
-                    if (function->args[i].name.size())
-                        arguments += " Var_" + function->args[i].name;
-                }
-            } else {
-                if (function->args.size() > 0) {
-                    for (size_t i = 0; i < function->args.size(); i++) {
-                        std::string type = sclTypeToCType(result, function->args[i].type);
-                        if (i) {
-                            arguments += ", ";
-                        }
-                        arguments += type;
-                        if (type == "varargs" || type == "...") continue;
-                        if (function->args[i].name.size())
-                            arguments += " Var_" + function->args[i].name;
-                    }
-                }
-            }
-
-            if (arguments.empty()) {
+            } else if (function->args.size() == 0) {
                 arguments = "void";
             }
+            for (size_t i = 0; i < function->args.size() - (size_t) function->isMethod; i++) {
+                std::string type = sclTypeToCType(result, function->args[i].type);
+                if (i || function->isMethod) arguments += ", ";
+                arguments += type;
 
-            std::string file = function->name_token.file;
-            if (strstarts(file, scaleFolder)) {
-                file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-            } else {
-                file = std::filesystem::path(file).relative_path();
-            }
-
-            if (function->return_type.size() > 0) {
-                std::string t = function->return_type;
-                return_type = sclTypeToCType(result, t);
+                if (type == "varargs" || type == "...") continue;
+                if (function->args[i].name.size())
+                    arguments += " Var_" + function->args[i].name;
             }
 
             if (function->isMethod) {
-                if (!(((Method*) function))->force_add && getStructByName(result, function->member_type).isSealed()) {
-                    FPResult result;
-                    result.message = "Struct '" + function->member_type + "' is sealed!";
-                    result.value = function->name_token.value;
-                    result.line = function->name_token.line;
-                    result.in = function->name_token.file;
-                    result.column = function->name_token.column;
-                    result.type = function->name_token.type;
-                    result.success = false;
-                    errors.push_back(result);
+                if (!((Method*) function)->force_add && currentStruct.isSealed()) {
+                    transpilerErrorTok("Cannot add method '" + function->name + "' to sealed Struct '" + currentStruct.name + "'", function->name_token);
+                    errors.push_back(err);
                     continue;
                 }
                 append("%s mt_%s$%s(%s) {\n", return_type.c_str(), function->member_type.c_str(), function->finalName().c_str(), arguments.c_str());
-                if (function->name == "init") {
-                    Method* thisMethod = (Method*) function;
-                    Struct s = getStructByName(result, thisMethod->member_type);
-                    if (s == Struct::Null) {
-                        FPResult result;
-                        result.message = "Struct '" + thisMethod->member_type + "' does not exist!";
-                        result.value = function->name_token.value;
-                        result.line = function->name_token.line;
-                        result.in = function->name_token.file;
-                        result.column = function->name_token.column;
-                        result.type = function->name_token.type;
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    if (s.super.size()) {
-                        Method* parentInit = getMethodByName(result, "init", s.super);
-                        // implicit call to parent init, if it takes no arguments
-                        if (parentInit && parentInit->args.size() == 1) {
-                            scopeDepth++;
-                            append("(_stack.sp++)->v = Var_self;\n");
-                            generateUnsafeCall(parentInit, fp, result);
-                            scopeDepth--;
-                        }
+                if (function->name == "init" && currentStruct.super.size()) {
+                    Method* parentInit = getMethodByName(result, "init", currentStruct.super);
+                    if (parentInit && parentInit->args.size() == 1) {
+                        append("  mt_%s$init((%s) Var_self);\n", currentStruct.super.c_str(), sclTypeToCType(result, currentStruct.super).c_str());
                     }
                 }
             } else {
@@ -4094,94 +3997,64 @@ namespace sclc {
                 }
                 if (function->name == "throw" || function->name == "builtinUnreachable") {
                     append("_scl_no_return ");
-                }
-                if (function->has_lambda) {
+                } else if (function->has_lambda) {
                     append("_scl_noinline %s fn_%s(%s) __asm(%s);\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
                     append("_scl_noinline ");
+                } else {
+                    append("");
                 }
-                append("%s fn_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
+                append2("%s fn_%s(%s) {\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
                 if (function->has_restrict) {
-                    append("if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
+                    append("  if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
                 }
             }
+            append("  _scl_frame_t* localstack = alloca(sizeof(_scl_frame_t) * %zu);\n", function->stackSize());
             
             scopeDepth++;
             std::vector<Token> body = function->getBody();
 
             varScopePush();
             if (function->namedReturnValue.name.size()) {
+                std::string nrvName = function->namedReturnValue.name;
+                if (hasFunction(result, nrvName)) {
+                    transpilerErrorTok("Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'", function->name_token);
+                    warns.push_back(err);
+                }
+                if (hasContainer(result, nrvName)) {
+                    transpilerErrorTok("Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'", function->name_token);
+                    warns.push_back(err);
+                }
+                if (getStructByName(result, nrvName) != Struct::Null) {
+                    transpilerErrorTok("Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'", function->name_token);
+                    warns.push_back(err);
+                }
+                append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+
                 varScopeTop().push_back(function->namedReturnValue);
             }
-            if (function->args.size() > 0) {
-                for (size_t i = 0; i < function->args.size(); i++) {
-                    const Variable& var = function->args[i];
-                    if (var.type == "varargs") continue;
-                    varScopeTop().push_back(var);
-                }
+            for (size_t i = 0; i < function->args.size(); i++) {
+                const Variable& var = function->args[i];
+                if (var.type == "varargs") continue;
+                varScopeTop().push_back(var);
             }
 
             append("SCL_BACKTRACE(\"%s\");\n", sclFunctionNameToFriendlyString(function).c_str());
-            if (function->namedReturnValue.name.size()) {
-                std::string nrvName = function->namedReturnValue.name;
-                if (hasFunction(result, nrvName)) {
-                    {
-                        FPResult err;
-                        err.message = "Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'";
-                        err.value = function->name_token.value;
-                        err.line = function->name_token.line;
-                        err.in = function->name_token.file;
-                        err.column = function->name_token.column;
-                        err.type = function->name_token.type;
-                        err.success = false;
-                        warns.push_back(err);
-                    }
-                }
-                if (hasContainer(result, nrvName)) {
-                    {
-                        FPResult err;
-                        err.message = "Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'";
-                        err.value = function->name_token.value;
-                        err.line = function->name_token.line;
-                        err.in = function->name_token.file;
-                        err.column = function->name_token.column;
-                        err.type = function->name_token.type;
-                        err.success = false;
-                        warns.push_back(err);
-                    }
-                }
-                if (getStructByName(result, nrvName) != Struct::Null) {
-                    {
-                        FPResult err;
-                        err.message = "Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'";
-                        err.value = function->name_token.value;
-                        err.line = function->name_token.line;
-                        err.in = function->name_token.file;
-                        err.column = function->name_token.column;
-                        err.type = function->name_token.type;
-                        err.success = false;
-                        warns.push_back(err);
-                    }
-                }
-                append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
-            }
             if (function->isMethod) {
-                Struct s = getStructByName(result, function->member_type);
-                std::string superType = s.super;
+                std::string superType = currentStruct.super;
                 if (superType.size() > 0) {
                     append("%s Var_super = (%s) Var_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str());
                     varScopeTop().push_back(Variable("super", "const " + superType));
                 }
             }
-            append("SCL_SAVE_STACK;\n");
 
             for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
-                Variable& arg = function->args[a];
+                const Variable& arg = function->args[a];
                 if (arg.name.size() == 0) continue;
-                if (!typeCanBeNil(arg.type)) {
-                    if (function->isMethod && arg.name == "self") continue;
-                    if (arg.type == "varargs") continue;
-                    append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
-                }
+                if (typeCanBeNil(arg.type)) continue;
+                if (function->isMethod && arg.name == "self") continue;
+                if (arg.type == "varargs") continue;
+
+                append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
             }
             
             if (function->has_unsafe) {
@@ -4195,16 +4068,13 @@ namespace sclc {
                 }
             }
 
-            if (function->isCVarArgs()) {
-                if (function->varArgsParam().name.size()) {
-                    append("va_list _cvarargs;\n");
-                    append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
-                    append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
-                    append("scl_Array Var_%s = (scl_Array) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
-                    append("va_end(_cvarargs);\n");
-                    Variable v(function->varArgsParam().name, "const ReadOnlyArray");
-                    varScopeTop().push_back(v);
-                }
+            if (function->isCVarArgs() && function->varArgsParam().name.size()) {
+                append("va_list _cvarargs;\n");
+                append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
+                append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
+                append("scl_Array Var_%s = (scl_Array) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
+                append("va_end(_cvarargs);\n");
+                varScopeTop().push_back(Variable(function->varArgsParam().name, "const ReadOnlyArray"));
             }
 
             if (function->has_setter || function->has_getter) {
@@ -4229,10 +4099,6 @@ namespace sclc {
             
             if (function->has_unsafe) {
                 isInUnsafe--;
-            }
-
-            while (vars.size() > 1) {
-                varScopePop();
             }
 
             scopeDepth = 0;

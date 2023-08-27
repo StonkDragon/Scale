@@ -13,7 +13,7 @@ Frees the memory block pointed to by `ptr`.
 
 ### static function any::size(ptr: any): int
 Returns the size of the memory block pointed to by `ptr`.
-Returns -1 if `ptr` is nil or invalid.
+Returns 0 if `ptr` is nil or invalid.
 
 ### static function any::resize(newSize: int, ptr: any): any
 Resizes the memory block pointed to by `ptr` to `newSize` bytes.
@@ -1039,12 +1039,6 @@ Locks `obj` on the current thread, blocking if another thread has already locked
 
 ### static function Process::unlock(obj: SclObject): none
 Unlocks `obj` on the current thread.
-
-### static function Process::stackPointer(): [any]
-Returns the stack pointer of the current thread.
-
-### static function Process::basePointer(): [any]
-Returns the stack base pointer of the current thread.
 
 @std.thread.Thread
 @@{frameworkPath}/include/std/thread/Thread.scale

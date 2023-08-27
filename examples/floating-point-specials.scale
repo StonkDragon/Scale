@@ -11,7 +11,8 @@ function main(): none
 
     unsafe
         c!
-            *(scl_int*) _stack.sp++ = Var_MathConstants$infinity == (1.0 / 0.0);
+            *(scl_int*) localstack = Var_MathConstants$infinity == (1.0 / 0.0);
+            localstack++;
         end as int puts # prints "1"
 
         1.0 0.0 / :toString puts # prints "inf"

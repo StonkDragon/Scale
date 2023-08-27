@@ -131,22 +131,22 @@ final struct Fraction
             1 => decl sign: int
 
             for i in 0 to size do
-                if i s @ '.' == then
+                if s[i] '.' == then
                     false => inWholePart
                     true => hasDecimalPart
                     continue
                 fi
-                if i s @ '-' == then
+                if s[i] '-' == then
                     -1 => sign
                     continue
                 fi
 
                 unsafe
                     if inWholePart then
-                        i s @ => @(whole as int wholePtr +)
+                        s[i] => @(whole as int wholePtr +)
                         wholePtr 1 + => wholePtr
                     else
-                        i s @ => @(decimal as int decimalPtr +)
+                        s[i] => @(decimal as int decimalPtr +)
                         decimalPtr 1 + => decimalPtr
                     fi
                 end
@@ -163,10 +163,10 @@ final struct Fraction
                 decimalStr any::delete
             fi
 
-            numWhole (10 decimalLen **) * numDecimal + => num
-            num sign * => num
-
             10 decimalLen ** => den
+
+            numWhole den * numDecimal + => num
+            num sign * => num
 
             num den Fraction::new return
         fi

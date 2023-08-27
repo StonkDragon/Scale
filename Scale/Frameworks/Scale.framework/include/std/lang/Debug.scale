@@ -3,9 +3,6 @@ import std.runtime.Process
 
 typealias nothing "_scl_no_return scl_any"
 
-cdecl "print_stacktrace"
-deprecated![since: "23.7", replacement: "Process::stackTrace", forRemoval: true]
-expect foreign function trace(): none
 cdecl "_scl_throw"
 expect foreign function throw(ex: Exception): nothing
 
@@ -21,20 +18,6 @@ cdecl "_scl_set_signal_handler"
 expect foreign function setSignalHandler(fun: lambda(int): none, sig: int): none
 cdecl "_scl_reset_signal_handler"
 expect foreign function resetSignalHandler(sig: int): none
-
-function dumpStack(): none
-  "Dump:" puts
-  unsafe
-    c!
-      _scl_frame_t* frame = _stack.sp;
-      while (frame != _stack.bp) {
-        frame--;
-        printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
-      }
-    end
-  end
-  "" puts
-end
 
 function crash(): none
   unsafe

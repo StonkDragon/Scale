@@ -219,18 +219,6 @@ sealed struct Array is Iterable
     clone return
   end
 
-  function *(): none
-    foreach elem in self do
-      elem
-    done
-    unsafe
-      c!
-        scl_any** begin_sp = (scl_any**) &__current_base_ptr;
-        *begin_sp = (scl_any*) _stack.sp;
-      end
-    end
-  end
-
   function finalize(): none
     self.values any::delete
   end

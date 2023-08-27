@@ -1,6 +1,10 @@
 #if !defined(_SCALE_RUNTIME_H_)
 #define _SCALE_RUNTIME_H_
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,7 +303,7 @@ struct scale_string {
 #define SCL_OS_NAME "Unknown OS"
 #endif
 
-typedef union {
+typedef union _scl_frame {
 	scl_int				i;
 	scl_str				s;
 	scl_float			f;
@@ -319,24 +323,9 @@ typedef union {
 	const scl_int8*		cs;
 } _scl_frame_t;
 
-typedef struct {
-	// Stack
-	_scl_frame_t*		sp; // stack pointer
-	_scl_frame_t*		bp; // base pointer
-
-	// Trace
-	const scl_int8**	tp; // trace pointer
-	const scl_int8**	tbp; // trace base pointer
-
-	// Exception
-	jmp_buf*			jmp; // jump pointer
-	jmp_buf*			jmp_base; // jump base pointer
-	scl_any*			ex; // exception pointer
-	scl_any*			ex_base; // exception base pointer
-	const scl_int8***	et; // exception trace pointer
-	const scl_int8***	et_base; // exception trace base pointer
-	_scl_frame_t**		sp_save; // stack pointer save
-	_scl_frame_t**		sp_save_base; // stack pointer save base
+typedef struct _scl_stack {
+	const scl_int8**	trace;
+	scl_int				trace_index;
 } _scl_stack_t;
 
 // Create a new instance of a struct
@@ -347,19 +336,30 @@ typedef struct {
 // Try to cast the given instance to the given type
 #define CAST(_obj, _type) CAST0(_obj, _type, type_id(#_type))
 
-#define TRY			if (setjmp(*(_stack.jmp - 1)) != 666)
+struct exception_handler {
+	scl_int marker;
+	scl_int trace_index;
+	scl_any exception;
+	jmp_buf jmp;
+};
+
+#define CONCAT(a, b) CONCAT_(a, b)
+#define CONCAT_(a, b) a ## b
+
+#define TRY			struct exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .trace_index = __cs.trace_index }; \
+						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 // Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
 #define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
 
+#define EXCEPTION_HANDLER_MARKER 0xF0E1D2C3B4A59687ULL
+
 #define SCL_BACKTRACE(_func_name) \
-					scl_any __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = (scl_any) (*(_stack.tp++) = _func_name)
-void				_scl_trace_remove(void* _);
-#define SCL_SAVE_STACK \
-					const _scl_frame_t* __current_base_ptr __attribute__((cleanup(_scl_stack_cleanup))) = _stack.sp
-void				_scl_stack_cleanup(void* current_ptr);
+					scl_any __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = (scl_any) (__cs.trace[__cs.trace_index++] = _func_name)
+void				_scl_trace_remove(void*);
+
 #define SCL_FUNCTION_LOCK(_obj) \
 					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj)
 
@@ -371,7 +371,7 @@ void				_scl_stack_cleanup(void* current_ptr);
 						_scl_assert(0, msg); \
 					}
 
-extern tls _scl_stack_t _stack;
+extern tls _scl_stack_t __cs;
 
 typedef void(*mainFunc)(/* args: Array */ scl_any);
 
@@ -399,7 +399,10 @@ typedef void(*mainFunc)(/* args: Array */ scl_any);
 						_Pragma("clang diagnostic push") \
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						({ \
+							scl_any _tmp = (instance); \
+							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+						}) \
 						_Pragma("clang diagnostic pop")
 // call a method on the super class of an instance
 // return value is undefined if the method return type is `none`
@@ -407,14 +410,20 @@ typedef void(*mainFunc)(/* args: Array */ scl_any);
 						_Pragma("clang diagnostic push") \
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						({ \
+							scl_any _tmp = (instance); \
+							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+						}) \
 						_Pragma("clang diagnostic pop")
 // call a method on the super class of an instance
 #define				virtual_call_superf(instance, methodIdentifier, ...) \
 						_Pragma("clang diagnostic push") \
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super((instance), (methodIdentifier))))((instance), ##__VA_ARGS__) \
+						({ \
+							scl_any _tmp = (instance); \
+							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+						}) \
 						_Pragma("clang diagnostic pop")
 // Throws the given exception
 _scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
@@ -437,7 +446,7 @@ scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
 
 _scl_no_return void	_scl_security_throw(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
-_scl_no_return void	_scl_runtime_catch();
+_scl_no_return void	_scl_runtime_catch(scl_any ex);
 _scl_no_return void	_scl_throw(scl_any ex);
 
 _scl_constructor
@@ -451,13 +460,7 @@ scl_str				_scl_create_string(const scl_int8* data);
 scl_str				_scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len);
 void				_scl_stack_new(void);
 void				_scl_stack_free(void);
-void				_scl_stack_resize_fit(scl_int sz);
 
-scl_int				_scl_remove_ptr(scl_any ptr);
-scl_int				_scl_get_index_of_ptr(scl_any ptr);
-void				_scl_remove_ptr_at_index(scl_int index);
-void				_scl_add_ptr(scl_any ptr, scl_int size);
-scl_int				_scl_check_allocated(scl_any ptr);
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
@@ -465,13 +468,6 @@ scl_int				_scl_sizeof(scl_any ptr);
 scl_int8*			_scl_strdup(const scl_int8* str);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
-
-void				_scl_check_layout_size(scl_any ptr, scl_int layoutSize, const scl_int8* layout);
-void				_scl_check_not_nil_argument(scl_int val, const scl_int8* name);
-void				_scl_not_nil_cast(scl_int val, const scl_int8* name);
-void				_scl_nil_ptr_dereference(scl_int val, const scl_int8* name);
-void				_scl_check_not_nil_store(scl_int val, const scl_int8* name);
-void				_scl_not_nil_return(scl_int val, const scl_int8* name);
 
 void				_scl_exception_push(void);
 void				_scl_exception_drop(void);
@@ -482,13 +478,12 @@ const ID_t			type_id(const scl_int8* data);
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
 void				_scl_free_struct(scl_any ptr);
-scl_any				_scl_add_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 const scl_int8**	_scl_callstack_push(void);
 
-scl_int				_scl_find_index_of_struct(scl_any ptr);
+scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 scl_any				_scl_c_arr_to_scl_array(scl_any arr[]);
 
@@ -503,13 +498,6 @@ scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
 scl_any*			_scl_array_sort(scl_any* arr);
 scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
-
-void				_scl_cleanup_stack_allocations(void);
-void				_scl_add_stackallocation(scl_any ptr, scl_int size);
-void				_scl_stackalloc_check_bounds_or_throw(scl_any ptr, scl_int index);
-scl_int				_scl_index_of_stackalloc(scl_any ptr);
-void				_scl_remove_stackallocation(scl_any ptr);
-scl_int				_scl_stackalloc_size(scl_any ptr);
 
 int					_scl_gc_is_disabled(void);
 void				_scl_thread_new(_scl_thread_t*, scl_any(*)(scl_any), scl_any);
@@ -538,24 +526,8 @@ void				Process$lock(volatile scl_any obj);
 void				Process$unlock(volatile scl_any obj);
 mutex_t				_scl_mutex_new(void);
 
-#if defined(__deprecated_msg)
-__deprecated_msg("Stack resizing has been removed. This function does nothing.")
-#endif
-void				_scl_resize_stack(void);
-
-#define _scl_push()						(_stack.sp++)
-
-#if defined(SCL_DEBUG)
-#define _scl_pop() \
-	({ \
-		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
-			_scl_security_throw(EX_STACK_UNDERFLOW, "pop() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
-		} \
-		--_stack.sp; \
-	})
-#else
-#define _scl_pop()						(--_stack.sp)
-#endif
+#define _scl_push()						(localstack++)
+#define _scl_pop()						(--localstack)
 
 #define SCL_REFCOUNT
 
@@ -571,73 +543,51 @@ void				_scl_resize_stack(void);
 #define AUTORELEASE
 #endif
 
-#define _scl_positive_offset(offset)	(_stack.sp + offset)
-#define _scl_offset(offset)				(_stack.bp + offset)
-#if defined(SCL_DEBUG)
-#define _scl_top() \
-	({ \
-		if (_scl_expect(_stack.sp <= _stack.bp, 0)) { \
-			_scl_security_throw(EX_STACK_UNDERFLOW, "top() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
-		} \
-		_stack.sp - 1; \
-	})
-#else
-#define _scl_top()						(_stack.sp - 1)
-#endif
-
-#if defined(SCL_DEBUG)
-#define _scl_popn(n) \
-	({ \
-		_stack.sp -= (n); \
-		if (_scl_expect(_stack.sp < _stack.bp, 0)) { \
-			_scl_security_throw(EX_STACK_UNDERFLOW, "popn() failed: Not enough data on the stack! Stack pointer was " SCL_HEX_INT_FMT, _stack.sp); \
-		} \
-	})
-#else
-#define _scl_popn(n)					(_stack.sp -= (n))
-#endif
+#define _scl_positive_offset(offset)	(localstack + offset)
+#define _scl_top()						(localstack - 1)
+#define _scl_popn(n)					(localstack -= (n))
 
 #define _scl_swap() \
 	({ \
-		_scl_frame_t tmp = *(_stack.sp - 1); \
-		*(_stack.sp - 1) = *(_stack.sp - 2); \
-		*(_stack.sp - 2) = tmp; \
+		_scl_frame_t tmp = *(localstack - 1); \
+		*(localstack - 1) = *(localstack - 2); \
+		*(localstack - 2) = tmp; \
 	})
 
 #define _scl_over() \
 	({ \
-		_scl_frame_t tmp = *(_stack.sp - 1); \
-		*(_stack.sp - 1) = *(_stack.sp - 3); \
-		*(_stack.sp - 3) = tmp; \
+		_scl_frame_t tmp = *(localstack - 1); \
+		*(localstack - 1) = *(localstack - 3); \
+		*(localstack - 3) = tmp; \
 	})
 
 #define _scl_sdup2() \
 	({ \
-		*(_stack.sp) = *(_stack.sp - 2); \
-		_stack.sp++; \
+		*(localstack) = *(localstack - 2); \
+		localstack++; \
 	})
 
 #define _scl_swap2() \
 	({ \
-		_scl_frame_t tmp = *(_stack.sp - 2); \
-		*(_stack.sp - 2) = *(_stack.sp - 3); \
-		*(_stack.sp - 3) = tmp; \
+		_scl_frame_t tmp = *(localstack - 2); \
+		*(localstack - 2) = *(localstack - 3); \
+		*(localstack - 3) = tmp; \
 	})
 
 #define _scl_rot() \
 	({ \
-		_scl_frame_t tmp = *(_stack.sp - 3); \
-		*(_stack.sp - 3) = *(_stack.sp - 2); \
-		*(_stack.sp - 2) = *(_stack.sp - 1); \
-		*(_stack.sp - 1) = tmp; \
+		_scl_frame_t tmp = *(localstack - 3); \
+		*(localstack - 3) = *(localstack - 2); \
+		*(localstack - 2) = *(localstack - 1); \
+		*(localstack - 1) = tmp; \
 	})
 
 #define _scl_unrot() \
 	({ \
-		_scl_frame_t tmp = *(_stack.sp - 1); \
-		*(_stack.sp - 1) = *(_stack.sp - 2); \
-		*(_stack.sp - 2) = *(_stack.sp - 3); \
-		*(_stack.sp - 3) = tmp; \
+		_scl_frame_t tmp = *(localstack - 1); \
+		*(localstack - 1) = *(localstack - 2); \
+		*(localstack - 2) = *(localstack - 3); \
+		*(localstack - 3) = tmp; \
 	})
 
 #define _scl_add(a, b)			(a) + (b)
@@ -668,5 +618,9 @@ void				_scl_resize_stack(void);
 
 #define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
 #define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif // __SCALE_RUNTIME_H__

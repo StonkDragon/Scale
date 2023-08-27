@@ -171,7 +171,7 @@ namespace sclc
             }
         }
         append("} else {\n");
-        append("  _scl_runtime_catch();\n");
+        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
         scopeDepth--;
         append("}\n");
 
@@ -197,7 +197,7 @@ namespace sclc
             }
         }
         append("} else {\n");
-        append("  _scl_runtime_catch();\n");
+        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
         append("}\n");
         scopeDepth--;
         append("}\n");
