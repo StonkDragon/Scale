@@ -1054,7 +1054,6 @@ void _scl_throw(scl_any ex) {
 		}
 
 		struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
-		// __cs.trace_index = handler->trace_index;
 		handler->exception = ex;
 		handler->marker = 0;
 

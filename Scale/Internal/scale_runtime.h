@@ -333,7 +333,6 @@ typedef union _scl_frame {
 
 struct _scl_exception_handler {
 	scl_int marker;
-	// scl_int trace_index;
 	scl_any exception;
 	jmp_buf jmp;
 };
