@@ -3872,12 +3872,7 @@ namespace sclc {
     handler(Token) {
         noUnused;
 
-        auto tokenStart = std::chrono::high_resolution_clock::now();
-
         handleRef(handleRefs[body[i].type]);
-
-        auto tokenEnd = std::chrono::high_resolution_clock::now();
-        Main.tokenHandleTime += std::chrono::duration_cast<std::chrono::microseconds>(tokenEnd - tokenStart).count();
     }
 
     extern "C" void ConvertC::writeTables(FILE* fp, TPResult& result, std::string filename) {
@@ -3886,7 +3881,6 @@ namespace sclc {
         populateTokenJumpTable();
 
         scopeDepth = 0;
-        append("extern tls _scl_stack_t __cs;\n\n");
 
         append("extern const ID_t type_id(const char*);\n\n");
 
@@ -4008,7 +4002,8 @@ namespace sclc {
                     append("  if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->finalName().c_str(), function->finalName().c_str());
                 }
             }
-            append("  _scl_frame_t* localstack = alloca(sizeof(_scl_frame_t) * %zu);\n", function->stackSize());
+            append("  _scl_frame_t localstack_backer[%zu];\n", function->stackSize());
+            append("  _scl_frame_t* localstack = localstack_backer;\n");
             
             scopeDepth++;
             std::vector<Token> body = function->getBody();

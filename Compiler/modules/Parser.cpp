@@ -172,10 +172,10 @@ namespace sclc
         }
         append("} else {\n");
         append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-        scopeDepth--;
         append("}\n");
-
+        scopeDepth--;
         append("}\n\n");
+
         append("_scl_destructor void destroy_this() {\n");
         scopeDepth++;
         append("TRY {\n");
@@ -200,12 +200,12 @@ namespace sclc
         append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
         append("}\n");
         scopeDepth--;
-        append("}\n");
+        append("}\n\n");
 
         if (!Main.options.noMain) {
             append("int main(int argc, char** argv) {\n");
             append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
-            append("}\n\n");
+            append("}\n");
         }
         
         fclose(fp);

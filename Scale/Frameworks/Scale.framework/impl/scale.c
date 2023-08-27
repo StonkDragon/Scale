@@ -96,26 +96,73 @@ extern scl_Thread		Var_Thread$mainThread;
 
 tls scl_Thread			_currentThread = nil;
 
-scl_Array Process$stackTrace(void) {
-	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
-	
-	const scl_int8** tmp;
-	arr->count = __cs.trace_index - 1;
+scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, scl_int iteration_direction) {
+	scl_int frames = 0;
+	while (stack_top != stack_bottom) {
+		if (*stack_top == TRACE_MARKER) {
+			frames++;
+		}
+		stack_top += iteration_direction;
+	}
+	return frames;
+}
 
+scl_Array Process$stackTrace(void) {
+	scl_uint* stack_top = (scl_uint*) &stack_top;
+	struct GC_stack_base sb;
+	GC_get_stack_base(&sb);
+	scl_uint* stack_bottom = sb.mem_base;
+
+	scl_int iteration_direction = 1;
+	if (stack_top > stack_bottom) {
+		iteration_direction = -1;
+	}
+
+	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
+	arr->count = count_trace_frames(stack_bottom, stack_top, iteration_direction);
+
+	arr->values = (scl_any*) _scl_new_array_by_size(arr->count, sizeof(scl_int8*));
 	arr->initCapacity = arr->count;
 	arr->capacity = arr->count;
-	arr->values = (scl_any*) _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
 
-	for (scl_int i = 0; i < arr->count; i++) {
-		arr->values[i] = str_of_exact(__cs.trace[i]);
+	scl_int i = 0;
+	while (stack_top != stack_bottom) {
+		if (*stack_top == TRACE_MARKER) {
+			if (i) {
+				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
+				arr->values[i] = str_of_exact(bt->func_name);
+			}
+			i++;
+		}
+
+		stack_top += iteration_direction;
 	}
+
+	// reverse the array and remove the first element
+	scl_int8* tmp;
+	for (scl_int i = 0; i < arr->count / 2; i++) {
+		tmp = arr->values[i];
+		arr->values[i] = arr->values[arr->count - i - 1];
+		arr->values[arr->count - i - 1] = tmp;
+	}
+	arr->count--;
 
 	return (scl_Array) arr;
 }
 
 scl_bool Process$gcEnabled(void) {
 	SCL_BACKTRACE("Process:gcEnabled(): bool");
-	return !_scl_gc_is_disabled();
+	return !GC_is_disabled();
+}
+
+void Process$lock(scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
+}
+
+void Process$unlock(scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
 }
 
 scl_str intToString(scl_int val) {
@@ -158,17 +205,18 @@ void Thread$run(scl_Thread self) {
 
 void Thread$start0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:start0(): none");
-	_scl_thread_new(&self->nativeThread, (scl_any(*)(scl_any)) &Thread$run, self);
+	self->nativeThread = cxx_std_thread_new_with_args(&Thread$run, self);
 }
 
 void Thread$stop0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:stop0(): none");
-	_scl_thread_wait_for(self->nativeThread);
+	cxx_std_thread_join(self->nativeThread);
+	cxx_std_thread_delete(self->nativeThread);
 }
 
 void Thread$detach0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:detach0(): none");
-	_scl_thread_detach(self->nativeThread);
+	cxx_std_thread_detach(self->nativeThread);
 }
 
 scl_Thread Thread$currentThread(void) {
@@ -176,7 +224,7 @@ scl_Thread Thread$currentThread(void) {
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
 		_currentThread->name = str_of_exact("Main Thread");
-		_currentThread->nativeThread = _scl_thread_current();
+		_currentThread->nativeThread = cxx_std_thread_new();
 		_currentThread->function = nil;
 	}
 	return _currentThread;

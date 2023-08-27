@@ -6,7 +6,7 @@ cdecl "strcmp"
 private expect foreign unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
 cdecl "_scl_strdup"
 private expect foreign unsafe function __c_strdup(cstr: [int8]): [int8]
-cdecl "_scl_strncmp"
+cdecl "strncmp"
 private expect foreign unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
 cdecl "_scl_strcpy"
 private expect foreign unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]

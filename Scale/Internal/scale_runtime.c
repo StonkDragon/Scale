@@ -25,8 +25,6 @@ extern "C" {
 
 const ID_t SclObjectHash = 0x49CC1B82U; // SclObject
 
-tls _scl_stack_t		__cs = {0};
-
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
 typedef struct Struct {
@@ -129,6 +127,7 @@ scl_int _scl_sizeof(scl_any ptr) {
 	return layout->allocation_size;
 }
 
+__pure
 scl_any _scl_alloc(scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (size == 0) size = 8;
@@ -226,6 +225,8 @@ scl_str builtinToString(scl_any obj) {
 	return str_of_exact(data);
 }
 
+void nativeTrace();
+
 _scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	printf("\n");
 
@@ -240,7 +241,7 @@ _scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
-	print_stacktrace();
+	nativeTrace();
 
 	_scl_security_safe_exit(code);
 }
@@ -284,14 +285,6 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	}
 	arr->count = count;
 	return arr;
-}
-
-void nativeTrace();
-
-void print_stacktrace(void) {
-	fprintf(stderr, "Stacktrace:\n");
-	nativeTrace();
-	fprintf(stderr, "\n");
 }
 
 void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
@@ -355,7 +348,7 @@ void _scl_signal_handler(scl_int sig_num) {
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
-	print_stacktrace();
+	nativeTrace();
 
 	exit(sig_num);
 }
@@ -407,13 +400,13 @@ scl_int _scl_identity_hash(scl_any _obj) {
 		return REINTERPRET_CAST(scl_int, _obj);
 	}
 	Struct* obj = (Struct*) _obj;
-	Process$lock((volatile scl_any) obj);
+	cxx_std_recursive_mutex_lock(obj->mutex);
 	scl_int size = _scl_sizeof(obj);
 	scl_int hash = REINTERPRET_CAST(scl_int, obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((scl_int8*) obj)[i];
 	}
-	Process$unlock((volatile scl_any) obj);
+	cxx_std_recursive_mutex_unlock(obj->mutex);
 	return hash;
 }
 
@@ -425,6 +418,8 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 	memcpy(clone, ptr, size);
 	return clone;
 }
+
+static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
 _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
 	if (_scl_expect(!_scl_is_instance_of(type, SclObjectHash), 0)) {
@@ -519,10 +514,6 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	return m;
 }
 
-mutex_t _scl_mutex_new(void) {
-	return cxx_std_recursive_mutex_new();
-}
-
 scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
 	scl_any ptr = _scl_alloc(size);
 
@@ -532,7 +523,7 @@ scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
 	}
 	layout->is_instance = 1;
 
-	((Struct*) ptr)->mutex = _scl_mutex_new();
+	((Struct*) ptr)->mutex = cxx_std_recursive_mutex_new();
 	((Struct*) ptr)->statics = (TypeInfo*) statics;
 	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
 
@@ -557,7 +548,7 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 	return 0;
 }
 
-scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
+static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
 	if (_scl_expect(methods == nil, 0)) return -1;
 
 	for (scl_int i = 0; *(scl_int*) &(methods[i].pure_name); i++) {
@@ -569,27 +560,6 @@ scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID
 }
 
 typedef void (*_scl_sigHandler)(scl_int);
-
-int _scl_gc_is_disabled(void) {
-	return GC_is_disabled();
-}
-
-void _scl_thread_new(_scl_thread_t* t, scl_any(*f)(scl_any), scl_any arg) {
-	*t = cxx_std_thread_new_with_args(f, arg);
-}
-
-void _scl_thread_wait_for(_scl_thread_t t) {
-	cxx_std_thread_join(t);
-	cxx_std_thread_delete(t);
-}
-
-void _scl_thread_detach(_scl_thread_t t) {
-	cxx_std_thread_detach(t);
-}
-
-_scl_thread_t _scl_thread_current() {
-	return cxx_std_thread_new();
-}
 
 void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
 	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
@@ -659,27 +629,6 @@ void _scl_set_up_signal_handler(void) {
 #endif
 }
 
-void _scl_exception_push(void) {
-	// *(__cs.et++) = __cs.tp;
-	// ++__cs.ex;
-	// ++__cs.jmp;
-}
-
-void _scl_exception_drop(void) {
-	// --__cs.et;
-	// --__cs.ex;
-	// --__cs.jmp;
-}
-
-scl_int8** _scl_platform_get_env(void) {
-#if defined(WIN) && (_MSC_VER >= 1900)
-	return *__p__environ();
-#else
-	extern scl_int8** environ;
-	return environ;
-#endif
-}
-
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
 	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
 		typedef struct Struct_CastError {
@@ -726,17 +675,8 @@ scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 }
 
 void _scl_stack_new(void) {
-	// if (_scl_expect((__cs.tbp = __cs.tp = (const scl_int8**) system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
+	// if (_scl_expect((__cs.trace = system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
 	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
-
-	// if (_scl_expect((__cs.ex_base = __cs.ex = (scl_any*) GC_malloc_uncollectable(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
-	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception stack!");
-
-	// if (_scl_expect((__cs.et_base = __cs.et = (const scl_int8***) system_allocate(sizeof(scl_any) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
-	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for exception trace stack!");
-
-	if (_scl_expect((__cs.trace = system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
-		_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
 }
 
 scl_int _scl_errno(void) {
@@ -752,16 +692,8 @@ scl_str _scl_errno_str(void) {
 }
 
 void _scl_stack_free(void) {
-	// system_free(__cs.tbp);
-	// system_free(__cs.et_base);
-	// GC_free(__cs.ex_base);
-	// system_free(__cs.jmp_base);
-	system_free(__cs.trace);
-	memset(&__cs, 0, sizeof(__cs));
-}
-
-scl_int _scl_strncmp(scl_int8* str1, scl_int8* str2, scl_int count) {
-	return strncmp(str1, str2, count);
+	// system_free(__cs.trace);
+	// memset(&__cs, 0, sizeof(__cs));
 }
 
 scl_int8* _scl_strcpy(scl_int8* dest, scl_int8* src) {
@@ -774,16 +706,6 @@ scl_any _scl_memset(scl_any ptr, scl_int32 val, scl_int len) {
 
 scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
 	return memcpy(dest, src, n);
-}
-
-void Process$lock(volatile scl_any obj) {
-	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_lock(((volatile Struct*) obj)->mutex);
-}
-
-void Process$unlock(volatile scl_any obj) {
-	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_unlock(((volatile Struct*) obj)->mutex);
 }
 
 const scl_int8* GarbageCollector$getImplementation0(void) {
@@ -1107,13 +1029,11 @@ scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
 	return (scl_str) virtual_call(sig, "append(cs;)s;", retType);
 }
 
-void _scl_trace_remove(void* _) {
-	--__cs.trace_index;
-}
+void _scl_trace_remove(const struct _scl_backtrace* _) {}
 
 void _scl_unlock(void* lock_ptr) {
-	volatile Struct* lock = *(volatile Struct**) lock_ptr;
-	Process$unlock((scl_any) lock);
+	Struct* lock = *(Struct**) lock_ptr;
+	cxx_std_recursive_mutex_unlock(lock->mutex);
 }
 
 void _scl_throw(scl_any ex) {
@@ -1133,8 +1053,8 @@ void _scl_throw(scl_any ex) {
 			continue;
 		}
 
-		struct exception_handler* handler = (struct exception_handler*) stack_top;
-		__cs.trace_index = handler->trace_index;
+		struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
+		// __cs.trace_index = handler->trace_index;
 		handler->exception = ex;
 		handler->marker = 0;
 
@@ -1218,8 +1138,6 @@ void _scl_setup(void) {
 	GC_allow_register_threads();
 
 	_scl_stack_new();
-
-	_scl_exception_push();
 
 	setupCalled = 1;
 }

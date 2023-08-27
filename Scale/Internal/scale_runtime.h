@@ -323,11 +323,6 @@ typedef union _scl_frame {
 	const scl_int8*		cs;
 } _scl_frame_t;
 
-typedef struct _scl_stack {
-	const scl_int8**	trace;
-	scl_int				trace_index;
-} _scl_stack_t;
-
 // Create a new instance of a struct
 #define ALLOC(_type)	({ extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
 
@@ -336,17 +331,22 @@ typedef struct _scl_stack {
 // Try to cast the given instance to the given type
 #define CAST(_obj, _type) CAST0(_obj, _type, type_id(#_type))
 
-struct exception_handler {
+struct _scl_exception_handler {
 	scl_int marker;
-	scl_int trace_index;
+	// scl_int trace_index;
 	scl_any exception;
 	jmp_buf jmp;
+};
+
+struct _scl_backtrace {
+	scl_int marker;
+	const scl_int8* func_name;
 };
 
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
 
-#define TRY			struct exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .trace_index = __cs.trace_index }; \
+#define TRY			struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 // Get the offset of a member in a struct
@@ -354,24 +354,29 @@ struct exception_handler {
 
 #define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
 
-#define EXCEPTION_HANDLER_MARKER 0xF0E1D2C3B4A59687ULL
+#define EXCEPTION_HANDLER_MARKER \
+					0xF0E1D2C3B4A59687ULL
 
-#define SCL_BACKTRACE(_func_name) \
-					scl_any __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = (scl_any) (__cs.trace[__cs.trace_index++] = _func_name)
-void				_scl_trace_remove(void*);
+#define TRACE_MARKER \
+					0xF7E8D9C0B1A28384ULL
 
-#define SCL_FUNCTION_LOCK(_obj) \
-					const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj)
+#define				SCL_BACKTRACE(_func_name) \
+						const struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = _func_name }
 
-#define SCL_ASSUME(val, what, ...) \
-					if (_scl_expect(!(val), 0)) { \
-						size_t msg_len = strlen((what)) + 256; \
-						scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * msg_len); \
-						snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
-						_scl_assert(0, msg); \
-					}
+void				_scl_trace_remove(const struct _scl_backtrace*);
 
-extern tls _scl_stack_t __cs;
+#define				SCL_FUNCTION_LOCK(_obj) \
+						const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj)
+
+void				_scl_unlock(void* lock_ptr);
+
+#define				SCL_ASSUME(val, what, ...) \
+						if (_scl_expect(!(val), 0)) { \
+							size_t msg_len = strlen((what)) + 256; \
+							scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * msg_len); \
+							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
+							_scl_assert(0, msg); \
+						}
 
 typedef void(*mainFunc)(/* args: Array */ scl_any);
 
@@ -425,24 +430,6 @@ typedef void(*mainFunc)(/* args: Array */ scl_any);
 							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
 						}) \
 						_Pragma("clang diagnostic pop")
-// Throws the given exception
-_scl_no_return void scale_throw(scl_any exception) AKA(_scl_throw);
-// Returns the current size of the stack
-scl_int				stack_size(void) AKA(_scl_stack_size);
-// Reallocates the given pointer to the given size
-scl_any				managed_realloc(scl_any ptr, scl_int size) AKA(_scl_realloc);
-// Allocates a new pointer of the given size
-scl_any				managed_alloc(scl_int size) AKA(_scl_alloc);
-// Frees the given pointer
-void				managed_free(scl_any ptr) AKA(_scl_free);
-// Returns the size of the given pointer
-scl_int				size_of(scl_any ptr) AKA(_scl_sizeof);
-// Asserts that 'b' is true, otherwise throws an 'AssertError' with the given message
-void				scl_assert(scl_int b, scl_int8* msg, ...) AKA(_scl_assert);
-// Creates a new array with the given size
-scl_any				array_of(scl_int size, scl_int element_size) AKA(_scl_new_array_by_size);
-// Returns the size of the given array. Throws an 'InvalidArgumentException' if the given object is not an array
-scl_int				array_size(scl_any* arr) AKA(_scl_array_size);
 
 _scl_no_return void	_scl_security_throw(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_security_safe_exit(int code);
@@ -452,10 +439,6 @@ _scl_no_return void	_scl_throw(scl_any ex);
 _scl_constructor
 void				_scl_setup(void);
 
-void				_scl_signal_handler(scl_int sig_num);
-void				print_stacktrace(void);
-
-scl_int				_scl_stack_size(void);
 scl_str				_scl_create_string(const scl_int8* data);
 scl_str				_scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len);
 void				_scl_stack_new(void);
@@ -467,22 +450,17 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 scl_int8*			_scl_strdup(const scl_int8* str);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
-scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 
-void				_scl_exception_push(void);
-void				_scl_exception_drop(void);
 int					_scl_run(int argc, char** argv, mainFunc main, scl_int main_argc);
 
 const ID_t			type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
-void				_scl_free_struct(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
-const scl_int8**	_scl_callstack_push(void);
-
+scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 scl_any				_scl_c_arr_to_scl_array(scl_any arr[]);
@@ -499,12 +477,6 @@ scl_any*			_scl_array_sort(scl_any* arr);
 scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
 
-int					_scl_gc_is_disabled(void);
-void				_scl_thread_new(_scl_thread_t*, scl_any(*)(scl_any), scl_any);
-void				_scl_thread_wait_for(_scl_thread_t);
-_scl_thread_t		_scl_thread_current();
-void				_scl_thread_detach(_scl_thread_t t);
-
 // BEGIN C++ Concurrency API wrappers
 void				cxx_std_thread_join(scl_any thread);
 void				cxx_std_thread_delete(scl_any thread);
@@ -519,30 +491,8 @@ void				cxx_std_recursive_mutex_lock(scl_any mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 // END C++ Concurrency API wrappers
 
-scl_int				_scl_binary_search(scl_any* arr, scl_int count, scl_any val);
-scl_int				_scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
-
-void				Process$lock(volatile scl_any obj);
-void				Process$unlock(volatile scl_any obj);
-mutex_t				_scl_mutex_new(void);
-
 #define _scl_push()						(localstack++)
 #define _scl_pop()						(--localstack)
-
-#define SCL_REFCOUNT
-
-#if defined(SCL_REFCOUNT)
-#define retain_as(type, value)			((type) _scl_arc_retain(value))
-#define release_as(type, value)			((type) _scl_arc_release(value))
-#if __has_attribute(cleanup)
-#define AUTORELEASE						__attribute__((cleanup(_scl_drop)))
-#else
-#error "Cleanup attribute not supported!"
-#endif
-#else
-#define AUTORELEASE
-#endif
-
 #define _scl_positive_offset(offset)	(localstack + offset)
 #define _scl_top()						(localstack - 1)
 #define _scl_popn(n)					(localstack -= (n))
