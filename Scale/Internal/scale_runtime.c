@@ -45,8 +45,6 @@ typedef struct Struct_Exception {
 	scl_str errno_str;
 }* scl_Exception;
 
-#define EXCEPTION	((scl_Exception) *(__cs.ex))
-
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
 }* scl_NullPointerException;
