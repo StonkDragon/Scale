@@ -605,30 +605,33 @@ namespace sclc
         std::vector<std::string> libScaleCommand = {
             "clang",
             "-O2",
-#if defined(__APPLE__)
-            "-dynamiclib",
-            "-current_version",
-            Version(VERSION).asString().c_str(),
-            "-compatibility_version",
-            Version(VERSION).asString().c_str(),
-            "-undefined",
-            "dynamic_lookup",
-#elif defined(__linux__)
-            "-fPIC",
-            "-shared",
-#elif defined(_WIN32)
-            "-shared",
-#endif
-            "-lgc",
+            "-std=c17",
             "-I" + scaleFolder + "/Internal",
             scaleFolder + "/Internal/scale_runtime.c",
+            "-c",
+#if !defined(_WIN32)
+            "-fPIC",
+#endif
             "-o",
-            scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
+            scaleFolder + "/Internal/scale_runtime.o"
         };
         std::vector<std::string> cxxGlueCommand = {
             "clang++",
             "-O2",
             "-std=c++17",
+            "-I" + scaleFolder + "/Internal",
+            scaleFolder + "/Internal/scale_cxx.cpp",
+            "-c",
+#if !defined(_WIN32)
+            "-fPIC",
+#endif
+            "-o",
+            scaleFolder + "/Internal/scale_cxx.o"
+        };
+
+        std::vector<std::string> compileVec = {
+            "clang++",
+            "-O2",
 #if defined(__APPLE__)
             "-dynamiclib",
             "-current_version",
@@ -638,30 +641,34 @@ namespace sclc
             "-undefined",
             "dynamic_lookup",
 #elif defined(__linux__)
-            "-fPIC",
             "-shared",
 #elif defined(_WIN32)
             "-shared",
             "-static-libstdc++",
 #endif
+#if !defined(_WIN32)
+            "-fPIC",
+#endif
             "-lgc",
             "-I" + scaleFolder + "/Internal",
-            scaleFolder + "/Internal/scale_cxx.cpp",
+            scaleFolder + "/Internal/scale_runtime.o",
+            scaleFolder + "/Internal/scale_cxx.o",
             "-o",
-            scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME)
+            scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
         };
+
         std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME));
-        std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_CXXGLUE_FILENAME));
 
         if (Main.options.debugBuild) {
             libScaleCommand.push_back("-DSCL_DEBUG");
             libScaleCommand.push_back("-g");
             libScaleCommand.push_back("-O0");
-        }
-        if (Main.options.debugBuild) {
             cxxGlueCommand.push_back("-DSCL_DEBUG");
             cxxGlueCommand.push_back("-g");
             cxxGlueCommand.push_back("-O0");
+            compileVec.push_back("-DSCL_DEBUG");
+            compileVec.push_back("-g");
+            compileVec.push_back("-O0");
         }
 
         std::string cxxGlueCompileCommmand = "";
@@ -674,20 +681,38 @@ namespace sclc
             libScaleCompileCommand += s + " ";
         }
 
+        std::string compileCommmand = "";
+        for (auto& s : compileVec) {
+            compileCommmand += s + " ";
+        }
+
         int ret;
-        std::cout << Color::BLUE << "Compiling runtime library..." << std::endl;
+        std::cout << Color::BLUE << "Assembling runtime library..." << std::endl;
         std::cout << Color::CYAN << libScaleCompileCommand << Color::RESET << std::endl;
         if ((ret = system(libScaleCompileCommand.c_str()))) {
-            std::cerr << Color::RED << "Failed to compile runtime library" << Color::RESET << std::endl;
+            std::cerr << Color::RED << "Failed to assemble runtime library" << Color::RESET << std::endl;
             return ret;
         }
 
-        std::cout << Color::BLUE << "Compiling c++ glue library..." << std::endl;
+        std::cout << Color::BLUE << "Assembling c++ glue library..." << std::endl;
         std::cout << Color::CYAN << cxxGlueCompileCommmand << Color::RESET << std::endl;
         if ((ret = system(cxxGlueCompileCommmand.c_str()))) {
-            std::cerr << Color::RED << "Failed to compile c++ glue library" << Color::RESET << std::endl;
+            std::cerr << Color::RED << "Failed to assemble c++ glue library" << Color::RESET << std::endl;
             return ret;
         }
+
+        std::cout << Color::BLUE << "Linking runtime library..." << std::endl;
+        std::cout << Color::CYAN << compileCommmand << Color::RESET << std::endl;
+        if ((ret = system(compileCommmand.c_str()))) {
+            std::cerr << Color::RED << "Failed to link runtime library" << Color::RESET << std::endl;
+            return ret;
+        }
+        
+        std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.c");
+        std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.cpp");
+        std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.o");
+        std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.o");
+
         return 0;
     }
 
@@ -1032,10 +1057,8 @@ namespace sclc
         }
 
         std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        std::string libCxxGlueFileName = std::string(LIB_CXXGLUE_FILENAME);
         if (
-            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName) ||
-            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libCxxGlueFileName)
+            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)
         ) {
             int ret = compileRuntimeLib();
             if (ret) {
@@ -1068,6 +1091,9 @@ namespace sclc
             cflags.push_back("-g");
             cflags.push_back("-O0");
         }
+#if !defined(_WIN32)
+        cflags.push_back("-fPIC");
+#endif
         
         std::string source;
         bool alreadyIncluded = false;
@@ -1254,7 +1280,6 @@ namespace sclc
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
 #endif
         cflags.push_back("-lScaleRuntime");
-        cflags.push_back("-lCXXGlue");
         cflags.push_back("-lgc");
 
         std::string cmd = "";

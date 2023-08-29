@@ -17,6 +17,10 @@ extern "C" {
 #include <signal.h>
 #include <errno.h>
 #include <time.h>
+#include <setjmp.h>
+
+#define GC_THREADS
+#include <gc/gc.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -29,21 +33,8 @@ extern "C" {
 #endif
 #endif
 
-#define GC_THREADS
-#if __has_include(<gc/gc.h>)
-#include <gc/gc.h>
-#else
-#error <gc/gc.h> not found, which is required for Scale!
-#endif
-
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
-#endif
-
-#if __has_include(<setjmp.h>)
-#include <setjmp.h>
-#else
-#error <setjmp.h> not found, which is required for Scale!
 #endif
 
 #if __has_attribute(__noreturn__)
@@ -101,10 +92,6 @@ extern "C" {
 
 #undef nil
 #define nil NULL
-
-// Creates a new string from a C string
-// The given C string is copied
-#define str_of(_cstr)		_scl_create_string(_scl_strdup((_cstr)))
 
 // Creates a new string from a C string
 // The given C string is not copied
@@ -430,8 +417,7 @@ typedef void(*mainFunc)(/* args: Array */ scl_any);
 						}) \
 						_Pragma("clang diagnostic pop")
 
-_scl_no_return void	_scl_security_throw(int code, const scl_int8* msg, ...);
-_scl_no_return void	_scl_security_safe_exit(int code);
+_scl_no_return void	_scl_runtime_error(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_runtime_catch(scl_any ex);
 _scl_no_return void	_scl_throw(scl_any ex);
 
@@ -440,14 +426,11 @@ void				_scl_setup(void);
 
 scl_str				_scl_create_string(const scl_int8* data);
 scl_str				_scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len);
-void				_scl_stack_new(void);
-void				_scl_stack_free(void);
 
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
-scl_int8*			_scl_strdup(const scl_int8* str);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 
 int					_scl_run(int argc, char** argv, mainFunc main, scl_int main_argc);
@@ -464,10 +447,8 @@ scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 scl_any				_scl_c_arr_to_scl_array(scl_any arr[]);
 
-scl_any*			_scl_new_array(scl_int num_elems);
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
-scl_any*			_scl_multi_new_array(scl_int dimensions, scl_int sizes[]);
 scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size);
 scl_int				_scl_array_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
@@ -565,11 +546,12 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #define __CHAR_BIT__ 8
 #endif
 
-#define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
-#define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> (sizeof(scl_int) * __CHAR_BIT__ - (_b))); })
+#define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(scl_int) << 3) - (_b))); })
+#define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(scl_int) << 3) - (_b))); })
 
 #if defined(__cplusplus)
 }
 #endif
 
 #endif // __SCALE_RUNTIME_H__
+struct __darwin_arm_neon_state64 e;

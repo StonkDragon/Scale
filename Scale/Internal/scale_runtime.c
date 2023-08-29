@@ -94,7 +94,7 @@ typedef struct memory_layout {
 	scl_int8 is_array:1;
 } memory_layout_t;
 
-memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
+_scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (_scl_expect(ptr == nil, 0)) {
 		return nil;
 	}
@@ -111,14 +111,6 @@ memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	return layout;
 }
 
-scl_int is_array(scl_any ptr) {
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (_scl_expect(layout == nil, 0)) {
-		return 0;
-	}
-	return layout->is_array;
-}
-
 scl_int _scl_sizeof(scl_any ptr) {
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 	if (_scl_expect(layout == nil, 0)) {
@@ -127,7 +119,6 @@ scl_int _scl_sizeof(scl_any ptr) {
 	return layout->allocation_size;
 }
 
-__pure
 scl_any _scl_alloc(scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (size == 0) size = 8;
@@ -140,7 +131,7 @@ scl_any _scl_alloc(scl_int size) {
 	((memory_layout_t*) ptr)->is_array = 0;
 
 	if (_scl_expect(ptr == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "allocate() failed!");
+		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
 	}
 	return ptr + sizeof(memory_layout_t);
 }
@@ -160,7 +151,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (_scl_expect(ptr == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "realloc() failed!");
+		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
 	if (layout) {
@@ -194,7 +185,9 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 		vsnprintf(cmsg, strlen(msg) * 8 - 1, msg, list);
 		va_end(list);
 
-		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", _scl_strdup(cmsg));
+		char* tmp = strdup(cmsg);
+		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", tmp);
+		free(tmp);
 		scl_AssertError err = ALLOC(AssertError);
 		virtual_call(err, "init(s;)V;", str_of_exact(cmsg));
 
@@ -225,9 +218,9 @@ scl_str builtinToString(scl_any obj) {
 	return str_of_exact(data);
 }
 
-void nativeTrace();
+_scl_symbol_hidden static void native_trace(void);
 
-_scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
+_scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
 	printf("\n");
 
 	va_list args;
@@ -241,24 +234,9 @@ _scl_no_return void _scl_security_throw(int code, const scl_int8* msg, ...) {
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
-	nativeTrace();
+	native_trace();
 
-	_scl_security_safe_exit(code);
-}
-
-_scl_no_return void _scl_security_safe_exit(int code) {
 	exit(code);
-}
-
-scl_int8* _scl_strndup(const scl_int8* str, scl_int len) {
-	scl_int8* newStr = (scl_int8*) _scl_alloc(len + 1);
-	strncpy(newStr, str, len);
-	return newStr;
-}
-
-scl_int8* _scl_strdup(const scl_int8* str) {
-	scl_int len = strlen(str);
-	return _scl_strndup(str, len);
 }
 
 scl_str _scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len) {
@@ -287,7 +265,7 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	return arr;
 }
 
-void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
+_scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 	const scl_int8* signalString;
 	// Signals
 	if (sig_num == -1) {
@@ -317,12 +295,12 @@ void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext
 	if (sig_info->si_errno) {
 		fprintf(stderr, "Error code: %d\n", sig_info->si_errno);
 	}
-	nativeTrace();
+	native_trace();
 	fprintf(stderr, "\n");
 	exit(sig_num);
 }
 
-void _scl_signal_handler(scl_int sig_num) {
+_scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	const scl_int8* signalString;
 	if (sig_num == -1) {
 		signalString = nil;
@@ -348,7 +326,7 @@ void _scl_signal_handler(scl_int sig_num) {
 	if (errno) {
 		printf("errno: %s\n", strerror(errno));
 	}
-	nativeTrace();
+	native_trace();
 
 	exit(sig_num);
 }
@@ -387,11 +365,11 @@ __pure2 const ID_t type_id(const scl_int8* data) {
 	return h;
 }
 
-__pure2 scl_uint _scl_rotl(const scl_uint value, const scl_int shift) {
+__pure2 _scl_symbol_hidden static scl_uint _scl_rotl(const scl_uint value, const scl_int shift) {
     return (value << shift) | (value >> ((sizeof(scl_uint) << 3) - shift));
 }
 
-__pure2 scl_uint _scl_rotr(const scl_uint value, const scl_int shift) {
+__pure2 _scl_symbol_hidden static scl_uint _scl_rotr(const scl_uint value, const scl_int shift) {
     return (value >> shift) | (value << ((sizeof(scl_uint) << 3) - shift));
 }
 
@@ -419,11 +397,11 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 	return clone;
 }
 
-static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
+_scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
 _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
 	if (_scl_expect(!_scl_is_instance_of(type, SclObjectHash), 0)) {
-		_scl_security_throw(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
+		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
 
 	scl_int index = _scl_search_method_index(
@@ -446,42 +424,16 @@ _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, i
 		nil;
 }
 
-static scl_int8* substr_of(const scl_int8* str, size_t len, size_t beg, size_t end) {
-	scl_int8* sub = (scl_int8*) malloc(len);
-	strcpy(sub, str + beg);
-	sub[end - beg] = '\0';
-	return sub;
-}
-
-static size_t str_index_of(const scl_int8* str, char c) {
+_scl_symbol_hidden static size_t str_index_of(const scl_int8* str, char c) {
 	size_t i = 0;
 	while (str[i] != c) {
+		if (str[i] == '\0') return -1;
 		i++;
 	}
 	return i;
 }
 
-static size_t str_last_index_of(const scl_int8* str, char c) {
-	size_t i = strlen(str) - 1;
-	while (str[i] != c) {
-		i--;
-	}
-	return i;
-}
-
-static size_t str_num_of_occurences(const scl_int8* str, char c) {
-	size_t i = 0;
-	size_t count = 0;
-	while (str[i] != '\0') {
-		if (str[i] == c) {
-			count++;
-		}
-		i++;
-	}
-	return count;
-}
-
-static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8** left, scl_int8** right) {
+_scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8** left, scl_int8** right) {
 	*left = (scl_int8*) malloc(len - (len - index) + 1);
 	strncpy(*left, str, index);
 	(*left)[index] = '\0';
@@ -490,11 +442,6 @@ static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8** l
 	strncpy(*right, str + index, len - index);
 	(*right)[len - index] = '\0';
 }
-
-void dumpStack();
-
-#define strequals(a, b) (strcmp(a, b) == 0)
-#define strstarts(a, b) (strncmp((a), (b), strlen((b))) == 0)
 
 scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
 	size_t methodLen = strlen(methodIdentifier);
@@ -507,7 +454,7 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (_scl_expect(m == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
+		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
 	}
 	free(methodName);
 	free(signature);
@@ -519,7 +466,7 @@ scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
 
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 	if (_scl_expect(layout == nil, 0)) {
-		_scl_security_throw(EX_BAD_PTR, "Tried to access nil pointer");
+		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
 	layout->is_instance = 1;
 
@@ -548,7 +495,7 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 	return 0;
 }
 
-static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
+_scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
 	if (_scl_expect(methods == nil, 0)) return -1;
 
 	for (scl_int i = 0; *(scl_int*) &(methods[i].pure_name); i++) {
@@ -559,48 +506,11 @@ static scl_int _scl_search_method_index(const struct _scl_methodinfo* const meth
 	return -1;
 }
 
-typedef void (*_scl_sigHandler)(scl_int);
-
-void _scl_set_signal_handler(_scl_sigHandler handler, scl_int sig) {
-	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
-		typedef struct Struct_InvalidSignalException {
-			struct Struct_Exception self;
-			scl_int sig;
-		}* scl_InvalidSignalException;
-		scl_Exception e = (scl_Exception) ALLOC(InvalidSignalException);
-		virtual_call(e, "init(i;)V;", sig);
-
-		scl_int8* p = (scl_int8*) _scl_alloc(64);
-		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
-		e->msg = str_of_exact(p);
-		
-		_scl_throw(e);
-	}
-	signal(sig, (void(*)(int)) handler);
-}
-
-void _scl_reset_signal_handler(scl_int sig) {
-	if (_scl_expect(sig < 0 || sig >= 32, 0)) {
-		typedef struct Struct_InvalidSignalException {
-			struct Struct_Exception self;
-			scl_int sig;
-		}* scl_InvalidSignalException;
-		scl_Exception e = (scl_Exception) ALLOC(InvalidSignalException);
-		virtual_call(e, "init(i;)V;", sig);
-
-		scl_int8* p = (scl_int8*) _scl_alloc(64);
-		snprintf(p, 64, "Invalid signal: " SCL_INT_FMT, sig);
-		e->msg = str_of_exact(p);
-		
-		_scl_throw(e);
-	}
-	signal(sig, (void(*)(int)) _scl_signal_handler);
-}
-
-void _scl_set_up_signal_handler(void) {
+_scl_symbol_hidden static void _scl_set_up_signal_handler(void) {
 #if !defined(_WIN32)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-W#pragma-messages"
+_scl_symbol_hidden 
 	static struct sigaction act = {
 		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_sigaction_handler,
 		.sa_flags = SA_SIGINFO,
@@ -674,108 +584,6 @@ scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 	return (scl_int8*) else_;
 }
 
-void _scl_stack_new(void) {
-	// if (_scl_expect((__cs.trace = system_allocate(sizeof(scl_int8*) * SCL_DEFAULT_STACK_FRAME_COUNT)) == 0, 0))
-	// 	_scl_security_throw(EX_BAD_PTR, "Failed to allocate memory for trace stack!");
-}
-
-scl_int _scl_errno(void) {
-	return errno;
-}
-
-scl_int8* _scl_errno_ptr(void) {
-	return strerror(errno);
-}
-
-scl_str _scl_errno_str(void) {
-	return str_of(_scl_errno_ptr());
-}
-
-void _scl_stack_free(void) {
-	// system_free(__cs.trace);
-	// memset(&__cs, 0, sizeof(__cs));
-}
-
-scl_int8* _scl_strcpy(scl_int8* dest, scl_int8* src) {
-	return strcpy(dest, src);
-}
-
-scl_any _scl_memset(scl_any ptr, scl_int32 val, scl_int len) {
-	return memset(ptr, val, len);
-}
-
-scl_any _scl_memcpy(scl_any dest, scl_any src, scl_int n) {
-	return memcpy(dest, src, n);
-}
-
-const scl_int8* GarbageCollector$getImplementation0(void) {
-	return "Boehm GC";
-}
-
-scl_bool GarbageCollector$isPaused0(void) {
-	return GC_is_disabled();
-}
-
-void GarbageCollector$setPaused0(scl_bool paused) {
-	if (paused) {
-		GC_disable();
-	} else {
-		GC_enable();
-	}
-}
-
-void GarbageCollector$run0(void) {
-	GC_gcollect();
-}
-
-scl_int GarbageCollector$heapSize(void) {
-	scl_uint heapSize;
-	GC_get_heap_usage_safe(
-		&heapSize,
-		nil,
-		nil,
-		nil,
-		nil
-	);
-	return (scl_int) heapSize;
-}
-
-scl_int GarbageCollector$freeBytesEstimate(void) {
-	scl_uint freeBytes;
-	GC_get_heap_usage_safe(
-		nil,
-		&freeBytes,
-		nil,
-		nil,
-		nil
-	);
-	return (scl_int) freeBytes;
-}
-
-scl_int GarbageCollector$bytesSinceLastCollect(void) {
-	scl_uint bytesSinceLastCollect;
-	GC_get_heap_usage_safe(
-		nil,
-		nil,
-		&bytesSinceLastCollect,
-		nil,
-		nil
-	);
-	return (scl_int) bytesSinceLastCollect;
-}
-
-scl_int GarbageCollector$totalMemory(void) {
-	scl_uint totalMemory;
-	GC_get_heap_usage_safe(
-		nil,
-		nil,
-		nil,
-		&totalMemory,
-		nil
-	);
-	return (scl_int) totalMemory;
-}
-
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 1, 0)) {
 		scl_InvalidArgumentException e = ALLOC(InvalidArgumentException);
@@ -788,23 +596,11 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	return arr + 1;
 }
 
-scl_any* _scl_new_array(scl_int num_elems) {
-	return (scl_any*) _scl_new_array_by_size(num_elems, sizeof(scl_any));
-}
-
 scl_int _scl_is_array(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(arr - 1);
 	if (_scl_expect(layout == nil, 0)) return 0;
 	return layout->is_array;
-}
-
-void remove_at(scl_any** arr, scl_int* count, scl_int index) {
-	if (_scl_expect(index < 0 || index >= *count, 0)) return;
-	(*count)--;
-	for (scl_int i = index; i < *count; i++) {
-		arr[i] = arr[i + 1];
-	}
 }
 
 scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
@@ -822,10 +618,6 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 		arr[i] = _scl_multi_new_array_by_size(dimensions - 1, &(sizes[1]), elem_size);
 	}
 	return arr + 1;
-}
-
-scl_any* _scl_multi_new_array(scl_int dimensions, scl_int sizes[]) {
-	return _scl_multi_new_array_by_size(dimensions, sizes, sizeof(scl_any));
 }
 
 scl_int _scl_array_size_unchecked(scl_any* arr) {
@@ -967,66 +759,13 @@ scl_str _scl_array_to_string(scl_any* arr) {
 		if (_scl_is_instance_of(arr[i], SclObjectHash)) {
 			tmp = (scl_str) virtual_call(arr[i], "toString()s;");
 		} else {
-			tmp = int_to_string((scl_int) arr[i]);
+			scl_int8* str = (scl_int8*) _scl_alloc(32);
+			snprintf(str, 31, SCL_INT_FMT, ((scl_int*) arr)[i]);
+			tmp = str_of_exact(str);
 		}
 		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
 	}
 	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
-}
-
-const scl_int8* _scl_type_to_rt_sig(const scl_int8* type) {
-	if (strequals(type, "any")) return "a;";
-	if (strequals(type, "int") || strequals(type, "bool")) return "i;";
-	if (strequals(type, "float")) return "f;";
-	if (strequals(type, "str")) return "s;";
-	if (strequals(type, "none")) return "V;";
-	if (strequals(type, "lambda") || strstarts(type, "lambda(")) return "F;";
-	if (strequals(type, "[int8]")) return "cs;";
-	if (strequals(type, "[any]")) return "p;";
-	size_t len = strlen(type);
-	if (len > 2 && type[0] == '[' && type[len - 1] == ']') {
-		scl_int8* tmp = (scl_int8*) _scl_alloc(len + 2);
-		scl_int8* tmp2 = substr_of(type, len, 1, len - 1);
-		snprintf(tmp, len + 2, "[%s", _scl_type_to_rt_sig(tmp2));
-		free(tmp2);
-		return tmp;
-	}
-	if (strequals(type, "int8")) return "int8;";
-	if (strequals(type, "int16")) return "int16;";
-	if (strequals(type, "int32")) return "int32;";
-	if (strequals(type, "int64")) return "int64;";
-	if (strequals(type, "uint8")) return "uint8;";
-	if (strequals(type, "uint16")) return "uint16;";
-	if (strequals(type, "uint32")) return "uint32;";
-	if (strequals(type, "uint64")) return "uint64;";
-	if (strequals(type, "uint")) return "u;";
-	scl_int8* tmp = (scl_int8*) _scl_alloc(len + 3);
-	snprintf(tmp, len + 3, "L%s;", type);
-	return tmp;
-}
-
-scl_str _scl_type_array_to_rt_sig(scl_Array arr) {
-	scl_str s = str_of_exact("");
-	scl_int strHash = type_id("str");
-	scl_int getHash = type_id("get");
-	scl_int getSigHash = type_id("(i;)a;");
-	scl_int appendHash = type_id("append");
-	scl_int appendSigHash = type_id("(cs;)s;");
-	for (scl_int i = 0; i < arr->count; i++) {
-		scl_str type = (scl_str) virtual_call(arr, "get(i;)a;", i);
-		_scl_assert(_scl_is_instance_of(type, strHash), "_scl_type_array_to_rt_sig: type is not a string");
-		s = (scl_str) virtual_call(s, "append(cs;)s;", _scl_type_to_rt_sig(type->data));
-	}
-	return s;
-}
-
-scl_str _scl_types_to_rt_signature(scl_str returnType, scl_Array args) {
-	const scl_int8* retType = _scl_type_to_rt_sig(returnType->data);
-	scl_str argTypes = _scl_type_array_to_rt_sig(args);
-	scl_str sig = str_of_exact("(");
-	sig = (scl_str) virtual_call(sig, "append(s;)s;", argTypes);
-	sig = (scl_str) virtual_call(sig, "append(cs;)s;", ")");
-	return (scl_str) virtual_call(sig, "append(cs;)s;", retType);
 }
 
 void _scl_trace_remove(const struct _scl_backtrace* _) {}
@@ -1039,7 +778,7 @@ void _scl_unlock(void* lock_ptr) {
 void _scl_throw(scl_any ex) {
 	scl_uint* stack_top = (scl_uint*) &stack_top;
 	struct GC_stack_base sb;
-	GC_get_stack_base(&sb);
+	GC_get_my_stackbottom(&sb);
 	scl_uint* stack_bottom = sb.mem_base;
 
 	scl_int iteration_direction = 1;
@@ -1060,38 +799,38 @@ void _scl_throw(scl_any ex) {
 		longjmp(handler->jmp, 666);
 	}
 
-	_scl_security_throw(EX_THROWN, "No exception handler found!");
+	_scl_runtime_error(EX_THROWN, "No exception handler found!");
 }
 
-void nativeTrace(void) {
+_scl_symbol_hidden static void native_trace(void) {
+#if !defined(_WIN32) && !defined(__wasm__)
 	void* callstack[1024];
 	int frames = backtrace(callstack, 1024);
 	write(2, "Backtrace:\n", 11);
 	backtrace_symbols_fd(callstack, frames, 2);
 	write(2, "\n", 1);
+#endif
 }
 
-static inline void printStackTraceOf(scl_Exception e) {
+_scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
 	for (scl_int i = e->stackTrace->count - 1; i >= 0; i--) {
 		fprintf(stderr, "    %s\n", ((scl_str*) e->stackTrace->values)[i]->data);
 	}
 
 	fprintf(stderr, "\n");
-	nativeTrace();
+	native_trace();
 }
 
-_scl_no_return
-void _scl_runtime_catch(scl_any _ex) {
+_scl_no_return void _scl_runtime_catch(scl_any _ex) {
 	scl_Exception ex = (scl_Exception) _ex;
 	scl_str msg = ex->msg;
 
 	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.statics->type_name, msg->data);
-	printStackTraceOf(ex);
+	print_stacktrace_of(ex);
 	exit(EX_THROWN);
 }
 
-_scl_no_return
-void* _scl_oom(scl_uint size) {
+_scl_no_return _scl_symbol_hidden static void* _scl_oom(scl_uint size) {
 	typedef struct Struct_OutOfMemoryError {
 		Struct _super;
 		scl_str msg;
@@ -1104,7 +843,7 @@ void* _scl_oom(scl_uint size) {
 	scl_OutOfMemoryError err = ALLOC(OutOfMemoryError);
 	if (err == nil) {
 		fprintf(stderr, "Out of memory! Tried to allocate " SCL_UINT_FMT " bytes.\n", size);
-		nativeTrace();
+		native_trace();
 		exit(-1);
 	}
 	GC_set_oom_fn((GC_oom_func) oldFunc);
@@ -1113,7 +852,7 @@ void* _scl_oom(scl_uint size) {
 	_scl_throw(err);
 }
 
-static int setupCalled = 0;
+_scl_symbol_hidden static int setupCalled = 0;
 
 _scl_constructor
 void _scl_setup(void) {
@@ -1135,8 +874,6 @@ void _scl_setup(void) {
 
 	_scl_set_up_signal_handler();
 	GC_allow_register_threads();
-
-	_scl_stack_new();
 
 	setupCalled = 1;
 }

@@ -4,11 +4,11 @@ cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "strcmp"
 private expect foreign unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
-cdecl "_scl_strdup"
+cdecl "s_strdup"
 private expect foreign unsafe function __c_strdup(cstr: [int8]): [int8]
 cdecl "strncmp"
 private expect foreign unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
-cdecl "_scl_strcpy"
+cdecl "s_strcpy"
 private expect foreign unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
 cdecl "strcat"
 private expect foreign unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]

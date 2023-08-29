@@ -1,9 +1,9 @@
 import std.io
 import std.util.Array
 
-cdecl "_scl_memset"
+cdecl "s_memset"
 expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
-cdecl "_scl_memcpy"
+cdecl "s_memcpy"
 expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
 function sizeofStack(): int
   0 return

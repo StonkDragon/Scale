@@ -41,6 +41,12 @@ namespace sclc
         return this->tokens;
     }
 
+    enum class StringType {
+        CString,
+        UnicodeString,
+        String,
+    };
+
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, begin);
@@ -54,7 +60,7 @@ namespace sclc
 
         begin = column;
 
-        bool stringLiteralIsCString = false;
+        StringType stringType = StringType::String;
 
         if (isCharacter(c)) {
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
@@ -64,7 +70,12 @@ namespace sclc
                 c = source[current];
             }
             if (value == "c" && c == '"') {
-                stringLiteralIsCString = true;
+                stringType = StringType::CString;
+                value = "";
+                goto stringLiteral;
+            }
+            if (value == "u" && c == '"') {
+                stringType = StringType::UnicodeString;
                 value = "";
                 goto stringLiteral;
             }
@@ -124,10 +135,11 @@ namespace sclc
             }
             current++;
             column++;
-            if (!stringLiteralIsCString) {
-                return Token(tok_string_literal, value, line, filename, begin);
-            } else {
-                return Token(tok_char_string_literal, value, line, filename, begin);
+            switch (stringType) {
+                case StringType::CString: return Token(tok_char_string_literal, value, line, filename, begin);
+                case StringType::UnicodeString: return Token(tok_utf_string_literal, value, line, filename, begin);
+                case StringType::String: return Token(tok_string_literal, value, line, filename, begin);
+                default: __builtin_unreachable();
             }
         } else if (c == '\'') {
             c = source[++current];

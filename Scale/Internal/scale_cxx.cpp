@@ -48,7 +48,7 @@ typedef struct Struct_OutOfMemoryError {
 #define INTO(_scl_ex, _cxx_ex) ({ \
     scl_##_scl_ex _e = ALLOC(_scl_ex); \
     virtual_call(_e, "init()V;"); \
-    _e->msg = str_of((_cxx_ex).what()); \
+    _e->msg = str_of_exact(strdup((_cxx_ex).what())); \
     _e; \
 })
 
@@ -84,7 +84,7 @@ wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
                 stack_bottom.mem_base = (void*) &stack_bottom;
                 int ret = GC_register_my_thread(&stack_bottom);
                 if (ret != GC_SUCCESS) {
-                    _scl_security_throw(EX_THREAD_ERROR, "GC_register_my_thread failed: %d\n", ret);
+                    _scl_runtime_error(EX_THREAD_ERROR, "GC_register_my_thread failed: %d\n", ret);
                 }
 
                 ((void(*)(scl_any)) Thread$run)(self);

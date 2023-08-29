@@ -6,30 +6,22 @@ typealias nothing "_scl_no_return scl_any"
 cdecl "_scl_throw"
 expect foreign function throw(ex: Exception): nothing
 
-private expect foreign unsafe function _scl_security_safe_exit(i: int): none
-private expect foreign unsafe function _scl_signal_handler(sigNum: int): none
 cdecl "raise"
 private expect foreign unsafe function __c_raise(sigNum: int): int
-cdecl "_scl_errno"
+cdecl "get_errno"
 expect foreign function errno(): int
-cdecl "_scl_errno_str"
+cdecl "get_errno_as_str"
 expect foreign function strerror(): str
-cdecl "_scl_set_signal_handler"
-expect foreign function setSignalHandler(fun: lambda(int): none, sig: int): none
-cdecl "_scl_reset_signal_handler"
-expect foreign function resetSignalHandler(sig: int): none
 
 function crash(): none
-  unsafe
-    1 _scl_security_safe_exit
-  end
+  abort
 end
 
 function raise(sigNum: int): none
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
-      sigNum _scl_signal_handler
+      abort
     fi
   end
 end

@@ -1,7 +1,7 @@
 import std.thread.Thread
 
 static final sealed struct Process
-    cdecl "_scl_security_safe_exit"
+    cdecl "exit"
     expect foreign function exit(:int): none
     expect foreign function stackTrace(): Array
 

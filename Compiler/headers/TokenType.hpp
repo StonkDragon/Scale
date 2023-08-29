@@ -90,6 +90,7 @@ namespace sclc
         tok_number_float,           // 123.456
         tok_string_literal,         // "foo"
         tok_char_string_literal,    // c"foo"
+        tok_utf_string_literal,     // u"foo"
         tok_char_literal,           // 'a'
         tok_dollar,                 // $
 

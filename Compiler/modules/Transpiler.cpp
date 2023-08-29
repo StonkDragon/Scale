@@ -186,15 +186,17 @@ namespace sclc {
             }
             append("typedef %s%s;\n", type.c_str(), name.c_str());
         }
+        append("\n");
         append("/* STRUCT TYPES */\n");
         for (Struct& c : result.structs) {
-            if (c.name == "str" || c.name == "any" || c.name == "int" || c.name == "float" || isPrimitiveIntegerType(c.name)) continue;
+            if (c.isStatic() || c.name == "str") continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
         append("\n");
         for (Layout& c : result.layouts) {
             append("typedef struct Layout_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
+        append("\n");
         for (Layout& c : result.layouts) {
             append("struct Layout_%s {\n", c.name.c_str());
             for (Variable& s : c.members) {
@@ -236,7 +238,7 @@ namespace sclc {
         fprintf(scale_header, "#include <scale_runtime.h>\n\n");
 
         for (Struct& c : result.structs) {
-            if (c.name == "str" || c.name == "any" || c.name == "int" || c.name == "float" || isPrimitiveIntegerType(c.name)) continue;
+            if (c.isStatic() || c.name == "str") continue;
             fprintf(scale_header, "typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
         fprintf(scale_header, "\n");
@@ -410,6 +412,7 @@ namespace sclc {
         if (structTree) {
             structTree->forEach([&](StructTreeNode* currentNode) {
                 Struct c = currentNode->s;
+                if (c.isStatic()) return;
                 append("struct Struct_%s {\n", c.name.c_str());
                 append("  const _scl_lambda* const $fast;\n");
                 append("  const TypeInfo* $statics;\n");
@@ -2452,7 +2455,7 @@ namespace sclc {
                     }
                     append("%s* array = (%s*) _scl_pop()->v;\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
                 } else {
-                    append("scl_int* array = _scl_new_array(array_size);\n");
+                    append("scl_int* array = _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
                 }
                 append("for (scl_int i = 0; i < array_size; i++) {\n");
                 scopeDepth++;
@@ -2657,9 +2660,64 @@ namespace sclc {
         append("}\n");
     }
 
+    bool isAllowed1ByteChar(char c) {
+        return (c < 0x7f && c >= ' ') || c == '\n' || c == '\t' || c == '\r';
+    }
+
+    bool checkUTF8(const std::string& str) {
+        for (size_t i = 0; i < str.size(); i++) {
+            if ((str[i] & 0b10000000) == 0b00000000) {
+                if (!isAllowed1ByteChar(str[i])) {
+                    return false;
+                }
+            } else if ((str[i] & 0b11100000) == 0b11000000) {
+                if (i + 1 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i++;
+            } else if ((str[i] & 0b11110000) == 0b11100000) {
+                if (i + 2 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 2;
+            } else if ((str[i] & 0b11111000) == 0b11110000) {
+                if (i + 3 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 3] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 3;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     handler(StringLiteral) {
         noUnused;
         std::string str = unquote(body[i].value);
+        if (body[i].type == tok_utf_string_literal && !checkUTF8(str)) {
+            transpilerError("Invalid UTF-8 string", i);
+            errors.push_back(err);
+            return;
+        }
         ID_t hash = id(str.c_str());
         append("(localstack++)->s = _scl_string_with_hash_len(\"%s\", 0x%x, %zu);\n", body[i].value.c_str(), hash, str.length());
         typeStack.push("str");
@@ -2791,23 +2849,31 @@ namespace sclc {
         }
         std::string type = res.value;
         if (isPrimitiveType(type)) {
-            append("(*(scl_int*) (localstack - 1)) = 1;\n");
-            typePop;
-            typeStack.push("bool");
-            return;
-        }
-        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            append("(*(scl_int*) (localstack - 1)) = !_scl_is_instance_of((localstack - 1)->v, 0x%xU);\n", id("SclObject"));
+        } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             append("(*(scl_int*) (localstack - 1)) = _scl_is_array((localstack - 1)->v);\n");
-            typePop;
-            typeStack.push("bool");
-            return;
+        } else {
+            const Struct& s = getStructByName(result, type);
+            Interface* iface = getInterfaceByName(result, type);
+            if (s == Struct::Null && iface == nullptr) {
+                transpilerError("Usage of undeclared struct '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return;
+            } else if (s != Struct::Null) {
+                if (!s.isStatic()) {
+                    append("(*(scl_int*) (localstack - 1)) = (localstack - 1)->v && _scl_is_instance_of((localstack - 1)->v, 0x%xU);\n", id(type.c_str()));
+                } else {
+                    append("(*(scl_int*) (localstack - 1)) = 0;\n");
+                }
+            } else {
+                const Struct& stackStruct = getStructByName(result, typeStackTop);
+                if (stackStruct == Struct::Null || stackStruct.isStatic()) {
+                    append("(*(scl_int*) (localstack - 1)) = 0;\n");
+                } else {
+                    append("(*(scl_int*) (localstack - 1)) = (localstack - 1)->v && %d;\n", stackStruct.implements(iface->name));
+                }
+            }
         }
-        if (getStructByName(result, type) == Struct::Null && getInterfaceByName(result, type) == nullptr) {
-            transpilerError("Usage of undeclared struct '" + body[i].value + "'", i);
-            errors.push_back(err);
-            return;
-        }
-        append("(*(scl_int*) (localstack - 1)) = (localstack - 1)->v && _scl_is_instance_of((localstack - 1)->v, 0x%xU);\n", id(type.c_str()));
         typePop;
         typeStack.push("bool");
     }
@@ -3827,6 +3893,7 @@ namespace sclc {
         handleRefs[tok_column] = handlerRef(Column);
         handleRefs[tok_as] = handlerRef(As);
         handleRefs[tok_string_literal] = handlerRef(StringLiteral);
+        handleRefs[tok_utf_string_literal] = handlerRef(StringLiteral);
         handleRefs[tok_char_string_literal] = handlerRef(CharStringLiteral);
         handleRefs[tok_cdecl] = handlerRef(CDecl);
         handleRefs[tok_extern_c] = handlerRef(ExternC);

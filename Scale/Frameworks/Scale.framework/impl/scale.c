@@ -96,7 +96,8 @@ extern scl_Thread		Var_Thread$mainThread;
 
 tls scl_Thread			_currentThread = nil;
 
-scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, scl_int iteration_direction) {
+_scl_symbol_hidden
+static scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, scl_int iteration_direction) {
 	scl_int frames = 0;
 	while (stack_top != stack_bottom) {
 		if (*stack_top == TRACE_MARKER) {
@@ -110,7 +111,7 @@ scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, scl_int 
 scl_Array Process$stackTrace(void) {
 	scl_uint* stack_top = (scl_uint*) &stack_top;
 	struct GC_stack_base sb;
-	GC_get_stack_base(&sb);
+	GC_get_my_stackbottom(&sb);
 	scl_uint* stack_bottom = sb.mem_base;
 
 	scl_int iteration_direction = 1;
@@ -168,7 +169,7 @@ void Process$unlock(scl_any obj) {
 scl_str intToString(scl_int val) {
 	scl_int8* str = (scl_int8*) _scl_alloc(32);
 	snprintf(str, 32, SCL_INT_FMT, val);
-	scl_str s = str_of(str);
+	scl_str s = str_of_exact(str);
 	return s;
 }
 
@@ -181,7 +182,6 @@ scl_bool float$isNaN(scl_float val) {
 }
 
 void Thread$run(scl_Thread self) {
-	_scl_stack_new();
 	SCL_BACKTRACE("Thread:run(): none");
 	_currentThread = self;
 
@@ -200,7 +200,6 @@ void Thread$run(scl_Thread self) {
 	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;
-	_scl_stack_free();
 }
 
 void Thread$start0(scl_Thread self) {
@@ -228,6 +227,104 @@ scl_Thread Thread$currentThread(void) {
 		_currentThread->function = nil;
 	}
 	return _currentThread;
+}
+
+const scl_int8* GarbageCollector$getImplementation0(void) {
+	return "Boehm GC";
+}
+
+scl_bool GarbageCollector$isPaused0(void) {
+	return GC_is_disabled();
+}
+
+void GarbageCollector$setPaused0(scl_bool paused) {
+	if (paused && !GC_is_disabled()) {
+		GC_disable();
+	} else if (GC_is_disabled()) {
+		GC_enable();
+	}
+}
+
+void GarbageCollector$run0(void) {
+	GC_gcollect();
+}
+
+scl_int GarbageCollector$heapSize(void) {
+	scl_uint heapSize;
+	GC_get_heap_usage_safe(
+		&heapSize,
+		nil,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) heapSize;
+}
+
+scl_int GarbageCollector$freeBytesEstimate(void) {
+	scl_uint freeBytes;
+	GC_get_heap_usage_safe(
+		nil,
+		&freeBytes,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) freeBytes;
+}
+
+scl_int GarbageCollector$bytesSinceLastCollect(void) {
+	scl_uint bytesSinceLastCollect;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		&bytesSinceLastCollect,
+		nil,
+		nil
+	);
+	return (scl_int) bytesSinceLastCollect;
+}
+
+scl_int GarbageCollector$totalMemory(void) {
+	scl_uint totalMemory;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		nil,
+		&totalMemory,
+		nil
+	);
+	return (scl_int) totalMemory;
+}
+
+scl_int8* s_strndup(const scl_int8* str, scl_int len) {
+	scl_int8* newStr = (scl_int8*) _scl_alloc(len + 1);
+	strncpy(newStr, str, len);
+	return newStr;
+}
+
+scl_int8* s_strdup(const scl_int8* str) {
+	return s_strndup(str, strlen(str));
+}
+
+scl_int get_errno() {
+	return errno;
+}
+
+scl_str get_errno_as_str() {
+	return str_of_exact(s_strdup(strerror(errno)));
+}
+
+scl_any s_memset(scl_any ptr, scl_int32 val, scl_int len) {
+	return memset(ptr, val, len);
+}
+
+scl_any s_memcpy(scl_any dest, scl_any src, scl_int n) {
+	return memcpy(dest, src, n);
+}
+
+scl_int8* s_strcpy(scl_int8* dest, scl_int8* src) {
+	return s_memcpy(dest, src, strlen(src) + 1);
 }
 
 _scl_constructor

@@ -198,12 +198,6 @@ Returns the value of the errno variable.
 ### function strerror(): str
 Returns a string representation of the error code in errno.
 
-### function setSignalHandler(fun: lambda(int): none, sig: int): none
-Sets the signal handler for the signal `sig` to `fun`.
-
-### function resetSignalHandler(sig: int): none
-Resets the signal handler for the signal `sig` to the default handler.
-
 ### function dumpStack(): none
 Prints the current stack to stdout.
 

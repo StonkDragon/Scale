@@ -122,13 +122,13 @@ namespace sclc {
         if (f->has_asm) {
             std::string label = f->getModifier(f->has_asm + 1);
 
-            return std::string("\"") + label + "\"";
+            return "\"" + label + "\"";
         }
 
         if (f->has_cdecl) {
             std::string cLabel = f->getModifier(f->has_cdecl + 1);
 
-            return std::string("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"") + cLabel + "\"";
+            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + cLabel + "\"";
         }
 
         std::string symbol = f->finalName();
