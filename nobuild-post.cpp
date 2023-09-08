@@ -52,7 +52,7 @@ int main(int argc, char const *argv[]) {
 #if !defined(_WIN32)
     CMD("autoreconf", "-vif");
     std::string prefix = std::string("--prefix=/opt/Scale/" + version + "/Internal");
-    CMD("./configure", prefix.c_str(), "--enable-static", "--disable-shared");
+    CMD("./configure", prefix.c_str(), "--enable-static", "--disable-shared", "--with-pic");
     CMD("make");
     CMD("sudo", "make", "install");
 #else
