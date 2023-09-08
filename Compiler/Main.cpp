@@ -605,7 +605,7 @@ namespace sclc
         std::vector<std::string> libScaleCommand = {
             "clang",
             "-O2",
-            "-std=c17",
+            "-std=gnu17",
             "-I" + scaleFolder + "/Internal",
             "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_runtime.c",
@@ -619,7 +619,7 @@ namespace sclc
         std::vector<std::string> cxxGlueCommand = {
             "clang++",
             "-O2",
-            "-std=c++17",
+            "-std=gnu++17",
             "-I" + scaleFolder + "/Internal",
             "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_cxx.cpp",
