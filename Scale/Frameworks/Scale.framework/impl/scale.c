@@ -133,6 +133,7 @@ scl_Array Process$stackTrace(void) {
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
+				printf("bt->func_name as ptr: %p\n", bt->func_name);
 				printf("bt->func_name: %s\n", bt->func_name);
 				arr->values[i] = ({
 					const scl_int8 *_data_ = (scl_int8*) ((bt->func_name));
