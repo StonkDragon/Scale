@@ -131,6 +131,10 @@ namespace sclc {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + cLabel + "\"";
         }
 
+        if (!f->isMethod && !Main.options.noMain && f->name == "main") {
+            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"main\"";
+        }
+
         std::string symbol = f->finalName();
 
         if (f->has_lambda) {
@@ -161,7 +165,7 @@ namespace sclc {
             std::string name = m->name.substr(0, m->name.find("$$ol"));
             if ((name == self->name) && m->member_type == self->member_type) {
                 if (currentFunction) {
-                    if (m->name_token.file == currentFunction->name_token.file) {
+                    if (m->name_token.location.file == currentFunction->name_token.location.file) {
                         return m;
                     }
                 }
@@ -177,7 +181,7 @@ namespace sclc {
             std::string name = f->name.substr(0, f->name.find("$$ol"));
             if (name == self->name) {
                 if (currentFunction) {
-                    if (f->name_token.file == currentFunction->name_token.file) {
+                    if (f->name_token.location.file == currentFunction->name_token.location.file) {
                         return f;
                     }
                 } else {
@@ -297,7 +301,7 @@ namespace sclc {
             if (self->has_private) {
                 Token selfNameToken = self->name_token;
                 Token fromNameToken = currentFunction->name_token;
-                if (selfNameToken.file != fromNameToken.file) {
+                if (selfNameToken.location.file != fromNameToken.location.file) {
                     Method* method = findMethodLocally(self, result);
                     if (!method) {
                         transpilerError("Calling private method from another file is not allowed", i);
@@ -469,11 +473,20 @@ namespace sclc {
     }
 
     std::string opToString(std::string op) {
-        if (strstarts(op, "add")) return "+";
-        if (strstarts(op, "sub")) return "-";
-        if (strstarts(op, "mul")) return "*";
-        if (strstarts(op, "div")) return "/";
-        if (strstarts(op, "pow")) return "**";
+        if (op == "add") return "+";
+        if (op == "sub") return "-";
+        if (op == "mul") return "*";
+        if (op == "div") return "/";
+        if (op == "pow") return "**";
+        if (op == "eq") return "==";
+        if (op == "ne") return "!=";
+        if (op == "gt") return ">";
+        if (op == "ge") return ">=";
+        if (op == "lt") return "<";
+        if (op == "le") return "<=";
+        if (op == "and") return "&&";
+        if (op == "or") return "||";
+        if (op == "not") return "!";
         if (op == "mod") return "%";
         if (op == "land") return "&";
         if (op == "lor") return "|";
@@ -483,6 +496,9 @@ namespace sclc {
         if (op == "lsr") return ">>";
         if (op == "rol") return "<<<";
         if (op == "ror") return ">>>";
+        if (op == "at") return "@";
+        if (op == "inc") return "++";
+        if (op == "dec") return "--";
         return "???";
     }
 
@@ -492,7 +508,7 @@ namespace sclc {
         }
         if (currentFunction) {
             if (self->has_private) {
-                if (self->name_token.file != currentFunction->name_token.file) {
+                if (self->name_token.location.file != currentFunction->name_token.location.file) {
                     Function* function = findFunctionLocally(self, result);
                     if (!function) {
                         transpilerError("Calling private function from another file is not allowed", i);
@@ -530,34 +546,50 @@ namespace sclc {
         if (self->has_operator) {
             size_t sym = self->has_operator;
 
-            if (!hasToCallStatic && !checkStackType(result, self->args, withIntPromotion) && hasMethod(result, self->name, typeStackTop)) {
-                Method* method = getMethodByName(result, self->name, typeStackTop);
-                methodCall(method, fp, result, warns, errors, body, i);
+            Method* overloaded = getMethodByName(result, self->name, typeStackTop);
+            if (!hasToCallStatic && overloaded) {
+                methodCall(overloaded, fp, result, warns, errors, body, i);
+                return;
+            }
+
+            if (!checkStackType(result, self->args, true)) {
+                transpilerError("Arguments for operator '" + opToString(self->modifiers[sym]) + "' do not equal inferred stack", i);
+                errors.push_back(err);
                 return;
             }
 
             std::string op = self->modifiers[sym];
 
-            if (typeStack.size() < (1 + (op != "lnot" && op != "not"))) {
+            if (typeStack.size() < self->args.size()) {
                 transpilerError("Cannot deduce type for operation '" + opToString(op) +  "'", i);
                 errors.push_back(err);
                 return;
             }
 
-            if (op != "lnot" && op != "not") {
-                typeStack.pop();
-                typeStack.pop();
-                append("_scl_popn(2);\n");
-            } else {
-                typeStack.pop();
-                append("_scl_popn(1);\n");
+            std::string argType = "";
+            if (op == "at") {
+                argType = typeStackTop;
             }
+
+            for (size_t m = 0; m < self->args.size(); m++) {
+                typePop;
+            }
+            append("_scl_popn(%zu);\n", self->args.size());
             std::string args = generateArgumentsForFunction(result, self);
 
             append("*(%s*) (localstack) = _scl_%s(%s);\n", sclTypeToCType(result, self->return_type).c_str(), op.c_str(), args.c_str());
             append("localstack++;\n");
 
-            typeStack.push(self->return_type);
+            if (op == "at") {
+                if (argType.front() == '[' && argType.back() == ']') {
+                    argType = argType.substr(1, argType.size() - 2);
+                } else {
+                    argType = "any";
+                }
+                typeStack.push(argType);
+            } else {
+                typeStack.push(self->return_type);
+            }
 
             return;
         }
@@ -606,9 +638,9 @@ namespace sclc {
         if (self->name == "throw" || self->name == "builtinUnreachable") {
             if (currentFunction->has_restrict) {
                 if (currentFunction->isMethod) {
-                    append("fn_Process$unlock((scl_SclObject) Var_self);\n");
+                    append("_scl_unlock(Var_self);\n");
                 } else {
-                    append("fn_Process$unlock(function_lock$%s);\n", currentFunction->finalName().c_str());
+                    append("_scl_unlock(function_lock$%s);\n", currentFunction->finalName().c_str());
                 }
             }
         }

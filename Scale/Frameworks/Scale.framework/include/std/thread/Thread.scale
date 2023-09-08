@@ -12,8 +12,6 @@ end
 
 final sealed open struct MutexError: Error
 
-typealias sys_thread "_scl_thread_t"
-
 final sealed struct Thread
     private static decl threads: Array
     private static decl nextID: int
@@ -21,7 +19,7 @@ final sealed struct Thread
     static decl mainThread: readonly Thread
 
     private decl func: lambda(): none
-    private decl tid: sys_thread?
+    private decl tid: any
 
     decl name: str
 

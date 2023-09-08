@@ -1,5 +1,4 @@
 import std.util.Iterable
-import std.util.ImmutableArray
 import std.debug
 import std.util.InvalidArgumentException
 import std.util.IndexOutOfBoundsException
@@ -168,18 +167,6 @@ sealed struct Array is Iterable
       done
       s "}" + => s
     fi
-    return
-  end
-
-  deprecated![since: "23.8", replacement: "ReadOnlyArray", forRemoval: true]
-  function immutableCopy(): ImmutableArray
-    new[self.count] => decl newVals: [any]
-    unsafe
-      newVals self.values self.count sizeof any * memcpy => newVals
-    end
-    self.count => decl newCount: int
-
-    newCount newVals ImmutableArray::new
     return
   end
 

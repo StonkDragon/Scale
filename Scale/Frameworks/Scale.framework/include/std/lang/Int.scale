@@ -216,9 +216,12 @@ expect foreign operator "ge" function >=(:int, :int): bool
 expect foreign operator "lt" function <(:int, :int): bool
 expect foreign operator "le" function <=(:int, :int): bool
 
-expect foreign operator "and" function &&(:bool, :bool): bool
-expect foreign operator "or" function ||(:bool, :bool): bool
-expect foreign operator "not" function !(:bool): bool
+expect foreign operator "eq" function ==(:any, :any): bool
+expect foreign operator "ne" function !=(:any, :any): bool
+
+expect foreign operator "and" function &&(:int, :int): bool
+expect foreign operator "or" function ||(:int, :int): bool
+expect foreign operator "not" function !(:int): bool
 
 expect foreign operator "mod" function %(:int, :int): int
 expect foreign operator "land" function &(:int, :int): int
@@ -230,75 +233,11 @@ expect foreign operator "lsr" function >>(:int, :int): int
 expect foreign operator "rol" function <<<(:int, :int): int
 expect foreign operator "ror" function >>>(:int, :int): int
 
-deprecated![since: "23.5", replacement: "int::toInt8"]
-function toInt8(value: any): int8
-  value:toInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::toInt16"]
-function toInt16(value: any): int16
-  value:toInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::toInt32"]
-function toInt32(value: any): int32
-  value:toInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::toInt"]
-function toInt(value: any): int
-  value:toInt return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt8"]
-function toUInt8(value: any): uint8
-  value:toUInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt16"]
-function toUInt16(value: any): uint16
-  value:toUInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt32"]
-function toUInt32(value: any): uint32
-  value:toUInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt"]
-function toUInt(value: any): uint
-  value:toUInt return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt8"]
-function isValidInt8(val: any): bool
-  val:isValidInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt16"]
-function isValidInt16(val: any): bool
-  val:isValidInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt32"]
-function isValidInt32(val: any): bool
-  val:isValidInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt8"]
-function isValidUInt8(val: any): bool
-  val:isValidUInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt16"]
-function isValidUInt16(val: any): bool
-  val:isValidUInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt32"]
-function isValidUInt32(val: any): bool
-  val:isValidUInt32 return
-end
+expect foreign operator "at" function @(:[any]): any
+expect foreign operator "inc" function ++(:int): int
+expect foreign operator "inc" function ++(:float): float
+expect foreign operator "dec" function --(:int): int
+expect foreign operator "dec" function --(:float): float
 
 function isnil(x: any): bool
   x nil == return

@@ -17,9 +17,7 @@
     do { \
     FPResult result; \
     result.message = msg; \
-    result.in = filename; \
-    result.line = line; \
-    result.column = begin; \
+    result.location = SourceLocation(filename, line, begin); \
     result.value = value; \
     errors.push_back(result); \
     } while (0)
@@ -28,9 +26,7 @@
     do { \
     FPResult result; \
     result.message = msg; \
-    result.in = filename; \
-    result.line = line; \
-    result.column = begin; \
+    result.location = SourceLocation(filename, line, begin); \
     result.value = value; \
     warns.push_back(result); \
     } while (0)
@@ -446,8 +442,7 @@ namespace sclc
             printf("IO Error: Could not open file %s\n", source.c_str());
             FPResult r;
             r.message = "IO Error: Could not open file " + source;
-            r.in = "";
-            r.line = 0;
+            r.location = SourceLocation(source, 0, 0);
             r.success = false;
             errors.push_back(r);
             goto fatal_error;
@@ -532,7 +527,7 @@ namespace sclc
 
     void Tokenizer::printTokens() {
         for (size_t i = 0; i < tokens.size(); i++) {
-            std::cout << "Token: " << tokens[i].tostring() << std::endl;
+            std::cout << "Token: " << tokens[i].toString() << std::endl;
         }
     }
 
@@ -548,7 +543,7 @@ namespace sclc
                 moduleName += "." + tokens[i].value;
             }
             bool found = false;
-            for (auto config : Main.options.mapFrameworkConfigs) {
+            for (auto config : Main.options.indexDrgFiles) {
                 if (!config.second) continue;
 
                 auto modules = config.second->getCompound("modules");
@@ -562,16 +557,14 @@ namespace sclc
                     FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                     if (!find.success) {
                         FPResult r;
-                        r.column = tokens[i].column;
                         r.value = tokens[i].value;
-                        r.in = tokens[i].file;
-                        r.line = tokens[i].line;
+                        r.location = tokens[i].location;
                         r.type = tokens[i].type;
                         r.success = false;
                         r.message = find.message;
                         return r;
                     }
-                    auto file = find.in;
+                    auto file = find.location.file;
                     file = std::filesystem::absolute(file).string();
                     if (!contains(Main.options.files, file)) {
                         Main.options.files.push_back(file);
@@ -587,7 +580,7 @@ namespace sclc
             if (!r.success) {
                 return r;
             }
-            file = std::filesystem::absolute(r.in).string();
+            file = std::filesystem::absolute(r.location.file).string();
             if (!contains(Main.options.files, file)) {
                 Main.options.files.push_back(file);
             }
@@ -604,9 +597,9 @@ namespace sclc
             FPResult r;
             r.success = true;
             if (path == "." || path == "./") {
-                r.in = file;
+                r.location.file = file;
             } else {
-                r.in = path + PATH_SEPARATOR + file;
+                r.location.file = path + PATH_SEPARATOR + file;
             }
             return r;
         }

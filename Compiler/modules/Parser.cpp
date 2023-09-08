@@ -45,9 +45,7 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "No entry point found";
-                result.line = 0;
-                result.in = filename;
-                result.column = 0;
+                result.location = SourceLocation(filename, 0, 0);
                 errors.push_back(result);
 
                 FPResult parseResult;
@@ -59,16 +57,50 @@ namespace sclc
             }
         }
 
-        if (mainFunction && mainFunction->args.size() > 1) {
-            FPResult result;
-            result.success = false;
-            result.message = "Entry point function must have 0 or 1 arguments";
-            result.line = mainFunction->name_token.line;
-            result.in = mainFunction->name_token.file;
-            result.column = mainFunction->name_token.column;
-            result.type = mainFunction->name_token.type;
-            result.value = mainFunction->name_token.value;
-            errors.push_back(result);
+        if (mainFunction) {
+            if (mainFunction->args.size() > 1) {
+                FPResult result;
+                result.success = false;
+                result.message = "Entry point function must have 0 or 1 arguments";
+                result.location = mainFunction->name_token.location;
+                result.type = mainFunction->name_token.type;
+                result.value = mainFunction->name_token.value;
+                errors.push_back(result);
+            } else if (mainFunction->args.size() == 1) {
+                std::string argType = removeTypeModifiers(mainFunction->args[0].type);
+                if (argType.front() == '[' && argType.back() == ']') {
+                    std::string elemType = removeTypeModifiers(argType.substr(1, argType.size() - 2));
+                    if (!Main.options.noScaleFramework) {
+                        if (!typeEquals(elemType, std::string("str"))) {
+                            FPResult result;
+                            result.success = false;
+                            result.message = "Entry point function argument must be an array of strings";
+                            result.location = mainFunction->name_token.location;
+                            result.type = mainFunction->name_token.type;
+                            result.value = mainFunction->name_token.value;
+                            errors.push_back(result);
+                        }
+                    } else {
+                        if (!typeEquals(elemType, std::string("[int8]"))) {
+                            FPResult result;
+                            result.success = false;
+                            result.message = "Entry point function argument must be an array of strings";
+                            result.location = mainFunction->name_token.location;
+                            result.type = mainFunction->name_token.type;
+                            result.value = mainFunction->name_token.value;
+                            errors.push_back(result);
+                        }
+                    }
+                } else {
+                    FPResult result;
+                    result.success = false;
+                    result.message = "Entry point function argument must be an array of strings";
+                    result.location = mainFunction->name_token.location;
+                    result.type = mainFunction->name_token.type;
+                    result.value = mainFunction->name_token.value;
+                    errors.push_back(result);
+                }
+            }
         }
 
         std::vector<Variable> defaultScope;
@@ -125,7 +157,7 @@ namespace sclc
                 append(".type_name = \"%s\",\n", s.name.c_str());
                 append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
                 append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
-                if (s.name != "SclObject") {
+                if (s.super.size()) {
                     append(".super = &_scl_ti_%s,\n", s.super.c_str());
                 } else {
                     append(".super = 0,\n");
@@ -159,9 +191,7 @@ namespace sclc
                     FPResult result;
                     result.success = false;
                     result.message = "Constructor functions cannot have arguments";
-                    result.line = f->name_token.line;
-                    result.in = f->name_token.file;
-                    result.column = f->name_token.column;
+                    result.location = f->name_token.location;
                     result.type = f->name_token.type;
                     result.value = f->name_token.value;
                     errors.push_back(result);
@@ -185,9 +215,7 @@ namespace sclc
                     FPResult result;
                     result.success = false;
                     result.message = "Finalizer functions cannot have arguments";
-                    result.line = f->name_token.line;
-                    result.in = f->name_token.file;
-                    result.column = f->name_token.column;
+                    result.location = f->name_token.location;
                     result.type = f->name_token.type;
                     result.value = f->name_token.value;
                     errors.push_back(result);
@@ -202,11 +230,11 @@ namespace sclc
         scopeDepth--;
         append("}\n\n");
 
-        if (!Main.options.noMain) {
-            append("int main(int argc, char** argv) {\n");
-            append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
-            append("}\n");
-        }
+        // if (!Main.options.noMain) {
+        //     append("int main(int argc, char** argv) {\n");
+        //     append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
+        //     append("}\n");
+        // }
         
         fclose(fp);
 

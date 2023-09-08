@@ -87,7 +87,7 @@ namespace sclc {
     }
 
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other) {
-        if (one == other || other.name == "SclObject") {
+        if (one == other || (other.name == "SclObject" && !Main.options.noScaleFramework)) {
             return true;
         }
         if ((one.isStatic() && !other.isStatic()) || (!one.isStatic() && other.isStatic())) {
@@ -98,7 +98,7 @@ namespace sclc {
         while (!extend) {
             if (oneParent == other) {
                 extend = true;
-            } else if (oneParent.name == "SclObject" || oneParent.name.empty()) {
+            } else if ((oneParent.name == "SclObject" && !Main.options.noScaleFramework) || oneParent.name.empty()) {
                 return false;
             }
             oneParent = getStructByName(r, oneParent.super);
@@ -173,6 +173,8 @@ namespace sclc {
         bool argIsNilable = typeCanBeNil(arg);
         stack = removeTypeModifiers(stack);
         arg = removeTypeModifiers(arg);
+        if (arg == "bool") arg = "int";
+        if (stack == "bool") stack = "int";
         if (typeEquals(stack, arg) && stackTypeIsNilable == argIsNilable) {
             return true;
         }
@@ -328,6 +330,9 @@ namespace sclc {
             return sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*";
         }
         if (getInterfaceByName(result, t)) {
+            if (Main.options.noScaleFramework) {
+                return "scl_any";
+            }
             if (valueType) {
                 return "struct Struct_SclObject";
             }

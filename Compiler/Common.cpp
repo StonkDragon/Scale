@@ -103,7 +103,7 @@ namespace sclc
     });
 
     Struct Struct::Null = Struct("");
-    Token Token::Default(tok_identifier, "", 0, "");
+    Token Token::Default(tok_identifier, "");
 
     std::vector<Variable> vars;
     std::vector<size_t> var_indices;
@@ -335,10 +335,8 @@ namespace sclc
         {
             FPResult r;
             r.message = "Number out of range: " + tok.value;
-            r.column = tok.column;
+            r.location = tok.location;
             r.type = tok.type;
-            r.in = tok.file;
-            r.line = tok.line;
             r.value = tok.value;
             r.success = false;
             return Result<double, FPResult>(r);
@@ -350,9 +348,7 @@ namespace sclc
         FPResult r;
         r.success = true;
         r.value = "";
-        r.line = body[*i].line;
-        r.in = body[*i].file;
-        r.column = body[*i].column;
+        r.location = body[*i].location;
         r.value = body[*i].value;
         r.type = body[*i].type;
         r.message = "";
@@ -437,19 +433,16 @@ namespace sclc
             } else {
                 r.message = "Expected ']', but got '" + body[*i].value + "'";
                 r.value = type_mods + body[*i].value;
-                r.line = body[*i].line;
-                r.in = body[*i].file;
+                r.location = body[*i].location;
                 r.type = body[*i].type;
                 r.success = false;
             }
         } else {
             r.success = false;
-            r.line = body[*i].line;
-            r.in = body[*i].file;
-            r.column = body[*i].column;
+            r.location = body[*i].location;
             r.value = body[*i].value;
             r.type = body[*i].type;
-            r.message = "Unexpected token: '" + body[*i].tostring() + "'";
+            r.message = "Unexpected token: '" + body[*i].toString() + "'";
         }
         if (body[(*i + 1)].value == "?") {
             (*i)++;
@@ -695,6 +688,7 @@ namespace sclc
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             std::string funcName = func->name.substr(0, func->name.find("$$ol"));
+            if (funcName.size() != name.size()) continue;
             if (funcName == name) {
                 return true;
             }

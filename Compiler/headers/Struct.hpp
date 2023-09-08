@@ -22,7 +22,7 @@ namespace sclc
         std::map<std::string, std::string> templates;
         static Struct Null;
 
-        Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {}
+        Struct(std::string name) : Struct(name, Token(tok_identifier, name)) {}
         Struct(std::string name, Token t) {
             this->name = name;
             this->name_token = t;
@@ -181,7 +181,7 @@ namespace sclc
         Token name_token;
         std::vector<Variable> members;
     
-        Layout(std::string name) : Layout(name, Token(tok_identifier, name, 0, "")) {}
+        Layout(std::string name) : Layout(name, Token(tok_identifier, name)) {}
         Layout(std::string name, Token t) {
             this->name = name;
             this->name_token = t;

@@ -170,7 +170,7 @@ namespace sclc
                     return false;
                 }
                 root = root->getCompound("framework");
-                Main.options.mapFrameworkConfigs[framework] = root;
+                Main.options.indexDrgFiles[framework] = root;
                 DragonConfig::ListEntry* implementers = root->getList("implementers");
                 DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                 DragonConfig::ListEntry* depends = root->getList("depends");
@@ -277,7 +277,7 @@ namespace sclc
                         auto t = tokens[i];
                         size_t spacesBetween = 0;
                         if (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_eof) {
-                            spacesBetween = t.column - tokens[i - 1].column - tokens[i - 1].value.size();
+                            spacesBetween = t.location.column - tokens[i - 1].location.column - tokens[i - 1].value.size();
                         }
                         theCode += std::string(spacesBetween, ' ');
                         theCode += t.formatted();
@@ -418,7 +418,7 @@ namespace sclc
             return 0;
         }
         std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-        std::string docFileFormat = Main.options.mapFrameworkConfigs[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
+        std::string docFileFormat = Main.options.indexDrgFiles[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
         if (file.size() == 0 || !fileExists(file)) {
             std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
@@ -607,6 +607,7 @@ namespace sclc
             "-O2",
             "-std=c17",
             "-I" + scaleFolder + "/Internal",
+            "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_runtime.c",
             "-c",
 #if !defined(_WIN32)
@@ -620,6 +621,7 @@ namespace sclc
             "-O2",
             "-std=c++17",
             "-I" + scaleFolder + "/Internal",
+            "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_cxx.cpp",
             "-c",
 #if !defined(_WIN32)
@@ -649,10 +651,9 @@ namespace sclc
 #if !defined(_WIN32)
             "-fPIC",
 #endif
-            "-lgc",
-            "-I" + scaleFolder + "/Internal",
             scaleFolder + "/Internal/scale_runtime.o",
             scaleFolder + "/Internal/scale_cxx.o",
+            scaleFolder + "/Internal/lib/libgc.a",
             "-o",
             scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
         };
@@ -708,39 +709,36 @@ namespace sclc
             return ret;
         }
         
-        std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.c");
-        std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.cpp");
         std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.o");
         std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.o");
-
         return 0;
     }
 
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
             if (error.type > tok_char_literal) continue;
-            if (error.line == 0) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+            if (error.location.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString = Color::BOLDMAGENTA;
-            std::cerr << colString << "Warning: " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            std::cerr << colString << "Warning: " << Color::RESET << error.location.file << ":" << error.location.line << ":" << error.location.column << ": " << error.message << std::endl;
             i = 1;
             while (fgets(line, 500, f) != NULL) {
-                if (i == error.line) {
-                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.column) << Color::RESET;
-                } else if (i == error.line - 1 || i == error.line - 2) {
+                if (i == error.location.line) {
+                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.location.column) << Color::RESET;
+                } else if (i == error.location.line - 1 || i == error.location.line - 2) {
                     if (strlen(line) > 0)
                         std::cerr << "  " << line;
-                } else if (i == error.line + 1 || i == error.line + 2) {
+                } else if (i == error.location.line + 1 || i == error.location.line + 2) {
                     if (strlen(line) > 0)
                         std::cerr << "  " << line;
                 }
@@ -773,30 +771,30 @@ namespace sclc
             } else {
                 colorStr = Color::BOLDRED;
             }
-            if (error.line == 0) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+            if (error.location.line == 0) {
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f = fopen(std::string(error.in).c_str(), "r");
+            FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.in << ": " << error.message << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
-            std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.in << ":" << error.line << ":" << error.column << ": " << error.message << std::endl;
+            std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.location.file << ":" << error.location.line << ":" << error.location.column << ": " << error.message << std::endl;
             i = 1;
             while (fgets(line, 500, f) != NULL) {
-                if (i == error.line) {
+                if (i == error.location.line) {
                     if (strToAdd.size())
                         std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
                     else
-                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.column) << Color::RESET;
-                } else if (i == error.line - 1 || i == error.line - 2) {
+                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.location.column) << Color::RESET;
+                } else if (i == error.location.line - 1 || i == error.location.line - 2) {
                     if (strlen(line) > 0)
                         std::cerr << "  " << line;
-                } else if (i == error.line + 1 || i == error.line + 2) {
+                } else if (i == error.location.line + 1 || i == error.location.line + 2) {
                     if (strlen(line) > 0)
                         std::cerr << "  " << line;
                 }
@@ -870,8 +868,9 @@ namespace sclc
             if (scaleConfig->hasMember("featureFlags"))
                 for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
                     Main.options.features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
+            
+            Main.options.indexDrgFiles["/local"] = scaleConfig;
         }
-        Main.options.mapFrameworkConfigs["/local"] = scaleConfig;
 
         Main.options.minify = true;
         Main.options.stackSize = 16;
@@ -1058,7 +1057,7 @@ namespace sclc
 
         std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
         if (
-            !std::filesystem::exists(std::filesystem::path(scaleFolder) / "Internal" / libScaleRuntimeFileName)
+            !std::filesystem::exists(std::filesystem::path(scaleFolder) / std::filesystem::path("Internal") / libScaleRuntimeFileName)
         ) {
             int ret = compileRuntimeLib();
             if (ret) {
@@ -1080,6 +1079,7 @@ namespace sclc
             cflags.push_back(compiler);
 
         cflags.push_back("-I" + scaleFolder + "/Internal");
+        cflags.push_back("-I" + scaleFolder + "/Internal/include");
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder + "/Internal");
@@ -1096,15 +1096,14 @@ namespace sclc
 #endif
         
         std::string source;
-        bool alreadyIncluded = false;
+        if (Main.options.noScaleFramework) goto skipScaleFramework;
         for (auto f : frameworks) {
             if (f == "Scale") {
-                alreadyIncluded = true;
+                goto skipScaleFramework;
             }
         }
-        if (!Main.options.noScaleFramework && !alreadyIncluded) {
-            frameworks.push_back("Scale");
-        }
+        frameworks.push_back("Scale");
+    skipScaleFramework:
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
@@ -1115,7 +1114,7 @@ namespace sclc
         if (!Main.options.noScaleFramework) {
             auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {
                 std::vector<std::string> mods;
-                for (auto config : Main.options.mapFrameworkConfigs) {
+                for (auto config : Main.options.indexDrgFiles) {
                     auto modules = config.second->getCompound("modules");
                     if (modules) {
                         auto list = modules->getList(moduleName);
@@ -1125,7 +1124,7 @@ namespace sclc
                                 if (!find.success) {
                                     return std::vector<std::string>();
                                 }
-                                auto file = find.in;
+                                auto file = find.location.file;
                                 mods.push_back(file);
                             }
                             break;
@@ -1190,7 +1189,7 @@ namespace sclc
 
             FPResult importResult = Main.tokenizer->tryImports();
             if (!importResult.success) {
-                std::cerr << Color::BOLDRED << "Include Error: " << importResult.in << ":" << importResult.line << ":" << importResult.column << ": " << importResult.message << std::endl;
+                std::cerr << Color::BOLDRED << "Include Error: " << importResult.location.file << ":" << importResult.location.line << ":" << importResult.location.column << ": " << importResult.message << std::endl;
                 return 1;
             }
 
@@ -1280,7 +1279,6 @@ namespace sclc
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
 #endif
         cflags.push_back("-lScaleRuntime");
-        cflags.push_back("-lgc");
 
         std::string cmd = "";
         for (std::string& s : cflags) {

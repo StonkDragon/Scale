@@ -70,26 +70,6 @@ expect foreign function fmax(:float, :float): float
 expect foreign function fmin(:float, :float): float
 expect foreign function fma(:float, :float, :float): float
 
-deprecated![since: "23.5", replacement: "float::isInfinite"]
-function isInfinite(x: float): bool
-  x float::isInfinite return
-end
-
-deprecated![since: "23.5", replacement: "float::isNaN"]
-function isNaN(x: float): bool
-  x float::isNaN return
-end
-
-deprecated![since: "23.5", replacement: "float::isFinite"]
-function isFinite(x: float): bool
-  x float::isFinite return
-end
-
-deprecated![since: "23.5", replacement: "float::isNotNaN"]
-function isNotNaN(x: float): bool
-  x float::isNotNaN return
-end
-
 function random(): int
   unsafe
     __c_rand 32 << __c_rand | return

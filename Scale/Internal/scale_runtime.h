@@ -80,10 +80,6 @@ extern "C" {
 #define _scl_macro_to_string_(x) # x
 #define _scl_macro_to_string(x) _scl_macro_to_string_(x)
 
-#define system_allocate(size)				malloc(size)
-#define system_free(_ptr)					free(_ptr)
-#define system_realloc(_ptr, size)			realloc(_ptr, size)
-
 // Scale expects this function
 #define expect
 
@@ -177,42 +173,60 @@ extern "C" {
 #endif
 #endif
 
-#define SCL_int_MAX			INT64_MAX
-#define SCL_int_MIN			INT64_MIN
-#define SCL_uint_MAX		UINT64_MAX
-#define SCL_uint_MIN		((scl_uint) 0)
-
 typedef void*				scl_any;
 
-#define SCL_INT_HEX_FMT		"%lx"
-#define SCL_PTR_HEX_FMT		"0x%016lx"
+#if __SIZEOF_LONG__ == 8
+typedef long				scl_int;
+typedef unsigned long		scl_uint;
 #define SCL_INT_FMT			"%ld"
 #define SCL_UINT_FMT		"%lu"
+#define SCL_INT_HEX_FMT		"%lx"
+#define SCL_PTR_HEX_FMT		"0x%016lx"
+#elif __SIZEOF_LONG_LONG__ == 8
+typedef long long			scl_int;
+typedef unsigned long long	scl_uint;
+#define SCL_INT_FMT			"%lld"
+#define SCL_UINT_FMT		"%llu"
+#define SCL_INT_HEX_FMT		"%llx"
+#define SCL_PTR_HEX_FMT		"0x%016llx"
+#else
+#error "Can't find a 64-bit integer type"
+#endif
 
-typedef long				scl_int;
-typedef size_t				scl_uint;
-typedef scl_int				scl_bool;
+#define SCL_int_MIN			((1L << (sizeof(scl_int) * 8 - 1)) - 1)
+#define SCL_int_MAX			 (1L << (sizeof(scl_int) * 8 - 1))
+#define SCL_uint_MIN		((scl_uint) 0)
+#define SCL_uint_MAX		((scl_uint) -1)
+
+#if __SIZEOF_DOUBLE__ == 8
 typedef double 				scl_float;
-typedef scl_any				mutex_t;
-typedef scl_any				_scl_thread_t;
+#elif __SIZEOF_LONG_DOUBLE__ == 8
+typedef long double			scl_float;
+#elif __SIZEOF_FLOAT__ == 8
+typedef float				scl_float;
+#else
+#error "Can't find a 64-bit floating point type"
+#endif
+
+typedef scl_int				scl_bool;
 
 typedef struct scale_string* scl_str;
 
-#define SCL_int64_MAX		INT64_MAX
-#define SCL_int64_MIN		INT64_MIN
-#define SCL_int32_MAX		INT32_MAX
-#define SCL_int32_MIN		INT32_MIN
-#define SCL_int16_MAX		INT16_MAX
-#define SCL_int16_MIN		INT16_MIN
-#define SCL_int8_MAX		INT8_MAX
-#define SCL_int8_MIN		INT8_MIN
-#define SCL_uint64_MAX		UINT64_MAX
+#define SCL_int64_MAX		((1LL << (sizeof(scl_int64) * 8 - 1)) - 1)
+#define SCL_int64_MIN		 (1LL << (sizeof(scl_int64) * 8 - 1))
+#define SCL_int32_MAX		((1 << (sizeof(scl_int32) * 8 - 1)) - 1)
+#define SCL_int32_MIN		 (1 << (sizeof(scl_int32) * 8 - 1))
+#define SCL_int16_MAX		((1 << (sizeof(scl_int16) * 8 - 1)) - 1)
+#define SCL_int16_MIN		 (1 << (sizeof(scl_int16) * 8 - 1))
+#define SCL_int8_MAX		((1 << (sizeof(scl_int8) * 8 - 1)) - 1)
+#define SCL_int8_MIN		 (1 << (sizeof(scl_int8) * 8 - 1))
+#define SCL_uint64_MAX		((scl_uint64) -1)
 #define SCL_uint64_MIN		((scl_uint64) 0)
-#define SCL_uint32_MAX		UINT32_MAX
+#define SCL_uint32_MAX		((scl_uint32) -1)
 #define SCL_uint32_MIN		((scl_uint32) 0)
-#define SCL_uint16_MAX		UINT16_MAX
+#define SCL_uint16_MAX		((scl_uint16) -1)
 #define SCL_uint16_MIN		((scl_uint16) 0)
-#define SCL_uint8_MAX		UINT8_MAX
+#define SCL_uint8_MAX		((scl_uint8) -1)
 #define SCL_uint8_MIN		((scl_uint8) 0)
 
 typedef long long			scl_int64;
@@ -245,7 +259,7 @@ typedef struct TypeInfo {
 struct scale_string {
 	const _scl_lambda* const			$fast;
 	const TypeInfo* const				$statics;
-	const mutex_t						$mutex;
+	const scl_any						$mutex;
 	scl_int8*							data;
 	scl_int								length;
 	scl_int								hash;
@@ -272,6 +286,12 @@ struct scale_string {
 #define SCL_OS_NAME "Classic Mac OS"
 #elif defined(__APPLE__) && defined(__MACH__)
 #define SCL_OS_NAME "macOS"
+#elif defined(__APPLE__) && defined(__IOS__)
+#define SCL_OS_NAME "iOS"
+#elif defined(__APPLE__) && defined(__TVOS__)
+#define SCL_OS_NAME "tvOS"
+#elif defined(__APPLE__) && defined(__WATCHOS__)
+#define SCL_OS_NAME "watchOS"
 #elif defined(__minix)
 #define SCL_OS_NAME "MINIX"
 #elif defined(__MSDOS__)
@@ -298,12 +318,12 @@ typedef union _scl_frame {
 	struct {
 		_scl_lambda*	$fast;
 		TypeInfo*		$statics;
-		mutex_t			$mutex;
+		scl_any			$mutex;
 	}*					o;
 	struct {
 		_scl_lambda*	$fast;
 		TypeInfo*		$statics;
-		mutex_t			$mutex;
+		scl_any			$mutex;
 		scl_int			__tag;
 		scl_any			__value;
 	}*					u;
@@ -311,7 +331,10 @@ typedef union _scl_frame {
 } _scl_frame_t;
 
 // Create a new instance of a struct
-#define ALLOC(_type)	({ extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); (scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); })
+#define ALLOC(_type)	({ \
+	extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); \
+	(scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); \
+})
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
@@ -329,11 +352,17 @@ struct _scl_backtrace {
 	const scl_int8* func_name;
 };
 
+struct memory_layout {
+	scl_int32 marker;
+	scl_int allocation_size;
+	scl_int8 is_instance:4;
+	scl_int8 is_array:4;
+};
+
+typedef struct memory_layout memory_layout_t;
+
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
-
-#define TRY			struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
-						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 // Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
@@ -346,15 +375,23 @@ struct _scl_backtrace {
 #define TRACE_MARKER \
 					0xF7E8D9C0B1A28384ULL
 
+#define TRY			struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
+						if (setjmp(_scl_exception_handler.jmp) != 666)
+
 #define				SCL_BACKTRACE(_func_name) \
-						const struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = _func_name }
+						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { TRACE_MARKER }; __scl_backtrace_cur.func_name = _func_name;
 
 void				_scl_trace_remove(const struct _scl_backtrace*);
 
 #define				SCL_FUNCTION_LOCK(_obj) \
-						const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock))) = _obj; Process$lock((volatile scl_any) __scl_lock_obj)
+						const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock_ptr))) = _obj; _scl_lock(__scl_lock_obj)
 
-void				_scl_unlock(void* lock_ptr);
+void				_scl_unlock_ptr(void* lock_ptr);
+
+#define				SCL_AUTO_DELETE \
+						__attribute__((cleanup(_scl_delete_ptr)))
+
+void				_scl_delete_ptr(void* ptr);
 
 #define				SCL_ASSUME(val, what, ...) \
 						if (_scl_expect(!(val), 0)) { \
@@ -424,8 +461,27 @@ _scl_no_return void	_scl_throw(scl_any ex);
 _scl_constructor
 void				_scl_setup(void);
 
-scl_str				_scl_create_string(const scl_int8* data);
-scl_str				_scl_string_with_hash_len(const scl_int8* data, ID_t hash, scl_int len);
+#define				_scl_create_string(_data) ({ \
+							const scl_int8* _data_ = (scl_int8*) (_data); \
+							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
+							scl_str self = (scl_str) _scl_alloc_struct(sizeof(struct scale_string), &_scl_ti_str); \
+							self->data = (scl_int8*) (_data_); \
+							self->length = strlen((_data_)); \
+							self->hash = type_id((_data_)); \
+							self; \
+						})
+
+#define				_scl_string_with_hash_len(_data, _hash, _len) ({ \
+							const scl_int8* _data_ = (scl_int8*) (_data); \
+							scl_int _len_ = (scl_int) (_len); \
+							scl_int _hash_ = (scl_int) (_hash); \
+							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
+							scl_str self = (scl_str) _scl_alloc_struct(sizeof(struct scale_string), &_scl_ti_str); \
+							self->data = (scl_int8*) (_data_); \
+							self->length = (_len_); \
+							self->hash = (_hash_); \
+							self; \
+						})
 
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
@@ -433,19 +489,19 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 
-int					_scl_run(int argc, char** argv, mainFunc main, scl_int main_argc);
-
 const ID_t			type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
+scl_int				_scl_is_instance(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
-scl_any				_scl_c_arr_to_scl_array(scl_any arr[]);
+void				_scl_lock(scl_any obj);
+void				_scl_unlock(scl_any obj);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
@@ -461,11 +517,11 @@ scl_str				_scl_array_to_string(scl_any* arr);
 void				cxx_std_thread_join(scl_any thread);
 void				cxx_std_thread_delete(scl_any thread);
 void				cxx_std_thread_detach(scl_any thread);
-scl_any				cxx_std_thread_new();
+scl_any				cxx_std_thread_new(void);
 scl_any				cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args);
-void				cxx_std_this_thread_yield();
+void				cxx_std_this_thread_yield(void);
 
-scl_any				cxx_std_recursive_mutex_new();
+scl_any				cxx_std_recursive_mutex_new(void);
 void				cxx_std_recursive_mutex_delete(scl_any mutex);
 void				cxx_std_recursive_mutex_lock(scl_any mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any mutex);
@@ -541,6 +597,10 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #define _scl_and(a, b)			(a) && (b)
 #define _scl_or(a, b)			(a) || (b)
 #define _scl_not(a)				!(a)
+#define _scl_at(a)				(*((a)))
+#define _scl_inc(a)				(++(a))
+#define _scl_dec(a)				(--(a))
+
 
 #if !defined(__CHAR_BIT__)
 #define __CHAR_BIT__ 8

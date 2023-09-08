@@ -1,3 +1,6 @@
+import std.Result
+import std.Option
+
 # Example Union
 union Foo
     SomeValue: str
@@ -9,7 +12,7 @@ function foo(f: Foo): none
     f puts
 
     f switch
-        # This binds the contained value to the variable `s`
+        # This binds the contained value to the variable `i`
         case SomeValue(i: int)
             i puts
         esac

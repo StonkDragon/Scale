@@ -1,22 +1,18 @@
 #pragma once
-#define transpilerError(msg, _at)          \
-    FPResult err;                          \
-    err.success = false;                   \
-    err.line = body.at(_at).line;     \
-    err.column = body.at(_at).column; \
-    err.in = body.at(_at).file;       \
-    err.value = body.at(_at).value;   \
-    err.type = body.at(_at).type;     \
+#define transpilerError(msg, _at)         \
+    FPResult err;                         \
+    err.success = false;                  \
+    err.location = body.at(_at).location; \
+    err.value = body.at(_at).value;       \
+    err.type = body.at(_at).type;         \
     err.message = msg
 
 #define transpilerErrorTok(msg, tok) \
     FPResult err;                    \
     err.success = false;             \
-    err.line = (tok).line;      \
-    err.column = (tok).column;  \
-    err.in = (tok).file;        \
-    err.value = (tok).value;    \
-    err.type = (tok).type;      \
+    err.location = (tok).location;   \
+    err.value = (tok).value;         \
+    err.type = (tok).type;           \
     err.message = msg
 #define LOAD_PATH(path, type)                                                          \
     if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing") \
@@ -80,8 +76,8 @@
         (void) result
 #define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
 #define typePop do { if (typeStack.size()) { typeStack.pop(); } } while (0)
-#define safeInc() do { if (++i >= body.size()) { std::cerr << body.back().file << ":" << body.back().line << ":" << body.back().column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } } while (0)
-#define safeIncN(n) do { if ((i + n) >= body.size()) { std::cerr << body.back().file << ":" << body.back().line << ":" << body.back().column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } i += n; } while (0)
+#define safeInc() do { if (++i >= body.size()) { std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } } while (0)
+#define safeIncN(n) do { if ((i + n) >= body.size()) { std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } i += n; } while (0)
 #define THIS_INCREMENT_IS_CHECKED ++i;
 
 namespace sclc {

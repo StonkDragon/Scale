@@ -10,53 +10,11 @@ extern "C" {
 
 #define wrap extern "C"
 
-typedef struct Struct_SclObject {
-	_scl_lambda*	$fast;
-	TypeInfo*		$statics;
-	mutex_t			$mutex;
-}* scl_SclObject;
-
-typedef struct Struct_Exception {
-	struct Struct_SclObject _super;
-	scl_str msg;
-	scl_any stackTrace;
-	scl_str errno_str;
-}* scl_Exception;
-
-typedef struct Struct_ThreadException {
-    struct Struct_SclObject _super;
-	scl_str msg;
-	scl_any stackTrace;
-	scl_str errno_str;
-}* scl_ThreadException;
-
-typedef struct Struct_MutexError {
-    struct Struct_SclObject _super;
-    scl_str msg;
-    scl_any stackTrace;
-    scl_str errno_str;
-}* scl_MutexError;
-
-typedef struct Struct_OutOfMemoryError {
-    struct Struct_SclObject _super;
-    scl_str msg;
-    scl_any stackTrace;
-    scl_str errno_str;
-}* scl_OutOfMemoryError;
-
-// Constructs a new instance of the given Scale exception from the given C++ exception.
-#define INTO(_scl_ex, _cxx_ex) ({ \
-    scl_##_scl_ex _e = ALLOC(_scl_ex); \
-    virtual_call(_e, "init()V;"); \
-    _e->msg = str_of_exact(strdup((_cxx_ex).what())); \
-    _e; \
-})
-
 wrap void cxx_std_thread_join(scl_any thread) {
     try {
         ((std::thread*) thread)->join();
     } catch(const std::system_error& e) {
-        _scl_throw(INTO(ThreadException, e));
+        _scl_runtime_error(EX_THREAD_ERROR, "std::thread::join failed: %s\n", e.what());
     }
 }
 wrap void cxx_std_thread_delete(scl_any thread) {
@@ -66,14 +24,14 @@ wrap void cxx_std_thread_detach(scl_any thread) {
     try {
         ((std::thread*) thread)->detach();
     } catch(const std::system_error& e) {
-        _scl_throw(INTO(ThreadException, e));
+        _scl_runtime_error(EX_THREAD_ERROR, "std::thread::detach failed: %s\n", e.what());
     }
 }
-wrap scl_any cxx_std_thread_new() {
+wrap scl_any cxx_std_thread_new(void) {
     try {
         return (scl_any) new std::thread();
     } catch(const std::bad_alloc& e) {
-        _scl_throw(INTO(OutOfMemoryError, e));
+        _scl_runtime_error(EX_BAD_PTR, "std::thread::new failed: %s\n", e.what());
     }
 }
 wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
@@ -94,22 +52,22 @@ wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
             args
         );
     } catch(const std::system_error& e) {
-        _scl_throw(INTO(ThreadException, e));
+        _scl_runtime_error(EX_THREAD_ERROR, "std::thread::new failed: %s\n", e.what());
     } catch(const std::bad_alloc& e) {
-        _scl_throw(INTO(OutOfMemoryError, e));
+        _scl_runtime_error(EX_BAD_PTR, "std::thread::new failed: %s\n", e.what());
     }
 }
-wrap void cxx_std_this_thread_yield() {
+wrap void cxx_std_this_thread_yield(void) {
     std::this_thread::yield();
 }
 
-wrap scl_any cxx_std_recursive_mutex_new() {
+wrap scl_any cxx_std_recursive_mutex_new(void) {
     try {
         return (scl_any) new std::recursive_mutex();
     } catch(const std::system_error& e) {
-        _scl_throw(INTO(MutexError, e));
+        _scl_runtime_error(EX_THREAD_ERROR, "std::recursive_mutex::new failed: %s\n", e.what());
     } catch(const std::bad_alloc& e) {
-        _scl_throw(INTO(OutOfMemoryError, e));
+        _scl_runtime_error(EX_BAD_PTR, "std::recursive_mutex::new failed: %s\n", e.what());
     }
 }
 wrap void cxx_std_recursive_mutex_delete(scl_any mutex) {
@@ -119,7 +77,7 @@ wrap void cxx_std_recursive_mutex_lock(scl_any mutex) {
     try {
         ((std::recursive_mutex*) mutex)->lock();
     } catch(const std::system_error& e) {
-        _scl_throw(INTO(MutexError, e));
+        _scl_runtime_error(EX_THREAD_ERROR, "std::recursive_mutex::lock failed: %s\n", e.what());
     }
 }
 wrap void cxx_std_recursive_mutex_unlock(scl_any mutex) {

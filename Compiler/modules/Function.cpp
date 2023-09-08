@@ -81,9 +81,9 @@ std::string Function::finalName() {
                "$" +
                std::to_string(id(name.c_str())) +
                "$" +
-               std::to_string(id(name_token.file.c_str())) +
+               std::to_string(id(name_token.location.file.c_str())) +
                "$" +
-               std::to_string(name_token.line);
+               std::to_string(name_token.location.line);
     }
     return name;
 }

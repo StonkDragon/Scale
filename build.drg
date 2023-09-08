@@ -1,5 +1,5 @@
 VERSION: "23.9";
-SCL_ROOT_DIR: if<os> (windows) { "C:\\Scale"; } else { "/opt"; };
+SCL_ROOT_DIR: "/opt";
 
 build: {
   incrementalBuild: "true";
@@ -16,7 +16,6 @@ build: {
     "Main.cpp";
     "modules/SyntaxTree.cpp";
     "modules/Parser.cpp";
-    "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
@@ -45,9 +44,10 @@ build: {
   ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
-    "sudo rm -rf /opt/Scale/$(VERSION)";
+    "sudo rm -rf /opt/Scale/$(VERSION)/Frameworks";
+    "sudo rm -rf /opt/Scale/$(VERSION)/Internal/libScaleRuntime*";
     "sudo mkdir -p /opt/Scale";
-    "sudo cp -r Scale /opt/Scale/$(VERSION)";
+    "sudo cp -r Scale/* /opt/Scale/$(VERSION)";
     "sudo chmod -R 777 /opt/Scale";
   ];
   postBuild: [
@@ -75,7 +75,6 @@ install: {
     "Main.cpp";
     "modules/SyntaxTree.cpp";
     "modules/Parser.cpp";
-    "modules/TokenHandlers.cpp";
     "modules/Tokenizer.cpp";
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
@@ -100,7 +99,7 @@ install: {
     "-O2";
   ];
   preBuild: [
-    "rm -rf /opt/Scale/$(VERSION)";
+    "sudo rm -rf /opt/Scale/$(VERSION)";
     "sudo mkdir -p /opt/Scale";
     "sudo chmod -R 777 /opt/Scale";
     "cp -r Scale /opt/Scale/$(VERSION)";

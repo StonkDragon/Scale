@@ -22,7 +22,8 @@ final static sealed struct FmtIO
   end
 
   function puts(fmt: str, args: varargs): none
-    args:iterate => decl argIterator: ArrayIterator
+    0 => decl current: int
+    args:size => decl size: int
     for i in 0 to fmt:size do
       fmt[i] => decl c: int8
       if c '%' == then
@@ -31,10 +32,11 @@ final static sealed struct FmtIO
         if c '%' == then
           '%' FmtIO::putchar
         fi
-        if argIterator:hasNext ! then
+        if current size >= then
           "Not enough arguments for format string" InvalidArgumentException::new throw
         fi
-        argIterator:next => decl arg: any
+        args[current] => decl arg: any
+        current++ => current
         if c 's' == c 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
         elif c 'f' == then
@@ -48,6 +50,5 @@ final static sealed struct FmtIO
         c FmtIO::putchar
       fi
     done
-    argIterator any::delete
   end
 end

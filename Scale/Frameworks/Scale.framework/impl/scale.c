@@ -5,7 +5,7 @@ ID_t SclObjectHash; // SclObject
 typedef struct Struct {
 	_scl_lambda*	vtable;
 	TypeInfo*		statics;
-	mutex_t			mutex;
+	scl_any			mutex;
 } Struct;
 
 typedef struct Struct_SclObject {
@@ -83,7 +83,7 @@ struct Struct_str {
 typedef struct Struct_Thread {
 	Struct rtFields;
 	_scl_lambda function;
-	_scl_thread_t nativeThread;
+	scl_any nativeThread;
 	scl_str name;
 }* scl_Thread;
 
@@ -139,7 +139,6 @@ scl_Array Process$stackTrace(void) {
 		stack_top += iteration_direction;
 	}
 
-	// reverse the array and remove the first element
 	scl_int8* tmp;
 	for (scl_int i = 0; i < arr->count / 2; i++) {
 		tmp = arr->values[i];
@@ -152,7 +151,7 @@ scl_Array Process$stackTrace(void) {
 }
 
 scl_bool Process$gcEnabled(void) {
-	SCL_BACKTRACE("Process:gcEnabled(): bool");
+	SCL_BACKTRACE("Process::gcEnabled(): bool");
 	return !GC_is_disabled();
 }
 
@@ -219,7 +218,7 @@ void Thread$detach0(scl_Thread self) {
 }
 
 scl_Thread Thread$currentThread(void) {
-	SCL_BACKTRACE("Thread:currentThread(): Thread");
+	SCL_BACKTRACE("Thread::currentThread(): Thread");
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
 		_currentThread->name = str_of_exact("Main Thread");
@@ -325,6 +324,16 @@ scl_any s_memcpy(scl_any dest, scl_any src, scl_int n) {
 
 scl_int8* s_strcpy(scl_int8* dest, scl_int8* src) {
 	return s_memcpy(dest, src, strlen(src) + 1);
+}
+
+scl_any _create_cast_error(scl_int8* msg) {
+	typedef struct Struct_CastError {
+		struct Struct_Exception self;
+	}* scl_CastError;
+
+	scl_CastError e = ALLOC(CastError);
+	virtual_call(e, "init(s;)V;", str_of_exact(msg));
+	return e;
 }
 
 _scl_constructor

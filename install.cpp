@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
     if (!SOFT_DEPEND("dragon help")) {
         CMD("git", "clone", "https://github.com/StonkDragon/Dragon");
         std::filesystem::path rootPath = std::filesystem::current_path();
-        std::filesystem::current_path("Dragon");
+        std::filesystem::current_path(std::string("Dragon"));
         CMD("clang", "-o", "nobuild", "nobuild.c");
         CMD("./nobuild");
         CMD("build/dragon", "build");
