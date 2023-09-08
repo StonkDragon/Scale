@@ -3,12 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <signal.h>
 
 #if defined(_WIN32)
 #include <windows.h>
 #include <io.h>
-#include <fcntl.h>
-#include <synchapi.h>
 #else
 #include <unistd.h>
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
