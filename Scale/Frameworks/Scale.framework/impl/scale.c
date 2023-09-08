@@ -128,9 +128,12 @@ scl_Array Process$stackTrace(void) {
 
 	scl_int i = 0;
 	while (stack_top != stack_bottom) {
+		printf("stack_top: %p\n", stack_top);
+		printf("*stack_top: %p\n", *stack_top);
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
+				printf("bt->func_name: %s\n", bt->func_name);
 				arr->values[i] = ({
 					const scl_int8 *_data_ = (scl_int8*) ((bt->func_name));
 					extern const TypeInfo _scl_ti_str __asm("typeinfo for str");
