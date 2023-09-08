@@ -131,7 +131,15 @@ scl_Array Process$stackTrace(void) {
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
-				arr->values[i] = str_of_exact(bt->func_name);
+				arr->values[i] = ({
+					const scl_int8 *_data_ = (scl_int8*) ((bt->func_name));
+					extern const TypeInfo _scl_ti_str __asm("typeinfo for str");
+					scl_str self = (scl_str) _scl_alloc_struct(sizeof(struct scale_string), &_scl_ti_str);
+					self->data = (scl_int8*) (_data_);
+					self->length = strlen((_data_));
+					self->hash = type_id((_data_));
+					self;
+				});
 			}
 			i++;
 		}
