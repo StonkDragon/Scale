@@ -45,6 +45,7 @@ namespace sclc
     std::string Color::MAGENTA = "\033[35m";
     std::string Color::CYAN = "\033[36m";
     std::string Color::WHITE = "\033[37m";
+    std::string Color::GRAY = "\033[30m";
     std::string Color::BOLDBLACK = "\033[1m\033[30m";
     std::string Color::BOLDRED = "\033[1m\033[31m";
     std::string Color::BOLDGREEN = "\033[1m\033[32m";
@@ -53,7 +54,57 @@ namespace sclc
     std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
     std::string Color::BOLDCYAN = "\033[1m\033[36m";
     std::string Color::BOLDWHITE = "\033[1m\033[37m";
+    std::string Color::BOLDGRAY = "\033[1m\033[30m";
+    std::string Color::UNDERLINE = "\033[4m";
+    std::string Color::BOLD = "\033[1m";
+    std::string Color::REVERSE = "\033[7m";
+    std::string Color::HIDDEN = "\033[8m";
+    std::string Color::ITALIC = "\033[3m";
+    std::string Color::STRIKETHROUGH = "\033[9m";
     #endif
+
+    Tokenizer* Main::tokenizer = nullptr;
+    SyntaxTree* Main::lexer = nullptr;
+    Parser* Main::parser = nullptr;
+    std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
+    std::vector<std::string> Main::frameworks = std::vector<std::string>();
+    Version* Main::version = new Version(0, 0, 0);
+    long long Main::tokenHandleTime = 0;
+    long long Main::writeHeaderTime = 0;
+    long long Main::writeContainersTime = 0;
+    long long Main::writeStructsTime = 0;
+    long long Main::writeGlobalsTime = 0;
+    long long Main::writeFunctionHeadersTime = 0;
+    long long Main::writeTablesTime = 0;
+    long long Main::writeFunctionsTime = 0;
+    bool Main::options::noMain = false;
+    bool Main::options::Werror = false;
+    bool Main::options::dumpInfo = false;
+    bool Main::options::printDocs = false;
+    bool Main::options::debugBuild = false;
+    bool Main::options::printCflags = false;
+    size_t Main::options::stackSize = 0;
+    size_t Main::options::errorLimit = 20;
+    bool Main::options::binaryHeader = false;
+    bool Main::options::assembleOnly = false;
+    bool Main::options::transpileOnly = false;
+    std::string Main::options::outfile = "";
+    bool Main::options::preprocessOnly = false;
+    bool Main::options::noScaleFramework = false;
+    std::string Main::options::optimizer = "O0";
+    bool Main::options::dontSpecifyOutFile = false;
+    std::string Main::options::printDocFor = "";
+    size_t Main::options::docPrinterArgsStart = 0;
+    std::string Main::options::docsIncludeFolder = "";
+    std::string Main::options::operatorRandomData = "";
+    std::vector<std::string> Main::options::files = std::vector<std::string>();
+    std::vector<std::string> Main::options::features = std::vector<std::string>();
+    std::vector<std::string> Main::options::includePaths = std::vector<std::string>();
+    std::vector<std::string> Main::options::filesFromCommandLine = std::vector<std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapFrameworkDocfiles = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapFrameworkIncludeFolders = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapIncludePathsToFrameworks = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, DragonConfig::CompoundEntry*> Main::options::indexDrgFiles = std::unordered_map<std::string, DragonConfig::CompoundEntry*>();
 
     std::vector<std::string> keywords({
         "import",
@@ -107,7 +158,6 @@ namespace sclc
 
     std::vector<Variable> vars;
     std::vector<size_t> var_indices;
-    _Main Main = _Main();
 
     void print_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
@@ -835,7 +885,7 @@ namespace sclc
     }
 
     bool featureEnabled(std::string feat) {
-        return contains<std::string>(Main.options.features, feat);
+        return contains<std::string>(Main::options::features, feat);
     }
 
     ID_t id(const char* data) {

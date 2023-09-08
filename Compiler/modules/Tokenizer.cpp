@@ -7,10 +7,12 @@
 
 #include "../headers/Common.hpp"
 
+#ifndef PATH_SEPARATOR
 #ifdef _WIN32
 #define PATH_SEPARATOR "\\"
 #else
 #define PATH_SEPARATOR "/"
+#endif
 #endif
 
 #define syntaxError(msg) \
@@ -531,19 +533,56 @@ namespace sclc
         }
     }
 
+    void Tokenizer::removeInvalidTokens() {
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type == tok_eof) {
+                tokens.erase(tokens.begin() + i);
+                i--;
+            }
+        }
+    }
+
+    std::string replaceCharWithChar(std::string in, char from, char to) {
+        std::string out = "";
+        out.reserve(in.size());
+        for (size_t i = 0; i < in.size(); i++) {
+            if (in[i] == from) {
+                out.push_back(to);
+            } else {
+                out.push_back(in[i]);
+            }
+        }
+        return out;
+    }
+
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || tokens[i].value != "import") continue;
+            if (tokens[i].type != tok_identifier) continue;
+            if (tokens[i].value != "import") continue;
 
             i++;
+            if (i >= (long) tokens.size()) {
+                FPResult r;
+                r.message = "Expected module name after import";
+                r.location = tokens[i - 1].location;
+                r.success = false;
+                return r;
+            }
             std::string moduleName = tokens[i].value;
             while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
                 i += 2;
                 moduleName += "." + tokens[i].value;
             }
+            if (moduleName.size() == 0) {
+                FPResult r;
+                r.message = "Expected module name after import";
+                r.location = tokens[i - 1].location;
+                r.success = false;
+                return r;
+            }
             bool found = false;
-            for (auto config : Main.options.indexDrgFiles) {
+            for (auto config : Main::options::indexDrgFiles) {
                 if (!config.second) continue;
 
                 auto modules = config.second->getCompound("modules");
@@ -566,23 +605,24 @@ namespace sclc
                     }
                     auto file = find.location.file;
                     file = std::filesystem::absolute(file).string();
-                    if (!contains(Main.options.files, file)) {
-                        Main.options.files.push_back(file);
+                    if (!contains(Main::options::files, file)) {
+                        Main::options::files.push_back(file);
                     }
                 }
                 break;
             }
             if (found) continue;
-            
-            std::string file = replaceAll(moduleName, R"(\.)", PATH_SEPARATOR);
+
+            std::string file = replaceCharWithChar(moduleName, '.', PATH_SEPARATOR[0]);
             file += ".scale";
             FPResult r = findFileInIncludePath(file);
             if (!r.success) {
+                r.location = tokens[i].location;
                 return r;
             }
             file = std::filesystem::absolute(r.location.file).string();
-            if (!contains(Main.options.files, file)) {
-                Main.options.files.push_back(file);
+            if (!contains(Main::options::files, file)) {
+                Main::options::files.push_back(file);
             }
         }
         FPResult r;
@@ -591,9 +631,15 @@ namespace sclc
     }
 
     FPResult findFileInIncludePath(std::string file) {
-        for (std::string& path : Main.options.includePaths) {
-            using namespace std::filesystem;
-            if (!exists(path + PATH_SEPARATOR + file)) continue;
+        if (file.size() == 0 || file == ".scale") {
+            FPResult r;
+            r.success = false;
+            r.message = "Empty file name!";
+            r.location = SourceLocation("", 0, 0);
+            return r;
+        }
+        for (std::string& path : Main::options::includePaths) {
+            if (!std::filesystem::exists(path + PATH_SEPARATOR + file)) continue;
             FPResult r;
             r.success = true;
             if (path == "." || path == "./") {
@@ -606,6 +652,7 @@ namespace sclc
         FPResult r;
         r.success = false;
         r.message = "Could not find " + file + " on include path!";
+        r.location = SourceLocation(file, 0, 0);
         return r;
     }
 }

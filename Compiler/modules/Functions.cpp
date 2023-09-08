@@ -131,7 +131,7 @@ namespace sclc {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + cLabel + "\"";
         }
 
-        if (!f->isMethod && !Main.options.noMain && f->name == "main") {
+        if (!f->isMethod && !Main::options::noMain && f->name == "main") {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"main\"";
         }
 
@@ -377,7 +377,7 @@ namespace sclc {
             append("_scl_popn(%zu);\n", argc);
         }
         std::string args = generateArgumentsForFunction(result, self);
-        if (Main.options.debugBuild) {
+        if (Main::options::debugBuild) {
             append("CAST0((localstack - 1)->v, %s, 0x%x);\n", self->member_type.c_str(), id(self->member_type.c_str()));
         }
         if (self->return_type.size() && self->return_type.front() == '*') {

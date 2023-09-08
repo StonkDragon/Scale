@@ -50,7 +50,7 @@
 #endif
 
 #ifndef SCL_ROOT_DIR
-#define SCL_ROOT_DIR "/usr/local"
+#define SCL_ROOT_DIR "/opt"
 #endif
 
 #if defined(__APPLE__)
@@ -87,13 +87,11 @@ namespace sclc
         std::cout << "  -no-main             Do not check for main Function" << std::endl;
         std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
         std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
-        std::cout << "  -run                 Run the compiled program" << std::endl;
         std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
         std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
-        std::cout << "  -no-minify           Add extra stack trace information" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
         std::cout << "  -stack-size <sz>     Sets the starting stack size. Must be a multiple of 2" << std::endl;
@@ -161,7 +159,7 @@ namespace sclc
     }
 
     bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
-        for (auto path : Main.options.includePaths) {
+        for (auto path : Main::options::includePaths) {
             if (fileExists(path + "/" + framework + ".framework/index.drg")) {
                 DragonConfig::ConfigParser parser;
                 DragonConfig::CompoundEntry* root = parser.parse(path + "/" + framework + ".framework/index.drg");
@@ -170,7 +168,7 @@ namespace sclc
                     return false;
                 }
                 root = root->getCompound("framework");
-                Main.options.indexDrgFiles[framework] = root;
+                Main::options::indexDrgFiles[framework] = root;
                 DragonConfig::ListEntry* implementers = root->getList("implementers");
                 DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                 DragonConfig::ListEntry* depends = root->getList("depends");
@@ -185,7 +183,7 @@ namespace sclc
                 
                 DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
                 std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
-                Main.options.mapFrameworkIncludeFolders[framework] = headerDir;
+                Main::options::mapFrameworkIncludeFolders[framework] = headerDir;
                 
                 DragonConfig::StringEntry* implDirTag = root->getString("implDir");
                 std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
@@ -194,7 +192,7 @@ namespace sclc
                 std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
                 DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main.options.mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + "/" + framework + ".framework/" + docfileTag->getValue();
+                Main::options::mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + "/" + framework + ".framework/" + docfileTag->getValue();
 
                 Version ver = Version(version);
                 Version compilerVersion = Version(VERSION);
@@ -224,16 +222,16 @@ namespace sclc
                     tmpFlags.push_back(flag);
                 }
 
-                Main.frameworks.push_back(framework);
+                Main::frameworks.push_back(framework);
 
                 if (headerDir.size() > 0) {
-                    Main.options.includePaths.push_back(path + "/" + framework + ".framework/" + headerDir);
-                    Main.options.mapIncludePathsToFrameworks[framework] = path + "/" + framework + ".framework/" + headerDir;
+                    Main::options::includePaths.push_back(path + "/" + framework + ".framework/" + headerDir);
+                    Main::options::mapIncludePathsToFrameworks[framework] = path + "/" + framework + ".framework/" + headerDir;
                 }
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize; i++) {
                     std::string implementer = implementers->getString(i)->getValue();
-                    if (!Main.options.assembleOnly) {
+                    if (!Main::options::assembleOnly) {
                         bool isCppFile = strends(implementer, ".cpp") || strends(implementer, ".c++");
                         if (!hasCppFiles && isCppFile) {
                             hasCppFiles = true;
@@ -243,7 +241,7 @@ namespace sclc
                 }
                 for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
                     std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
-                    Main.frameworkNativeHeaders.push_back(header);
+                    Main::frameworkNativeHeaders.push_back(header);
                 }
                 return true;
             }
@@ -326,7 +324,7 @@ namespace sclc
                 e.name = key;
                 e.module = currentModule;
                 implementedAt = replaceAll(implementedAt, R"(\{scaleFolder\})", scaleFolder);
-                implementedAt = replaceAll(implementedAt, R"(\{framework\})", Main.options.printDocFor);
+                implementedAt = replaceAll(implementedAt, R"(\{framework\})", Main::options::printDocFor);
                 implementedAt = replaceAll(implementedAt, R"(\{module\})", currentModule);
                 implementedAt = replaceAll(implementedAt, R"(\{frameworkPath\})", parentPath);
                 e.file = implementedAt;
@@ -352,10 +350,10 @@ namespace sclc
     auto docHandler(std::vector<std::string> args) {
         Documentation docs;
         std::vector<std::string> tmpFlags;
-        std::vector<std::string> frameworks = {Main.options.printDocFor};
+        std::vector<std::string> frameworks = {Main::options::printDocFor};
         bool hasCppFiles;
         Version FrameworkMinimumVersion(FRAMEWORK_VERSION_REQ);
-        if (!checkFramework(Main.options.printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {
+        if (!checkFramework(Main::options::printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {
             return 1;
         }
         
@@ -371,7 +369,7 @@ namespace sclc
             false
         };
 
-        for (size_t i = Main.options.docPrinterArgsStart + 1; i < args.size(); i++) {
+        for (size_t i = Main::options::docPrinterArgsStart + 1; i < args.size(); i++) {
             std::string arg = args[i];
             if (arg == "find") {
                 if (i + 1 < args.size()) {
@@ -395,7 +393,7 @@ namespace sclc
                 DocOps.categories = true;
             } else if (arg == "for") {
                 if (i + 1 < args.size()) {
-                    Main.options.printDocFor = args[i + 1];
+                    Main::options::printDocFor = args[i + 1];
                     i++;
                 } else {
                     std::cerr << "Error: for requires an argument" << std::endl;
@@ -417,16 +415,16 @@ namespace sclc
             std::cout << "" << std::endl;
             return 0;
         }
-        std::string file = Main.options.mapFrameworkDocfiles[Main.options.printDocFor];
-        std::string docFileFormat = Main.options.indexDrgFiles[Main.options.printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
+        std::string file = Main::options::mapFrameworkDocfiles[Main::options::printDocFor];
+        std::string docFileFormat = Main::options::indexDrgFiles[Main::options::printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
         if (file.size() == 0 || !fileExists(file)) {
-            std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' has no docfile!" << Color::RESET << std::endl;
+            std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' has no docfile!" << Color::RESET << std::endl;
             return 1;
         }
 
-        std::string includeFolder = Main.options.mapFrameworkIncludeFolders[Main.options.printDocFor];
-        Main.options.docsIncludeFolder = includeFolder;
+        std::string includeFolder = Main::options::mapFrameworkIncludeFolders[Main::options::printDocFor];
+        Main::options::docsIncludeFolder = includeFolder;
 
         if (docFileFormat == "markdown") {
             std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
@@ -439,7 +437,7 @@ namespace sclc
         }
 
         if (DocOps.categories) {
-            std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+            std::cout << "Documentation for " << Main::options::printDocFor << std::endl;
             std::cout << "Categories: " << std::endl;
 
             std::string current = "";
@@ -450,7 +448,7 @@ namespace sclc
             return 0;
         }
 
-        std::cout << "Documentation for " << Main.options.printDocFor << std::endl;
+        std::cout << "Documentation for " << Main::options::printDocFor << std::endl;
 
         std::string current = "";
         for (auto&& section : docs) {
@@ -538,69 +536,6 @@ namespace sclc
         return 0;
     }
 
-    std::string rtTypeToSclType(std::string rtType);
-
-    std::string demangleSymbol(std::string sym);
-
-    std::string demangleLambda(std::string sym) {
-        // "lambda[0@lambda[0@main()V;]()V;]()V;"
-        std::string subExpr = sym.substr(sym.find("[") + 1, sym.find_last_of("]") - sym.find("[") - 1);
-        std::string num = subExpr.substr(0, subExpr.find("@"));
-        std::string ofFunction = subExpr.substr(subExpr.find("@") + 1);
-
-        std::string args = sym.substr(("lambda[" + num + "@" + ofFunction + "]").size());
-        std::string returnType = args.substr(args.find(")") + 1, args.size() - args.find(")") - 2);
-        args = sym.substr(args.find("(") + 1, args.find(")") - args.find("(") - 1);
-        std::vector<std::string> argTypes = split(args, ";");
-        std::string demangled = "lambda(";
-        for (size_t i = 0; i < argTypes.size() - 1; i++) {
-            if (i)
-                demangled += ", ";
-            demangled += ":" + rtTypeToSclType(argTypes[i]);
-        }
-        demangled += "): " + rtTypeToSclType(returnType);
-        demangled += " #" + std::to_string(std::atoi(num.c_str()) + 1);
-        demangled += " in " + demangleSymbol(ofFunction);
-        return demangled;
-    }
-
-    std::string demangleSymbol(std::string sym) {
-        std::string varPrefix = TO_STRING(__USER_LABEL_PREFIX__) + std::string("Var_");
-        if (strstarts(sym, varPrefix) || strstarts(sym, "Var_")) {
-            if (strstarts(sym, varPrefix))
-                sym = sym.substr(varPrefix.size());
-            else
-                sym = sym.substr(4);
-            
-            sym = replaceAll(sym, "\\$", "::");
-            return sym;
-        }
-        if (strstarts(sym, TO_STRING(__USER_LABEL_PREFIX__))) {
-            sym = sym.substr(std::string(TO_STRING(__USER_LABEL_PREFIX__)).size());
-        }
-        if (strstarts(sym, "lambda[")) {
-            return demangleLambda(sym);
-        }
-        if (sym.find("(") == std::string::npos || sym.find(")") == std::string::npos) {
-            return sym;
-        }
-        std::string name = "";
-        if (!strstarts(sym, "(")) {
-            name = sym.substr(0, sym.find("("));
-        }
-        std::string returnType = sym.substr(sym.find(")") + 1, sym.size() - sym.find(")") - 2);
-        std::string args = sym.substr(sym.find("(") + 1, sym.find(")") - sym.find("(") - 1);
-        std::vector<std::string> argTypes = split(args, ";");
-        std::string demangled = name + "(";
-        for (size_t i = 0; i < argTypes.size() - 1; i++) {
-            if (i)
-                demangled += ", ";
-            demangled += ":" + rtTypeToSclType(argTypes[i]);
-        }
-        demangled += "): " + rtTypeToSclType(returnType);
-        return demangled;
-    }
-
     int compileRuntimeLib() {
         std::vector<std::string> libScaleCommand = {
             "clang",
@@ -660,7 +595,7 @@ namespace sclc
 
         std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME));
 
-        if (Main.options.debugBuild) {
+        if (Main::options::debugBuild) {
             libScaleCommand.push_back("-DSCL_DEBUG");
             libScaleCommand.push_back("-g");
             libScaleCommand.push_back("-O0");
@@ -716,31 +651,43 @@ namespace sclc
 
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
-            if (error.type > tok_char_literal) continue;
+            if (error.type >= tok_MAX) continue;
             if (error.location.line == 0) {
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
-            std::string colString = Color::BOLDMAGENTA;
-            std::cerr << colString << "Warning: " << Color::RESET << error.location.file << ":" << error.location.line << ":" << error.location.column << ": " << error.message << std::endl;
+            std::string colString;
+            if (error.isNote) {
+                colString = Color::BOLDGRAY;
+            } else {
+                colString = Color::BOLDMAGENTA;
+            }
+            std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
+            std::cerr <<
+                Color::BOLD <<
+                fileRelativeToCurrent <<
+                ":" << error.location.line <<
+                ":" << error.location.column <<
+                ": " << colString <<
+                (error.isNote ? "note" : "warning") <<
+                ": " << Color::RESET <<
+                (!error.isNote ? Color::BOLD : "") <<
+                error.message <<
+                Color::RESET <<
+                std::endl;
             i = 1;
             while (fgets(line, 500, f) != NULL) {
                 if (i == error.location.line) {
-                    std::cerr << colString << "> " << Color::RESET << replaceFirstAfter(line, error.value, Color::BOLDMAGENTA + error.value + Color::RESET, error.location.column) << Color::RESET;
-                } else if (i == error.location.line - 1 || i == error.location.line - 2) {
-                    if (strlen(line) > 0)
-                        std::cerr << "  " << line;
-                } else if (i == error.location.line + 1 || i == error.location.line + 2) {
-                    if (strlen(line) > 0)
-                        std::cerr << "  " << line;
+                    std::cerr << line << Color::RESET;
+                    std::cerr << std::string(error.location.column - 1, ' ') << Color::BOLDGREEN << "^" << Color::RESET << std::endl;
                 }
                 i++;
             }
@@ -750,24 +697,18 @@ namespace sclc
     }
 
     void logErrors(std::vector<FPResult>& errors) {
+        size_t errorCount = 0;
         for (FPResult error : errors) {
-            if (error.type > tok_char_literal) continue;
+            if (errorCount >= Main::options::errorLimit) {
+                std::cout << Color::BOLDRED << "Too many errors (" << errors.size() << "), aborting" << Color::RESET << std::endl;
+                break;
+            }
+            if (error.type >= tok_MAX) continue;
             std::string colorStr;
             ssize_t addAtCol = -1;
             std::string strToAdd = "";
             if (error.isNote) {
-                colorStr = Color::BOLDCYAN;
-                size_t i = error.message.find('\\');
-                if (i != std::string::npos) {
-                    std::string cmd = error.message.substr(i + 1);
-                    auto data = split(cmd, ";");
-                    error.message = error.message.substr(0, i);
-                    if (data[0] == "insertText") {
-                        strToAdd = Color::BOLDGREEN + data[1] + Color::RESET;
-                        auto pos = split(data[2], ":");
-                        addAtCol = std::atoi(pos[1].c_str()) - 1;
-                    }
-                }
+                colorStr = Color::BOLDGRAY;
             } else {
                 colorStr = Color::BOLDRED;
             }
@@ -777,32 +718,50 @@ namespace sclc
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
-            std::cerr << colorStr << (error.isNote ? "Note" : "Error") << ": " << Color::RESET << error.location.file << ":" << error.location.line << ":" << error.location.column << ": " << error.message << std::endl;
+            std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
+            std::cerr <<
+                Color::BOLD <<
+                fileRelativeToCurrent <<
+                ":" << error.location.line <<
+                ":" << error.location.column <<
+                ": " << colorStr <<
+                (error.isNote ? "note" : "error") <<
+                ": " << Color::RESET <<
+                (!error.isNote ? Color::BOLD : "") <<
+                error.message <<
+                Color::RESET <<
+                std::endl;
             i = 1;
             while (fgets(line, 500, f) != NULL) {
                 if (i == error.location.line) {
-                    if (strToAdd.size())
-                        std::cerr << colorStr << "> " << Color::RESET << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
-                    else
-                        std::cerr << colorStr << "> " << Color::RESET << replaceFirstAfter(line, error.value, colorStr + error.value + Color::RESET, error.location.column) << Color::RESET;
-                } else if (i == error.location.line - 1 || i == error.location.line - 2) {
-                    if (strlen(line) > 0)
-                        std::cerr << "  " << line;
-                } else if (i == error.location.line + 1 || i == error.location.line + 2) {
-                    if (strlen(line) > 0)
-                        std::cerr << "  " << line;
+                    if (strToAdd.size()) {
+                        std::cerr << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
+                    } else {
+                        std::cerr << line << Color::RESET;
+                    }
+                    std::cerr << std::string(error.location.column - 1, ' ') << Color::BOLDGREEN << "^" << Color::RESET << std::endl;
                 }
                 i++;
             }
             fclose(f);
             free(line);
+            errorCount++;
         }
+    }
+
+    template<typename T, typename Func>
+    size_t count_if(std::vector<T> vec, Func func) {
+        size_t count = 0;
+        for (const T& t : vec) {
+            if (func(t)) count++;
+        }
+        return count;
     }
 
     int main(std::vector<std::string> args) {
@@ -822,12 +781,12 @@ namespace sclc
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;
 
-        Main.options.includePaths.push_back(scaleFolder + "/Frameworks");
-        Main.options.includePaths.push_back(".");
+        Main::options::includePaths.push_back(scaleFolder + "/Frameworks");
+        Main::options::includePaths.push_back(".");
 
         if (args[0] == "scaledoc") {
-            Main.options.docPrinterArgsStart = 0;
-            Main.options.printDocFor = "Scale";
+            Main::options::docPrinterArgsStart = 0;
+            Main::options::printDocFor = "Scale";
             return docHandler(args);
         }
 
@@ -837,15 +796,16 @@ namespace sclc
         }
 
         srand(time(NULL));
-        Main.options.operatorRandomData = gen_random();
+        Main::options::operatorRandomData = gen_random();
         tmpFlags.reserve(args.size());
 
-        Main.version = new Version(std::string(VERSION));
+        Main::version = new Version(std::string(VERSION));
+        Main::options::errorLimit = 20;
 
         DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
         if (scaleConfig) {
             if (scaleConfig->hasMember("outfile"))
-                Main.options.outfile = outfile = scaleConfig->getString("outfile")->getValue();
+                Main::options::outfile = outfile = scaleConfig->getString("outfile")->getValue();
 
             if (scaleConfig->hasMember("compiler"))
                 compiler = scaleConfig->getString("compiler")->getValue();
@@ -863,19 +823,17 @@ namespace sclc
 
             if (scaleConfig->hasMember("includeFiles"))
                 for (size_t i = 0; i < scaleConfig->getList("includeFiles")->size(); i++)
-                    Main.frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
+                    Main::frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
             
             if (scaleConfig->hasMember("featureFlags"))
                 for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
-                    Main.options.features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
+                    Main::options::features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
             
-            Main.options.indexDrgFiles["/local"] = scaleConfig;
+            Main::options::indexDrgFiles["/local"] = scaleConfig;
         }
 
-        Main.options.minify = true;
-        Main.options.stackSize = 16;
+        Main::options::stackSize = 16;
 
-        size_t endArgs = args.size();
         for (size_t i = 1; i < args.size(); i++) {
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
                 hasCppFiles = true;
@@ -887,178 +845,162 @@ namespace sclc
                     continue;
                 }
                 std::string file = std::filesystem::absolute(args[i]).string();
-                if (!contains(Main.options.files, file)) {
-                    Main.options.files.push_back(file);
-                    Main.options.filesFromCommandLine.push_back(file);
+                if (!contains(Main::options::files, file)) {
+                    Main::options::files.push_back(file);
+                    Main::options::filesFromCommandLine.push_back(file);
                     hasFilesFromArgs = true;
                 }
-            } else {
-                if (args[i] == "--transpile" || args[i] == "-t") {
-                    Main.options.transpileOnly = true;
-                } else if (args[i] == "--help" || args[i] == "-h") {
-                    usage(args[0]);
-                    return 0;
-                } else if (args[i] == "-E") {
-                    Main.options.preprocessOnly = true;
-                } else if (args[i] == "-f") {
-                    if (i + 1 < args.size()) {
-                        std::string framework = args[i + 1];
-                        bool alreadyIncluded = false;
-                        for (auto f : frameworks) {
-                            if (f == framework) {
-                                alreadyIncluded = true;
-                            }
-                        }
-                        if (!alreadyIncluded)
-                            frameworks.push_back(framework);
-                        i++;
-                    } else {
-                        std::cerr << "Error: -f requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "-o") {
-                    if (i + 1 < args.size()) {
-                        outFileSpecified = true;
-                        Main.options.outfile = outfile = args[i + 1];
-                        i++;
-                    } else {
-                        std::cerr << "Error: -o requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "-S") {
-                    Main.options.assembleOnly = true;
-                    Main.options.dontSpecifyOutFile = true;
-                    tmpFlags.push_back("-S");
-                } else if (args[i] == "--no-main" || args[i] == "-no-main") {
-                    Main.options.noMain = true;
-                } else if (args[i] == "-no-minify") {
-                    Main.options.minify = false;
-                } else if (args[i] == "-v" || args[i] == "--version") {
-                    std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
-                    system((compiler + " -v").c_str());
-                    return 0;
-                } else if (args[i] == "-feat") {
-                    if (i + 1 < args.size()) {
-                        Main.options.features.push_back(args[i + 1]);
-                        i++;
-                    } else {
-                        std::cerr << "Error: -feat requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "--comp" || args[i] == "-compiler") {
-                    if (i + 1 < args.size()) {
-                        compiler = args[i + 1];
-                        i++;
-                    } else {
-                        std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "-run") {
-                    Main.options.doRun = true;
-                } else if (args[i] == "-debug") {
-                    Main.options.debugBuild = true;
-                    Main.options.minify = false;
-                    tmpFlags.push_back("-DSCL_DEBUG=1");
-                } else if (args[i] == "-cflags") {
-                    Main.options.printCflags = true;
-                    Main.options.noMain = true;
-                } else if (args[i] == "-makelib") {
-                    #if defined(__APPLE__)
-                    tmpFlags.push_back("-dynamiclib");
-                    #else
-                    tmpFlags.push_back("-shared");
-                    tmpFlags.push_back("-fPIC");
-                    #endif
-                    tmpFlags.push_back("-undefined");
-                    tmpFlags.push_back("dynamic_lookup");
-                    Main.options.noMain = true;
-                    tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
-                    if (!outFileSpecified)
-                    #if defined(__APPLE__)
-                        Main.options.outfile = outfile = "libout.dylib";
-                    #else
-                        Main.options.outfile = outfile = "libout.so";
-                    #endif
-                } else if (args[i] == "--dump-parsed-data" || args[i] == "-create-binary-header" || args[i] == "-create-module") {
-                    Main.options.dumpInfo = true;
-                    Main.options.binaryHeader = (args[i] == "-create-binary-header");
-                    if (!outFileSpecified)
-                        Main.options.outfile = outfile = "out.smod";
-                } else if (args[i] == "-no-scale-std") {
-                    Main.options.noScaleFramework = true;
-                } else if (args[i] == "-demangle-symbol") {
-                    std::string sym;
-                    if (i + 1 < args.size()) {
-                        std::cout << demangleSymbol(args[i + 1]) << std::endl;
-                    } else {
-                        while (std::cin) {
-                            std::getline(std::cin, sym);
-                            if (sym.size())
-                                std::cout << demangleSymbol(sym) << std::endl;
+            } else if (args[i] == "--transpile" || args[i] == "-t") {
+                Main::options::transpileOnly = true;
+            } else if (args[i] == "--help" || args[i] == "-h") {
+                usage(args[0]);
+                return 0;
+            } else if (args[i] == "-E") {
+                Main::options::preprocessOnly = true;
+            } else if (args[i] == "-f") {
+                if (i + 1 < args.size()) {
+                    std::string framework = args[i + 1];
+                    bool alreadyIncluded = false;
+                    for (auto f : frameworks) {
+                        if (f == framework) {
+                            alreadyIncluded = true;
                         }
                     }
-                    return 0;
-                } else if (args[i] == "-create-framework") {
-                    if (i + 1 < args.size()) {
-                        std::string name = args[i + 1];
-                        i++;
-                        return makeFramework(name);
-                    } else {
-                        std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "-stack-size") {
-                    if (i + 1 < args.size()) {
-                        Main.options.stackSize = std::stoull(args[i + 1]);
-                        i++;
-                    } else {
-                        std::cerr << "Error: -stack-size requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "-clear-cache") {
-                    std::string cacheDir = scaleFolder + "/tmp";
-                    std::filesystem::remove_all(cacheDir);
-                    std::filesystem::create_directory(cacheDir);
-                    return 0;
-                } else if (args[i] == "-doc-for") {
-                    if (i + 1 < args.size()) {
-                        Main.options.printDocFor = args[i + 1];
-                        i++;
-                        Main.options.docPrinterArgsStart = i;
-                    } else {
-                        std::cerr << "Error: -doc-for requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i] == "--") {
-                    endArgs = i;
-                    break;
+                    if (!alreadyIncluded)
+                        frameworks.push_back(framework);
+                    i++;
                 } else {
-                    if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
-                        Main.options.includePaths.push_back(std::string(args[i].c_str() + 2));
-                    } else if (args[i] == "-I") {
-                        if (i + 1 < args.size()) {
-                            Main.options.includePaths.push_back(args[i + 1]);
-                            i++;
-                        } else {
-                            std::cerr << "Error: -I requires an argument" << std::endl;
-                            return 1;
-                        }
-                    } else if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O') {
-                        optimizer = std::string(args[i].c_str() + 1);
-                    } else if (args[i] == "-c") {
-                        Main.options.dontSpecifyOutFile = true;
-                    } else if (args[i] == "-Werror") {
-                        Main.options.Werror = true;
-                    }
-                    tmpFlags.push_back(args[i]);
+                    std::cerr << "Error: -f requires an argument" << std::endl;
+                    return 1;
                 }
+            } else if (args[i] == "-o") {
+                if (i + 1 < args.size()) {
+                    outFileSpecified = true;
+                    Main::options::outfile = outfile = args[i + 1];
+                    i++;
+                } else {
+                    std::cerr << "Error: -o requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-S") {
+                Main::options::assembleOnly = true;
+                Main::options::dontSpecifyOutFile = true;
+                tmpFlags.push_back("-S");
+            } else if (args[i] == "--no-main" || args[i] == "-no-main") {
+                Main::options::noMain = true;
+            } else if (args[i] == "-v" || args[i] == "--version") {
+                std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
+                system((compiler + " -v").c_str());
+                return 0;
+            } else if (args[i] == "-feat") {
+                if (i + 1 < args.size()) {
+                    Main::options::features.push_back(args[i + 1]);
+                    i++;
+                } else {
+                    std::cerr << "Error: -feat requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "--comp" || args[i] == "-compiler") {
+                if (i + 1 < args.size()) {
+                    compiler = args[i + 1];
+                    i++;
+                } else {
+                    std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-debug") {
+                Main::options::debugBuild = true;
+                tmpFlags.push_back("-DSCL_DEBUG=1");
+            } else if (args[i] == "-cflags") {
+                Main::options::printCflags = true;
+                Main::options::noMain = true;
+            } else if (args[i] == "-makelib") {
+                #if defined(__APPLE__)
+                tmpFlags.push_back("-dynamiclib");
+                #else
+                tmpFlags.push_back("-shared");
+                tmpFlags.push_back("-fPIC");
+                #endif
+                tmpFlags.push_back("-undefined");
+                tmpFlags.push_back("dynamic_lookup");
+                Main::options::noMain = true;
+                tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
+                if (!outFileSpecified)
+                #if defined(__APPLE__)
+                    Main::options::outfile = outfile = "libout.dylib";
+                #else
+                    Main::options::outfile = outfile = "libout.so";
+                #endif
+            } else if (args[i] == "--dump-parsed-data" || args[i] == "-create-binary-header" || args[i] == "-create-module") {
+                Main::options::dumpInfo = true;
+                Main::options::binaryHeader = (args[i] == "-create-binary-header");
+                if (!outFileSpecified)
+                    Main::options::outfile = outfile = "out.smod";
+            } else if (args[i] == "-no-scale-std") {
+                Main::options::noScaleFramework = true;
+            } else if (args[i] == "-create-framework") {
+                if (i + 1 < args.size()) {
+                    std::string name = args[i + 1];
+                    i++;
+                    return makeFramework(name);
+                } else {
+                    std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-stack-size") {
+                if (i + 1 < args.size()) {
+                    Main::options::stackSize = std::stoull(args[i + 1]);
+                    i++;
+                } else {
+                    std::cerr << "Error: -stack-size requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-clear-cache") {
+                std::string cacheDir = scaleFolder + "/tmp";
+                std::filesystem::remove_all(cacheDir);
+                std::filesystem::create_directory(cacheDir);
+                return 0;
+            } else if (args[i] == "-doc-for") {
+                if (i + 1 < args.size()) {
+                    Main::options::printDocFor = args[i + 1];
+                    i++;
+                    Main::options::docPrinterArgsStart = i;
+                } else {
+                    std::cerr << "Error: -doc-for requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "--") {
+                break;
+            } else {
+                if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
+                    Main::options::includePaths.push_back(std::string(args[i].c_str() + 2));
+                } else if (args[i] == "-I") {
+                    if (i + 1 < args.size()) {
+                        Main::options::includePaths.push_back(args[i + 1]);
+                        i++;
+                    } else {
+                        std::cerr << "Error: -I requires an argument" << std::endl;
+                        return 1;
+                    }
+                } else if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O') {
+                    optimizer = std::string(args[i].c_str() + 1);
+                } else if (args[i] == "-c") {
+                    Main::options::dontSpecifyOutFile = true;
+                } else if (args[i] == "-Werror") {
+                    Main::options::Werror = true;
+                } else if (strstarts(args[i], "-ferror-limit=")) {
+                    if (args[i].size() == 15) {
+                        std::cerr << "Error: -ferror-limit requires an argument" << std::endl;
+                        return 1;
+                    }
+                    Main::options::errorLimit = std::atol(args[i].substr(15).c_str());
+                }
+                tmpFlags.push_back(args[i]);
             }
         }
 
         std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        if (
-            !std::filesystem::exists(std::filesystem::path(scaleFolder) / std::filesystem::path("Internal") / libScaleRuntimeFileName)
-        ) {
+        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / std::filesystem::path("Internal") / libScaleRuntimeFileName)) {
             int ret = compileRuntimeLib();
             if (ret) {
                 std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
@@ -1067,15 +1009,15 @@ namespace sclc
         }
 
         if (!hasFilesFromArgs) {
-            Main.options.noMain = true;
+            Main::options::noMain = true;
             if (!outFileSpecified)
-                Main.options.outfile = outfile = "a.out";
+                Main::options::outfile = outfile = "a.out";
         }
 
         cflags.reserve(tmpFlags.size() + 10);
-        Main.options.optimizer = optimizer;
+        Main::options::optimizer = optimizer;
 
-        if (!Main.options.printCflags)
+        if (!Main::options::printCflags)
             cflags.push_back(compiler);
 
         cflags.push_back("-I" + scaleFolder + "/Internal");
@@ -1086,7 +1028,7 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        if (Main.options.debugBuild) {
+        if (Main::options::debugBuild) {
             cflags.push_back("-DSCL_DEBUG");
             cflags.push_back("-g");
             cflags.push_back("-O0");
@@ -1096,7 +1038,7 @@ namespace sclc
 #endif
         
         std::string source;
-        if (Main.options.noScaleFramework) goto skipScaleFramework;
+        if (Main::options::noScaleFramework) goto skipScaleFramework;
         for (auto f : frameworks) {
             if (f == "Scale") {
                 goto skipScaleFramework;
@@ -1111,10 +1053,10 @@ namespace sclc
             checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
 
-        if (!Main.options.noScaleFramework) {
+        if (!Main::options::noScaleFramework) {
             auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {
                 std::vector<std::string> mods;
-                for (auto config : Main.options.indexDrgFiles) {
+                for (auto config : Main::options::indexDrgFiles) {
                     auto modules = config.second->getCompound("modules");
                     if (modules) {
                         auto list = modules->getList(moduleName);
@@ -1137,33 +1079,32 @@ namespace sclc
             auto mod = findModule("std");
             for (auto file : mod) {
                 file = std::filesystem::absolute(file).string();
-                if (!contains(Main.options.files, file)) {
-                    Main.options.files.push_back(file);
+                if (!contains(Main::options::files, file)) {
+                    Main::options::files.push_back(file);
                 }
             }
         }
 
-        if (!Main.options.doRun && !Main.options.dumpInfo) std::cout << "Scale Compiler version " << std::string(VERSION) << std::endl;
-
-        if (Main.options.printDocs ||  Main.options.printDocFor.size() != 0) {
-            if (Main.options.printDocs || (Main.options.printDocFor.size() && contains(frameworks, Main.options.printDocFor))) {
+        if (Main::options::printDocs ||  Main::options::printDocFor.size() != 0) {
+            if (Main::options::printDocs || (Main::options::printDocFor.size() && contains(frameworks, Main::options::printDocFor))) {
                 return docHandler(args);
             }
-            std::cerr << Color::RED << "Framework '" + Main.options.printDocFor + "' not found!" << Color::RESET << std::endl;
+            std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' not found!" << Color::RESET << std::endl;
             return 1;
         }
         
         std::vector<Token>  tokens;
 
-        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
+        for (size_t i = 0; i < Main::options::files.size() && !Main::options::printCflags; i++) {
             using path = std::filesystem::path;
-            path s = Main.options.files[i];
+            path s = Main::options::files[i];
             if (s.parent_path().string().size())
-                Main.options.includePaths.push_back(s.parent_path().string());
+                Main::options::includePaths.push_back(s.parent_path().string());
         }
 
-        for (size_t i = 0; i < Main.options.files.size() && !Main.options.printCflags; i++) {
-            std::string filename = Main.options.files[i];
+        size_t numWarns = 0;
+        for (size_t i = 0; i < Main::options::files.size() && !Main::options::printCflags; i++) {
+            std::string filename = Main::options::files[i];
 
             if (!std::filesystem::exists(filename)) {
                 std::cout << Color::BOLDRED << "Fatal Error: File " << filename << " does not exist!" << Color::RESET << std::endl;
@@ -1175,64 +1116,82 @@ namespace sclc
             }
 
             Tokenizer tokenizer;
-            Main.tokenizer = &tokenizer;
-            FPResult result = Main.tokenizer->tokenize(filename);
+            Main::tokenizer = &tokenizer;
+            FPResult result = Main::tokenizer->tokenize(filename);
 
-            if (result.warns.size() > 0) {
-                logWarns(result.warns);
-            }
-            if (result.errors.size() > 0) {
-                logErrors(result.errors);
-                std::cout << "Failed!" << std::endl;
-                return result.errors.size();
+            logWarns(result.warns);
+            logErrors(result.errors);
+            size_t numErrs = sclc::count_if(result.errors, [](const FPResult& err) -> bool {
+                return !err.isNote;
+            });
+            numWarns += sclc::count_if(result.warns, [](const FPResult& err) -> bool {
+                return !err.isNote;
+            });
+
+            if (numErrs) {
+                if (numWarns) {
+                    std::cout << numWarns << " warning" << (numWarns == 1 ? "" : "s") << " and ";
+                }
+                std::cout << numErrs << " error" << (numErrs == 1 ? "" : "s") << " generated." << std::endl;
+                return numErrs;
             }
 
-            FPResult importResult = Main.tokenizer->tryImports();
+            Main::tokenizer->removeInvalidTokens();
+
+            FPResult importResult = Main::tokenizer->tryImports();
             if (!importResult.success) {
                 std::cerr << Color::BOLDRED << "Include Error: " << importResult.location.file << ":" << importResult.location.line << ":" << importResult.location.column << ": " << importResult.message << std::endl;
                 return 1;
             }
 
-            std::vector<Token> theseTokens = Main.tokenizer->getTokens();
+            std::vector<Token> theseTokens = Main::tokenizer->getTokens();
             
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
         }
 
-        if (Main.options.preprocessOnly) {
-            std::cout << "Preprocessed " << Main.options.files.size() << " files." << std::endl;
+        if (Main::options::preprocessOnly) {
+            std::cout << "Preprocessed " << Main::options::files.size() << " files." << std::endl;
             return 0;
         }
 
         TPResult result;
-        if (!Main.options.printCflags) {
+        if (!Main::options::printCflags) {
             SyntaxTree lexer(tokens);
-            Main.lexer = &lexer;
+            Main::lexer = &lexer;
             std::vector<std::string> binaryHeaders;
-            for (std::string& header : Main.options.files) {
+            for (std::string& header : Main::options::files) {
                 if (strends(header, ".smod")) {
                     binaryHeaders.push_back(header);
                 }
             }
-            result = Main.lexer->parse(binaryHeaders);
+            result = Main::lexer->parse(binaryHeaders);
         }
 
-        if (!Main.options.printCflags && result.warns.size() > 0) {
-            logWarns(result.warns);
-        }
-        if (!Main.options.printCflags && result.errors.size() > 0) {
-            logErrors(result.errors);
-            std::cout << "Failed!" << std::endl;
-            return result.errors.size();
+        logWarns(result.warns);
+        logErrors(result.errors);
+        size_t numErrs = sclc::count_if(result.errors, [](const FPResult& err) {
+            return !err.isNote;
+        });
+        numWarns += sclc::count_if(result.warns, [](const FPResult& err) {
+            return !err.isNote;
+        });
+
+        if (numErrs) {
+            if (numWarns) {
+                std::cout << numWarns << " warning" << (numWarns == 1 ? "" : "s") << " and ";
+            }
+            std::cout << numErrs << " error" << (numErrs == 1 ? "" : "s") << " generated." << std::endl;
+            return numErrs;
         }
 
-        if (Main.options.dumpInfo) {
+        if (Main::options::dumpInfo) {
             InfoDumper::dump(result);
             return 0;
         }
 
         source = "out.c";
         Parser parser(result);
-        Main.parser = &parser;
+        Main::parser = &parser;
 
         if (hasCppFiles) {
             // link to c++ library if needed
@@ -1243,19 +1202,33 @@ namespace sclc
             cflags.push_back(s);
         }
 
-        FPResult parseResult = Main.parser->parse(source);
+        FPResult parseResult = Main::parser->parse(source);
         cflags.push_back(source);
         
-        if (parseResult.warns.size() > 0) {
-            logWarns(parseResult.warns);
-        }
-        if (parseResult.errors.size() > 0) {
-            logErrors(parseResult.errors);
-            std::cout << "Failed!" << std::endl;
-            return parseResult.errors.size();
-        }
+        logWarns(parseResult.warns);
+        logErrors(parseResult.errors);
+        numErrs = sclc::count_if(parseResult.errors, [](const FPResult& err) {
+            return !err.isNote;
+        });
+        numWarns += sclc::count_if(parseResult.warns, [](const FPResult& err) {
+            return !err.isNote;
+        });
 
-        if (Main.options.transpileOnly) {
+        if (numWarns) {
+            std::cout << numWarns << " warning" << (numWarns == 1 ? "" : "s");
+            if (numErrs) {
+                std::cout << " and ";
+            }
+        }
+        if (numErrs) {
+            std::cout << numErrs << " error" << (numErrs == 1 ? "" : "s");
+        }
+        if (numWarns || numErrs) {
+            std::cout << " generated." << std::endl;
+        }
+        if (numErrs) return numErrs;
+
+        if (Main::options::transpileOnly) {
             auto end = clock::now();
             double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
             std::cout << "Transpiled successfully in " << duration << " seconds." << std::endl;
@@ -1266,7 +1239,7 @@ namespace sclc
             cflags.push_back("\"" + file + "\"");
         }
 
-        if (!Main.options.printCflags && !Main.options.dontSpecifyOutFile) {
+        if (!Main::options::printCflags && !Main::options::dontSpecifyOutFile) {
             cflags.push_back("-o");
             cflags.push_back("\"" + outfile + "\"");
         }
@@ -1284,120 +1257,31 @@ namespace sclc
         for (std::string& s : cflags) {
             cmd += s + " ";
         }
-        if (Main.options.debugBuild) {
+        if (Main::options::debugBuild) {
             cmd += "-DSCL_DEBUG ";
         }
 
-        int errors = 0;
-        if (Main.options.printCflags) {
+        if (Main::options::printCflags) {
             std::cout << cmd << std::endl;
             return 0;
-        } else if (!Main.options.transpileOnly) {
-            FILE* compile_command = popen((cmd + " 2>&1").c_str(), "r");
+        } else if (!Main::options::transpileOnly) {
+            int compile_command = system(cmd.c_str());
 
-            if (!compile_command) {
-                std::cerr << Color::RED << "Failed to compile!" << Color::RESET << std::endl;
-                return 1;
+            if (compile_command) {
+                std::cout << Color::RED << "Compilation failed with error code " << compile_command << Color::RESET << std::endl;
+                return compile_command;
             }
-
-            char* cline = (char*) malloc(sizeof(char) * 1024);
-            bool doCheckForSymbols = false;
-            std::map<std::string, std::vector<std::string>> undefinedSymbols;
-            std::string currentUndefinedSymbol = "";
-            while (fgets(cline, 1024, compile_command) != NULL) {
-                std::string line = cline;
-                if (strstarts(line, "out.m") || strstarts(line, "out.h") || strstarts(line, "out.typeinfo.h")) {
-                    size_t space = line.find(" ");
-                    std::string file = line.substr(0, space);
-                    line = line.substr(space + 1);
-                    std::string col = Color::RED;
-                    if (strstarts(line, "note")) {
-                        continue;
-                    } else if (strstarts(line, "warning")) {
-                        col = Color::BLUE;
-                    }
-                    if (strstarts(line, "error: definition with same mangled name '")) {
-                        std::string sym = line.substr(42);
-                        line = "Error:" + Color::RESET + " Multiple functions with the same symbol '" + sym.substr(0, sym.find("'")) + "' defined.\n";
-                        col = Color::BOLDRED;
-                    }
-                    std::cerr << file << " " << col << line << Color::RESET;
-                } else {
-                    if (strcontains(line, "symbol(s) not found for architecture") || strstarts(line, "clang: error: linker command failed with exit code 1 (use -v to see invocation)")) {
-                        continue;
-                    }
-                    if (strstarts(line, "clang: warning")) {
-                        continue;
-                    }
-                    if (strstarts(line, "Undefined symbols for architecture ")) {
-                        doCheckForSymbols = true;
-                    } else if (doCheckForSymbols && strstarts(line, "  \"")) {
-                        std::string sym = line.substr(line.find("\"") + 1);
-                        sym = sym.substr(0, sym.find("\""));
-                        currentUndefinedSymbol = sym;
-                        undefinedSymbols[sym] = std::vector<std::string>();
-                    } else if (doCheckForSymbols && !strstarts(line, "  \"")) {
-                        undefinedSymbols[currentUndefinedSymbol].push_back(line.find_first_not_of(" ") == std::string::npos ? "" : line.substr(line.find_first_not_of(" ")));
-                    } else if (strstarts(line, "ld: library not found for -l")) {
-                        std::string lib = line.substr(28);
-                        lib = replaceAll(lib, "\n", "");
-                        std::cerr << Color::RED << "Error: " << Color::RESET << "Library '" << lib << "' not found." << std::endl;
-                    } else {
-                        std::cerr << Color::BOLDRED << line << Color::RESET;
-                    }
-                }
-                errors++;
-            }
-
-            if (doCheckForSymbols) {
-                std::cerr << Color::BOLDRED << "Undefined symbols: " << Color::RESET << std::endl;
-                for (auto sym : undefinedSymbols) {
-                    std::cerr << Color::RED << "  Symbol '" << sym.first << "' referenced from:" << std::endl;
-                    for (auto line : sym.second) {
-                        if (line.size() > 0)
-                            std::cerr << "    " << Color::CYAN << line;
-                    }
-                }
-                std::cerr << Color::RESET << std::endl;
-            }
-
-            free(cline);
-
-            if (errors) {
-                std::cout << Color::RED << "Compilation failed!" << std::endl;
-                return errors;
-            }
-
             remove(source.c_str());
             remove((source.substr(0, source.size() - 2) + ".h").c_str());
         }
 
-        if (!Main.options.doRun) std::cout << Color::GREEN << "Compilation finished." << Color::RESET << std::endl;
-
         auto end = clock::now();
         double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
-        if (!Main.options.doRun) std::cout << "Took " << duration << " seconds." << std::endl;
-
-        if (!Main.options.doRun) {
-            return 0;
+        if (Main::options::debugBuild) {
+            std::cout << "Took " << duration << " seconds." << std::endl;
         }
 
-        void* handle = dlopen((std::filesystem::absolute(outfile).string()).c_str(), RTLD_LAZY);
-        if (!handle) {
-            std::cerr << Color::RED << "Failed to load executable: " << Color::RESET << dlerror() << std::endl;
-            return 1;
-        }
-        int(*mainFunc)(int, char**) = (int(*)(int, char**)) dlsym(handle, "main");
-        if (!mainFunc) {
-            std::cerr << Color::RED << "Failed to load main function: " << Color::RESET << dlerror() << std::endl;
-            return 1;
-        }
-        char** argv = new char*[args.size() - endArgs + 1];
-        argv[0] = strdup(outfile.c_str());
-        for (size_t i = endArgs + 1; i < args.size(); i++) {
-            argv[i - endArgs] = strdup(args[i].c_str());
-        }
-        return mainFunc(args.size() - endArgs - 1, argv);
+        return 0;
     }
 }
 
@@ -1423,6 +1307,10 @@ int main(int argc, char const *argv[]) {
         sclc::Color::BOLDMAGENTA = "";
         sclc::Color::BOLDCYAN = "";
         sclc::Color::BOLDWHITE = "";
+        sclc::Color::BOLD = "";
+        sclc::Color::UNDERLINE = "";
+        sclc::Color::BOLDGRAY = "";
+        sclc::Color::GRAY = "";
     }
 
     std::vector<std::string> args;

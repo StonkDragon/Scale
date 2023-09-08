@@ -20,6 +20,7 @@ namespace sclc
         static std::string MAGENTA;
         static std::string CYAN;
         static std::string WHITE;
+        static std::string GRAY;
         static std::string BOLDBLACK;
         static std::string BOLDRED;
         static std::string BOLDGREEN;
@@ -28,5 +29,12 @@ namespace sclc
         static std::string BOLDMAGENTA;
         static std::string BOLDCYAN;
         static std::string BOLDWHITE;
+        static std::string BOLDGRAY;
+        static std::string UNDERLINE;
+        static std::string BOLD;
+        static std::string REVERSE;
+        static std::string HIDDEN;
+        static std::string ITALIC;
+        static std::string STRIKETHROUGH;
     };
 } // namespace sclc

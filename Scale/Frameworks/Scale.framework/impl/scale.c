@@ -326,14 +326,42 @@ scl_int8* s_strcpy(scl_int8* dest, scl_int8* src) {
 	return s_memcpy(dest, src, strlen(src) + 1);
 }
 
-scl_any _create_cast_error(scl_int8* msg) {
-	typedef struct Struct_CastError {
-		struct Struct_Exception self;
-	}* scl_CastError;
+scl_str builtinToString(scl_any obj) {
+	if (_scl_is_instance(obj)) {
+		return (scl_str) virtual_call(obj, "toString()s;");
+	}
+	if (_scl_is_array((scl_any*) obj)) {
+		return _scl_array_to_string((scl_any*) obj);
+	}
+	scl_int8* data = (scl_int8*) _scl_alloc(32);
+	snprintf(data, 31, SCL_INT_FMT, (scl_int) obj);
+	return str_of_exact(data);
+}
 
-	scl_CastError e = ALLOC(CastError);
-	virtual_call(e, "init(s;)V;", str_of_exact(msg));
-	return e;
+scl_str _scl_array_to_string(scl_any* arr) {
+	if (_scl_expect(arr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+	}
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+	}
+	scl_int size = _scl_array_size(arr);
+	scl_str s = str_of_exact("[");
+	for (scl_int i = 0; i < size; i++) {
+		if (i) {
+			s = (scl_str) virtual_call(s, "append(s;)s;", str_of_exact(", "));
+		}
+		scl_str tmp;
+		if (_scl_is_instance(arr[i])) {
+			tmp = (scl_str) virtual_call(arr[i], "toString()s;");
+		} else {
+			scl_int8* str = (scl_int8*) _scl_alloc(32);
+			snprintf(str, 31, SCL_INT_FMT, ((scl_int*) arr)[i]);
+			tmp = str_of_exact(str);
+		}
+		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
+	}
+	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
 }
 
 _scl_constructor

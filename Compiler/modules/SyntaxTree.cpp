@@ -114,7 +114,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -125,7 +124,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -151,7 +149,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -178,7 +175,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -189,7 +185,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -206,7 +201,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -224,7 +218,6 @@ namespace sclc {
                 FPResult result;
                 result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
                 result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
                 result.location = tokens[i].location;
                 result.type = tokens[i].type;
                 result.success = false;
@@ -258,7 +251,6 @@ namespace sclc {
                 FPResult result;
                 result.message = "A type is required!";
                 result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
                 result.location = tokens[i].location;
                 result.type = tokens[i].type;
                 result.success = false;
@@ -270,7 +262,6 @@ namespace sclc {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
             result.value = tokens[i].value;
-            result.location.line = tokens[i].location.line;
             result.location = tokens[i].location;
             result.type = tokens[i].type;
             result.success = false;
@@ -372,7 +363,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -383,7 +373,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -405,7 +394,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -432,7 +420,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -443,7 +430,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -460,7 +446,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for method argument, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -478,7 +463,6 @@ namespace sclc {
                 FPResult result;
                 result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
                 result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
                 result.location = tokens[i].location;
                 result.type = tokens[i].type;
                 result.success = false;
@@ -514,7 +498,6 @@ namespace sclc {
                 FPResult result;
                 result.message = "A type is required!";
                 result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
                 result.location = tokens[i].location;
                 result.type = tokens[i].type;
                 result.success = false;
@@ -526,7 +509,6 @@ namespace sclc {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
             result.value = tokens[i].value;
-            result.location.line = tokens[i].location.line;
             result.location = tokens[i].location;
             result.type = tokens[i].type;
             result.success = false;
@@ -607,7 +589,7 @@ namespace sclc {
         uint8_t patch = version & 0xFF;
 
         Version v(maj, min, patch);
-        if (v > *Main.version) {
+        if (v > *Main::version) {
             FPResult result;
             result.message = "This file was compiled with a newer version of the compiler!";
             result.success = false;
@@ -1170,7 +1152,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected template argument, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -1723,7 +1704,7 @@ namespace sclc {
         }
 
         // Builtins
-        if (!Main.options.noScaleFramework) {
+        if (!Main::options::noScaleFramework) {
             Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf"));
             builtinIsInstanceOf->addModifier("expect");
             builtinIsInstanceOf->addModifier("foreign");
@@ -1785,7 +1766,7 @@ namespace sclc {
             builtinIsInstance->return_type = "int";
             functions.push_back(builtinIsInstance);
 
-            if (!Main.options.noScaleFramework) {
+            if (!Main::options::noScaleFramework) {
                 Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString"));
                 builtinToString->addModifier("expect");
                 builtinToString->addModifier("foreign");
@@ -1875,10 +1856,9 @@ namespace sclc {
             } else {
                 FPResult result;
                 result.message = "Expected identifier after 'struct'";
-                result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
-                result.location = tokens[i].location;
-                result.type = tokens[i].type;
+                result.value = tokens[i - 1].value;
+                result.location = tokens[i - 1].location;
+                result.type = tokens[i - 1].type;
                 result.success = false;
                 errors.push_back(result);
                 continue;
@@ -1893,7 +1873,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier after '<'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -1906,7 +1885,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected ':' after '" + parameterName + "' (" + parameterName + ")";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2376,7 +2354,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for container name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2387,7 +2364,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2397,7 +2373,6 @@ namespace sclc {
                 FPResult result;
                 result.message = "Containers are deprecated. Use a static struct instead.";
                 result.value = tokens[i].value;
-                result.location.line = tokens[i].location.line;
                 result.location = tokens[i].location;
                 result.type = tokens[i].type;
                 result.success = false;
@@ -2523,7 +2498,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for union struct member name, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -2568,7 +2542,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected 'end' for union struct, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2640,7 +2613,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Invalid name for struct: '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2665,7 +2637,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for template argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -2679,7 +2650,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected ':' after template argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -2707,17 +2677,15 @@ namespace sclc {
                         FPResult result;
                         result.message = "Structs cannot extend themselves.!";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
                         errors.push_back(result);
                     } else {
-                        if (tokens[i].value == "SclObject" && !Main.options.noScaleFramework) {
+                        if (tokens[i].value == "SclObject" && !Main::options::noScaleFramework) {
                             FPResult result;
                             result.message = "Explicit inherit of struct 'SclObject' not neccessary.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = true;
@@ -2729,7 +2697,7 @@ namespace sclc {
                 }
 
                 if (!hasSuperSpecified) {
-                    if (currentStruct->name != "SclObject" && !Main.options.noScaleFramework)
+                    if (currentStruct->name != "SclObject" && !Main::options::noScaleFramework)
                         currentStruct->super = ("SclObject");
                 }
                 if (tokens[i + 1].type == tok_is) {
@@ -2740,7 +2708,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for interface name, but got'" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -2815,7 +2782,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Only declarations are allowed inside of a layout.";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -2827,7 +2793,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for variable name, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.success = false;
                         errors.push_back(result);
@@ -2848,7 +2813,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -2914,7 +2878,6 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for enum name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.location.line = tokens[i].location.line;
                     result.location = tokens[i].location;
                     result.type = tokens[i].type;
                     result.success = false;
@@ -2939,7 +2902,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for enum member, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -2953,7 +2915,6 @@ namespace sclc {
                         FPResult result;
                         result.message = e.what();
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3091,7 +3052,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3137,7 +3097,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3180,7 +3139,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3314,7 +3272,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected string, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3329,7 +3286,6 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected '[', but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.location.line = tokens[i].location.line;
                         result.location = tokens[i].location;
                         result.type = tokens[i].type;
                         result.success = false;
@@ -3387,7 +3343,6 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected number, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.location.line = tokens[i].location.line;
                             result.location = tokens[i].location;
                             result.type = tokens[i].type;
                             result.success = false;
@@ -3594,7 +3549,7 @@ namespace sclc {
             }
         }
 
-        if (Main.options.Werror) {
+        if (Main::options::Werror) {
             for (auto warn : result.warns) {
                 result.errors.push_back(warn);
             }

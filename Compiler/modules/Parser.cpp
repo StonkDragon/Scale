@@ -39,7 +39,7 @@ namespace sclc
         FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
 
         Function* mainFunction = nullptr;
-        if (!Main.options.noMain) {
+        if (!Main::options::noMain) {
             mainFunction = getFunctionByName(result, "main");
             if (mainFunction == nullptr) {
                 FPResult result;
@@ -70,7 +70,7 @@ namespace sclc
                 std::string argType = removeTypeModifiers(mainFunction->args[0].type);
                 if (argType.front() == '[' && argType.back() == ']') {
                     std::string elemType = removeTypeModifiers(argType.substr(1, argType.size() - 2));
-                    if (!Main.options.noScaleFramework) {
+                    if (!Main::options::noScaleFramework) {
                         if (!typeEquals(elemType, std::string("str"))) {
                             FPResult result;
                             result.success = false;
@@ -230,7 +230,7 @@ namespace sclc
         scopeDepth--;
         append("}\n\n");
 
-        // if (!Main.options.noMain) {
+        // if (!Main::options::noMain) {
         //     append("int main(int argc, char** argv) {\n");
         //     append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
         //     append("}\n");
@@ -238,7 +238,7 @@ namespace sclc
         
         fclose(fp);
 
-        if (Main.options.Werror) {
+        if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());
             warns.clear();
         }

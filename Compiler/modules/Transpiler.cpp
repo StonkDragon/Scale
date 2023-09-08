@@ -40,7 +40,7 @@ namespace sclc {
         int scopeDepth = 0;
 
         append("#include <scale_runtime.h>\n");
-        for (std::string& header : Main.frameworkNativeHeaders) {
+        for (std::string& header : Main::frameworkNativeHeaders) {
             append("#include <%s>\n", header.c_str());
         }
         append("\n");
@@ -70,7 +70,7 @@ namespace sclc {
                 }
             } else {
                 currentStruct = Struct::Null;
-                if (!Main.options.noMain && function->name == "main") {
+                if (!Main::options::noMain && function->name == "main") {
                     arguments = "int __argc, char** __argv";
                 } else if (args.size() > 0) {
                     for (long i = 0; i < (long) args.size(); i++) {
@@ -96,7 +96,7 @@ namespace sclc {
                 if (function->name == "throw" || function->name == "builtinUnreachable") {
                     append("_scl_no_return ");
                 }
-                if (!Main.options.noMain && function->name == "main") {
+                if (!Main::options::noMain && function->name == "main") {
                     append("int fn_%s(%s)\n", function->finalName().c_str(), arguments.c_str());
                 } else {
                     append("%s fn_%s(%s)\n", return_type.c_str(), function->finalName().c_str(), arguments.c_str());
@@ -569,7 +569,7 @@ namespace sclc {
             append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed!\");\n");
         } else {
             if (function->return_type == "none") {
-                if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+                if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                     append("if ((*(scl_int*) (localstack - 1)) == 0) return 0;\n");
                 } else {
                     append("if ((*(scl_int*) (localstack - 1)) == 0) return;\n");
@@ -617,7 +617,7 @@ namespace sclc {
                 transpilerError("Generic Exception caught here:", i);
                 errors.push_back(err);
             }
-            transpilerError("Add 'typeof Exception' here to fix this:\\insertText; typeof Exception;" + std::to_string(err.location.line) + ":" + std::to_string(err.location.column + body[i].value.size()), i);
+            transpilerError("Add 'typeof <Exception>' after 'catch' to catch specific Exceptions", i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -676,6 +676,27 @@ namespace sclc {
             } else {
                 append("*Var_%s = NULL;\n", var.c_str());
             }
+        } else if (body[i].value == "note" || body[i].value == "warn" || body[i].value == "error") {
+            safeInc();
+            if (body[i].type != tok_string_literal) {
+                transpilerError("Expected string literal after '" + body[i - 1].value + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            std::string type = body[i - 1].value;
+            std::string message = body[i].value;
+            transpilerError(message, i - 2);
+            if (body[i - 1].value == "note") {
+                err.isNote = true;
+            }
+            if (body[i - 1].value == "warn") {
+                warns.push_back(err);
+            } else {
+                errors.push_back(err);
+            }
+        } else {
+            transpilerError("Unknown pragma '" + body[i].value + "'", i);
+            errors.push_back(err);
         }
     }
 
@@ -2200,7 +2221,7 @@ namespace sclc {
 
                 if (multiDimensional) {
                     if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                        if (Main.options.debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
+                        if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
                         append("array = array[index];\n");
                         if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
                             arrayType = arrayType.substr(1, arrayType.size() - 2);
@@ -2241,7 +2262,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (Main.options.debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
+                    if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
                     append("((scl_any*) array)[index] = value;\n");
                 } else {
                     if (hasMethod(result, "=>[]", arrayType)) {
@@ -2476,7 +2497,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (Main.options.debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) (localstack - 1)->v, %s);\n", body[i - 1].value.c_str());
+                    if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) (localstack - 1)->v, %s);\n", body[i - 1].value.c_str());
                     append("(localstack - 1)->v = (scl_any) ((%s) (localstack - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
@@ -2506,7 +2527,7 @@ namespace sclc {
             }
             typePop;
             append("scl_int index = *(scl_int*) --localstack;\n");
-            if (Main.options.debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
+            if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
             append("(localstack++)->v = (scl_any) tmp[index];\n");
             typeStack.push(type.substr(1, type.size() - 2));
             scopeDepth--;
@@ -3119,7 +3140,7 @@ namespace sclc {
         auto type = removeTypeModifiers(function->return_type);
 
         if (type == "none") {
-            if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                 append("return 0;\n");
             } else {
                 append("return;\n");
@@ -3486,7 +3507,7 @@ namespace sclc {
                 transpilerError("Member access on maybe-nil type '" + type + "'", i);
                 errors.push_back(err);
             }
-            transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this '.'\\insertText;!!;" + std::to_string(err.location.line) + ":" + std::to_string(err.location.column), i);
+            transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this '.'", i);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -3571,7 +3592,7 @@ namespace sclc {
                 transpilerError("Calling method on maybe-nil type '" + type + "'", i);
                 errors.push_back(err);
             }
-            transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this ':'\\insertText;!!;" + std::to_string(err.location.line) + ":" + std::to_string(err.location.column), i - 1);
+            transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this ':'", i - 1);
             err.isNote = true;
             errors.push_back(err);
             return;
@@ -3759,7 +3780,7 @@ namespace sclc {
                 }
             }
             if (anyMethod) {
-                Method* objMethod = !Main.options.noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
+                Method* objMethod = !Main::options::noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
                 if (objMethod) {
                     append("if (_scl_is_instance((localstack - 1)->v)) {\n");
                     scopeDepth++;
@@ -3807,7 +3828,7 @@ namespace sclc {
                     transpilerError("Calling method on maybe-nil type '" + type + "'", i);
                     errors.push_back(err);
                 }
-                transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this ':'\\insertText;!!;" + std::to_string(err.location.line) + ":" + std::to_string(err.location.column), i - 1);
+                transpilerError("If you know '" + type + "' can't be nil at this location, add '!!' before this ':'", i - 1);
                 err.isNote = true;
                 errors.push_back(err);
                 return;
@@ -3983,7 +4004,7 @@ namespace sclc {
             } else if (function->args.size() == 0) {
                 arguments = "void";
             }
-            if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                 arguments = "int __argc, char** __argv";
             } else {
                 for (size_t i = 0; i < function->args.size() - (size_t) function->isMethod; i++) {
@@ -4012,7 +4033,7 @@ namespace sclc {
                 }
             } else {
                 if (function->has_restrict) {
-                    if (Main.options.noScaleFramework) {
+                    if (Main::options::noScaleFramework) {
                         transpilerErrorTok("Function '" + function->name + "' has restrict, but Scale Framework is disabled", function->name_token);
                         errors.push_back(err);
                         continue;
@@ -4027,7 +4048,7 @@ namespace sclc {
                 } else {
                     append("");
                 }
-                if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+                if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                     append("int ");
                 } else {
                     append2("%s ", return_type.c_str());
@@ -4077,15 +4098,15 @@ namespace sclc {
                 }
             }
 
-            if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                 if (function->args.size()) {
-                    if (!Main.options.noScaleFramework) {
+                    if (!Main::options::noScaleFramework) {
                         append("scl_str* Var_%s = _scl_new_array_by_size(__argc, sizeof(scl_str));\n", function->args[0].name.c_str());
                     } else {
                         append("scl_int8** Var_%s = _scl_new_array_by_size(__argc, sizeof(scl_int8*));\n", function->args[0].name.c_str());
                     }
                     append("for (scl_int i = 0; i < __argc; i++) {\n");
-                    if (!Main.options.noScaleFramework) {
+                    if (!Main::options::noScaleFramework) {
                         append("  Var_%s[i] = _scl_create_string(__argv[i]);\n", function->args[0].name.c_str());
                     } else {
                         append("  Var_%s[i] = __argv[i];\n", function->args[0].name.c_str());
@@ -4108,7 +4129,7 @@ namespace sclc {
                 isInUnsafe++;
             }
             if (function->has_restrict) {
-                if (!Main.options.noScaleFramework) {
+                if (!Main::options::noScaleFramework) {
                     transpilerErrorTok("Function '" + function->name + "' has restrict, but Scale Framework is disabled", function->name_token);
                     errors.push_back(err);
                     continue;
@@ -4153,7 +4174,7 @@ namespace sclc {
                 isInUnsafe--;
             }
 
-            if (!function->isMethod && !Main.options.noMain && function->name == "main") {
+            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
                 append("return 0;\n");
             }
 

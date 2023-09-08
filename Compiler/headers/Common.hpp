@@ -32,7 +32,7 @@
 
 #define LINE_LENGTH 48
 
-#define ssize_t signed long long
+#define ssize_t signed long
 
 namespace sclc {
     typedef std::unordered_map<std::string, std::string> Deprecation;
@@ -102,6 +102,7 @@ namespace sclc {
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
+        void removeInvalidTokens();
         FPResult tryImports();
     };
     
@@ -116,55 +117,53 @@ namespace sclc {
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename);
     };
 
-    struct _Main {
-        Tokenizer* tokenizer;
-        SyntaxTree* lexer;
-        Parser* parser;
-        std::vector<std::string> frameworkNativeHeaders;
-        std::vector<std::string> frameworks;
-        Version* version;
-        long long tokenHandleTime;
-        long long writeHeaderTime;
-        long long writeContainersTime;
-        long long writeStructsTime;
-        long long writeGlobalsTime;
-        long long writeFunctionHeadersTime;
-        long long writeTablesTime;
-        long long writeFunctionsTime;
+    struct Main {
+        static Tokenizer* tokenizer;
+        static SyntaxTree* lexer;
+        static Parser* parser;
+        static std::vector<std::string> frameworkNativeHeaders;
+        static std::vector<std::string> frameworks;
+        static Version* version;
+        static long long tokenHandleTime;
+        static long long writeHeaderTime;
+        static long long writeContainersTime;
+        static long long writeStructsTime;
+        static long long writeGlobalsTime;
+        static long long writeFunctionHeadersTime;
+        static long long writeTablesTime;
+        static long long writeFunctionsTime;
         struct options {
-            bool doRun;
-            bool noMain;
-            bool Werror;
-            bool minify;
-            bool dumpInfo;
-            bool printDocs;
-            bool debugBuild;
-            bool printCflags;
-            size_t stackSize;
-            bool binaryHeader;
-            bool assembleOnly;
-            bool transpileOnly;
-            std::string outfile;
-            bool preprocessOnly;
-            bool noScaleFramework;
-            std::string optimizer;
-            bool dontSpecifyOutFile;
-            std::string printDocFor;
-            size_t docPrinterArgsStart;
-            std::string docsIncludeFolder;
-            std::string operatorRandomData;
-            std::vector<std::string> files;
-            std::vector<std::string> features;
-            std::vector<std::string> includePaths;
-            std::vector<std::string> filesFromCommandLine;
-            std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
-            std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
-            std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
-            std::unordered_map<std::string, DragonConfig::CompoundEntry*> indexDrgFiles;
-        } options;
+            static bool noMain;
+            static bool Werror;
+            static bool dumpInfo;
+            static bool printDocs;
+            static bool debugBuild;
+            static bool printCflags;
+            static size_t stackSize;
+            static size_t errorLimit;
+            static bool binaryHeader;
+            static bool assembleOnly;
+            static bool transpileOnly;
+            static std::string outfile;
+            static bool preprocessOnly;
+            static bool noScaleFramework;
+            static std::string optimizer;
+            static bool dontSpecifyOutFile;
+            static std::string printDocFor;
+            static size_t docPrinterArgsStart;
+            static std::string docsIncludeFolder;
+            static std::string operatorRandomData;
+            static std::vector<std::string> files;
+            static std::vector<std::string> features;
+            static std::vector<std::string> includePaths;
+            static std::vector<std::string> filesFromCommandLine;
+            static std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
+            static std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
+            static std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
+            static std::unordered_map<std::string, DragonConfig::CompoundEntry*> indexDrgFiles;
+        };
     };
 
-    extern _Main Main;
     extern std::string scaleFolder;
     extern std::vector<Variable> vars;
     extern std::vector<size_t> var_indices;

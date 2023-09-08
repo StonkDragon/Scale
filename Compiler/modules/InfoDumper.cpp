@@ -7,22 +7,22 @@ namespace sclc {
     #define print(s) std::cout << s << std::endl
 
     void binaryHeader(TPResult result) {
-        remove(Main.options.outfile.c_str());
-        FILE* f = fopen(Main.options.outfile.c_str(), "ab");
+        remove(Main::options::outfile.c_str());
+        FILE* f = fopen(Main::options::outfile.c_str(), "ab");
         if (!f) {
-            std::cerr << "Failed to open file for writing: '" << Main.options.outfile << "'" << std::endl;
+            std::cerr << "Failed to open file for writing: '" << Main::options::outfile << "'" << std::endl;
             return;
         }
 
         char magic[] = {1, 'S', 'C', 'L'};
         fwrite(magic, sizeof(char), 4, f);
 
-        uint32_t version = Main.version->major << 16 | Main.version->minor << 8 | Main.version->patch;
+        uint32_t version = Main::version->major << 16 | Main::version->minor << 8 | Main::version->patch;
         fwrite(&version, sizeof(uint32_t), 1, f);
 
         uint32_t numContainers = 0;
         for (Container& c : result.containers) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
                 numContainers++;
             }
         }
@@ -30,7 +30,7 @@ namespace sclc {
 
         uint32_t numStructs = 0;
         for (Struct& s : result.structs) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 numStructs++;
             }
         }
@@ -38,7 +38,7 @@ namespace sclc {
 
         uint32_t numEnums = 0;
         for (Enum e : result.enums) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
                 numEnums++;
             }
         }
@@ -46,7 +46,7 @@ namespace sclc {
 
         uint32_t numFunctions = 0;
         for (Function* f : result.functions) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(f->name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(f->name_token.location.file).string())) {
                 numFunctions++;
             }
         }
@@ -54,7 +54,7 @@ namespace sclc {
 
         uint32_t numGlobals = 0;
         for (Variable& v : result.globals) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 numGlobals++;
             }
         }
@@ -62,7 +62,7 @@ namespace sclc {
 
         uint32_t numExternGlobals = 0;
         for (Variable& v : result.extern_globals) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 numExternGlobals++;
             }
         }
@@ -70,7 +70,7 @@ namespace sclc {
 
         uint32_t numInterfaces = 0;
         for (Interface* i : result.interfaces) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
                 numInterfaces++;
             }
         }
@@ -78,7 +78,7 @@ namespace sclc {
 
         uint32_t numLayouts = 0;
         for (Layout& l : result.layouts) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
                 numLayouts++;
             }
         }
@@ -88,7 +88,7 @@ namespace sclc {
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
         for (Container& c : result.containers) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
                 continue;
             }
 
@@ -108,7 +108,7 @@ namespace sclc {
             }
         }
         for (Struct& s : result.structs) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 continue;
             }
 
@@ -132,7 +132,7 @@ namespace sclc {
             }
         }
         for (Enum e : result.enums) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
                 continue;
             }
 
@@ -151,7 +151,7 @@ namespace sclc {
             }
         }
         for (Function* func : result.functions) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(func->name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(func->name_token.location.file).string())) {
                 continue;
             }
 
@@ -204,7 +204,7 @@ namespace sclc {
             }
         }
         for (Variable& v : result.globals) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 continue;
             }
 
@@ -217,7 +217,7 @@ namespace sclc {
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
         for (Variable& v : result.extern_globals) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 continue;
             }
 
@@ -230,7 +230,7 @@ namespace sclc {
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
         for (Interface* i : result.interfaces) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
                 continue;
             }
 
@@ -274,7 +274,7 @@ namespace sclc {
             }
         }
         for (Layout& l : result.layouts) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
                 continue;
             }
 
@@ -309,27 +309,27 @@ namespace sclc {
     }
 
     void InfoDumper::dump(TPResult& result) {
-        if (Main.options.binaryHeader) {
+        if (Main::options::binaryHeader) {
             binaryHeader(result);
             return;
         }
 
-        remove(Main.options.outfile.c_str());
-        FILE* f = fopen(Main.options.outfile.c_str(), "ab");
+        remove(Main::options::outfile.c_str());
+        FILE* f = fopen(Main::options::outfile.c_str(), "ab");
         if (!f) {
-            std::cerr << "Failed to open file for writing: " << Main.options.outfile << std::endl;
+            std::cerr << "Failed to open file for writing: " << Main::options::outfile << std::endl;
             return;
         }
 
         char magic[] = {'\0', 'S', 'C', 'L'};
         fwrite(magic, sizeof(char), 4, f);
 
-        uint32_t version = Main.version->major << 16 | Main.version->minor << 8 | Main.version->patch;
+        uint32_t version = Main::version->major << 16 | Main::version->minor << 8 | Main::version->patch;
         fwrite(&version, sizeof(uint32_t), 1, f);
 
         uint32_t numContainers = 0;
         for (Container& c : result.containers) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
                 numContainers++;
             }
         }
@@ -337,7 +337,7 @@ namespace sclc {
 
         uint32_t numStructs = 0;
         for (Struct& s : result.structs) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 numStructs++;
             }
         }
@@ -345,7 +345,7 @@ namespace sclc {
 
         uint32_t numEnums = 0;
         for (Enum e : result.enums) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
                 numEnums++;
             }
         }
@@ -353,7 +353,7 @@ namespace sclc {
 
         uint32_t numFunctions = 0;
         for (Function* f : result.functions) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(f->name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(f->name_token.location.file).string())) {
                 numFunctions++;
             }
         }
@@ -361,7 +361,7 @@ namespace sclc {
 
         uint32_t numGlobals = 0;
         for (Variable& v : result.globals) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 numGlobals++;
             }
         }
@@ -369,7 +369,7 @@ namespace sclc {
 
         uint32_t numExternGlobals = 0;
         for (Variable& v : result.extern_globals) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 numExternGlobals++;
             }
         }
@@ -377,7 +377,7 @@ namespace sclc {
 
         uint32_t numInterfaces = 0;
         for (Interface* i : result.interfaces) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
                 numInterfaces++;
             }
         }
@@ -385,7 +385,7 @@ namespace sclc {
 
         uint32_t numLayouts = 0;
         for (Layout& l : result.layouts) {
-            if (contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
+            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
                 numLayouts++;
             }
         }
@@ -395,7 +395,7 @@ namespace sclc {
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
         for (Container& c : result.containers) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
                 continue;
             }
 
@@ -415,7 +415,7 @@ namespace sclc {
             }
         }
         for (Struct& s : result.structs) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 continue;
             }
 
@@ -439,7 +439,7 @@ namespace sclc {
             }
         }
         for (Enum e : result.enums) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(e.name_token->location.file).string())) {
                 continue;
             }
 
@@ -458,7 +458,7 @@ namespace sclc {
             }
         }
         for (Function* func : result.functions) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(func->name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(func->name_token.location.file).string())) {
                 continue;
             }
 
@@ -529,7 +529,7 @@ namespace sclc {
             }
         }
         for (Variable& v : result.globals) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 continue;
             }
 
@@ -542,7 +542,7 @@ namespace sclc {
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
         for (Variable& v : result.extern_globals) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
                 continue;
             }
 
@@ -555,7 +555,7 @@ namespace sclc {
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
         for (Interface* i : result.interfaces) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
                 continue;
             }
 
@@ -603,7 +603,7 @@ namespace sclc {
             }
         }
         for (Layout& l : result.layouts) {
-            if (!contains(Main.options.filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(l.name_token.location.file).string())) {
                 continue;
             }
 
