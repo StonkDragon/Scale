@@ -610,6 +610,9 @@ namespace sclc
             "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_runtime.c",
             "-c",
+#if !defined(_WIN32)
+            "-fPIC",
+#endif
             "-o",
             scaleFolder + "/Internal/scale_runtime.o"
         };
@@ -621,6 +624,9 @@ namespace sclc
             "-I" + scaleFolder + "/Internal/include",
             scaleFolder + "/Internal/scale_cxx.cpp",
             "-c",
+#if !defined(_WIN32)
+            "-fPIC",
+#endif
             "-o",
             scaleFolder + "/Internal/scale_cxx.o"
         };
@@ -641,6 +647,9 @@ namespace sclc
 #elif defined(_WIN32)
             "-shared",
             "-static-libstdc++",
+#endif
+#if !defined(_WIN32)
+            "-fPIC",
 #endif
             scaleFolder + "/Internal/scale_runtime.o",
             scaleFolder + "/Internal/scale_cxx.o",
@@ -958,6 +967,7 @@ namespace sclc
                     tmpFlags.push_back("-dynamiclib");
                     #else
                     tmpFlags.push_back("-shared");
+                    tmpFlags.push_back("-fPIC");
                     #endif
                     tmpFlags.push_back("-undefined");
                     tmpFlags.push_back("dynamic_lookup");
@@ -1081,6 +1091,9 @@ namespace sclc
             cflags.push_back("-g");
             cflags.push_back("-O0");
         }
+#if !defined(_WIN32)
+        cflags.push_back("-fPIC");
+#endif
         
         std::string source;
         if (Main.options.noScaleFramework) goto skipScaleFramework;
