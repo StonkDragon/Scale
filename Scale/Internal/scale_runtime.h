@@ -614,4 +614,3 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #endif
 
 #endif // __SCALE_RUNTIME_H__
-struct __darwin_arm_neon_state64 e;
