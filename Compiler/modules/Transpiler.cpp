@@ -3913,6 +3913,8 @@ namespace sclc {
     handler(Token) {
         noUnused;
 
+        append("printf(\"__scl_backtrace_cur.func_name: %%s (%%p)\\n\", __scl_backtrace_cur.func_name, __scl_backtrace_cur.func_name);\n");
+
         handleRef(handleRefs[body[i].type]);
     }
 
