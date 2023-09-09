@@ -3,56 +3,31 @@ import std.runtime.Process
 
 typealias nothing "_scl_no_return scl_any"
 
-cdecl "print_stacktrace"
-deprecated![since: "23.7", replacement: "Process::stackTrace", forRemoval: true]
-expect function trace(): none
 cdecl "_scl_throw"
-expect function throw(ex: Exception): nothing
+expect foreign function throw(ex: Exception): nothing
 
-private expect unsafe function _scl_security_safe_exit(i: int): none
-private expect unsafe function _scl_default_signal_handler(sigNum: int): none
 cdecl "raise"
-private expect unsafe function __c_raise(sigNum: int): int
-cdecl "_scl_errno"
-expect function errno(): int
-cdecl "_scl_errno_str"
-expect function strerror(): str
-cdecl "_scl_set_signal_handler"
-expect function setSignalHandler(fun: lambda(int): none, sig: int): none
-cdecl "_scl_reset_signal_handler"
-expect function resetSignalHandler(sig: int): none
-
-intrinsic function dumpStack(): none
-  "Dump:" puts
-  unsafe
-    c!
-      _scl_frame_t* frame = _stack.sp;
-      while (frame != _stack.bp) {
-        frame--;
-        printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
-      }
-    end
-  end
-  "" puts
-end
+private expect foreign unsafe function __c_raise(sigNum: int): int
+cdecl "get_errno"
+expect foreign function errno(): int
+cdecl "get_errno_as_str"
+expect foreign function strerror(): str
 
 function crash(): none
-  unsafe
-    1 _scl_security_safe_exit
-  end
+  abort
 end
 
 function raise(sigNum: int): none
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
-      sigNum _scl_default_signal_handler
+      abort
     fi
   end
 end
 
 cdecl "getchar"
-private expect unsafe function __c_getchar(): int8
+private expect foreign unsafe function __c_getchar(): int8
 
 function breakPoint(): none
   "Hit breakPoint. Press enter to continue." puts
@@ -103,6 +78,7 @@ end
 final sealed open struct AssertError: Error
 final sealed open struct CastError: Error
 final sealed open struct UnreachableError: Error
+final sealed open struct OutOfMemoryError: Error
 
 function sysPrettyString(): str
   new<int8>[40] => decl sPtr: [int8]

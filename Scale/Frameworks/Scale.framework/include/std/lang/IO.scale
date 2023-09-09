@@ -1,21 +1,23 @@
 cdecl "write"
-private expect unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+private expect foreign unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
 cdecl "read"
-private expect unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
+private expect foreign unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
 cdecl "fprintf"
-private expect unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+private expect foreign unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
 cdecl "printf"
-private expect unsafe function __c_printf(fmt: [int8], :varargs): int32
+private expect foreign unsafe function __c_printf(fmt: [int8], :varargs): int32
 cdecl "getchar"
-private expect unsafe function __c_getchar(): int8
+private expect foreign unsafe function __c_getchar(): int8
 
-intrinsic cdecl "_scl_write" unsafe function write(fileDescriptor: int, string: str): none
+unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
 end
 
-intrinsic cdecl "_scl_read" function read(fileDescriptor: int, amount: int): str
+function read(fileDescriptor: int, amount: int): str
   new<int8>[amount] => decl buf: [int8]
-  fileDescriptor buf amount __c_read drop
+  unsafe
+    fileDescriptor buf amount __c_read drop
+  end
   buf str::new return
 end
 
@@ -27,11 +29,9 @@ function getchar(): int8
 end
 
 cdecl "puts"
-private expect function puts0(:[int8]): none
-cdecl "_scl_puts_str"
-private expect function puts1(:str): none
+private expect foreign function puts0(:[int8]): none
 
-function puts(val: str): none    val puts1 end
+function puts(val: str): none    val:view puts0 end
 function puts(val: [int8]): none val puts0 end
 function puts(f: float): none    f:toString puts end
 function puts(value: any): none  value:toString puts end
@@ -39,23 +39,25 @@ function puts(value: any): none  value:toString puts end
 function eputs(s: [int8]): none
   unsafe
     c!
-      (_stack.sp++)->v = stderr;
+      (localstack++)->v = stderr;
     end
     "%s\n":view s __c_fprintf! 1
   end
   drop
 end
-function eputs(s: str): none     s:toString:view eputs end
-function eputs(f: float): none   f:toString:view eputs end
-function eputs(value: any): none value:toString:view eputs end
+function eputs(s: str): none
+  s:view eputs
+end
+function eputs(f: float): none
+  f:toString:view eputs
+end
+function eputs(value: any): none
+  value:toString:view eputs
+end
 
-function putint(number: int): none number puts end
-
-function putfloat(number: float): none number:toString puts end
-
-deprecated![since: "23.7", replacement: "Exception", forRemoval: true]
-function throwerr(errorString: str): none
-  Exception::new => decl e: mut Exception
-  errorString => e.msg
-  e throw
+function putint(number: int): none
+  number puts
+end
+function putfloat(number: float): none
+  number:toString puts
 end

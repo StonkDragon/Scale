@@ -11,57 +11,75 @@ namespace sclc
 {
     extern std::vector<std::string> keywords;
 
+    struct SourceLocation {
+        std::string file;
+        int line;
+        int column;
+        SourceLocation(std::string file, int line, int column) : file(file), line(line), column(column) {}
+        SourceLocation(const SourceLocation& other) {
+            this->file = other.file;
+            this->line = other.line;
+            this->column = other.column;
+        }
+        SourceLocation(SourceLocation&& other) {
+            this->file = static_cast<std::string&&>(other.file);
+            this->line = other.line;
+            this->column = other.column;
+        }
+
+        SourceLocation& operator=(const SourceLocation& other) {
+            this->file = other.file;
+            this->line = other.line;
+            this->column = other.column;
+            return *this;
+        }
+        SourceLocation& operator=(SourceLocation&& other) {
+            this->file = static_cast<std::string&&>(other.file);
+            this->line = other.line;
+            this->column = other.column;
+            return *this;
+        }
+
+        ~SourceLocation() {}
+
+        std::string toString() const {
+            return "SourceLocation(file=" + file + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ")";
+        }
+    };
+
     struct Token {
         static Token Default;
 
         TokenType type;
-        int line;
-        std::string file;
         std::string value;
-        int column;
+        SourceLocation location;
 
-        std::string tostring() const {
-            return "Token(value=" + value + ", type=" + std::to_string(type) + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ", file=" + file + ")";
+        std::string toString() const {
+            return "Token(value=" + value + ", type=" + std::to_string(type) + ", location=" + location.toString() + ")";
         }
-        Token() : Token(tok_eof, "", 0, "") {}
-        Token(TokenType type, std::string value, int line, std::string file) : type(type), value(value) {
-            this->line = line;
-            this->file = file;
-            this->column = 0;
-        }
-        Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value) {
-            this->line = line;
-            this->file = file;
-            this->column = column;
-        }
-        Token(const Token& other) {
+        Token() : Token(tok_eof, "") {}
+        Token(TokenType type, std::string value) : type(type), value(value), location("", 0, 0) {}
+        Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value), location(file, line, column) {}
+        Token(TokenType type, std::string value, SourceLocation location) : type(type), value(value), location(location) {}
+        Token(const Token& other) : location(other.location) {
             this->type = other.type;
             this->value = other.value;
-            this->line = other.line;
-            this->file = other.file;
-            this->column = other.column;
+            this->location = other.location;
         }
-        Token(Token&& other) {
-            this->type = std::move(other.type);
-            this->value = std::move(other.value);
-            this->line = std::move(other.line);
-            this->file = std::move(other.file);
-            this->column = std::move(other.column);
+        Token(Token&& other) : location(static_cast<SourceLocation&&>(other.location)) {
+            this->type = other.type;
+            this->value = static_cast<std::string&&>(other.value);
         }
         Token& operator=(const Token& other) {
             this->type = other.type;
             this->value = other.value;
-            this->line = other.line;
-            this->file = other.file;
-            this->column = other.column;
+            this->location = other.location;
             return *this;
         }
         Token& operator=(Token&& other) {
-            this->type = std::move(other.type);
-            this->value = std::move(other.value);
-            this->line = std::move(other.line);
-            this->file = std::move(other.file);
-            this->column = std::move(other.column);
+            this->type = other.type;
+            this->value = static_cast<std::string&&>(other.value);
+            this->location = static_cast<SourceLocation&&>(other.location);
             return *this;
         }
         ~Token() {}

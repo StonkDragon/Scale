@@ -1,26 +1,16 @@
-final sealed struct ThreadException : Exception
+final sealed struct ThreadException: Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
 
-final sealed struct AtomicOperationException : Exception
+final sealed struct AtomicOperationException: Exception
     function init(msg: str): none
         msg => self.msg
     end
 end
 
-typealias pthread_t "pthread_t"
-typealias pthread_mutex_t "pthread_mutex_t"
-typealias pthread_mutexattr_t "pthread_mutexattr_t"
-
-cdecl "pthread_mutex_init"    private expect unsafe function __c_pthread_mutex_init(:[pthread_mutex_t], :[pthread_mutexattr_t]?): int32
-cdecl "pthread_mutex_lock"    private expect unsafe function __c_pthread_mutex_lock(:[pthread_mutex_t]): int32
-cdecl "pthread_mutex_unlock"  private expect unsafe function __c_pthread_mutex_unlock(:[pthread_mutex_t]): int32
-cdecl "pthread_mutex_destroy" private expect unsafe function __c_pthread_mutex_destroy(:[pthread_mutex_t]): int32
-cdecl "GC_pthread_create"     private expect unsafe function __c_pthread_create(:[pthread_t?], :any?, :any, :any?): none
-cdecl "GC_pthread_join"       private expect unsafe function __c_pthread_join(:pthread_t, :any?): none
-cdecl "pthread_self"          private expect unsafe function __c_pthread_self(): pthread_t
+final sealed open struct MutexError: Error
 
 final sealed struct Thread
     private static decl threads: Array
@@ -29,7 +19,7 @@ final sealed struct Thread
     static decl mainThread: readonly Thread
 
     private decl func: lambda(): none
-    private decl tid: pthread_t?
+    private decl tid: any
 
     decl name: str
 
@@ -42,9 +32,9 @@ final sealed struct Thread
         Process::stackTrace return
     end
 
-    private static expect unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
+    private static expect foreign unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
 
-    expect static function currentThread(): Thread
+    expect foreign static function currentThread(): Thread
 
     function init(func: lambda(): none): none
         func => self.func
@@ -53,9 +43,10 @@ final sealed struct Thread
         Thread::nextID 1 + => Thread::nextID
     end
 
-    private expect unsafe function start0(): int
-    private expect unsafe function stop0(): int
-    private expect unsafe function run(): none
+    private expect foreign unsafe function detach0(): none
+    private expect foreign unsafe function start0(): none
+    private expect foreign unsafe function stop0(): none
+    private expect foreign unsafe function run(): none
 
     function start(): none
         if tid then
@@ -63,8 +54,8 @@ final sealed struct Thread
             throw
         fi
         unsafe
-            self:start0 => decl res: int
-            if res 0 != then
+            self:start0
+            unless self.tid then
                 "Thread start failed" ThreadException::new
                 throw
             fi
@@ -77,13 +68,19 @@ final sealed struct Thread
             throw
         fi
         unsafe
-            self:stop0 => decl res: int
-            if res 0 != then
-                "Thread join failed" ThreadException::new
-                throw
-            fi
+            self:stop0
         end
         nil => self.tid
+    end
+
+    function detach(): none
+        unless tid then
+            "Non-running thread cannot be detached" ThreadException::new
+            throw
+        fi
+        unsafe
+            self:detach0
+        end
     end
 
     function equals(other: any): bool
@@ -104,5 +101,9 @@ final sealed struct Thread
         self.tid as int other as Thread.tid as int ==
         other as Thread:unlock
         return
+    end
+
+    function !=(other: any): bool
+        other self == ! return
     end
 end

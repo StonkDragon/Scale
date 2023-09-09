@@ -1,0 +1,12 @@
+function main(): none
+    "Hello," " World!" + => decl s1: str
+    "Hello, World!"      => decl s2: str
+
+    "'" s1 + "'" + puts
+    "'" s2 + "'" + puts
+
+    s1:hashCode puts
+    s2:hashCode puts
+
+    s1 s2 == puts
+end

@@ -31,7 +31,7 @@ struct Foo
 end
 
 function main(): none
-    Foo::new => decl f: mut Foo
+    Foo::new => decl f: Foo
     
     f +  puts
     f -  puts

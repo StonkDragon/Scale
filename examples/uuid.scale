@@ -11,6 +11,16 @@ struct UUID
         [(new<uint8>[16] => random)] => self.bytes
     end
 
+    function toHexString(x: uint8): str
+        new<int8>[3] => decl c: [int8]
+        unsafe
+            c!
+                sprintf(*c, "%02x", *x);
+            end
+        end
+        c str::new return
+    end
+
     function toString(): str
         "" => decl result: str
         for i in 0 to 16 do
@@ -18,10 +28,7 @@ struct UUID
                 result "-" + => result
             fi
             self.bytes[i] => decl value
-            if value 16 < then
-                result "0" + => result
-            fi
-            result value:toHexString + => result
+            result value toHexString + => result
         done
         result return
     end

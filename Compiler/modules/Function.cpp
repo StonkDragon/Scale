@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "../headers/Common.hpp"
 
 using namespace sclc;
@@ -40,8 +42,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->name_token = name_token;
     this->name = name;
     this->isMethod = isMethod;
-    this->isPrivate = false;
-    this->isExternC = false;
     this->member_type = "";
 
     this->has_expect = 0;
@@ -49,14 +49,21 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_private = 0;
     this->has_construct = 0;
     this->has_final = 0;
-    this->has_cdecl = 0;
     this->has_constructor = 0;
+    this->has_cdecl = 0;
     this->has_intrinsic = 0;
     this->has_lambda = 0;
     this->has_asm = 0;
     this->has_sealed = 0;
     this->has_unsafe = 0;
     this->has_operator = 0;
+    this->has_restrict = 0;
+    this->has_getter = 0;
+    this->has_setter = 0;
+    this->has_foreign = 0;
+    this->has_overrides = 0;
+    this->has_stacksize = 0;
+    this->has_binary_inherited = 0;
 }
 std::string Function::finalName() {
     if (
@@ -67,16 +74,16 @@ std::string Function::finalName() {
             this->has_private
         )
     ) {
-        if (this->isExternC || this->has_expect) {
+        if (this->has_foreign) {
             return name;
         }
         return name +
                "$" +
-               std::to_string(id((char*) name.c_str())) +
+               std::to_string(id(name.c_str())) +
                "$" +
-               std::to_string(id((char*) name_token.file.c_str())) +
+               std::to_string(id(name_token.location.file.c_str())) +
                "$" +
-               std::to_string(name_token.line);
+               std::to_string(name_token.location.line);
     }
     return name;
 }
@@ -89,29 +96,27 @@ void Function::addToken(Token token) {
 void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 
-    if (!has_expect && modifier == "expect") {
-        has_expect = modifiers.size();
-        isExternC = true;
-    }
-    else if (!has_export && modifier == "export") has_export = modifiers.size();
-    else if (!has_private && modifier == "private") {
-        has_private = modifiers.size();
-        isPrivate = true;
-    }
-    else if (!has_construct && modifier == "construct") has_construct = modifiers.size();
-    else if (!has_constructor && modifier == "<constructor>") has_constructor = modifiers.size();
-    else if (!has_final && modifier == "final") has_final = modifiers.size();
-    else if (!has_final && modifier == "<destructor>") has_final = modifiers.size();
-    else if (!has_cdecl && modifier == "cdecl") has_cdecl = modifiers.size();
-    else if (!has_intrinsic && modifier == "intrinsic") has_intrinsic = modifiers.size();
-    else if (!has_asm && modifier == "asm") has_asm = modifiers.size();
-    else if (!has_lambda && modifier == "<lambda>") has_lambda = modifiers.size();
-    else if (!has_sealed && modifier == "sealed") has_sealed = modifiers.size();
-    else if (!has_unsafe && modifier == "unsafe") has_unsafe = modifiers.size();
-    else if (!has_operator && modifier == "operator") has_operator = modifiers.size();
-    else if (!has_restrict && modifier == "restrict") has_restrict = modifiers.size();
-    else if (!has_getter && modifier == "@getter") has_getter = modifiers.size();
-    else if (!has_setter && modifier == "@setter") has_setter = modifiers.size();
+    if (has_expect == 0 && modifier == "expect") has_expect = modifiers.size();
+    else if (has_export == 0 && modifier == "export") has_export = modifiers.size();
+    else if (has_private == 0 && modifier == "private") has_private = modifiers.size();
+    else if (has_construct == 0 && modifier == "construct") has_construct = modifiers.size();
+    else if (has_constructor == 0 && modifier == "<constructor>") has_constructor = modifiers.size();
+    else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
+    else if (has_final == 0 && modifier == "<destructor>") has_final = modifiers.size();
+    else if (has_cdecl == 0 && modifier == "cdecl") has_cdecl = modifiers.size();
+    else if (has_intrinsic == 0 && modifier == "intrinsic") has_intrinsic = modifiers.size();
+    else if (has_asm == 0 && modifier == "asm") has_asm = modifiers.size();
+    else if (has_lambda == 0 && modifier == "<lambda>") has_lambda = modifiers.size();
+    else if (has_sealed == 0 && modifier == "sealed") has_sealed = modifiers.size();
+    else if (has_unsafe == 0 && modifier == "unsafe") has_unsafe = modifiers.size();
+    else if (has_operator == 0 && modifier == "operator") has_operator = modifiers.size();
+    else if (has_restrict == 0 && modifier == "restrict") has_restrict = modifiers.size();
+    else if (has_getter == 0 && modifier == "@getter") has_getter = modifiers.size();
+    else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
+    else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
+    else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
+    else if (has_stacksize == 0 && modifier == "stacksize") has_stacksize = modifiers.size();
+    else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -157,8 +162,15 @@ Variable& Function::varArgsParam() {
     if (this->isCVarArgs()) {
         return this->args[this->args.size() - (1 + ((size_t) this->isMethod))];
     }
-    throw std::runtime_error("Function::varArgsParam() called on non-varargs function");
+    throw std::runtime_error(std::string(__func__) + " called on non-varargs function");
 }
-std::string& Function::getModifier(size_t index) {
-    return this->modifiers[index - 1];
+const std::string& Function::getModifier(size_t index) {
+    if (index <= 0 || index > this->modifiers.size()) {
+        throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
+    }
+    return this->modifiers.at(index - 1);
+}
+size_t Function::stackSize() {
+    if (!this->has_stacksize) return 32;
+    return std::stoul(this->getModifier(this->has_stacksize + 1));
 }

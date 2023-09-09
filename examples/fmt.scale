@@ -2,6 +2,7 @@
 # --------------------------
 # The FmtIO static struct provides a set of functions for formatted IO.
 # The functions are similar to the printf family of functions in C.
+import std.io.fmt
 
 function main(): none
     "Hello, World!" puts

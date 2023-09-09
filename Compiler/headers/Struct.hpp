@@ -22,7 +22,7 @@ namespace sclc
         std::map<std::string, std::string> templates;
         static Struct Null;
 
-        Struct(std::string name) : Struct(name, Token(tok_identifier, name, 0, "")) {}
+        Struct(std::string name) : Struct(name, Token(tok_identifier, name)) {}
         Struct(std::string name, Token t) {
             this->name = name;
             this->name_token = t;
@@ -109,18 +109,18 @@ namespace sclc
             }
             return false;
         }
-        Variable& getMember(std::string&& name) const {
+        const Variable& getMember(std::string&& name) const {
             for (const Variable& v : members) {
                 if (v.name == name) {
-                    return __CAST_AWAY_QUALIFIER(v, const, Variable&);
+                    return v;
                 }
             }
             return Variable::emptyVar();
         }
-        Variable& getMember(std::string& name) const {
+        const Variable& getMember(const std::string& name) const {
             for (const Variable& v : members) {
                 if (v.name == name) {
-                    return __CAST_AWAY_QUALIFIER(v, const, Variable&);
+                    return v;
                 }
             }
             return Variable::emptyVar();
@@ -143,6 +143,9 @@ namespace sclc
         bool isFinal() const {
             return (flags & 0b00100000) != 0;
         }
+        bool isExtern() const {
+            return (flags & 0b00000010) != 0;
+        }
         void toggleFinal() {
             flags ^= 0b00100000;
         }
@@ -153,6 +156,8 @@ namespace sclc
                 flags |= 0b00000100;
             } else if (m == "static") {
                 flags |= 0b00010000;
+            } else if (m == "expect") {
+                flags |= 0b00000010;
             }
         }
         inline bool operator==(const Struct& other) const {
@@ -176,7 +181,7 @@ namespace sclc
         Token name_token;
         std::vector<Variable> members;
     
-        Layout(std::string name) : Layout(name, Token(tok_identifier, name, 0, "")) {}
+        Layout(std::string name) : Layout(name, Token(tok_identifier, name)) {}
         Layout(std::string name, Token t) {
             this->name = name;
             this->name_token = t;
@@ -199,6 +204,13 @@ namespace sclc
                 }
             }
             return Variable("", "");
+        }
+
+        bool operator==(const Layout& other) const {
+            return name == other.name;
+        }
+        bool operator!=(const Layout& other) const {
+            return name != other.name;
         }
     };
 } // namespace sclc

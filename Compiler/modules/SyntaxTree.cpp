@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "../headers/Common.hpp"
 
@@ -113,10 +114,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -125,10 +124,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -152,10 +149,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             i++;
@@ -180,10 +175,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -192,10 +185,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -210,10 +201,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     i++;
@@ -229,10 +218,8 @@ namespace sclc {
                 FPResult result;
                 result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
                 result.value = tokens[i].value;
-                result.line = tokens[i].line;
-                result.in = tokens[i].file;
+                result.location = tokens[i].location;
                 result.type = tokens[i].type;
-                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 continue;
@@ -248,14 +235,14 @@ namespace sclc {
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
-                    return nullptr;
+                    return func;
                 }
                 std::string type = r.value;
                 std::string fromTemplate = r.message;
                 func->return_type = type;
                 func->templateArg = r.message;
                 if (namedReturn.size()) {
-                    func->namedReturnValue = Variable(namedReturn, "mut " + type).also([fromTemplate](Variable& v) {
+                    func->namedReturnValue = Variable(namedReturn, type).also([fromTemplate](Variable& v) {
                         v.canBeNil = typeCanBeNil(v.type);
                         v.typeFromTemplate = fromTemplate;
                     });
@@ -264,26 +251,22 @@ namespace sclc {
                 FPResult result;
                 result.message = "A type is required!";
                 result.value = tokens[i].value;
-                result.line = tokens[i].line;
-                result.in = tokens[i].file;
+                result.location = tokens[i].location;
                 result.type = tokens[i].type;
-                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return nullptr;
+                return func;
             }
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
             result.value = tokens[i].value;
-            result.line = tokens[i].line;
-            result.in = tokens[i].file;
+            result.location = tokens[i].location;
             result.type = tokens[i].type;
-            result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
-            return nullptr;
+            return func;
         }
         return func;
     }
@@ -306,10 +289,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected '" + memberName + "', but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     return nullptr;
@@ -382,10 +363,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -394,10 +373,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -417,10 +394,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             i++;
@@ -445,10 +420,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -457,10 +430,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "A type is required!";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -475,10 +446,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for method argument, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     i++;
@@ -494,16 +463,14 @@ namespace sclc {
                 FPResult result;
                 result.message = "Expected ',' or ')', but got '" + tokens[i].value + "'";
                 result.value = tokens[i].value;
-                result.line = tokens[i].line;
-                result.in = tokens[i].file;
+                result.location = tokens[i].location;
                 result.type = tokens[i].type;
-                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 continue;
             }
             i++;
-            method->addArgument(Variable("self", "mut " + memberName));
+            method->addArgument(Variable("self", memberName));
 
             std::string namedReturn = "";
             if (tokens[i].type == tok_identifier) {
@@ -515,7 +482,7 @@ namespace sclc {
                 FPResult r = parseType(tokens, &i, templateArgs);
                 if (!r.success) {
                     errors.push_back(r);
-                    return nullptr;
+                    return method;
                 }
 
                 std::string fromTemplate = r.message;
@@ -531,26 +498,22 @@ namespace sclc {
                 FPResult result;
                 result.message = "A type is required!";
                 result.value = tokens[i].value;
-                result.line = tokens[i].line;
-                result.in = tokens[i].file;
+                result.location = tokens[i].location;
                 result.type = tokens[i].type;
-                result.column = tokens[i].column;
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return nullptr;
+                return method;
             }
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
             result.value = tokens[i].value;
-            result.line = tokens[i].line;
-            result.in = tokens[i].file;
+            result.location = tokens[i].location;
             result.type = tokens[i].type;
-            result.column = tokens[i].column;
             result.success = false;
             errors.push_back(result);
-            return nullptr;
+            return method;
         }
         return method;
     }
@@ -570,13 +533,22 @@ namespace sclc {
             FPResult result; \
             result.message = "Expected " + std::string(_value) + ", but got '" + tokens[i].value + "'"; \
             result.va ## lue = tokens[i].value; \
-            result.line = tokens[i].line; \
-            result.in = tokens[i].file; \
+            result.location = tokens[i].location; \
             result.type = tokens[i].type; \
-            result.column = tokens[i].column; \
             result.success = false; \
             errors.push_back(result); \
-            continue; \
+            break; \
+        }
+
+    #define expectr(_value, ...) if (!(__VA_ARGS__)) { \
+            FPResult result; \
+            result.message = "Expected " + std::string(_value) + ", but got '" + tokens[i].value + "'"; \
+            result.va ## lue = tokens[i].value; \
+            result.location = tokens[i].location; \
+            result.type = tokens[i].type; \
+            result.success = false; \
+            errors.push_back(result); \
+            return; \
         }
 
     TPResult parseFile(std::string file) {
@@ -588,7 +560,7 @@ namespace sclc {
             FPResult result;
             result.message = "Could not open file '" + file + "'";
             result.success = false;
-            result.in = file;
+            result.location = SourceLocation(file, 0, 0);
             errors.push_back(result);
             TPResult r;
             r.errors = errors;
@@ -601,7 +573,7 @@ namespace sclc {
             FPResult result;
             result.message = "Invalid file format!";
             result.success = false;
-            result.in = file;
+            result.location = SourceLocation(file, 0, 0);
             errors.push_back(result);
             TPResult r;
             r.errors = errors;
@@ -617,11 +589,11 @@ namespace sclc {
         uint8_t patch = version & 0xFF;
 
         Version v(maj, min, patch);
-        if (v > *Main.version) {
+        if (v > *Main::version) {
             FPResult result;
             result.message = "This file was compiled with a newer version of the compiler!";
             result.success = false;
-            result.in = file;
+            result.location = SourceLocation(file, 0, 0);
             errors.push_back(result);
             TPResult r;
             r.errors = errors;
@@ -773,14 +745,12 @@ namespace sclc {
 
             Function* func;
             if (isMethod) {
-                func = new Method(memberOf, name, Token(tok_identifier, name, 0, file));
+                func = new Method(memberOf, name, Token(tok_identifier, name));
             } else {
-                func = new Function(name, Token(tok_identifier, name, 0, file));
+                func = new Function(name, Token(tok_identifier, name));
             }
 
             func->return_type = returnType;
-
-            func->isExternC = func->has_expect;
 
             uint32_t numModifiers = 0;
             fread(&numModifiers, sizeof(uint32_t), 1, f);
@@ -838,7 +808,7 @@ namespace sclc {
                     char* value = (char*) malloc(length + 1);
                     fread(value, 1, length, f);
                     value[length] = 0;
-                    func->addToken(Token(type, value, 0, file));
+                    func->addToken(Token(type, value));
                 }
             }
 
@@ -911,7 +881,7 @@ namespace sclc {
                 fread(returnType, 1, returnTypeLength, f);
                 returnType[returnTypeLength] = 0;
 
-                Function* func = new Method(memberType, name, Token(tok_identifier, name, 0, file));
+                Function* func = new Method(memberType, name, Token(tok_identifier, name));
 
                 uint32_t numModifiers = 0;
                 fread(&numModifiers, sizeof(uint32_t), 1, f);
@@ -1026,20 +996,274 @@ namespace sclc {
 
     std::string specToCIdent(std::string in);
 
+    struct Instanciable {
+        std::string structName;
+        std::map<std::string, std::string> arguments;
+
+        std::string toString() {
+            std::string stringName = this->structName + "<";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    stringName += ", ";
+                }
+                stringName += it->first + ": " + it->second;
+            }
+            stringName += ">";
+            return stringName;
+        }
+    };
+
+    std::vector<Instanciable> instanciables;
+
+    std::optional<Instanciable> findInstanciable(std::string name) {
+        for (auto&& inst : instanciables) {
+            if (inst.structName == name) {
+                return inst;
+            }
+        }
+        return std::nullopt;
+    }
+
+    struct Template;
+
+    struct TemplateInstances {
+        static std::vector<Template> templates;
+        
+        static void addTemplate(const Template& t);
+        static bool hasTemplate(std::string name);
+        static Template& getTemplate(std::string name);
+        static void instantiate(TPResult& result);
+    };
+
+    struct Template {
+        static Template empty;
+
+        std::string structName;
+        Token instantiatingToken;
+        std::map<std::string, std::string> arguments;
+
+        void copyTo(const Struct& src, Struct& dest, TPResult& result) {
+            dest.super = src.super;
+            dest.members = src.members;
+            dest.name_token = src.name_token;
+            dest.flags = src.flags;
+            dest.members = src.members;
+            dest.memberInherited = src.memberInherited;
+            dest.interfaces = src.interfaces;
+            dest.templates = this->arguments;
+
+            for (auto&& member : dest.members) {
+                if (member.typeFromTemplate.size()) {
+                    member.type = this->arguments[member.typeFromTemplate];
+                }
+            }
+
+            auto methods = methodsOnType(result, src.name);
+            for (auto&& method : methods) {
+                Method* mt = method->cloneAs(dest.name);
+                mt->clearArgs();
+                for (Variable arg : method->args) {
+                    if (arg.typeFromTemplate.size()) {
+                        arg.type = this->arguments[arg.typeFromTemplate];
+                    } else if (arg.name == "self") {
+                        arg.type = dest.name;
+                    }
+                    mt->addArgument(arg);
+                }
+                if (mt->templateArg.size()) {
+                    mt->return_type = this->arguments[mt->templateArg];
+                }
+                result.functions.push_back(mt);
+            }
+        }
+
+        std::string& operator[](std::string key) {
+            return this->arguments[key];
+        }
+
+        std::string& operator[](size_t index) {
+            auto it = this->arguments.begin();
+            for (size_t i = 0; i < index; i++) {
+                it++;
+            }
+            return it->second;
+        }
+
+        void setNth(size_t index, std::string value) {
+            std::string key = "";
+            for (auto&& arg : this->arguments) {
+                if (index == 0) {
+                    key = arg.first;
+                    break;
+                }
+                index--;
+            }
+            this->arguments[key] = value;
+        }
+
+        void makeInstance(TPResult& result, const Struct& baseStruct) {
+            std::string instanceName = this->nameForInstance();
+            Struct instance(instanceName);
+            copyTo(baseStruct, instance, result);
+            result.structs.push_back(instance);
+        }
+
+        std::string nameForInstance() {
+            std::string instanceName = this->structName + "$";
+            for (auto&& arg : this->arguments) {
+                std::string type = arg.second;
+                instanceName += "$" + type;
+            }
+            return instanceName;
+        }
+
+        std::string toString() {
+            std::string stringName = this->structName + "<";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    stringName += ", ";
+                }
+                stringName += it->first + ": " + it->second;
+            }
+            stringName += ">";
+            return stringName;
+        }
+
+        std::optional<Template> parse(Template& t, std::vector<Token>& tokens, size_t& i, std::vector<FPResult>& errors) {
+            i++;
+            if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+                i--;
+                t = Template::empty;
+                return std::nullopt;
+            }
+            t.instantiatingToken = tokens[i - 1];
+            t.structName = tokens[i - 1].value;
+            i++;
+            size_t parameterCount = 0;
+            while (tokens[i].value != ">") {
+                auto inst = findInstanciable(tokens[i].value);
+                if (inst.has_value()) {
+                    Template t;
+                    for (auto&& arg : inst->arguments) {
+                        t.arguments[arg.first] = arg.second;
+                    }
+                    auto parsedArg = t.parse(t, tokens, i, errors);
+                    if (!parsedArg.has_value()) {
+                        FPResult result;
+                        result.message = "Expected template argument, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.location = tokens[i].location;
+                        result.type = tokens[i].type;
+                        result.success = false;
+                        errors.push_back(result);
+                        t = Template::empty;
+                        return Template::empty;
+                    }
+                    t.setNth(parameterCount++, parsedArg.value().nameForInstance());
+                    i++;
+                    if (tokens[i].type == tok_comma) {
+                        i++;
+                    }
+                    continue;
+                }
+                FPResult r = parseType(tokens, &i, {});
+                if (!r.success) {
+                    errors.push_back(r);
+                    t = Template::empty;
+                    return Template::empty;
+                }
+                t.setNth(parameterCount++, r.value);
+                i++;
+                if (tokens[i].type == tok_comma) {
+                    i++;
+                }
+            }
+            return t;
+        }
+    };
+
+    Template Template::empty = Template();
+
+    std::vector<Template> TemplateInstances::templates;
+
+    void TemplateInstances::addTemplate(const Template& t) {
+        templates.push_back(t);
+    }
+
+    bool TemplateInstances::hasTemplate(std::string name) {
+        for (Template& t : templates) {
+            if (t.structName == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    Template& TemplateInstances::getTemplate(std::string name) {
+        for (Template& t : templates) {
+            if (t.structName == name) {
+                return t;
+            }
+        }
+        return Template::empty;
+    }
+
+    void TemplateInstances::instantiate(TPResult& result) {
+        for (auto&& templateInstance : templates) {
+            const Struct& baseStruct = getStructByName(result, templateInstance.structName);
+            bool hadError = false;
+            if (!baseStruct.name.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Struct for template '" + templateInstance.toString() + "' not found!";
+                error.location = templateInstance.instantiatingToken.location;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (!baseStruct.templates.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Struct '" + baseStruct.name + "' is not templatable!";
+                error.location = templateInstance.instantiatingToken.location;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (baseStruct.templates.size() != templateInstance.arguments.size()) {
+                FPResult error;
+                error.success = false;
+                error.message = "Expected " + std::to_string(baseStruct.templates.size()) + " template arguments, but got " + std::to_string(templateInstance.arguments.size());
+                error.location = templateInstance.instantiatingToken.location;
+                error.type = templateInstance.instantiatingToken.type;
+                error.value = templateInstance.instantiatingToken.value;
+                result.errors.push_back(error);
+                hadError = true;
+            }
+            if (hadError) {
+                continue;
+            }
+            if (getStructByName(result, templateInstance.nameForInstance()).name.size()) {
+                continue;
+            }
+            templateInstance.makeInstance(result, baseStruct);
+        }
+    }
+
     struct Macro {
         std::vector<std::string> args;
         std::vector<Token> tokens;
 
-        void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
             #define token this->tokens[j]
             #define nextToken this->tokens[j + 1]
             #define MacroError(msg) ({ \
                 FPResult error; \
                 error.success = false; \
                 error.message = msg; \
-                error.in = tokens[i].file; \
-                error.line = tokens[i].line; \
-                error.column = tokens[i].column; \
+                error.location = tokens[i].location; \
                 error.type = tokens[i].type; \
                 error.value = tokens[i].value; \
                 error; \
@@ -1082,7 +1306,7 @@ namespace sclc {
                                     if (var.name == "Token") {
                                         expanded.push_back(*((Token*) var.value));
                                     } else if (var.name == "String") {
-                                        expanded.push_back(Token(tok_string_literal, (char*) var.value, 0, ""));
+                                        expanded.push_back(Token(tok_string_literal, (char*) var.value));
                                     } else {
                                         errors.push_back(MacroError("Expected Token, got " + var.name));
                                     }
@@ -1157,11 +1381,11 @@ namespace sclc {
                         } else if (token.value == "value") {
                             stack.push({"String", (void*) strdup((const char*) next->value.c_str())});
                         } else if (token.value == "line") {
-                            stack.push({"Number", (void*) (long long) next->line});
+                            stack.push({"Number", (void*) (long long) next->location.line});
                         } else if (token.value == "column") {
-                            stack.push({"Number", (void*) (long long) next->column});
+                            stack.push({"Number", (void*) (long long) next->location.column});
                         } else if (token.value == "file") {
-                            stack.push({"String", (void*) strdup((const char*) next->file.c_str())});
+                            stack.push({"String", (void*) strdup((const char*) next->location.file.c_str())});
                         } else {
                             errors.push_back(MacroError("Unknown Token property '" + token.value + "'"));
                             return;
@@ -1171,6 +1395,174 @@ namespace sclc {
             }
             #undef token
             #undef nextToken
+        }
+    };
+
+    struct CtypeMacro : public Macro {
+        CtypeMacro() {
+            args.push_back("type");
+        }
+        
+        std::unordered_map<std::string, std::string> typealiases = {
+            {"char", "int8"},
+            {"int8_t", "int8"},
+            {"signedchar", "int8"},
+
+            {"short", "int16"},
+            {"int16_t", "int16"},
+            {"signedshort", "int16"},
+            
+            {"int", "int32"},
+            {"int32_t", "int32"},
+            {"signedint", "int32"},
+            
+            {"long", "int64"},
+            {"int64_t", "int64"},
+            {"longlong", "int64"},
+            
+            {"uint8_t", "uint8"},
+            {"u_int8_t", "uint8"},
+            {"unsignedchar", "uint8"},
+            
+            {"uint16_t", "uint16"},
+            {"u_int16_t", "uint16"},
+            {"unsignedshort", "uint16"},
+            
+            {"uint32_t", "uint32"},
+            {"u_int32_t", "uint32"},
+            {"unsignedint", "uint32"},
+            
+            {"uint64_t", "uint64"},
+            {"u_int64_t", "uint64"},
+            {"unsignedlong", "uint64"},
+            {"unsignedlonglong", "uint64"},
+
+            {"char*", "[int8]"},
+            {"unsignedchar*", "[uint8]"},
+            
+            {"float64", "double"},
+            {"bool", "bool"},
+            {"void", "none"},
+            {"void*", "any"},
+            {"size_t", "uint"},
+            {"ssize_t", "int"}
+        };
+
+        std::string getRealType(std::string type) {
+            if (strstarts(type, "enum ")) {
+                return type.substr(5);
+            }
+            if (strstarts(type, "struct ")) {
+                return type.substr(7);
+            }
+            type = replaceAll(type, "const", "");
+            type = replaceAll(type, " ", "");
+            if (typealiases.find(type) != typealiases.end()) {
+                return typealiases[type];
+            }
+            return type;
+        }
+
+        bool hasType(std::string type) {
+            if (strstarts(type, "enum ")) {
+                return true;
+            }
+            if (strstarts(type, "struct ")) {
+                return true;
+            }
+            type = replaceAll(type, "const", "");
+            type = replaceAll(type, " ", "");
+            return typealiases.find(type) != typealiases.end();
+        }
+
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
+            (void) errors;
+
+            const Token& type = args["type"];
+            if (hasType(type.value)) {
+                otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, getRealType(type.value), type.location));
+                i++;
+                return;
+            }
+            std::string typeName = "ctype$" + std::to_string(id(type.location.file.c_str())) + "$" + std::to_string(type.location.line) + "$" + std::to_string(type.location.column);
+            typeName += " /* " + type.value + " */";
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_question_mark, "?", type.location));
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.location));
+            i += 2;
+            otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
+            otherTokens.push_back(Token(tok_identifier, typeName, type.location));
+            otherTokens.push_back(Token(tok_string_literal, type.value, type.location));
+        }
+    };
+
+    struct ArrayMacro : public Macro {
+        ArrayMacro() {
+            args.push_back("type");
+            args.push_back("size");
+        }
+
+        std::unordered_map<std::string, std::string> types = {
+            {"int8", "char"},
+            {"int16", "short"},
+            {"int32", "int"},
+            {"int64", "long"},
+            {"uint8", "unsigned char"},
+            {"uint16", "unsigned short"},
+            {"uint32", "unsigned int"},
+            {"uint64", "unsigned long"},
+            {"[int8]", "char*"},
+            {"[uint8]", "unsigned char*"},
+            {"float", "double"},
+            {"bool", "long"},
+            {"any", "void*"}
+        };
+
+        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
+            (void) errors;
+
+            const Token& type = args["type"];
+            if (type.type != tok_identifier && type.type != tok_string_literal) {
+                errors.push_back(MacroError("Expected identifier as first argument to 'ctype'"));
+                return;
+            }
+            const Token& size = args["size"];
+            if (size.type != tok_number) {
+                errors.push_back(MacroError("Expected number as second argument to 'ctype'"));
+                return;
+            }
+
+            std::string typeName = "Array$" + size.value + "$" + std::to_string(id(type.location.file.c_str())) + "$" + std::to_string(type.location.line) + "$" + std::to_string(type.location.column);
+
+            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.location));
+            i++;
+            if (type.type == tok_identifier) {
+                if (types.find(type.value) != types.end()) {
+                    std::string ctype = types[type.value] + "%[" + size.value + "]";
+                    otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
+                    otherTokens.push_back(Token(tok_identifier, typeName, type.location));
+                    otherTokens.push_back(Token(tok_string_literal, ctype, type.location));
+                    return;
+                }
+            } else {
+                std::string ctype = type.value + "%[" + size.value + "]";
+                otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
+                otherTokens.push_back(Token(tok_identifier, typeName, type.location));
+                otherTokens.push_back(Token(tok_string_literal, ctype, type.location));
+                return;
+            }
+
+            auto join = [](std::unordered_map<std::string, std::string> map, std::string with) -> std::string {
+                std::string result = "";
+                for (auto it = map.begin(); it != map.end(); it++) {
+                    if (it != map.begin()) {
+                        result += with;
+                    }
+                    result += it->first;
+                }
+                return result;
+            };
+
+            errors.push_back(MacroError("Unknown type '" + type.value + "'. Supported types are: " + join(types, ", ")));
         }
     };
     
@@ -1234,7 +1626,11 @@ namespace sclc {
             }
         }
 
-        std::unordered_map<std::string, Macro> macros;
+        std::unordered_map<std::string, Macro*> macros;
+
+        macros["ctype"] = new CtypeMacro();
+        macros["array"] = new ArrayMacro();
+
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
                 continue;
@@ -1243,11 +1639,11 @@ namespace sclc {
             i++;
             std::string name = tokens[i].value;
             i++;
-            Macro macro;
+            Macro* macro = new Macro();
             if (tokens[i].type == tok_paren_open) {
                 i++;
                 while (tokens[i].type != tok_paren_close) {
-                    macro.args.push_back(tokens[i].value);
+                    macro->args.push_back(tokens[i].value);
                     i++;
                     if (tokens[i].type == tok_comma) {
                         i++;
@@ -1272,7 +1668,7 @@ namespace sclc {
                     i++;
                     break;
                 }
-                macro.tokens.push_back(tokens[i]);
+                macro->tokens.push_back(tokens[i]);
                 i++;
             }
             // delete macro declaration
@@ -1288,67 +1684,49 @@ namespace sclc {
                 macros.find(tokens[i].value) == macros.end() ||
                 i + 1 >= tokens.size() ||
                 tokens[i + 1].value != "!" ||
-                tokens[i + 1].line != tokens[i].line
+                tokens[i + 1].location.line != tokens[i].location.line
             ) {
                 continue;
             }
-            Macro& macro = macros[tokens[i].value];
+            Macro* macro = macros[tokens[i].value];
             std::unordered_map<std::string, Token> args;
             size_t start = i;
             i += 2;
-            for (size_t j = 0; j < macro.args.size(); j++) {
-                args[macro.args[j]] = tokens[i];
+            for (size_t j = 0; j < macro->args.size(); j++) {
+                args[macro->args[j]] = tokens[i];
                 i++;
             }
             // delete macro call
             tokens.erase(tokens.begin() + start, tokens.begin() + i);
             i = start;
-            macro.expand(tokens, i, args, errors);
+            macro->expand(tokens, i, args, errors);
             i--;
         }
 
         // Builtins
-        if (!Main.options.noScaleFramework) {
-            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addModifier("export");
+        if (!Main::options::noScaleFramework) {
+            Function* builtinIsInstanceOf = new Function("builtinIsInstanceOf", Token(tok_identifier, "builtinIsInstanceOf"));
+            builtinIsInstanceOf->addModifier("expect");
+            builtinIsInstanceOf->addModifier("foreign");
 
             builtinIsInstanceOf->addArgument(Variable("obj", "any"));
             builtinIsInstanceOf->addArgument(Variable("typeStr", "str"));
-
-            builtinIsInstanceOf->return_type = "int";
             
-            // if typeStr "any" == then true return
-            builtinIsInstanceOf->addToken(Token(tok_if, "if", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_string_literal, "any", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "==", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_then, "then", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_true, "true", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_fi, "fi", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "obj", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "typeStr", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_column, ":", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "view", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinHash", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_identifier, "builtinTypeEquals", 0, "builtinIsInstanceOf.scale@"));
-            builtinIsInstanceOf->addToken(Token(tok_return, "return", 0, "builtinIsInstanceOf.scale@"));
+            builtinIsInstanceOf->return_type = "int";
             functions.push_back(builtinIsInstanceOf);
 
-            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash", 0, "builtinHash.scale@"));
-            builtinHash->isExternC = true;
-            builtinHash->addModifier("extern");
+            Function* builtinHash = new Function("builtinHash", Token(tok_identifier, "builtinHash"));
+            builtinHash->addModifier("expect");
             builtinHash->addModifier("cdecl");
-            builtinHash->addModifier("id");
+            builtinHash->addModifier("type_id");
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
-            builtinHash->return_type = "int32";
+            builtinHash->return_type = "uint32";
             functions.push_back(builtinHash);
 
-            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash", 0, "builtinIdentityHash.scale@"));
-            builtinIdentityHash->isExternC = true;
-            builtinIdentityHash->addModifier("extern");
+            Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash"));
+            builtinIdentityHash->addModifier("expect");
             builtinIdentityHash->addModifier("cdecl");
             builtinIdentityHash->addModifier("_scl_identity_hash");
             
@@ -1357,9 +1735,8 @@ namespace sclc {
             builtinIdentityHash->return_type = "int";
             functions.push_back(builtinIdentityHash);
 
-            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone", 0, "builtinAtomicClone.scale@"));
-            builtinAtomicClone->isExternC = true;
-            builtinAtomicClone->addModifier("extern");
+            Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone"));
+            builtinAtomicClone->addModifier("expect");
             builtinAtomicClone->addModifier("cdecl");
             builtinAtomicClone->addModifier("_scl_atomic_clone");
             
@@ -1368,49 +1745,60 @@ namespace sclc {
             builtinAtomicClone->return_type = "any";
             functions.push_back(builtinAtomicClone);
 
-            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals", 0, "builtinTypeEquals.scale@"));
-            builtinTypeEquals->isExternC = true;
-            builtinTypeEquals->addModifier("extern");
+            Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals"));
+            builtinTypeEquals->addModifier("expect");
             builtinTypeEquals->addModifier("cdecl");
             builtinTypeEquals->addModifier("_scl_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
-            builtinTypeEquals->addArgument(Variable("typeId", "int32"));
+            builtinTypeEquals->addArgument(Variable("type_id", "int32"));
 
             builtinTypeEquals->return_type = "int";
             functions.push_back(builtinTypeEquals);
 
-            Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString", 0, "builtinToString.scale@"));
-            builtinToString->addModifier("export");
-            
-            builtinToString->addArgument(Variable("val", "any"));
+            Function* builtinIsInstance = new Function("builtinIsInstance", Token(tok_identifier, "builtinIsInstance"));
+            builtinIsInstance->addModifier("expect");
+            builtinIsInstance->addModifier("cdecl");
+            builtinIsInstance->addModifier("_scl_is_instance");
 
-            builtinToString->return_type = "str";
+            builtinIsInstance->addArgument(Variable("obj", "any"));
 
-            // if val is SclObject then val as SclObject:toString return else val int::toString return fi
-            builtinToString->addToken(Token(tok_if, "if", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_is, "is", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_then, "then", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_as, "as", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "SclObject", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_column, ":", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_fi, "fi", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "val", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "int", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_double_column, "::", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_identifier, "toString", 0, "builtinToString.scale@"));
-            builtinToString->addToken(Token(tok_return, "return", 0, "builtinToString.scale@"));
+            builtinIsInstance->return_type = "int";
+            functions.push_back(builtinIsInstance);
 
-            functions.push_back(builtinToString);
+            if (!Main::options::noScaleFramework) {
+                Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString"));
+                builtinToString->addModifier("expect");
+                builtinToString->addModifier("foreign");
+                
+                builtinToString->addArgument(Variable("val", "any"));
 
-            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable", 0, "builtinUnreachable.scale@"));
-            builtinUnreachable->isExternC = true;
-            builtinUnreachable->addModifier("extern");
+                builtinToString->return_type = "str";
+
+                // if val is SclObject then val as SclObject:toString return else val int::toString return fi
+                builtinToString->addToken(Token(tok_if, "if"));
+                builtinToString->addToken(Token(tok_identifier, "val"));
+                builtinToString->addToken(Token(tok_identifier, "builtinIsInstance"));
+                builtinToString->addToken(Token(tok_then, "then"));
+                builtinToString->addToken(Token(tok_identifier, "val"));
+                builtinToString->addToken(Token(tok_as, "as"));
+                builtinToString->addToken(Token(tok_identifier, "SclObject"));
+                builtinToString->addToken(Token(tok_column, ":"));
+                builtinToString->addToken(Token(tok_identifier, "toString"));
+                builtinToString->addToken(Token(tok_return, "return"));
+                builtinToString->addToken(Token(tok_fi, "fi"));
+                builtinToString->addToken(Token(tok_identifier, "val"));
+                builtinToString->addToken(Token(tok_identifier, "int"));
+                builtinToString->addToken(Token(tok_double_column, "::"));
+                builtinToString->addToken(Token(tok_identifier, "toString"));
+                builtinToString->addToken(Token(tok_return, "return"));
+
+                functions.push_back(builtinToString);
+            }
+
+            Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable"));
+            builtinUnreachable->addModifier("expect");
+            builtinUnreachable->addModifier("foreign");
             builtinUnreachable->return_type = "none";
 
             functions.push_back(builtinUnreachable);
@@ -1457,6 +1845,146 @@ namespace sclc {
         };
         
         for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_struct_def) {
+                continue;
+            }
+
+            Instanciable inst;
+            i++;
+            if (tokens[i].type == tok_identifier) {
+                inst.structName = tokens[i].value;
+            } else {
+                FPResult result;
+                result.message = "Expected identifier after 'struct'";
+                result.value = tokens[i - 1].value;
+                result.location = tokens[i - 1].location;
+                result.type = tokens[i - 1].type;
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            i++;
+            if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+                continue;
+            }
+            i++;
+            while (i < tokens.size() && tokens[i].value != ">") {
+                if (tokens[i].type != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier after '<'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    break;
+                }
+                std::string parameterName = tokens[i].value;
+                i++;
+                if (tokens[i].type != tok_column) {
+                    FPResult result;
+                    result.message = "Expected ':' after '" + parameterName + "' (" + parameterName + ")";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    break;
+                }
+                i++;
+                FPResult result = parseType(tokens, &i);
+                if (!result.success) {
+                    errors.push_back(result);
+                    break;
+                }
+                i++;
+                inst.arguments[parameterName] = result.value;
+                if (i < tokens.size() && tokens[i].value == ",") {
+                    i++;
+                }
+            }
+            if (i >= tokens.size()) {
+                FPResult result;
+                result.message = "Expected '>' after struct parameters";
+                result.value = tokens[i - 1].value;
+                result.location.line = tokens[i - 1].location.line;
+                result.location = tokens[i - 1].location;
+                result.type = tokens[i - 1].type;
+                result.success = false;
+                errors.push_back(result);
+                continue;
+            }
+            i++;
+            instanciables.push_back(inst);
+        }
+
+        for (auto&& inst : instanciables) {
+            for (size_t i = 0; i < tokens.size(); i++) {
+                if (i && (tokens[i - 1].type == tok_struct_def || tokens[i - 1].type == tok_dot)) {
+                    continue;
+                }
+                if (tokens[i].type != tok_identifier || tokens[i].value != inst.structName) {
+                    continue;
+                }
+                size_t start = i;
+                Template templ;
+                for (auto&& arg : inst.arguments) {
+                    templ.arguments[arg.first] = arg.second;
+                }
+                auto t = templ.parse(templ, tokens, i, errors);
+                if (!t.has_value()) {
+                    FPResult result;
+                    result.message = "Usage of uninstantiated template '" + inst.structName + "' is not allowed";
+                    result.value = tokens[start].value;
+                    result.location.line = tokens[start].location.line;
+                    result.location = tokens[start].location;
+                    result.type = tokens[start].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                tokens.erase(tokens.begin() + start, tokens.begin() + i);
+                i = start;
+                tokens.insert(tokens.begin() + i, Token(tok_identifier, templ.nameForInstance(), tokens[i].location));
+                TemplateInstances::addTemplate(t.value());
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_identifier || tokens[i].value != ">") {
+                continue;
+            }
+            if (i + 1 >= tokens.size()) {
+                continue;
+            }
+            if (tokens[i + 1].type != tok_identifier || tokens[i + 1].value != ">") {
+                continue;
+            }
+            if (tokens[i + 1].location.column - 1 != tokens[i].location.column) {
+                continue;
+            }
+            Token begin = tokens[i];
+            tokens.erase(tokens.begin() + i);
+            tokens.erase(tokens.begin() + i);
+            if (i < tokens.size() && tokens[i].type == tok_identifier && tokens[i].value == ">") {
+                if (tokens[i].location.column - 2 == tokens[i].location.column) {
+                    tokens.erase(tokens.begin() + i);
+                    tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>>", begin.location));
+                }
+            } else {
+                tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>", begin.location));
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type == tok_eof) {
+                tokens.erase(tokens.begin() + i);
+                i--;
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
             Token& token = tokens[i];
 
             if (token.type == tok_function) {
@@ -1464,10 +1992,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define function inside another function. Current function: " + currentFunction->name;
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1476,10 +2002,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define function inside of a container. Current container: " + currentContainer->name;
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1491,10 +2015,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStruct->name;
                             result.value = tokens[i + 1].value;
-                            result.line = tokens[i + 1].line;
-                            result.in = tokens[i + 1].file;
+                            result.location = tokens[i + 1].location;
                             result.type = tokens[i + 1].type;
-                            result.column = tokens[i + 1].column;
                             result.success = false;
                             errors.push_back(result);
                             continue;
@@ -1508,7 +2030,6 @@ namespace sclc {
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStruct->name;
-                        currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -1516,14 +2037,14 @@ namespace sclc {
                         if (f) {
                             currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                         }
-                        if (contains<std::string>(nextAttributes, "expect")) {
-                            currentFunction->isExternC = true;
+                        if (currentFunction->has_expect) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
                         }
-                        if (contains<std::string>(nextAttributes, "intrinsic")) {
+                        if (currentFunction && currentFunction->has_intrinsic) {
                             if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                                currentFunction->isExternC = true;
+                                currentFunction->addModifier("foreign");
+                                currentFunction->addModifier("expect");
                                 functions.push_back(currentFunction);
                             }
                         }
@@ -1533,22 +2054,21 @@ namespace sclc {
                     Token& func = tokens[i + 1];
                     std::string name = func.value;
                     currentFunction = parseMethod(name, func, currentStruct->name, errors, i, tokens);
-                    currentFunction->isPrivate = contains<std::string>(nextAttributes, "private");
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
-                    Function* f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
+                    Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
                     if (f) {
                         currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                     }
-                    if (contains<std::string>(nextAttributes, "expect")) {
-                        currentFunction->isExternC = true;
+                    if (currentFunction->has_expect) {
                         functions.push_back(currentFunction);
                         currentFunction = nullptr;
                     }
-                    if (contains<std::string>(nextAttributes, "intrinsic")) {
+                    if (currentFunction && currentFunction->has_intrinsic) {
                         if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->member_type + "::" + currentFunction->name)) {
-                            currentFunction->isExternC = true;
+                            currentFunction->addModifier("foreign");
+                            currentFunction->addModifier("expect");
                             functions.push_back(currentFunction);
                         }
                     }
@@ -1568,7 +2088,7 @@ namespace sclc {
                         for (Variable& v : currentFunction->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->addArgument(Variable("self", currentInterface->name));
                         m->return_type = currentFunction->return_type;
                         for (std::string& s : currentFunction->modifiers) {
                             m->addModifier(s);
@@ -1586,7 +2106,7 @@ namespace sclc {
                         for (Variable& v : functionToImplement->args) {
                             m->addArgument(v);
                         }
-                        m->addArgument(Variable("self", "mut " + currentInterface->name));
+                        m->addArgument(Variable("self", currentInterface->name));
                         m->return_type = functionToImplement->return_type;
                         for (std::string& s : functionToImplement->modifiers) {
                             m->addModifier(s);
@@ -1607,10 +2127,9 @@ namespace sclc {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
                         result.value = func.value;
-                        result.line = func.line;
-                        result.in = func.file;
+                        result.location.line = func.location.line;
+                        result.location = func.location;
                         result.type = func.type;
-                        result.column = func.column;
                         result.success = false;
                         errors.push_back(result);
                         nextAttributes.clear();
@@ -1647,14 +2166,14 @@ namespace sclc {
                 if (f) {
                     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                 }
-                if (contains<std::string>(nextAttributes, "expect")) {
-                    currentFunction->isExternC = true;
+                if (currentFunction->has_expect) {
                     functions.push_back(currentFunction);
                     currentFunction = nullptr;
                 }
-                if (contains<std::string>(nextAttributes, "intrinsic")) {
+                if (currentFunction && currentFunction->has_intrinsic) {
                     if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                        currentFunction->isExternC = true;
+                        currentFunction->addModifier("foreign");
+                        currentFunction->addModifier("expect");
                         functions.push_back(currentFunction);
                     }
                 }
@@ -1688,10 +2207,9 @@ namespace sclc {
                                 FPResult result;
                                 result.message = "Cannot overload varargs function " + f->name + "!";
                                 result.value = f->name;
-                                result.line = f->name_token.line;
-                                result.in = f->name_token.file;
+                                result.location.line = f->name_token.location.line;
+                                result.location = f->name_token.location;
                                 result.type = f->name_token.type;
-                                result.column = f->name_token.column;
                                 result.success = false;
                                 errors.push_back(result);
                                 nextAttributes.clear();
@@ -1702,10 +2220,9 @@ namespace sclc {
                                     FPResult result;
                                     result.message = "Function " + currentFunction->name + " is already defined!";
                                     result.value = currentFunction->name;
-                                    result.line = currentFunction->name_token.line;
-                                    result.in = currentFunction->name_token.file;
+                                    result.location.line = currentFunction->name_token.location.line;
+                                    result.location = currentFunction->name_token.location;
                                     result.type = currentFunction->name_token.type;
-                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                     nextAttributes.clear();
@@ -1715,24 +2232,22 @@ namespace sclc {
                                 currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                                 functionWasOverloaded = true;
                             } else if (currentFunction != f) {
-                                if (currentFunction->has_intrinsic) {
+                                if (currentFunction && currentFunction->has_intrinsic) {
                                     FPResult result;
                                     result.message = "Cannot overload intrinsic function " + currentFunction->name + "!";
                                     result.value = currentFunction->name;
-                                    result.line = currentFunction->name_token.line;
-                                    result.in = currentFunction->name_token.file;
+                                    result.location.line = currentFunction->name_token.location.line;
+                                    result.location = currentFunction->name_token.location;
                                     result.type = currentFunction->name_token.type;
-                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                 } else if (f->has_intrinsic) {
                                     FPResult result;
                                     result.message = "Cannot overload function " + currentFunction->name + " with intrinsic function!";
                                     result.value = currentFunction->name;
-                                    result.line = currentFunction->name_token.line;
-                                    result.in = currentFunction->name_token.file;
+                                    result.location.line = currentFunction->name_token.location.line;
+                                    result.location = currentFunction->name_token.location;
                                     result.type = currentFunction->name_token.type;
-                                    result.column = currentFunction->name_token.column;
                                     result.success = false;
                                     errors.push_back(result);
                                 }
@@ -1750,10 +2265,9 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected a method, but got a function. If you see this error, something has gone very wrong! Report this: ERR_INTERFACE_DEFAULT_NO_METHOD";
                             result.value = currentFunction->name_token.value;
-                            result.line = currentFunction->name_token.line;
-                            result.in = currentFunction->name_token.file;
+                            result.location.line = currentFunction->name_token.location.line;
+                            result.location = currentFunction->name_token.location;
                             result.type = currentFunction->name_token.type;
-                            result.column = currentFunction->name_token.column;
                             result.success = false;
                             errors.push_back(result);
                         }
@@ -1763,23 +2277,29 @@ namespace sclc {
                     }
                     currentFunction = nullptr;
                 } else if (currentContainer != nullptr) {
-                    containers.push_back(*currentContainer);
+                    if (std::find(containers.begin(), containers.end(), *currentContainer) == containers.end()) {
+                        containers.push_back(*currentContainer);
+                    }
                     currentContainer = nullptr;
                 } else if (currentStruct != nullptr) {
-                    structs.push_back(*currentStruct);
+                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                        structs.push_back(*currentStruct);
+                    }
                     templateArgs.clear();
                     currentStruct = nullptr;
                 } else if (currentInterface != nullptr) {
+                    if (std::find(interfaces.begin(), interfaces.end(), currentInterface) == interfaces.end()) {
+                        interfaces.push_back(currentInterface);
+                    }
                     interfaces.push_back(currentInterface);
                     currentInterface = nullptr;
                 } else {
                     FPResult result;
                     result.message = "Unexpected 'end' keyword outside of function, container, struct or interface body. Remove this:";
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1789,10 +2309,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1801,10 +2320,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1813,10 +2331,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1825,10 +2342,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1838,10 +2354,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for container name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1850,10 +2364,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Invalid name for container: '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1861,10 +2373,8 @@ namespace sclc {
                 FPResult result;
                 result.message = "Containers are deprecated. Use a static struct instead.";
                 result.value = tokens[i].value;
-                result.line = tokens[i].line;
-                result.in = tokens[i].file;
+                result.location = tokens[i].location;
                 result.type = tokens[i].type;
-                result.column = tokens[i].column;
                 result.success = false;
                 warns.push_back(result);
                 currentContainer = new Container(tokens[i].value);
@@ -1874,10 +2384,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a union struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1886,10 +2395,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a union struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1898,10 +2406,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a union struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1910,10 +2417,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a union struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1922,10 +2428,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for union struct name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -1950,20 +2454,20 @@ namespace sclc {
                     getter->addModifier("@getter");
                     getter->addModifier(varName);
                     getter->addArgument(Variable("self", unionName));
-                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_column, ":", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_identifier, "expected", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
+                    getter->addToken(Token(tok_column, ":", v.name_token->location));
+                    getter->addToken(Token(tok_identifier, "expected", v.name_token->location));
                     std::string removed = removeTypeModifiers(v.type);
                     if (removed == "none" || removed == "nothing") {
                         return getter;
                     }
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_dot, ".", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_identifier, "__value", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_as, "as", v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token->line, v.name_token->file, v.name_token->column));
-                    getter->addToken(Token(tok_return, "return", v.name_token->line, v.name_token->file, v.name_token->column));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
+                    getter->addToken(Token(tok_dot, ".", v.name_token->location));
+                    getter->addToken(Token(tok_identifier, "__value", v.name_token->location));
+                    getter->addToken(Token(tok_as, "as", v.name_token->location));
+                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token->location));
+                    getter->addToken(Token(tok_return, "return", v.name_token->location));
                     return getter;
                 };
 
@@ -1976,16 +2480,16 @@ namespace sclc {
                     if (removed != "none" && removed != "nothing") {
                         setter->addArgument(Variable("what", v.type));
                     }
-                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token->line, v.name_token->file, v.name_token->column));
+                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
                     if (removed != "none" && removed != "nothing") {
-                        setter->addToken(Token(tok_identifier, "what", v.name_token->line, v.name_token->file, v.name_token->column));
+                        setter->addToken(Token(tok_identifier, "what", v.name_token->location));
                     } else {
-                        setter->addToken(Token(tok_nil, "nil", v.name_token->line, v.name_token->file, v.name_token->column));
+                        setter->addToken(Token(tok_nil, "nil", v.name_token->location));
                     }
-                    setter->addToken(Token(tok_identifier, unionName, v.name_token->line, v.name_token->file, v.name_token->column));
-                    setter->addToken(Token(tok_double_column, "::", v.name_token->line, v.name_token->file, v.name_token->column));
-                    setter->addToken(Token(tok_identifier, "new", v.name_token->line, v.name_token->file, v.name_token->column));
-                    setter->addToken(Token(tok_return, "return", v.name_token->line, v.name_token->file, v.name_token->column));
+                    setter->addToken(Token(tok_identifier, unionName, v.name_token->location));
+                    setter->addToken(Token(tok_double_column, "::", v.name_token->location));
+                    setter->addToken(Token(tok_identifier, "new", v.name_token->location));
+                    setter->addToken(Token(tok_return, "return", v.name_token->location));
                     return setter;
                 };
 
@@ -1994,10 +2498,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for union struct member name, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -2026,34 +2528,39 @@ namespace sclc {
                     v.isVirtual = true;
                     currentStruct->addMember(v);
                     Method* getter = makeGetter(v, currentStruct->name, currentStruct->members.size());
+                    if (currentStruct->isExtern()) {
+                        getter->addModifier("expect");
+                    }
                     functions.push_back(getter);
                     Function* setter = makeSetter(v, currentStruct->name, currentStruct->members.size());
+                    if (currentStruct->isExtern()) {
+                        setter->addModifier("expect");
+                    }
                     functions.push_back(setter);
                 }
                 if (tokens[i].type != tok_end) {
                     FPResult result;
                     result.message = "Expected 'end' for union struct, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
                 }
                 currentStruct->toggleFinal();
-                structs.push_back(*currentStruct);
+                if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                    structs.push_back(*currentStruct);
+                }
                 currentStruct = nullptr;
             } else if (token.type == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].type != tok_double_column))) {
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2062,10 +2569,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2074,10 +2580,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2086,10 +2591,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2098,10 +2602,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for struct name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
-                    result.column = tokens[i + 1].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2111,10 +2613,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Invalid name for struct: '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2137,10 +2637,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected identifier for template argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -2152,10 +2650,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Expected ':' after template argument name, but got '" + tokens[i].value + "'";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -2168,8 +2664,6 @@ namespace sclc {
                         }
                         currentStruct->required_typed_arguments++;
                         currentStruct->addTemplateArgument(key, value.value);
-                        currentStruct->addMember(Variable("$template_arg_" + key, "uint32"));
-                        currentStruct->addMember(Variable("$template_argname_" + key, "[int8]"));
                         templateArgs[key] = value.value;
                         i++;
                         if (tokens[i].value == ",") {
@@ -2181,23 +2675,19 @@ namespace sclc {
                     i += 2;
                     if (currentStruct->name == tokens[i].value) {
                         FPResult result;
-                        result.message = "Structs cannot extend themselves. Defaulted to 'SclObject'!";
+                        result.message = "Structs cannot extend themselves.!";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                     } else {
-                        if (tokens[i].value == "SclObject") {
+                        if (tokens[i].value == "SclObject" && !Main::options::noScaleFramework) {
                             FPResult result;
                             result.message = "Explicit inherit of struct 'SclObject' not neccessary.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
                             result.success = true;
                             warns.push_back(result);
                         }
@@ -2205,50 +2695,36 @@ namespace sclc {
                         hasSuperSpecified = true;
                     }
                 }
+
                 if (!hasSuperSpecified) {
-                    if (currentStruct->name != "SclObject")
+                    if (currentStruct->name != "SclObject" && !Main::options::noScaleFramework)
                         currentStruct->super = ("SclObject");
                 }
                 if (tokens[i + 1].type == tok_is) {
                     i++;
-                    if (tokens[i + 1].type != tok_identifier) {
-                        FPResult result;
-                        result.message = "Expected identifier for interface name, but got'" + tokens[i + 1].value + "'";
-                        result.value = tokens[i + 1].value;
-                        result.line = tokens[i + 1].line;
-                        result.in = tokens[i + 1].file;
-                        result.type = tokens[i + 1].type;
-                        result.column = tokens[i + 1].column;
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    i++;
-                    while (tokens[i].type != tok_declare && tokens[i].type != tok_end && tokens[i].type != tok_function && tokens[i].type != tok_extern && tokens[i].value != "static" && tokens[i].value != "private") {
-                        if (tokens[i].type == tok_identifier)
-                            currentStruct->implement(tokens[i].value);
+                    do {
                         i++;
-                        if (tokens[i].type == tok_declare || tokens[i].type == tok_end || tokens[i].type == tok_function || tokens[i].type == tok_extern || tokens[i].value == "static" || tokens[i].value == "private") {
-                            i--;
-                            break;
-                        }
-                        if (i >= tokens.size()) {
+                        if (tokens[i].type != tok_identifier) {
                             FPResult result;
-                            result.message = "Unexpected end of file!";
-                            result.value = tokens[i - 1].value;
-                            result.line = tokens[i - 1].line;
-                            result.in = tokens[i - 1].file;
-                            result.type = tokens[i - 1].type;
-                            result.column = tokens[i - 1].column;
+                            result.message = "Expected identifier for interface name, but got'" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
                             result.success = false;
                             errors.push_back(result);
-                            break;
+                            i++;
+                            continue;
                         }
-                    }
+                        currentStruct->implement(tokens[i].value);
+                        i++;
+                    } while (i < tokens.size() && tokens[i].type == tok_comma);
+                    i--;
                 }
 
                 if (open) {
-                    structs.push_back(*currentStruct);
+                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
+                        structs.push_back(*currentStruct);
+                    }
                     currentStruct = nullptr;
                 }
             } else if (token.type == tok_identifier && token.value == "layout") {
@@ -2256,10 +2732,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a layout inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2268,10 +2743,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2280,10 +2754,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a layout inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2292,10 +2765,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define a layout inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2310,10 +2782,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Only declarations are allowed inside of a layout.";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         break;
@@ -2323,9 +2793,7 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for variable name, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
-                        result.column = tokens[i].column;
+                        result.location = tokens[i].location;
                         result.success = false;
                         errors.push_back(result);
                         break;
@@ -2345,11 +2813,8 @@ namespace sclc {
                             FPResult result;
                             result.message = "Type 'none' is only valid for function return types.";
                             result.value = tokens[i].value;
-                            result.line = tokens[i].line;
-                            result.in = tokens[i].file;
+                            result.location = tokens[i].location;
                             result.type = tokens[i].type;
-                            result.column = tokens[i].column;
-                            result.column = tokens[i].column;
                             result.success = false;
                             errors.push_back(result);
                             break;
@@ -2360,16 +2825,17 @@ namespace sclc {
                     i++;
                 }
 
-                layouts.push_back(layout);
+                if (std::find(layouts.begin(), layouts.end(), layout) == layouts.end()) {
+                    layouts.push_back(layout);
+                }
             } else if (token.type == tok_enum) {
                 if (currentContainer != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an enum inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2378,10 +2844,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an enum inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2390,10 +2855,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an enum inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2402,10 +2866,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an enum inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2415,10 +2878,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for enum name, but got '" + tokens[i].value + "'";
                     result.value = tokens[i].value;
-                    result.line = tokens[i].line;
-                    result.in = tokens[i].file;
+                    result.location = tokens[i].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2441,10 +2902,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected identifier for enum member, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         i++;
@@ -2456,10 +2915,8 @@ namespace sclc {
                         FPResult result;
                         result.message = e.what();
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                     }
@@ -2471,10 +2928,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = token.type;
-                    result.column = token.column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2483,10 +2939,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2495,10 +2950,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2507,10 +2961,9 @@ namespace sclc {
                     FPResult result;
                     result.message = "Cannot define an interface inside another interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
                     result.value = token.value;
-                    result.line = token.line;
-                    result.in = token.file;
+                    result.location.line = token.location.line;
+                    result.location = token.location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2519,10 +2972,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for interface declaration, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2532,10 +2983,8 @@ namespace sclc {
                     FPResult result;
                     result.message = "Invalid name for interface: '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.type = tokens[i].type;
-                    result.column = tokens[i].column;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2553,10 +3002,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "'" + tokens[i + 1].value + "' is not a valid modifier.";
                         result.value = tokens[i + 1].value;
-                        result.line = tokens[i + 1].line;
-                        result.in = tokens[i + 1].file;
+                        result.location = tokens[i + 1].location;
                         result.type = tokens[i + 1].type;
-                        result.column = tokens[i + 1].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2584,8 +3031,7 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2606,19 +3052,23 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
                     }
                 }
                 if (contains<std::string>(nextAttributes, "expect")) {
-                    extern_globals.push_back(Variable(name, type));
+                    Variable v(name, type);
+                    if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
+                        extern_globals.push_back(v);
+                    }
                 } else {
-                    globals.push_back(Variable(name, type));
+                    Variable v(name, type);
+                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                        globals.push_back(v);
+                    }
                 }
                 nextAttributes.clear();
             } else if (token.type == tok_declare && currentContainer != nullptr) {
@@ -2626,8 +3076,7 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
+                    result.location = tokens[i + 1].location;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2648,11 +3097,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2665,9 +3111,7 @@ namespace sclc {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
                     result.value = tokens[i + 1].value;
-                    result.line = tokens[i + 1].line;
-                    result.in = tokens[i + 1].file;
-                    result.column = tokens[i + 1].column;
+                    result.location = tokens[i + 1].location;
                     result.success = false;
                     errors.push_back(result);
                     continue;
@@ -2695,11 +3139,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Type 'none' is only valid for function return types.";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2712,17 +3153,22 @@ namespace sclc {
                     v.name_token = new Token(name_token);
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
-                    globals.push_back(v);
+                    if (contains<std::string>(nextAttributes, "expect")) {
+                        if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
+                            extern_globals.push_back(v);
+                        }
+                    } else {
+                        if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                            globals.push_back(v);
+                        }
+                    }
                 } else {
                     if (typeIsConst(type) && isInternalMut) {
                         FPResult result;
                         result.message = "The 'const' and 'readonly' modifiers are mutually exclusive!";
                         result.value = name_token.value;
-                        result.line = name_token.line;
-                        result.in = name_token.file;
-                        result.column = name_token.column;
+                        result.location = name_token.location;
                         result.type = name_token.type;
-                        result.column = name_token.column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2747,9 +3193,12 @@ namespace sclc {
                            t.value == "overload!" ||
                            t.value == "construct" ||
                            t.value == "intrinsic" ||
+                           t.value == "overrides" ||
+                           t.value == "stacksize" ||
                            t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
+                           t.value == "foreign" ||
                            t.value == "virtual" ||
                            t.value == "default" ||
                            t.value == "private" ||
@@ -2786,7 +3235,7 @@ namespace sclc {
                         getter->return_type = lastDeclaredVariable.type;
                         getter->addModifier("@getter");
                         getter->addModifier(varName);
-                        getter->addArgument(Variable("self", "mut " + currentStruct->name));
+                        getter->addArgument(Variable("self", currentStruct->name));
                         currentFunction = getter;
                     } else {
                         Token& setToken = tokens[i];
@@ -2812,7 +3261,7 @@ namespace sclc {
                         setter->addModifier("@setter");
                         setter->addModifier(varName);
                         setter->addArgument(Variable(argName, lastDeclaredVariable.type));
-                        setter->addArgument(Variable("self", "mut " + currentStruct->name));
+                        setter->addArgument(Variable("self", currentStruct->name));
                         currentFunction = setter;
                     }
                 } else if (tokens[i].value == "typealias") {
@@ -2823,11 +3272,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected string, but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2840,11 +3286,8 @@ namespace sclc {
                         FPResult result;
                         result.message = "Expected '[', but got '" + tokens[i].value + "'";
                         result.value = tokens[i].value;
-                        result.line = tokens[i].line;
-                        result.in = tokens[i].file;
+                        result.location = tokens[i].location;
                         result.type = tokens[i].type;
-                        result.column = tokens[i].column;
-                        result.column = tokens[i].column;
                         result.success = false;
                         errors.push_back(result);
                         continue;
@@ -2854,10 +3297,8 @@ namespace sclc {
                         FPResult result; \
                         result.message = "Invalid key for '" + std::string(_type) + "': '" + key + "'"; \
                         result.value = tokens[i].value; \
-                        result.line = tokens[i].line; \
-                        result.in = tokens[i].file; \
-                        result.ty ## pe = tokens[i].type; \
-                        result.column = tokens[i].column; \
+                        result.location = tokens[i].location; \
+                        result.type = tokens[i].type; \
                         result.success = false; \
                         errors.push_back(result); \
                         continue; \
@@ -2894,7 +3335,21 @@ namespace sclc {
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].value);
-                    if (tokens[i].value == "relocatable") {
+                    if (tokens[i].value == "stackalloc") {
+                        i++;
+                        if (i < tokens.size() && tokens[i].type == tok_number) {
+                            nextAttributes.push_back(tokens[i].value);
+                        } else {
+                            FPResult result;
+                            result.message = "Expected number, but got '" + tokens[i].value + "'";
+                            result.value = tokens[i].value;
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            errors.push_back(result);
+                            continue;
+                        }
+                    } else if (tokens[i].value == "relocatable") {
                         nextAttributes.push_back("export");
                     }
                 }
@@ -2949,125 +3404,72 @@ namespace sclc {
 
         std::vector<Struct> newStructs;
 
+        TemplateInstances::instantiate(result);
+
         for (auto&& s : result.structs) {
             Struct super = getStructByName(result, s.super);
-            for (auto t : s.templates) {
-                if (t.second.size() > 2 && t.second.front() == '[' && t.second.back() == ']') {
-                    FPResult r;
-                    r.message = "Default value for template '" + t.first + "' is an array, which is not allowed";
-                    r.value = t.second;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
-                    continue;
-                }
-                Struct tmp = getStructByName(result, t.second);
-                bool primitive = false;
-                if ((primitive = isPrimitiveType(t.second)) || tmp == Struct::Null || tmp.isStatic()) {
-                    FPResult r;
-                    if (tmp == Struct::Null) {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which does not appear to be a struct or primitive type";
-                    } else if (tmp.isStatic()) {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a static struct";
-                    } else {
-                        r.message = "Template '" + t.first + "' has default value of '" + t.second + "', which is a primitive type";
-                    }
-                    r.value = t.second;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
-                    continue;
-                }
-            }
             Struct oldSuper = s;
             while (super.name.size()) {
                 if (super.name == s.name) {
                     FPResult r;
                     r.message = "Struct '" + s.name + "' has Struct '" + oldSuper.name + "' in it's inheritance chain, which inherits from '" + super.name + "'";
                     r.value = s.name_token.value;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
+                    r.location.line = s.name_token.location.line;
+                    r.location = s.name_token.location;
                     r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     FPResult r2;
                     r2.message = "Struct '" + oldSuper.name + "' declared here:";
                     r2.value = oldSuper.name_token.value;
-                    r2.line = oldSuper.name_token.line;
-                    r2.in = oldSuper.name_token.file;
+                    r2.location.line = oldSuper.name_token.location.line;
+                    r2.location = oldSuper.name_token.location;
                     r2.type = oldSuper.name_token.type;
-                    r2.column = oldSuper.name_token.column;
-                    r2.column = oldSuper.name_token.column;
                     r2.success = false;
                     r2.isNote = true;
                     result.errors.push_back(r2);
-                    oldSuper = super;
-                    super = getStructByName(result, "SclObject");
+                    break;
                 }
                 if (super.isFinal()) {
                     FPResult r;
                     r.message = "Struct '" + super.name + "' is final";
                     r.value = s.name_token.value;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
+                    r.location.line = s.name_token.location.line;
+                    r.location = s.name_token.location;
                     r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
                     r.success = false;
                     result.errors.push_back(r);
                     FPResult r2;
                     r2.message = "Declared here:";
                     r2.value = super.name_token.value;
-                    r2.line = super.name_token.line;
-                    r2.in = super.name_token.file;
+                    r2.location.line = super.name_token.location.line;
+                    r2.location = super.name_token.location;
                     r2.type = super.name_token.type;
-                    r2.column = super.name_token.column;
-                    r2.column = super.name_token.column;
                     r2.success = false;
                     r2.isNote = true;
                     result.errors.push_back(r2);
-                    goto nextIter;
-                }
-                if (super.templates.size() && s.templates.size() == 0) {
-                    for (auto kv : super.templates) {
-                        s.addTemplateArgument(kv.first, kv.second);
-                    }
-                    s.required_typed_arguments = super.required_typed_arguments;
-                }
-                if (super.templates.size() && super.templates.size() != s.templates.size()) {
-                    FPResult r;
-                    r.message = "Struct '" + s.name + "' has " + std::to_string(s.templates.size()) + " template arguments, but '" + super.name + "' has " + std::to_string(super.templates.size());
-                    r.value = s.name_token.value;
-                    r.line = s.name_token.line;
-                    r.in = s.name_token.file;
-                    r.type = s.name_token.type;
-                    r.column = s.name_token.column;
-                    r.column = s.name_token.column;
-                    r.success = false;
-                    result.errors.push_back(r);
                     goto nextIter;
                 }
                 std::vector<Variable> vars = super.getDefinedMembers();
                 for (ssize_t i = vars.size() - 1; i >= 0; i--) {
                     s.addMember(vars[i], true);
                 }
+                std::vector<Variable> newMembers;
+                newMembers.reserve(s.members.size());
+                for (Variable mem : s.members) {
+                    if (mem.isInternalMut) {
+                        mem.internalMutableFrom = s.name;
+                    }
+                    newMembers.push_back(mem);
+                }
+                s.members = static_cast<std::vector<Variable>&&>(newMembers);
                 oldSuper = super;
                 super = getStructByName(result, super.super);
             }
             newStructs.push_back(s);
             nextIter:;
         }
-        result.structs = std::move(newStructs);
+        result.structs = static_cast<std::vector<sclc::Struct>&&>(newStructs);
         if (result.errors.size()) {
             return result;
         }
@@ -3078,13 +3480,13 @@ namespace sclc {
             return (s.size() > 2 && s.front() == '[' && s.back() == ']');
         };
         auto createToStringMethod = [&](Struct& s) -> Method* {
-            Token t(tok_identifier, "toString", 0, s.name_token.file);
+            Token t(tok_identifier, "toString");
             Method* toString = new Method(s.name, std::string("toString"), t);
             std::string stringify = s.name + " {";
             toString->return_type = "str";
             toString->addModifier("<generated>");
-            toString->addArgument(Variable("self", "mut " + s.name));
-            toString->addToken(Token(tok_string_literal, stringify, 0, s.name + ":toString"));
+            toString->addArgument(Variable("self", s.name));
+            toString->addToken(Token(tok_string_literal, stringify));
 
             size_t membersAdded = 0;
 
@@ -3092,33 +3494,33 @@ namespace sclc {
                 auto member = s.members[i];
                 if (member.name.front() == '$') continue;
                 if (membersAdded) {
-                    toString->addToken(Token(tok_string_literal, ", ", 0, s.name + ":toString"));
-                    toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_string_literal, ", "));
+                    toString->addToken(Token(tok_identifier, "+"));
                 }
                 membersAdded++;
 
-                toString->addToken(Token(tok_string_literal, member.name + ": ", 0, s.name + ":toString"));
-                toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
-                toString->addToken(Token(tok_identifier, "self", 0, s.name + ":toString"));
-                toString->addToken(Token(tok_dot, ".", 0, s.name + ":toString"));
-                toString->addToken(Token(tok_identifier, member.name, 0, s.name + ":toString"));
+                toString->addToken(Token(tok_string_literal, member.name + ": "));
+                toString->addToken(Token(tok_identifier, "+"));
+                toString->addToken(Token(tok_identifier, "self"));
+                toString->addToken(Token(tok_dot, "."));
+                toString->addToken(Token(tok_identifier, member.name));
                 bool canBeNil = typeCanBeNil(member.type);
                 std::string type = removeTypeModifiers(member.type);
                 if (canBeNil) {
-                    toString->addToken(Token(tok_identifier, "builtinToString", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_identifier, "builtinToString"));
                 } else if (isPointer(type) || hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
-                    toString->addToken(Token(tok_identifier, "any", 0, s.name + ":toString"));
-                    toString->addToken(Token(tok_double_column, "::", 0, s.name + ":toString"));
-                    toString->addToken(Token(tok_identifier, "toHexString", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_identifier, "any"));
+                    toString->addToken(Token(tok_double_column, "::"));
+                    toString->addToken(Token(tok_identifier, "toHexString"));
                 } else {
-                    toString->addToken(Token(tok_column, ":", 0, s.name + ":toString"));
-                    toString->addToken(Token(tok_identifier, "toString", 0, s.name + ":toString"));
+                    toString->addToken(Token(tok_column, ":"));
+                    toString->addToken(Token(tok_identifier, "toString"));
                 }
-                toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
+                toString->addToken(Token(tok_identifier, "+"));
             }
-            toString->addToken(Token(tok_string_literal, "}", 0, s.name + ":toString"));
-            toString->addToken(Token(tok_identifier, "+", 0, s.name + ":toString"));
-            toString->addToken(Token(tok_return, "return", 0, s.name + ":toString"));
+            toString->addToken(Token(tok_string_literal, "}"));
+            toString->addToken(Token(tok_identifier, "+"));
+            toString->addToken(Token(tok_return, "return"));
             toString->force_add = true;
             return toString;
         };
@@ -3147,7 +3549,7 @@ namespace sclc {
             }
         }
 
-        if (Main.options.Werror) {
+        if (Main::options::Werror) {
             for (auto warn : result.warns) {
                 result.errors.push_back(warn);
             }

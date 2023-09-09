@@ -20,7 +20,7 @@ struct Foo
 end
 
 function main(): none
-    Foo::new => decl x: mut Foo
+    Foo::new => decl x: Foo
 
     1 => x.x
 

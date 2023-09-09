@@ -6,13 +6,6 @@ final sealed struct MapEntry<T: SclObject>
   decl key: str
   decl value: T
 
-  private function checkTypeOrThrow(val: any): none
-    if val typeof T builtinIsInstanceOf then
-      return
-    fi
-    "Cannot cast '" typeof val + "' to type '" + typeof T + "'" + CastError::new throw
-  end
-
   function init(key: str, value: T): none
     key => self.key
     value => self.value
@@ -24,10 +17,10 @@ final sealed struct MapEntry<T: SclObject>
 end
 
 sealed struct Map<T: SclObject> is Iterable
-  private decl data: TypedArray
+  private decl data: TypedArray<MapEntry<SclObject>>
 
   function init(size: int): none
-    size TypedArray<MapEntry>::new => self.data
+    size TypedArray<MapEntry<SclObject>>::new => self.data
   end
 
   function [](key: str): T
@@ -36,9 +29,9 @@ sealed struct Map<T: SclObject> is Iterable
 
   function get(key: str): T
     for i in 0 to self.data.count do
-      self.data[i] as MapEntry => decl entry: MapEntry
+      self.data[i] => decl entry: MapEntry<SclObject>
       if entry.key key == then
-        entry.value return
+        entry.value as T return
       fi
     done
     "Key '" key + "' not found in map" + InvalidArgumentException::new throw
@@ -49,8 +42,8 @@ sealed struct Map<T: SclObject> is Iterable
   end
 
   function containsKey(key: str): bool
-    foreach entry in self.data do
-      if entry as MapEntry.key key == then
+    for i in 0 to self.data.count do
+      if self.data[i].key key == then
         true return
       fi
     done
@@ -59,16 +52,16 @@ sealed struct Map<T: SclObject> is Iterable
 
   function set(key: str, value: T): none
     for i in 0 to self.data.count do
-      i self.data:get => decl entry: mut MapEntry?
+      i self.data:get => decl entry: MapEntry<SclObject>?
       if entry nil == then
-        i (key value MapEntry<typeof T>::new) self.data:set
+        i (key value MapEntry<SclObject>::new) self.data:set
         return
-      elif entry as MapEntry.key key == then
+      elif entry!!.key key == then
         value => entry.value
         return
       fi
     done
-    key value MapEntry<typeof T>::new self.data:push
+    key value MapEntry<SclObject>::new self.data:push
   end
 
   function iterate(): Iterator
@@ -79,11 +72,9 @@ sealed struct Map<T: SclObject> is Iterable
     self.data:toString return
   end
 
-  function map(x: lambda(MapEntry): none): none
-    foreach value in self.data do
-      if value then
-        value x:accept
-      fi
+  function map(x: lambda(MapEntry<SclObject>): none): none
+    for i in 0 to self.data.count do
+      self.data[i] x:accept
     done
   end
 end
@@ -99,7 +90,7 @@ sealed struct MapIterator is Iterator
     self.data:hasNext return
   end
 
-  function next(): MapEntry
-    self.data:next as MapEntry return
+  function next(): MapEntry<SclObject>
+    self.data:next as MapEntry<SclObject> return
   end
 end

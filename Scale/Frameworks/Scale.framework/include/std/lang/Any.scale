@@ -1,7 +1,7 @@
-private expect unsafe function _scl_realloc(ptr: any, size: int): any
-private expect unsafe function _scl_alloc(size: int): any
-private expect unsafe function _scl_free(ptr: any): none
-private expect unsafe function _scl_sizeof(ptr: any): int
+private expect foreign unsafe function _scl_realloc(ptr: any, size: int): any
+private expect foreign unsafe function _scl_alloc(size: int): any
+private expect foreign unsafe function _scl_free(ptr: any): none
+private expect foreign unsafe function _scl_sizeof(ptr: any): int
 
 final static sealed struct any
     function new(sz: int): any
@@ -47,15 +47,20 @@ final static sealed struct any
     end
 
     function asReference(x: any): Any
-        x Any::valueOf return
+        x Any::new return
     end
 end
 
 struct Any
     decl value: readonly any
 
-    expect static function valueOf(x: any): Any
+    static function valueOf(x: any): Any
+        x Any::new return
+    end
 
+    function init(x: any): none
+        x => self.value
+    end
     function equals(other: any): bool
         other self == return
     end
@@ -64,6 +69,13 @@ struct Any
             other as Any.value as int self.value as int == return
         else
             other self.value == return
+        fi
+    end
+    function !=(other: any): bool
+        if other is Any then
+            other as Any.value as int self.value as int != return
+        else
+            other self.value != return
         fi
     end
     function @(): any

@@ -5,11 +5,14 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <csignal>
 #include <regex>
 #include <unordered_map>
 #include <unordered_set>
 #include <stack>
 #include <sys/stat.h>
+#include <chrono>
+#include <dlfcn.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
@@ -29,7 +32,7 @@
 
 #define LINE_LENGTH 48
 
-#define ssize_t signed long long
+#define ssize_t signed long
 
 namespace sclc {
     typedef std::unordered_map<std::string, std::string> Deprecation;
@@ -99,6 +102,7 @@ namespace sclc {
         std::vector<Token> getTokens();
         Token nextToken();
         void printTokens();
+        void removeInvalidTokens();
         FPResult tryImports();
     };
     
@@ -113,58 +117,53 @@ namespace sclc {
         static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename);
     };
 
-    struct _Main {
-        Tokenizer* tokenizer;
-        SyntaxTree* lexer;
-        Parser* parser;
-        std::vector<std::string> frameworkNativeHeaders;
-        std::vector<std::string> frameworks;
-        Version* version;
-        long long tokenHandleTime;
-        long long writeHeaderTime;
-        long long writeContainersTime;
-        long long writeStructsTime;
-        long long writeGlobalsTime;
-        long long writeFunctionHeadersTime;
-        long long writeTablesTime;
-        long long writeFunctionsTime;
+    struct Main {
+        static Tokenizer* tokenizer;
+        static SyntaxTree* lexer;
+        static Parser* parser;
+        static std::vector<std::string> frameworkNativeHeaders;
+        static std::vector<std::string> frameworks;
+        static Version* version;
+        static long long tokenHandleTime;
+        static long long writeHeaderTime;
+        static long long writeContainersTime;
+        static long long writeStructsTime;
+        static long long writeGlobalsTime;
+        static long long writeFunctionHeadersTime;
+        static long long writeTablesTime;
+        static long long writeFunctionsTime;
         struct options {
-            bool doRun;
-            bool noMain;
-            bool Werror;
-            bool minify;
-            bool dumpInfo;
-            bool printDocs;
-            bool debugBuild;
-            bool printCflags;
-            size_t stackSize;
-            bool binaryHeader;
-            bool assembleOnly;
-            bool transpileOnly;
-            std::string outfile;
-            size_t mainArgCount;
-            bool preprocessOnly;
-            bool mainReturnsNone;
-            bool noScaleFramework;
-            std::string optimizer;
-            bool dontSpecifyOutFile;
-            std::string printDocFor;
-            size_t docPrinterArgsStart;
-            std::string docsIncludeFolder;
-            std::string operatorRandomData;
-            std::vector<std::string> flags;
-            std::vector<std::string> files;
-            std::vector<std::string> features;
-            std::vector<std::string> includePaths;
-            std::vector<std::string> filesFromCommandLine;
-            std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
-            std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
-            std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
-            std::unordered_map<std::string, DragonConfig::CompoundEntry*> mapFrameworkConfigs;
-        } options;
+            static bool noMain;
+            static bool Werror;
+            static bool dumpInfo;
+            static bool printDocs;
+            static bool debugBuild;
+            static bool printCflags;
+            static size_t stackSize;
+            static size_t errorLimit;
+            static bool binaryHeader;
+            static bool assembleOnly;
+            static bool transpileOnly;
+            static std::string outfile;
+            static bool preprocessOnly;
+            static bool noScaleFramework;
+            static std::string optimizer;
+            static bool dontSpecifyOutFile;
+            static std::string printDocFor;
+            static size_t docPrinterArgsStart;
+            static std::string docsIncludeFolder;
+            static std::string operatorRandomData;
+            static std::vector<std::string> files;
+            static std::vector<std::string> features;
+            static std::vector<std::string> includePaths;
+            static std::vector<std::string> filesFromCommandLine;
+            static std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
+            static std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
+            static std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
+            static std::unordered_map<std::string, DragonConfig::CompoundEntry*> indexDrgFiles;
+        };
     };
 
-    extern _Main Main;
     extern std::string scaleFolder;
     extern std::vector<Variable> vars;
     extern std::vector<size_t> var_indices;
@@ -216,14 +215,31 @@ namespace sclc {
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s);
     bool typeIsConst(std::string s);
-    bool typeIsMut(std::string s);
     bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s);
     bool featureEnabled(std::string feat);
     bool isInitFunction(Function* f);
     bool isDestroyFunction(Function* f);
-    time_t file_modified_time(const std::string& path);
-    
+    std::string sclFunctionNameToFriendlyString(Function* f);
+    std::string sclFunctionNameToFriendlyString(std::string name);
+    bool isPrimitiveIntegerType(std::string type);
+    std::string argsToRTSignature(Function* f);
+    bool typeEquals(const std::string& a, const std::string& b);
+    std::vector<Method*> makeVTable(TPResult& res, std::string name);
+    std::string argsToRTSignatureIdent(Function* f);
+    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter = true);
+    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
+    std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
+    std::string unquote(const std::string& str);
+    std::string capitalize(std::string s);
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter);
+    std::string ltrim(const std::string& s);
+    std::string scaleArgs(std::vector<Variable> args);
+    bool structImplements(TPResult& result, Struct s, std::string interface);
+    std::string replace(std::string s, std::string a, std::string b);
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member);
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member);
+
     template<typename T>
     bool contains(std::vector<T> v, T val) {
         if (v.size() == 0) return false;
@@ -237,10 +253,100 @@ namespace sclc {
         }
     }
 
+    template<typename T>
+    std::vector<T> operator&(const std::vector<T>& a, std::function<bool(T)> b) {
+        std::vector<T> result;
+        for (auto&& t : a) {
+            if (b(t)) {
+                result.push_back(t);
+            }
+        }
+        return result;
+    }
+
+    template<typename T>
+    void addIfAbsent(std::vector<T>& vec, T val) {
+        if (vec.size() == 0 || !contains<T>(vec, val))
+            vec.push_back(val);
+    }
+
+    template<typename T>
+    std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
+        std::vector<T> ret;
+        for (T& t : a) {
+            ret.push_back(t);
+        }
+        for (T& t : b) {
+            ret.push_back(t);
+        }
+        return ret;
+    }
+
+    template<typename T>
+    size_t indexInVec(std::vector<T>& vec, T elem) {
+        for (size_t i = 0; i < vec.size(); i++) {
+            if (vec[i] == elem) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     inline ID_t ror(const ID_t value, ID_t shift) {
         return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
 
-    ID_t id(char* data);
+    struct StructTreeNode {
+        Struct s;
+        std::vector<StructTreeNode*> children;
+
+        StructTreeNode(Struct s) : s(s), children() {}
+
+        ~StructTreeNode() {
+            for (StructTreeNode* child : children) {
+                delete child;
+            }
+        }
+
+        void addChild(StructTreeNode* child) {
+            children.push_back(child);
+        }
+
+        std::string toString(int indent = 0) {
+            std::string result = "";
+            for (int i = 0; i < indent; i++) {
+                result += "  ";
+            }
+            result += s.name + "\n";
+            for (StructTreeNode* child : children) {
+                result += child->toString(indent + 1);
+            }
+            return result;
+        }
+
+        void forEach(std::function<void(StructTreeNode*)> f) {
+            f(this);
+            for (StructTreeNode* child : children) {
+                child->forEach(f);
+            }
+        }
+
+        static StructTreeNode* directSubstructsOf(StructTreeNode* root, TPResult& result, std::string name) {
+            StructTreeNode* node = new StructTreeNode(getStructByName(result, name));
+            for (Struct& s : result.structs) {
+                if (s.super == name) {
+                    node->addChild(directSubstructsOf(root, result, s.name));
+                }
+            }
+            return node;
+        }
+
+        static StructTreeNode* fromArrayOfStructs(TPResult& result) {
+            StructTreeNode* root = new StructTreeNode(getStructByName(result, "SclObject"));
+            return directSubstructsOf(root, result, "SclObject");
+        }
+    };
+
+    ID_t id(const char* data);
 }
 #endif // COMMON_H

@@ -16,26 +16,20 @@
 
 namespace sclc
 {
-    class FPResult {
-    public:
+    struct FPResult {
         bool success;
         bool isNote;
         std::string message;
-        std::string in;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::string value;
-        int column;
-        int line;
+        SourceLocation location;
         TokenType type;
 
-        FPResult() {
+        FPResult() : location("", 0, 0) {
             success = false;
             isNote = false;
-            column = 0;
-            line = 0;
             type = tok_eof;
-            in = "";
             value = "";
         }
 
@@ -46,16 +40,12 @@ namespace sclc
                     std::to_string(isNote) +
                     ", message: " +
                     message +
-                    ", in: " +
-                    in +
                     ", value: " +
                     value +
-                    ", column: " +
-                    std::to_string(column) +
-                    ", line: " +
-                    std::to_string(line) +
                     ", type: " +
                     std::to_string(type) +
+                    ", location: " +
+                    location.toString() +
                     "}";
         }
     };

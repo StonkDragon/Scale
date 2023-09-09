@@ -9,9 +9,9 @@ typealias uint8 "scl_uint8"
 typealias lambda "_scl_lambda"
 
 cdecl "atoll"
-private expect unsafe function __c_atoll(:[int8]): int64
+private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "sprintf"
-private expect unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
 construct function inttypes_scale_init(): none
   0x80 => int8::minValue
@@ -24,10 +24,18 @@ final static sealed struct int8
   decl minValue: const int8
   decl maxValue: const int8
 
-  intrinsic function toString(x: int8): str
+  function toString(x: int8): str
     new<int8>[2] => decl out: [int8]
     unsafe
       out "%c":view x __c_sprintf! 1 drop
+    end
+    out str::new return
+  end
+
+  function toHexString(x: int8): str
+    new<int8>[5] => decl out: [int8]
+    unsafe
+      out "0x%02x":view x __c_sprintf! 1 drop
     end
     out str::new return
   end
@@ -37,7 +45,7 @@ final static sealed struct int
   decl minValue: const int
   decl maxValue: const int
 
-  intrinsic function toString(x: int): str
+  function toString(x: int): str
     new<int8>[25] => decl out: [int8]
     unsafe
       out "%ld":view x __c_sprintf! 1 drop
@@ -45,7 +53,7 @@ final static sealed struct int
     out str::new return
   end
 
-  intrinsic function toHexString(x: int): str
+  function toHexString(x: int): str
     new<int8>[19] => decl out: [int8]
     unsafe
       out "0x%016lx":view x __c_sprintf! 1 drop
@@ -59,69 +67,77 @@ final static sealed struct int
     end
   end
 
-  intrinsic function toInt8(value: any): int8
+  function toInt8(value: any): int8
     value as int8 return
   end
 
-  intrinsic function toInt16(value: any): int16
+  function toInt16(value: any): int16
     value as int16 return
   end
 
-  intrinsic function toInt32(value: any): int32
+  function toInt32(value: any): int32
     value as int32 return
   end
 
-  intrinsic function toInt(value: any): int
+  function toInt(value: any): int
     value as int return
   end
 
-  intrinsic function toUInt8(value: any): uint8
+  function toUInt8(value: any): uint8
     value as uint8 return
   end
 
-  intrinsic function toUInt16(value: any): uint16
+  function toUInt16(value: any): uint16
     value as uint16 return
   end
 
-  intrinsic function toUInt32(value: any): uint32
+  function toUInt32(value: any): uint32
     value as uint32 return
   end
 
-  intrinsic function toUInt(value: any): uint
+  function toUInt(value: any): uint
     value as uint return
   end
 
-  intrinsic function isValidInt8(val: any): bool
+  function isValidInt8(val: any): bool
     val val:toInt8 == return
   end
 
-  intrinsic function isValidInt16(val: any): bool
+  function isValidInt16(val: any): bool
     val val:toInt16 == return
   end
 
-  intrinsic function isValidInt32(val: any): bool
+  function isValidInt32(val: any): bool
     val val:toInt32 == return
   end
 
-  intrinsic function isValidUInt8(val: any): bool
+  function isValidUInt8(val: any): bool
     val val:toUInt8 == return
   end
 
-  intrinsic function isValidUInt16(val: any): bool
+  function isValidUInt16(val: any): bool
     val val:toUInt16 == return
   end
 
-  intrinsic function isValidUInt32(val: any): bool
+  function isValidUInt32(val: any): bool
     val val:toUInt32 == return
   end
 
-  expect cdecl "Int$valueOf" function asReference(i: int): Int
+  function asReference(i: int): Int
+    i Int::new return
+  end
 end
 
 struct Int
   decl value: readonly int
 
-  expect static function valueOf(x: int): Int
+  static function valueOf(x: int): Int
+    x Int::new return
+  end
+
+  function init(x: int): none
+    x => self.value
+  end
 
   function equals(other: any): bool
     if other is Int then
@@ -130,9 +146,15 @@ struct Int
       other as int self.value == return
     fi
   end
+
   function ==(other: any): bool
     other self:equals return
   end
+
+  function !=(other: any): bool
+    other self:equals ! return
+  end
+
   function @(): int
     self.value return
   end
@@ -142,141 +164,80 @@ struct Int
   end
 end
 
-expect operator "add" function +(:int, :int): int
-expect operator "sub" function -(:int, :int): int
-expect operator "mul" function *(:int, :int): int
-expect operator "div" function /(:int, :int): int
-expect operator "pow" function **(:int, :int): int
+expect foreign operator "add" function +(:int, :int): int
+expect foreign operator "sub" function -(:int, :int): int
+expect foreign operator "mul" function *(:int, :int): int
+expect foreign operator "div" function /(:int, :int): int
+expect foreign operator "pow" function **(:int, :int): int
 
-expect operator "add" function +(:int, :float): float
-expect operator "sub" function -(:int, :float): float
-expect operator "mul" function *(:int, :float): float
-expect operator "div" function /(:int, :float): float
-expect operator "pow" function **(:int, :float): float
+expect foreign operator "add" function +(:int, :float): float
+expect foreign operator "sub" function -(:int, :float): float
+expect foreign operator "mul" function *(:int, :float): float
+expect foreign operator "div" function /(:int, :float): float
+expect foreign operator "pow" function **(:int, :float): float
 
-expect operator "add" function +(:float, :int): float
-expect operator "sub" function -(:float, :int): float
-expect operator "mul" function *(:float, :int): float
-expect operator "div" function /(:float, :int): float
-expect operator "pow" function **(:float, :int): float
+expect foreign operator "add" function +(:float, :int): float
+expect foreign operator "sub" function -(:float, :int): float
+expect foreign operator "mul" function *(:float, :int): float
+expect foreign operator "div" function /(:float, :int): float
+expect foreign operator "pow" function **(:float, :int): float
 
-expect operator "add" function +(:float, :float): float
-expect operator "sub" function -(:float, :float): float
-expect operator "mul" function *(:float, :float): float
-expect operator "div" function /(:float, :float): float
-expect operator "pow" function **(:float, :float): float
+expect foreign operator "add" function +(:float, :float): float
+expect foreign operator "sub" function -(:float, :float): float
+expect foreign operator "mul" function *(:float, :float): float
+expect foreign operator "div" function /(:float, :float): float
+expect foreign operator "pow" function **(:float, :float): float
 
-expect operator "eq" function ==(:int, :float): bool
-expect operator "ne" function !=(:int, :float): bool
-expect operator "gt" function >(:int, :float): bool
-expect operator "ge" function >=(:int, :float): bool
-expect operator "lt" function <(:int, :float): bool
-expect operator "le" function <=(:int, :float): bool
+expect foreign operator "eq" function ==(:int, :float): bool
+expect foreign operator "ne" function !=(:int, :float): bool
+expect foreign operator "gt" function >(:int, :float): bool
+expect foreign operator "ge" function >=(:int, :float): bool
+expect foreign operator "lt" function <(:int, :float): bool
+expect foreign operator "le" function <=(:int, :float): bool
 
-expect operator "eq" function ==(:float, :int): bool
-expect operator "ne" function !=(:float, :int): bool
-expect operator "gt" function >(:float, :int): bool
-expect operator "ge" function >=(:float, :int): bool
-expect operator "lt" function <(:float, :int): bool
-expect operator "le" function <=(:float, :int): bool
+expect foreign operator "eq" function ==(:float, :int): bool
+expect foreign operator "ne" function !=(:float, :int): bool
+expect foreign operator "gt" function >(:float, :int): bool
+expect foreign operator "ge" function >=(:float, :int): bool
+expect foreign operator "lt" function <(:float, :int): bool
+expect foreign operator "le" function <=(:float, :int): bool
 
-expect operator "eq" function ==(:float, :float): bool
-expect operator "ne" function !=(:float, :float): bool
-expect operator "gt" function >(:float, :float): bool
-expect operator "ge" function >=(:float, :float): bool
-expect operator "lt" function <(:float, :float): bool
-expect operator "le" function <=(:float, :float): bool
+expect foreign operator "eq" function ==(:float, :float): bool
+expect foreign operator "ne" function !=(:float, :float): bool
+expect foreign operator "gt" function >(:float, :float): bool
+expect foreign operator "ge" function >=(:float, :float): bool
+expect foreign operator "lt" function <(:float, :float): bool
+expect foreign operator "le" function <=(:float, :float): bool
 
-expect operator "eq" function ==(:int, :int): bool
-expect operator "ne" function !=(:int, :int): bool
-expect operator "gt" function >(:int, :int): bool
-expect operator "ge" function >=(:int, :int): bool
-expect operator "lt" function <(:int, :int): bool
-expect operator "le" function <=(:int, :int): bool
+expect foreign operator "eq" function ==(:int, :int): bool
+expect foreign operator "ne" function !=(:int, :int): bool
+expect foreign operator "gt" function >(:int, :int): bool
+expect foreign operator "ge" function >=(:int, :int): bool
+expect foreign operator "lt" function <(:int, :int): bool
+expect foreign operator "le" function <=(:int, :int): bool
 
-expect operator "and" function &&(:bool, :bool): bool
-expect operator "or" function ||(:bool, :bool): bool
-expect operator "not" function !(:bool): bool
+expect foreign operator "eq" function ==(:any, :any): bool
+expect foreign operator "ne" function !=(:any, :any): bool
 
-expect operator "mod" function %(:int, :int): int
-expect operator "land" function &(:int, :int): int
-expect operator "lor" function |(:int, :int): int
-expect operator "lxor" function ^(:int, :int): int
-expect operator "lnot" function ~(:int): int
-expect operator "lsl" function <<(:int, :int): int
-expect operator "lsr" function >>(:int, :int): int
-expect operator "rol" function <<<(:int, :int): int
-expect operator "ror" function >>>(:int, :int): int
+expect foreign operator "and" function &&(:int, :int): bool
+expect foreign operator "or" function ||(:int, :int): bool
+expect foreign operator "not" function !(:int): bool
 
-deprecated![since: "23.5", replacement: "int::toInt8"]
-function toInt8(value: any): int8
-  value:toInt8 return
-end
+expect foreign operator "mod" function %(:int, :int): int
+expect foreign operator "land" function &(:int, :int): int
+expect foreign operator "lor" function |(:int, :int): int
+expect foreign operator "lxor" function ^(:int, :int): int
+expect foreign operator "lnot" function ~(:int): int
+expect foreign operator "lsl" function <<(:int, :int): int
+expect foreign operator "lsr" function >>(:int, :int): int
+expect foreign operator "rol" function <<<(:int, :int): int
+expect foreign operator "ror" function >>>(:int, :int): int
 
-deprecated![since: "23.5", replacement: "int::toInt16"]
-function toInt16(value: any): int16
-  value:toInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::toInt32"]
-function toInt32(value: any): int32
-  value:toInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::toInt"]
-function toInt(value: any): int
-  value:toInt return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt8"]
-function toUInt8(value: any): uint8
-  value:toUInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt16"]
-function toUInt16(value: any): uint16
-  value:toUInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt32"]
-function toUInt32(value: any): uint32
-  value:toUInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::toUInt"]
-function toUInt(value: any): uint
-  value:toUInt return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt8"]
-function isValidInt8(val: any): bool
-  val:isValidInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt16"]
-function isValidInt16(val: any): bool
-  val:isValidInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidInt32"]
-function isValidInt32(val: any): bool
-  val:isValidInt32 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt8"]
-function isValidUInt8(val: any): bool
-  val:isValidUInt8 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt16"]
-function isValidUInt16(val: any): bool
-  val:isValidUInt16 return
-end
-
-deprecated![since: "23.5", replacement: "int::isValidUInt32"]
-function isValidUInt32(val: any): bool
-  val:isValidUInt32 return
-end
+expect foreign operator "at" function @(:[any]): any
+expect foreign operator "inc" function ++(:int): int
+expect foreign operator "inc" function ++(:float): float
+expect foreign operator "dec" function --(:int): int
+expect foreign operator "dec" function --(:float): float
 
 function isnil(x: any): bool
   x nil == return

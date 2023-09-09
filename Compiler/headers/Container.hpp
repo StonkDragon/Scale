@@ -43,5 +43,13 @@ namespace sclc
             }
             return Variable("", "");
         }
+
+        bool operator==(const Container& other) const {
+            return name == other.name;
+        }
+
+        bool operator!=(const Container& other) const {
+            return name != other.name;
+        }
     };
 } // namespace sclc

@@ -1,24 +1,24 @@
 import std.util.Stringifyable
 
 cdecl "strlen"
-private expect unsafe function __c_strlen(cstr: [int8]): int
+private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "strcmp"
-private expect unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
-cdecl "_scl_strdup"
-private expect unsafe function __c_strdup(cstr: [int8]): [int8]
-cdecl "_scl_strncmp"
-private expect unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
-cdecl "_scl_strcpy"
-private expect unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
+private expect foreign unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
+cdecl "s_strdup"
+private expect foreign unsafe function __c_strdup(cstr: [int8]): [int8]
+cdecl "strncmp"
+private expect foreign unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
+cdecl "s_strcpy"
+private expect foreign unsafe function __c_strcpy(dest: [int8], src: [int8]): [int8]
 cdecl "strcat"
-private expect unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
+private expect foreign unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
 cdecl "strtok"
-private expect unsafe function __c_strtok(:any, :[int8]): [int8]?
+private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl data: [int8]
   private decl length: int
-  private decl hash: int
+  private decl hash: uint32
 
   function +(other: str): str
     other self:prepend return
@@ -72,10 +72,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   end
 
   function !=(other: any): bool
-    if other is str ! then
-      false return
-    fi
-    self.hash other as str.hash != return
+    other self:equals ! return
   end
 
   function size(): int
@@ -204,8 +201,23 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self.hash return
   end
 
+  function finalize(): none
+    self.data any::delete
+  end
+
   static function =>(cStr: [int8]): str
     cStr str::new return
+  end
+
+  static function of(cStr: [int8]): str
+    "" => decl s: str
+    unsafe
+      cStr __c_strlen => s.length
+    end
+    s.data any::delete
+    cStr => s.data
+    cStr builtinHash => s.hash
+    s return
   end
 
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]

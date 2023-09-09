@@ -1,16 +1,11 @@
-import std.runtime.Library
 import std.thread.Thread
 
 static final sealed struct Process
-    cdecl "_scl_security_safe_exit"
-    expect function exit(:int): none
-    expect function stackTrace(): Array
+    cdecl "exit"
+    expect foreign function exit(:int): none
+    expect foreign function stackTrace(): Array
 
-    function loadLibrary(name: str): Library
-        name Library::new return
-    end
-
-    expect function gcEnabled(): bool
+    expect foreign function gcEnabled(): bool
 
     function isOnMainThread(): bool
         Thread::currentThread:lock
@@ -19,9 +14,6 @@ static final sealed struct Process
         return
     end
 
-    expect function lock(obj: SclObject): none
-    expect function unlock(obj: SclObject): none
-
-    expect function stackPointer(): [any]
-    expect function basePointer(): [any]
+    expect foreign function lock(obj: SclObject): none
+    expect foreign function unlock(obj: SclObject): none
 end

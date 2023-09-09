@@ -15,6 +15,7 @@ namespace sclc
     extern Struct currentStruct;
     extern int scopeDepth;
     extern std::map<std::string, std::vector<Method*>> vtables;
+    extern StructTreeNode* structTree;
 
     TPResult& Parser::getResult() {
         return result;
@@ -38,137 +39,136 @@ namespace sclc
         FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
 
         Function* mainFunction = nullptr;
-        if (!Main.options.noMain) {
+        if (!Main::options::noMain) {
             mainFunction = getFunctionByName(result, "main");
-        }
-        if (mainFunction == nullptr && !Main.options.noMain) {
-            FPResult result;
-            result.success = false;
-            result.message = "No entry point found";
-            result.line = 0;
-            result.in = filename;
-            result.column = 0;
-            errors.push_back(result);
+            if (mainFunction == nullptr) {
+                FPResult result;
+                result.success = false;
+                result.message = "No entry point found";
+                result.location = SourceLocation(filename, 0, 0);
+                errors.push_back(result);
 
-            FPResult parseResult;
-            parseResult.success = true;
-            parseResult.message = "";
-            parseResult.errors = errors;
-            parseResult.warns = warns;
-            return parseResult;
+                FPResult parseResult;
+                parseResult.success = true;
+                parseResult.message = "";
+                parseResult.errors = errors;
+                parseResult.warns = warns;
+                return parseResult;
+            }
         }
 
-        if (mainFunction && !Main.options.noMain) {
-            Main.options.mainReturnsNone = mainFunction->return_type == "none" || mainFunction->return_type == "nothing";
-            Main.options.mainArgCount  = mainFunction->args.size();
+        if (mainFunction) {
+            if (mainFunction->args.size() > 1) {
+                FPResult result;
+                result.success = false;
+                result.message = "Entry point function must have 0 or 1 arguments";
+                result.location = mainFunction->name_token.location;
+                result.type = mainFunction->name_token.type;
+                result.value = mainFunction->name_token.value;
+                errors.push_back(result);
+            } else if (mainFunction->args.size() == 1) {
+                std::string argType = removeTypeModifiers(mainFunction->args[0].type);
+                if (argType.front() == '[' && argType.back() == ']') {
+                    std::string elemType = removeTypeModifiers(argType.substr(1, argType.size() - 2));
+                    if (!Main::options::noScaleFramework) {
+                        if (!typeEquals(elemType, std::string("str"))) {
+                            FPResult result;
+                            result.success = false;
+                            result.message = "Entry point function argument must be an array of strings";
+                            result.location = mainFunction->name_token.location;
+                            result.type = mainFunction->name_token.type;
+                            result.value = mainFunction->name_token.value;
+                            errors.push_back(result);
+                        }
+                    } else {
+                        if (!typeEquals(elemType, std::string("[int8]"))) {
+                            FPResult result;
+                            result.success = false;
+                            result.message = "Entry point function argument must be an array of strings";
+                            result.location = mainFunction->name_token.location;
+                            result.type = mainFunction->name_token.type;
+                            result.value = mainFunction->name_token.value;
+                            errors.push_back(result);
+                        }
+                    }
+                } else {
+                    FPResult result;
+                    result.success = false;
+                    result.message = "Entry point function argument must be an array of strings";
+                    result.location = mainFunction->name_token.location;
+                    result.type = mainFunction->name_token.type;
+                    result.value = mainFunction->name_token.value;
+                    errors.push_back(result);
+                }
+            }
         }
 
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
         vars.reserve(32);
 
-        auto writeHeaderStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeHeader(fp, errors, warns);
-        auto writeHeaderEnd = std::chrono::high_resolution_clock::now();
-        Main.writeHeaderTime = std::chrono::duration_cast<std::chrono::microseconds>(writeHeaderEnd - writeHeaderStart).count();
-
-        auto writeContainersStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeContainers(fp, result, errors, warns);
-        auto writeContainersEnd = std::chrono::high_resolution_clock::now();
-        Main.writeContainersTime = std::chrono::duration_cast<std::chrono::microseconds>(writeContainersEnd - writeContainersStart).count();
-
-        auto writeStructsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeStructs(fp, result, errors, warns);
-        auto writeStructsEnd = std::chrono::high_resolution_clock::now();
-        Main.writeStructsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeStructsEnd - writeStructsStart).count();
-
-        auto writeGlobalsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
-        auto writeGlobalsEnd = std::chrono::high_resolution_clock::now();
-        Main.writeGlobalsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeGlobalsEnd - writeGlobalsStart).count();
-
-        auto writeFunctionHeadersStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
-        auto writeFunctionHeadersEnd = std::chrono::high_resolution_clock::now();
-        Main.writeFunctionHeadersTime = std::chrono::duration_cast<std::chrono::microseconds>(writeFunctionHeadersEnd - writeFunctionHeadersStart).count();
-
-        auto writeTablesStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeTables(fp, result, filename);
-        auto writeTablesEnd = std::chrono::high_resolution_clock::now();
-        Main.writeTablesTime = std::chrono::duration_cast<std::chrono::microseconds>(writeTablesEnd - writeTablesStart).count();
-
-        auto writeFunctionsStart = std::chrono::high_resolution_clock::now();
         ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
-        auto writeFunctionsEnd = std::chrono::high_resolution_clock::now();
-        Main.writeFunctionsTime = std::chrono::duration_cast<std::chrono::microseconds>(writeFunctionsEnd - writeFunctionsStart).count();
 
-        fclose(fp);
         fp = fopen(filename.c_str(), "a");
 
-        Main.options.flags.push_back(filename);
-
-        std::vector<std::string> alreadyGenerated;
-
-        for (auto&& f : result.functions) {
-            if (f->isMethod) {
-                if (getInterfaceByName(result, f->member_type)) {
-                    continue;
+        if (structTree) {
+            structTree->forEach([fp](StructTreeNode* node) {
+                const Struct& s = node->s;
+                if (s.isStatic() || s.isExtern()) {
+                    return;
                 }
-                currentStruct = getStructByName(result, f->member_type);
-                auto m = (Method*) f;
-                append("static void _scl_vt_c_%s$%s() {\n", m->member_type.c_str(), f->finalName().c_str());
+                auto vtable = vtables.find(s.name);
+                if (vtable == vtables.end()) {
+                    return;
+                }
+                append("static const struct _scl_methodinfo _scl_vtable_info_%s[] __asm(\"Lscl_vtable_info_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
                 scopeDepth++;
-                generateUnsafeCall(m, fp, result);
+                for (auto&& m : vtable->second) {
+                    std::string signature = argsToRTSignature(m);
+                    std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
+                    append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
+                    scopeDepth++;
+                    append(".pure_name = 0x%xU, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
+                    append(".signature = 0x%xU, // %s\n", id(signature.c_str()), signature.c_str());
+                    scopeDepth--;
+                    append("},\n");
+                }
+                append("{0}\n");
                 scopeDepth--;
-                append("}\n");
-            }
-        }
-
-        for (Struct& s : result.structs) {
-            if (s.isStatic()) continue;
-            append("const TypeInfo _scl_statics_%s = {\n", s.name.c_str());
-            scopeDepth++;
-            append(".type = 0x%xU,\n", id((char*) s.name.c_str()));
-            append(".type_name = \"%s\",\n", s.name.c_str());
-            append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
-            append(".vtable_fast = _scl_fast_vtable_%s,\n", s.name.c_str());
-            if (s.name != "SclObject") {
-                append(".super = &_scl_statics_%s,\n", s.super.c_str());
-            } else {
-                append(".super = 0,\n");
-            }
-            scopeDepth--;
-            append("};\n");
-        }
-
-        for (auto&& vtable : vtables) {
-            append("const struct _scl_methodinfo _scl_vtable_%s[] = {\n", vtable.first.c_str());
-            scopeDepth++;
-            for (auto&& m : vtable.second) {
-                std::string signature = argsToRTSignature(m);
-                append("(struct _scl_methodinfo) {\n");
+                append("};\n");
+                append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
                 scopeDepth++;
-                append(".ptr = (const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
-                append(".rt_ptr = (const _scl_lambda) _scl_vt_c_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
-                append(".pure_name = 0x%xU,\n", id((char*) sclFunctionNameToFriendlyString(m->finalName()).c_str()));
-                append(".signature = 0x%xU,\n", id((char*) signature.c_str()));
+                for (auto&& m : vtable->second) {
+                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                }
+                append("0\n");
                 scopeDepth--;
-                append("},\n");
-            }
-            append("{0}\n");
-            scopeDepth--;
-            append("};\n\n");
-            append("const _scl_lambda _scl_fast_vtable_%s[] = {\n", vtable.first.c_str());
-            scopeDepth++;
-            for (auto&& m : vtable.second) {
-                append("(const _scl_lambda) Method_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
-            }
-            append("0\n");
-            scopeDepth--;
-            append("};\n\n");
+                append("};\n");
+
+                append("const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\") = {\n", s.name.c_str(), s.name.c_str());
+                scopeDepth++;
+                append(".type = 0x%xU,\n", id(s.name.c_str()));
+                append(".type_name = \"%s\",\n", s.name.c_str());
+                append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
+                append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
+                if (s.super.size()) {
+                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                } else {
+                    append(".super = 0,\n");
+                }
+                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
+                scopeDepth--;
+                append("};\n\n");
+            });
         }
 
-        append("extern const ID_t id(const char*);\n\n");
+        append("extern const ID_t type_id(const char*);\n\n");
 
         for (Variable& s : result.globals) {
             append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
@@ -191,23 +191,21 @@ namespace sclc
                     FPResult result;
                     result.success = false;
                     result.message = "Constructor functions cannot have arguments";
-                    result.line = f->name_token.line;
-                    result.in = f->name_token.file;
-                    result.column = f->name_token.column;
+                    result.location = f->name_token.location;
                     result.type = f->name_token.type;
                     result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
-                    append("  Function_%s();\n", f->finalName().c_str());
+                    append("  fn_%s();\n", f->finalName().c_str());
                 }
             }
         }
         append("} else {\n");
-        append("  _scl_runtime_catch();\n");
-        scopeDepth--;
+        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
         append("}\n");
-
+        scopeDepth--;
         append("}\n\n");
+
         append("_scl_destructor void destroy_this() {\n");
         scopeDepth++;
         append("TRY {\n");
@@ -217,37 +215,31 @@ namespace sclc
                     FPResult result;
                     result.success = false;
                     result.message = "Finalizer functions cannot have arguments";
-                    result.line = f->name_token.line;
-                    result.in = f->name_token.file;
-                    result.column = f->name_token.column;
+                    result.location = f->name_token.location;
                     result.type = f->name_token.type;
                     result.value = f->name_token.value;
                     errors.push_back(result);
                 } else {
-                    append("  Function_%s();\n", f->finalName().c_str());
+                    append("  fn_%s();\n", f->finalName().c_str());
                 }
             }
         }
         append("} else {\n");
-        append("  _scl_runtime_catch();\n");
+        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
         append("}\n");
         scopeDepth--;
-        append("}\n");
+        append("}\n\n");
 
-        if (mainFunction && !Main.options.noMain) {
-            append("int main(int argc, char** argv) {\n");
-            scopeDepth++;
-            append("return _scl_run(argc, argv, (mainFunc) &Function_main);\n");
-            scopeDepth--;
-            append("}\n\n");
-        }
+        // if (!Main::options::noMain) {
+        //     append("int main(int argc, char** argv) {\n");
+        //     append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
+        //     append("}\n");
+        // }
         
         fclose(fp);
 
-        if (Main.options.Werror) {
-            for (auto warn : warns) {
-                errors.push_back(warn);
-            }
+        if (Main::options::Werror) {
+            errors.insert(errors.end(), warns.begin(), warns.end());
             warns.clear();
         }
 

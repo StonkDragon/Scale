@@ -7,19 +7,19 @@
 
 #include "../headers/Common.hpp"
 
+#ifndef PATH_SEPARATOR
 #ifdef _WIN32
 #define PATH_SEPARATOR "\\"
 #else
 #define PATH_SEPARATOR "/"
+#endif
 #endif
 
 #define syntaxError(msg) \
     do { \
     FPResult result; \
     result.message = msg; \
-    result.in = filename; \
-    result.line = line; \
-    result.column = begin; \
+    result.location = SourceLocation(filename, line, begin); \
     result.value = value; \
     errors.push_back(result); \
     } while (0)
@@ -28,9 +28,7 @@
     do { \
     FPResult result; \
     result.message = msg; \
-    result.in = filename; \
-    result.line = line; \
-    result.column = begin; \
+    result.location = SourceLocation(filename, line, begin); \
     result.value = value; \
     warns.push_back(result); \
     } while (0)
@@ -40,6 +38,12 @@ namespace sclc
     std::vector<Token> Tokenizer::getTokens() {
         return this->tokens;
     }
+
+    enum class StringType {
+        CString,
+        UnicodeString,
+        String,
+    };
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -54,7 +58,7 @@ namespace sclc
 
         begin = column;
 
-        bool stringLiteralIsCString = false;
+        StringType stringType = StringType::String;
 
         if (isCharacter(c)) {
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
@@ -64,7 +68,12 @@ namespace sclc
                 c = source[current];
             }
             if (value == "c" && c == '"') {
-                stringLiteralIsCString = true;
+                stringType = StringType::CString;
+                value = "";
+                goto stringLiteral;
+            }
+            if (value == "u" && c == '"') {
+                stringType = StringType::UnicodeString;
                 value = "";
                 goto stringLiteral;
             }
@@ -124,10 +133,11 @@ namespace sclc
             }
             current++;
             column++;
-            if (!stringLiteralIsCString) {
-                return Token(tok_string_literal, value, line, filename, begin);
-            } else {
-                return Token(tok_char_string_literal, value, line, filename, begin);
+            switch (stringType) {
+                case StringType::CString: return Token(tok_char_string_literal, value, line, filename, begin);
+                case StringType::UnicodeString: return Token(tok_utf_string_literal, value, line, filename, begin);
+                case StringType::String: return Token(tok_string_literal, value, line, filename, begin);
+                default: __builtin_unreachable();
             }
         } else if (c == '\'') {
             c = source[++current];
@@ -186,15 +196,10 @@ namespace sclc
         } else if (isOperator(c)) {
             value += c;
             if (c == '>') {
-                if (source[current + 1] == '>' || source[current + 1] == '=') {
+                if (source[current + 1] == '=') {
                     c = source[++current];
                     column++;
                     value += c;
-                    if (source[current] == '>' && source[current + 1] == '>') {
-                        c = source[++current];
-                        column++;
-                        value += c;
-                    }
                 }
             } else if (c == '<') {
                 if (source[current + 1] == '<' || source[current + 1] == '=') {
@@ -439,8 +444,7 @@ namespace sclc
             printf("IO Error: Could not open file %s\n", source.c_str());
             FPResult r;
             r.message = "IO Error: Could not open file " + source;
-            r.in = "";
-            r.line = 0;
+            r.location = SourceLocation(source, 0, 0);
             r.success = false;
             errors.push_back(r);
             goto fatal_error;
@@ -525,23 +529,60 @@ namespace sclc
 
     void Tokenizer::printTokens() {
         for (size_t i = 0; i < tokens.size(); i++) {
-            std::cout << "Token: " << tokens[i].tostring() << std::endl;
+            std::cout << "Token: " << tokens[i].toString() << std::endl;
         }
+    }
+
+    void Tokenizer::removeInvalidTokens() {
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type == tok_eof) {
+                tokens.erase(tokens.begin() + i);
+                i--;
+            }
+        }
+    }
+
+    std::string replaceCharWithChar(std::string in, char from, char to) {
+        std::string out = "";
+        out.reserve(in.size());
+        for (size_t i = 0; i < in.size(); i++) {
+            if (in[i] == from) {
+                out.push_back(to);
+            } else {
+                out.push_back(in[i]);
+            }
+        }
+        return out;
     }
 
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || tokens[i].value != "import") continue;
+            if (tokens[i].type != tok_identifier) continue;
+            if (tokens[i].value != "import") continue;
 
             i++;
+            if (i >= (long) tokens.size()) {
+                FPResult r;
+                r.message = "Expected module name after import";
+                r.location = tokens[i - 1].location;
+                r.success = false;
+                return r;
+            }
             std::string moduleName = tokens[i].value;
             while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
                 i += 2;
                 moduleName += "." + tokens[i].value;
             }
+            if (moduleName.size() == 0) {
+                FPResult r;
+                r.message = "Expected module name after import";
+                r.location = tokens[i - 1].location;
+                r.success = false;
+                return r;
+            }
             bool found = false;
-            for (auto config : Main.options.mapFrameworkConfigs) {
+            for (auto config : Main::options::indexDrgFiles) {
                 if (!config.second) continue;
 
                 auto modules = config.second->getCompound("modules");
@@ -555,34 +596,33 @@ namespace sclc
                     FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                     if (!find.success) {
                         FPResult r;
-                        r.column = tokens[i].column;
                         r.value = tokens[i].value;
-                        r.in = tokens[i].file;
-                        r.line = tokens[i].line;
+                        r.location = tokens[i].location;
                         r.type = tokens[i].type;
                         r.success = false;
                         r.message = find.message;
                         return r;
                     }
-                    auto file = find.in;
+                    auto file = find.location.file;
                     file = std::filesystem::absolute(file).string();
-                    if (!contains(Main.options.files, file)) {
-                        Main.options.files.push_back(file);
+                    if (!contains(Main::options::files, file)) {
+                        Main::options::files.push_back(file);
                     }
                 }
                 break;
             }
             if (found) continue;
-            
-            std::string file = replaceAll(moduleName, R"(\.)", PATH_SEPARATOR);
+
+            std::string file = replaceCharWithChar(moduleName, '.', PATH_SEPARATOR[0]);
             file += ".scale";
             FPResult r = findFileInIncludePath(file);
             if (!r.success) {
+                r.location = tokens[i].location;
                 return r;
             }
-            file = std::filesystem::absolute(r.in).string();
-            if (!contains(Main.options.files, file)) {
-                Main.options.files.push_back(file);
+            file = std::filesystem::absolute(r.location.file).string();
+            if (!contains(Main::options::files, file)) {
+                Main::options::files.push_back(file);
             }
         }
         FPResult r;
@@ -591,21 +631,28 @@ namespace sclc
     }
 
     FPResult findFileInIncludePath(std::string file) {
-        for (std::string& path : Main.options.includePaths) {
-            using namespace std::filesystem;
-            if (!exists(path + PATH_SEPARATOR + file)) continue;
+        if (file.size() == 0 || file == ".scale") {
+            FPResult r;
+            r.success = false;
+            r.message = "Empty file name!";
+            r.location = SourceLocation("", 0, 0);
+            return r;
+        }
+        for (std::string& path : Main::options::includePaths) {
+            if (!std::filesystem::exists(path + PATH_SEPARATOR + file)) continue;
             FPResult r;
             r.success = true;
             if (path == "." || path == "./") {
-                r.in = file;
+                r.location.file = file;
             } else {
-                r.in = path + PATH_SEPARATOR + file;
+                r.location.file = path + PATH_SEPARATOR + file;
             }
             return r;
         }
         FPResult r;
         r.success = false;
         r.message = "Could not find " + file + " on include path!";
+        r.location = SourceLocation(file, 0, 0);
         return r;
     }
 }

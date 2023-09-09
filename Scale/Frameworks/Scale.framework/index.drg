@@ -1,5 +1,5 @@
 framework: {
-    version: "23.8";
+    version: "23.9";
     headerDir: "include";
     implDir: "impl";
     implementers: [
@@ -14,13 +14,11 @@ framework: {
             "std/lang/Core.scale";
             "std/lang/String.scale";
             "std/lang/SclObject.scale";
-            "std/lang/Int.scale";
             "std/lang/Debug.scale";
+            "std/lang/Int.scale";
             "std/lang/Any.scale";
             "std/lang/Float.scale";
             "std/lang/Union.scale";
-            "std/lang/Result.scale";
-            "std/lang/Option.scale";
         ];
         std.Union: [
             "std/lang/Union.scale";
@@ -56,8 +54,10 @@ framework: {
             "std/math/Fraction.scale";
         ];
         std.io: [
-            "std/lang/Fmt.scale";
             "std/lang/IO.scale";
+        ];
+        std.io.fmt: [
+            "std/lang/Fmt.scale";
         ];
         std.fs: [
             "std/lang/File.scale";
@@ -115,9 +115,6 @@ framework: {
         ];
         std.runtime.GarbageCollector: [
             "std/runtime/GarbageCollector.scale";
-        ];
-        std.runtime.Library: [
-            "std/runtime/Library.scale";
         ];
         std.thread.Thread: [
             "std/thread/Thread.scale";

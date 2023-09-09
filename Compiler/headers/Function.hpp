@@ -23,8 +23,6 @@ namespace sclc
         std::string member_type;
         Token name_token;
         bool isMethod;
-        bool isExternC;
-        bool isPrivate;
         Deprecation deprecated;
         std::vector<Function*> overloads;
         std::string templateArg;
@@ -45,6 +43,10 @@ namespace sclc
         long has_restrict;
         long has_getter;
         long has_setter;
+        long has_foreign;
+        long has_overrides;
+        long has_stacksize;
+        long has_binary_inherited;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
@@ -54,12 +56,13 @@ namespace sclc
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
         // IMPORTANT: Function takes index starting at 1
-        virtual std::string& getModifier(size_t index);
+        virtual const std::string& getModifier(size_t index);
         virtual void addArgument(Variable arg);
         virtual bool belongsToType(std::string typeName);
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
+        virtual size_t stackSize();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;
@@ -90,6 +93,7 @@ namespace sclc
                 m->addArgument(v);
             }
             m->namedReturnValue = namedReturnValue;
+            m->templateArg = templateArg;
             return m;
         }
     };

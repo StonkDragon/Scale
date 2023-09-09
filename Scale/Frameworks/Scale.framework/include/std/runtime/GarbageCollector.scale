@@ -1,13 +1,13 @@
 static final sealed struct GarbageCollector
-    private expect unsafe function run0(): none
-    private expect unsafe function setPaused0(:bool): none
-    private expect unsafe function isPaused0(): bool
-    private expect unsafe function getImplementation0(): [int8]
+    private expect foreign unsafe function run0(): none
+    private expect foreign unsafe function setPaused0(:bool): none
+    private expect foreign unsafe function isPaused0(): bool
+    private expect foreign unsafe function getImplementation0(): [int8]
 
-    expect function heapSize(): int
-    expect function freeBytesEstimate(): int
-    expect function bytesSinceLastCollect(): int
-    expect function totalMemory(): int
+    expect foreign function heapSize(): int
+    expect foreign function freeBytesEstimate(): int
+    expect foreign function bytesSinceLastCollect(): int
+    expect foreign function totalMemory(): int
 
     function collect(): none
         unsafe

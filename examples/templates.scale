@@ -25,7 +25,7 @@ struct Foo<T: Int, U: SclObject>
 end
 
 function main(): none
-    Foo<Int, str>::new => decl f: mut Foo
+    Foo<Int, str>::new => decl f: Foo<Int, str>
 
     # reference here because value types result in
     # undefined behavior

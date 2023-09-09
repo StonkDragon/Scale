@@ -1,11 +1,19 @@
-#include "headers/Common.hpp"
-
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
 #endif
 
 #include <unordered_set>
 #include <stack>
+#if defined(_WIN32)
+#include <io.h>
+#define write _write
+#else
+#include <unistd.h>
+#endif
+
+#include "headers/Common.hpp"
+#include "headers/Types.hpp"
+#include "headers/TranspilerDefs.hpp"
 
 namespace sclc
 {
@@ -37,6 +45,7 @@ namespace sclc
     std::string Color::MAGENTA = "\033[35m";
     std::string Color::CYAN = "\033[36m";
     std::string Color::WHITE = "\033[37m";
+    std::string Color::GRAY = "\033[30m";
     std::string Color::BOLDBLACK = "\033[1m\033[30m";
     std::string Color::BOLDRED = "\033[1m\033[31m";
     std::string Color::BOLDGREEN = "\033[1m\033[32m";
@@ -45,7 +54,57 @@ namespace sclc
     std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
     std::string Color::BOLDCYAN = "\033[1m\033[36m";
     std::string Color::BOLDWHITE = "\033[1m\033[37m";
+    std::string Color::BOLDGRAY = "\033[1m\033[30m";
+    std::string Color::UNDERLINE = "\033[4m";
+    std::string Color::BOLD = "\033[1m";
+    std::string Color::REVERSE = "\033[7m";
+    std::string Color::HIDDEN = "\033[8m";
+    std::string Color::ITALIC = "\033[3m";
+    std::string Color::STRIKETHROUGH = "\033[9m";
     #endif
+
+    Tokenizer* Main::tokenizer = nullptr;
+    SyntaxTree* Main::lexer = nullptr;
+    Parser* Main::parser = nullptr;
+    std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
+    std::vector<std::string> Main::frameworks = std::vector<std::string>();
+    Version* Main::version = new Version(0, 0, 0);
+    long long Main::tokenHandleTime = 0;
+    long long Main::writeHeaderTime = 0;
+    long long Main::writeContainersTime = 0;
+    long long Main::writeStructsTime = 0;
+    long long Main::writeGlobalsTime = 0;
+    long long Main::writeFunctionHeadersTime = 0;
+    long long Main::writeTablesTime = 0;
+    long long Main::writeFunctionsTime = 0;
+    bool Main::options::noMain = false;
+    bool Main::options::Werror = false;
+    bool Main::options::dumpInfo = false;
+    bool Main::options::printDocs = false;
+    bool Main::options::debugBuild = false;
+    bool Main::options::printCflags = false;
+    size_t Main::options::stackSize = 0;
+    size_t Main::options::errorLimit = 20;
+    bool Main::options::binaryHeader = false;
+    bool Main::options::assembleOnly = false;
+    bool Main::options::transpileOnly = false;
+    std::string Main::options::outfile = "";
+    bool Main::options::preprocessOnly = false;
+    bool Main::options::noScaleFramework = false;
+    std::string Main::options::optimizer = "O0";
+    bool Main::options::dontSpecifyOutFile = false;
+    std::string Main::options::printDocFor = "";
+    size_t Main::options::docPrinterArgsStart = 0;
+    std::string Main::options::docsIncludeFolder = "";
+    std::string Main::options::operatorRandomData = "";
+    std::vector<std::string> Main::options::files = std::vector<std::string>();
+    std::vector<std::string> Main::options::features = std::vector<std::string>();
+    std::vector<std::string> Main::options::includePaths = std::vector<std::string>();
+    std::vector<std::string> Main::options::filesFromCommandLine = std::vector<std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapFrameworkDocfiles = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapFrameworkIncludeFolders = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, std::string> Main::options::mapIncludePathsToFrameworks = std::unordered_map<std::string, std::string>();
+    std::unordered_map<std::string, DragonConfig::CompoundEntry*> Main::options::indexDrgFiles = std::unordered_map<std::string, DragonConfig::CompoundEntry*>();
 
     std::vector<std::string> keywords({
         "import",
@@ -86,7 +145,6 @@ namespace sclc
         "restrict",
         "const",
         "readonly",
-        "mut",
         "try",
         "catch",
         "throw",
@@ -96,34 +154,52 @@ namespace sclc
     });
 
     Struct Struct::Null = Struct("");
-    Token Token::Default(tok_identifier, "", 0, "");
+    Token Token::Default(tok_identifier, "");
 
     std::vector<Variable> vars;
     std::vector<size_t> var_indices;
-    _Main Main = _Main();
 
     void print_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
         void* array[64];
-        char** strings;
-        int size, i;
-
-        size = backtrace(array, 64);
-        strings = backtrace_symbols(array, size);
-        if (strings != NULL) {
-            for (i = 0; i < size; i++)
-                fprintf(stderr, "  %s\n", strings[i]);
-        }
-
-        free(strings);
+        int size = backtrace(array, 64);
+        backtrace_symbols_fd(array, size, 2);
 #endif
     }
 
+    size_t static_itos(int i, char buf[4]) {
+        size_t j = 0;
+        size_t k = 0;
+        int sign = 0;
+        char tmp[4];
+        if (i < 0) {
+            sign = 1;
+            i = -i;
+        }
+        do {
+            tmp[j++] = i % 10 + '0';
+            i /= 10;
+        } while (i);
+        if (sign) {
+            tmp[j++] = '-';
+        }
+        while (j > 0) {
+            buf[k++] = tmp[--j];
+        }
+        buf[k] = 0;
+        return k;
+    }
+
+    #define WRITESIGSTRING(_sig) if (signum == _sig) write(2, #_sig, sizeof(#_sig) - 1)
+
     void signalHandler(int signum) {
-        std::cerr << "Signal " << signum << " received." << std::endl;
-        if (errno != 0) std::cerr << "Error: " << std::strerror(errno) << std::endl;
+        write(2, "\n", 1);
+        write(2, "Signal ", 7);
+        WRITESIGSTRING(SIGABRT);
+        WRITESIGSTRING(SIGSEGV);
+        write(2, " received.\n", 11);
         print_trace();
-        exit(signum);
+        exit(1);
     }
 
     bool strends(const std::string& str, const std::string& suffix) {
@@ -309,10 +385,8 @@ namespace sclc
         {
             FPResult r;
             r.message = "Number out of range: " + tok.value;
-            r.column = tok.column;
+            r.location = tok.location;
             r.type = tok.type;
-            r.in = tok.file;
-            r.line = tok.line;
             r.value = tok.value;
             r.success = false;
             return Result<double, FPResult>(r);
@@ -324,42 +398,24 @@ namespace sclc
         FPResult r;
         r.success = true;
         r.value = "";
-        r.line = body[*i].line;
-        r.in = body[*i].file;
-        r.column = body[*i].column;
+        r.location = body[*i].location;
         r.value = body[*i].value;
         r.type = body[*i].type;
         r.message = "";
         r.value = "";
         std::string type_mods = "";
         bool isConst = false;
-        bool isMut = false;
         bool isReadonly = false;
-        while (body[(*i)].value == "const" || body[(*i)].value == "mut" || body[(*i)].value == "readonly") {
+
+        if (body[*i].type == tok_identifier && body[*i].value == "*") {
+            type_mods += "*";
+            (*i)++;
+        }
+
+        while (body[(*i)].value == "const"|| body[(*i)].value == "readonly") {
             if (!isConst && body[(*i)].value == "const") {
                 type_mods += "const ";
                 isConst = true;
-                if (isMut) {
-                    r.success = false;
-                    r.line = body[*i].line;
-                    r.in = body[*i].file;
-                    r.column = body[*i].column;
-                    r.value = body[*i].value;
-                    r.type = body[*i].type;
-                    r.message = "Cannot specify 'const' on already 'mut' type!";
-                }
-            } else if (!isMut && body[(*i)].value == "mut") {
-                type_mods += "mut ";
-                isMut = true;
-                if (isConst) {
-                    r.success = false;
-                    r.line = body[*i].line;
-                    r.in = body[*i].file;
-                    r.column = body[*i].column;
-                    r.value = body[*i].value;
-                    r.type = body[*i].type;
-                    r.message = "Cannot specify 'mut' on already 'const' type!";
-                }
             } else if (!isReadonly && body[(*i)].value == "readonly") {
                 type_mods += "readonly ";
                 isReadonly = true;
@@ -427,19 +483,16 @@ namespace sclc
             } else {
                 r.message = "Expected ']', but got '" + body[*i].value + "'";
                 r.value = type_mods + body[*i].value;
-                r.line = body[*i].line;
-                r.in = body[*i].file;
+                r.location = body[*i].location;
                 r.type = body[*i].type;
                 r.success = false;
             }
         } else {
             r.success = false;
-            r.line = body[*i].line;
-            r.in = body[*i].file;
-            r.column = body[*i].column;
+            r.location = body[*i].location;
             r.value = body[*i].value;
             r.type = body[*i].type;
-            r.message = "Unexpected token: '" + body[*i].tostring() + "'";
+            r.message = "Unexpected token: '" + body[*i].toString() + "'";
         }
         if (body[(*i + 1)].value == "?") {
             (*i)++;
@@ -447,8 +500,6 @@ namespace sclc
         }
         return r;
     }
-    
-    bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false);
 
     Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name2, bool doCheck) {
         (void) doCheck;
@@ -621,8 +672,6 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
-#define debugDump(_var) std::cout << #_var << ": " << _var << std::endl
-
     const Struct& getStructByName(TPResult& result, const std::string& name) {
         const std::string& typeName = removeTypeModifiers(name);
         for (const Struct& s : result.structs) {
@@ -689,6 +738,7 @@ namespace sclc
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             std::string funcName = func->name.substr(0, func->name.find("$$ol"));
+            if (funcName.size() != name.size()) continue;
             if (funcName == name) {
                 return true;
             }
@@ -715,7 +765,7 @@ namespace sclc
                 list += ", ";
             }
             std::string super = v[i];
-            list += std::to_string(id((char*) super.c_str()));
+            list += std::to_string(id(super.c_str()));
         }
         list += "}";
         return list;
@@ -782,15 +832,15 @@ namespace sclc
     }
 
     bool Variable::isAccessible(Function* f) const {
-        if (isPrivate) {
+        if (this->isPrivate) {
             return memberOfStruct(this, f);
         }
         return true;
     }
 
     bool Variable::isWritableFrom(Function* f) const {
-        if (isReadonly || isPrivate) {
-            if (isReadonly && strstarts(this->name, f->member_type + "$")) {
+        if (this->isReadonly || this->isPrivate) {
+            if (this->isReadonly && strstarts(this->name, f->member_type + "$")) {
                 return true;
             }
             return memberOfStruct(this, f);
@@ -812,24 +862,19 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
-        while (strstarts(s, "mut ") || strstarts(s, "const ")) {
-            s = s.substr(strstarts(s, "mut ") ? 4 : 6);
+        if (s.size() && s.front() == '*') s.erase(0, 1);
+        while (strstarts(s, "const ")) {
+            s.erase(0, 6);
         }
         return strstarts(s, "readonly ");
     }
 
     bool typeIsConst(std::string s) {
-        while (strstarts(s, "mut ") || strstarts(s, "readonly ")) {
-            s = s.substr(strstarts(s, "mut ") ? 4 : 9);
+        if (s.size() && s.front() == '*') s.erase(0, 1);
+        while (strstarts(s, "readonly ")) {
+            s.erase(0, 9);
         }
         return strstarts(s, "const ");
-    }
-
-    bool typeIsMut(std::string s) {
-        while (strstarts(s, "const ") || strstarts(s, "readonly ")) {
-            s = s.substr(strstarts(s, "const ") ? 6 : 9);
-        }
-        return strstarts(s, "mut ");
     }
 
     bool isPrimitiveIntegerType(std::string type);
@@ -840,16 +885,10 @@ namespace sclc
     }
 
     bool featureEnabled(std::string feat) {
-        return contains<std::string>(Main.options.features, feat);
+        return contains<std::string>(Main::options::features, feat);
     }
 
-    time_t file_modified_time(const std::string& path) {
-        struct stat attr;
-        stat(path.c_str(), &attr);
-        return attr.st_mtime;
-    }
-
-    ID_t id(char* data) {
+    ID_t id(const char* data) {
         if (strlen(data) == 0) return 0;
         ID_t h = 3323198485UL;
         for (;*data;++data) {
@@ -876,4 +915,309 @@ namespace sclc
         }
         return toRepeat;
     }
+
+    extern Function* currentFunction;
+    extern Struct currentStruct;
+    extern std::stack<std::string> typeStack;
+
+    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter) {
+        std::string path = prefix;
+        if (path.size()) {
+            path += v.name;
+        } else {
+            path += "Var_" + v.name;
+        }
+        *currentType = v.type;
+        if (topLevelDeref) {
+            path = "(*" + path + ")";
+            *currentType = typePointedTo(*currentType);
+        }
+        if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
+                transpilerError("Variable '" + v.name + "' is not mutable", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (doesWriteAfter) {
+                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                    return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                });
+
+                bool funcFound = false;
+                for (Function* f : funcs) {
+                    if (
+                        f->isMethod ||
+                        f->args.size() != 1 ||
+                        f->return_type != v.type ||
+                        !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                    ) {
+                        continue;
+                    }
+                    path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                    funcFound = true;
+                }
+                if (!funcFound) {
+                    path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                }
+            }
+            return path;
+        }
+        safeInc();
+        while (body[i].type == tok_dot) {
+            safeInc();
+            bool deref = body[i].type == tok_addr_of;
+            if (deref) {
+                safeInc();
+            }
+            Struct s = getStructByName(result, *currentType);
+            Layout l = getLayout(result, *currentType);
+            if (s == Struct::Null && l.name.size() == 0) {
+                transpilerError("Struct '" + *currentType + "' does not exist", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            bool valueType = currentType->front() == '*';
+            if (!s.hasMember(body[i].value) && !l.hasMember(body[i].value)) {
+                transpilerError("Struct '" + *currentType + "' has no member named '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            } else if (!s.hasMember(body[i].value)) {
+                v = l.getMember(body[i].value);
+            } else {
+                v = s.getMember(body[i].value);
+            }
+            *currentType = v.type;
+            if (deref) {
+                *currentType = typePointedTo(*currentType);
+            }
+            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
+                transpilerError("Variable '" + v.name + "' is not mutable", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (!v.isAccessible(currentFunction)) {
+                transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
+                errors.push_back(err);
+                return std::string("(void) 0");
+            }
+            if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
+                if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
+                    transpilerError("Member '" + v.name + "' of struct '" + s.name + "' is not mutable", i);
+                    errors.push_back(err);
+                    return std::string("(void) 0");
+                }
+                Method* f = nullptr;
+                if (deref || !doesWriteAfter) {
+                    f = attributeAccessor(result, s.name, v.name);
+                } else {
+                    f = attributeMutator(result, s.name, v.name);
+                }
+                if (f) {
+                    if (deref || !doesWriteAfter) {
+                        path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
+                    } else {
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                        });
+
+                        path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ", ";
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            path += "fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += "*(" + sclTypeToCType(result, *currentType) + "*) _scl_pop())";
+                        }
+                    }
+                } else {
+                    if (valueType) {
+                        path = path + "." + body[i].value;
+                    } else {
+                        path = path + "->" + body[i].value;
+                    }
+                    if (!deref && doesWriteAfter) {
+                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
+                            return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
+                        });
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                        }
+                    }
+                }
+                if (deref) {
+                    path = "(*" + path + ")";
+                    if (doesWriteAfter) {
+                        path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                    }
+                }
+                return path;
+            } else {
+                Method* f = attributeAccessor(result, s.name, v.name);
+                if (f) {
+                    path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
+                } else {
+                    if (valueType) {
+                        path = path + "." + body[i].value;
+                    } else {
+                        path = path + "->" + body[i].value;
+                    }
+                }
+                if (deref) {
+                    path = "(*" + path + ")";
+                }
+            }
+            safeInc();
+        }
+        i--;
+        return path;
+    }
+
+    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n) {
+        size_t i = 0;
+        for (auto&& member : val) {
+            if (i == n) {
+                return member;
+            }
+            i++;
+        }
+        return std::pair<std::string, std::string>("", "");
+    }
+
+    std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem) {
+        std::vector<std::string> newVec;
+        for (auto&& member : vec) {
+            if (member != elem) {
+                newVec.push_back(member);
+            }
+        }
+        return newVec;
+    }
+
+    std::string unquote(const std::string& str) {
+        std::string ret;
+        ret.reserve(str.size());
+        for (auto it = str.begin(); it != str.end(); ++it) {
+            if (*it == '\\') {
+                ++it;
+                switch (*it) {
+                    case 'n':
+                        ret.push_back('\n');
+                        break;
+                    case 'r':
+                        ret.push_back('\r');
+                        break;
+                    case 't':
+                        ret.push_back('\t');
+                        break;
+                    case '0':
+                        ret.push_back('\0');
+                        break;
+                    case '\\':
+                        ret.push_back('\\');
+                        break;
+                    case '\'':
+                        ret.push_back('\'');
+                        break;
+                    case '\"':
+                        ret.push_back('\"');
+                        break;
+                    default:
+                        std::cerr << "Unknown escape sequence: \\" << *it << std::endl;
+                        return "";
+                }
+            } else {
+                ret.push_back(*it);
+            }
+        }
+        return ret;
+    }
+
+    std::string capitalize(std::string s) {
+        if (s.size() == 0) return s;
+        s[0] = std::toupper(s[0]);
+        return s;
+    }
+
+    std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+        std::vector<std::string> body;
+        size_t start = 0;
+        size_t end = 0;
+        while ((end = str.find(delimiter, start)) != std::string::npos)
+        {
+            body.push_back(str.substr(start, end - start));
+            start = end + delimiter.size();
+        }
+        body.push_back(str.substr(start));
+        return body;
+    }
+
+    std::string ltrim(const std::string& s) {
+        size_t start = s.find_first_not_of(" \t\r\n");
+        return (start == std::string::npos) ? "" : s.substr(start);
+    }
+
+    std::string scaleArgs(std::vector<Variable> args) {
+        std::string result = "";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i) {
+                result += ", ";
+            }
+            result += args[i].name + ": " + args[i].type;
+        }
+        return result;
+    }
+
+    bool structImplements(TPResult& result, Struct s, std::string interface) {
+        do {
+            if (s.implements(interface)) {
+                return true;
+            }
+            s = getStructByName(result, s.super);
+        } while (s.name.size());
+        return false;
+    }
+
+    std::string replace(std::string s, std::string a, std::string b) {
+        size_t pos = 0;
+        while ((pos = s.find(a, pos)) != std::string::npos) {
+            s.replace(pos, a.size(), b);
+            pos += b.size();
+        }
+        return s;
+    }
+
+    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
+        return f && f->has_getter ? f : nullptr;
+    }
+
+    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
+        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
+        return f && f->has_setter ? f : nullptr;
+    }
+
 } // namespace sclc

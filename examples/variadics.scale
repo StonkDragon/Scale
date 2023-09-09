@@ -5,8 +5,8 @@
 
 # The variadic function is declared with the varargs type.
 function variadicTest(args: varargs): none
-    args.count puts
-    args puts
+    args:size puts
+    args:toString puts
 end
 
 function main(): none

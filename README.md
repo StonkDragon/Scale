@@ -1,65 +1,31 @@
-# The Scale Programming Language
+# [The Scale Programming Language](https://stonkdragon.github.io/)
 ## Introduction
-  Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) and [object oriented](https://en.wikipedia.org/wiki/Object-oriented_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Lua](https://www.lua.org/) and [Porth](https://gitlab.com/tsoding/porth).
+Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) and [object oriented](https://en.wikipedia.org/wiki/Object-oriented_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Lua](https://www.lua.org/) and [Porth](https://gitlab.com/tsoding/porth).
 
-  Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_interop.h`, which will be generated in your current working directory when compiling any Scale file.
+Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_interop.h`, which will be generated in your current working directory when compiling any Scale file.
 
-  The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
+The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
-  Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
+Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
 
 ### Examples
 
-  Examples can be found in the [examples](./examples) directory.
+Examples can be found in the [examples](./examples) directory.
 
 ## Installation
 ### Install the latest release
-To install the latest release, run the following commands:
+To install the latest release, run either
 ```shell
-$ git clone https://github.com/StonkDragon/Scale
-$ cd Scale
-$ sh install.sh
+$ clang++ install.cpp -o install -std=gnu++17 && ./install # works if you don't have dragon yet
 ```
-Alternatively, if you have `dragon` version 6.0 or newer installed, you can run the following command:
+or
 ```shell
-$ dragon package install StonkDragon/Scale
+$ dragon package install StonkDragon/Scale # works if you already have dragon
 ```
-
-This will install all necessary dependencies and the Scale compiler.
-
-Scale by default will install itself to the `/opt/Scale` directory.
-
-Windows is not supported.
-
-### Install a specific release
-Download the source code zip archive from the [releases tab](https://github.com/StonkDragon/Scale/releases) for the release you want to install. Then, extract the archive and run the following command:
-```shell
-$ sh install.sh
-```
-
-Alternatively, if you have `dragon` version 6.0 or newer installed, you can run the following command:
-```shell
-$ dragon package install StonkDragon/Scale <version-tag>
-```
-
-This will install all necessary dependencies and the Scale compiler.
-
-## Dependencies
-Scale has the following dependencies:
-
-- `clang`
-- [`dragon`](https://github.com/StonkDragon/Dragon) (installed by [install.sh](./install.sh))
-- [`bdwgc`](https://github.com/ivmai/bdwgc) (installed by [install_post.sh](./install_post.sh))
 
 # Documentation
 
-The documentation can be viewed by running the following commands:
-```shell
-$ sclc -doc categories
-$ sclc -doc info
-```
-
-## Scale Framework Documentation
+A list of all features can be found [here](https://stonkdragon.github.io/features.html).
 
 The Scale Framework documentation can be viewed by running the following command:
 ```shell

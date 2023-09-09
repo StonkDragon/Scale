@@ -13,7 +13,7 @@ Frees the memory block pointed to by `ptr`.
 
 ### static function any::size(ptr: any): int
 Returns the size of the memory block pointed to by `ptr`.
-Returns -1 if `ptr` is nil or invalid.
+Returns 0 if `ptr` is nil or invalid.
 
 ### static function any::resize(newSize: int, ptr: any): any
 Resizes the memory block pointed to by `ptr` to `newSize` bytes.
@@ -197,12 +197,6 @@ Returns the value of the errno variable.
 
 ### function strerror(): str
 Returns a string representation of the error code in errno.
-
-### function setSignalHandler(fun: lambda(int): none, sig: int): none
-Sets the signal handler for the signal `sig` to `fun`.
-
-### function resetSignalHandler(sig: int): none
-Resets the signal handler for the signal `sig` to the default handler.
 
 ### function dumpStack(): none
 Prints the current stack to stdout.
@@ -1040,12 +1034,6 @@ Locks `obj` on the current thread, blocking if another thread has already locked
 ### static function Process::unlock(obj: SclObject): none
 Unlocks `obj` on the current thread.
 
-### static function Process::stackPointer(): [any]
-Returns the stack pointer of the current thread.
-
-### static function Process::basePointer(): [any]
-Returns the stack base pointer of the current thread.
-
 @std.thread.Thread
 @@{frameworkPath}/include/std/thread/Thread.scale
 ## Thread
@@ -1083,6 +1071,9 @@ Starts this thread.
 
 ### function Thread:join(): none
 Waits for this thread to finish.
+
+### function Thread:detach(): none
+Detaches this thread.
 
 ### function Thread:equals(other: any): bool
 Returns true if `self` and `other` represent the same thread.

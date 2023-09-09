@@ -13,7 +13,7 @@ final static sealed struct ConsoleColor
 end
 
 final static sealed struct FmtIO
-  cdecl "putchar" private expect function putchar(char: int8): none
+  cdecl "putchar" private expect foreign function putchar(char: int8): none
 
   private function printStrNoNewline(s: str): none
     foreach c in s do
@@ -22,32 +22,33 @@ final static sealed struct FmtIO
   end
 
   function puts(fmt: str, args: varargs): none
-    args:iterate => decl argIterator: ArrayIterator
+    0 => decl current: int
+    args:size => decl size: int
     for i in 0 to fmt:size do
-      i fmt @ => decl char: int8
-      if char '%' == then
+      fmt[i] => decl c: int8
+      if c '%' == then
         i++ => i
-        i fmt @ => char
-        if char '%' == then
+        fmt[i] => c
+        if c '%' == then
           '%' FmtIO::putchar
         fi
-        if argIterator:hasNext ! then
+        if current size >= then
           "Not enough arguments for format string" InvalidArgumentException::new throw
         fi
-        argIterator:next => decl arg: any
-        if char 's' == char 'i' == || then
+        args[current] => decl arg: any
+        current++ => current
+        if c 's' == c 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
-        elif char 'f' == then
+        elif c 'f' == then
           arg float::fromBits float::toString FmtIO::printStrNoNewline
-        elif char 'c' == then
+        elif c 'c' == then
           arg FmtIO::putchar
         else
-          "invalid format specifier" InvalidArgumentException::new throw
+          "Invalid format specifier at position #" i + InvalidArgumentException::new throw
         fi
       else
-        char FmtIO::putchar
+        c FmtIO::putchar
       fi
     done
-    argIterator any::delete
   end
 end

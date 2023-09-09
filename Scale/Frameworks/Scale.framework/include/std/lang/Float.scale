@@ -4,32 +4,50 @@ construct function float_scale_init(): none
 end
 
 cdecl "sprintf"
-private expect unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 cdecl "atof"
-private expect unsafe function __c_atof(:[int8]): float
+private expect foreign unsafe function __c_atof(:[int8]): float
 
 final static sealed struct float
     decl maxExponent: const int
     decl minExponent: const int
 
-    intrinsic function toString(x: float): str
-        100 any::new => decl out: [int8]
+    function toString(x: float): str
+        if x:isNaN then
+            "nan" return
+        elif x:isInfinite then
+            if x 0 < then
+                "-inf" return
+            else
+                "inf" return
+            fi
+        fi
+        new<int8>[100] => decl out: [int8]
         unsafe
-            out "%f":view x __c_sprintf! 1 drop
+            out c"%f" x __c_sprintf! 1 drop
         end
         out str::new return
     end
 
-    intrinsic function toPrecisionString(x: float): str
-        100 any::new => decl out: [int8]
+    function toPrecisionString(x: float): str
+        if x:isNaN then
+            "nan" return
+        elif x:isInfinite then
+            if x 0 < then
+                "-inf" return
+            else
+                "inf" return
+            fi
+        fi
+        new<int8>[100] => decl out: [int8]
         unsafe
-            out "%.17f":view x __c_sprintf! 1 drop
+            out c"%.17f" x __c_sprintf! 1 drop
         end
         out str::new return
     end
 
-    intrinsic function toHexString(x: float): str
-        19 any::new => decl out: [int8]
+    function toHexString(x: float): str
+        new<int8>[19] => decl out: [int8]
         unsafe
             out "0x%016lx" x:bits __c_sprintf! 1 drop
         end
@@ -46,9 +64,9 @@ final static sealed struct float
         ref x as [int] @ return
     end
 
-    expect function isInfinite(x: float): bool
+    expect foreign function isInfinite(x: float): bool
 
-    expect function isNaN(x: float): bool
+    expect foreign function isNaN(x: float): bool
 
     function isFinite(x: float): bool
         x float::isInfinite ! x float::isNaN ! && return
@@ -59,10 +77,10 @@ final static sealed struct float
     end
 
     function asReference(f: float): Float
-        f Float::valueOf return
+        f Float::new return
     end
 
-    intrinsic function fromBits(bits: any): float
+    function fromBits(bits: any): float
         ref bits as [float] @ return
     end
 end
@@ -70,8 +88,13 @@ end
 struct Float
     decl value: readonly float
 
-    expect static function valueOf(x: float): Float
+    static function valueOf(x: float): Float
+        x Float::new return
+    end
 
+    function init(x: float): none
+        x => self.value
+    end
     function equals(other: any): bool
         other self == return
     end
@@ -80,6 +103,13 @@ struct Float
             other as Float.value self.value == return
         else
             ref other as [float] @ self.value == return
+        fi
+    end
+    function !=(other: any): none
+        if other is Float then
+            other as Float.value self.value != return
+        else
+            ref other as [float] @ self.value != return
         fi
     end
     function @(): float

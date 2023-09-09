@@ -1,11 +1,11 @@
 #include <scale_runtime.h>
 
-extern const ID_t SclObjectHash; // SclObject
+ID_t SclObjectHash; // SclObject
 
 typedef struct Struct {
-	_scl_lambda*	vtable_fast;
-	TypeInfo*	statics;
-	mutex_t			mutex;
+	_scl_lambda*	vtable;
+	TypeInfo*		statics;
+	scl_any			mutex;
 } Struct;
 
 typedef struct Struct_SclObject {
@@ -36,7 +36,11 @@ typedef struct Struct_Array {
 }* scl_Array;
 
 typedef struct Struct_ReadOnlyArray {
-	struct Struct_Array self;
+	Struct rtFields;
+	scl_any* values;
+	scl_int count;
+	scl_int capacity;
+	scl_int initCapacity;
 }* scl_ReadOnlyArray;
 
 typedef struct Struct_IndexOutOfBoundsException {
@@ -79,7 +83,7 @@ struct Struct_str {
 typedef struct Struct_Thread {
 	Struct rtFields;
 	_scl_lambda function;
-	pthread_t nativeThread;
+	scl_any nativeThread;
 	scl_str name;
 }* scl_Thread;
 
@@ -87,198 +91,85 @@ typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
 
-extern scl_Array        Var_Thread$threads;
-extern scl_Thread       Var_Thread$mainThread;
-extern tls scl_Thread   _currentThread;
+extern scl_Array		Var_Thread$threads;
+extern scl_Thread		Var_Thread$mainThread;
 
-extern scl_any*         arrays;
-extern scl_int          arrays_count;
-extern scl_int          arrays_capacity;
+tls scl_Thread			_currentThread = nil;
 
-extern _scl_stack_t**	stacks;
-extern scl_int			stacks_count;
-extern scl_int			stacks_cap;
-
-extern scl_any*			allocated;
-extern scl_int			allocated_count;
-extern scl_int			allocated_cap;
-
-extern scl_int*			memsizes;
-extern scl_int			memsizes_count;
-extern scl_int			memsizes_cap;
-
-extern Struct**			instances;
-extern scl_int			instances_count;
-extern scl_int			instances_cap;
-
-extern tls scl_any*		stackalloc_arrays;
-extern tls scl_int*		stackalloc_array_sizes;
-extern tls scl_int		stackalloc_arrays_count;
-extern tls scl_int		stackalloc_arrays_cap;
-
-scl_int8* argv0;
-
-scl_int8* Library$progname(void) {
-	return argv0;
+_scl_symbol_hidden
+static scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, scl_int iteration_direction) {
+	scl_int frames = 0;
+	while (stack_top != stack_bottom) {
+		if (*stack_top == TRACE_MARKER) {
+			frames++;
+		}
+		stack_top += iteration_direction;
+	}
+	return frames;
 }
 
-struct Struct_Array* Process$stackTrace(void) {
-	struct Struct_Array* arr = ALLOC(ReadOnlyArray);
-	
-	scl_int8** tmp;
-	scl_int8** _callstack = tmp = _stack.tbp;
+scl_Array Process$stackTrace(void) {
+	scl_uint* stack_top = (scl_uint*) &stack_top;
+	struct GC_stack_base sb;
+	GC_get_my_stackbottom(&sb);
+	scl_uint* stack_bottom = sb.mem_base;
 
-	arr->count = (_stack.tp - _stack.tbp) - 1;
-
-	arr->initCapacity = arr->count;
-	arr->capacity = arr->count;
-	arr->values = _scl_new_array_by_size(arr->capacity, sizeof(scl_int8*));
-
-	for (scl_int i = 0; i < arr->count; i++) {
-		_scl_array_check_bounds_or_throw(arr->values, i);
-		arr->values[i] = str_of(_callstack[i]);
+	scl_int iteration_direction = 1;
+	if (stack_top > stack_bottom) {
+		iteration_direction = -1;
 	}
 
-	return arr;
+	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
+	arr->count = count_trace_frames(stack_bottom, stack_top, iteration_direction);
+
+	arr->values = (scl_any*) _scl_new_array_by_size(arr->count, sizeof(scl_int8*));
+	arr->initCapacity = arr->count;
+	arr->capacity = arr->count;
+
+	scl_int i = 0;
+	while (stack_top != stack_bottom) {
+		if (*stack_top == TRACE_MARKER) {
+			if (i) {
+				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
+				arr->values[i] = str_of_exact(bt->func_name);
+			}
+			i++;
+		}
+
+		stack_top += iteration_direction;
+	}
+
+	scl_int8* tmp;
+	for (scl_int i = 0; i < arr->count / 2; i++) {
+		tmp = arr->values[i];
+		arr->values[i] = arr->values[arr->count - i - 1];
+		arr->values[arr->count - i - 1] = tmp;
+	}
+	arr->count--;
+
+	return (scl_Array) arr;
 }
 
 scl_bool Process$gcEnabled(void) {
-	return !_scl_gc_is_disabled();
+	SCL_BACKTRACE("Process::gcEnabled(): bool");
+	return !GC_is_disabled();
 }
 
-scl_any* Process$stackPointer() {
-	return (scl_any*) _stack.sp;
+void Process$lock(scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
 }
 
-scl_any* Process$basePointer() {
-	return (scl_any*) _stack.bp;
+void Process$unlock(scl_any obj) {
+	if (_scl_expect(!obj, 0)) return;
+	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
 }
 
-#define TO(type, name) scl_ ## type int$to ## name (scl_int val) { return (scl_ ## type) (val & ((1ULL << (sizeof(scl_ ## type) * 8)) - 1)); }
-#define VALID(type, name) scl_bool int$isValid ## name (scl_int val) { return val >= SCL_ ## type ## _MIN && val <= SCL_ ## type ## _MAX; }
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wshift-count-overflow"
-#endif
-
-TO(int8, Int8)
-TO(int16, Int16)
-TO(int32, Int32)
-TO(int64, Int64)
-TO(int, Int)
-TO(uint8, UInt8)
-TO(uint16, UInt16)
-TO(uint32, UInt32)
-TO(uint64, UInt64)
-TO(uint, UInt)
-
-VALID(int8, Int8)
-VALID(int16, Int16)
-VALID(int32, Int32)
-VALID(int64, Int64)
-VALID(int, Int)
-VALID(uint8, UInt8)
-VALID(uint16, UInt16)
-VALID(uint32, UInt32)
-VALID(uint64, UInt64)
-VALID(uint, UInt)
-
-scl_str int$toString(scl_int val) {
-	scl_int8* str = _scl_alloc(32);
+scl_str intToString(scl_int val) {
+	scl_int8* str = (scl_int8*) _scl_alloc(32);
 	snprintf(str, 32, SCL_INT_FMT, val);
-	scl_str s = str_of(str);
+	scl_str s = str_of_exact(str);
 	return s;
-}
-
-scl_str int$toHexString(scl_int val) {
-	scl_int8* str = _scl_alloc(19);
-	snprintf(str, 19, SCL_INT_HEX_FMT, val);
-	scl_str s = str_of(str);
-	return s;
-}
-
-scl_str int8$toString(scl_int8 val) {
-	scl_int8* str = _scl_alloc(5);
-	snprintf(str, 5, "%c", val);
-	scl_str s = str_of(str);
-	return s;
-}
-
-void _scl_puts(scl_any val) {
-	scl_str s;
-	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = virtual_call(val, "toString()s;");
-	} else if (_scl_is_array(val)) {
-		s = _scl_array_to_string(val);
-	} else {
-		s = int$toString((scl_int) val);
-	}
-	printf("%s\n", s->data);
-}
-
-void _scl_puts_str(scl_str str) {
-	printf("%s\n", str->data);
-}
-
-void _scl_eputs(scl_any val) {
-	scl_str s;
-	if (_scl_is_instance_of(val, SclObjectHash)) {
-		s = virtual_call(val, "toString()s;");
-	} else if (_scl_is_array(val)) {
-		s = _scl_array_to_string(val);
-	} else {
-		s = int$toString((scl_int) val);
-	}
-	fprintf(stderr, "%s\n", s->data);
-}
-
-void _scl_write(scl_int fd, scl_str str) {
-	write(fd, str->data, str->length);
-}
-
-scl_str _scl_read(scl_int fd, scl_int len) {
-	scl_int8* buf = _scl_alloc(len + 1);
-	read(fd, buf, len);
-	scl_str str = str_of(buf);
-	return str;
-}
-
-scl_int _scl_system(scl_str cmd) {
-	return system(cmd->data);
-}
-
-scl_str _scl_getenv(scl_str name) {
-	scl_int8* val = getenv(name->data);
-	return val ? str_of(val) : nil;
-}
-
-scl_float _scl_time(void) {
-	struct timeval tv;
-	gettimeofday(&tv, 0);
-	return (scl_float) tv.tv_sec + (scl_float) tv.tv_usec / 1000000.0;
-}
-
-scl_str float$toString(scl_float val) {
-	scl_int8* str = _scl_alloc(64);
-	snprintf(str, 64, "%f", val);
-	scl_str s = str_of(str);
-	return s;
-}
-
-scl_str float$toPrecisionString(scl_float val) {
-	scl_int8* str = _scl_alloc(256);
-	snprintf(str, 256, "%.17f", val);
-	scl_str s = str_of(str);
-	return s;
-}
-
-scl_str float$toHexString(scl_float val) {
-	return int$toHexString(REINTERPRET_CAST(scl_int, val));
-}
-
-scl_float float$fromBits(scl_any bits) {
-	return REINTERPRET_CAST(scl_float, bits);
 }
 
 scl_bool float$isInfinite(scl_float val) {
@@ -289,134 +180,193 @@ scl_bool float$isNaN(scl_float val) {
 	return isnan(val);
 }
 
-void dumpStack(void) {
-	printf("Dump:\n");
-	_scl_frame_t* frame = _stack.bp;
-	while (frame != _stack.sp) {
-		printf("   %zd: 0x" SCL_INT_HEX_FMT ", " SCL_INT_FMT "\n", (frame - _stack.bp) / sizeof(_scl_frame_t), frame->i, frame->i);
-	}
-	printf("\n");
-}
-
-scl_any Library$self0(void) {
-	scl_any lib = dlopen(nil, RTLD_LAZY);
-	if (!lib) {
-		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init()V;");
-		e->self.msg = str_of("Failed to load library");
-		_scl_throw(e);
-	}
-	return lib;
-}
-
-scl_any Library$getSymbol0(scl_any lib, scl_int8* name) {
-	return dlsym(lib, name);
-}
-
-scl_any Library$open0(scl_int8* name) {
-	scl_any lib = dlopen(name, RTLD_LAZY);
-	if (!lib) {
-		scl_NullPointerException e = ALLOC(NullPointerException);
-		virtual_call(e, "init()V;");
-		e->self.msg = str_of("Failed to load library");
-		_scl_throw(e);
-	}
-	return lib;
-}
-
-void Library$close0(scl_any lib) {
-	dlclose(lib);
-}
-
-scl_str Library$dlerror0(void) {
-	return str_of(dlerror());
-}
-
-static struct Struct_Int _ints[256] = {};
-
-scl_Int Int$valueOf(scl_int val) {
-	if (val >= -128 && val <= 127) {
-		return &_ints[val + 128];
-	}
-	scl_Int new = ALLOC(Int);
-	new->value = val;
-	return new;
-}
-
-scl_Any Any$valueOf(scl_any val) {
-	scl_Any new = ALLOC(Any);
-	new->value = val;
-	return new;
-}
-
-scl_Float Float$valueOf(scl_float val) {
-	scl_Float new = ALLOC(Float);
-	new->value = val;
-	return new;
-}
-
 void Thread$run(scl_Thread self) {
-	_scl_stack_new();
-	*(_stack.tp++) = "<extern Thread:run(): none>";
+	SCL_BACKTRACE("Thread:run(): none");
 	_currentThread = self;
 
-	virtual_call(Var_Thread$threads, "push(a;)V;", self);
+	Process$lock(Var_Thread$threads);
+	virtual_call(Var_Thread$threads, "push(LThread;)V;", self);
+	Process$unlock(Var_Thread$threads);
 	
 	TRY {
 		self->function();
 	} else {
-		_scl_runtime_catch();
+		_scl_runtime_catch(_scl_exception_handler.exception);
 	}
 
-	virtual_call(Var_Thread$threads, "remove(a;)V;", self);
+	Process$lock(Var_Thread$threads);
+	virtual_call(Var_Thread$threads, "remove(LThread;)V;", self);
+	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;
-	_stack.tp--;
-	_scl_stack_free();
 }
 
-scl_int Thread$start0(scl_Thread self) {
-	int ret = _scl_gc_pthread_create(&self->nativeThread, 0, (scl_any) Thread$run, self);
-	return ret;
+void Thread$start0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:start0(): none");
+	self->nativeThread = cxx_std_thread_new_with_args(&Thread$run, self);
 }
 
-scl_int Thread$stop0(scl_Thread self) {
-	int ret = _scl_gc_pthread_join(self->nativeThread, 0);
-	return ret;
+void Thread$stop0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:stop0(): none");
+	cxx_std_thread_join(self->nativeThread);
+	cxx_std_thread_delete(self->nativeThread);
+}
+
+void Thread$detach0(scl_Thread self) {
+	SCL_BACKTRACE("Thread:detach0(): none");
+	cxx_std_thread_detach(self->nativeThread);
 }
 
 scl_Thread Thread$currentThread(void) {
+	SCL_BACKTRACE("Thread::currentThread(): Thread");
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
-		_currentThread->name = str_of("Main Thread");
-		_currentThread->nativeThread = pthread_self();
+		_currentThread->name = str_of_exact("Main Thread");
+		_currentThread->nativeThread = cxx_std_thread_new();
 		_currentThread->function = nil;
 	}
 	return _currentThread;
 }
 
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+const scl_int8* GarbageCollector$getImplementation0(void) {
+	return "Boehm GC";
+}
+
+scl_bool GarbageCollector$isPaused0(void) {
+	return GC_is_disabled();
+}
+
+void GarbageCollector$setPaused0(scl_bool paused) {
+	if (paused && !GC_is_disabled()) {
+		GC_disable();
+	} else if (GC_is_disabled()) {
+		GC_enable();
+	}
+}
+
+void GarbageCollector$run0(void) {
+	GC_gcollect();
+}
+
+scl_int GarbageCollector$heapSize(void) {
+	scl_uint heapSize;
+	GC_get_heap_usage_safe(
+		&heapSize,
+		nil,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) heapSize;
+}
+
+scl_int GarbageCollector$freeBytesEstimate(void) {
+	scl_uint freeBytes;
+	GC_get_heap_usage_safe(
+		nil,
+		&freeBytes,
+		nil,
+		nil,
+		nil
+	);
+	return (scl_int) freeBytes;
+}
+
+scl_int GarbageCollector$bytesSinceLastCollect(void) {
+	scl_uint bytesSinceLastCollect;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		&bytesSinceLastCollect,
+		nil,
+		nil
+	);
+	return (scl_int) bytesSinceLastCollect;
+}
+
+scl_int GarbageCollector$totalMemory(void) {
+	scl_uint totalMemory;
+	GC_get_heap_usage_safe(
+		nil,
+		nil,
+		nil,
+		&totalMemory,
+		nil
+	);
+	return (scl_int) totalMemory;
+}
+
+scl_int8* s_strndup(const scl_int8* str, scl_int len) {
+	scl_int8* newStr = (scl_int8*) _scl_alloc(len + 1);
+	strncpy(newStr, str, len);
+	return newStr;
+}
+
+scl_int8* s_strdup(const scl_int8* str) {
+	return s_strndup(str, strlen(str));
+}
+
+scl_int get_errno() {
+	return errno;
+}
+
+scl_str get_errno_as_str() {
+	return str_of_exact(s_strdup(strerror(errno)));
+}
+
+scl_any s_memset(scl_any ptr, scl_int32 val, scl_int len) {
+	return memset(ptr, val, len);
+}
+
+scl_any s_memcpy(scl_any dest, scl_any src, scl_int n) {
+	return memcpy(dest, src, n);
+}
+
+scl_int8* s_strcpy(scl_int8* dest, scl_int8* src) {
+	return s_memcpy(dest, src, strlen(src) + 1);
+}
+
+scl_str builtinToString(scl_any obj) {
+	if (_scl_is_instance(obj)) {
+		return (scl_str) virtual_call(obj, "toString()s;");
+	}
+	if (_scl_is_array((scl_any*) obj)) {
+		return _scl_array_to_string((scl_any*) obj);
+	}
+	scl_int8* data = (scl_int8*) _scl_alloc(32);
+	snprintf(data, 31, SCL_INT_FMT, (scl_int) obj);
+	return str_of_exact(data);
+}
+
+scl_str _scl_array_to_string(scl_any* arr) {
+	if (_scl_expect(arr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+	}
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+	}
+	scl_int size = _scl_array_size(arr);
+	scl_str s = str_of_exact("[");
+	for (scl_int i = 0; i < size; i++) {
+		if (i) {
+			s = (scl_str) virtual_call(s, "append(s;)s;", str_of_exact(", "));
+		}
+		scl_str tmp;
+		if (_scl_is_instance(arr[i])) {
+			tmp = (scl_str) virtual_call(arr[i], "toString()s;");
+		} else {
+			scl_int8* str = (scl_int8*) _scl_alloc(32);
+			snprintf(str, 31, SCL_INT_FMT, ((scl_int*) arr)[i]);
+			tmp = str_of_exact(str);
+		}
+		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
+	}
+	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
+}
 
 _scl_constructor
 void _scale_framework_init(void) {
     _scl_setup();
-	
-    extern const TypeInfo _scl_statics_Int;
-
-	ID_t intHash = id("Int");
-	for (scl_int i = -128; i < 127; i++) {
-		_ints[i + 128] = (struct Struct_Int) {
-			.rtFields = {
-				.vtable_fast = (_scl_lambda*) _scl_statics_Int.vtable_fast,
-				.statics = (TypeInfo*) &_scl_statics_Int,
-				.mutex = _scl_mutex_new(),
-			},
-			.value = i
-		};
-		_scl_add_struct((Struct*) &_ints[i + 128]);
-	}
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 }

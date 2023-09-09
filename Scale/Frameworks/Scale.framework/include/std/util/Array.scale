@@ -1,5 +1,4 @@
 import std.util.Iterable
-import std.util.ImmutableArray
 import std.debug
 import std.util.InvalidArgumentException
 import std.util.IndexOutOfBoundsException
@@ -7,13 +6,11 @@ import std.util.TypedArray
 import std.util.ReadOnlyArray
 
 sealed struct Array is Iterable
-  decl values:  mut readonly [any]
+  decl values:  readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
   decl initCap:     readonly int
 
-  private function checkTypeOrThrow(value: any): none end
-  
   function sort(): none
     0 => decl i
 
@@ -55,7 +52,6 @@ sealed struct Array is Iterable
   end
 
   function set(index: int, value: any): none
-    value self:checkTypeOrThrow
     if index 0 < index self.capacity >= || then
       "Index "
       index:toString +
@@ -81,7 +77,6 @@ sealed struct Array is Iterable
   end
 
   function push(value: any): none
-    value self:checkTypeOrThrow
 
     if self.count self.capacity >= then
       self.capacity self.initCap + => self.capacity
@@ -101,7 +96,6 @@ sealed struct Array is Iterable
   end
 
   function indexOf(val: any): int
-    val self:checkTypeOrThrow
     for i in 0 to self.count do
       if i self:get is SclObject then
         if val is SclObject then
@@ -123,7 +117,6 @@ sealed struct Array is Iterable
   end
 
   function contains(val: any): bool
-    val self:checkTypeOrThrow
     val self:indexOf -1 != return
   end
 
@@ -177,20 +170,7 @@ sealed struct Array is Iterable
     return
   end
 
-  deprecated![since: "23.8", replacement: "ReadOnlyArray", forRemoval: true]
-  function immutableCopy(): ImmutableArray
-    new[self.count] => decl newVals: [any]
-    unsafe
-      newVals self.values self.count sizeof any * memcpy => newVals
-    end
-    self.count => decl newCount: int
-
-    newCount newVals ImmutableArray::new
-    return
-  end
-
   function remove(val: any): none
-    val self:checkTypeOrThrow
     val self:indexOf => decl index
     for i in index to self.count 1 - do
       i (i 1 + self:get) self:set
@@ -199,7 +179,6 @@ sealed struct Array is Iterable
   end
 
   function removeAll(val: any): none
-    val self:checkTypeOrThrow
     while val self:indexOf -1 != do
       val self:remove
     done
@@ -222,21 +201,13 @@ sealed struct Array is Iterable
   end
 
   function clone(): Array
-    self builtinAtomicClone as Array => decl clone: mut Array
+    self builtinAtomicClone as Array => decl clone: Array
     self.values builtinAtomicClone => clone.values
     clone return
   end
 
-  function *(): none
-    foreach elem in self do
-      elem
-    done
-    unsafe
-      c!
-        _scl_frame_t** begin_sp = (_scl_frame_t**) &__current_base_ptr;
-        *begin_sp = _stack.sp;
-      end
-    end
+  function finalize(): none
+    self.values any::delete
   end
 
   static function fromPointerCollection(count: int, values: [any]) arr: Array
