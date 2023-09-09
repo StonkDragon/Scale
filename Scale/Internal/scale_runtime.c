@@ -671,8 +671,9 @@ static inline void dont_optimize_meee(const void* p) {
 	asm volatile("" : : "g"(p) : "memory");
 }
 
-void _scl_trace_remove(const struct _scl_backtrace* _) {
-	(void) dont_optimize_meee(_->func_name);
+void _scl_trace_remove(struct _scl_backtrace* bt) {
+	bt->marker = 0;
+	bt->func_name = "<unknown>";
 }
 
 void _scl_unlock_ptr(void* lock_ptr) {
@@ -697,6 +698,10 @@ void _scl_throw(scl_any ex) {
 	}
 
 	while (stack_top != stack_bottom) {
+		if (*stack_top == TRACE_MARKER) {
+			struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
+			_scl_trace_remove(bt);
+		}
 		if (*stack_top != EXCEPTION_HANDLER_MARKER) {
 			stack_top += iteration_direction;
 			continue;
