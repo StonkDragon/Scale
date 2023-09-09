@@ -667,7 +667,9 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 	return arr;
 }
 
-void _scl_trace_remove(volatile const struct _scl_backtrace* _) {}
+void _scl_trace_remove(volatile const struct _scl_backtrace* _) {
+	printf("Exiting '%s' (%p)\n", _->func_name, _->func_name);
+}
 
 void _scl_unlock_ptr(void* lock_ptr) {
 	Struct* lock = *(Struct**) lock_ptr;

@@ -379,7 +379,8 @@ typedef struct memory_layout memory_layout_t;
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
-						volatile struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { TRACE_MARKER, (_func_name) }
+						static volatile struct _scl_backtrace __scl_backtrace_cur = { TRACE_MARKER, (_func_name) }; \
+						volatile struct _scl_backtrace __scl_this_trace __attribute__((cleanup(_scl_trace_remove))) = __scl_backtrace_cur
 
 void				_scl_trace_remove(volatile const struct _scl_backtrace*);
 
