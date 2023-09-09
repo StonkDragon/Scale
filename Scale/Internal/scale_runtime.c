@@ -698,10 +698,6 @@ void _scl_throw(scl_any ex) {
 	}
 
 	while (stack_top != stack_bottom) {
-		if (*stack_top == TRACE_MARKER) {
-			struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
-			_scl_trace_remove(bt);
-		}
 		if (*stack_top != EXCEPTION_HANDLER_MARKER) {
 			stack_top += iteration_direction;
 			continue;
