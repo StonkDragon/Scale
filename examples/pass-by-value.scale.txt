@@ -1,0 +1,4 @@
+Foo {x: Hello!, y: 42}
+Foo
+Foo {x: Hello!, y: 69}
+Foo {x: Hello!, y: 42}

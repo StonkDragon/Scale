@@ -976,6 +976,7 @@ namespace sclc
                 errors.push_back(err);
                 return std::string("(void) 0");
             }
+            bool valueType = currentType->front() == '*';
             if (!s.hasMember(body[i].value) && !l.hasMember(body[i].value)) {
                 transpilerError("Struct '" + *currentType + "' has no member named '" + body[i].value + "'", i);
                 errors.push_back(err);
@@ -1039,7 +1040,11 @@ namespace sclc
                         }
                     }
                 } else {
-                    path = path + "->" + body[i].value;
+                    if (valueType) {
+                        path = path + "." + body[i].value;
+                    } else {
+                        path = path + "->" + body[i].value;
+                    }
                     if (!deref && doesWriteAfter) {
                         auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
                             return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
@@ -1075,7 +1080,11 @@ namespace sclc
                 if (f) {
                     path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
                 } else {
-                    path = path + "->" + body[i].value;
+                    if (valueType) {
+                        path = path + "." + body[i].value;
+                    } else {
+                        path = path + "->" + body[i].value;
+                    }
                 }
                 if (deref) {
                     path = "(*" + path + ")";

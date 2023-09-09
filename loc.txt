@@ -1,4 +1,4 @@
-    1214 Compiler/Common.cpp
+    1223 Compiler/Common.cpp
     1321 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
      352 Compiler/headers/Common.hpp
@@ -12,18 +12,18 @@
      216 Compiler/headers/Struct.hpp
      200 Compiler/headers/Token.hpp
       99 Compiler/headers/TokenType.hpp
-     125 Compiler/headers/TranspilerDefs.hpp
+     136 Compiler/headers/TranspilerDefs.hpp
       37 Compiler/headers/Types.hpp
       92 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
      176 Compiler/modules/Function.cpp
-     784 Compiler/modules/Functions.cpp
+     807 Compiler/modules/Functions.cpp
      639 Compiler/modules/InfoDumper.cpp
      253 Compiler/modules/Parser.cpp
     3591 Compiler/modules/SyntaxTree.cpp
      658 Compiler/modules/Tokenizer.cpp
-    4191 Compiler/modules/Transpiler.cpp
+    4202 Compiler/modules/Transpiler.cpp
      504 Compiler/modules/Types.cpp
      372 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
@@ -60,7 +60,7 @@
       92 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
-     782 Scale/Internal/scale_runtime.c
+     778 Scale/Internal/scale_runtime.c
      616 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
@@ -115,4 +115,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   22727 total
+   22777 total

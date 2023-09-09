@@ -19,6 +19,17 @@
     {                                                                                  \
         append("%s;\n", path.c_str());                                                 \
     }                                                                                  \
+    else if (type.front() == '*')                                                      \
+    {                                                                                  \
+        append("{\n");                                                                 \
+        scopeDepth++;                                                                  \
+        append("%s tmp = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());  \
+        append("size_t size = tmp.$statics->size;\n");                                 \
+        append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");        \
+        append("memcpy((localstack - 1)->v, &tmp, size);\n");                          \
+        scopeDepth--;                                                                  \
+        append("}\n");                                                                 \
+    }                                                                                  \
     else                                                                               \
     {                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                              \

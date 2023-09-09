@@ -105,14 +105,24 @@ namespace sclc {
         }
 
         append2("fn_%s(%s);\n", f->name.c_str(), args.c_str());
-        if (f->return_type != "none" && f->return_type != "nothing") {
-            append("localstack++;\n");
-        }
+
         if (f->return_type.size() && f->return_type.front() == '*') {
-            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
-            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, f->return_type).c_str());
+            append("size_t size = tmp.$statics->size;\n");
+            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, size);\n");
             scopeDepth--;
             append("}\n");
+        } else {
+            if (f->return_type != "none" && f->return_type != "nothing") {
+                append("localstack++;\n");
+            }
+        }
+        if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
+            if (f->return_type.front() == '*') {
+                typeStack.push(f->return_type.substr(1));
+            } else {
+                typeStack.push(f->return_type);
+            }
         }
         scopeDepth--;
         append("}\n");
@@ -423,8 +433,9 @@ namespace sclc {
             found = true;
         }
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("size_t size = tmp.$statics->size;\n");
+            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, size);\n");
             scopeDepth--;
             append("}\n");
         } else {
@@ -433,7 +444,11 @@ namespace sclc {
             }
         }
         if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
-            typeStack.push(self->return_type.substr(self->return_type.front() == '*'));
+            if (self->return_type.front() == '*') {
+                typeStack.push(self->return_type.substr(1));
+            } else {
+                typeStack.push(self->return_type);
+            }
         }
         if (!found) {
             transpilerError("Method '" + sclFunctionNameToFriendlyString(self) + "' not found on type '" + self->member_type + "'", i);
@@ -651,20 +666,28 @@ namespace sclc {
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
                 append("*(%s*) localstack = ", sclTypeToCType(result, self->return_type).c_str());
-                typeStack.push(self->return_type);
             } else {
                 append("");
             }
         }
         append2("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("(localstack++)->v = _scl_alloc(sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
-            append("memcpy((localstack - 1)->v, &tmp, sizeof(%s));\n", sclTypeToCType(result, self->return_type).c_str());
+            append("size_t size = tmp.$statics->size;\n");
+            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, size);\n");
             scopeDepth--;
             append("}\n");
         } else {
             if (self->return_type != "none" && self->return_type != "nothing") {
                 append("localstack++;\n");
+            }
+        }
+        if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+            if (self->return_type.front() == '*') {
+                typeStack.push(self->return_type.substr(1));
+            } else {
+                typeStack.push(self->return_type);
             }
         }
     }

@@ -727,9 +727,14 @@ namespace sclc {
             safeInc();
             auto templates = currentStruct.templates;
             if (hasVar(body[i].value)) {
-                const Struct& s = getStructByName(result, getVar(body[i].value).type);
+                std::string type = getVar(body[i].value).type;
+                const Struct& s = getStructByName(result, type);
                 if (s != Struct::Null && !s.isStatic()) {
-                    append("*(scl_str*) (localstack) = _scl_create_string(Var_%s->$statics->type_name);\n", body[i].value.c_str());
+                    if (type.front() == '*') {
+                        append("*(scl_str*) (localstack) = _scl_create_string(Var_%s.$statics->type_name);\n", body[i].value.c_str());
+                    } else {
+                        append("*(scl_str*) (localstack) = _scl_create_string(Var_%s->$statics->type_name);\n", body[i].value.c_str());
+                    }
                     append("localstack++;\n");
                 } else {
                     append("*(scl_str*) (localstack) = _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\"));\n", getVar(body[i].value).name.c_str(), getVar(body[i].value).type.c_str());
@@ -2056,7 +2061,11 @@ namespace sclc {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
                 warns.push_back(err);
             }
-            append("%s Var_%s = *(%s*) _scl_pop();\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+            if (type.front() == '*') {
+                append("%s Var_%s = **(%s**) _scl_pop();\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+            } else {
+                append("%s Var_%s = *(%s*) _scl_pop();\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+            }
             typePop;
         } else {
             if (body[i].type != tok_identifier && body[i].type != tok_addr_of) {
@@ -3146,7 +3155,7 @@ namespace sclc {
                 append("return;\n");
             }
         } else {
-            append("return (%s) ({\n", sclTypeToCType(result, type).c_str());
+            append("return (%s) ({\n", sclTypeToCType(result, function->return_type).c_str());
             scopeDepth++;
 
             std::string returningType = typeStackTop;
@@ -3154,7 +3163,11 @@ namespace sclc {
                 returningType = function->namedReturnValue.type;
                 append("%s retVal = Var_%s;\n", sclTypeToCType(result, returningType).c_str(), function->namedReturnValue.name.c_str());
             } else {
-                append("%s retVal = *(%s*) --localstack;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                if (returningType.front() == '*') {
+                    append("%s retVal = **(%s**) --localstack;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                } else {
+                    append("%s retVal = *(%s*) --localstack;\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                }
             }
             if (!typeCanBeNil(function->return_type)) {
                 if (typeCanBeNil(returningType)) {
@@ -3912,8 +3925,6 @@ namespace sclc {
 
     handler(Token) {
         noUnused;
-
-        // append("printf(\"__scl_this_trace.func_name: %%s (%%p)\\n\", __scl_this_trace.func_name, __scl_this_trace.func_name);\n");
 
         handleRef(handleRefs[body[i].type]);
     }
