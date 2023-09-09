@@ -380,7 +380,7 @@ typedef struct memory_layout memory_layout_t;
 
 #define				SCL_BACKTRACE(_func_name) \
 						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }; \
-						__asm__ __volatile__("" : : "r" (&__scl_backtrace_cur) : "memory")
+						__asm__ __volatile__("" : : "r" (__scl_backtrace_cur.func_name) : "memory")
 
 void				_scl_trace_remove(const struct _scl_backtrace*);
 
