@@ -61,7 +61,7 @@
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
      777 Scale/Internal/scale_runtime.c
-     616 Scale/Internal/scale_runtime.h
+     617 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -115,4 +115,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   22722 total
+   22723 total
