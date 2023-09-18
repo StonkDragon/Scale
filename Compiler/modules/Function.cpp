@@ -38,6 +38,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     else if (name == "=>[]") name = "operator$set";
     else if (name == "[]") name = "operator$get";
     else if (name == "?") name = "operator$wildcard";
+    else if (name == "?:") name = "operator$elvis";
 
     this->name_token = name_token;
     this->name = name;

@@ -40,6 +40,8 @@ namespace sclc {
     std::string typeToRTSigIdent(std::string type);
     std::string argsToRTSignatureIdent(Function* f);
 
+    bool isSelfType(std::string type);
+
     Function* parseFunction(std::string name, Token& name_token, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
@@ -86,6 +88,7 @@ namespace sclc {
         else if (strcontains(name, "=>")) name = replaceAll(name, "=>", "operator$store");
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
+        else if (name == "?:") name = "operator$elvis";
 
         Function* func = new Function(name, name_token);
         i += 2;
@@ -258,6 +261,16 @@ namespace sclc {
                 i++;
                 return func;
             }
+            if (isSelfType(func->return_type) && func->args.size() == 0) {
+                FPResult result;
+                result.message = "A function with 'self' return type must have at least one argument!";
+                result.value = tokens[i].value;
+                result.location = tokens[i].location;
+                result.type = tokens[i].type;
+                result.success = false;
+                errors.push_back(result);
+                return func;
+            }
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -331,6 +344,7 @@ namespace sclc {
         else if (name == "=>[]") name = "operator$set";
         else if (name == "[]") name = "operator$get";
         else if (name == "?") name = "operator$wildcard";
+        else if (name == "?:") name = "operator$elvis";
 
         Method* method = new Method(memberName, name, name_token);
         method->force_add = true;
@@ -470,7 +484,6 @@ namespace sclc {
                 continue;
             }
             i++;
-            method->addArgument(Variable("self", memberName));
 
             std::string namedReturn = "";
             if (tokens[i].type == tok_identifier) {
@@ -505,6 +518,17 @@ namespace sclc {
                 i++;
                 return method;
             }
+            if (isSelfType(method->return_type) && method->args.size() == 0) {
+                FPResult result;
+                result.message = "A method with 'self' return type must have at least one argument!";
+                result.value = tokens[i].value;
+                result.location = tokens[i].location;
+                result.type = tokens[i].type;
+                result.success = false;
+                errors.push_back(result);
+                return method;
+            }
+            method->addArgument(Variable("self", memberName));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";

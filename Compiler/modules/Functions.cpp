@@ -226,6 +226,8 @@ namespace sclc {
                (name == "operator$bool_or") ||
                (name == "operator$get") ||
                (name == "operator$set") ||
+               (name == "operator$elvis") ||
+               (name == "operator$assert_not_nil") ||
                (name == "operator$not");
     }
 
@@ -376,9 +378,30 @@ namespace sclc {
             return;
         }
         
+        std::string type = typeStackTop;
         if (doActualPop) {
-            for (size_t m = 0; m < self->args.size(); m++) {
-                typePop;
+            if (isSelfType(self->return_type)) {
+                for (size_t m = 0; m < self->args.size(); m++) {
+                    if (!typesCompatible(result, typeStackTop, type, true)) {
+                        if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
+                            goto cont;
+                        }
+                        {
+                            transpilerError("Method returning 'self' requires all arguments to be of the same type", i);
+                            errors.push_back(err);
+                        }
+                        transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
+                        err.isNote = true;
+                        errors.push_back(err);
+                        return;
+                    }
+                cont:
+                    typePop;
+                }
+            } else {
+                for (size_t m = 0; m < self->args.size(); m++) {
+                    typePop;
+                }
             }
         }
         bool found = false;
@@ -447,7 +470,19 @@ namespace sclc {
             if (self->return_type.front() == '*') {
                 typeStack.push(self->return_type.substr(1));
             } else {
-                typeStack.push(self->return_type);
+                if (isSelfType(self->return_type)) {
+                    std::string retType = "";
+                    if (self->return_type.front() == '*') {
+                        retType += "*";
+                    }
+                    retType += removeTypeModifiers(type);
+                    if (typeCanBeNil(self->return_type)) {
+                        retType += "?";
+                    }
+                    typeStack.push(retType);
+                } else {
+                    typeStack.push(self->return_type);
+                }
             }
         }
         if (!found) {
@@ -586,8 +621,29 @@ namespace sclc {
                 argType = typeStackTop;
             }
 
-            for (size_t m = 0; m < self->args.size(); m++) {
-                typePop;
+            std::string type = typeStackTop;
+            if (isSelfType(self->return_type)) {
+                for (size_t m = 0; m < self->args.size(); m++) {
+                    if (!typesCompatible(result, typeStackTop, type, true)) {
+                        if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
+                            goto cont;
+                        }
+                        {
+                            transpilerError("Function returning 'self' requires all arguments to be of the same type", i);
+                            errors.push_back(err);
+                        }
+                        transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
+                        err.isNote = true;
+                        errors.push_back(err);
+                        return;
+                    }
+                cont:
+                    typePop;
+                }
+            } else {
+                for (size_t m = 0; m < self->args.size(); m++) {
+                    typePop;
+                }
             }
             append("_scl_popn(%zu);\n", self->args.size());
             std::string args = generateArgumentsForFunction(result, self);
@@ -603,7 +659,19 @@ namespace sclc {
                 }
                 typeStack.push(argType);
             } else {
-                typeStack.push(self->return_type);
+                if (isSelfType(self->return_type)) {
+                    std::string retType = "";
+                    if (self->return_type.front() == '*') {
+                        retType += "*";
+                    }
+                    retType += removeTypeModifiers(type);
+                    if (typeCanBeNil(self->return_type)) {
+                        retType += "?";
+                    }
+                    typeStack.push(retType);
+                } else {
+                    typeStack.push(self->return_type);
+                }
             }
 
             return;
@@ -647,8 +715,29 @@ namespace sclc {
         if (self->args.size() > 0) {
             append("_scl_popn(%zu);\n", self->args.size());
         }
-        for (size_t m = 0; m < self->args.size(); m++) {
-            typePop;
+        std::string type = typeStackTop;
+        if (isSelfType(self->return_type)) {
+            for (size_t m = 0; m < self->args.size(); m++) {
+                if (!typesCompatible(result, typeStackTop, type, true)) {
+                    if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
+                        goto cont2;
+                    }
+                    {
+                        transpilerError("Function returning 'self' requires all arguments to be of the same type", i);
+                        errors.push_back(err);
+                    }
+                    transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
+                    err.isNote = true;
+                    errors.push_back(err);
+                    return;
+                }
+            cont2:
+                typePop;
+            }
+        } else {
+            for (size_t m = 0; m < self->args.size(); m++) {
+                typePop;
+            }
         }
         if (self->name == "throw" || self->name == "builtinUnreachable") {
             if (currentFunction->has_restrict) {
@@ -687,7 +776,19 @@ namespace sclc {
             if (self->return_type.front() == '*') {
                 typeStack.push(self->return_type.substr(1));
             } else {
-                typeStack.push(self->return_type);
+                if (isSelfType(self->return_type)) {
+                    std::string retType = "";
+                    if (self->return_type.front() == '*') {
+                        retType += "*";
+                    }
+                    retType += removeTypeModifiers(type);
+                    if (typeCanBeNil(self->return_type)) {
+                        retType += "?";
+                    }
+                    typeStack.push(retType);
+                } else {
+                    typeStack.push(self->return_type);
+                }
             }
         }
     }
@@ -727,6 +828,7 @@ namespace sclc {
         else if (name == "operator$set") name = "=>[]";
         else if (name == "operator$get") name = "[]";
         else if (name == "operator$wildcard") name = "?";
+        else if (name == "operator$elvis") name = "?:";
         name = replaceAll(name, "\\$\\d+", "");
         name = replaceAll(name, "\\$", "::");
 

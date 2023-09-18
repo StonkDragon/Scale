@@ -27,7 +27,7 @@ final static sealed struct int8
   function toString(x: int8): str
     new<int8>[2] => decl out: [int8]
     unsafe
-      out "%c":view x __c_sprintf! 1 drop
+      out c"%c" x __c_sprintf! 1 drop
     end
     out str::new return
   end
@@ -35,7 +35,7 @@ final static sealed struct int8
   function toHexString(x: int8): str
     new<int8>[5] => decl out: [int8]
     unsafe
-      out "0x%02x":view x __c_sprintf! 1 drop
+      out c"0x%02x" x __c_sprintf! 1 drop
     end
     out str::new return
   end
@@ -48,7 +48,7 @@ final static sealed struct int
   function toString(x: int): str
     new<int8>[25] => decl out: [int8]
     unsafe
-      out "%ld":view x __c_sprintf! 1 drop
+      out c"%ld" x __c_sprintf! 1 drop
     end
     out str::new return
   end
@@ -56,7 +56,7 @@ final static sealed struct int
   function toHexString(x: int): str
     new<int8>[19] => decl out: [int8]
     unsafe
-      out "0x%016lx":view x __c_sprintf! 1 drop
+      out c"0x%016lx" x __c_sprintf! 1 drop
     end
     out str::new return
   end
@@ -233,11 +233,14 @@ expect foreign operator "lsr" function >>(:int, :int): int
 expect foreign operator "rol" function <<<(:int, :int): int
 expect foreign operator "ror" function >>>(:int, :int): int
 
-expect foreign operator "at" function @(:[any]): any
+expect foreign operator "at" function @(:[any]): self
 expect foreign operator "inc" function ++(:int): int
 expect foreign operator "inc" function ++(:float): float
 expect foreign operator "dec" function --(:int): int
 expect foreign operator "dec" function --(:float): float
+
+expect foreign operator "ann" function !!(:any?): self
+expect foreign operator "elvis" function ?:(:any?, :any): self
 
 function isnil(x: any): bool
   x nil == return

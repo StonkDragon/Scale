@@ -600,12 +600,8 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #define _scl_at(a)				(*((a)))
 #define _scl_inc(a)				(++(a))
 #define _scl_dec(a)				(--(a))
-
-
-#if !defined(__CHAR_BIT__)
-#define __CHAR_BIT__ 8
-#endif
-
+#define _scl_ann(a)				({typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a;})
+#define _scl_elvis(a, b)		({typeof((a)) _a = (a); _a ? _a : (b);})
 #define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(scl_int) << 3) - (_b))); })
 #define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(scl_int) << 3) - (_b))); })
 

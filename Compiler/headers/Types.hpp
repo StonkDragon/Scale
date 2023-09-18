@@ -33,5 +33,6 @@ namespace sclc {
     std::string typeToRTSigIdent(std::string type);
     std::string argsToRTSignatureIdent(Function* f);
     bool argVecEquals(std::vector<Variable>& a, std::vector<Variable>& b);
+    std::string selfTypeToRealType(std::string selfType, std::string realType);
+    bool isSelfType(std::string type);
 } // namespace sclc
-
