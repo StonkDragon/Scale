@@ -107,9 +107,8 @@ namespace sclc {
         append2("fn_%s(%s);\n", f->name.c_str(), args.c_str());
 
         if (f->return_type.size() && f->return_type.front() == '*') {
-            append("size_t size = tmp.$statics->size;\n");
-            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
-            append("memcpy((localstack - 1)->v, &tmp, size);\n");
+            append("(localstack++)->v = _scl_alloc_struct(tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         } else {
@@ -456,9 +455,8 @@ namespace sclc {
             found = true;
         }
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("size_t size = tmp.$statics->size;\n");
-            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
-            append("memcpy((localstack - 1)->v, &tmp, size);\n");
+            append("(localstack++)->v = _scl_alloc_struct(tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         } else {
@@ -762,9 +760,8 @@ namespace sclc {
         append2("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
 
         if (self->return_type.size() && self->return_type.front() == '*') {
-            append("size_t size = tmp.$statics->size;\n");
-            append("(localstack++)->v = _scl_alloc_struct(size, tmp.$statics);\n");
-            append("memcpy((localstack - 1)->v, &tmp, size);\n");
+            append("(localstack++)->v = _scl_alloc_struct(tmp.$statics);\n");
+            append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         } else {
