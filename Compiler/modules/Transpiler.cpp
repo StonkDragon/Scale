@@ -636,46 +636,10 @@ namespace sclc {
     handler(Pragma) {
         noUnused;
         safeInc();
-        if (body[i].value == "print") {
-            safeInc();
-            std::cout << body[i].location.file
-                      << ":"
-                      << body[i].location.line
-                      << ":"
-                      << body[i].location.column
-                      << ": "
-                      << body[i].value
-                      << std::endl;
-        } else if (body[i].value == "stackalloc") {
+        if (body[i].value == "stackalloc") {
             safeInc();
             transpilerError("Stackalloc arrays have been removed from Scale", i);
             errors.push_back(err);
-        } else if (body[i].value == "unset") {
-            safeInc();
-
-            std::string var = body[i].value;
-            if (!hasVar(var)) {
-                transpilerError("Trying to unset unknown variable '" + var + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            Variable v = getVar(var);
-            if (v.isConst) {
-                transpilerError("Trying to unset constant variable '" + var + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            if (v.type.size() < 2 || v.type.front() != '[' || v.type.back() != ']') {
-                transpilerError("Trying to unset non-reference variable '" + var + "'", i);
-                errors.push_back(err);
-                return;
-            }
-
-            if (removeTypeModifiers(v.type) == "float") {
-                append("*Var_%s = 0.0;\n", var.c_str());
-            } else {
-                append("*Var_%s = NULL;\n", var.c_str());
-            }
         } else if (body[i].value == "note" || body[i].value == "warn" || body[i].value == "error") {
             safeInc();
             if (body[i].type != tok_string_literal) {
@@ -705,17 +669,6 @@ namespace sclc {
         if (body[i].value == "drop") {
             append("--localstack;\n");
             typePop;
-        } else if (body[i].value == "!!") {
-            if (typeCanBeNil(typeStackTop)) {
-                std::string type = typeStackTop;
-                typePop;
-                typeStack.push(type.substr(0, type.size() - 1));
-                append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed!\");\n");
-            } else {
-                transpilerError("Unnecessary assert-not-nil operator '!!' on not-nil type '" + typeStackTop + "'", i);
-                warns.push_back(err);
-                append("_scl_assert((*(scl_int*) (localstack - 1)), \"Not nil assertion failed! If you see this, something has gone very wrong!\");\n");
-            }
         } else if (body[i].value == "?") {
             handle(ReturnOnNil);
         } else if (body[i].value == "exit") {
@@ -2059,7 +2012,7 @@ namespace sclc {
             }
             if (!typesCompatible(result, typeStackTop, type, true)) {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
-                warns.push_back(err);
+                errors.push_back(err);
             }
             if (type.front() == '*') {
                 append("%s Var_%s = **(%s**) _scl_pop();\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
@@ -2307,7 +2260,7 @@ namespace sclc {
 
             if (!typesCompatible(result, typeStackTop, currentType, true)) {
                 transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
-                warns.push_back(err);
+                errors.push_back(err);
             }
             if (!typeCanBeNil(currentType)) {
                 append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());

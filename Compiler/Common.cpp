@@ -537,6 +537,7 @@ namespace sclc
         else if (name2 == "=>[]") name = "operator$set";
         else if (name2 == "[]") name = "operator$get";
         else if (name2 == "?") name = "operator$wildcard";
+        else if (name2 == "?:") name = "operator$elvis";
         else name = name2;
 
         for (Function* func : result.functions) {
@@ -630,6 +631,7 @@ namespace sclc
         else if (name2 == "=>[]") name = "operator$set";
         else if (name2 == "[]") name = "operator$get";
         else if (name2 == "?") name = "operator$wildcard";
+        else if (name2 == "?:") name = "operator$elvis";
         else name = name2;
         name = name.substr(0, name.find("$$ol"));
 
@@ -733,6 +735,7 @@ namespace sclc
         else if (name2 == "=>[]") name = "operator$set";
         else if (name2 == "[]") name = "operator$get";
         else if (name2 == "?") name = "operator$wildcard";
+        else if (name2 == "?:") name = "operator$elvis";
         else name = name2;
 
         for (Function* func : result.functions) {

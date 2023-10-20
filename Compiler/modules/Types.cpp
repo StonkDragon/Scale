@@ -52,6 +52,45 @@ namespace sclc {
         return false;
     }
 
+    std::string selfTypeToRealType(std::string selfType, std::string realType) {
+        bool selfTypeIsNilable = typeCanBeNil(selfType);
+        bool selfTypeIsValueType = selfType.front() == '*';
+        selfType = removeTypeModifiers(selfType);
+        if (selfType == "self") {
+            std::string type = "";
+            if (selfTypeIsValueType) {
+                type += "*";
+            }
+            type += realType;
+            if (selfTypeIsNilable) {
+                type += "?";
+            }
+            return type;
+        } else if (selfType.front() == '[' && selfType.back() == ']') {
+            std::string type = "";
+            if (selfTypeIsValueType) {
+                type += "*";
+            }
+            type += "[" + selfTypeToRealType(selfType.substr(1, selfType.size() - 2), realType) + "]";
+            if (selfTypeIsNilable) {
+                type += "?";
+            }
+            return type;
+        } else {
+            return selfType;
+        }
+    }
+
+    bool isSelfType(std::string type) {
+        type = removeTypeModifiers(type);
+        if (type == "self") {
+            return true;
+        } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            return isSelfType(type.substr(1, type.size() - 2));
+        }
+        return false;
+    }
+
     bool isPrimitiveIntegerType(std::string s) {
         s = removeTypeModifiers(s);
         return s == "int" ||

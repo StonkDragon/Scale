@@ -257,7 +257,7 @@ namespace sclc
                     value += c;
                 }
             } else if (c == '?') {
-                if (source[current + 1] == '.') {
+                if (source[current + 1] == '.' || source[current + 1] == ':') {
                     c = source[++current];
                     column++;
                     value += c;

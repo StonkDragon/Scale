@@ -333,7 +333,7 @@ typedef union _scl_frame {
 // Create a new instance of a struct
 #define ALLOC(_type)	({ \
 	extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); \
-	(scl_ ## _type) _scl_alloc_struct(sizeof(struct Struct_ ## _type), &_scl_ti_ ## _type); \
+	(scl_ ## _type) _scl_alloc_struct(&_scl_ti_ ## _type); \
 })
 
 // Try to cast the given instance to the given type
@@ -355,8 +355,8 @@ struct _scl_backtrace {
 struct memory_layout {
 	scl_int32 marker;
 	scl_int allocation_size;
-	scl_int8 is_instance:4;
-	scl_int8 is_array:4;
+	scl_uint8 is_instance:4;
+	scl_uint8 is_array:4;
 };
 
 typedef struct memory_layout memory_layout_t;
@@ -464,7 +464,7 @@ void				_scl_setup(void);
 #define				_scl_create_string(_data) ({ \
 							const scl_int8* _data_ = (scl_int8*) (_data); \
 							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
-							scl_str self = (scl_str) _scl_alloc_struct(sizeof(struct scale_string), &_scl_ti_str); \
+							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
 							self->data = (scl_int8*) (_data_); \
 							self->length = strlen((_data_)); \
 							self->hash = type_id((_data_)); \
@@ -476,7 +476,7 @@ void				_scl_setup(void);
 							scl_int _len_ = (scl_int) (_len); \
 							scl_int _hash_ = (scl_int) (_hash); \
 							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
-							scl_str self = (scl_str) _scl_alloc_struct(sizeof(struct scale_string), &_scl_ti_str); \
+							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
 							self->data = (scl_int8*) (_data_); \
 							self->length = (_len_); \
 							self->hash = (_hash_); \
@@ -492,7 +492,7 @@ void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 const ID_t			type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(scl_int size, const TypeInfo* statics);
+scl_any				_scl_alloc_struct(const TypeInfo* statics);
 scl_int				_scl_is_instance(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
@@ -518,7 +518,7 @@ void				cxx_std_thread_join(scl_any thread);
 void				cxx_std_thread_delete(scl_any thread);
 void				cxx_std_thread_detach(scl_any thread);
 scl_any				cxx_std_thread_new(void);
-scl_any				cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args);
+scl_any				cxx_std_thread_new_with_args(scl_any args);
 void				cxx_std_this_thread_yield(void);
 
 scl_any				cxx_std_recursive_mutex_new(void);
@@ -600,12 +600,8 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #define _scl_at(a)				(*((a)))
 #define _scl_inc(a)				(++(a))
 #define _scl_dec(a)				(--(a))
-
-
-#if !defined(__CHAR_BIT__)
-#define __CHAR_BIT__ 8
-#endif
-
+#define _scl_ann(a)				({typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a;})
+#define _scl_elvis(a, b)		({typeof((a)) _a = (a); _a ? _a : (b);})
 #define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(scl_int) << 3) - (_b))); })
 #define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(scl_int) << 3) - (_b))); })
 

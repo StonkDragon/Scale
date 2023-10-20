@@ -34,14 +34,14 @@ private expect foreign function puts0(:[int8]): none
 function puts(val: str): none    val:view puts0 end
 function puts(val: [int8]): none val puts0 end
 function puts(f: float): none    f:toString puts end
-function puts(value: any): none  value:toString puts end
+function puts(value: any): none  value builtinToString puts end
 
 function eputs(s: [int8]): none
   unsafe
     c!
       (localstack++)->v = stderr;
     end
-    "%s\n":view s __c_fprintf! 1
+    c"%s\n" s __c_fprintf! 1
   end
   drop
 end

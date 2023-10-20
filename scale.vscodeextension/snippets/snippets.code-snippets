@@ -199,14 +199,6 @@
 		],
 		"description": "Import a method from a library or object file"
 	},
-	"Load Var": {
-		"scope": "source.scale",
-		"prefix": "load",
-		"body": [
-			"${1:name}"
-		],
-		"description": "Push a variable onto the stack"
-	},
 	"Store Var": {
 		"scope": "source.scale",
 		"prefix": "store",
@@ -300,16 +292,6 @@
 		],
 		"description": "Repeat Block"
 	},
-	"Container": {
-		"scope": "source.scale",
-		"prefix": "container",
-		"body": [
-			"container ${1:name}",
-			"\tdecl ${2:foo}: ${3:any}",
-			"end"
-		],
-		"description": "Container"
-	},
 	"Struct": {
 		"scope": "source.scale",
 		"prefix": "struct",
@@ -378,22 +360,6 @@
 		],
 		"description": "Array literal"
 	},
-	"Map literal": {
-		"scope": "source.scale",
-		"prefix": "map",
-		"body": [
-			"[\"${1:key}\": ${0:value}]",
-		],
-		"description": "Map literal"
-	},
-	"Map Entry literal": {
-		"scope": "source.scale",
-		"prefix": "mapentry",
-		"body": [
-			"(\"${1:key}\": ${0:value})",
-		],
-		"description": "Map Entry literal"
-	},
 	"Pair literal": {
 		"scope": "source.scale",
 		"prefix": "pair",
@@ -460,9 +426,9 @@
 		"scope": "source.scale",
 		"prefix": "overrides",
 		"body": [
-			"overrides \"${0:runtime signature}\"",
+			"overrides",
 		],
-		"description": "Set overload to override"
+		"description": "Overrides"
 	},
 	"Deprecated": {
 		"scope": "source.scale",
@@ -504,14 +470,6 @@
 		],
 		"description": "then"
 	},
-	"Keyword fi": {
-		"scope": "source.scale",
-		"prefix": "fi",
-		"body": [
-			"fi",
-		],
-		"description": "fi"
-	},
 	"Keyword esac": {
 		"scope": "source.scale",
 		"prefix": "esac",
@@ -519,14 +477,6 @@
 			"esac",
 		],
 		"description": "esac"
-	},
-	"Keyword default": {
-		"scope": "source.scale",
-		"prefix": "default",
-		"body": [
-			"default",
-		],
-		"description": "default"
 	},
 	"Keyword return": {
 		"scope": "source.scale",
@@ -580,7 +530,7 @@
 		"scope": "source.scale",
 		"prefix": "ref",
 		"body": [
-			"ref",
+			"ref ${1:name}",
 		],
 		"description": "ref"
 	},
@@ -612,15 +562,23 @@
 		"scope": "source.scale",
 		"prefix": "typeof",
 		"body": [
-			"typeof",
+			"typeof ${1:variable}",
 		],
-		"description": "typeof"
+		"description": "typeof variable"
+	},
+	"typeof expression": {
+		"scope": "source.scale",
+		"prefix": "typeof",
+		"body": [
+			"typeof (${1:expr})",
+		],
+		"description": "typeof expression"
 	},
 	"Keyword nameof": {
 		"scope": "source.scale",
 		"prefix": "nameof",
 		"body": [
-			"nameof",
+			"nameof ${1:variable}",
 		],
 		"description": "nameof"
 	},
@@ -628,7 +586,7 @@
 		"scope": "source.scale",
 		"prefix": "sizeof",
 		"body": [
-			"sizeof",
+			"sizeof ${1:type}",
 		],
 		"description": "sizeof"
 	},
@@ -636,7 +594,7 @@
 		"scope": "source.scale",
 		"prefix": "typealias",
 		"body": [
-			"typealias",
+			"typealias ${1:type} \"${2:ctype}\"",
 		],
 		"description": "typealias"
 	},
@@ -644,15 +602,23 @@
 		"scope": "source.scale",
 		"prefix": "as",
 		"body": [
-			"as",
+			"as ${1:type}",
 		],
 		"description": "as"
 	},
-	"Keyword new": {
+	"New Array": {
+		"scope": "source.scale",
+		"prefix": "new array",
+		"body": [
+			"new<${1:type}>[${2:count}]",
+		],
+		"description": "new"
+	},
+	"New Instance": {
 		"scope": "source.scale",
 		"prefix": "new",
 		"body": [
-			"new",
+			"${1:type}::new",
 		],
 		"description": "new"
 	},
@@ -660,7 +626,7 @@
 		"scope": "source.scale",
 		"prefix": "is",
 		"body": [
-			"is",
+			"is ${1:type}",
 		],
 		"description": "is"
 	},
@@ -668,7 +634,7 @@
 		"scope": "source.scale",
 		"prefix": "goto",
 		"body": [
-			"goto",
+			"goto ${1:label}",
 		],
 		"description": "goto"
 	},
@@ -676,7 +642,7 @@
 		"scope": "source.scale",
 		"prefix": "label",
 		"body": [
-			"label",
+			"label ${1:name}",
 		],
 		"description": "label"
 	},
@@ -695,22 +661,6 @@
 			"sealed",
 		],
 		"description": "sealed"
-	},
-	"Keyword nowarn": {
-		"scope": "source.scale",
-		"prefix": "nowarn",
-		"body": [
-			"nowarn",
-		],
-		"description": "nowarn"
-	},
-	"Keyword nomangle": {
-		"scope": "source.scale",
-		"prefix": "nomangle",
-		"body": [
-			"nomangle",
-		],
-		"description": "nomangle"
 	},
 	"Keyword static": {
 		"scope": "source.scale",
@@ -743,5 +693,21 @@
 			"readonly",
 		],
 		"description": "readonly"
+	},
+	"Keyword foreign": {
+		"scope": "source.scale",
+		"prefix": "foreign",
+		"body": [
+			"foreign",
+		],
+		"description": "Mark a function as foreign"
+	},
+	"Pragma": {
+		"scope": "source.scale",
+		"prefix": "pragma!",
+		"body": [
+			"pragma! ${1:pragma}",
+		],
+		"description": "pragma"
 	},
 }

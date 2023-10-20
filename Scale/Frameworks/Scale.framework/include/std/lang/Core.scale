@@ -5,6 +5,7 @@ cdecl "s_memset"
 expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "s_memcpy"
 expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+deprecated![since: "23.9.1", forRemoval: true]
 function sizeofStack(): int
   0 return
 end
@@ -21,7 +22,7 @@ private expect foreign unsafe function __c_atof(:[int8]): float
 cdecl "sprintf"
 private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
-typealias varargs "/* varargs */ ..."
+typealias varargs "..."
 
 function system(command: str): int
   unsafe

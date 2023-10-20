@@ -84,14 +84,12 @@ typedef struct Struct_InvalidArgumentException {
 #define MARKER 0x5C105C10
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
+	ptr = GC_base(ptr);
 	if (_scl_expect(ptr == nil, 0)) {
 		return nil;
 	}
-	if (_scl_expect(!GC_is_heap_ptr(ptr), 0)) {
-		return nil;
-	}
-	memory_layout_t* layout = (memory_layout_t*) (((char*) ptr) - sizeof(memory_layout_t));
-	if (_scl_expect(((scl_int) layout) < 0, 0)) {
+	memory_layout_t* layout = (memory_layout_t*) ptr;
+	if (_scl_expect(((scl_int) layout) <= 0, 0)) {
 		return nil;
 	}
 	if (_scl_expect(layout->marker != MARKER, 0)) {
@@ -158,6 +156,10 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 void _scl_free(scl_any ptr) {
 	if (ptr == nil) return;
+	if (_scl_is_instance(ptr)) {
+		Struct* obj = (Struct*) ptr;
+		cxx_std_recursive_mutex_delete(obj->mutex);
+	}
 	ptr -= sizeof(memory_layout_t);
 	if (GC_is_heap_ptr(ptr)) {
 		GC_free(ptr);
@@ -414,8 +416,8 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	return m;
 }
 
-scl_any _scl_alloc_struct(scl_int size, const TypeInfo* statics) {
-	scl_any ptr = _scl_alloc(size);
+scl_any _scl_alloc_struct(const TypeInfo* statics) {
+	scl_any ptr = _scl_alloc(statics->size);
 
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 	if (_scl_expect(layout == nil, 0)) {
@@ -496,8 +498,6 @@ _scl_symbol_hidden
 #endif
 }
 
-extern scl_any _create_cast_error(scl_int8* msg) __attribute__((weak));
-
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
 	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
 		typedef struct Struct_CastError {
@@ -562,7 +562,7 @@ scl_any _scl_migrate_foreign_array(scl_any arr, scl_int num_elems, scl_int elem_
 
 scl_int _scl_is_array(scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) return 0;
-	memory_layout_t* layout = _scl_get_memory_layout(arr - 1);
+	memory_layout_t* layout = _scl_get_memory_layout(arr);
 	if (_scl_expect(layout == nil, 0)) return 0;
 	return layout->is_array;
 }

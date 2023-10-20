@@ -34,10 +34,10 @@ wrap scl_any cxx_std_thread_new(void) {
         _scl_runtime_error(EX_BAD_PTR, "std::thread::new failed: %s\n", e.what());
     }
 }
-wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
+wrap scl_any cxx_std_thread_new_with_args(scl_any args) {
     try {
         return (scl_any) new std::thread(
-            [Thread$run](scl_any self) {
+            [](scl_any self) {
                 struct GC_stack_base stack_bottom;
                 stack_bottom.mem_base = (void*) &stack_bottom;
                 int ret = GC_register_my_thread(&stack_bottom);
@@ -45,7 +45,7 @@ wrap scl_any cxx_std_thread_new_with_args(scl_any Thread$run, scl_any args) {
                     _scl_runtime_error(EX_THREAD_ERROR, "GC_register_my_thread failed: %d\n", ret);
                 }
 
-                ((void(*)(scl_any)) Thread$run)(self);
+                virtual_call(self, "run()V;");
 
                 GC_unregister_my_thread();
             },

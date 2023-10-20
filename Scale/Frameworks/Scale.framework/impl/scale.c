@@ -203,7 +203,7 @@ void Thread$run(scl_Thread self) {
 
 void Thread$start0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:start0(): none");
-	self->nativeThread = cxx_std_thread_new_with_args(&Thread$run, self);
+	self->nativeThread = cxx_std_thread_new_with_args(self);
 }
 
 void Thread$stop0(scl_Thread self) {
