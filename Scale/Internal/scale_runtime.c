@@ -421,7 +421,7 @@ scl_any _scl_alloc_struct(const TypeInfo* statics) {
 
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 	if (_scl_expect(layout == nil, 0)) {
-		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer: %s", strerror(errno));
+		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
 	layout->is_instance = 1;
 

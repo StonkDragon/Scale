@@ -25,7 +25,7 @@
         scopeDepth++;                                                                  \
         append("%s tmp = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());  \
         append("(localstack++)->v = _scl_alloc_struct(tmp.$statics);\n");              \
-        append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");             \
+        append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");            \
         scopeDepth--;                                                                  \
         append("}\n");                                                                 \
     }                                                                                  \
