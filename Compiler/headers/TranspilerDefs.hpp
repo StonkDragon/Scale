@@ -32,8 +32,11 @@
     else                                                                               \
     {                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                              \
-        append("if (sizeof(%s) < 8) { (localstack)->i = 0; }\n", ctype.c_str());       \
-        append("*(%s*) (localstack) = %s;\n", ctype.c_str(), path.c_str());            \
+        if (isPrimitiveIntegerType(type)) {                                            \
+            append("*(scl_uint*) (localstack) = %s;\n", path.c_str());                 \
+        } else {                                                                       \
+            append("*(%s*) (localstack) = %s;\n", ctype.c_str(), path.c_str());        \
+        }                                                                              \
         append("localstack++;\n");                                                     \
     }                                                                                  \
     typeStack.push(type);

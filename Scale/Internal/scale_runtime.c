@@ -539,25 +539,33 @@ scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 	return (scl_int8*) else_;
 }
 
+typedef struct {
+	scl_int size;
+	scl_int elem_size;
+} array_info_t;
+
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 0, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
-	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(scl_int));
+	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(array_info_t));
 	_scl_get_memory_layout(arr)->is_array = 1;
-	((scl_int*) arr)[0] = num_elems;
-	return arr + 1;
+	((array_info_t*) arr)->size = num_elems;
+	((array_info_t*) arr)->elem_size = elem_size;
+	return (((scl_any) arr) + sizeof(array_info_t));
 }
 
 scl_any _scl_migrate_foreign_array(scl_any arr, scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 0, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
-	scl_any* new_arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(scl_int));
+	scl_any* new_arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(array_info_t));
 	_scl_get_memory_layout(new_arr)->is_array = 1;
-	((scl_int*) new_arr)[0] = num_elems;
-	memcpy(new_arr + 1, arr, num_elems * elem_size);
-	return new_arr + 1;
+	((array_info_t*) new_arr)->size = num_elems;
+	((array_info_t*) new_arr)->elem_size = elem_size;
+	new_arr = (((scl_any) new_arr) + sizeof(array_info_t));
+	memcpy(new_arr, arr, num_elems * elem_size);
+	return new_arr;
 }
 
 scl_int _scl_is_array(scl_any* arr) {
@@ -574,16 +582,23 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 	if (dimensions == 1) {
 		return (scl_any*) _scl_new_array_by_size(sizes[0], elem_size);
 	}
-	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(scl_int));
-	((scl_int*) arr)[0] = sizes[0];
-	for (scl_int i = 1; i <= sizes[0]; i++) {
+	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(array_info_t));
+	_scl_get_memory_layout(arr)->is_array = 1;
+	((array_info_t*) arr)->size = sizes[0];
+	((array_info_t*) arr)->elem_size = sizeof(scl_any);
+	arr = (((scl_any) arr) + sizeof(array_info_t));
+	for (scl_int i = 0; i < sizes[0]; i++) {
 		arr[i] = _scl_multi_new_array_by_size(dimensions - 1, &(sizes[1]), elem_size);
 	}
-	return arr + 1;
+	return arr;
 }
 
 scl_int _scl_array_size_unchecked(scl_any* arr) {
-	return *((scl_int*) arr - 1);
+	return ((array_info_t*) (((scl_any) arr) - sizeof(array_info_t)))->size;
+}
+
+scl_int _scl_array_elem_size_unchecked(scl_any* arr) {
+	return ((array_info_t*) (((scl_any) arr) - sizeof(array_info_t)))->elem_size;
 }
 
 scl_int _scl_array_size(scl_any* arr) {
@@ -593,7 +608,17 @@ scl_int _scl_array_size(scl_any* arr) {
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
-	return *((scl_int*) arr - 1);
+	return _scl_array_size_unchecked(arr);
+}
+
+scl_int _scl_array_elem_size(scl_any* arr) {
+	if (_scl_expect(arr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+	}
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+	}
+	return _scl_array_elem_size_unchecked(arr);
 }
 
 void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
@@ -603,7 +628,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
-	scl_int size = *((scl_int*) arr - 1);
+	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
 	}
@@ -619,10 +644,41 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 	if (_scl_expect(new_size < 1, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
-	scl_any* new_arr = (scl_any*) _scl_realloc(arr - 1, new_size * sizeof(scl_any) + sizeof(scl_int));
+	arr = (scl_any) (((scl_any) arr) - sizeof(array_info_t));
+	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * sizeof(scl_any) + sizeof(scl_int));
 	_scl_get_memory_layout(new_arr)->is_array = 1;
-	((scl_int*) new_arr)[0] = new_size;
-	return new_arr + 1;
+	((array_info_t*) new_arr)->size = new_size;
+	return (((scl_any) new_arr) + sizeof(array_info_t));
+}
+
+#define NBYTES_TO_MASK(nbytes) ((1 << (nbytes * 8)) - 1)
+
+static inline void write_int8(scl_any ptr, scl_int8 value) { *(scl_int8*) ptr = value; }
+static inline void write_int16(scl_any ptr, scl_int16 value) { *(scl_int16*) ptr = value; }
+static inline void write_int32(scl_any ptr, scl_int32 value) { *(scl_int32*) ptr = value; }
+static inline void write_int64(scl_any ptr, scl_int64 value) { *(scl_int64*) ptr = value; }
+static inline void write_sized(scl_any ptr, scl_int value, scl_int size) {
+	switch (size) {
+		case 1: write_int8(ptr, value); break;
+		case 2: write_int16(ptr, value); break;
+		case 4: write_int32(ptr, value); break;
+		case 8: write_int64(ptr, value); break;
+		default: _scl_runtime_error(EX_INVALID_ARGUMENT, "Invalid size: " SCL_INT_FMT, size);
+	}
+}
+
+static inline scl_int8 read_int8(scl_any ptr) { return *(scl_int8*) ptr; }
+static inline scl_int16 read_int16(scl_any ptr) { return *(scl_int16*) ptr; }
+static inline scl_int32 read_int32(scl_any ptr) { return *(scl_int32*) ptr; }
+static inline scl_int64 read_int64(scl_any ptr) { return *(scl_int64*) ptr; }
+static inline scl_int read_sized(scl_any ptr, scl_int size) {
+	switch (size) {
+		case 1: return read_int8(ptr);
+		case 2: return read_int16(ptr);
+		case 4: return read_int32(ptr);
+		case 8: return read_int64(ptr);
+		default: _scl_runtime_error(EX_INVALID_ARGUMENT, "Invalid size: " SCL_INT_FMT, size);
+	}
 }
 
 scl_any* _scl_array_sort(scl_any* arr) {
@@ -633,15 +689,19 @@ scl_any* _scl_array_sort(scl_any* arr) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
+	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
+	scl_int8* tmpArr = (scl_int8*) arr;
+	const scl_uint mask = NBYTES_TO_MASK(elem_size);
 	for (scl_int i = 0; i < size; i++) {
-		scl_any tmp = arr[i];
+		scl_int tmp = read_sized(tmpArr + i * elem_size, elem_size);
 		scl_int j = i - 1;
 		while (j >= 0) {
-			if (tmp < arr[j]) {
-				arr[j + 1] = arr[j];
-				arr[j] = tmp;
+			scl_int jTmp = read_sized(tmpArr + j * elem_size, elem_size);
+			if (tmp < jTmp) {
+				write_sized(tmpArr + (j + 1) * elem_size, read_sized(tmpArr + j * elem_size, elem_size), elem_size);
+				write_sized(tmpArr + j * elem_size, tmp, elem_size);
 			} else {
-				arr[j + 1] = tmp;
+				write_sized(tmpArr + (j + 1) * elem_size, tmp, elem_size);
 				break;
 			}
 			j--;
@@ -658,11 +718,13 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
+	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
 	scl_int half = size / 2;
+	scl_int8* tmpArr = (scl_int8*) arr;
 	for (scl_int i = 0; i < half; i++) {
-		scl_any tmp = arr[i];
-		arr[i] = arr[size - i - 1];
-		arr[size - i - 1] = tmp;
+		scl_int tmp = read_sized(tmpArr + i * elem_size, elem_size);
+		write_sized(tmpArr + i * elem_size, read_sized(tmpArr + (size - i - 1) * elem_size, elem_size), elem_size);
+		write_sized(tmpArr + (size - i - 1) * elem_size, tmp, elem_size);
 	}
 	return arr;
 }

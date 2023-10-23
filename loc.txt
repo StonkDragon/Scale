@@ -12,7 +12,7 @@
      216 Compiler/headers/Struct.hpp
      200 Compiler/headers/Token.hpp
       99 Compiler/headers/TokenType.hpp
-     135 Compiler/headers/TranspilerDefs.hpp
+     138 Compiler/headers/TranspilerDefs.hpp
       38 Compiler/headers/Types.hpp
       92 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
@@ -23,9 +23,9 @@
      253 Compiler/modules/Parser.cpp
     3615 Compiler/modules/SyntaxTree.cpp
      658 Compiler/modules/Tokenizer.cpp
-    4155 Compiler/modules/Transpiler.cpp
+    4173 Compiler/modules/Transpiler.cpp
      543 Compiler/modules/Types.cpp
-     372 Scale/Frameworks/Scale.framework/impl/scale.c
+     393 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
       61 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
       91 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
@@ -60,8 +60,8 @@
       92 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
-     778 Scale/Internal/scale_runtime.c
-     612 Scale/Internal/scale_runtime.h
+     840 Scale/Internal/scale_runtime.c
+     614 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -116,4 +116,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   22917 total
+   23023 total

@@ -346,17 +346,38 @@ scl_str _scl_array_to_string(scl_any* arr) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
 	scl_int size = _scl_array_size(arr);
+	scl_int element_size = _scl_array_elem_size(arr);
 	scl_str s = str_of_exact("[");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
 			s = (scl_str) virtual_call(s, "append(s;)s;", str_of_exact(", "));
 		}
-		scl_str tmp;
-		if (_scl_is_instance(arr[i])) {
-			tmp = (scl_str) virtual_call(arr[i], "toString()s;");
-		} else {
+		scl_str tmp = nil;
+		scl_int value;
+		switch (element_size) {
+			case 1:
+				value = ((scl_int8*) arr)[i];
+				break;
+			case 2:
+				value = ((scl_int16*) arr)[i];
+				break;
+			case 4:
+				value = ((scl_int32*) arr)[i];
+				break;
+			case 8: {
+				if (_scl_is_instance(arr[i])) {
+					tmp = (scl_str) virtual_call(arr[i], "toString()s;");
+				} else {
+					value = ((scl_int*) arr)[i];
+				}
+				break;
+			}
+			default:
+				_scl_runtime_error(EX_INVALID_ARGUMENT, "Array element size must be 1, 2, 4 or 8");
+		}
+		if (tmp == nil) {
 			scl_int8* str = (scl_int8*) _scl_alloc(32);
-			snprintf(str, 31, SCL_INT_FMT, ((scl_int*) arr)[i]);
+			snprintf(str, 31, SCL_INT_FMT, value);
 			tmp = str_of_exact(str);
 		}
 		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);

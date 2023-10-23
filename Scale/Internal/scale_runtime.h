@@ -504,9 +504,11 @@ void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
+scl_any				_scl_migrate_foreign_array(scl_any arr, scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
 scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size);
 scl_int				_scl_array_size(scl_any* arr);
+scl_int				_scl_array_elem_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
 scl_any*			_scl_array_sort(scl_any* arr);

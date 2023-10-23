@@ -1229,10 +1229,10 @@ namespace sclc {
             append("{\n");
             scopeDepth++;
             std::string dims = "";
-            for (int i = 0; i < dimensions; i++) {
+            for (int i = dimensions - 1; i >= 0; i--) {
                 append("scl_int _scl_dim%d = *(scl_int*) _scl_pop();\n", i);
-                if (i > 0) dims += ", ";
-                dims += "_scl_dim" + std::to_string(i);
+                if (dimensions - i - 1) dims += ", ";
+                dims += "_scl_dim" + std::to_string(dimensions - i - 1);
                 if (!isPrimitiveIntegerType(typeStackTop)) {
                     transpilerError("Array size must be an integer, but got '" + removeTypeModifiers(typeStackTop) + "'", startingOffsets[i]);
                     errors.push_back(err);
@@ -1246,7 +1246,11 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
         }
-        typeStack.push("[" + typeString + "]");
+        std::string type = typeString;
+        for (int i = 0; i < dimensions; i++) {
+            type = "[" + type + "]";
+        }
+        typeStack.push(type);
     }
 
     handler(Repeat) {
@@ -2127,7 +2131,7 @@ namespace sclc {
                 i = start;
                 append("{\n");
                 scopeDepth++;
-                append("scl_any value = _scl_pop()->v;\n");
+                append("%s value = _scl_pop()->v;\n", sclTypeToCType(result, typeStackTop).c_str());
                 std::string valueType = removeTypeModifiers(typeStackTop);
                 typePop;
 
@@ -2169,8 +2173,8 @@ namespace sclc {
                     indexingType = m->args[0].type;
                 }
 
-                scopeDepth++;
                 append("{\n");
+                scopeDepth++;
                 append("%s index = (%s) *(scl_int*) --localstack;\n", sclTypeToCType(result, indexingType).c_str(), sclTypeToCType(result, indexingType).c_str());
                 std::string indexType = removeTypeModifiers(typeStackTop);
                 if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
@@ -2184,12 +2188,12 @@ namespace sclc {
                 if (multiDimensional) {
                     if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
                         if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
-                        append("array = array[index];\n");
                         if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
                             arrayType = arrayType.substr(1, arrayType.size() - 2);
                         } else {
                             arrayType = "any";
                         }
+                        append("array = array[index];\n");
                     } else {
                         if (hasMethod(result, "[]", arrayType)) {
                             Method* m = getMethodByName(result, "[]", arrayType);
@@ -2225,7 +2229,7 @@ namespace sclc {
                         return;
                     }
                     if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) array, index);\n");
-                    append("((scl_any*) array)[index] = value;\n");
+                    append("((%s*) array)[index] = *(%s*) &value;\n", sclTypeToCType(result, arrayType.substr(1, arrayType.size() - 2)).c_str(), sclTypeToCType(result, valueType).c_str());
                 } else {
                     if (hasMethod(result, "=>[]", arrayType)) {
                         Method* m = getMethodByName(result, "=>[]", arrayType);
@@ -2460,9 +2464,13 @@ namespace sclc {
                         return;
                     }
                     if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) (localstack - 1)->v, %s);\n", body[i - 1].value.c_str());
-                    append("(localstack - 1)->v = (scl_any) ((%s) (localstack - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     typePop;
                     typeStack.push(type.substr(1, type.size() - 2));
+                    if (isPrimitiveIntegerType(typeStackTop)) {
+                        append("*(scl_int*) (localstack - 1) = ((%s) (localstack - 1)->v)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                    } else {
+                        append("*(%s*) (localstack - 1) = ((%s) (localstack - 1)->v)[%s];\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                    }
                     return;
                 }
             }
@@ -2488,10 +2496,14 @@ namespace sclc {
                 return;
             }
             typePop;
+            typeStack.push(type.substr(1, type.size() - 2));
             append("scl_int index = *(scl_int*) --localstack;\n");
             if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
-            append("(localstack++)->v = (scl_any) tmp[index];\n");
-            typeStack.push(type.substr(1, type.size() - 2));
+            if (isPrimitiveIntegerType(typeStackTop)) {
+                append("*(scl_int*) (localstack++) = tmp[index];\n");
+            } else {
+                append("*(%s*) (localstack++) = tmp[index];\n", sclTypeToCType(result, typeStackTop).c_str());
+            }
             scopeDepth--;
             append("}\n");
             return;
@@ -2682,7 +2694,8 @@ namespace sclc {
 
     handler(CharStringLiteral) {
         noUnused;
-        append("(localstack++)->cs = \"%s\";\n", body[i].value.c_str());
+        std::string str = unquote(body[i].value);
+        append("(localstack++)->v = _scl_migrate_foreign_array(\"%s\", %zu, sizeof(scl_int8));\n", body[i].value.c_str(), str.length());
         typeStack.push("[int8]");
     }
 
@@ -3633,20 +3646,25 @@ namespace sclc {
                 typePop;
                 append("array = (scl_any*) _scl_array_resize((scl_any*) array, size);\n");
                 append("(localstack++)->v = array;\n");
+                typePop;
                 typeStack.push(type);
                 scopeDepth--;
                 append("}\n");
             } else if (op == "sort") {
                 append("(localstack - 1)->v = _scl_array_sort((scl_any*) (localstack - 1)->v);\n");
+                typePop;
                 typeStack.push(type);
             } else if (op == "reverse") {
                 append("(localstack - 1)->v = _scl_array_reverse((scl_any*) (localstack - 1)->v);\n");
+                typePop;
                 typeStack.push(type);
             } else if (op == "toString") {
                 append("*(scl_str*) (localstack - 1) = _scl_array_to_string((scl_any*) (localstack - 1)->v);\n");
+                typePop;
                 typeStack.push("str");
             } else if (op == "size") {
                 append("(*(scl_int*) (localstack - 1)) = _scl_array_size((localstack - 1)->v);\n");
+                typePop;
                 typeStack.push("int");
             } else {
                 transpilerError("Unknown method '" + body[i].value + "' on type '" + type + "'", i);
