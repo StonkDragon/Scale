@@ -110,10 +110,11 @@
       13 examples/variables.scale
       17 examples/variadics.scale
       13 examples/while.scale
+      27 examples/zip.scale
       53 install.cpp
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   23023 total
+   23050 total
