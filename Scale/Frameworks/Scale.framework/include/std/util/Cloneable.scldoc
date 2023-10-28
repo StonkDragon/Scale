@@ -1,0 +1,8 @@
+@std.util.Cloneable
+@@{frameworkPath}/include/std/util/Cloneable.scale
+## Util: Cloneable
+### interface Cloneable
+The interface `Cloneable` is implemented by all types that can be cloned.
+
+### function Cloneable:clone(): ?
+Returns a new instance of the type that is a clone of `self`.

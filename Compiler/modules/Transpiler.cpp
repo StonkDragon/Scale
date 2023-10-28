@@ -2615,6 +2615,7 @@ namespace sclc {
     handler(ParenOpen) {
         noUnused;
         int commas = 0;
+        bool isRange = false;
         auto stackSizeHere = typeStack.size();
         safeInc();
         append("{\n");
@@ -2624,22 +2625,62 @@ namespace sclc {
             if (body[i].type == tok_comma) {
                 commas++;
                 safeInc();
+            } else if (body[i].type == tok_to) {
+                isRange = true;
+                safeInc();
             }
             handle(Token);
             safeInc();
         }
 
         if (commas == 0) {
-            // Last-returns expression
-            if (typeStack.size() > stackSizeHere) {
-                std::string returns = typeStackTop;
-                append("_scl_frame_t* return_value = _scl_pop();\n");
-                append("localstack = begin_stack_size;\n");
-                while (typeStack.size() > stackSizeHere) {
-                    typeStack.pop();
+            if (isRange) {
+                // Range expression
+                if (stackSizeHere + 2 != typeStack.size()) {
+                    transpilerError("Range expression must have exactly 2 arguments", i);
+                    errors.push_back(err);
+                    return;
                 }
-                append("(localstack++)->i = return_value->i;\n");
-                typeStack.push(returns);
+                Struct range = getStructByName(result, "Range");
+                if (range == Struct::Null) {
+                    transpilerError("Struct definition for 'Range' not found", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("(localstack++)->v = ({\n");
+                scopeDepth++;
+                append("scl_Range tmp = ALLOC(Range);\n");
+                append("_scl_popn(2);\n");
+                if (!typeEquals(typeStackTop, "int")) {
+                    transpilerError("Range start must be an integer", i);
+                    errors.push_back(err);
+                    return;
+                }
+                typePop;
+                if (!typeEquals(typeStackTop, "int")) {
+                    transpilerError("Range end must be an integer", i);
+                    errors.push_back(err);
+                    return;
+                }
+                typePop;
+                append("mt_Range$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
+                append("tmp;\n");
+                typeStack.push("Range");
+                scopeDepth--;
+                append("});\n");
+            } else {
+
+                // Last-returns expression
+                if (typeStack.size() > stackSizeHere) {
+                    std::string returns = typeStackTop;
+                    append("_scl_frame_t* return_value = _scl_pop();\n");
+                    append("localstack = begin_stack_size;\n");
+                    while (typeStack.size() > stackSizeHere) {
+                        typeStack.pop();
+                    }
+                    append("(localstack++)->i = return_value->i;\n");
+                    typeStack.push(returns);
+                }
             }
         } else if (commas == 1) {
             Struct pair = getStructByName(result, "Pair");

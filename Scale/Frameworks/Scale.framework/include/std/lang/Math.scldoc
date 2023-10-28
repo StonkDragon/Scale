@@ -1,0 +1,156 @@
+
+@std.math
+@@{frameworkPath}/include/std/lang/Math.scale
+## Math
+### final static struct MathConstants
+The static struct `MathConstants` provides constants for mathematical operations.
+Declared Fields:
+- `e: const float` - The mathematical constant e.
+- `pi: const float` - The mathematical constant pi.
+- `nan: const float` - The floating point representation of NaN.
+- `infinity: const float` - The floating point representation of infinity.
+- `negativeInfinity: const float` - The floating point representation of negative infinity.
+
+### function acos(:float): float
+Returns the arc cosine of `x`.
+
+### function asin(:float): float
+Returns the arc sine of `x`.
+
+### function atan(:float): float
+Returns the arc tangent of `x`.
+
+### function atan2(:float, :float): float
+Returns the arc tangent of `y/x` in the range [-pi, pi].
+
+### function cos(:float): float
+Returns the cosine of `x`.
+
+### function sin(:float): float
+Returns the sine of `x`.
+
+### function tan(:float): float
+Returns the tangent of `x`.
+
+### function acosh(:float): float
+Returns the inverse hyperbolic cosine of `x`.
+
+### function asinh(:float): float
+Returns the inverse hyperbolic sine of `x`.
+
+### function atanh(:float): float
+Returns the inverse hyperbolic tangent of `x`.
+
+### function cosh(:float): float
+Returns the hyperbolic cosine of `x`.
+
+### function sinh(:float): float
+Returns the hyperbolic sine of `x`.
+
+### function tanh(:float): float
+Returns the hyperbolic tangent of `x`.
+
+### function exp(:float): float
+Returns the base-e exponential of `x`.
+
+### function exp2(:float): float
+Returns the base-2 exponential of `x`.
+
+### function expm1(:float): float
+Returns the base-e exponential of `x` minus 1.
+
+### function log(:float): float
+Returns the natural logarithm of `x`.
+
+### function log10(:float): float
+Returns the base-10 logarithm of `x`.
+
+### function log2(:float): float
+Returns the base-2 logarithm of `x`.
+
+### function log1p(:float): float
+Returns the natural logarithm of `x` plus 1.
+
+### function logb(:float): float
+Returns the exponent of `x`.
+
+### function fabs(:float): float
+Returns the absolute value of `x`.
+
+### function cbrt(:float): float
+Returns the cube root of `x`.
+
+### function hypot(:float, :float): float
+Returns the square root of the sum of the squares of `x` and `y`.
+
+### function pow(:float, :float): float
+Returns `x` raised to the power of `y`.
+
+### function sqrt(:float): float
+Returns the square root of `x`.
+
+### function erf(:float): float
+Returns the error function of `x`.
+
+### function erfc(:float): float
+Returns the complementary error function of `x`.
+
+### function lgamma(:float): float
+Returns the natural logarithm of the absolute value of the gamma function of `x`.
+
+### function tgamma(:float): float
+Returns the gamma function of `x`.
+
+### function ceil(:float): float
+Returns the smallest integer value greater than or equal to `x`.
+
+### function floor(:float): float
+Returns the largest integer value less than or equal to `x`.
+
+### function nearbyint(:float): float
+Returns the integer value nearest to `x`.
+
+### function rint(:float): float
+Returns the integer value nearest to `x`.
+
+### function round(:float): float
+Rounds `x` to the nearest integer value.
+
+### function trunc(:float): float
+Round `x` to the nearest integer not larger in magnitude.
+
+### function fmod(:float, :float): float
+Returns the floating-point remainder of `x/y`.
+
+### function remainder(:float, :float): float
+Returns the remainder of `x/y`.
+
+### function fdim(:float, :float): float
+Returns the positive difference between `x` and `y`.
+
+### function fmax(:float, :float): float
+Returns the maximum of `x` and `y`.
+
+### function fmin(:float, :float): float
+Returns the minimum of `x` and `y`.
+
+### function fma(:float, :float, :float): float
+Returns `x*y+z`.
+
+### function random(): int
+Returns a random integer.
+
+### function iseven(number: int): int
+Returns true if `number` is even.
+
+### function isodd(number: int): int
+Returns true if `number` is odd.
+
+### function lrandom(limit: int): int
+Returns a random integer in the range 0 to `limit` (exclusive).
+
+### function lerp(a: float, b: float, t: float): float
+Returns the linear interpolation of `a` and `b` at `t`.
+
+### function neg(number: int): int
+Returns the negation of `number`.

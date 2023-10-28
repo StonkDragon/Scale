@@ -1,0 +1,32 @@
+@std.runtime.GarbageCollector
+@@{frameworkPath}/include/std/runtime/GarbageCollector.scale
+## Runtime: GarbageCollector
+### final static struct GarbageCollector
+The static struct `GarbageCollector` provides utility functions for working with the garbage collector.
+
+### static function GarbageCollector::heapSize(): int
+Returns the size of the heap in bytes.
+
+### static function GarbageCollector::freeBytesEstimate(): int
+Returns the number of bytes that are free on the heap.
+
+### static function GarbageCollector::bytesSinceLastCollect(): int
+Returns the number of bytes allocated since the last garbage collection.
+
+### static function GarbageCollector::totalMemory(): int
+Returns the total amount of memory allocated by the garbage collector.
+
+### static function GarbageCollector::collect(): none
+Performs a garbage collection.
+
+### static function GarbageCollector::pause(): none
+Pauses the garbage collector.
+
+### static function GarbageCollector::resume(): none
+Resumes the garbage collector.
+
+### static function GarbageCollector::isPaused(): bool
+Returns true if the garbage collector is paused.
+
+### static function GarbageCollector::implementation(): str
+Returns the name of the garbage collector implementation.

@@ -1,5 +1,5 @@
     1226 Compiler/Common.cpp
-    1321 Compiler/Main.cpp
+    1350 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
      352 Compiler/headers/Common.hpp
       55 Compiler/headers/Container.hpp
@@ -23,7 +23,7 @@
      247 Compiler/modules/Parser.cpp
     3620 Compiler/modules/SyntaxTree.cpp
      658 Compiler/modules/Tokenizer.cpp
-    4231 Compiler/modules/Transpiler.cpp
+    4272 Compiler/modules/Transpiler.cpp
      543 Compiler/modules/Types.cpp
      393 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
@@ -31,7 +31,7 @@
       91 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
      108 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
-      54 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
+      68 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
       63 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      251 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
       97 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
@@ -73,6 +73,7 @@
       17 examples/enum.scale
       12 examples/exception-trace.scale
       22 examples/fib.scale
+      13 examples/fib2.scale
       20 examples/fizzbuzz.scale
       20 examples/floating-point-specials.scale
       13 examples/fmt.scale
@@ -117,4 +118,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   23115 total
+   23212 total

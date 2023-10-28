@@ -1,0 +1,51 @@
+
+@std.fs
+@@{frameworkPath}/include/std/lang/File.scale
+## Filesystem
+### final struct File
+The struct `File` represents a file on the filesystem.
+
+### static function File::new(name: str): File
+Returns a new instance of `File` with the given name `name`.
+
+### function File:name(): str
+Returns the name of this file.
+
+### function File:close(): none
+Closes this file. Any further operations on this file will result in undefined behavior.
+
+### function File:append(s: str): none
+Appends the string `s` to this file.
+
+### function File:puts(s: any): none
+Writes the string representation of `s` to this file.
+
+### function File:writeBinary(buf: any, sz: int): none
+Writes `sz` bytes from the memory block pointed to by `buf` to this file.
+
+### function File:read(sz: int): any
+Reads `sz` bytes from this file and returns a pointer to the memory block containing the data.
+
+### function File:offsetFromBegin(offset: int): none
+Sets the offset of this file to `offset` bytes from the beginning of the file.
+
+### function File:offsetFromEnd(offset: int): none
+Sets the offset of this file to `offset` bytes from the end of the file.
+
+### function File:offset(offset: int): none
+Sets the offset of this file to `offset` bytes from the current offset.
+
+### function File:fileno(): int
+Returns the file descriptor of this file.
+
+### function File:pos(): int
+Returns the current offset of this file.
+
+### function File:delete(): bool
+Deletes this file and returns true if the operation was successful.
+
+### function File:create(): none
+Creates this file.
+
+### static function File::exists(f: str): bool
+Returns true if the file with the name `f` exists.

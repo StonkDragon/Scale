@@ -1,0 +1,71 @@
+@std.util.Range
+@@{frameworkPath}/include/std/util/Range.scale
+## Util: Range
+### final struct Range is Iterable
+The struct `Range` represents a range of integers.
+Declared Fields:
+- `lower: int` - The lower bound of the range.
+- `upper: int` - The upper bound of the range.
+
+### static function Range::new(theStart: int, theEnd: int): Range
+Returns a new instance of `Range` with the lower bound `theStart` and the upper bound `theEnd`.
+
+### function Range:containsRange(other: Range): int
+Returns true if `other` is contained in `self`.
+
+### function Range:overlaps(other: Range): int
+Returns true if `other` overlaps with `self`.
+
+### function Range:contains(pos: int): int
+Returns true if `pos` is contained in `self`.
+
+### function Range:toString(): str
+Returns a string representation of this `Range` instance.
+
+### function Range:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
+### function Range:toReverseRange(): ReverseRange
+Returns a reversed copy of `self`.
+
+### final struct ReverseRange is Iterable
+The struct `ReverseRange` represents a reversed range of integers.
+Declared Fields:
+- `lower: int` - The lower bound of the range.
+- `upper: int` - The upper bound of the range.
+
+### static function ReverseRange::new(theStart: int, theEnd: int): ReverseRange
+Returns a new instance of `ReverseRange` with the lower bound `theStart` and the upper bound `theEnd`.
+
+### function ReverseRange:toString(): str
+Returns a string representation of this `ReverseRange` instance.
+
+### function ReverseRange:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
+### function ReverseRange:toRange(): Range
+Returns a copy of `self`.
+
+### struct RangeIterator is Iterator
+The struct `RangeIterator` is an iterator over the values of a range.
+
+### static function RangeIterator::new(theRange: Range): RangeIterator
+Returns a new instance of `RangeIterator` that iterates over the values of `theRange`.
+
+### function RangeIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function RangeIterator:next(): int
+Returns the next value in the range.
+
+### struct ReverseRangeIterator is Iterator
+The struct `ReverseRangeIterator` is an iterator over the values of a reversed range.
+
+### static function ReverseRangeIterator::new(theRange: ReverseRange): ReverseRangeIterator
+Returns a new instance of `ReverseRangeIterator` that iterates over the values of `theRange`.
+
+### function ReverseRangeIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function ReverseRangeIterator:next(): int
+Returns the next value in the range.

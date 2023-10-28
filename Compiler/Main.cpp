@@ -305,6 +305,35 @@ namespace sclc
         Documentation docs;
 
         std::vector<std::string> lines = split(std::string(data), "\n");
+
+        for (size_t i = 0; i < lines.size(); i++) {
+            std::string line = lines[i];
+            if (strstarts(line, "%include")) {
+                std::string includeFile = trimLeft(line.substr(8));
+                std::string includePath = std::filesystem::path(file).parent_path().string() + "/" + includeFile;
+                FILE* include = fopen(includePath.c_str(), "rb");
+                if (!include) {
+                    std::cerr << Color::RED << "Failed to open include file " << includePath << Color::RESET << std::endl;
+                    exit(1);
+                }
+                fseek(include, 0, SEEK_END);
+                long sz = ftell(include);
+                fseek(include, 0, SEEK_SET);
+
+                char* data = new char[sz];
+
+                fread(data, 1, sz, include);
+                fclose(include);
+
+                std::string includeData = std::string(data);
+                std::vector<std::string> includeLines = split(includeData, "\n");
+                lines.erase(lines.begin() + i);
+                for (size_t i = 0; i < includeLines.size(); i++) {
+                    lines.insert(lines.begin() + i, includeLines[i]);
+                }
+            }
+        }
+
         std::string current = "";
         std::string currentModule = "";
         std::string implementedAt = "";

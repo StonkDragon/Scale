@@ -1,0 +1,22 @@
+@std
+@@{frameworkPath}/include/std/lang/Core.scale
+## Core
+### unsafe function memset(ptr: [any], val: int32, len: int): [any]
+Sets `len` bytes of memory pointed to by `ptr` to `val` and returns `ptr`.
+This function is unsafe because it does not check if `ptr` is nil or invalid.
+
+### unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+Copies `n` bytes from `src` to `dst` and returns `dst`.
+This function is unsafe because it does not check if `dst` or `src` are nil or invalid.
+
+### function sleep(millis: int): none
+Sleeps for `millis` milliseconds.
+
+### function system(command: str): int
+Executes `command` in the system shell and returns the exit code.
+
+### function getenv(environKey: str): str?
+Returns the value of the environment variable `environKey` or nil if it is not set.
+
+### function time(): float
+Returns the current time in seconds since the epoch.

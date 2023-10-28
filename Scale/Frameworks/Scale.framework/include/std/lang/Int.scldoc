@@ -1,0 +1,164 @@
+
+@std.Int
+@@{frameworkPath}/include/std/lang/Int.scale
+## Int
+### operator function +(a: int | float, b: int | float): int | float
+Returns the sum of `a` and `b`.
+
+### operator function -(a: int | float, b: int | float): int | float
+Returns the difference of `a` and `b`.
+
+### operator function *(a: int | float, b: int | float): int | float
+Returns the product of `a` and `b`.
+
+### operator function /(a: int | float, b: int | float): int | float
+Returns the quotient of `a` and `b`.
+
+### operator function **(a: int | float, b: int | float): int | float
+Returns `a` raised to the power of `b`.
+
+### operator function %(a: int, b: int): int
+Returns the remainder of `a` divided by `b`.
+
+### operator function &(a: int, b: int): int
+Returns the bitwise AND of `a` and `b`.
+
+### operator function |(a: int, b: int): int
+Returns the bitwise OR of `a` and `b`.
+
+### operator function ^(a: int, b: int): int
+Returns the bitwise XOR of `a` and `b`.
+
+### operator function ~(a: int): int
+Returns the bitwise NOT of `a`.
+
+### operator function <<(a: int, b: int): int
+Returns `a` shifted left by `b` bits.
+
+### operator function >>(a: int, b: int): int
+Returns `a` shifted right by `b` bits.
+
+### operator function <<<(a: int, b: int): int
+Returns `a` rotated left by `b` bits.
+
+### operator function >>>(a: int, b: int): int
+Returns `a` rotated right by `b` bits.
+
+### operator function ==(a: int | float, b: int | float): bool
+Returns true if `a` and `b` represent the same value.
+
+### operator function !=(a: int | float, b: int | float): bool
+Returns true if `a` and `b` do not represent the same value.
+
+### operator function <(a: int | float, b: int | float): bool
+Returns true if `a` is less than `b`.
+
+### operator function >(a: int | float, b: int | float): bool
+Returns true if `a` is greater than `b`.
+
+### operator function <=(a: int | float, b: int | float): bool
+Returns true if `a` is less than or equal to `b`.
+
+### operator function >=(a: int | float, b: int | float): bool
+Returns true if `a` is greater than or equal to `b`.
+
+### operator function ++(a: int | float): int | float
+Returns the value of `a` incremented by 1.
+
+### operator function --(a: int | float): int | float
+Returns the value of `a` decremented by 1.
+
+### operator function !!(a: any?): any
+Returns `a` if `a` is not nil, otherwise throws an error.
+
+### operator function ?:(a: any?, b: any): any
+Returns `a` if `a` is not nil, otherwise returns `b`.
+
+### final static struct int8
+The static struct `int8` provides utility functions for working with the `int8` type.
+
+### static function int8::toString(x: int8): str
+Returns a string representation of `x`.
+
+### final static struct int
+The static struct `int` provides utility functions for working with the `int` type.
+
+### static function int::toString(x: int): str
+Returns a string representation of `x`.
+
+### static function int::toHexString(x: int): str
+Returns a hexadecimal string representation of `x`.
+
+### static function int::parse(s: str): int
+Parses `s` as an int and returns the result.
+
+### static function int::toInt8(value: any): int8
+Cast `value` to an int8.
+
+### static function int::toInt16(value: any): int16
+Cast `value` to an int16.
+
+### static function int::toInt32(value: any): int32
+Cast `value` to an int32.
+
+### static function int::toInt(value: any): int
+Cast `value` to an int.
+
+### static function int::toUInt8(value: any): uint8
+Cast `value` to a uint8.
+
+### static function int::toUInt16(value: any): uint16
+Cast `value` to a uint16.
+
+### static function int::toUInt32(value: any): uint32
+Cast `value` to a uint32.
+
+### static function int::toUInt(value: any): uint
+Cast `value` to a uint.
+
+### static function int::isValidInt8(val: any): bool
+Returns true if `val` can be safely cast to an int8 without loss of precision.
+
+### static function int::isValidInt16(val: any): bool
+Returns true if `val` can be safely cast to an int16 without loss of precision.
+
+### static function int::isValidInt32(val: any): bool
+Returns true if `val` can be safely cast to an int32 without loss of precision.
+
+### static function int::isValidUInt8(val: any): bool
+Returns true if `val` can be safely cast to a uint8 without loss of precision.
+
+### static function int::isValidUInt16(val: any): bool
+Returns true if `val` can be safely cast to a uint16 without loss of precision.
+
+### static function int::isValidUInt32(val: any): bool
+Returns true if `val` can be safely cast to a uint32 without loss of precision.
+
+### static function int::asReference(i: int): Int
+Returns a new instance of `Int` that represents the value `i`.
+
+### struct Int
+The struct `Int` is the reference type that represents the `int` type.
+Declared Fields:
+- `value: readonly int` - The value of the `Int` instance.
+
+### static function Int::valueOf(x: int): Int
+Returns a new instance of `Int` that represents the value `x`.
+
+### function Int:equals(other: any): bool
+Returns true if `self` and `other` represent the same value.
+
+### function Int:==(other: any): bool
+Returns true if `self` and `other` represent the same value.
+
+### function Int:@(): int
+Returns the int value of this `Int` instance.
+
+### function Int:toString(): str
+Returns a string representation of this `Int` instance.
+
+### function isnil(x: any): bool
+Returns true if `x` is nil.
+
+### function isnotnil(x: any): bool
+Returns true if `x` is not nil.
