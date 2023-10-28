@@ -60,7 +60,7 @@ namespace sclc {
             
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
-                arguments += sclTypeToCType(result, function->member_type) + " Var_self";
+                arguments += sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
                 for (long i = 0; i < (long) args.size() - 1; i++) {
                     std::string type = sclTypeToCType(result, args[i].type);
                     arguments += ", " + type;
@@ -1005,7 +1005,7 @@ namespace sclc {
                 if (function->isMethod) {
                     Variable v("super", getVar("self").type);
                     varScopeTop().push_back(v);
-                    append("scl_%s Var_super = Var_self;\n", removeTypeModifiers(getVar("self").type).c_str());
+                    append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
                 }
                 append("scl_%s Var_self = tmp;\n", s.name.c_str());
                 varScopeTop().push_back(Variable("self", "mut " + s.name));
@@ -1200,6 +1200,52 @@ namespace sclc {
             safeInc();
         }
         int dimensions = 0;
+        if (body[i].type == tok_curly_open) {
+            size_t stack_start = typeStack.size();
+            size_t nelems = 0;
+            size_t start_i = i;
+            append("{\n");
+            scopeDepth++;
+            safeInc();
+            if (body[i].type != tok_curly_close) {
+                while (body[i].type != tok_curly_close) {
+                    handle(Token);
+                    safeInc();
+                    if (body[i].type == tok_comma || body[i].type == tok_curly_close) {
+                        if (body[i].type == tok_comma) {
+                            safeInc();
+                        }
+                        nelems++;
+                    }
+                }
+            } else {
+                transpilerError("Empty array initializers are not allowed", i);
+                errors.push_back(err);
+                return;
+            }
+
+            size_t stack_end = typeStack.size();
+            if (stack_end - stack_start != nelems) {
+                transpilerError("Expected expression evaluating to a value after '{'", start_i);
+                errors.push_back(err);
+                return;
+            }
+            dimensions = 1;
+            append("scl_int len = %zu;\n", nelems);
+            append("%s* arr = _scl_new_array_by_size(len, %s);\n", sclTypeToCType(result, typeString).c_str(), elemSize.c_str());
+            append("for (scl_int index = 0; index < len; index++) {\n");
+            scopeDepth++;
+            append("arr[len - index - 1] = *(%s*) _scl_pop();\n", sclTypeToCType(result, typeString).c_str());
+            scopeDepth--;
+            append("}\n");
+            append("(localstack - 1)->v = arr;\n");
+
+            scopeDepth--;
+            append("}\n");
+
+            typeStack.push("[" + typeString + "]");
+            return;
+        }
         std::vector<int> startingOffsets;
         while (body[i].type == tok_bracket_open) {
             dimensions++;
@@ -2373,7 +2419,8 @@ namespace sclc {
                 append("{\n");
                 scopeDepth++;
                 bool existingArrayUsed = false;
-                if (body[i].type == tok_number && body[i + 1].type == tok_store) {
+                    std::string iterator_var_name = "i";
+                if (body[i].type == tok_number && (body[i + 1].type == tok_store || body[i + 1].type == tok_comma)) {
                     long long array_size = std::stoll(body[i].value);
                     if (array_size < 1) {
                         transpilerError("Array size must be positive", i);
@@ -2381,9 +2428,19 @@ namespace sclc {
                         return;
                     }
                     append("scl_int array_size = %s;\n", body[i].value.c_str());
+                    if (body[i + 1].type == tok_comma) {
+                        safeIncN(2);
+                        iterator_var_name = body[i].value;
+                    }
                     safeIncN(2);
                 } else {
                     while (body[i].type != tok_store) {
+                        if (body[i].type == tok_comma) {
+                            safeInc();
+                            iterator_var_name = body[i].value;
+                            safeInc();
+                            continue;
+                        }
                         handle(Token);
                         safeInc();
                     }
@@ -2421,8 +2478,8 @@ namespace sclc {
                 append("for (scl_int i = 0; i < array_size; i++) {\n");
                 scopeDepth++;
                 varScopePush();
-                append("const scl_int Var_i = i;\n");
-                varScopeTop().push_back(Variable("i", "const int"));
+                append("const scl_int Var_%s = i;\n", iterator_var_name.c_str());
+                varScopeTop().push_back(Variable(iterator_var_name, "const int"));
                 size_t typeStackSize = typeStack.size();
                 if (existingArrayUsed) {
                     append("const %s Var_val = array[i];\n", sclTypeToCType(result, elementType).c_str());
@@ -3395,9 +3452,10 @@ namespace sclc {
             if (typeCanBeNil(typeStackTop)) {
                 append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             }
-            std::string typeStr = removeTypeModifiers(type.value);
-            if (getStructByName(result, typeStr) != Struct::Null) {
-                append("_scl_checked_cast((localstack - 1)->v, %d, \"%s\");\n", id(typeStr.c_str()), typeStr.c_str());
+            std::string destType = removeTypeModifiers(type.value);
+
+            if (getStructByName(result, destType) != Struct::Null) {
+                append("_scl_checked_cast((localstack - 1)->v, %d, \"%s\");\n", id(destType.c_str()), destType.c_str());
             }
             typePop;
             typeStack.push(type.value);
@@ -3984,7 +4042,7 @@ namespace sclc {
 
             std::string arguments;
             if (function->isMethod) {
-                arguments = sclTypeToCType(result, function->member_type) + " Var_self";
+                arguments = sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
             } else if (function->args.size() == 0) {
                 arguments = "void";
             }
@@ -4077,7 +4135,7 @@ namespace sclc {
             if (function->isMethod) {
                 std::string superType = currentStruct.super;
                 if (superType.size() > 0) {
-                    append("%s Var_super = (%s) Var_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str());
+                    append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '*' ? "&" : "");
                     varScopeTop().push_back(Variable("super", "const " + superType));
                 }
             }

@@ -18,12 +18,12 @@
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
      177 Compiler/modules/Function.cpp
-     906 Compiler/modules/Functions.cpp
+     914 Compiler/modules/Functions.cpp
      639 Compiler/modules/InfoDumper.cpp
-     253 Compiler/modules/Parser.cpp
-    3615 Compiler/modules/SyntaxTree.cpp
+     247 Compiler/modules/Parser.cpp
+    3620 Compiler/modules/SyntaxTree.cpp
      658 Compiler/modules/Tokenizer.cpp
-    4173 Compiler/modules/Transpiler.cpp
+    4231 Compiler/modules/Transpiler.cpp
      543 Compiler/modules/Types.cpp
      393 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
@@ -117,4 +117,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   23050 total
+   23115 total

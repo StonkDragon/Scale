@@ -352,8 +352,13 @@ namespace sclc {
             method->addModifier("<constructor>");
         }
         i += 2;
+        bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
+            if (tokens[i].type == tok_identifier && tokens[i].value == "*") {
+                memberByValue = true;
+                i++;
+            }
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
                 if (tokens[i].type == tok_identifier || tokens[i].type == tok_column) {
@@ -528,7 +533,7 @@ namespace sclc {
                 errors.push_back(result);
                 return method;
             }
-            method->addArgument(Variable("self", memberName));
+            method->addArgument(Variable("self", memberByValue ? "*" + memberName : memberName));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -1234,7 +1239,7 @@ namespace sclc {
 
     void TemplateInstances::instantiate(TPResult& result) {
         for (auto&& templateInstance : templates) {
-            const Struct& baseStruct = getStructByName(result, templateInstance.structName);
+            Struct& baseStruct = getStructByName(result, templateInstance.structName);
             bool hadError = false;
             if (!baseStruct.name.size()) {
                 FPResult error;
