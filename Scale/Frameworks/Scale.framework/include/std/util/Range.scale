@@ -118,3 +118,68 @@ sealed struct ReverseRangeIterator is Iterator
     return
   end
 end
+
+struct UnboundRange is Iterable
+  function iterate(): UnboundRangeIterator
+    UnboundRangeIterator::new return
+  end
+
+  function toString(): str
+    "( .. )" return
+  end
+end
+
+struct UnboundRangeIterator is Iterator
+  private decl i: int
+
+  function init(): none
+    int::minValue => i
+  end
+
+  function hasNext(): bool
+    i int::maxValue != return
+  end
+
+  function next(): int
+    i
+    i 1 +> i
+    return
+  end
+end
+
+struct PartialRange is Iterable
+  private decl hasUpperBound: bool
+  private decl bound: int
+
+  function init(): none
+  end
+
+  static function lowerBound(bound: int): PartialRange
+    PartialRange::new => decl range: PartialRange
+    bound => range.bound
+    range return
+  end
+
+  static function upperBound(bound: int): PartialRange
+    PartialRange::new => decl range: PartialRange
+    bound => range.bound
+    true => range.hasUpperBound
+    range return
+  end
+
+  function iterate(): RangeIterator
+    if hasUpperBound then
+      (int::minValue to bound):iterate return
+    else
+      (bound to int::maxValue):iterate return
+    fi
+  end
+
+  function toString(): str
+    if hasUpperBound then
+      ".. " bound + return
+    else
+      bound " .." + return
+    fi
+  end
+end

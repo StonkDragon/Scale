@@ -477,7 +477,7 @@ void				_scl_setup(void);
 							scl_int _hash_ = (scl_int) (_hash); \
 							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
 							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
-							self->data = (scl_int8*) (_data_); \
+							self->data = _scl_migrate_foreign_array(_data_, _len_, sizeof(scl_int8)); \
 							self->length = (_len_); \
 							self->hash = (_hash_); \
 							self; \

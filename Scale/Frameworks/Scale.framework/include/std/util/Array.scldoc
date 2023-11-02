@@ -71,6 +71,9 @@ Returns a new array containing the values of `self` for which `x` returns true.
 ### function Array:clone(): Array
 Returns a new instance of `Array` that is a clone of `self`.
 
+### static function Array::of(args: varargs): Array
+Returns a new instance of `Array` with the values `args`.
+
 ### static function Array::fromPointerCollection(count: int, values: [any]): Array
 Returns a new instance of `Array` with the values `values`.
 

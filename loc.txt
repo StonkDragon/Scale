@@ -23,7 +23,7 @@
      247 Compiler/modules/Parser.cpp
     3620 Compiler/modules/SyntaxTree.cpp
      658 Compiler/modules/Tokenizer.cpp
-    4272 Compiler/modules/Transpiler.cpp
+    4329 Compiler/modules/Transpiler.cpp
      543 Compiler/modules/Types.cpp
      393 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
@@ -44,7 +44,7 @@
       41 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
       19 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
      109 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
-     239 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
+     247 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Equatable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Hashable.scale
@@ -53,7 +53,7 @@
        8 Scale/Frameworks/Scale.framework/include/std/util/Iterable.scale
       96 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
       13 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
-     120 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
+     185 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Stringifyable.scale
       15 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
@@ -118,4 +118,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   23212 total
+   23342 total

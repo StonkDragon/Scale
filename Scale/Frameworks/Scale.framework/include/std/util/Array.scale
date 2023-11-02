@@ -210,6 +210,14 @@ sealed struct Array is Iterable
     self.values any::delete
   end
 
+  static function of(args: varargs): Array
+    args:size Array::new => decl arr: Array
+    foreach arg in args do
+      arg arr:push
+    done
+    arr return
+  end
+
   static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do

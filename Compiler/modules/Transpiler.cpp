@@ -2413,103 +2413,7 @@ namespace sclc {
     handler(BracketOpen) {
         noUnused;
         std::string type = removeTypeModifiers(typeStackTop);
-        if (i + 1 < body.size()) {
-            if (body[i + 1].type == tok_paren_open) {
-                safeIncN(2);
-                append("{\n");
-                scopeDepth++;
-                bool existingArrayUsed = false;
-                    std::string iterator_var_name = "i";
-                if (body[i].type == tok_number && (body[i + 1].type == tok_store || body[i + 1].type == tok_comma)) {
-                    long long array_size = std::stoll(body[i].value);
-                    if (array_size < 1) {
-                        transpilerError("Array size must be positive", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    append("scl_int array_size = %s;\n", body[i].value.c_str());
-                    if (body[i + 1].type == tok_comma) {
-                        safeIncN(2);
-                        iterator_var_name = body[i].value;
-                    }
-                    safeIncN(2);
-                } else {
-                    while (body[i].type != tok_store) {
-                        if (body[i].type == tok_comma) {
-                            safeInc();
-                            iterator_var_name = body[i].value;
-                            safeInc();
-                            continue;
-                        }
-                        handle(Token);
-                        safeInc();
-                    }
-                    std::string top = removeTypeModifiers(typeStackTop);
-                    if (top.size() > 2 && top.front() == '[' && top.back() == ']') {
-                        existingArrayUsed = true;
-                    }
-                    if (!isPrimitiveIntegerType(typeStackTop) && !existingArrayUsed) {
-                        transpilerError("Array size must be an integer", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    if (existingArrayUsed) {
-                        append("scl_int array_size = _scl_array_size((scl_any*) (localstack - 1)->v);\n");
-                    } else {
-                        append("scl_int array_size = *(scl_int*) --localstack;\n");
-                        typePop;
-                    }
-                    safeInc();
-                }
-                std::string arrayType = "[int]";
-                std::string elementType = "int";
-                if (existingArrayUsed) {
-                    arrayType = removeTypeModifiers(typeStackTop);
-                    typePop;
-                    if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                        elementType = arrayType.substr(1, arrayType.size() - 2);
-                    } else {
-                        elementType = "any";
-                    }
-                    append("%s* array = (%s*) _scl_pop()->v;\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
-                } else {
-                    append("scl_int* array = _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
-                }
-                append("for (scl_int i = 0; i < array_size; i++) {\n");
-                scopeDepth++;
-                varScopePush();
-                append("const scl_int Var_%s = i;\n", iterator_var_name.c_str());
-                varScopeTop().push_back(Variable(iterator_var_name, "const int"));
-                size_t typeStackSize = typeStack.size();
-                if (existingArrayUsed) {
-                    append("const %s Var_val = array[i];\n", sclTypeToCType(result, elementType).c_str());
-                    varScopeTop().push_back(Variable("val", "const " + elementType));
-                }
-                while (body[i].type != tok_paren_close) {
-                    handle(Token);
-                    safeInc();
-                }
-                for (size_t i = typeStackSize; i < typeStack.size(); i++) {
-                    typePop;
-                }
-                varScopePop();
-                typePop;
-                append("array[i] = *(scl_int*) --localstack;\n");
-                scopeDepth--;
-                append("}\n");
-                append("(localstack++)->v = array;\n");
-                typeStack.push(arrayType);
-                scopeDepth--;
-                append("}\n");
-                safeInc();
-                if (body[i].type != tok_bracket_close) {
-                    transpilerError("Expected ']', but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                return;
-            }
-        }
+        
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             if ((i + 2) < body.size()) {
                 if (body[i + 1].type == tok_number && body[i + 2].type == tok_bracket_close) {
@@ -2563,9 +2467,7 @@ namespace sclc {
             }
             scopeDepth--;
             append("}\n");
-            return;
-        }
-        if (hasMethod(result, "[]", typeStackTop)) {
+        } else if (hasMethod(result, "[]", typeStackTop)) {
             Method* m = getMethodByName(result, "[]", typeStackTop);
             std::string type = typeStackTop;
             if (m->args.size() != 2) {
@@ -2606,10 +2508,119 @@ namespace sclc {
             methodCall(m, fp, result, warns, errors, body, i);
             scopeDepth--;
             append("}\n");
-            return;
+        } else if (i + 1 < body.size()) {
+            bool isListExpression = false;
+            auto start = i;
+            int bracketDepth = 0;
+            while (body[i].type != tok_bracket_close || bracketDepth > 0) {
+                if (body[i].type == tok_bracket_open) bracketDepth++;
+                if (body[i].type == tok_bracket_close) bracketDepth--;
+                if (body[i].type == tok_do) {
+                    isListExpression = true;
+                    break;
+                }
+                safeInc();
+            }
+            i = start;
+            if (isListExpression) {
+                safeInc();
+                if (body[i].type == tok_paren_open) {
+                    transpilerError("Legacy list expression syntax", i);
+                    warns.push_back(err);
+                }
+                append("{\n");
+                scopeDepth++;
+                bool existingArrayUsed = false;
+                std::string iterator_var_name = "i";
+                std::string value_var_name = "val";
+                if (body[i].type == tok_number && body[i + 1].type == tok_do) {
+                    long long array_size = std::stoll(body[i].value);
+                    if (array_size < 1) {
+                        transpilerError("Array size must be positive", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("scl_int array_size = %s;\n", body[i].value.c_str());
+                    safeIncN(2);
+                } else {
+                    while (body[i].type != tok_do) {
+                        handle(Token);
+                        safeInc();
+                    }
+                    std::string top = removeTypeModifiers(typeStackTop);
+                    if (top.size() > 2 && top.front() == '[' && top.back() == ']') {
+                        existingArrayUsed = true;
+                    }
+                    if (!isPrimitiveIntegerType(typeStackTop) && !existingArrayUsed) {
+                        transpilerError("Array size must be an integer", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    if (existingArrayUsed) {
+                        append("scl_int array_size = _scl_array_size((scl_any*) (localstack - 1)->v);\n");
+                    } else {
+                        append("scl_int array_size = *(scl_int*) --localstack;\n");
+                        typePop;
+                    }
+                    safeInc();
+                }
+                std::string arrayType = "[int]";
+                std::string elementType = "int";
+                if (existingArrayUsed) {
+                    arrayType = removeTypeModifiers(typeStackTop);
+                    typePop;
+                    if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
+                        elementType = arrayType.substr(1, arrayType.size() - 2);
+                    } else {
+                        elementType = "any";
+                    }
+                    append("%s* array = (%s*) _scl_pop()->v;\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
+                } else {
+                    append("scl_int* array = _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
+                }
+                append("for (scl_int i = 0; i < array_size; i++) {\n");
+                scopeDepth++;
+                varScopePush();
+                if (!iterator_var_name.empty()) {
+                    append("const scl_int Var_%s = i;\n", iterator_var_name.c_str());
+                    varScopeTop().push_back(Variable(iterator_var_name, "const int"));
+                }
+                size_t typeStackSize = typeStack.size();
+                if (existingArrayUsed && !value_var_name.empty()) {
+                    append("const %s Var_%s = array[i];\n", sclTypeToCType(result, elementType).c_str(), value_var_name.c_str());
+                    varScopeTop().push_back(Variable(value_var_name, "const " + elementType));
+                }
+                while (body[i].type != tok_bracket_close) {
+                    handle(Token);
+                    safeInc();
+                }
+                if (typeStack.size() - typeStackSize > 1) {
+                    transpilerError("Expected less than 2 values on the type stack, but got " + std::to_string(typeStackSize - typeStack.size()), i);
+                    errors.push_back(err);
+                    return;
+                }
+                std::string type = removeTypeModifiers(typeStackTop);
+                for (size_t i = typeStackSize; i < typeStack.size(); i++) {
+                    typePop;
+                }
+                varScopePop();
+                append("array[i] = *(scl_int*) --localstack;\n");
+                scopeDepth--;
+                append("}\n");
+                append("(localstack++)->v = array;\n");
+                typeStack.push(arrayType);
+                scopeDepth--;
+                append("}\n");
+                if (body[i].type != tok_bracket_close) {
+                    transpilerError("Expected ']', but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+            }
+        } else {
+            transpilerError("'" + type + "' cannot be indexed", i);
+            errors.push_back(err);
         }
-        transpilerError("'" + type + "' cannot be indexed", i);
-        errors.push_back(err);
     }
 
     handler(ParenOpen) {
@@ -2624,50 +2635,96 @@ namespace sclc {
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {
                 commas++;
-                safeInc();
             } else if (body[i].type == tok_to) {
                 isRange = true;
-                safeInc();
+            } else {
+                handle(Token);
             }
-            handle(Token);
             safeInc();
         }
 
         if (commas == 0) {
             if (isRange) {
                 // Range expression
-                if (stackSizeHere + 2 != typeStack.size()) {
-                    transpilerError("Range expression must have exactly 2 arguments", i);
+                size_t nelems = typeStack.size() - stackSizeHere;
+                if (nelems == 2) {
+                    Struct range = getStructByName(result, "Range");
+                    if (range == Struct::Null) {
+                        transpilerError("Struct definition for 'Range' not found", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("(localstack++)->v = ({\n");
+                    scopeDepth++;
+                    append("scl_Range tmp = ALLOC(Range);\n");
+                    append("_scl_popn(2);\n");
+                    if (!typeEquals(typeStackTop, "int")) {
+                        transpilerError("Range start must be an integer", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    typePop;
+                    if (!typeEquals(typeStackTop, "int")) {
+                        transpilerError("Range end must be an integer", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    typePop;
+                    append("mt_Range$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
+                    append("tmp;\n");
+                    typeStack.push("Range");
+                    scopeDepth--;
+                    append("});\n");
+                } else if (nelems == 1) {
+                    Struct range = getStructByName(result, "PartialRange");
+                    if (range == Struct::Null) {
+                        transpilerError("Struct definition for 'PartialRange' not found", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    Function* f = nullptr;
+                    if (body[i - 1].type == tok_to) {
+                        f = getFunctionByName(result, "PartialRange$lowerBound");
+                    } else {
+                        f = getFunctionByName(result, "PartialRange$upperBound");
+                    }
+                    if (f == nullptr) {
+                        transpilerError(std::string("Function definition for '") + (body[i - 1].type == tok_to ? "PartialRange::lowerBound" : "PartialRange::upperBound") + "' not found", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("(localstack - 1)->v = ({\n");
+                    scopeDepth++;
+                    if (!typeEquals(typeStackTop, "int")) {
+                        transpilerError("Range bound must be an integer", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    typePop;
+                    append("fn_PartialRange$%s((localstack - 1)->i);\n", body[i - 1].type == tok_to ? "lowerBound" : "upperBound");
+                    typeStack.push("PartialRange");
+                    scopeDepth--;
+                    append("});\n");
+                } else if (nelems == 0) {
+                    Struct range = getStructByName(result, "UnboundRange");
+                    if (range == Struct::Null) {
+                        transpilerError("Struct definition for 'UnboundRange' not found", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("(localstack++)->v = ({\n");
+                    scopeDepth++;
+                    append("scl_UnboundRange tmp = ALLOC(UnboundRange);\n");
+                    append("_scl_popn(0);\n");
+                    append("mt_SclObject$init(tmp);\n");
+                    append("tmp;\n");
+                    typeStack.push("UnboundRange");
+                    scopeDepth--;
+                    append("});\n");
+                } else {
+                    transpilerError("Range expression must have between 0 and 2 elements", i);
                     errors.push_back(err);
-                    return;
                 }
-                Struct range = getStructByName(result, "Range");
-                if (range == Struct::Null) {
-                    transpilerError("Struct definition for 'Range' not found", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("(localstack++)->v = ({\n");
-                scopeDepth++;
-                append("scl_Range tmp = ALLOC(Range);\n");
-                append("_scl_popn(2);\n");
-                if (!typeEquals(typeStackTop, "int")) {
-                    transpilerError("Range start must be an integer", i);
-                    errors.push_back(err);
-                    return;
-                }
-                typePop;
-                if (!typeEquals(typeStackTop, "int")) {
-                    transpilerError("Range end must be an integer", i);
-                    errors.push_back(err);
-                    return;
-                }
-                typePop;
-                append("mt_Range$init(tmp, _scl_positive_offset(0)->v, _scl_positive_offset(1)->v);\n");
-                append("tmp;\n");
-                typeStack.push("Range");
-                scopeDepth--;
-                append("});\n");
             } else {
 
                 // Last-returns expression

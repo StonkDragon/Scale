@@ -9,5 +9,5 @@ function fib(x: int): int
 end
 
 function main(): none
-    [(30, i => i fib)]:toString puts
+    [30 do i fib]:toString puts
 end

@@ -4,11 +4,11 @@ struct UUID
     decl bytes: [uint8]
 
     function init(bytes: [uint8]): none
-        [(new<uint8>[16] => bytes[i])] => self.bytes
+        [new<uint8>[16] do bytes[i]] => self.bytes
     end
 
     function init(): none
-        [(new<uint8>[16] => random)] => self.bytes
+        [new<uint8>[16] do random] => self.bytes
     end
 
     function toHexString(x: uint8): str
@@ -35,7 +35,7 @@ struct UUID
 end
 
 function main(): none
-    [(new<uint8>[16] => 0)] UUID::new puts
-    [(new<uint8>[16] => i)] UUID::new puts
-    [(new<uint8>[16] => i 3 << i 3 * 2 / +)] UUID::new puts
+    [new<uint8>[16] do 0] UUID::new puts
+    [new<uint8>[16] do i] UUID::new puts
+    [new<uint8>[16] do i 3 << i 3 * 2 / +] UUID::new puts
 end

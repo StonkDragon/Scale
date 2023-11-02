@@ -9,6 +9,8 @@ Declared Fields:
 
 ### static function Range::new(theStart: int, theEnd: int): Range
 Returns a new instance of `Range` with the lower bound `theStart` and the upper bound `theEnd`.
+Alternatively, you can use the `to` operator to create a new range:
+`(1 to 10)`
 
 ### function Range:containsRange(other: Range): int
 Returns true if `other` is contained in `self`.
@@ -69,3 +71,49 @@ Returns true if there are more values to iterate over.
 
 ### function ReverseRangeIterator:next(): int
 Returns the next value in the range.
+
+### struct UnboundRange is Iterable
+The struct `UnboundRange` represents an unbound range of integers.
+Unbound ranges are used to represent infinite ranges (from `int::minValue` to `int::maxValue`).
+
+### static function UnboundRange::new(): UnboundRange
+Returns a new instance of `UnboundRange`.
+Alternatively, you can use the `to` operator to create a new unbound range:
+`(to)`
+
+### function UnboundRange:toString(): str
+Returns a string representation of this `UnboundRange` instance.
+
+### function UnboundRange:iterate(): Iterator
+Returns an iterator over the values of `self`.
+
+### struct UnboundRangeIterator is Iterator
+The struct `UnboundRangeIterator` is an iterator over the values of an unbound range.
+
+### static function UnboundRangeIterator::new(): UnboundRangeIterator
+Returns a new instance of `UnboundRangeIterator`.
+
+### function UnboundRangeIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function UnboundRangeIterator:next(): int
+Returns the next value in the range.
+
+### struct PartialRange is Iterable
+The struct `PartialRange` represents a one-sided range of integers.
+
+### static function PartialRange::lowerBound(bound: int): PartialRange
+Returns a new instance of `PartialRange` with the lower bound `bound`.
+Alternatively, you can use the `to` operator to create a new partial range:
+`(1 to)`
+
+### static function PartialRange::upperBound(bound: int): PartialRange
+Returns a new instance of `PartialRange` with the upper bound `bound`.
+Alternatively, you can use the `to` operator to create a new partial range:
+`(to 10)`
+
+### function PartialRange:toString(): str
+Returns a string representation of this `PartialRange` instance.
+
+### function PartialRange:iterate(): Iterator
+Returns an iterator over the values of `self`.
