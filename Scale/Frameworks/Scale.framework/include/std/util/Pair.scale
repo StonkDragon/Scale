@@ -10,4 +10,14 @@ final sealed struct Pair
 	function toString(): str
 		( ( ("(" a:toString +) (", " b:toString +) +) ")" +) return
 	end
+
+	function [](i: int): any
+		if i 0 == then
+			a return
+		elif i 1 == then
+			b return
+		else
+			"Pair index out of bounds: " i + InvalidArgumentException::new throw
+		fi
+	end
 end
