@@ -178,7 +178,8 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", tmp);
 		free(tmp);
 
-		assert(0 && cmsg);
+		fprintf(stderr, "%s\n", cmsg);
+		abort();
 	}
 }
 
@@ -555,23 +556,23 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	return (((scl_any) arr) + sizeof(array_info_t));
 }
 
-scl_any _scl_migrate_foreign_array(scl_any arr, scl_int num_elems, scl_int elem_size) {
+scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 0, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
-	scl_any* new_arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(array_info_t));
-	_scl_get_memory_layout(new_arr)->is_array = 1;
-	((array_info_t*) new_arr)->size = num_elems;
-	((array_info_t*) new_arr)->elem_size = elem_size;
-	new_arr = (((scl_any) new_arr) + sizeof(array_info_t));
+	scl_any* new_arr = _scl_new_array_by_size(num_elems, elem_size);
 	memcpy(new_arr, arr, num_elems * elem_size);
 	return new_arr;
 }
 
 scl_int _scl_is_array(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) return 0;
+	if (_scl_expect(arr == nil, 0)) {
+		return 0;
+	}
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	if (_scl_expect(layout == nil, 0)) return 0;
+	if (_scl_expect(layout == nil, 0)) {
+		return 0;
+	}
 	return layout->is_array;
 }
 
@@ -606,7 +607,7 @@ scl_int _scl_array_size(scl_any* arr) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	return _scl_array_size_unchecked(arr);
 }
@@ -616,7 +617,7 @@ scl_int _scl_array_elem_size(scl_any* arr) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	return _scl_array_elem_size_unchecked(arr);
 }
@@ -626,7 +627,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
@@ -639,7 +640,7 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	if (_scl_expect(new_size < 1, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
@@ -686,7 +687,7 @@ scl_any* _scl_array_sort(scl_any* arr) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
 	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
@@ -715,7 +716,7 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
 	if (_scl_expect(!_scl_is_array(arr), 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
 	scl_int elem_size = _scl_array_elem_size_unchecked(arr);

@@ -465,8 +465,8 @@ void				_scl_setup(void);
 							const scl_int8* _data_ = (scl_int8*) (_data); \
 							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
 							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
-							self->data = (scl_int8*) (_data_); \
 							self->length = strlen((_data_)); \
+							self->data = _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
 							self->hash = type_id((_data_)); \
 							self; \
 						})
@@ -504,7 +504,7 @@ void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
-scl_any				_scl_migrate_foreign_array(scl_any arr, scl_int num_elems, scl_int elem_size);
+scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
 scl_int				_scl_is_array(scl_any* arr);
 scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size);
 scl_int				_scl_array_size(scl_any* arr);
