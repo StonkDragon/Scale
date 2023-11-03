@@ -297,9 +297,7 @@ scl_int GarbageCollector$totalMemory(void) {
 }
 
 scl_int8* s_strndup(const scl_int8* str, scl_int len) {
-	scl_int8* newStr = (scl_int8*) _scl_alloc(len + 1);
-	strncpy(newStr, str, len);
-	return newStr;
+	return _scl_migrate_foreign_array(str, len, sizeof(scl_int8));
 }
 
 scl_int8* s_strdup(const scl_int8* str) {
