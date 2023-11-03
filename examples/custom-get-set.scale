@@ -8,13 +8,13 @@ struct Foo
 
         # defines the getX method.
         # Return type is inferred from the field type.
-        get() =>
+        get()
             field 2 * return
         end
         
         # defines the setX method.
         # Return type and type of argument is inferred from the field type.
-        set(value) =>
+        set(value)
             value 2 + => field
         end
 end
