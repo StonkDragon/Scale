@@ -141,56 +141,24 @@ namespace sclc
             }
         } else if (c == '\'') {
             c = source[++current];
+            value += c;
             column++;
             if (c == '\\') {
                 c = source[++current];
+                value += c;
                 column++;
-                if (c == 'n') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\n');
+                if (c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '\'' || c == '\"' || c == '0') {
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == 't') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\t');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == 'r') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\r');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == '\\') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\\');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == '\'') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\'');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == '\"') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\"');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
-                } else if (c == '0') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", '\0');
-                    current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
+                    return Token(tok_char_literal, value, line, filename, begin);
                 } else {
-                    syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
+                    syntaxError("Unknown escape sequence: '" + value + "'");
                 }
             } else {
                 if (source[current + 1] == '\'') {
-                    char* iStr = (char*) malloc(4);
-                    snprintf(iStr, 23, "%d", c);
                     current += 2;
-                    return Token(tok_char_literal, iStr, line, filename, begin);
+                    return Token(tok_char_literal, value, line, filename, begin);
                 } else {
-                    syntaxError("Invalid character literal: '" + std::to_string(c) + "'");
+                    syntaxError("Invalid character literal: '" + value + "'");
                 }
             }
         } else if (isOperator(c)) {

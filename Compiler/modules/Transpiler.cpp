@@ -1688,10 +1688,102 @@ namespace sclc {
     }
 
     handler(Store) {
+        static bool doCheckTypes = true;
         noUnused;
-        safeInc();        
+        safeInc();
+
+        if (body[i].type == tok_as) {
+            handle(As);
+            safeInc();
+        }
 
         if (body[i].type == tok_paren_open) {
+            Method* m = nullptr;
+            std::string type = typeStackTop;
+            if (type.size() < 2 || type.front() != '[') {
+                m = getMethodByName(result, "[]", typeStackTop);
+                if (!m) {
+                    transpilerError("Type '" + typeStackTop + "' is not indexable", i);
+                    errors.push_back(err);
+                    return;
+                }
+                auto overloads = m->overloads.begin();
+                auto end = m->overloads.end();
+            nextCheck:
+                if (!isPrimitiveIntegerType(m->args[0].type)) {
+                    if (overloads == end) {
+                        transpilerError("Index must be an integer, but got '" + m->args[0].type + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    m = (Method*) *(overloads++);
+                    goto nextCheck;
+                }
+            }
+            std::vector<std::vector<Token>> targets;
+            std::vector<Token> current;
+            current.push_back(Token(tok_store, "=>"));
+            int parenDepth = 0;
+            safeInc();
+            while (body[i].type != tok_paren_close || parenDepth != 0) {
+                if (body[i].type == tok_paren_open) {
+                    parenDepth++;
+                } else if (body[i].type == tok_paren_close) {
+                    parenDepth--;
+                }
+                if (body[i].type == tok_comma && parenDepth == 0) {
+                    targets.push_back(current);
+                    current.clear();
+                    current.push_back(Token(tok_store, "=>"));
+                    safeInc();
+                    continue;
+                }
+                current.push_back(body[i]);
+                safeInc();
+                if (parenDepth == 0 && body[i].type == tok_paren_close) {
+                    targets.push_back(current);
+                    break;
+                }
+            }
+
+            append("{\n");
+            scopeDepth++;
+            typePop;
+            append("%s tmp = *(%s*) --localstack;\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
+            if (m) {
+                std::string return_type = sclTypeToCType(result, m->return_type);
+
+                for (int i = targets.size() - 1; i >= 0; i--) {
+                    append("*(%s*) (localstack++) = mt_%s$%s(tmp, %d);\n", return_type.c_str(), type.c_str(), m->finalName().c_str(), i);
+                    typeStack.push(m->return_type);
+                }
+            } else {
+                std::string return_type = sclTypeToCType(result, type.substr(1, type.size() - 2));
+                append("scl_int size = _scl_array_size(tmp);\n");
+                append("SCL_ASSUME(size >= %zu, \"Array too small for destructuring\");\n", targets.size());
+                for (int i = targets.size() - 1; i >= 0; i--) {
+                    append("*(%s*) (localstack) = tmp[%d];\n", return_type.c_str(), i);
+                    append("localstack++;\n");
+                    typeStack.push(type.substr(1, type.size() - 2));
+                }
+            }
+
+            scopeDepth--;
+            append("}\n");
+
+            size_t iSave = i;
+
+            bool checkTypesSafe = doCheckTypes;
+            doCheckTypes = false;
+            for (auto body : targets) {
+                i = 0;
+                handle(Store);
+            }
+            doCheckTypes = checkTypesSafe;
+
+            i = iSave;
+
+            /**
             append("{\n");
             scopeDepth++;
             append("scl_Array tmp = (scl_Array) *(scl_int*) --localstack;\n");
@@ -1995,6 +2087,7 @@ namespace sclc {
             }
             scopeDepth--;
             append("}\n");
+            */
         } else if (body[i].type == tok_declare) {
             safeInc();
             if (body[i].type != tok_identifier) {
@@ -2060,7 +2153,7 @@ namespace sclc {
             if (!varScopeTop().back().canBeNil) {
                 append("SCL_ASSUME((*(scl_int*) (localstack - 1)), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", varScopeTop().back().name.c_str());
             }
-            if (!typesCompatible(result, typeStackTop, type, true)) {
+            if (doCheckTypes && !typesCompatible(result, typeStackTop, type, true)) {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
                 errors.push_back(err);
             }
@@ -2269,7 +2362,7 @@ namespace sclc {
                 }
                 
                 if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                    if (arrayType != "[any]" && !typeEquals(valueType, arrayType.substr(1, arrayType.size() - 2))) {
+                    if (doCheckTypes && arrayType != "[any]" && !typeEquals(valueType, arrayType.substr(1, arrayType.size() - 2))) {
                         transpilerError("Array of type '" + arrayType + "' cannot contain '" + valueType + "'", start - 1);
                         errors.push_back(err);
                         return;
@@ -2308,7 +2401,7 @@ namespace sclc {
                 return;
             }
 
-            if (!typesCompatible(result, typeStackTop, currentType, true)) {
+            if (doCheckTypes && !typesCompatible(result, typeStackTop, currentType, true)) {
                 transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
                 errors.push_back(err);
             }
@@ -2376,18 +2469,10 @@ namespace sclc {
 
     handler(CurlyOpen) {
         noUnused;
-        std::string struct_ = "Array";
-        if (getStructByName(result, struct_) == Struct::Null) {
-            transpilerError("Struct definition for 'Array' not found", i);
-            errors.push_back(err);
-            return;
-        }
         append("(localstack++)->v = ({\n");
         scopeDepth++;
-        Struct arr = getStructByName(result, "Array");
-        append("scl_Array tmp = ALLOC(Array);\n");
-        append("mt_Array$init(tmp, 1);\n");
         safeInc();
+        int n = 0;
         while (body[i].type != tok_curly_close) {
             if (body[i].type == tok_comma) {
                 safeInc();
@@ -2400,12 +2485,32 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("mt_Array$push(tmp, _scl_pop()->v);\n");
+                append("scl_any tmp%d = *(scl_any*) --localstack;\n", n);
+                n++;
                 typePop;
             }
         }
+        std::string type = "any";
+        if (i + 1 < body.size() && body[i + 1].type == tok_as) {
+            safeIncN(2);
+            FPResult r = parseType(body, &i, getTemplates(result, function));
+            if (!r.success) {
+                errors.push_back(r);
+                return;
+            }
+            type = r.value;
+            if (type.front() == '[') {
+                type = type.substr(1, type.size() - 2);
+            } else {
+                type = "any";
+            }
+        }
+        append("%s* tmp = _scl_new_array_by_size(%d, sizeof(%s));\n", sclTypeToCType(result, type).c_str(), n, sclTypeToCType(result, type).c_str());
+        for (int i = 0; i < n; i++) {
+            append("tmp[%d] = *(%s*) &tmp%d;\n", i, sclTypeToCType(result, type).c_str(), i);
+        }
         append("tmp;\n");
-        typeStack.push("Array");
+        typeStack.push("[" + type + "]");
         scopeDepth--;
         append("});\n");
     }
@@ -2564,6 +2669,38 @@ namespace sclc {
                     }
                     safeInc();
                 }
+                if (body[i].type == tok_as) {
+                    safeInc();
+                    if (body[i].type != tok_paren_open) {
+                        transpilerError("Expected '(' after 'as'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    safeInc();
+                    if (body[i].type != tok_identifier) {
+                        transpilerError("Expected identifier for index variable name", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    iterator_var_name = body[i].value == "_" ? "" : body[i].value;
+                    safeInc();
+                    if (body[i].type == tok_comma) {
+                        safeInc();
+                        if (body[i].type != tok_identifier) {
+                            transpilerError("Expected identifier for value variable name", i);
+                            errors.push_back(err);
+                            return;
+                        }
+                        value_var_name = body[i].value == "_" ? "" : body[i].value;
+                        safeInc();
+                    }
+                    if (body[i].type != tok_paren_close) {
+                        transpilerError("Expected ',' or ')' after index variable name", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    safeInc();
+                }
                 std::string arrayType = "[int]";
                 std::string elementType = "int";
                 if (existingArrayUsed) {
@@ -2594,7 +2731,8 @@ namespace sclc {
                     handle(Token);
                     safeInc();
                 }
-                if (typeStack.size() - typeStackSize > 1) {
+                size_t diff = typeStack.size() - typeStackSize;
+                if (diff > 1) {
                     transpilerError("Expected less than 2 values on the type stack, but got " + std::to_string(typeStackSize - typeStack.size()), i);
                     errors.push_back(err);
                     return;
@@ -2604,7 +2742,9 @@ namespace sclc {
                     typePop;
                 }
                 varScopePop();
-                append("array[i] = *(scl_int*) --localstack;\n");
+                if (diff) {
+                    append("array[i] = *(scl_int*) --localstack;\n");
+                }
                 scopeDepth--;
                 append("}\n");
                 append("(localstack++)->v = array;\n");
@@ -2934,6 +3074,12 @@ namespace sclc {
         typeStack.push("int");
     }
 
+    handler(CharLiteral) {
+        noUnused;
+        append("(localstack++)->i = '%s';\n", body[i].value.c_str());
+        typeStack.push("int8");
+    }
+
     handler(FloatLiteral) {
         noUnused;
 
@@ -3010,20 +3156,31 @@ namespace sclc {
         noUnused;
         append("if (({\n");
         scopeDepth++;
-        varScopePush();
         safeInc();
+        size_t typeStackSize = typeStack.size();
+        varScopePush();
         while (body[i].type != tok_then) {
             handle(Token);
             safeInc();
         }
-        safeInc();
         varScopePop();
+        varScopePush();
+        safeInc();
+        size_t diff = typeStack.size() - typeStackSize;
+        if (diff > 1) {
+            transpilerError("More than one value in if-condition. Maybe you forgot to use '&&' or '||'?", i);
+            warns.push_back(err);
+        }
+        if (diff == 0) {
+            transpilerError("Expected one value in if-condition", i);
+            errors.push_back(err);
+            return;
+        }
         append("*(scl_int*) --localstack;\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
         typePop;
-        varScopePush();
         auto tokenEndsIfBlock = [body](TokenType type) {
             return type == tok_elif ||
                    type == tok_elunless ||
@@ -3076,13 +3233,26 @@ namespace sclc {
         noUnused;
         append("if (!({\n");
         scopeDepth++;
-        varScopePush();
         safeInc();
+        size_t typeStackSize = typeStack.size();
+        varScopePush();
         while (body[i].type != tok_then) {
             handle(Token);
             safeInc();
         }
+        varScopePop();
+        varScopePush();
         safeInc();
+        size_t diff = typeStack.size() - typeStackSize;
+        if (diff > 1) {
+            transpilerError("More than one value in unless-condition. Maybe you forgot to use '&&' or '||'?", i);
+            warns.push_back(err);
+        }
+        if (diff == 0) {
+            transpilerError("Expected one value in unless-condition", i);
+            errors.push_back(err);
+            return;
+        }
         varScopePop();
         append("*(scl_int*) --localstack;\n");
         scopeDepth--;
@@ -3160,13 +3330,26 @@ namespace sclc {
         noUnused;
         varScopePop();
         scopeDepth--;
-        
+
         append("} else if (({\n");
         scopeDepth++;
+        size_t typeStackSize = typeStack.size();
         safeInc();
+        varScopePush();
         while (body[i].type != tok_then) {
             handle(Token);
             safeInc();
+        }
+        varScopePop();
+        size_t diff = typeStack.size() - typeStackSize;
+        if (diff > 1) {
+            transpilerError("More than one value in if-condition. Maybe you forgot to use '&&' or '||'?", i);
+            warns.push_back(err);
+        }
+        if (diff == 0) {
+            transpilerError("Expected one value in if-condition", i);
+            errors.push_back(err);
+            return;
         }
         append("*(scl_int*) --localstack;\n");
         scopeDepth--;
@@ -3185,10 +3368,23 @@ namespace sclc {
         
         append("} else if (!({\n");
         scopeDepth++;
+        size_t typeStackSize = typeStack.size();
         safeInc();
+        varScopePush();
         while (body[i].type != tok_then) {
             handle(Token);
             safeInc();
+        }
+        varScopePop();
+        size_t diff = typeStack.size() - typeStackSize;
+        if (diff > 1) {
+            transpilerError("More than one value in unless-condition. Maybe you forgot to use '&&' or '||'?", i);
+            warns.push_back(err);
+        }
+        if (diff == 0) {
+            transpilerError("Expected one value in unless-condition", i);
+            errors.push_back(err);
+            return;
         }
         append("*(scl_int*) --localstack;\n");
         scopeDepth--;
@@ -3211,13 +3407,26 @@ namespace sclc {
         }
         noUnused;
         append("while (({\n");
+        varScopePush();
         scopeDepth++;
+        size_t typeStackSize = typeStack.size();
         safeInc();
         while (body[i].type != tok_do) {
             handle(Token);
             safeInc();
         }
+        size_t diff = typeStack.size() - typeStackSize;
+        if (diff > 1) {
+            transpilerError("More than one value in while-condition. Maybe you forgot to use '&&' or '||'?", i);
+            warns.push_back(err);
+        }
+        if (diff == 0) {
+            transpilerError("Expected one value in while-condition", i);
+            errors.push_back(err);
+            return;
+        }
         append("*(scl_int*) --localstack;\n");
+        varScopePop();
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
@@ -4012,7 +4221,7 @@ namespace sclc {
         handleRefs[tok_cdecl] = handlerRef(CDecl);
         handleRefs[tok_extern_c] = handlerRef(ExternC);
         handleRefs[tok_number] = handlerRef(IntegerLiteral);
-        handleRefs[tok_char_literal] = handlerRef(IntegerLiteral);
+        handleRefs[tok_char_literal] = handlerRef(CharLiteral);
         handleRefs[tok_number_float] = handlerRef(FloatLiteral);
         handleRefs[tok_nil] = handlerRef(FalsyType);
         handleRefs[tok_false] = handlerRef(FalsyType);
