@@ -1,0 +1,90 @@
+@std.util.Array
+@@{frameworkPath}/include/std/util/Array.scale
+## Util: Array
+### struct Array is Iterable
+The struct `Array` represents an array.
+Declared Fields:
+- `values: readonly [any]` - The values of the array.
+- `count: readonly int` - The number of values in the array.
+- `capacity: readonly int` - The capacity of the array.
+- `initCap: readonly int` - The initial capacity of the array.
+
+### function Array:sort(): none
+Sorts the array.
+
+### function Array:[](index: int): any
+Returns the value at index `index` in `self`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
+
+### function Array:get(index: int): any
+Returns the value at index `index` in `self`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
+
+### function Array:=>[](index: int, value: any): none
+Sets the value at index `index` in `self` to `value`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
+
+### function Array:set(index: int, value: any): none
+Sets the value at index `index` in `self` to `value`.
+Throws an `IndexOutOfBoundsException` if `index` is out of bounds.
+
+### function Array:top(): any
+Returns the last value in `self`.
+Throws an `IndexOutOfBoundsException` if `self` is empty.
+
+### function Array:push(value: any): none
+Appends `value` to `self`.
+
+### function Array:pop(): none
+Removes the last value from `self`.
+
+### function Array:indexOf(val: any): int
+Returns the index of `val` in `self` or -1 if `val` is not in `self`.
+
+### function Array:contains(val: any): bool
+Returns true if `val` is in `self`.
+
+### static function Array::new(size: int): Array
+Returns a new instance of `Array` with the size `size`.
+
+### function Array:iterate(): ArrayIterator
+Returns an iterator over the values of `self`.
+
+### function Array:reverse(): Array
+Reverses the order of the values in `self` and returns the result.
+
+### function Array:toString(): str
+Returns a string representation of `self`.
+
+### function Array:remove(val: any): none
+Removes the first occurrence of `val` from `self`.
+
+### function Array:removeAll(val: any): none
+Removes all occurrences of `val` from `self`.
+
+### function Array:map(x: lambda(any): none): none
+Applies `x` to each value in `self`.
+
+### function Array:filter(x: lambda(any): bool): Array
+Returns a new array containing the values of `self` for which `x` returns true.
+
+### function Array:clone(): Array
+Returns a new instance of `Array` that is a clone of `self`.
+
+### static function Array::of(args: varargs): Array
+Returns a new instance of `Array` with the values `args`.
+
+### static function Array::fromPointerCollection(count: int, values: [any]): Array
+Returns a new instance of `Array` with the values `values`.
+
+### struct ArrayIterator is Iterator
+The struct `ArrayIterator` is an iterator over the values of an array.
+
+### static function ArrayIterator::new(arr: Array): ArrayIterator
+Returns a new instance of `ArrayIterator` that iterates over the values of `arr`.
+
+### function ArrayIterator:hasNext(): bool
+Returns true if there are more values to iterate over.
+
+### function ArrayIterator:next(): any
+Returns the next value in the array.

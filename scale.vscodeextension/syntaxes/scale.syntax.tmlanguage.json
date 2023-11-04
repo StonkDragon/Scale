@@ -137,11 +137,9 @@
 		},
 		"quoted_char": {
 			"name": "constant.character",
-			"begin": "'",
-			"end": "'",
 			"patterns": [{
 				"name": "char",
-				"match": "\\\\?."
+				"match": "'\\\\?.'"
 			}]
 		},
 		"constant_number": {

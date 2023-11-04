@@ -5,7 +5,7 @@ cdecl "s_memset"
 expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
 cdecl "s_memcpy"
 expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
-deprecated![since: "23.9.1", forRemoval: true]
+deprecated![since: "23.9.2", forRemoval: true]
 function sizeofStack(): int
   0 return
 end

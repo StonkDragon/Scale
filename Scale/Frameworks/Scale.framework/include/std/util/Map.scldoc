@@ -1,0 +1,58 @@
+@std.util.Map
+@@{frameworkPath}/include/std/util/Map.scale
+## Util: Map
+### final struct MapEntry<T: any>
+The struct `MapEntry` represents an entry in a map.
+Declared Fields:
+- `key: str` - The key of the entry.
+- `value: T` - The value of the entry.
+
+### static function MapEntry<T: any>::new(key: str, value: T): MapEntry
+Returns a new instance of `MapEntry` with the key `key` and the value `value`.
+
+### function MapEntry:toString(): str
+Returns a string representation of this `MapEntry` instance.
+
+### struct Map<T: any> is Iterable
+The struct `Map` represents a map.
+
+### static function Map<T: any>::new(size: int): Map
+Returns a new instance of `Map` with the size `size`.
+
+### function Map:[](key: str): T
+Returns the value for the key `key` in `self`.
+Throws an `InvalidArgumentException` if `key` is not in `self`.
+
+### function Map:get(key: str): T
+Returns the value for the key `key` in `self`.
+Throws an `InvalidArgumentException` if `key` is not in `self`.
+
+### function Map:=>[](key: str, value: T): none
+Sets the value for the key `key` in `self` to `value`.
+
+### function Map:containsKey(key: str): bool
+Returns true if `key` is in `self`.
+
+### function Map:set(key: str, value: T): none
+Sets the value for the key `key` in `self` to `value`.
+
+### function Map:iterate(): Iterator
+Returns an iterator over the entries of `self`.
+
+### function Map:toString(): str
+Returns a string representation of `self`.
+
+### function Map:map(x: lambda(MapEntry): none): none
+Applies `x` to each entry in `self`.
+
+### struct MapIterator is Iterator
+The struct `MapIterator` is an iterator over the entries of a map.
+
+### static function MapIterator::new(data: Array): MapIterator
+Returns a new instance of `MapIterator` that iterates over the entries of `data`.
+
+### function MapIterator:hasNext(): bool
+Returns true if there are more entries to iterate over.
+
+### function MapIterator:next(): MapEntry
+Returns the next entry in the map.

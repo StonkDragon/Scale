@@ -1,0 +1,13 @@
+function fib(x: int): int
+    if x 0 == then
+        0 return
+    elif x 1 == then
+        1 return
+    else
+        x 1 - fib x 2 - fib + return
+    fi
+end
+
+function main(): none
+    [30 do i fib]:toString puts
+end

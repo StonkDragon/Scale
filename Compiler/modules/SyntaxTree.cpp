@@ -352,8 +352,13 @@ namespace sclc {
             method->addModifier("<constructor>");
         }
         i += 2;
+        bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
+            if (tokens[i].type == tok_identifier && tokens[i].value == "*") {
+                memberByValue = true;
+                i++;
+            }
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
                 if (tokens[i].type == tok_identifier || tokens[i].type == tok_column) {
@@ -528,7 +533,7 @@ namespace sclc {
                 errors.push_back(result);
                 return method;
             }
-            method->addArgument(Variable("self", memberName));
+            method->addArgument(Variable("self", memberByValue ? "*" + memberName : memberName));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -1234,7 +1239,7 @@ namespace sclc {
 
     void TemplateInstances::instantiate(TPResult& result) {
         for (auto&& templateInstance : templates) {
-            const Struct& baseStruct = getStructByName(result, templateInstance.structName);
+            Struct& baseStruct = getStructByName(result, templateInstance.structName);
             bool hadError = false;
             if (!baseStruct.name.size()) {
                 FPResult error;
@@ -1276,8 +1281,56 @@ namespace sclc {
         }
     }
 
+    struct MacroArg {
+        std::string name;
+        std::string type;
+
+        MacroArg(std::string name, std::string type) {
+            this->name = name;
+            this->type = type;
+        }
+        MacroArg(const MacroArg& other) {
+            this->name = other.name;
+            this->type = other.type;
+        }
+        MacroArg(MacroArg&& other) {
+            this->name = static_cast<std::string&&>(other.name);
+            this->type = static_cast<std::string&&>(other.type);
+        }
+        MacroArg() {
+            this->name = "";
+            this->type = "";
+        }
+        MacroArg(std::string name) {
+            this->name = name;
+            this->type = "";
+        }
+
+        bool operator==(const MacroArg& other) const {
+            return this->name == other.name && this->type == other.type;
+        }
+        bool operator!=(const MacroArg& other) const {
+            return !(*this == other);
+        }
+
+        MacroArg& operator=(const MacroArg& other) {
+            this->name = other.name;
+            this->type = other.type;
+            return *this;
+        }
+        MacroArg& operator=(MacroArg&& other) {
+            this->name = static_cast<std::string&&>(other.name);
+            this->type = static_cast<std::string&&>(other.type);
+            return *this;
+        }
+
+        operator std::string() {
+            return this->name;
+        }
+    };
+
     struct Macro {
-        std::vector<std::string> args;
+        std::vector<MacroArg> args;
         std::vector<Token> tokens;
 
         virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
@@ -1331,6 +1384,8 @@ namespace sclc {
                                         expanded.push_back(*((Token*) var.value));
                                     } else if (var.name == "String") {
                                         expanded.push_back(Token(tok_string_literal, (char*) var.value));
+                                    } else if (var.name == "Number") {
+                                        expanded.push_back(Token(tok_number, std::to_string((long long) var.value)));
                                     } else {
                                         errors.push_back(MacroError("Expected Token, got " + var.name));
                                     }
@@ -1345,6 +1400,50 @@ namespace sclc {
                         }
                         otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
                         i += expanded.size();
+                    } else if (token.value == "concat") {
+                        j++;
+                        if (token.type != tok_curly_open) {
+                            errors.push_back(MacroError("Expected '{' after 'expand'"));
+                            return;
+                        }
+                        j++;
+                        size_t depth = 1;
+                        std::string str = "";
+                        while (depth > 0) {
+                            if (token.type == tok_curly_open) {
+                                depth++;
+                            } else if (token.type == tok_curly_close) {
+                                depth--;
+                                if (depth == 0) {
+                                    break;
+                                }
+                            }
+                            if (token.type == tok_dollar) {
+                                if (nextToken.type != tok_identifier) {
+                                    errors.push_back(MacroError("Unknown expansion token"));
+                                } else if (args.find(nextToken.value) != args.end()) {
+                                    str += args[nextToken.value].value;
+                                } else if (vars.find(nextToken.value) != vars.end()) {
+                                    stackframe var = vars[nextToken.value];
+                                    if (var.name == "Token") {
+                                        str += ((Token*) var.value)->value;
+                                    } else if (var.name == "String") {
+                                        str += (char*) var.value;
+                                    } else if (var.name == "Number") {
+                                        str += std::to_string((long long) var.value);
+                                    } else {
+                                        errors.push_back(MacroError("Expected Token, got " + var.name));
+                                    }
+                                } else {
+                                    errors.push_back(MacroError("Expected identifier after '$'"));
+                                }
+                                j++;
+                            } else {
+                                str += token.value;
+                            }
+                            j++;
+                        }
+                        stack.push({"String", (void*) strdup(str.c_str())});
                     } else if (token.value == "peekAndConsume") {
                         Token* next = new Token(otherTokens[i]);
                         otherTokens.erase(otherTokens.begin() + i);
@@ -1414,179 +1513,14 @@ namespace sclc {
                             errors.push_back(MacroError("Unknown Token property '" + token.value + "'"));
                             return;
                         }
+                    } else {
+                        errors.push_back(MacroError("Expected dereferenceable value, got " + t.name));
+                        return;
                     }
                 }
             }
             #undef token
             #undef nextToken
-        }
-    };
-
-    struct CtypeMacro : public Macro {
-        CtypeMacro() {
-            args.push_back("type");
-        }
-        
-        std::unordered_map<std::string, std::string> typealiases = {
-            {"char", "int8"},
-            {"int8_t", "int8"},
-            {"signedchar", "int8"},
-
-            {"short", "int16"},
-            {"int16_t", "int16"},
-            {"signedshort", "int16"},
-            
-            {"int", "int32"},
-            {"int32_t", "int32"},
-            {"signedint", "int32"},
-            
-            {"long", "int64"},
-            {"int64_t", "int64"},
-            {"longlong", "int64"},
-            
-            {"uint8_t", "uint8"},
-            {"u_int8_t", "uint8"},
-            {"unsignedchar", "uint8"},
-            
-            {"uint16_t", "uint16"},
-            {"u_int16_t", "uint16"},
-            {"unsignedshort", "uint16"},
-            
-            {"uint32_t", "uint32"},
-            {"u_int32_t", "uint32"},
-            {"unsignedint", "uint32"},
-            
-            {"uint64_t", "uint64"},
-            {"u_int64_t", "uint64"},
-            {"unsignedlong", "uint64"},
-            {"unsignedlonglong", "uint64"},
-
-            {"char*", "[int8]"},
-            {"unsignedchar*", "[uint8]"},
-            
-            {"float64", "double"},
-            {"bool", "bool"},
-            {"void", "none"},
-            {"void*", "any"},
-            {"size_t", "uint"},
-            {"ssize_t", "int"}
-        };
-
-        std::string getRealType(std::string type) {
-            if (strstarts(type, "enum ")) {
-                return type.substr(5);
-            }
-            if (strstarts(type, "struct ")) {
-                return type.substr(7);
-            }
-            type = replaceAll(type, "const", "");
-            type = replaceAll(type, " ", "");
-            if (typealiases.find(type) != typealiases.end()) {
-                return typealiases[type];
-            }
-            return type;
-        }
-
-        bool hasType(std::string type) {
-            if (strstarts(type, "enum ")) {
-                return true;
-            }
-            if (strstarts(type, "struct ")) {
-                return true;
-            }
-            type = replaceAll(type, "const", "");
-            type = replaceAll(type, " ", "");
-            return typealiases.find(type) != typealiases.end();
-        }
-
-        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
-            (void) errors;
-
-            const Token& type = args["type"];
-            if (hasType(type.value)) {
-                otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, getRealType(type.value), type.location));
-                i++;
-                return;
-            }
-            std::string typeName = "ctype$" + std::to_string(id(type.location.file.c_str())) + "$" + std::to_string(type.location.line) + "$" + std::to_string(type.location.column);
-            typeName += " /* " + type.value + " */";
-            otherTokens.insert(otherTokens.begin() + i, Token(tok_question_mark, "?", type.location));
-            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.location));
-            i += 2;
-            otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
-            otherTokens.push_back(Token(tok_identifier, typeName, type.location));
-            otherTokens.push_back(Token(tok_string_literal, type.value, type.location));
-        }
-    };
-
-    struct ArrayMacro : public Macro {
-        ArrayMacro() {
-            args.push_back("type");
-            args.push_back("size");
-        }
-
-        std::unordered_map<std::string, std::string> types = {
-            {"int8", "char"},
-            {"int16", "short"},
-            {"int32", "int"},
-            {"int64", "long"},
-            {"uint8", "unsigned char"},
-            {"uint16", "unsigned short"},
-            {"uint32", "unsigned int"},
-            {"uint64", "unsigned long"},
-            {"[int8]", "char*"},
-            {"[uint8]", "unsigned char*"},
-            {"float", "double"},
-            {"bool", "long"},
-            {"any", "void*"}
-        };
-
-        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) override {
-            (void) errors;
-
-            const Token& type = args["type"];
-            if (type.type != tok_identifier && type.type != tok_string_literal) {
-                errors.push_back(MacroError("Expected identifier as first argument to 'ctype'"));
-                return;
-            }
-            const Token& size = args["size"];
-            if (size.type != tok_number) {
-                errors.push_back(MacroError("Expected number as second argument to 'ctype'"));
-                return;
-            }
-
-            std::string typeName = "Array$" + size.value + "$" + std::to_string(id(type.location.file.c_str())) + "$" + std::to_string(type.location.line) + "$" + std::to_string(type.location.column);
-
-            otherTokens.insert(otherTokens.begin() + i, Token(tok_identifier, typeName, type.location));
-            i++;
-            if (type.type == tok_identifier) {
-                if (types.find(type.value) != types.end()) {
-                    std::string ctype = types[type.value] + "%[" + size.value + "]";
-                    otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
-                    otherTokens.push_back(Token(tok_identifier, typeName, type.location));
-                    otherTokens.push_back(Token(tok_string_literal, ctype, type.location));
-                    return;
-                }
-            } else {
-                std::string ctype = type.value + "%[" + size.value + "]";
-                otherTokens.push_back(Token(tok_identifier, "typealias", type.location));
-                otherTokens.push_back(Token(tok_identifier, typeName, type.location));
-                otherTokens.push_back(Token(tok_string_literal, ctype, type.location));
-                return;
-            }
-
-            auto join = [](std::unordered_map<std::string, std::string> map, std::string with) -> std::string {
-                std::string result = "";
-                for (auto it = map.begin(); it != map.end(); it++) {
-                    if (it != map.begin()) {
-                        result += with;
-                    }
-                    result += it->first;
-                }
-                return result;
-            };
-
-            errors.push_back(MacroError("Unknown type '" + type.value + "'. Supported types are: " + join(types, ", ")));
         }
     };
     
@@ -1652,15 +1586,16 @@ namespace sclc {
 
         std::unordered_map<std::string, Macro*> macros;
 
-        macros["ctype"] = new CtypeMacro();
-        macros["array"] = new ArrayMacro();
-
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
                 continue;
             }
             size_t start = i;
             i++;
+            if (tokens[i].type != tok_identifier) {
+                errors.push_back(MacroError("Expected macro name"));
+                continue;
+            }
             std::string name = tokens[i].value;
             i++;
             Macro* macro = new Macro();
@@ -1669,16 +1604,23 @@ namespace sclc {
                 while (tokens[i].type != tok_paren_close) {
                     macro->args.push_back(tokens[i].value);
                     i++;
+                    if (tokens[i].type == tok_column) {
+                        i++;
+                        macro->args.back().type = tokens[i].value;
+                        i++;
+                    }
                     if (tokens[i].type == tok_comma) {
                         i++;
                     }
                 }
             } else {
                 errors.push_back(MacroError("Expected '(' after macro name"));
+                continue;
             }
             i++;
             if (tokens[i].type != tok_curly_open) {
                 errors.push_back(MacroError("Expected '{' after macro name"));
+                continue;
             }
             i++;
             ssize_t depth = 1;
@@ -1699,6 +1641,10 @@ namespace sclc {
             tokens.erase(tokens.begin() + start, tokens.begin() + i);
             i = start;
             i--;
+            if (macros.find(name) != macros.end()) {
+                errors.push_back(MacroError("Macro '" + name + "' already defined"));
+                continue;
+            }
             macros[name] = macro;
         }
 
@@ -3245,8 +3191,15 @@ namespace sclc {
                         expect("'('", tokens[i].type == tok_paren_open);
                         i++;
                         expect("')'", tokens[i].type == tok_paren_close);
-                        i++;
-                        expect("'=>'", tokens[i].type == tok_store);
+                        if (tokens[i].type == tok_store) {
+                            FPResult result;
+                            result.message = "Ignored '=>' in getter declaration.";
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            warns.push_back(result);
+                            i++;
+                        }
                         if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
                             i++;
                         }
@@ -3270,8 +3223,15 @@ namespace sclc {
                         std::string argName = tokens[i].value;
                         i++;
                         expect("')'", tokens[i].type == tok_paren_close);
-                        i++;
-                        expect("'=>'", tokens[i].type == tok_store);
+                        if (tokens[i].type == tok_store) {
+                            FPResult result;
+                            result.message = "Ignored '=>' in setter declaration.";
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            warns.push_back(result);
+                            i++;
+                        }
                         if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
                             i++;
                         }

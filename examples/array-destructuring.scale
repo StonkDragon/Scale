@@ -5,7 +5,7 @@
 
 function main(): none
     # this is a shorthand for creating an array
-    {"Apple", "Banana", "Pineapple"} => decl fruits: Array
+    {"Apple", "Banana", "Pineapple"} as [str] => decl fruits: [str]
     
     "" => decl apple: str
     "" => decl banana: str

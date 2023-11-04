@@ -79,7 +79,7 @@ struct Any
         fi
     end
     function @(): any
-        self.value return
+        self.value @ return
     end
 
     function toString(): str

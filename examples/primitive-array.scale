@@ -9,7 +9,7 @@ function main(): none
     new<int>[8] => decl s: [int]
 
     # This will set all the values of the array to their index times 3
-    [(s => i 3 *)] drop
+    [s do i 3 *] drop
     # It is equivalent to the following C code:
     ```c
     for (int i = 0; i < 8; i++) {

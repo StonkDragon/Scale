@@ -1,0 +1,23 @@
+@std.io
+@@{frameworkPath}/include/std/lang/IO.scale
+## IO
+### unsafe function write(fileDescriptor: int, string: str): none
+Writes the string `string` to the file with the file descriptor `fileDescriptor`.
+
+### function read(fileDescriptor: int, amount: int): str
+Reads `amount` bytes from the file with the file descriptor `fileDescriptor` and returns a string containing the data.
+
+### function getchar(): int8
+Reads a character from stdin and returns it.
+
+### function puts(val: str | [int8] | float | any): none
+Writes the string representation of `val` to stdout.
+
+### function eputs(s: str | [int8] | float | any): none
+Writes the string representation of `s` to stderr.
+
+### function putint(number: int): none
+Writes the string representation of `number` to stdout.
+
+### function putfloat(number: float): none
+Writes the string representation of `number` to stdout.

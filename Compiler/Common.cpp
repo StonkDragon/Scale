@@ -674,11 +674,11 @@ namespace sclc
 
     std::string removeTypeModifiers(std::string t);
 
-    const Struct& getStructByName(TPResult& result, const std::string& name) {
+    Struct& getStructByName(TPResult& result, const std::string& name) {
         const std::string& typeName = removeTypeModifiers(name);
-        for (const Struct& s : result.structs) {
-            if (s.name == typeName) {
-                return s;
+        for (auto it = result.structs.begin(); it != result.structs.end(); it++) {
+            if (it->name == typeName) {
+                return *it;
             }
         }
         return Struct::Null;

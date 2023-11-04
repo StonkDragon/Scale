@@ -24,7 +24,14 @@ namespace sclc {
         std::string args = "";
         size_t maxValue = func->args.size();
         if (func->isMethod) {
-            args = "*(" + sclTypeToCType(result, func->member_type) + "*) _scl_positive_offset(" + std::to_string(func->args.size() - 1) + ")";
+            std::string self_type = func->args[func->args.size() - 1].type;
+            if (self_type.front() == '*') {
+                args += "*(";
+            }
+            args += "*(" + sclTypeToCType(result, func->member_type) + "*) _scl_positive_offset(" + std::to_string(func->args.size() - 1) + ")";
+            if (self_type.front() == '*') {
+                args += ")";
+            }
             maxValue--;
         }
         if (func->isCVarArgs())
@@ -242,7 +249,8 @@ namespace sclc {
         }
 
         if (self->isMethod) {
-            functionPtrCast += sclTypeToCType(result, self->member_type);
+            std::string selfType = self->args[self->args.size() - 1].type;
+            functionPtrCast += sclTypeToCType(result, selfType);
             if (self->args.size() > 1)
                 functionPtrCast += ", ";
         }

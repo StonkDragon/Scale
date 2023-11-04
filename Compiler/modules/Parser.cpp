@@ -230,12 +230,6 @@ namespace sclc
         scopeDepth--;
         append("}\n\n");
 
-        // if (!Main::options::noMain) {
-        //     append("int main(int argc, char** argv) {\n");
-        //     append("  return _scl_run(argc, argv, (mainFunc) &fn_main, %zu);\n", mainFunction->args.size());
-        //     append("}\n");
-        // }
-        
         fclose(fp);
 
         if (Main::options::Werror) {

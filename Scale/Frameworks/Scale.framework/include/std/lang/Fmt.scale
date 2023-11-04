@@ -39,8 +39,22 @@ final static sealed struct FmtIO
         current++ => current
         if c 's' == c 'i' == || then
           arg builtinToString FmtIO::printStrNoNewline
+        elif c '@' == then
+          if arg then
+            arg as SclObject:toString FmtIO::printStrNoNewline
+          else
+            "(nil)" FmtIO::printStrNoNewline
+          fi
         elif c 'f' == then
           arg float::fromBits float::toString FmtIO::printStrNoNewline
+        elif c 'p' == then
+          arg int::toHexString FmtIO::printStrNoNewline
+        elif c 'b' == then
+          if arg as int 0 == then
+            "false" FmtIO::printStrNoNewline
+          else
+            "true" FmtIO::printStrNoNewline
+          fi
         elif c 'c' == then
           arg FmtIO::putchar
         else

@@ -1,0 +1,38 @@
+@std.util.ReadOnlyArray
+@@{frameworkPath}/include/std/util/ReadOnlyArray.scale
+## Util: ReadOnlyArray
+### final struct IllegalStateException: Exception
+The struct `IllegalStateException` represents an exception that is thrown when an illegal state is encountered.
+
+### static function IllegalStateException::new(msg: str): IllegalStateException
+Returns a new instance of `ReadOnlyArray` with the message `msg`.
+
+### struct ReadOnlyArray: Array
+The struct `ReadOnlyArray` represents an array that cannot be modified.
+
+### function ReadOnlyArray:sort(): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:set(index: int, value: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:push(value: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:pop(): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:reverse(): Array
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:remove(val: any): none
+Throws an `IllegalStateException`.
+
+### function ReadOnlyArray:removeAll(val: any): none
+Throws an `IllegalStateException`.
+
+### static function ReadOnlyArray::fromArray(arr: Array): ReadOnlyArray
+Returns a new instance of `ReadOnlyArray` with the values of `arr`.
+
+### static function ReadOnlyArray::fromPointerCollection(count: int, values: [any]): ReadOnlyArray
+Returns a new instance of `ReadOnlyArray` with the values `values`.

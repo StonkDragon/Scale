@@ -198,7 +198,7 @@ namespace sclc {
     Method* getMethodWithActualName(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
     Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name, bool doCheck = true);
     Container getContainerByName(TPResult& result, const std::string& name);
-    const Struct& getStructByName(TPResult& result, const std::string& name);
+    Struct& getStructByName(TPResult& result, const std::string& name);
     Layout getLayout(TPResult& result, const std::string& name);
     bool hasLayout(TPResult& result, const std::string& name);
     bool hasFunction(TPResult& result, const std::string& name);
