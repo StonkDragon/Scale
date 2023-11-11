@@ -50,6 +50,17 @@ final sealed struct Range is Iterable
   function toReverseRange(): ReverseRange
     self.upper self.lower ReverseRange::new return
   end
+
+  function toList(): [int]
+    upper lower - => decl size: int
+    new<int>[size] => decl list: [int]
+    0 => decl i: int
+    foreach val in self do
+      val => list[i]
+      i 1 +> i
+    done
+    list return
+  end
 end
 
 final sealed struct ReverseRange is Iterable
@@ -76,6 +87,17 @@ final sealed struct ReverseRange is Iterable
 
   function toRange(): Range
     self.upper self.lower Range::new return
+  end
+
+  function toList(): [int]
+    lower upper - => decl size: int
+    new<int>[size] => decl list: [int]
+    0 => decl i: int
+    foreach val in self do
+      val => list[i]
+      i 1 +> i
+    done
+    list return
   end
 end
 
@@ -113,8 +135,8 @@ sealed struct ReverseRangeIterator is Iterator
   end
 
   function next(): int
-    self.range.lower self.pos -
     self.pos 1 + => self.pos
+    self.range.lower self.pos -
     return
   end
 end

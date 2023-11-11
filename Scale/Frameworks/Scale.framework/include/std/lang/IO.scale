@@ -4,6 +4,8 @@ cdecl "read"
 private expect foreign unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
 cdecl "fprintf"
 private expect foreign unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+cdecl "_scl_get_stderr"
+private expect foreign unsafe function __c_get_stderr(): any
 cdecl "printf"
 private expect foreign unsafe function __c_printf(fmt: [int8], :varargs): int32
 cdecl "getchar"
@@ -38,10 +40,7 @@ function puts(value: any): none  value builtinToString puts end
 
 function eputs(s: [int8]): none
   unsafe
-    c!
-      (localstack++)->v = stderr;
-    end
-    c"%s\n" s __c_fprintf! 1
+    __c_get_stderr c"%s\n" s __c_fprintf! 1
   end
   drop
 end

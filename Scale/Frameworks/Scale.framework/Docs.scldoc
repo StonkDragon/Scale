@@ -31,3 +31,4 @@
 %include include/std/util/Stringifyable.scldoc
 %include include/std/util/Triple.scldoc
 %include include/std/util/TypedArray.scldoc
+%include include/std/functional/Do.scldoc

@@ -1,0 +1,16 @@
+function foo(x: int): none
+    "with int" puts
+end
+
+function foo(x: int8): none
+    "with int8" puts
+end
+
+function main(): none
+    new<int>{-3, -2, -1, 0, 0, 1, 2, 3} => decl arr: [int]
+    arr puts
+    arr do 'each puts::<int>
+
+    1 foo
+    1 foo::<int8>
+end

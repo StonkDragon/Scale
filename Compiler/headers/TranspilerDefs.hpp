@@ -24,8 +24,8 @@
         append("{\n");                                                                 \
         scopeDepth++;                                                                  \
         append("%s tmp = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());  \
-        append("(localstack++)->v = _scl_alloc_struct(tmp.$statics);\n");              \
-        append("memcpy((localstack - 1)->v, &tmp, tmp.$statics->size);\n");            \
+        append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");              \
+        append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");              \
         scopeDepth--;                                                                  \
         append("}\n");                                                                 \
     }                                                                                  \
@@ -33,11 +33,10 @@
     {                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                              \
         if (isPrimitiveIntegerType(type)) {                                            \
-            append("*(scl_uint*) (localstack) = %s;\n", path.c_str());                 \
+            append("_scl_push(scl_int, %s);\n", path.c_str());                         \
         } else {                                                                       \
-            append("*(%s*) (localstack) = %s;\n", ctype.c_str(), path.c_str());        \
+            append("_scl_push(%s, %s);\n", ctype.c_str(), path.c_str());               \
         }                                                                              \
-        append("localstack++;\n");                                                     \
     }                                                                                  \
     typeStack.push(type);
 
@@ -59,6 +58,9 @@
 #define wasCase()       (whatWasIt.size() > 0 && whatWasIt.back() == 32)
 #define popCase()       (whatWasIt.pop_back())
 #define pushCase()      (whatWasIt.push_back(32))
+#define wasSwitch2()    (whatWasIt.size() > 0 && whatWasIt.back() == 64)
+#define popSwitch2()    (whatWasIt.pop_back())
+#define pushSwitch2()   (whatWasIt.push_back(64))
 #define wasOther()      (whatWasIt.size() > 0 && whatWasIt.back() == 0)
 #define popOther()      (whatWasIt.pop_back())
 #define pushOther()     (whatWasIt.push_back(0))

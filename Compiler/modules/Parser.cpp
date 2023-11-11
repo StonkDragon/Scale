@@ -134,8 +134,8 @@ namespace sclc
                     std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
                     append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
                     scopeDepth++;
-                    append(".pure_name = 0x%xU, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
-                    append(".signature = 0x%xU, // %s\n", id(signature.c_str()), signature.c_str());
+                    append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
+                    append(".signature = 0x%lxUL, // %s\n", id(signature.c_str()), signature.c_str());
                     scopeDepth--;
                     append("},\n");
                 }
@@ -153,7 +153,7 @@ namespace sclc
 
                 append("const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
-                append(".type = 0x%xU,\n", id(s.name.c_str()));
+                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", s.name.c_str());
                 append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
                 append(".vtable = _scl_vtable_%s,\n", s.name.c_str());

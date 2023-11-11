@@ -3,11 +3,11 @@ import os
 import sys
 
 def genTest(file):
-    print("Generating Tests for: " + file)
+    print(f"Generating Tests for: {file}")
     test_file = file
     ret = os.system("sclc " + test_file)
     if ret != 0:
-        print("Error generating tests for: " + file)
+        print(f"Error generating tests for: {file}")
         sys.exit(1)
     output = os.popen("./out.scl").read()
     if exists(test_file + ".txt"):
@@ -15,34 +15,34 @@ def genTest(file):
     with open(test_file + ".txt", "w") as f:
         f.write(output)
 
-def runTest(file, directory="examples"):
+def runTest(file, directory="examples", current=1, total=1):
     global failedTests
     global theseTestsFailed
     global passedTests
     global skippedTests
 
     test_file = directory + "/" + file
-    print("[COMP] " + file)
+    print(f"[COMP] {file}")
     try:
         compOut = os.popen("sclc " + test_file).read()
     except UnicodeError:
-        runTest(file)
+        runTest(file, directory, current, total)
         return
 
-    print("[RUN] " + file)
+    print(f"[RUN] {file} ({current}/{total})")
     output = os.popen("./out.scl").read()
     if not exists(test_file + ".txt"):
-        print("[SKIP] " + file)
+        print(f"[SKIP] {file}")
         genTest(test_file)
         skippedTests += 1
         return
     with open(test_file + ".txt", "r") as f:
         expected = f.read()
     if output == expected:
-        print("[PASS] " + file)
+        print(f"[PASS] {file}")
         passedTests += 1
     else:
-        print("\b[FAIL] " + file)
+        print(f"\b[FAIL] {file}")
         failedTests += 1
         theseTestsFailed.append(file)
         print("Compiler Output:")
@@ -58,8 +58,10 @@ def runTest(file, directory="examples"):
 def run_tests(directory):
     tests = [ i for i in os.listdir(directory) if i.endswith(".scale") ]
     tests.sort()
+    current = 1
     for file in tests:
-        runTest(file)
+        runTest(file, current=current, total=len(tests))
+        current += 1
 
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))
@@ -71,7 +73,7 @@ def reset_tests(directory):
     tests = [ i for i in os.listdir(directory) if i.endswith(".scale") ]
     tests.sort()
     for file in tests:
-        genTest(directory + "/" + file)
+        genTest(f"{directory}/{file}")
 
 if __name__ == '__main__':
     failedTests = 0

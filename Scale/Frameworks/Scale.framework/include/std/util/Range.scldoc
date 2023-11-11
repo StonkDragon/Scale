@@ -30,6 +30,9 @@ Returns an iterator over the values of `self`.
 ### function Range:toReverseRange(): ReverseRange
 Returns a reversed copy of `self`.
 
+### function Range:toList(): [int]
+Returns a list of the values of `self`.
+
 ### final struct ReverseRange is Iterable
 The struct `ReverseRange` represents a reversed range of integers.
 Declared Fields:
@@ -47,6 +50,9 @@ Returns an iterator over the values of `self`.
 
 ### function ReverseRange:toRange(): Range
 Returns a copy of `self`.
+
+### function ReverseRange:toList(): [int]
+Returns a list of the values of `self`.
 
 ### struct RangeIterator is Iterator
 The struct `RangeIterator` is an iterator over the values of a range.

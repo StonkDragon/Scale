@@ -18,7 +18,7 @@ private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl data: [int8]
   private decl length: int
-  private decl hash: uint32
+  private decl hash: uint
 
   function +(other: str): str
     other self:prepend return
@@ -218,6 +218,61 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     cStr => s.data
     cStr builtinHash => s.hash
     s return
+  end
+
+  static function filter(arr: str, f: lambda(int8): bool): str
+    new<int8>[arr:size] => decl result: [int8]
+    0 => decl acc: int
+    foreach char in arr do
+      if char f:accept then
+        char => result[acc]
+        acc 1 +> acc
+      fi
+    done
+    acc result:resize str::of return
+  end
+
+  static function map(arr: str, f: lambda(int8): int8): str
+    new<int8>[arr:size] => decl result: [int8]
+    for i in 0 to arr:size do
+      arr[i] f:accept => result[i]
+    done
+    result str::of return
+  end
+
+  static function reduce(arr: str, f: lambda(int, int8): int): int
+    decl result: int
+    for i in 0 to arr:size do
+      result arr[i] f:accept => result
+    done
+    result return
+  end
+
+  static function count(arr: str, f: lambda(int8): bool): int
+    decl acc: int
+    foreach val in arr do
+      if val f:accept then
+        acc 1 +> acc
+      fi
+    done
+    acc return
+  end
+
+  static function each(arr: str, f: lambda(int8): none): none
+    foreach val in arr do
+      val f:accept
+    done
+  end
+
+  static function also(arr: str, f: lambda(int8): bool): str
+    foreach val in arr do
+      val f:accept
+    done
+    arr return
+  end
+
+  static function transform(arr: str, f: lambda(str): any): any
+    arr f:accept return
   end
 
   private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]

@@ -13,9 +13,10 @@
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
 		{"include": "#deprecation"},
+		{"include": "#quoted_char"},
+		{"include": "#do_types"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
 		{"include": "#stack_operators"},
 		{"include": "#default"},
@@ -83,13 +84,19 @@
 				"match": "\\b(true|false|nil)\\b"
 			}]
 		},
+		"do_types": {
+			"patterns": [{
+				"name": "entity.name.function",
+				"match": "'\\b(f|m|r|filter|map|reduce|count|also|each|transform)\\b"
+			}]
+		},
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
 				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|overrides|goto|label|nothing|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|foreign|operator|unsafe|restrict|const|readonly|try|catch|throw|open|intrinsic|lambda)\\b"
 			},{
 				"name": "keyword.control",
-				"match": "((macro|pragma)!)"
+				"match": "(((del)?macro|pragma)!)"
 			}]
 		},
 		"deprecation": {

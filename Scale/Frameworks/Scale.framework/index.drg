@@ -1,5 +1,5 @@
 framework: {
-    version: "23.10";
+    version: "23.11";
     headerDir: "include";
     implDir: "impl";
     implementers: [
@@ -19,6 +19,7 @@ framework: {
             "std/lang/Any.scale";
             "std/lang/Float.scale";
             "std/lang/Union.scale";
+            "std/lang/List.scale";
         ];
         std.Union: [
             "std/lang/Union.scale";
@@ -118,6 +119,9 @@ framework: {
         ];
         std.thread.Thread: [
             "std/thread/Thread.scale";
+        ];
+        std.functional.Do: [
+            "std/functional/Do.scale";
         ];
     };
 };

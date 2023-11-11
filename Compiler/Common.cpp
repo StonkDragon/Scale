@@ -96,7 +96,6 @@ namespace sclc
     std::string Main::options::printDocFor = "";
     size_t Main::options::docPrinterArgsStart = 0;
     std::string Main::options::docsIncludeFolder = "";
-    std::string Main::options::operatorRandomData = "";
     std::vector<std::string> Main::options::files = std::vector<std::string>();
     std::vector<std::string> Main::options::features = std::vector<std::string>();
     std::vector<std::string> Main::options::includePaths = std::vector<std::string>();
@@ -956,11 +955,11 @@ namespace sclc
                     ) {
                         continue;
                     }
-                    path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                    path += " = fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                     funcFound = true;
                 }
                 if (!funcFound) {
-                    path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                    path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
                 }
             }
             return path;
@@ -1035,12 +1034,13 @@ namespace sclc
                             ) {
                                 continue;
                             }
-                            path += "fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            path += "fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += "*(" + sclTypeToCType(result, *currentType) + "*) _scl_pop())";
+                            path += "_scl_pop(" + sclTypeToCType(result, *currentType) + ")";
                         }
+                        path += ")";
                     }
                 } else {
                     if (valueType) {
@@ -1063,18 +1063,18 @@ namespace sclc
                             ) {
                                 continue;
                             }
-                            path += " = fn_" + f->finalName() + "(*(" + sclTypeToCType(result, f->args[0].type) + "*) _scl_pop())";
+                            path += " = fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                            path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
                         }
                     }
                 }
                 if (deref) {
                     path = "(*" + path + ")";
                     if (doesWriteAfter) {
-                        path += " = *(" + sclTypeToCType(result, *currentType) + "*) _scl_pop()";
+                        path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
                     }
                 }
                 return path;

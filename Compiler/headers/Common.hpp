@@ -52,7 +52,7 @@ namespace sclc {
 #include "Enum.hpp"
 
 namespace sclc {
-    typedef unsigned int ID_t;
+    typedef unsigned long ID_t;
 
     class SyntaxTree
     {
@@ -152,7 +152,6 @@ namespace sclc {
             static std::string printDocFor;
             static size_t docPrinterArgsStart;
             static std::string docsIncludeFolder;
-            static std::string operatorRandomData;
             static std::vector<std::string> files;
             static std::vector<std::string> features;
             static std::vector<std::string> includePaths;

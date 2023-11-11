@@ -1,0 +1,74 @@
+static struct List
+    macro! CreateListOperations(type) {
+        expand {
+            function filter(arr: [$type], f: lambda($type): bool): [$type]
+                new<$type>[arr:size] => decl result: [$type]
+                0 => decl acc: int
+                foreach x in arr do
+                    if x f:accept then
+                        x => result[acc]
+                        acc 1 +> acc
+                    fi
+                done
+                acc result:resize return
+            end
+
+            function map(arr: [$type], f: lambda($type): $type): [$type]
+                for i in 0 to arr:size do
+                    arr[i] f:accept => arr[i]
+                done
+                arr return
+            end
+
+            function reduce(arr: [$type], f: lambda(int, $type): int): int
+                decl result: int
+                for i in 0 to arr:size do
+                    result arr[i] f:accept => result
+                done
+                result return
+            end
+
+            function count(arr: [$type], f: lambda($type): bool): int
+                decl acc: int
+                foreach val in arr do
+                    if val f:accept then
+                        acc 1 +> acc
+                    fi
+                done
+                acc return
+            end
+
+            function each(arr: [$type], f: lambda($type): none): none
+                foreach val in arr do
+                    val f:accept
+                done
+            end
+
+            function also(arr: [$type], f: lambda($type): bool): [$type]
+                foreach val in arr do
+                    val f:accept
+                done
+                arr return
+            end
+
+            function transform(arr: [$type], f: lambda([$type]): any): any
+                arr f:accept return
+            end
+        }
+    }
+
+    CreateListOperations! int8
+    CreateListOperations! int16
+    CreateListOperations! int32
+    CreateListOperations! int64
+    CreateListOperations! int
+    CreateListOperations! uint8
+    CreateListOperations! uint16
+    CreateListOperations! uint32
+    CreateListOperations! uint64
+    CreateListOperations! uint
+    CreateListOperations! float
+    CreateListOperations! any
+
+    delmacro! CreateListOperations
+end

@@ -1,0 +1,12 @@
+import std.functional.Do
+import std.math
+
+function main(): none
+    c"(1+(2*3)+((8)/4))+1" => decl data: [int8]
+
+    data do
+        'filter lambda(x: int8): bool x '(' == x ')' == || return end
+        'map lambda(x: int8): int8 if x '(' == then 1 else -1 fi return end
+        'transform Transformers::partialSum::<[int8]>
+        'reduce Reducers::max puts
+end

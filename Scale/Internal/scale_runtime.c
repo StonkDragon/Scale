@@ -23,7 +23,7 @@ extern "C" {
 #define SCL_DEFAULT_STACK_FRAME_COUNT 4096
 #endif
 
-const ID_t SclObjectHash = 0x49CC1B82U; // SclObject
+const ID_t SclObjectHash = 0x5971ad8dc2a50b2UL; // SclObject
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
@@ -139,14 +139,12 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
+	((memory_layout_t*) ptr)->marker = MARKER;
+	((memory_layout_t*) ptr)->allocation_size = size;
 	if (layout) {
-		((memory_layout_t*) ptr)->marker = MARKER;
-		((memory_layout_t*) ptr)->allocation_size = size;
 		((memory_layout_t*) ptr)->is_instance = layout->is_instance;
 		((memory_layout_t*) ptr)->is_array = layout->is_array;
 	} else {
-		((memory_layout_t*) ptr)->marker = MARKER;
-		((memory_layout_t*) ptr)->allocation_size = size;
 		((memory_layout_t*) ptr)->is_instance = 0;
 		((memory_layout_t*) ptr)->is_array = 0;
 	}
@@ -499,6 +497,10 @@ _scl_symbol_hidden
 #endif
 }
 
+scl_any _scl_get_stderr() {
+	return (scl_any) stderr;
+}
+
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
 	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
 		typedef struct Struct_CastError {
@@ -646,9 +648,11 @@ scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
 	arr = (scl_any) (((scl_any) arr) - sizeof(array_info_t));
-	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * sizeof(scl_any) + sizeof(scl_int));
+	array_info_t info = *(array_info_t*) arr;
+	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * info.elem_size + sizeof(array_info_t));
 	_scl_get_memory_layout(new_arr)->is_array = 1;
 	((array_info_t*) new_arr)->size = new_size;
+	((array_info_t*) new_arr)->elem_size = info.elem_size;
 	return (((scl_any) new_arr) + sizeof(array_info_t));
 }
 

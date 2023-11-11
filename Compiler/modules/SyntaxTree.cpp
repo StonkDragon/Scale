@@ -1587,7 +1587,21 @@ namespace sclc {
         std::unordered_map<std::string, Macro*> macros;
 
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
+            if (tokens[i].type != tok_identifier || (tokens[i].value != "macro!" && tokens[i].value != "delmacro!")) {
+                continue;
+            }
+            if (tokens[i].value == "delmacro!") {
+                i++;
+                if (tokens[i].type != tok_identifier) {
+                    errors.push_back(MacroError("Expected macro name"));
+                    continue;
+                }
+                std::string name = tokens[i].value;
+                if (macros.find(name) == macros.end()) {
+                    errors.push_back(MacroError("Macro '" + name + "' not defined"));
+                    continue;
+                }
+                macros.erase(name);
                 continue;
             }
             size_t start = i;
@@ -1692,7 +1706,7 @@ namespace sclc {
             
             builtinHash->addArgument(Variable("data", "[int8]"));
             
-            builtinHash->return_type = "uint32";
+            builtinHash->return_type = "uint";
             functions.push_back(builtinHash);
 
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash"));
@@ -2988,8 +3002,10 @@ namespace sclc {
                     token.value == "lambda" &&
                     (((ssize_t) i) - 3 >= 0 && tokens[i - 3].type != tok_declare) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
-                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_comma) &&
-                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_paren_open)
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
+                    (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
+                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_comma) &&
+                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_paren_open)
                 ) isInLambda++;
                 if (token.type == tok_identifier && token.value == "unsafe") {
                     isInUnsafe++;

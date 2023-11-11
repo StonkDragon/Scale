@@ -158,7 +158,17 @@ namespace sclc
                     current += 2;
                     return Token(tok_char_literal, value, line, filename, begin);
                 } else {
-                    syntaxError("Invalid character literal: '" + value + "'");
+                    value = "";
+                    while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
+                        value += c;
+                        current++;
+                        column++;
+                        c = source[current];
+                    }
+
+                    current++;
+                    column++;
+                    return Token(tok_ticked, value, line, filename, begin);
                 }
             }
         } else if (isOperator(c)) {

@@ -154,3 +154,24 @@ Returns the linear interpolation of `a` and `b` at `t`.
 
 ### function neg(number: int): int
 Returns the negation of `number`.
+
+### function abs(number: int): int
+Returns the absolute value of `number`.
+
+### function sign(number: int): int
+Returns the sign of `number`.
+
+### function min(a: int, b: int): int
+Returns the minimum of `a` and `b`.
+
+### function max(a: int, b: int): int
+Returns the maximum of `a` and `b`.
+
+### function clamp(number: int, min: int, max: int): int
+Clamps `number` to the range `min` to `max`.
+
+### function gcd(a: int, b: int): int
+Returns the greatest common divisor of `a` and `b`.
+
+### function lcm(a: int, b: int): int
+Returns the least common multiple of `a` and `b`.

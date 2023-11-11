@@ -1,0 +1,17 @@
+import std.functional.Do
+import std.math
+
+function main(): none
+    new<[int]> {
+        new<int> {2,5,6,9,10},
+        new<int> {7,5,6,8,3},
+        new<int> {3,3}
+    } => decl nums: [[int]]
+
+    foreach arr in nums do
+        arr do 'reduce Reducers::min => decl minVal: int
+        arr do 'reduce Reducers::max => decl maxVal: int
+
+        minVal maxVal gcd puts
+    done
+end

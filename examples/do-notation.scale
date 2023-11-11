@@ -1,0 +1,32 @@
+function main(): none
+    new<int>{-3, -2, -1, 0, 0, 1, 2, 3, 5} => decl arr: [int]
+
+    arr puts
+
+    arr do 'filter lambda(val: int): bool
+        val 2 % 0 == return
+    end => arr
+
+    arr puts
+
+    arr do 'map lambda(val: int): int
+        val 2 * return
+    end => arr
+    
+    arr puts
+
+    arr do 'count lambda(val: int): bool
+        val 0 > return
+    end => decl pos: int
+    arr do 'count lambda(val: int): bool
+        val 0 < return
+    end => decl neg: int
+
+    "Positive: " pos + "\nNegative: " + neg + puts
+
+    new<int>{1, 2, 3, 4, 5, 6} do
+        'map lambda(val: int): int val 2 * return end
+        'filter lambda(val: int): bool val 3 % 0 == return end
+        'reduce lambda(acc: int, val: int): int acc val + return end
+        puts
+end

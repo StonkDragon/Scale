@@ -1,30 +1,30 @@
     1226 Compiler/Common.cpp
-    1350 Compiler/Main.cpp
+    1342 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
-     352 Compiler/headers/Common.hpp
+     351 Compiler/headers/Common.hpp
       55 Compiler/headers/Container.hpp
      107 Compiler/headers/DragonConfig.hpp
       26 Compiler/headers/Enum.hpp
-     100 Compiler/headers/Function.hpp
-      26 Compiler/headers/Functions.hpp
+      99 Compiler/headers/Function.hpp
+      23 Compiler/headers/Functions.hpp
       68 Compiler/headers/Interface.hpp
      152 Compiler/headers/Results.hpp
      216 Compiler/headers/Struct.hpp
      200 Compiler/headers/Token.hpp
-      99 Compiler/headers/TokenType.hpp
-     138 Compiler/headers/TranspilerDefs.hpp
-      38 Compiler/headers/Types.hpp
+     100 Compiler/headers/TokenType.hpp
+     140 Compiler/headers/TranspilerDefs.hpp
+      39 Compiler/headers/Types.hpp
       92 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
-     177 Compiler/modules/Function.cpp
-     914 Compiler/modules/Functions.cpp
+     171 Compiler/modules/Function.cpp
+    1080 Compiler/modules/Functions.cpp
      639 Compiler/modules/InfoDumper.cpp
      247 Compiler/modules/Parser.cpp
-    3575 Compiler/modules/SyntaxTree.cpp
-     626 Compiler/modules/Tokenizer.cpp
-    4538 Compiler/modules/Transpiler.cpp
-     543 Compiler/modules/Types.cpp
+    3591 Compiler/modules/SyntaxTree.cpp
+     636 Compiler/modules/Tokenizer.cpp
+    4623 Compiler/modules/Transpiler.cpp
+     559 Compiler/modules/Types.cpp
      391 Scale/Frameworks/Scale.framework/impl/scale.c
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
       61 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
@@ -32,13 +32,13 @@
      108 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       68 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
-      63 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
+      62 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      251 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
-      97 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
+     149 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       31 Scale/Frameworks/Scale.framework/include/std/lang/Option.scale
       31 Scale/Frameworks/Scale.framework/include/std/lang/Result.scale
       33 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
-     260 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
+     315 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
       29 Scale/Frameworks/Scale.framework/include/std/lang/Union.scale
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
       41 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
@@ -53,15 +53,15 @@
        8 Scale/Frameworks/Scale.framework/include/std/util/Iterable.scale
       96 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
       23 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
-     185 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
+     207 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Stringifyable.scale
       27 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
       92 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
-     841 Scale/Internal/scale_runtime.c
-     614 Scale/Internal/scale_runtime.h
+     845 Scale/Internal/scale_runtime.c
+     600 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
       26 examples/arraysort.scale
@@ -75,7 +75,7 @@
       22 examples/fib.scale
       13 examples/fib2.scale
       20 examples/fizzbuzz.scale
-      20 examples/floating-point-specials.scale
+      19 examples/floating-point-specials.scale
       13 examples/fmt.scale
       11 examples/for-step.scale
       13 examples/for.scale
@@ -118,4 +118,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   23495 total
+   23890 total
