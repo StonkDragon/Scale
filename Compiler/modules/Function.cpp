@@ -64,6 +64,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_foreign = 0;
     this->has_overrides = 0;
     this->has_binary_inherited = 0;
+    this->has_nonvirtual = 0;
 }
 std::string Function::finalName() {
     if (
@@ -116,6 +117,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
     else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
+    else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);

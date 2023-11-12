@@ -143,89 +143,80 @@ end
 
 static struct Transformers
     macro! DefinePartialSum(type) {
-        expand {
-            function partialSum(data: [$type]): [int]
-                if data:size 0 == then
-                    new<int>[1] return
-                fi
+        function partialSum(data: [$type]): [int]
+            if data:size 0 == then
+                new<int>[1] return
+            fi
 
-                new<int>[data:size] => decl counts: [int]
+            new<int>[data:size] => decl counts: [int]
 
-                for i in 0 to data:size do
-                    decl acc: int
-                    for j in 0 to i 1 + do
-                        data[j] acc +> acc
-                    done
-                    acc => counts[i]
+            for i in 0 to data:size do
+                decl acc: int
+                for j in 0 to i 1 + do
+                    data[j] acc +> acc
                 done
+                acc => counts[i]
+            done
 
-                counts return
-            end
-        }
+            counts return
+        end
     }
     macro! DefinePartialProduct(type) {
-        expand {
-            function partialProduct(data: [$type]): [int]
-                if data:size 0 == then
-                    new<int>[1] return
-                fi
+        function partialProduct(data: [$type]): [int]
+            if data:size 0 == then
+                new<int>[1] return
+            fi
 
-                new<int>[data:size] => decl counts: [int]
+            new<int>[data:size] => decl counts: [int]
 
-                for i in 0 to data:size do
-                    decl acc: int
-                    for j in 0 to i 1 + do
-                        data[j] acc *> acc
-                    done
-                    acc => counts[i]
+            for i in 0 to data:size do
+                decl acc: int
+                for j in 0 to i 1 + do
+                    data[j] acc *> acc
                 done
+                acc => counts[i]
+            done
 
-                counts return
-            end
-        }
+            counts return
+        end
     }
     macro! DefinePartialMin(type) {
-        expand {
-            function partialMin(data: [$type]): [int]
-                if data:size 0 == then
-                    new<int>[1] return
-                fi
+        function partialMin(data: [$type]): [int]
+            if data:size 0 == then
+                new<int>[1] return
+            fi
 
-                new<int>[data:size] => decl counts: [int]
+            new<int>[data:size] => decl counts: [int]
 
-                for i in 0 to data:size do
-                    decl acc: int
-                    for j in 0 to i 1 + do
-                        data[j] acc min => acc
-                    done
-                    acc => counts[i]
+            for i in 0 to data:size do
+                decl acc: int
+                for j in 0 to i 1 + do
+                    data[j] acc min => acc
                 done
+                acc => counts[i]
+            done
 
-                counts return
-            end
-        }
+            counts return
+        end
     }
-
     macro! DefinePartialMax(type) {
-        expand {
-            function partialMax(data: [$type]): [int]
-                if data:size 0 == then
-                    new<int>[1] return
-                fi
+        function partialMax(data: [$type]): [int]
+            if data:size 0 == then
+                new<int>[1] return
+            fi
 
-                new<int>[data:size] => decl counts: [int]
+            new<int>[data:size] => decl counts: [int]
 
-                for i in 0 to data:size do
-                    decl acc: int
-                    for j in 0 to i 1 + do
-                        data[j] acc max => acc
-                    done
-                    acc => counts[i]
+            for i in 0 to data:size do
+                decl acc: int
+                for j in 0 to i 1 + do
+                    data[j] acc max => acc
                 done
+                acc => counts[i]
+            done
 
-                counts return
-            end
-        }
+            counts return
+        end
     }
 
     DefinePartialSum! int8

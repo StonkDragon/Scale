@@ -11,7 +11,23 @@ namespace sclc
 {
     extern std::vector<std::string> keywords;
 
+    struct CSourceLocation {
+        void* file;
+        size_t line;
+        size_t column;
+    };
+
+    struct CToken {
+        long type;
+        void* value;
+        CSourceLocation* location;
+    };
+
     struct SourceLocation {
+        static SourceLocation of(CSourceLocation* cloc, char* (*fromString)(void*)) {
+            return SourceLocation(std::string(fromString(cloc->file)), cloc->line, cloc->column);
+        }
+
         std::string file;
         int line;
         int column;
@@ -42,6 +58,14 @@ namespace sclc
 
         ~SourceLocation() {}
 
+        CSourceLocation* toC(void*(*alloc)(size_t), void*(*toString)(char*)) {
+            CSourceLocation* loc = (CSourceLocation*) alloc(sizeof(CSourceLocation));
+            loc->file = toString(strdup(file.c_str()));
+            loc->line = line;
+            loc->column = column;
+            return loc;
+        }
+
         std::string toString() const {
             return "SourceLocation(file=" + file + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ")";
         }
@@ -49,6 +73,14 @@ namespace sclc
 
     struct Token {
         static Token Default;
+
+        static Token of(CToken* ctok, char* (*fromString)(void*)) {
+            Token tok;
+            tok.type = static_cast<TokenType>(ctok->type);
+            tok.value = fromString(ctok->value);
+            tok.location = SourceLocation::of(ctok->location, fromString);
+            return tok;
+        }
 
         TokenType type;
         std::string value;
@@ -167,6 +199,14 @@ namespace sclc
                     type == tok_column ||
                     type == tok_double_column ||
                     type == tok_dot;
+        }
+
+        CToken* toC(void*(*alloc)(size_t), void* (*toString)(char*)) {
+            CToken* tok = (CToken*) alloc(sizeof(CToken));
+            tok->type = static_cast<long>(type);
+            tok->value = toString(strdup(value.c_str()));
+            tok->location = location.toC(alloc, toString);
+            return tok;
         }
 
         std::string color() const {

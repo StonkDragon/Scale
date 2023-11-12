@@ -32,3 +32,5 @@
 %include include/std/util/Triple.scldoc
 %include include/std/util/TypedArray.scldoc
 %include include/std/functional/Do.scldoc
+%include include/std/compiler/Utils.scldoc
+%include include/std/macros/Macros.scldoc

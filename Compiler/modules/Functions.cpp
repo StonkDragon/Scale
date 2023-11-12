@@ -510,7 +510,10 @@ namespace sclc {
                 append("");
             }
         }
-        if (getInterfaceByName(result, self->member_type) == nullptr) {
+        if (self->has_nonvirtual) {
+            append("mt_%s$%s(%s)", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            found = true;
+        } else if (getInterfaceByName(result, self->member_type) == nullptr) {
             auto vtable = vtables[self->member_type];
             size_t index = 0;
             for (auto&& method : vtable) {

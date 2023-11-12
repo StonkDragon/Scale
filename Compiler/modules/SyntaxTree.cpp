@@ -1330,12 +1330,22 @@ namespace sclc {
     };
 
     struct Macro {
+        enum MacroType {
+            Generic,
+            Native
+        } type;
         std::vector<MacroArg> args;
         std::vector<Token> tokens;
 
-        virtual void expand(std::vector<Token>& otherTokens, size_t& i, std::unordered_map<std::string, Token>& args, std::vector<FPResult>& errors) {
-            #define token this->tokens[j]
-            #define nextToken this->tokens[j + 1]
+        Macro() {
+            this->type = Generic;
+        }
+
+        virtual ~Macro() {}
+
+        virtual void expand(Token macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<std::pair<std::string, Token>>& _args, std::vector<FPResult>& errors) {
+            (void) errors;
+            (void) macroTok;
             #define MacroError(msg) ({ \
                 FPResult error; \
                 error.success = false; \
@@ -1345,182 +1355,158 @@ namespace sclc {
                 error.value = tokens[i].value; \
                 error; \
             })
+            #define MacroError2(msg, tok) ({ \
+                FPResult error; \
+                error.success = false; \
+                error.message = msg; \
+                error.location = tok.location; \
+                error.type = tok.type; \
+                error.value = tok.value; \
+                error; \
+            })
 
-            struct stackframe {
-                std::string name;
-                void* value;
-            };
-
-            std::stack<stackframe> stack;
-            std::unordered_map<std::string, stackframe> vars;
-            for (size_t j = 0; j < this->tokens.size(); j++) {
-                if (token.type == tok_identifier) {
-                    if (token.value == "expand") {
-                        j++;
-                        if (token.type != tok_curly_open) {
-                            errors.push_back(MacroError("Expected '{' after 'expand'"));
-                            return;
-                        }
-                        j++;
-                        size_t depth = 1;
-                        std::vector<Token> expanded;
-                        while (depth > 0) {
-                            if (token.type == tok_curly_open) {
-                                depth++;
-                            } else if (token.type == tok_curly_close) {
-                                depth--;
-                                if (depth == 0) {
-                                    break;
-                                }
-                            }
-                            if (token.type == tok_dollar) {
-                                if (nextToken.type != tok_identifier) {
-                                    errors.push_back(MacroError("Unknown expansion token"));
-                                } else if (args.find(nextToken.value) != args.end()) {
-                                    expanded.push_back(args[nextToken.value]);
-                                } else if (vars.find(nextToken.value) != vars.end()) {
-                                    stackframe var = vars[nextToken.value];
-                                    if (var.name == "Token") {
-                                        expanded.push_back(*((Token*) var.value));
-                                    } else if (var.name == "String") {
-                                        expanded.push_back(Token(tok_string_literal, (char*) var.value));
-                                    } else if (var.name == "Number") {
-                                        expanded.push_back(Token(tok_number, std::to_string((long long) var.value)));
-                                    } else {
-                                        errors.push_back(MacroError("Expected Token, got " + var.name));
-                                    }
-                                } else {
-                                    errors.push_back(MacroError("Expected identifier after '$'"));
-                                }
-                                j++;
-                            } else {
-                                expanded.push_back(token);
-                            }
-                            j++;
-                        }
-                        otherTokens.insert(otherTokens.begin() + i, expanded.begin(), expanded.end());
-                        i += expanded.size();
-                    } else if (token.value == "concat") {
-                        j++;
-                        if (token.type != tok_curly_open) {
-                            errors.push_back(MacroError("Expected '{' after 'expand'"));
-                            return;
-                        }
-                        j++;
-                        size_t depth = 1;
-                        std::string str = "";
-                        while (depth > 0) {
-                            if (token.type == tok_curly_open) {
-                                depth++;
-                            } else if (token.type == tok_curly_close) {
-                                depth--;
-                                if (depth == 0) {
-                                    break;
-                                }
-                            }
-                            if (token.type == tok_dollar) {
-                                if (nextToken.type != tok_identifier) {
-                                    errors.push_back(MacroError("Unknown expansion token"));
-                                } else if (args.find(nextToken.value) != args.end()) {
-                                    str += args[nextToken.value].value;
-                                } else if (vars.find(nextToken.value) != vars.end()) {
-                                    stackframe var = vars[nextToken.value];
-                                    if (var.name == "Token") {
-                                        str += ((Token*) var.value)->value;
-                                    } else if (var.name == "String") {
-                                        str += (char*) var.value;
-                                    } else if (var.name == "Number") {
-                                        str += std::to_string((long long) var.value);
-                                    } else {
-                                        errors.push_back(MacroError("Expected Token, got " + var.name));
-                                    }
-                                } else {
-                                    errors.push_back(MacroError("Expected identifier after '$'"));
-                                }
-                                j++;
-                            } else {
-                                str += token.value;
-                            }
-                            j++;
-                        }
-                        stack.push({"String", (void*) strdup(str.c_str())});
-                    } else if (token.value == "peekAndConsume") {
-                        Token* next = new Token(otherTokens[i]);
-                        otherTokens.erase(otherTokens.begin() + i);
-                        stack.push({"Token", (void*) next});
-                    } else if (token.value == "peek") {
-                        Token* next = new Token(otherTokens[i]);
-                        stack.push({"Token", (void*) next});
-                    } else if (token.value == "drop") {
-                        stack.pop();
-                    } else if (token.value == "consume") {
-                        otherTokens.erase(otherTokens.begin() + i);
-                    } else if (token.value == "dup") {
-                        stackframe t = stack.top();
-                        stack.push(t);
-                    } else if (token.value == "swap") {
-                        stackframe t1 = stack.top();
-                        stack.pop();
-                        stackframe t2 = stack.top();
-                        stack.pop();
-                        stack.push(t1);
-                        stack.push(t2);
-                    } else {
-                        if (vars.find(token.value) != vars.end()) {
-                            stack.push(vars[token.value]);
-                        } else if (args.find(token.value) != args.end()) {
-                            stack.push({"Token", (void*) new Token(args[token.value])});
-                        } else {
-                            errors.push_back(MacroError("Unknown variable '" + token.value + "'"));
-                        }
-                    }
-                } else if (token.type == tok_number) {
-                    long long n = parseNumber(token.value);
-                    stack.push({"Number", (void*) n});
-                } else if (token.type == tok_store) {
-                    stackframe t = stack.top();
-                    stack.pop();
-                    if (nextToken.type != tok_identifier) {
-                        errors.push_back(MacroError("Expected identifier after '=>'"));
-                        return;
-                    }
-                    vars[nextToken.value] = t;
-                } else if (token.type == tok_dot) {
-                    stackframe t = stack.top();
-                    stack.pop();
-                    if (t.name == "Token") {
-                        j++;
-                        if (token.type != tok_identifier) {
-                            errors.push_back(MacroError("Expected identifier after '.'"));
-                            return;
-                        }
-                        if (t.value == nullptr) {
-                            errors.push_back(MacroError("Expected Token, got nullptr"));
-                            return;
-                        }
-                        Token* next = (Token*) t.value;
-                        if (token.value == "type") {
-                            stack.push({"Number", (void*) (long long) next->type});
-                        } else if (token.value == "value") {
-                            stack.push({"String", (void*) strdup((const char*) next->value.c_str())});
-                        } else if (token.value == "line") {
-                            stack.push({"Number", (void*) (long long) next->location.line});
-                        } else if (token.value == "column") {
-                            stack.push({"Number", (void*) (long long) next->location.column});
-                        } else if (token.value == "file") {
-                            stack.push({"String", (void*) strdup((const char*) next->location.file.c_str())});
-                        } else {
-                            errors.push_back(MacroError("Unknown Token property '" + token.value + "'"));
-                            return;
-                        }
-                    } else {
-                        errors.push_back(MacroError("Expected dereferenceable value, got " + t.name));
-                        return;
-                    }
+            std::unordered_map<std::string, Token> args = [_args]() -> auto {
+                std::unordered_map<std::string, Token> args;
+                for (auto&& arg : _args) {
+                    args[arg.first] = arg.second;
                 }
+                return args;
+            }();
+
+            size_t next = i;
+            for (size_t j = 0; j < this->tokens.size(); j++) {
+                if (this->tokens[j].type == tok_dollar) {
+                    j++;
+                    Token t = args[this->tokens[j].value];
+                    otherTokens.insert(otherTokens.begin() + next, t);
+                } else {
+                    otherTokens.insert(otherTokens.begin() + next, this->tokens[j]);
+                }
+                next++;
             }
             #undef token
             #undef nextToken
+        }
+    };
+
+    struct SclMacroError {
+        void* msg;
+        CSourceLocation* location;
+    };
+
+    FPResult findFileInIncludePath(std::string file);
+
+    #define TO_STRING2(x) #x
+    #define TO_STRING(x) TO_STRING2(x)
+
+    struct SclParser {
+        std::vector<Token>& tokens;
+        size_t& i;
+        void* (*str$of)(char*) = nullptr;
+        void* (*alloc)(size_t) = nullptr;
+
+        static CToken* peek(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
+        static CToken* consume(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
+    };
+
+    CToken* SclParser::peek(SclParser* parser) {
+        if (parser->i >= parser->tokens.size()) {
+            return nullptr;
+        }
+        return parser->tokens[parser->i].toC(parser->alloc, parser->str$of);
+    }
+
+    CToken* SclParser::consume(SclParser* parser) {
+        if (parser->i >= parser->tokens.size()) {
+            return nullptr;
+        }
+        CToken* t = parser->tokens[parser->i].toC(parser->alloc, parser->str$of);
+        parser->tokens.erase(parser->tokens.begin() + parser->i);
+        return t;
+    }
+
+    struct NativeMacro: public Macro {
+        CToken** (*func)(CSourceLocation*, SclParser*);
+        void* lib;
+        void* (*Result$getErr)(void* res) = nullptr;
+        void* (*Result$getOk)(void* res) = nullptr;
+        long (*Result$isErr)(void* res) = nullptr;
+        long (*Result$isOk)(void* res) = nullptr;
+        void* (*scl_migrate_array)(void* arr, size_t size, size_t elem_size) = nullptr;
+        size_t (*scl_array_size)(void* arr) = nullptr;
+        void* (*alloc)(size_t) = nullptr;
+        void* (*str$of)(char*) = nullptr;
+        char* (*str$view)(void* str) = nullptr;
+
+        NativeMacro(std::string library, std::string name) : Macro() {
+            this->type = Native;
+            FPResult res = findFileInIncludePath(library);
+            if (!res.success) {
+                std::cout << "Failed to find library '" << library << "': " << res.message << std::endl;
+                exit(1);
+            }
+            library = res.location.file;
+
+            this->lib = dlopen(library.c_str(), RTLD_LAZY);
+            if (!this->lib) {
+                std::cout << "Failed to load library '" << library << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+            this->func = (CToken** (*)(CSourceLocation*, SclParser*)) dlsym(this->lib, name.c_str());
+            if (!this->func) {
+                std::cout << "Failed to load function '" << name << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+
+            Result$getErr = (typeof(Result$getErr)) dlsym(this->lib, "Result:getErr(): any");
+            Result$getOk = (typeof(Result$getOk)) dlsym(this->lib, "Result:getOk(): any");
+            Result$isErr = (typeof(Result$isErr)) dlsym(this->lib, "Result:isErr(): bool");
+            Result$isOk = (typeof(Result$isOk)) dlsym(this->lib, "Result:isOk(): bool");
+            scl_migrate_array = (typeof(scl_migrate_array)) dlsym(this->lib, "_scl_migrate_foreign_array");
+            scl_array_size = (typeof(scl_array_size)) dlsym(this->lib, "_scl_array_size");
+            alloc = (typeof(alloc)) dlsym(this->lib, "_scl_alloc");
+
+            str$of = (typeof(str$of)) dlsym(this->lib, "str::=>(:[int8]): str");
+            str$view = (typeof(str$view)) dlsym(this->lib, "str:view(): [int8]");
+        }
+
+        ~NativeMacro() {
+            dlclose(this->lib);
+        }
+
+        void expand(Token macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<std::pair<std::string, Token>>& args, std::vector<FPResult>& errors) override {
+            (void) args;
+            SclParser* parser = (SclParser*) alloc(sizeof(SclParser));
+            parser = new (parser) SclParser{
+                otherTokens,
+                i,
+                str$of,
+                alloc
+            };
+
+            CSourceLocation* loc = macroTok.location.toC(alloc, str$of);
+            void* result = this->func(loc, parser);
+
+            if (!Result$isOk(result)) {
+                SclMacroError* err = (SclMacroError*) Result$getErr(result);
+                FPResult error;
+                error.success = false;
+                error.message = str$view(err->msg);
+                error.location = SourceLocation::of(err->location, str$view);
+                errors.push_back(error);
+                return;
+            }
+
+            CToken** theTokens = (CToken**) Result$getOk(result);
+            size_t numTokens = scl_array_size(theTokens);
+            for (size_t j = 0; j < numTokens; j++) {
+                if (!theTokens[j]) {
+                    errors.push_back(MacroError2("Macro returned invalid token", macroTok));
+                    return;
+                }
+                otherTokens.insert(otherTokens.begin() + i, Token::of(theTokens[j], str$view));
+                i++;
+            }
         }
     };
     
@@ -1612,15 +1598,20 @@ namespace sclc {
             }
             std::string name = tokens[i].value;
             i++;
-            Macro* macro = new Macro();
+            std::__1::vector<sclc::MacroArg> args;
             if (tokens[i].type == tok_paren_open) {
                 i++;
                 while (tokens[i].type != tok_paren_close) {
-                    macro->args.push_back(tokens[i].value);
+                    args.push_back(tokens[i].value);
                     i++;
                     if (tokens[i].type == tok_column) {
                         i++;
-                        macro->args.back().type = tokens[i].value;
+                        FPResult r = parseType(tokens, &i, {});
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        args.back().type = r.value;
                         i++;
                     }
                     if (tokens[i].type == tok_comma) {
@@ -1632,6 +1623,30 @@ namespace sclc {
                 continue;
             }
             i++;
+            Macro* macro = nullptr;
+            if (tokens[i].type == tok_in) {
+                i++;
+                if (tokens[i].type != tok_string_literal) {
+                    errors.push_back(MacroError("Expected string literal after 'in'"));
+                    continue;
+                }
+                std::string library = tokens[i].value;
+                i++;
+                macro = new NativeMacro(library, name);
+                macro->args = args;
+                tokens.erase(tokens.begin() + start, tokens.begin() + i);
+                i = start;
+                i--;
+                if (macros.find(name) != macros.end()) {
+                    errors.push_back(MacroError("Macro '" + name + "' already defined"));
+                    continue;
+                }
+                macros[name] = macro;
+                continue;
+            }
+            macro = new Macro();
+            macro->args = args;
+
             if (tokens[i].type != tok_curly_open) {
                 errors.push_back(MacroError("Expected '{' after macro name"));
                 continue;
@@ -1673,18 +1688,28 @@ namespace sclc {
                 continue;
             }
             Macro* macro = macros[tokens[i].value];
-            std::unordered_map<std::string, Token> args;
+            std::vector<std::pair<std::string, Token>> args;
             size_t start = i;
+            Token macroTok = tokens[i];
             i += 2;
-            for (size_t j = 0; j < macro->args.size(); j++) {
-                args[macro->args[j]] = tokens[i];
-                i++;
+            if (macro->type != Macro::MacroType::Native) {
+                for (size_t j = 0; j < macro->args.size(); j++) {
+                    args.push_back({macro->args[j].name, tokens[i]});
+                    i++;
+                }
             }
             // delete macro call
             tokens.erase(tokens.begin() + start, tokens.begin() + i);
             i = start;
-            macro->expand(tokens, i, args, errors);
+            macro->expand(macroTok, tokens, i, args, errors);
             i--;
+        }
+
+        if (errors.size()) {
+            TPResult result;
+            result.errors = errors;
+            result.warns = warns;
+            return result;
         }
 
         // Builtins
@@ -3176,6 +3201,7 @@ namespace sclc {
                            t.value == "sinceVersion:" ||
                            t.value == "replaceWith:" ||
                            t.value == "deprecated!" ||
+                           t.value == "nonvirtual" ||
                            t.value == "overload!" ||
                            t.value == "construct" ||
                            t.value == "intrinsic" ||

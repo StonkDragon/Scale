@@ -668,6 +668,14 @@ namespace sclc
         
         std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.o");
         std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.o");
+
+        std::string macroCommand = "sclc -makelib -o " + scaleFolder + "/Frameworks/Scale.framework/impl/__scale_macros.scl " + scaleFolder + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale";
+        std::cout << Color::BLUE << "Compiling macros..." << std::endl;
+        std::cout << Color::CYAN << macroCommand << Color::RESET << std::endl;
+        if ((ret = system(macroCommand.c_str()))) {
+            std::cerr << Color::RED << "Failed to compile macros" << Color::RESET << std::endl;
+            return ret;
+        }
         return 0;
     }
 

@@ -551,7 +551,8 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (_scl_expect(num_elems < 0, 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
-	scl_any* arr = (scl_any*) _scl_alloc(num_elems * elem_size + sizeof(array_info_t));
+	scl_int size = num_elems * elem_size;
+	scl_any* arr = (scl_any*) _scl_alloc(size + sizeof(array_info_t));
 	_scl_get_memory_layout(arr)->is_array = 1;
 	((array_info_t*) arr)->size = num_elems;
 	((array_info_t*) arr)->elem_size = elem_size;

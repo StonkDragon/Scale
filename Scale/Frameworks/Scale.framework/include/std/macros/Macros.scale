@@ -1,0 +1,2 @@
+macro! expand() in "Scale.framework/impl/__scale_macros.scl"
+macro! quote() in "Scale.framework/impl/__scale_macros.scl"

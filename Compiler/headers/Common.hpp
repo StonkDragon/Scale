@@ -348,4 +348,162 @@ namespace sclc {
 
     ID_t id(const char* data);
 }
+
+#define _SCL_PREPROC_NARG(...) \
+         _SCL_PREPROC_NARG_(__VA_ARGS__,_SCL_PREPROC_RSEQ_N())
+#define _SCL_PREPROC_NARG_(...) \
+         _SCL_PREPROC_ARG_N(__VA_ARGS__)
+#define _SCL_PREPROC_ARG_N( \
+          _1, _2, _3, _4, _5, _6, _7, _8, _9,_10, \
+         _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
+         _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
+         _31,_32,_33,_34,_35,_36,_37,_38,_39,_40, \
+         _41,_42,_43,_44,_45,_46,_47,_48,_49,_50, \
+         _51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
+         _61,_62,_63,N,...) N
+#define _SCL_PREPROC_RSEQ_N() \
+         63,62,61,60,                   \
+         59,58,57,56,55,54,53,52,51,50, \
+         49,48,47,46,45,44,43,42,41,40, \
+         39,38,37,36,35,34,33,32,31,30, \
+         29,28,27,26,25,24,23,22,21,20, \
+         19,18,17,16,15,14,13,12,11,10, \
+         9,8,7,6,5,4,3,2,1,0
+
+#define _SCL_PREPROC_REPEAT_N(n, what) _SCL_PREPROC_REPEAT_N_(n, what)
+#define _SCL_PREPROC_REPEAT_NI(n, what) _SCL_PREPROC_REPEAT_N_I(n, what)
+#define _SCL_PREPROC_REPEAT_N_(n, what) _SCL_PREPROC_REPEAT_ ## n(what, n)
+#define _SCL_PREPROC_REPEAT_N_I(n, what) _SCL_PREPROC_REPEAT_ ## n ## I(what, n)
+#define LIST_INDEX(x, _index) x[_index - 1]
+#define _SCL_PREPROC_REPEAT_0(what, _index)
+#define _SCL_PREPROC_REPEAT_0I(what, _index)
+#define _SCL_PREPROC_REPEAT_1(what, _index) what
+#define _SCL_PREPROC_REPEAT_1I(what, _index) LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_2(what, _index) _SCL_PREPROC_REPEAT_1(what, 1), what
+#define _SCL_PREPROC_REPEAT_2I(what, _index) _SCL_PREPROC_REPEAT_1I(what, 1), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_3(what, _index) _SCL_PREPROC_REPEAT_2(what, 2), what
+#define _SCL_PREPROC_REPEAT_3I(what, _index) _SCL_PREPROC_REPEAT_2I(what, 2), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_4(what, _index) _SCL_PREPROC_REPEAT_3(what, 3), what
+#define _SCL_PREPROC_REPEAT_4I(what, _index) _SCL_PREPROC_REPEAT_3I(what, 3), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_5(what, _index) _SCL_PREPROC_REPEAT_4(what, 4), what
+#define _SCL_PREPROC_REPEAT_5I(what, _index) _SCL_PREPROC_REPEAT_4I(what, 4), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_6(what, _index) _SCL_PREPROC_REPEAT_5(what, 5), what
+#define _SCL_PREPROC_REPEAT_6I(what, _index) _SCL_PREPROC_REPEAT_5I(what, 5), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_7(what, _index) _SCL_PREPROC_REPEAT_6(what, 6), what
+#define _SCL_PREPROC_REPEAT_7I(what, _index) _SCL_PREPROC_REPEAT_6I(what, 6), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_8(what, _index) _SCL_PREPROC_REPEAT_7(what, 7), what
+#define _SCL_PREPROC_REPEAT_8I(what, _index) _SCL_PREPROC_REPEAT_7I(what, 7), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_9(what, _index) _SCL_PREPROC_REPEAT_8(what, 8), what
+#define _SCL_PREPROC_REPEAT_9I(what, _index) _SCL_PREPROC_REPEAT_8I(what, 8), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_10(what, _index) _SCL_PREPROC_REPEAT_9(what, 9), what
+#define _SCL_PREPROC_REPEAT_10I(what, _index) _SCL_PREPROC_REPEAT_9I(what, 9), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_11(what, _index) _SCL_PREPROC_REPEAT_10(what, 10), what
+#define _SCL_PREPROC_REPEAT_11I(what, _index) _SCL_PREPROC_REPEAT_10I(what, 10), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_12(what, _index) _SCL_PREPROC_REPEAT_11(what, 11), what
+#define _SCL_PREPROC_REPEAT_12I(what, _index) _SCL_PREPROC_REPEAT_11I(what, 11), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_13(what, _index) _SCL_PREPROC_REPEAT_12(what, 12), what
+#define _SCL_PREPROC_REPEAT_13I(what, _index) _SCL_PREPROC_REPEAT_12I(what, 12), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_14(what, _index) _SCL_PREPROC_REPEAT_13(what, 13), what
+#define _SCL_PREPROC_REPEAT_14I(what, _index) _SCL_PREPROC_REPEAT_13I(what, 13), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_15(what, _index) _SCL_PREPROC_REPEAT_14(what, 14), what
+#define _SCL_PREPROC_REPEAT_15I(what, _index) _SCL_PREPROC_REPEAT_14I(what, 14), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_16(what, _index) _SCL_PREPROC_REPEAT_15(what, 15), what
+#define _SCL_PREPROC_REPEAT_16I(what, _index) _SCL_PREPROC_REPEAT_15I(what, 15), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_17(what, _index) _SCL_PREPROC_REPEAT_16(what, 16), what
+#define _SCL_PREPROC_REPEAT_17I(what, _index) _SCL_PREPROC_REPEAT_16I(what, 16), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_18(what, _index) _SCL_PREPROC_REPEAT_17(what, 17), what
+#define _SCL_PREPROC_REPEAT_18I(what, _index) _SCL_PREPROC_REPEAT_17I(what, 17), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_19(what, _index) _SCL_PREPROC_REPEAT_18(what, 18), what
+#define _SCL_PREPROC_REPEAT_19I(what, _index) _SCL_PREPROC_REPEAT_18I(what, 18), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_20(what, _index) _SCL_PREPROC_REPEAT_19(what, 19), what
+#define _SCL_PREPROC_REPEAT_20I(what, _index) _SCL_PREPROC_REPEAT_19I(what, 19), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_21(what, _index) _SCL_PREPROC_REPEAT_20(what, 20), what
+#define _SCL_PREPROC_REPEAT_21I(what, _index) _SCL_PREPROC_REPEAT_20I(what, 20), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_22(what, _index) _SCL_PREPROC_REPEAT_21(what, 21), what
+#define _SCL_PREPROC_REPEAT_22I(what, _index) _SCL_PREPROC_REPEAT_21I(what, 21), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_23(what, _index) _SCL_PREPROC_REPEAT_22(what, 22), what
+#define _SCL_PREPROC_REPEAT_23I(what, _index) _SCL_PREPROC_REPEAT_22I(what, 22), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_24(what, _index) _SCL_PREPROC_REPEAT_23(what, 23), what
+#define _SCL_PREPROC_REPEAT_24I(what, _index) _SCL_PREPROC_REPEAT_23I(what, 23), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_25(what, _index) _SCL_PREPROC_REPEAT_24(what, 24), what
+#define _SCL_PREPROC_REPEAT_25I(what, _index) _SCL_PREPROC_REPEAT_24I(what, 24), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_26(what, _index) _SCL_PREPROC_REPEAT_25(what, 25), what
+#define _SCL_PREPROC_REPEAT_26I(what, _index) _SCL_PREPROC_REPEAT_25I(what, 25), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_27(what, _index) _SCL_PREPROC_REPEAT_26(what, 26), what
+#define _SCL_PREPROC_REPEAT_27I(what, _index) _SCL_PREPROC_REPEAT_26I(what, 26), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_28(what, _index) _SCL_PREPROC_REPEAT_27(what, 27), what
+#define _SCL_PREPROC_REPEAT_28I(what, _index) _SCL_PREPROC_REPEAT_27I(what, 27), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_29(what, _index) _SCL_PREPROC_REPEAT_28(what, 28), what
+#define _SCL_PREPROC_REPEAT_29I(what, _index) _SCL_PREPROC_REPEAT_28I(what, 28), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_30(what, _index) _SCL_PREPROC_REPEAT_29(what, 29), what
+#define _SCL_PREPROC_REPEAT_30I(what, _index) _SCL_PREPROC_REPEAT_29I(what, 29), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_31(what, _index) _SCL_PREPROC_REPEAT_30(what, 30), what
+#define _SCL_PREPROC_REPEAT_31I(what, _index) _SCL_PREPROC_REPEAT_30I(what, 30), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_32(what, _index) _SCL_PREPROC_REPEAT_31(what, 31), what
+#define _SCL_PREPROC_REPEAT_32I(what, _index) _SCL_PREPROC_REPEAT_31I(what, 31), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_33(what, _index) _SCL_PREPROC_REPEAT_32(what, 32), what
+#define _SCL_PREPROC_REPEAT_33I(what, _index) _SCL_PREPROC_REPEAT_32I(what, 32), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_34(what, _index) _SCL_PREPROC_REPEAT_33(what, 33), what
+#define _SCL_PREPROC_REPEAT_34I(what, _index) _SCL_PREPROC_REPEAT_33I(what, 33), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_35(what, _index) _SCL_PREPROC_REPEAT_34(what, 34), what
+#define _SCL_PREPROC_REPEAT_35I(what, _index) _SCL_PREPROC_REPEAT_34I(what, 34), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_36(what, _index) _SCL_PREPROC_REPEAT_35(what, 35), what
+#define _SCL_PREPROC_REPEAT_36I(what, _index) _SCL_PREPROC_REPEAT_35I(what, 35), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_37(what, _index) _SCL_PREPROC_REPEAT_36(what, 36), what
+#define _SCL_PREPROC_REPEAT_37I(what, _index) _SCL_PREPROC_REPEAT_36I(what, 36), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_38(what, _index) _SCL_PREPROC_REPEAT_37(what, 37), what
+#define _SCL_PREPROC_REPEAT_38I(what, _index) _SCL_PREPROC_REPEAT_37I(what, 37), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_39(what, _index) _SCL_PREPROC_REPEAT_38(what, 38), what
+#define _SCL_PREPROC_REPEAT_39I(what, _index) _SCL_PREPROC_REPEAT_38I(what, 38), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_40(what, _index) _SCL_PREPROC_REPEAT_39(what, 39), what
+#define _SCL_PREPROC_REPEAT_40I(what, _index) _SCL_PREPROC_REPEAT_39I(what, 39), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_41(what, _index) _SCL_PREPROC_REPEAT_40(what, 40), what
+#define _SCL_PREPROC_REPEAT_41I(what, _index) _SCL_PREPROC_REPEAT_40I(what, 40), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_42(what, _index) _SCL_PREPROC_REPEAT_41(what, 41), what
+#define _SCL_PREPROC_REPEAT_42I(what, _index) _SCL_PREPROC_REPEAT_41I(what, 41), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_43(what, _index) _SCL_PREPROC_REPEAT_42(what, 42), what
+#define _SCL_PREPROC_REPEAT_43I(what, _index) _SCL_PREPROC_REPEAT_42I(what, 42), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_44(what, _index) _SCL_PREPROC_REPEAT_43(what, 43), what
+#define _SCL_PREPROC_REPEAT_44I(what, _index) _SCL_PREPROC_REPEAT_43I(what, 43), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_45(what, _index) _SCL_PREPROC_REPEAT_44(what, 44), what
+#define _SCL_PREPROC_REPEAT_45I(what, _index) _SCL_PREPROC_REPEAT_44I(what, 44), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_46(what, _index) _SCL_PREPROC_REPEAT_45(what, 45), what
+#define _SCL_PREPROC_REPEAT_46I(what, _index) _SCL_PREPROC_REPEAT_45I(what, 45), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_47(what, _index) _SCL_PREPROC_REPEAT_46(what, 46), what
+#define _SCL_PREPROC_REPEAT_47I(what, _index) _SCL_PREPROC_REPEAT_46I(what, 46), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_48(what, _index) _SCL_PREPROC_REPEAT_47(what, 47), what
+#define _SCL_PREPROC_REPEAT_48I(what, _index) _SCL_PREPROC_REPEAT_47I(what, 47), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_49(what, _index) _SCL_PREPROC_REPEAT_48(what, 48), what
+#define _SCL_PREPROC_REPEAT_49I(what, _index) _SCL_PREPROC_REPEAT_48I(what, 48), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_50(what, _index) _SCL_PREPROC_REPEAT_49(what, 49), what
+#define _SCL_PREPROC_REPEAT_50I(what, _index) _SCL_PREPROC_REPEAT_49I(what, 49), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_51(what, _index) _SCL_PREPROC_REPEAT_50(what, 50), what
+#define _SCL_PREPROC_REPEAT_51I(what, _index) _SCL_PREPROC_REPEAT_50I(what, 50), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_52(what, _index) _SCL_PREPROC_REPEAT_51(what, 51), what
+#define _SCL_PREPROC_REPEAT_52I(what, _index) _SCL_PREPROC_REPEAT_51I(what, 51), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_53(what, _index) _SCL_PREPROC_REPEAT_52(what, 52), what
+#define _SCL_PREPROC_REPEAT_53I(what, _index) _SCL_PREPROC_REPEAT_52I(what, 52), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_54(what, _index) _SCL_PREPROC_REPEAT_53(what, 53), what
+#define _SCL_PREPROC_REPEAT_54I(what, _index) _SCL_PREPROC_REPEAT_53I(what, 53), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_55(what, _index) _SCL_PREPROC_REPEAT_54(what, 54), what
+#define _SCL_PREPROC_REPEAT_55I(what, _index) _SCL_PREPROC_REPEAT_54I(what, 54), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_56(what, _index) _SCL_PREPROC_REPEAT_55(what, 55), what
+#define _SCL_PREPROC_REPEAT_56I(what, _index) _SCL_PREPROC_REPEAT_55I(what, 55), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_57(what, _index) _SCL_PREPROC_REPEAT_56(what, 56), what
+#define _SCL_PREPROC_REPEAT_57I(what, _index) _SCL_PREPROC_REPEAT_56I(what, 56), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_58(what, _index) _SCL_PREPROC_REPEAT_57(what, 57), what
+#define _SCL_PREPROC_REPEAT_58I(what, _index) _SCL_PREPROC_REPEAT_57I(what, 57), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_59(what, _index) _SCL_PREPROC_REPEAT_58(what, 58), what
+#define _SCL_PREPROC_REPEAT_59I(what, _index) _SCL_PREPROC_REPEAT_58I(what, 58), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_60(what, _index) _SCL_PREPROC_REPEAT_59(what, 59), what
+#define _SCL_PREPROC_REPEAT_60I(what, _index) _SCL_PREPROC_REPEAT_59I(what, 59), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_61(what, _index) _SCL_PREPROC_REPEAT_60(what, 60), what
+#define _SCL_PREPROC_REPEAT_61I(what, _index) _SCL_PREPROC_REPEAT_60I(what, 60), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_62(what, _index) _SCL_PREPROC_REPEAT_61(what, 61), what
+#define _SCL_PREPROC_REPEAT_62I(what, _index) _SCL_PREPROC_REPEAT_61I(what, 61), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_63(what, _index) _SCL_PREPROC_REPEAT_62(what, 62), what
+#define _SCL_PREPROC_REPEAT_63I(what, _index) _SCL_PREPROC_REPEAT_62I(what, 62), LIST_INDEX(what, _index)
+#define _SCL_PREPROC_REPEAT_64(what, _index) _SCL_PREPROC_REPEAT_63(what, 63), what
+#define _SCL_PREPROC_REPEAT_64I(what, _index) _SCL_PREPROC_REPEAT_63I(what, 63), LIST_INDEX(what, _index)
+
 #endif // COMMON_H

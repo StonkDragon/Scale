@@ -1,0 +1,103 @@
+import std.compiler.Utils
+
+foreign function expand(loc: SourceLocation, parser: Parser): Result`<[Token], MacroError>`
+    parser:consume => decl maybeTok: Token?
+    if maybeTok nil == then
+        MacroError {
+            "Expected a token" => msg
+            loc => location
+        } Result::Err return
+    fi
+    maybeTok!! => decl tok: Token
+
+    if tok.type TokenType::CurlyOpen != then
+        new<Token>{ tok } Result::Ok return
+    fi
+
+    1 => decl depth: int
+    1 TypedArray<Token>::new => decl tokens
+    decl nextTok: Token?
+    while depth 1 >= do
+        if parser:peek nil == then
+            MacroError {
+                "Expected a closing curly brace" => msg
+                nextTok.location => location
+            } Result::Err return
+        fi
+        parser:consume!! => nextTok
+        nextTok!! => decl current: Token
+
+        if current.type TokenType::CurlyClose != depth 1 > || then
+            current tokens:push
+        fi
+
+        if current.type TokenType::CurlyOpen == then
+            depth++ => depth
+        elif current.type TokenType::CurlyClose == then
+            depth-- => depth
+        fi
+    done
+
+    new<Token>[tokens.count] => decl expanded: [Token]
+    for i in 0 to tokens.count do
+        tokens[i] => expanded[i]
+    done
+
+    expanded Result::Ok return
+end
+
+foreign function quote(loc: SourceLocation, parser: Parser): Result`<[Token], MacroError>`
+    parser:consume => decl maybeTok: Token?
+    if maybeTok nil == then
+        MacroError {
+            "Expected a token" => msg
+            loc => location
+        } Result::Err return
+    fi
+    maybeTok!! => decl tok: Token
+
+    if tok.type TokenType::CurlyOpen != then
+        new<Token>{
+            Token {
+                TokenType::StringLiteral => type
+                tok.value => value
+                loc => location
+            }
+        } Result::Ok return
+    fi
+
+    1 => decl depth: int
+    "" => decl s: str
+    decl nextTok: Token?
+    while depth 1 >= do
+        if parser:peek nil == then
+            MacroError {
+                "Expected a closing curly brace" => msg
+                nextTok.location => location
+            } Result::Err return
+        fi
+        parser:consume!! => nextTok
+        nextTok!! => decl current: Token
+
+        if current.type TokenType::CurlyClose != depth 1 > || then
+            if s:size then
+                s " " + => s
+            fi
+            s current.value + => s
+        fi
+
+        if current.type TokenType::CurlyOpen == then
+            depth++ => depth
+        elif current.type TokenType::CurlyClose == then
+            depth-- => depth
+        fi
+    done
+
+    new<Token>{
+        Token {
+            TokenType::StringLiteral => type
+            s => value
+            loc => location
+        }
+    } Result::Ok return
+end

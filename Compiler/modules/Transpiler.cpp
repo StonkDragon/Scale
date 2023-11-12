@@ -1078,19 +1078,106 @@ namespace sclc {
         } else if (hasLayout(result, body[i].value)) {
             const Layout& l = getLayout(result, body[i].value);
             safeInc();
-            if (body[i].type != tok_double_column) {
-                transpilerError("Expected '::', but got '" + body[i].value + "'", i);
+            if (body[i].type == tok_double_column) {
+                safeInc();
+                if (body[i].value != "new") {
+                    transpilerError("Expected 'new' to create new layout, but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
+                typeStack.push(l.name);
+            } else if (body[i].type == tok_curly_open) {
+                append("_scl_push(scl_any, ({\n");
+                scopeDepth++;
+                size_t begin = i - 1;
+                append("scl_%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", l.name.c_str(), l.name.c_str());
+                append("scl_int stack_start = ls_ptr;\n");
+                safeInc();
+                size_t count = 0;
+                varScopePush();
+                if (function->isMethod) {
+                    Variable v("super", getVar("self").type);
+                    varScopeTop().push_back(v);
+                    append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
+                }
+                append("scl_%s Var_self = tmp;\n", l.name.c_str());
+                varScopeTop().push_back(Variable("self", "mut " + l.name));
+                std::vector<std::string> missedMembers;
+
+                size_t membersToInitialize = 0;
+                for (auto&& v : l.members) {
+                    if (v.name.front() != '$') {
+                        missedMembers.push_back(v.name);
+                        membersToInitialize++;
+                    }
+                }
+
+                while (body[i].type != tok_curly_close) {
+                    append("{\n");
+                    scopeDepth++;
+                    handle(Token);
+                    safeInc();
+                    if (body[i].type != tok_store) {
+                        transpilerError("Expected store, but got '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    safeInc();
+                    if (body[i].type != tok_identifier) {
+                        transpilerError("'" + body[i].value + "' is not an identifier", i);
+                        errors.push_back(err);
+                        return;
+                    }
+
+                    std::string lastType = typeStackTop;
+
+                    missedMembers = vecWithout(missedMembers, body[i].value);
+                    const Variable& v = [&]() -> const Variable& {
+                        for (auto&& v : l.members) {
+                            if (v.name == body[i].value) {
+                                return v;
+                            }
+                        }
+                        return Variable::emptyVar();
+                    }();
+
+                    if (!typesCompatible(result, lastType, v.type, true)) {
+                        transpilerError("Incompatible types: '" + v.type + "' and '" + lastType + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    append("tmp->%s = _scl_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                    typePop;
+                    scopeDepth--;
+                    append("}\n");
+                    append("ls_ptr = stack_start;\n");
+                    safeInc();
+                    count++;
+                }
+                varScopePop();
+                append("tmp;\n");
+                scopeDepth--;
+                append("}));\n");
+                typeStack.push(l.name);
+                if (count < membersToInitialize) {
+                    std::string missed = "{ ";
+                    for (size_t i = 0; i < missedMembers.size(); i++) {
+                        if (i) {
+                            missed += ", ";
+                        }
+                        missed += missedMembers[i];
+                    }
+                    missed += " }";
+                    transpilerError("Not every member was initialized! Missed: " + missed, begin);
+                    errors.push_back(err);
+                    return;
+                }
+            } else {
+                transpilerError("Expected '{' or '::', but got '" + body[i].value + "'", i);
                 errors.push_back(err);
                 return;
             }
-            safeInc();
-            if (body[i].value != "new") {
-                transpilerError("Expected 'new' to create new layout, but got '" + body[i].value + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
-            typeStack.push(l.name);
         } else if (hasEnum(result, body[i].value)) {
             Enum e = getEnumByName(result, body[i].value);
             safeInc();
@@ -1214,8 +1301,10 @@ namespace sclc {
                     }
                 }
             } else {
-                transpilerError("Empty array initializers are not allowed", i);
-                errors.push_back(err);
+                append("_scl_push(scl_any, _scl_new_array_by_size(0, %s));\n", elemSize.c_str());
+                typeStack.push("[" + typeString + "]");
+                scopeDepth--;
+                append("}\n");
                 return;
             }
 
@@ -3460,13 +3549,10 @@ namespace sclc {
             size_t args = lambdaArgCount(lambdaType);
             
             std::string argTypes = "";
-            std::string argGet = "";
             for (size_t argc = args; argc; argc--) {
                 argTypes += "scl_any";
-                argGet += "_scl_positive_offset(" + std::to_string(args - argc) + ", scl_any)";
                 if (argc > 1) {
                     argTypes += ", ";
-                    argGet += ", ";
                 }
             }
 
@@ -3474,7 +3560,6 @@ namespace sclc {
 
             std::string typedefName = "do$l_" + std::to_string(typedefCount++);
             std::string typeDef = "typedef " + sclTypeToCType(result, returnType) + "(*" + typedefName + ")(" + argTypes + ")";
-            std::string removed = removeTypeModifiers(returnType);
             append("%s;\n", typeDef.c_str());
 
             append("%s executor = _scl_pop(%s);\n", typedefName.c_str(), typedefName.c_str());
@@ -3706,9 +3791,29 @@ namespace sclc {
                 }
                 return;
             }
-            append("case %s: {\n", body[i].value.c_str());
-            scopeDepth++;
-            varScopePush();
+            if (hasEnum(result, body[i].value)) {
+                Enum e = getEnumByName(result, body[i].value);
+                safeInc();
+                if (body[i].type != tok_double_column) {
+                    transpilerError("Expected '::', but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                safeInc();
+                if (!e.hasMember(body[i].value)) {
+                    transpilerError("Unknown member '" + body[i].value + "' in enum '" + e.name + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                size_t index = e.indexOf(body[i].value);
+                append("case %zu: {\n", index);
+                scopeDepth++;
+                varScopePush();
+            } else {
+                append("case %s: {\n", body[i].value.c_str());
+                scopeDepth++;
+                varScopePush();
+            }
         }
     }
 
