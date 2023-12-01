@@ -175,10 +175,6 @@ namespace sclc
             globals.push_back(s);
         }
 
-        for (Container& c : result.containers) {
-            append("struct _Container_%s Container_%s = {0};\n", c.name.c_str(), c.name.c_str());
-        }
-
         scopeDepth = 0;
 
         append("_scl_constructor void init_this() {\n");

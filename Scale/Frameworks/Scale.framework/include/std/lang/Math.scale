@@ -127,6 +127,20 @@ function max(a: int, b: int): int
   b return
 end
 
+function min(a: float, b: float): float
+  if a b < then
+    a return
+  fi
+  b return
+end
+
+function max(a: float, b: float): float
+  if a b > then
+    a return
+  fi
+  b return
+end
+
 function clamp(x: int, lower: int, upper: int): int
   (lower (x upper min) max) return
 end

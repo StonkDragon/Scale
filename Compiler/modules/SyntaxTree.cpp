@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <list>
 
 #include "../headers/Common.hpp"
 
@@ -36,6 +37,8 @@ const std::vector<std::string> intrinsics({
 
 namespace sclc {
     std::map<std::string, std::string> templateArgs;
+
+    extern std::unordered_map<std::string, std::vector<std::string>> usingStructs;
 
     std::string typeToRTSigIdent(std::string type);
     std::string argsToRTSignatureIdent(Function* f);
@@ -656,35 +659,6 @@ namespace sclc {
         uint32_t numTypealiases = 0;
         fread(&numTypealiases, sizeof(uint32_t), 1, f);
 
-        std::vector<Container> containers;
-        for (uint32_t i = 0; i < numContainers; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            uint32_t numMembers = 0;
-            fread(&numMembers, sizeof(uint32_t), 1, f);
-            Container c(name);
-
-            for (uint32_t j = 0; j < numMembers; j++) {
-                uint32_t memberNameLength = 0;
-                fread(&memberNameLength, sizeof(uint32_t), 1, f);
-                char* memberName = (char*) malloc(memberNameLength + 1);
-                fread(memberName, 1, memberNameLength, f);
-
-                uint32_t memberTypeLength = 0;
-                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
-                char* memberType = (char*) malloc(memberTypeLength + 1);
-                fread(memberType, 1, memberTypeLength, f);
-
-                c.addMember(Variable(memberName, memberType));
-            }
-
-            containers.push_back(c);
-        }
-
         std::vector<Struct> structs;
         for (uint32_t i = 0; i < numStructs; i++) {
             uint32_t nameLength = 0;
@@ -1003,7 +977,6 @@ namespace sclc {
         TPResult result;
         result.errors = errors;
         result.warns = warns;
-        result.containers = containers;
         result.structs = structs;
         result.interfaces = interfaces;
         result.enums = enums;
@@ -1329,6 +1302,14 @@ namespace sclc {
         }
     };
 
+    template<typename T>
+    const typename std::list<T>::iterator& operator+(const typename std::list<T>::iterator& it, size_t i) {
+        for (size_t j = 0; j < i; j++) {
+            ++it;
+        }
+        return it;
+    }
+
     struct Macro {
         enum MacroType {
             Generic,
@@ -1336,6 +1317,7 @@ namespace sclc {
         } type;
         std::vector<MacroArg> args;
         std::vector<Token> tokens;
+        bool hasDollar;
 
         Macro() {
             this->type = Generic;
@@ -1343,7 +1325,7 @@ namespace sclc {
 
         virtual ~Macro() {}
 
-        virtual void expand(Token macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<std::pair<std::string, Token>>& _args, std::vector<FPResult>& errors) {
+        virtual void expand(const Token& macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<Token>& args, std::vector<FPResult>& errors) {
             (void) errors;
             (void) macroTok;
             #define MacroError(msg) ({ \
@@ -1364,28 +1346,21 @@ namespace sclc {
                 error.value = tok.value; \
                 error; \
             })
-
-            std::unordered_map<std::string, Token> args = [_args]() -> auto {
-                std::unordered_map<std::string, Token> args;
-                for (auto&& arg : _args) {
-                    args[arg.first] = arg.second;
-                }
-                return args;
-            }();
-
-            size_t next = i;
-            for (size_t j = 0; j < this->tokens.size(); j++) {
-                if (this->tokens[j].type == tok_dollar) {
-                    j++;
-                    Token t = args[this->tokens[j].value];
-                    otherTokens.insert(otherTokens.begin() + next, t);
-                } else {
-                    otherTokens.insert(otherTokens.begin() + next, this->tokens[j]);
-                }
-                next++;
+            if (this->tokens.empty()) {
+                return;
             }
-            #undef token
-            #undef nextToken
+            if (!hasDollar) {
+                otherTokens.insert(otherTokens.begin() + i, this->tokens.begin(), this->tokens.end());
+                return;
+            }
+
+            const size_t count = this->tokens.size();
+            otherTokens.reserve(otherTokens.size() + count);
+            Token* newToks = new Token[count];
+            for (size_t j = 0; j < count; j++) {
+                newToks[j] = tokens[j].type == tok_dollar ? args[tokens[j].location.line] : tokens[j];
+            }
+            otherTokens.insert(otherTokens.begin() + i, newToks, newToks + count);
         }
     };
 
@@ -1474,7 +1449,7 @@ namespace sclc {
             dlclose(this->lib);
         }
 
-        void expand(Token macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<std::pair<std::string, Token>>& args, std::vector<FPResult>& errors) override {
+        void expand(const Token& macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<Token>& args, std::vector<FPResult>& errors) override {
             (void) args;
             SclParser* parser = (SclParser*) alloc(sizeof(SclParser));
             parser = new (parser) SclParser{
@@ -1499,6 +1474,10 @@ namespace sclc {
 
             CToken** theTokens = (CToken**) Result$getOk(result);
             size_t numTokens = scl_array_size(theTokens);
+            if (!numTokens) {
+                return;
+            }
+            otherTokens.reserve(otherTokens.size() + numTokens);
             for (size_t j = 0; j < numTokens; j++) {
                 if (!theTokens[j]) {
                     errors.push_back(MacroError2("Macro returned invalid token", macroTok));
@@ -1512,9 +1491,7 @@ namespace sclc {
     
     TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
         Function* currentFunction = nullptr;
-        Container* currentContainer = nullptr;
-        Struct* currentStruct = nullptr;
-        std::vector<Struct> currentStructs;
+        std::vector<Struct*> currentStructs;
         Interface* currentInterface = nullptr;
         Deprecation currentDeprecation;
 
@@ -1524,7 +1501,6 @@ namespace sclc {
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
         std::vector<Variable> globals;
-        std::vector<Container> containers;
         std::vector<Struct> structs;
         std::vector<Layout> layouts;
         std::vector<Interface*> interfaces;
@@ -1536,7 +1512,6 @@ namespace sclc {
         uses.reserve(100);
         nextAttributes.reserve(100);
         globals.reserve(100);
-        containers.reserve(100);
         structs.reserve(100);
         layouts.reserve(100);
         interfaces.reserve(100);
@@ -1557,7 +1532,6 @@ namespace sclc {
                 return tmp;
             }
 
-            containers.insert(containers.end(), tmp.containers.begin(), tmp.containers.end());
             structs.insert(structs.end(), tmp.structs.begin(), tmp.structs.end());
             enums.insert(enums.end(), tmp.enums.begin(), tmp.enums.end());
             functions.insert(functions.end(), tmp.functions.begin(), tmp.functions.end());
@@ -1573,21 +1547,7 @@ namespace sclc {
         std::unordered_map<std::string, Macro*> macros;
 
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || (tokens[i].value != "macro!" && tokens[i].value != "delmacro!")) {
-                continue;
-            }
-            if (tokens[i].value == "delmacro!") {
-                i++;
-                if (tokens[i].type != tok_identifier) {
-                    errors.push_back(MacroError("Expected macro name"));
-                    continue;
-                }
-                std::string name = tokens[i].value;
-                if (macros.find(name) == macros.end()) {
-                    errors.push_back(MacroError("Macro '" + name + "' not defined"));
-                    continue;
-                }
-                macros.erase(name);
+            if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
                 continue;
             }
             size_t start = i;
@@ -1598,7 +1558,7 @@ namespace sclc {
             }
             std::string name = tokens[i].value;
             i++;
-            std::__1::vector<sclc::MacroArg> args;
+            std::vector<sclc::MacroArg> args;
             if (tokens[i].type == tok_paren_open) {
                 i++;
                 while (tokens[i].type != tok_paren_close) {
@@ -1663,7 +1623,29 @@ namespace sclc {
                     i++;
                     break;
                 }
-                macro->tokens.push_back(tokens[i]);
+                if (tokens[i].type == tok_dollar) {
+                    macro->hasDollar = true;
+                    i++;
+                    if (tokens[i].type != tok_identifier) {
+                        errors.push_back(MacroError("Expected identifier after '$'"));
+                        continue;
+                    }
+                    size_t argIndex = -1;
+                    for (size_t j = 0; j < macro->args.size(); j++) {
+                        if (macro->args[j].name == tokens[i].value) {
+                            argIndex = j;
+                            break;
+                        }
+                    }
+                    if (argIndex == (size_t) -1) {
+                        errors.push_back(MacroError("Unknown argument '" + tokens[i].value + "'"));
+                        continue;
+                    }
+
+                    macro->tokens.push_back(Token(tok_dollar, std::to_string(argIndex), SourceLocation("", argIndex, 0)));
+                } else {
+                    macro->tokens.push_back(tokens[i]);
+                }
                 i++;
             }
             // delete macro declaration
@@ -1678,8 +1660,24 @@ namespace sclc {
         }
 
         for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_identifier) {
+                continue;
+            }
+            if (tokens[i].value == "delmacro!") {
+                i++;
+                if (tokens[i].type != tok_identifier) {
+                    errors.push_back(MacroError("Expected macro name"));
+                    continue;
+                }
+                std::string name = tokens[i].value;
+                if (macros.find(name) == macros.end()) {
+                    errors.push_back(MacroError("Macro '" + name + "' not defined"));
+                    continue;
+                }
+                macros.erase(name);
+                continue;
+            }
             if (
-                tokens[i].type != tok_identifier ||
                 macros.find(tokens[i].value) == macros.end() ||
                 i + 1 >= tokens.size() ||
                 tokens[i + 1].value != "!" ||
@@ -1688,13 +1686,13 @@ namespace sclc {
                 continue;
             }
             Macro* macro = macros[tokens[i].value];
-            std::vector<std::pair<std::string, Token>> args;
+            std::vector<Token> args;
             size_t start = i;
             Token macroTok = tokens[i];
             i += 2;
             if (macro->type != Macro::MacroType::Native) {
                 for (size_t j = 0; j < macro->args.size(); j++) {
-                    args.push_back({macro->args[j].name, tokens[i]});
+                    args.push_back(tokens[i]);
                     i++;
                 }
             }
@@ -2007,22 +2005,12 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define function inside of a container. Current container: " + currentContainer->name;
-                    result.value = tokens[i + 1].value;
-                    result.location = tokens[i + 1].location;
-                    result.type = tokens[i + 1].type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (currentStruct != nullptr) {
+                if (currentStructs.size()) {
                     if (tokens[i + 2].type == tok_column) {
                         std::string name = tokens[i + 1].value;
-                        if (name != currentStruct->name) {
+                        if (name != currentStructs.back()->name) {
                             FPResult result;
-                            result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStruct->name;
+                            result.message = "Cannot define method on different struct inside of a struct. Current struct: " + currentStructs.back()->name;
                             result.value = tokens[i + 1].value;
                             result.location = tokens[i + 1].location;
                             result.type = tokens[i + 1].type;
@@ -2032,13 +2020,13 @@ namespace sclc {
                         }
                         i += 2;
                     }
-                    if (contains<std::string>(nextAttributes, "static") || currentStruct->isStatic()) {
+                    if (contains<std::string>(nextAttributes, "static") || currentStructs.back()->isStatic()) {
                         std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
-                        currentFunction = parseFunction(currentStruct->name + "$" + name, func, errors, i, tokens);
+                        currentFunction = parseFunction(currentStructs.back()->name + "$" + name, func, errors, i, tokens);
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
-                        currentFunction->member_type = currentStruct->name;
+                        currentFunction->member_type = currentStructs.back()->name;
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -2062,7 +2050,7 @@ namespace sclc {
                     }
                     Token& func = tokens[i + 1];
                     std::string name = func.value;
-                    currentFunction = parseMethod(name, func, currentStruct->name, errors, i, tokens);
+                    currentFunction = parseMethod(name, func, currentStructs.back()->name, errors, i, tokens);
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
@@ -2285,17 +2273,12 @@ namespace sclc {
                             functions.push_back(currentFunction);
                     }
                     currentFunction = nullptr;
-                } else if (currentContainer != nullptr) {
-                    if (std::find(containers.begin(), containers.end(), *currentContainer) == containers.end()) {
-                        containers.push_back(*currentContainer);
+                } else if (currentStructs.size()) {
+                    if (std::find(structs.begin(), structs.end(), *(currentStructs.back())) == structs.end()) {
+                        structs.push_back(*(currentStructs.back()));
                     }
-                    currentContainer = nullptr;
-                } else if (currentStruct != nullptr) {
-                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
-                        structs.push_back(*currentStruct);
-                    }
+                    currentStructs.pop_back();
                     templateArgs.clear();
-                    currentStruct = nullptr;
                 } else if (currentInterface != nullptr) {
                     if (std::find(interfaces.begin(), interfaces.end(), currentInterface) == interfaces.end()) {
                         interfaces.push_back(currentInterface);
@@ -2304,7 +2287,7 @@ namespace sclc {
                     currentInterface = nullptr;
                 } else {
                     FPResult result;
-                    result.message = "Unexpected 'end' keyword outside of function, container, struct or interface body. Remove this:";
+                    result.message = "Unexpected 'end' keyword outside of function, struct or interface body. Remove this:";
                     result.value = token.value;
                     result.location.line = token.location.line;
                     result.location = token.location;
@@ -2313,107 +2296,10 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-            } else if (token.type == tok_container_def) {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a container inside another container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (currentFunction != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a container inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a container inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (currentInterface != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a container inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                i++;
-                if (tokens[i].type != tok_identifier) {
-                    FPResult result;
-                    result.message = "Expected identifier for container name, but got '" + tokens[i].value + "'";
-                    result.value = tokens[i].value;
-                    result.location = tokens[i].location;
-                    result.type = tokens[i].type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (tokens[i].value == "str" || tokens[i].value == "int" || tokens[i].value == "float" || tokens[i].value == "none" || tokens[i].value == "nothing" || tokens[i].value == "any" || isPrimitiveIntegerType(tokens[i].value)) {
-                    FPResult result;
-                    result.message = "Invalid name for container: '" + tokens[i].value + "'";
-                    result.value = tokens[i].value;
-                    result.location = tokens[i].location;
-                    result.type = tokens[i].type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                FPResult result;
-                result.message = "Containers are deprecated. Use a static struct instead.";
-                result.value = tokens[i].value;
-                result.location = tokens[i].location;
-                result.type = tokens[i].type;
-                result.success = false;
-                warns.push_back(result);
-                currentContainer = new Container(tokens[i].value);
-                currentContainer->name_token = new Token(tokens[i]);
             } else if (token.type == tok_union_def) {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a union struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a union struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a union struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
                     result.value = token.value;
                     result.location.line = token.location.line;
                     result.location = token.location;
@@ -2444,7 +2330,12 @@ namespace sclc {
                     continue;
                 }
                 i++;
-                currentStruct = new Struct(tokens[i].value, tokens[i]);
+                std::string namePrefix = "";
+                if (currentStructs.size()) {
+                    namePrefix = currentStructs.back()->name + "$";
+                }
+                currentStructs.push_back(new Struct(namePrefix + tokens[i].value, tokens[i]));
+                Struct* currentStruct = currentStructs.back();
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
@@ -2561,19 +2452,8 @@ namespace sclc {
                 if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
                     structs.push_back(*currentStruct);
                 }
-                currentStruct = nullptr;
-            } else if (token.type == tok_struct_def && (i == 0 || (((((long) i) - 1) >= 0) && tokens[i - 1].type != tok_double_column))) {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a struct inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
+                currentStructs.pop_back();
+            } else if (token.type == tok_struct_def && (i == 0 || (i > 0 && (tokens[i - 1].type != tok_identifier || tokens[i - 1].value != "using")))) {
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2585,17 +2465,17 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
+                // if (currentStruct != nullptr) {
+                //     FPResult result;
+                //     result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
+                //     result.value = token.value;
+                //     result.location.line = token.location.line;
+                //     result.location = token.location;
+                //     result.type = token.type;
+                //     result.success = false;
+                //     errors.push_back(result);
+                //     continue;
+                // }
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
@@ -2628,7 +2508,12 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                currentStruct = new Struct(tokens[i].value, tokens[i]);
+                std::string namePrefix = "";
+                if (currentStructs.size()) {
+                    namePrefix = currentStructs.back()->name + "$";
+                }
+                Struct* currentStruct = new Struct(namePrefix + tokens[i].value, tokens[i]);
+                currentStructs.push_back(currentStruct);
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
@@ -2734,20 +2619,9 @@ namespace sclc {
                     if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
                         structs.push_back(*currentStruct);
                     }
-                    currentStruct = nullptr;
+                    currentStructs.pop_back();
                 }
             } else if (token.type == tok_identifier && token.value == "layout") {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a layout inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a layout inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2759,16 +2633,9 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define a layout inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                std::string namePrefix = "";
+                if (currentStructs.size()) {
+                    namePrefix = currentStructs.back()->name + "$";
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
@@ -2784,7 +2651,7 @@ namespace sclc {
                 i++;
                 std::string name = tokens[i].value;
                 i++;
-                Layout layout(name);
+                Layout layout(namePrefix + name);
 
                 while (tokens[i].type != tok_end) {
                     if (tokens[i].type != tok_declare) {
@@ -2837,18 +2704,18 @@ namespace sclc {
                 if (std::find(layouts.begin(), layouts.end(), layout) == layouts.end()) {
                     layouts.push_back(layout);
                 }
-            } else if (token.type == tok_enum) {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define an enum inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
+            } else if (token.type == tok_identifier && token.value == "using" && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
+                if (usingStructs.find(token.location.file) == usingStructs.end()) {
+                    usingStructs[token.location.file] = std::vector<std::string>();
+                }
+                i += 2;
+                FPResult result = parseType(tokens, &i);
+                if (!result.success) {
                     errors.push_back(result);
                     continue;
                 }
+                usingStructs[token.location.file].push_back(result.value);
+            } else if (token.type == tok_enum) {
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an enum inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2860,16 +2727,9 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define an enum inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                std::string namePrefix = "";
+                if (currentStructs.size()) {
+                    namePrefix = currentStructs.back()->name + "$";
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
@@ -2895,7 +2755,7 @@ namespace sclc {
                 }
                 std::string name = tokens[i].value;
                 i++;
-                Enum e = Enum(name);
+                Enum e = Enum(namePrefix + name);
                 e.name_token = new Token(tokens[i - 1]);
                 while (tokens[i].type != tok_end) {
                     long next = e.nextValue;
@@ -2933,17 +2793,6 @@ namespace sclc {
                 }
                 enums.push_back(e);
             } else if (token.type == tok_interface_def) {
-                if (currentContainer != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define an interface inside of a container. Maybe you forgot an 'end' somewhere? Current container: " + currentContainer->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = token.type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define an interface inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2955,16 +2804,9 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                if (currentStruct != nullptr) {
-                    FPResult result;
-                    result.message = "Cannot define an interface inside of a struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                    result.value = token.value;
-                    result.location.line = token.location.line;
-                    result.location = token.location;
-                    result.type = tokens[i].type;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
+                std::string namePrefix = "";
+                if (currentStructs.size()) {
+                    namePrefix = currentStructs.back()->name + "$";
                 }
                 if (currentInterface != nullptr) {
                     FPResult result;
@@ -2998,7 +2840,7 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                currentInterface = new Interface(tokens[i].value);
+                currentInterface = new Interface(namePrefix + tokens[i].value);
                 currentInterface->name_token = new Token(tokens[i]);
             } else if (token.type == tok_addr_of) {
                 if (currentFunction == nullptr) {
@@ -3021,7 +2863,7 @@ namespace sclc {
                 } else {
                     currentFunction->addToken(token);
                 }
-            } else if (currentFunction != nullptr && currentContainer == nullptr) {
+            } else if (currentFunction != nullptr) {
                 if (
                     token.type == tok_identifier &&
                     token.value == "lambda" &&
@@ -3037,7 +2879,7 @@ namespace sclc {
                 }
                 if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
-            } else if (token.type == tok_declare && currentContainer == nullptr && currentStruct == nullptr) {
+            } else if (token.type == tok_declare && currentStructs.size() == 0) {
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
@@ -3082,42 +2924,7 @@ namespace sclc {
                     }
                 }
                 nextAttributes.clear();
-            } else if (token.type == tok_declare && currentContainer != nullptr) {
-                if (tokens[i + 1].type != tok_identifier) {
-                    FPResult result;
-                    result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
-                    result.value = tokens[i + 1].value;
-                    result.location = tokens[i + 1].location;
-                    result.success = false;
-                    errors.push_back(result);
-                    continue;
-                }
-                i++;
-                std::string name = tokens[i].value;
-                std::string type = "any";
-                i++;
-                if (tokens[i].type == tok_column) {
-                    i++;
-                    FPResult r = parseType(tokens, &i, templateArgs);
-                    if (!r.success) {
-                        errors.push_back(r);
-                        continue;
-                    }
-                    type = r.value;
-                    if (type == "none" || type == "nothing") {
-                        FPResult result;
-                        result.message = "Type 'none' is only valid for function return types.";
-                        result.value = tokens[i].value;
-                        result.location = tokens[i].location;
-                        result.type = tokens[i].type;
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                }
-                nextAttributes.clear();
-                currentContainer->addMember(Variable(name, type));
-            } else if (token.type == tok_declare && currentStruct != nullptr) {
+            } else if (token.type == tok_declare && currentStructs.size() > 0) {
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
@@ -3159,8 +2966,8 @@ namespace sclc {
                 }
                 
                 Variable& v = Variable::emptyVar();
-                if (currentStruct->isStatic() || contains<std::string>(nextAttributes, "static")) {
-                    v = Variable(currentStruct->name + "$" + name, type, currentStruct->name);
+                if (currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static")) {
+                    v = Variable(currentStructs.back()->name + "$" + name, type, currentStructs.back()->name);
                     v.name_token = new Token(name_token);
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
@@ -3184,12 +2991,12 @@ namespace sclc {
                         errors.push_back(result);
                         continue;
                     }
-                    v = Variable(name, type, currentStruct->name);
+                    v = Variable(name, type, currentStructs.back()->name);
                     v.name_token = new Token(name_token);
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     v.isVirtual = contains<std::string>(nextAttributes, "virtual");
-                    currentStruct->addMember(v);
+                    currentStructs.back()->addMember(v);
                     nextAttributes.clear();
                 }
 
@@ -3225,7 +3032,7 @@ namespace sclc {
                            t.value == "asm";
                 };
 
-                if ((tokens[i].value == "get" || tokens[i].value == "set") && currentStruct != nullptr && currentFunction == nullptr) {
+                if ((tokens[i].value == "get" || tokens[i].value == "set") && currentStructs.size() && currentFunction == nullptr) {
                     std::string varName = lastDeclaredVariable.name;
                     if (tokens[i].value == "get") {
                         Token& getToken = tokens[i];
@@ -3250,11 +3057,11 @@ namespace sclc {
                         name += (char) std::toupper(varName[0]);
                         name += varName.substr(1);
 
-                        Method* getter = new Method(currentStruct->name, name, getToken);
+                        Method* getter = new Method(currentStructs.back()->name, name, getToken);
                         getter->return_type = lastDeclaredVariable.type;
                         getter->addModifier("@getter");
                         getter->addModifier(varName);
-                        getter->addArgument(Variable("self", currentStruct->name));
+                        getter->addArgument(Variable("self", currentStructs.back()->name));
                         currentFunction = getter;
                     } else {
                         Token& setToken = tokens[i];
@@ -3282,12 +3089,12 @@ namespace sclc {
                         name += (char) std::toupper(varName[0]);
                         name += varName.substr(1);
 
-                        Method* setter = new Method(currentStruct->name, name, setToken);
+                        Method* setter = new Method(currentStructs.back()->name, name, setToken);
                         setter->return_type = "none";
                         setter->addModifier("@setter");
                         setter->addModifier(varName);
                         setter->addArgument(Variable(argName, lastDeclaredVariable.type));
-                        setter->addArgument(Variable("self", currentStruct->name));
+                        setter->addArgument(Variable("self", currentStructs.back()->name));
                         currentFunction = setter;
                     }
                 } else if (tokens[i].value == "typealias") {
@@ -3356,7 +3163,7 @@ namespace sclc {
 
                     #undef invalidKey
                 } else if (validAttribute(tokens[i])) {
-                    if (tokens[i].value == "construct" && currentStruct != nullptr) {
+                    if (tokens[i].value == "construct" && currentStructs.size()) {
                         nextAttributes.push_back("private");
                         nextAttributes.push_back("static");
                     }
@@ -3419,7 +3226,6 @@ namespace sclc {
         result.functions = functions;
         result.extern_globals = extern_globals;
         result.globals = globals;
-        result.containers = containers;
         result.structs = structs;
         result.layouts = layouts;
         result.errors = errors;

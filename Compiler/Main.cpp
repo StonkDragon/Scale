@@ -688,7 +688,7 @@ namespace sclc
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
@@ -748,7 +748,7 @@ namespace sclc
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);

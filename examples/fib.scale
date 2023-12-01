@@ -14,7 +14,7 @@ function main(): none
     
     # prints out every fibonacci number from 0 to N (4000000)
     while x N < do
-        x putint
+        x puts
         x y + => z
         y => x
         z => y

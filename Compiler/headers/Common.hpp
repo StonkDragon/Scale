@@ -45,7 +45,6 @@ namespace sclc {
 #include "Function.hpp"
 #include "Results.hpp"
 #include "Variable.hpp"
-#include "Container.hpp"
 #include "Interface.hpp"
 #include "Struct.hpp"
 #include "DragonConfig.hpp"
@@ -196,7 +195,6 @@ namespace sclc {
     Method* getMethodByNameWithArgs(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
     Method* getMethodWithActualName(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
     Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name, bool doCheck = true);
-    Container getContainerByName(TPResult& result, const std::string& name);
     Struct& getStructByName(TPResult& result, const std::string& name);
     Layout getLayout(TPResult& result, const std::string& name);
     bool hasLayout(TPResult& result, const std::string& name);
@@ -208,7 +206,6 @@ namespace sclc {
     std::string supersToCList(TPResult& r, Struct& s);
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
-    bool hasContainer(TPResult& result, std::string name);
     bool hasGlobal(TPResult& result, std::string name);
     FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());
     bool sclIsProhibitedInit(std::string s);

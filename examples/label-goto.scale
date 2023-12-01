@@ -12,7 +12,7 @@ function main(): none
   label a
     
   i 1 + => i
-  i putint
+  i puts
   if i 10 < then
     goto a
   fi

@@ -11,7 +11,7 @@ end
 
 # prints 0, 2, 1
 function main(): none
-    Enum::zero putint
-    Enum::two  putint
-    Enum::one  putint
+    Enum::zero puts
+    Enum::two  puts
+    Enum::one  puts
 end

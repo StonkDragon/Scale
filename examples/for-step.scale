@@ -6,6 +6,6 @@
 function main(): none
     # prints every fifth number between 0 and 100
     for i in 0 to 100 step + 5 do
-        i putint
+        i puts
     done
 end

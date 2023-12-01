@@ -6,6 +6,7 @@
 %include include/std/lang/Float.scldoc
 %include include/std/lang/Fmt.scldoc
 %include include/std/lang/IO.scldoc
+%include include/std/lang/List.scldoc
 %include include/std/lang/Int.scldoc
 %include include/std/lang/Math.scldoc
 %include include/std/lang/Option.scldoc

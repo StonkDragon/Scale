@@ -1,3 +1,5 @@
+import std.util.Range
+
 static struct List
     macro! CreateListOperations(type) {
         function filter(arr: [$type], f: lambda($type): bool): [$type]
@@ -19,8 +21,8 @@ static struct List
             arr return
         end
 
-        function reduce(arr: [$type], f: lambda(int, $type): int): int
-            decl result: int
+        function reduce(arr: [$type], f: lambda($type, $type): $type): $type
+            decl result: $type
             for i in 0 to arr:size do
                 result arr[i] f:accept => result
             done
@@ -52,6 +54,203 @@ static struct List
 
         function transform(arr: [$type], f: lambda([$type]): any): any
             arr f:accept return
+        end
+
+        function tail(x: [$type]): [$type]
+            (1 to x:size) x:slice return
+        end
+
+        function head(x: [$type]): $type
+            x[0] return
+        end
+
+        function zip(a: [$type], b: [$type]): [[$type]]
+            assert (a:size b:size ==) else (
+                "Arrays must be of same size" InvalidArgumentException::new throw
+            )
+            new<$type>[a:size][2] => decl result: [[$type]]
+            for i in 0 to a:size do
+                a[i] => result[i][0]
+                b[i] => result[i][1]
+            done
+            result return
+        end
+
+        function slice(r: Range, arr: [$type]): [$type]
+            if r.lower 0 < r.upper arr:size > || then
+                "Slice out of bounds" InvalidArgumentException::new throw
+            fi
+
+            r:toList => decl indices: [int]
+            new<$type>[indices:size] => decl result: [$type]
+            decl j: int
+            foreach i in indices do
+                arr[i] => result[j]
+                j++ => j
+            done
+            result return
+        end
+
+        cdecl "_scl_array_resize"
+        expect foreign function resize(size: int, arr: [$type]): [$type]
+
+        cdecl "_scl_array_sort"
+        expect foreign function sort(arr: [$type]): [$type]
+
+        cdecl "_scl_array_reverse"
+        expect foreign function reverse(arr: [$type]): [$type]
+
+        cdecl "_scl_array_to_string"
+        expect foreign function toString(arr: [$type]): str
+
+        cdecl "_scl_array_size"
+        expect foreign function size(arr: [$type]): int
+
+        function empty(arr: [$type]): bool
+            arr:size 0 == return
+        end
+
+        function contains(val: $type, arr: [$type]): bool
+            val arr:indexOf -1 != return
+        end
+
+        function indexOf(val: $type, arr: [$type]): int
+            for i in 0 to arr:size do
+                if arr[i] val == then
+                    i return
+                fi
+            done
+            -1 return
+        end
+
+        function lastIndexOf(val: $type, arr: [$type]): int
+            for i in arr:size 1 - to -1 step -- do
+                if arr[i] val == then
+                    i return
+                fi
+            done
+            -1 return
+        end
+
+        function once(val: $type, arr: [$type]): bool
+            decl _count: int
+            for i in 0 to arr:size do
+                if arr[i] val == then
+                    _count 1 +> _count
+                    if _count 1 > then
+                        false return
+                    fi
+                fi
+            done
+            _count 1 == return
+        end
+
+        function combine(a: [$type], b: [$type]): [$type]
+            new<$type>[a:size b:size +] => decl result: [$type]
+            for i in 0 to a:size do
+                a[i] => result[i]
+            done
+            a:size => decl j: int
+            for i in j to result:size do
+                b[i j -] => result[i]
+            done
+            result return
+        end
+
+        function append(elem: $type, arr: [$type]): [$type]
+            new<$type>[arr:size 1 +] => decl result: [$type]
+            for i in 0 to arr:size do
+                arr[i] => result[i]
+            done
+            elem => result[arr:size]
+            result return
+        end
+
+        function prepend(elem: $type, arr: [$type]): [$type]
+            new<$type>[arr:size 1 +] => decl result: [$type]
+            elem => result[0]
+            for i in 0 to arr:size do
+                arr[i] => result[i 1 +]
+            done
+            result return
+        end
+
+        function insert(elem: $type, index: int, arr: [$type]): [$type]
+            if index 0 < index arr:size > || then
+                "Index out of bounds" InvalidArgumentException::new throw
+            fi
+
+            new<$type>[arr:size 1 +] => decl result: [$type]
+            for i in 0 to index do
+                arr[i] => result[i]
+            done
+            elem => result[index]
+            for i in index to arr:size do
+                arr[i] => result[i 1 +]
+            done
+            result return
+        end
+
+        function remove(index: int, arr: [$type]): [$type]
+            if index 0 < index arr:size > || then
+                "Index out of bounds" InvalidArgumentException::new throw
+            fi
+
+            new<$type>[arr:size 1 -] => decl result: [$type]
+            for i in 0 to index do
+                arr[i] => result[i]
+            done
+            for i in index to arr:size do
+                arr[i 1 +] => result[i]
+            done
+            result return
+        end
+
+        function intersect(b: [$type], a: [$type]): [$type]
+            new<$type>[a:size] => decl result: [$type]
+            decl total: int
+            for i in 0 to a:size do
+                for j in 0 to b:size do
+                    if a[i] b[j] == then
+                        a[i] => result[total]
+                        total 1 +> total
+                        break
+                    fi
+                done
+            done
+            total result:resize return
+        end
+
+        function excl(b: [$type], a: [$type]): [$type]
+            new<$type>[a:size b:size +] => decl result: [$type]
+            decl total: int
+            for i in 0 to a:size do
+                false => decl found: bool
+                for j in 0 to b:size do
+                    if a[i] b[j] == then
+                        true => found
+                        break
+                    fi
+                done
+                if found ! then
+                    a[i] => result[total]
+                    total 1 +> total
+                fi
+            done
+            for i in 0 to b:size do
+                false => decl found: bool
+                for j in 0 to a:size do
+                    if b[i] a[j] == then
+                        true => found
+                        break
+                    fi
+                done
+                if found ! then
+                    b[i] => result[total]
+                    total 1 +> total
+                fi
+            done
+            total result:resize return
         end
     }
 

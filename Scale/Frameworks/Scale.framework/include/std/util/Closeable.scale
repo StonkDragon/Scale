@@ -1,0 +1,3 @@
+interface Closeable
+    function close(): none
+end

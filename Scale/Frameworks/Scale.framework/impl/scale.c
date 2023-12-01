@@ -91,6 +91,12 @@ typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
 
+typedef struct Struct_Range {
+	Struct rtFields;
+	scl_int begin;
+	scl_int end;
+}* scl_Range;
+
 extern scl_Array		Var_Thread$threads;
 extern scl_Thread		Var_Thread$mainThread;
 
@@ -366,7 +372,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 				if (_scl_is_instance(arr[i])) {
 					tmp = (scl_str) virtual_call(arr[i], "toString()s;");
 				} else {
-					value = ((scl_int*) arr)[i];
+					tmp = builtinToString(arr[i]);
 				}
 				break;
 			}

@@ -1,14 +1,25 @@
+import std.util.Closeable
+
 typealias __c_file "FILE*"
 
-final struct File
+cdecl "strlen"
+private expect foreign unsafe function __c_strlen(cstr: [int8]): int
+
+final struct File is Closeable
   private decl _name: str
   private decl _file: __c_file
+  private decl _can_close: bool
 
   function init(name: str): none
     unsafe
-      name:view "ab+":view File::__c_fopen => self._file
+      name:view "rb+":view File::__c_fopen => decl file: __c_file?
+      if file as any nil == then
+        "Could not open file " name + ": " + strerror + NullPointerException::new throw
+      fi
+      file!! => self._file
     end
     name => self._name
+    true => self._can_close
   end
 
   function name(): str
@@ -16,15 +27,36 @@ final struct File
   end
 
   function close(): none
+    if self._can_close ! then
+      "Cannot close file " self._name + ": File is not closable" + IllegalStateException::new throw
+    fi
     unsafe
       _file File::__c_fclose
     end
   end
 
   function append(s: str): none
+    s:view self:append
+  end
+
+  function append(s: [int8]): none
     unsafe
-      s:view 1 s:size _file File::__c_fwrite
+      s 1 s:size _file File::__c_fwrite
     end
+  end
+
+  function puts(s: str): none
+    s self:append
+    "\n" self:append
+  end
+
+  function puts(s: [int8]): none
+    s self:append
+    "\n" self:append
+  end
+
+  function puts(f: float): none
+    f:toString self:puts
   end
 
   function puts(s: any): none
@@ -60,6 +92,14 @@ final struct File
     end
   end
 
+  function toStart(): none
+    0 self:offsetFromBegin
+  end
+
+  function toEnd(): none
+    0 self:offsetFromEnd
+  end
+
   function offset(offset: int): none
     unsafe
       _file offset 1 File::__c_fseek
@@ -91,9 +131,62 @@ final struct File
     "" self:append
   end
 
+  function readLine(): str?
+    self:size => decl len: int
+    new<int8>[len] => decl line: [int8]
+
+    unsafe
+      if line len self._file File::__c_fgets nil == then
+        nil return
+      fi
+      '\0' => line[line __c_strlen 1 -]
+    end
+
+    line str::new return
+  end
+
+  function readLines(): [str]
+    new<str>[0] => decl lines: [str]
+    decl line: str?
+    while self:readLine => line line nil != do
+      line lines:append as [str] => lines
+    done
+    lines return
+  end
+
+  function size(): int
+    self:pos => decl currentPos: int
+    0 self:offsetFromEnd
+    self:pos => decl fileSize: int
+    currentPos self:offsetFromBegin
+    fileSize return
+  end
+
+  function contents(): [int8]
+    self:size self:read as [int8] return
+  end
+
+  function stringContent(): str
+    self:contents str::of return
+  end
+
+  function setContent(data: [int8]): none
+    0 self:offsetFromBegin
+    data data:size self:writeBinary
+  end
+
+  function setContent(data: str): none
+    data:view self:setContent
+  end
+
   static function exists(f: str): bool
     unsafe
-      f:view "r":view File::__c_fopen nil != return
+      f:view "r":view File::__c_fopen => decl file: __c_file?
+      if file nil != then
+        file!! File::__c_fclose
+        true return
+      fi
+      false return
     end
   end
 
@@ -105,4 +198,5 @@ final struct File
   static expect foreign unsafe cdecl "fileno" function __c_fileno(filePtr: __c_file): int
   static expect foreign unsafe cdecl "remove" function __c_remove(fileName: [int8]): int
   static expect foreign unsafe cdecl "fseek"  function __c_fseek(filePtr: __c_file, offset: int, _whence_: int): none
+  static expect foreign unsafe cdecl "fgets"  function __c_fgets(:[int8], :int, :__c_file): [int8]
 end

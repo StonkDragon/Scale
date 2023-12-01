@@ -60,6 +60,12 @@ Returns true if `self` ends with `string`.
 ### function str:subString(start: int): str
 Returns a substring of `self` starting at `start`.
 
+### function str:subString(range: Range): str
+Returns a substring of `self` in the range `range`.
+
+### function str:trim(): str
+Returns a copy of `self` with leading and trailing whitespace removed.
+
 ### function str:view(): [int8]
 Returns a pointer to the memory block containing the data of `self`.
 

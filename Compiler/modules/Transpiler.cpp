@@ -25,14 +25,33 @@ namespace sclc {
     int scopeDepth = 0;
     size_t i = 0;
     size_t condCount = 0;
-    std::vector<char> whatWasIt;
+    std::vector<short> whatWasIt;
     std::vector<std::string> switchTypes;
+    std::vector<std::string> usingNames;
+    std::unordered_map<std::string, std::vector<std::string>> usingStructs;
     char repeat_depth = 0;
     int iterator_count = 0;
     int isInUnsafe = 0;
     std::stack<std::string> typeStack;
     std::string return_type = "";
     int lambdaCount = 0;
+
+    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns) {
+        if (hasFunction(result, name)) {
+            transpilerError("Variable '" + name + "' shadowed by function '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (getStructByName(result, name) != Struct::Null) {
+            transpilerError("Variable '" + name + "' shadowed by struct '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (!function->member_type.empty()) {
+            if (hasFunction(result, function->member_type + "$" + name)) {
+                transpilerError("Variable '" + name + "' shadowed by function '" + function->member_type + "::" + name + "'", i+1);
+                warns.push_back(err);
+            }
+        }
+    }
 
     void ConvertC::writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
         (void) errors;
@@ -207,17 +226,6 @@ namespace sclc {
             append("};\n");
         }
         append("\n");
-        if (result.containers.size() == 0) return;
-        
-        append("/* CONTAINERS */\n");
-        for (Container& c : result.containers) {
-            append("struct _Container_%s {\n", c.name.c_str());
-            for (Variable& s : c.members) {
-                append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            }
-            append("};\n");
-            append("extern struct _Container_%s Container_%s;\n", c.name.c_str(), c.name.c_str());
-        }
     }
 
     void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
@@ -665,11 +673,136 @@ namespace sclc {
         }
     }
 
+    handler(Using) {
+        safeInc();
+        if (body[i].type == tok_struct_def) {
+            std::string file = body[i].location.file;
+            safeInc();
+            FPResult res = parseType(body, &i, getTemplates(result, function));
+            if (!res.success) {
+                errors.push_back(res);
+                return;
+            }
+            std::string type = res.value;
+            if (usingStructs.find(file) == usingStructs.end()) {
+                usingStructs[file] = std::vector<std::string>();
+            }
+            usingStructs[file].push_back(type);
+            return;
+        }
+
+        append("{\n");
+        scopeDepth++;
+        pushOther();
+        varScopePush();
+        size_t stackSize = typeStack.size();
+        while (body[i].type != tok_do) {
+            handle(Token);
+            safeInc();
+        }
+        size_t stackEnd = typeStack.size();
+        if (stackSize + 1 != stackEnd) {
+            transpilerError("Expected expression evaluating to a value after 'using'", i);
+            errors.push_back(err);
+            return;
+        }
+        safeInc();
+
+        std::string type = typeStackTop;
+        typePop;
+
+        std::string name = "it";
+
+        if (body[i].type == tok_paren_open && body[i].location.line == body[i - 1].location.line) {
+            safeInc();
+            if (body[i].type != tok_identifier) {
+                transpilerError("Expected identifier after '('", i);
+                errors.push_back(err);
+                return;
+            }
+            name = body[i].value;
+            safeInc();
+            if (body[i].type != tok_paren_close) {
+                transpilerError("Expected ')' after identifier", i);
+                errors.push_back(err);
+                return;
+            }
+        }
+        checkShadow(name, body, i, function, result, warns);
+        varScopeTop().push_back(Variable(name, type));
+        type = sclTypeToCType(result, type);
+        append("%s Var_%s = _scl_pop(%s);\n", type.c_str(), name.c_str(), type.c_str());
+        usingNames.push_back(name);
+        popOther();
+        pushUsing();
+    }
+
     handler(Identifier) {
         noUnused;
-        if (body[i].value == "drop") {
-            append("--ls_ptr;\n");
+        Struct s = getStructByName(result, body[i].value);
+        if (s == Struct::Null) {
+            if (usingStructs.find(body[i].location.file) != usingStructs.end()) {
+                for (auto& used : usingStructs[body[i].location.file]) {
+                    const Struct& s2 = getStructByName(result, used + "$" + body[i].value);
+                    if (s2 != Struct::Null) {
+                        s = s2;
+                        break;
+                    }
+                }
+            }
+        }
+        if (body[i].value == "swap") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            typeStack.push(a);
+            typeStack.push(b);
+            append("_scl_swap();\n");
+        } else if (body[i].value == "dup") {
+            std::string a = typeStackTop;
+            typeStack.push(a);
+            append("_scl_dup();\n");
+        } else if (body[i].value == "drop") {
             typePop;
+            append("_scl_drop();\n");
+        } else if (body[i].value == "over") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            std::string c = typeStackTop; typePop;
+            typeStack.push(a);
+            typeStack.push(b);
+            typeStack.push(c);
+            append("_scl_over();\n");
+        } else if (body[i].value == "sdup2") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            typeStack.push(b);
+            typeStack.push(a);
+            typeStack.push(b);
+            append("_scl_sdup2();\n");
+        } else if (body[i].value == "swap2") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            std::string c = typeStackTop; typePop;
+            typeStack.push(b);
+            typeStack.push(c);
+            typeStack.push(a);
+            append("_scl_swap2();\n");
+        } else if (body[i].value == "rot") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            std::string c = typeStackTop; typePop;
+            typeStack.push(b);
+            typeStack.push(a);
+            typeStack.push(c);
+            append("_scl_rot();\n");
+        } else if (body[i].value == "unrot") {
+            std::string a = typeStackTop; typePop;
+            std::string b = typeStackTop; typePop;
+            std::string c = typeStackTop; typePop;
+            typeStack.push(a);
+            typeStack.push(c);
+            typeStack.push(b);
+            append("_scl_unrot();\n");
         } else if (body[i].value == "?") {
             handle(ReturnOnNil);
         } else if (body[i].value == "exit") {
@@ -677,6 +810,8 @@ namespace sclc {
             typePop;
         } else if (body[i].value == "abort") {
             append("abort();\n");
+        } else if (body[i].value == "using") {
+            handle(Using);
         } else if (body[i].value == "typeof") {
             safeInc();
             auto templates = currentStruct.templates;
@@ -854,8 +989,8 @@ namespace sclc {
                 return;
             }
             functionCall(f, fp, result, warns, errors, body, i);
-        } else if (getStructByName(result, body[i].value) != Struct::Null) {
-            Struct s = getStructByName(result, body[i].value);
+        } else if (s != Struct::Null) {
+        nestedStruct:
             std::map<std::string, std::string> templates;
             if (body[i + 1].type == tok_identifier && body[i + 1].value == "<") {
                 auto nthTemplate = [&](Struct& s, size_t n) -> std::pair<std::string, std::string> {
@@ -928,6 +1063,12 @@ namespace sclc {
             if (body[i + 1].type == tok_double_column) {
                 safeInc();
                 safeInc();
+                Struct s2 = getStructByName(result, s.name + "$" + body[i].value);
+                if (s2 != Struct::Null) {
+                    s = s2;
+                    goto nestedStruct;
+                }
+
                 Method* initMethod = getMethodByName(result, "init", s.name);
                 bool hasInitMethod = initMethod != nullptr;
                 if (body[i].value == "new" || body[i].value == "default") {
@@ -1106,7 +1247,7 @@ namespace sclc {
                 std::vector<std::string> missedMembers;
 
                 size_t membersToInitialize = 0;
-                for (auto&& v : l.members) {
+                for (auto v : l.members) {
                     if (v.name.front() != '$') {
                         missedMembers.push_back(v.name);
                         membersToInitialize++;
@@ -1194,28 +1335,6 @@ namespace sclc {
             }
             append("_scl_push(scl_int, %zuUL);\n", e.indexOf(body[i].value));
             typeStack.push("int");
-        } else if (hasContainer(result, body[i].value)) {
-            std::string containerName = body[i].value;
-            safeInc();
-            if (body[i].type != tok_dot) {
-                transpilerError("Expected '.' to access container contents, but got '" + body[i].value + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            safeInc();
-            std::string memberName = body[i].value;
-            Container container = getContainerByName(result, containerName);
-            if (!container.hasMember(memberName)) {
-                transpilerError("Unknown container member: '" + memberName + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            Variable v = container.getMember(memberName);
-            std::string lastType = "";
-            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "Container_" + containerName + ".", &lastType, /* doesWriteAfter */ false);
-            
-            LOAD_PATH(path, lastType);
-        
         } else if (hasVar(body[i].value)) {
         normalVar:
             Variable v = getVar(body[i].value);
@@ -1560,25 +1679,8 @@ namespace sclc {
         
         iterator_count++;
         scopeDepth++;
-
-        if (hasFunction(result, var.value)) {
-            FPResult result;
-            result.message = "Variable '" + var.value + "' shadowed by function '" + var.value + "'";
-            result.success = false;
-            result.location = var.location;
-            result.value = var.value;
-            result.type =  var.type;
-            warns.push_back(result);
-        }
-        if (hasContainer(result, var.value)) {
-            FPResult result;
-            result.message = "Variable '" + var.value + "' shadowed by container '" + var.value + "'";
-            result.success = false;
-            result.location = var.location;
-            result.value = var.value;
-            result.type =  var.type;
-            warns.push_back(result);
-        }
+        
+        checkShadow(var.value, body, i, function, result, warns);
 
         pushOther();
     }
@@ -1593,6 +1695,7 @@ namespace sclc {
         }
         std::string iterator_name = "__it" + std::to_string(iterator_count++);
         Token iter_var_tok = body[i];
+        checkShadow(iter_var_tok.value, body, i, function, result, warns);
         safeInc();
         if (body[i].type != tok_in) {
             transpilerError("Expected 'in', but got '" + body[i].value + "'", i);
@@ -1760,11 +1863,28 @@ namespace sclc {
             return;
         }
         if (!hasVar(body[i].value)) {
+            Struct s = getStructByName(result, body[i].value);
+            if (s == Struct::Null) {
+                if (usingStructs.find(body[i].location.file) != usingStructs.end()) {
+                    for (auto& used : usingStructs[body[i].location.file]) {
+                        const Struct& s2 = getStructByName(result, used + "$" + body[i].value);
+                        if (s2 != Struct::Null) {
+                            s = s2;
+                            break;
+                        }
+                    }
+                }
+            }
+        nestedStruct:
             if (body[i + 1].type == tok_double_column) {
                 safeInc();
-                Struct s = getStructByName(result, body[i - 1].value);
                 safeInc();
                 if (s != Struct::Null) {
+                    Struct s2 = getStructByName(result, s.name + "$" + body[i].value);
+                    if (s2 != Struct::Null) {
+                        s = s2;
+                        goto nestedStruct;
+                    }
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
                         f = getFunctionByName(result, s.name + "$" + body[i].value);
                         goto functionHandling;
@@ -1855,18 +1975,6 @@ namespace sclc {
                         return;
                     }
                 }
-            } else if (hasContainer(result, body[i].value)) {
-                Container c = getContainerByName(result, body[i].value);
-                safeInc();
-                safeInc();
-                std::string memberName = body[i].value;
-                if (!c.hasMember(memberName)) {
-                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                variablePrefix = "Container_" + c.name + ".";
-                v = c.getMember(memberName);
             } else if (function->isMethod) {
                 Method* m = ((Method*) function);
                 Struct s = getStructByName(result, m->member_type);
@@ -2081,24 +2189,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            if (hasFunction(result, body[i].value)) {
-                {
-                    transpilerError("Variable '" + body[i].value + "' shadowed by function '" + body[i].value + "'", i);
-                    warns.push_back(err);
-                }
-            }
-            if (hasContainer(result, body[i].value)) {
-                {
-                    transpilerError("Variable '" + body[i].value + "' shadowed by container '" + body[i].value + "'", i);
-                    warns.push_back(err);
-                }
-            }
-            if (getStructByName(result, body[i].value) != Struct::Null) {
-                {
-                    transpilerError("Variable '" + body[i].value + "' shadowed by struct '" + body[i].value + "'", i);
-                    warns.push_back(err);
-                }
-            }
+            checkShadow(body[i].value, body, i, function, result, warns);
             std::string name = body[i].value;
             std::string type = "any";
             safeInc();
@@ -2117,7 +2208,8 @@ namespace sclc {
                 type = typeStackTop;
                 i--;
             }
-            varScopeTop().push_back(Variable(name, type));
+            Variable v(name, type);
+            varScopeTop().push_back(v);
             
             auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
                 return f && (f->name == type + "$operator$store" || strstarts(f->name, type + "$operator$store$"));
@@ -2132,21 +2224,21 @@ namespace sclc {
                 ) {
                     continue;
                 }
-                append("%s Var_%s = fn_%s(_scl_pop(%s));\n", sclTypeToCType(result, type).c_str(), name.c_str(), f->finalName().c_str(), sclTypeToCType(result, f->args[0].type).c_str());
+                append("%s Var_%s = fn_%s(_scl_pop(%s));\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), f->finalName().c_str(), sclTypeToCType(result, f->args[0].type).c_str());
                 typePop;
                 return;
             }
-            if (!varScopeTop().back().canBeNil) {
-                append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", varScopeTop().back().name.c_str());
+            if (!v.canBeNil) {
+                append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
             }
             if (doCheckTypes && !typesCompatible(result, typeStackTop, type, true)) {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
                 errors.push_back(err);
             }
             if (type.front() == '*') {
-                append("%s Var_%s = *_scl_pop(%s*);\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+                append("%s Var_%s = *_scl_pop(%s*);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
             } else {
-                append("%s Var_%s = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), name.c_str(), sclTypeToCType(result, type).c_str());
+                append("%s Var_%s = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
             }
             typePop;
         } else {
@@ -2198,25 +2290,30 @@ namespace sclc {
             if (hasVar(body[i].value)) {
             normalVar:
                 v = getVar(body[i].value);
-            } else if (hasContainer(result, body[i].value)) {
-                Container c = getContainerByName(result, body[i].value);
-                safeInc(); // i -> .
-                safeInc(); // i -> member
-                std::string memberName = body[i].value;
-                if (!c.hasMember(memberName)) {
-                    transpilerError("Unknown container member: '" + memberName + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                variablePrefix = "Container_" + c.name + ".";
-                v = c.getMember(memberName);
             } else if (hasVar(function->member_type + "$" + body[i].value)) {
                 v = getVar(function->member_type + "$" + body[i].value);
             } else if (body[i + 1].type == tok_double_column) {
                 Struct s = getStructByName(result, body[i].value);
+                if (s == Struct::Null) {
+                    if (usingStructs.find(body[i].location.file) != usingStructs.end()) {
+                        for (auto& used : usingStructs[body[i].location.file]) {
+                            const Struct& s2 = getStructByName(result, used + "$" + body[i].value);
+                            if (s2 != Struct::Null) {
+                                s = s2;
+                                break;
+                            }
+                        }
+                    }
+                }
+            nestedStruct:
                 safeInc(); // i -> ::
                 safeInc(); // i -> member
                 if (s != Struct::Null) {
+                    Struct s2 = getStructByName(result, s.name + "$" + body[i].value);
+                    if (s2 != Struct::Null) {
+                        s = s2;
+                        goto nestedStruct;
+                    }
                     if (!hasVar(s.name + "$" + body[i].value)) {
                         transpilerError("Struct '" + s.name + "' has no static member named '" + body[i].value + "'", i);
                         errors.push_back(err);
@@ -2409,19 +2506,8 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        if (hasFunction(result, body[i].value)) {
-            transpilerError("Variable '" + body[i].value + "' shadowed by function '" + body[i].value + "'", i+1);
-            warns.push_back(err);
-        }
-        if (hasContainer(result, body[i].value)) {
-            transpilerError("Variable '" + body[i].value + "' shadowed by container '" + body[i].value + "'", i+1);
-            warns.push_back(err);
-        }
-        if (getStructByName(result, body[i].value) != Struct::Null) {
-            transpilerError("Variable '" + body[i].value + "' shadowed by struct '" + body[i].value + "'", i+1);
-            warns.push_back(err);
-        }
         std::string name = body[i].value;
+        checkShadow(name, body, i, function, result, warns);
         size_t start = i;
         std::string type = "any";
         safeInc();
@@ -2438,19 +2524,20 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        varScopeTop().push_back(Variable(name, type));
-        if (!varScopeTop().back().canBeNil) {
+        Variable v(name, type);
+        varScopeTop().push_back(v);
+        if (!v.canBeNil) {
             transpilerError("Uninitialized variable '" + name + "' with non-nil type '" + type + "'", start);
             errors.push_back(err);
         }
         type = sclTypeToCType(result, type);
         if (type == "scl_float") {
-            append("%s Var_%s = 0.0;\n", type.c_str(), name.c_str());
+            append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
         } else {
             if (hasTypealias(result, type) || hasLayout(result, type)) {
-                append("%s Var_%s;\n", type.c_str(), name.c_str());
+                append("%s Var_%s;\n", type.c_str(), v.name.c_str());
             } else {
-                append("%s Var_%s = 0;\n", type.c_str(), name.c_str());
+                append("%s Var_%s = 0;\n", type.c_str(), v.name.c_str());
             }
         }
     }
@@ -3431,7 +3518,7 @@ namespace sclc {
     nextDoMode:
         safeInc();
         if (body[i].type != tok_ticked) {
-            transpilerError("Expected '{' after 'do'", i);
+            transpilerError("Expected a ticked identifier after 'do'", i);
             errors.push_back(err);
             return;
         }
@@ -3463,18 +3550,6 @@ namespace sclc {
                 if (hasVar(body[i].value)) {
                 normalVar:
                     v = getVar(body[i].value);
-                } else if (hasContainer(result, body[i].value)) {
-                    Container c = getContainerByName(result, body[i].value);
-                    safeInc(); // i -> .
-                    safeInc(); // i -> member
-                    std::string memberName = body[i].value;
-                    if (!c.hasMember(memberName)) {
-                        transpilerError("Unknown container member: '" + memberName + "'", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    variablePrefix = "Container_" + c.name + ".";
-                    v = c.getMember(memberName);
                 } else if (hasVar(function->member_type + "$" + body[i].value)) {
                     v = getVar(function->member_type + "$" + body[i].value);
                 } else if (body[i + 1].type == tok_double_column) {
@@ -3614,6 +3689,26 @@ namespace sclc {
 
     handler(DoneLike) {
         noUnused;
+        if (wasUsing()) {
+            std::string name = usingNames.back();
+            usingNames.pop_back();
+            const Variable& v = getVar(name);
+            append("_scl_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str());
+            typeStack.push(v.type);
+            Struct& s = getStructByName(result, v.type);
+            if (!s.implements("Closeable")) {
+                transpilerError("Type '" + v.type + "' does not implement 'Closeable'", i);
+                errors.push_back(err);
+                return;
+            }
+            Method* closeMethod = getMethodByName(result, "close", v.type);
+            if (closeMethod == nullptr) {
+                transpilerError("No method 'close' found in type '" + v.type + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            methodCall(closeMethod, fp, result, warns, errors, body, i);
+        }
         varScopePop();
         scopeDepth--;
         if (wasCatch()) {
@@ -4192,39 +4287,15 @@ namespace sclc {
                 return;
             }
             std::string op = body[i].value;
-            if (op == "resize") {
-                append("{\n");
-                scopeDepth++;
-                append("scl_any* array = _scl_pop(scl_any*);\n");
-                typePop;
-                append("scl_int size = _scl_pop(scl_int);\n");
-                typePop;
-                append("array = (scl_any*) _scl_array_resize((scl_any*) array, size);\n");
-                append("_scl_push(scl_any, array);\n");
-                typePop;
-                typeStack.push(type);
-                scopeDepth--;
-                append("}\n");
-            } else if (op == "sort") {
-                append("_scl_top(scl_any) = _scl_array_sort(_scl_top(scl_any*));\n");
-                typePop;
-                typeStack.push(type);
-            } else if (op == "reverse") {
-                append("_scl_top(scl_any) = _scl_array_reverse(_scl_top(scl_any*));\n");
-                typePop;
-                typeStack.push(type);
-            } else if (op == "toString") {
-                append("_scl_top(scl_str) = _scl_array_to_string(_scl_top(scl_any*));\n");
-                typePop;
-                typeStack.push("str");
-            } else if (op == "size") {
-                append("_scl_top(scl_int) = _scl_array_size(_scl_top(scl_any));\n");
-                typePop;
-                typeStack.push("int");
-            } else {
-                transpilerError("Unknown method '" + body[i].value + "' on type '" + type + "'", i);
+
+            Function* f = getFunctionByName(result, "List$" + op);
+            if (f == nullptr) {
+                transpilerError("No Function definition for '" + tmp + "::" + op + "' found", i);
                 errors.push_back(err);
+                return;
             }
+
+            functionCall(f, fp, result, warns, errors, body, i);
             return;
         }
         Struct s = getStructByName(result, type);
@@ -4608,10 +4679,6 @@ namespace sclc {
                 std::string nrvName = function->namedReturnValue.name;
                 if (hasFunction(result, nrvName)) {
                     transpilerErrorTok("Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'", function->name_token);
-                    warns.push_back(err);
-                }
-                if (hasContainer(result, nrvName)) {
-                    transpilerErrorTok("Named return value '" + nrvName + "' shadowed by container '" + nrvName + "'", function->name_token);
                     warns.push_back(err);
                 }
                 if (getStructByName(result, nrvName) != Struct::Null) {

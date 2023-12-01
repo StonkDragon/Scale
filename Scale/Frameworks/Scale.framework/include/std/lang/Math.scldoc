@@ -161,10 +161,10 @@ Returns the absolute value of `number`.
 ### function sign(number: int): int
 Returns the sign of `number`.
 
-### function min(a: int, b: int): int
+### function min(a: int | float, b: int | float): int | float
 Returns the minimum of `a` and `b`.
 
-### function max(a: int, b: int): int
+### function max(a: int | float, b: int | float): int | float
 Returns the maximum of `a` and `b`.
 
 ### function clamp(number: int, min: int, max: int): int

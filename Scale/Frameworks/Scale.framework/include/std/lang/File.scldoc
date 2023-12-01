@@ -14,6 +14,35 @@ Returns the name of this file.
 ### function File:close(): none
 Closes this file. Any further operations on this file will result in undefined behavior.
 
+### function readLine(): str?
+Reads a line from this file and returns it. Returns `nil` if the end of the file has been reached.
+
+### function readLines(): [str]
+Returns a list of all lines in this file.
+
+### function size(): int
+Returns the size of this file in bytes.
+
+### function contents(): [int8]
+Returns the contents of this file as a byte array.
+
+### function stringContent(): str
+Returns the contents of this file as a string.
+
+### function setContent(data: [int8]): none
+Sets the contents of this file to the byte array `data`.
+
+### function setContent(data: str): none
+Sets the contents of this file to the string `data`.
+
+### function toStart(): none
+Sets the current offset of this file to the beginning of the file.
+This is equivalent to calling `0 f:offsetFromBegin`.
+
+### function toEnd(): none
+Sets the current offset of this file to the end of the file.
+This is equivalent to calling `0 f:offsetFromEnd`.
+
 ### function File:append(s: str): none
 Appends the string `s` to this file.
 

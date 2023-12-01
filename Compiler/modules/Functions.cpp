@@ -857,7 +857,7 @@ namespace sclc {
             argsEqual = checkStackType(result, self->args, true);
         }
         if (!argsEqual) {
-            if (hasMethod(result, self->name, typeStackTop)) {
+            if (hasMethod(result, self->name, typeStackTop) && !hasToCallStatic) {
                 goto makeMethodCallInstead;
             }
 

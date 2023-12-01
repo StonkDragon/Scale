@@ -1,20 +1,22 @@
+import std.fs
+
 cdecl "write"
-private expect foreign unsafe function __c_write(fileDescriptor: int, cstr: [int8], _len_: int): int32
+private expect foreign unsafe function __c_write(:int, :[int8], :int): int32
 cdecl "read"
-private expect foreign unsafe function __c_read(fileDescriptor: int, buffer: [int8], amount: int): int32
-cdecl "fprintf"
-private expect foreign unsafe function __c_fprintf(fp: any, fmt: [int8], :varargs): int32
+private expect foreign unsafe function __c_read(:int, :[int8], :int): int32
+cdecl "fputs"
+private expect foreign unsafe function __c_fputs(:[int8], :any): none
 cdecl "_scl_get_stderr"
 private expect foreign unsafe function __c_get_stderr(): any
-cdecl "printf"
-private expect foreign unsafe function __c_printf(fmt: [int8], :varargs): int32
 cdecl "getchar"
 private expect foreign unsafe function __c_getchar(): int8
 
+deprecated![since: "23.11", forRemoval: true]
 unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
 end
 
+deprecated![since: "23.11", forRemoval: true]
 function read(fileDescriptor: int, amount: int): str
   new<int8>[amount] => decl buf: [int8]
   unsafe
@@ -23,26 +25,25 @@ function read(fileDescriptor: int, amount: int): str
   buf str::new return
 end
 
+deprecated![since: "23.11", forRemoval: true]
 function getchar(): int8
   unsafe
-    __c_getchar
-    return
+    __c_getchar return
   end
 end
 
 cdecl "puts"
 private expect foreign function puts0(:[int8]): none
 
-function puts(val: str): none    val:view puts0 end
 function puts(val: [int8]): none val puts0 end
-function puts(f: float): none    f:toString puts end
-function puts(value: any): none  value builtinToString puts end
+function puts(val: str): none    val:view puts end
+function puts(f: float): none    f:toString:view puts end
+function puts(value: any): none  value:toString:view puts end
 
 function eputs(s: [int8]): none
   unsafe
-    __c_get_stderr c"%s\n" s __c_fprintf! 1
+    s __c_get_stderr __c_fputs
   end
-  drop
 end
 function eputs(s: str): none
   s:view eputs
@@ -54,9 +55,11 @@ function eputs(value: any): none
   value:toString:view eputs
 end
 
+deprecated![since: "23.11", replacement: "puts", forRemoval: true]
 function putint(number: int): none
   number puts
 end
+deprecated![since: "23.11", replacement: "puts", forRemoval: true]
 function putfloat(number: float): none
   number:toString puts
 end

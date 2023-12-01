@@ -202,11 +202,24 @@ namespace sclc
     }
 
     bool strends(const std::string& str, const std::string& suffix) {
-        return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
+        if (str.size() < suffix.size()) return false;
+        size_t start = str.size() - suffix.size();
+        for (size_t i = 0; i < suffix.size(); i++) {
+            if (str[start + i] != suffix[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     bool strstarts(const std::string& str, const std::string& prefix) {
-        return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
+        if (str.size() < prefix.size()) return false;
+        for (size_t i = 0; i < prefix.size(); i++) {
+            if (str[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     bool strcontains(const std::string& str, const std::string& substr) {
@@ -457,6 +470,13 @@ namespace sclc
                     }
                 }
             }
+            if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
+                (*i)++;
+                (*i)++;
+                FPResult tmp = parseType(body, i);
+                if (!tmp.success) return tmp;
+                r.value += "$" + tmp.value;
+            }
         } else if (body[*i].type == tok_question_mark || body[*i].value == "?") {
             r.value = type_mods + "?";
         } else if (body[*i].type == tok_bracket_open) {
@@ -500,47 +520,51 @@ namespace sclc
         return r;
     }
 
+    std::unordered_map<std::string, std::string> funcNameIdents = {
+        std::pair("+", "operator$add"),
+        std::pair("-", "operator$sub"),
+        std::pair("*", "operator$mul"),
+        std::pair("/", "operator$div"),
+        std::pair("%", "operator$mod"),
+        std::pair("&", "operator$logic_and"),
+        std::pair("|", "operator$logic_or"),
+        std::pair("^", "operator$logic_xor"),
+        std::pair("~", "operator$logic_not"),
+        std::pair("<<", "operator$logic_lsh"),
+        std::pair("<<<", "operator$logic_rol"),
+        std::pair(">>", "operator$logic_rsh"),
+        std::pair(">>>", "operator$logic_ror"),
+        std::pair("**", "operator$pow"),
+        std::pair(".", "operator$dot"),
+        std::pair("<", "operator$less"),
+        std::pair("<=", "operator$less_equal"),
+        std::pair(">", "operator$more"),
+        std::pair(">=", "operator$more_equal"),
+        std::pair("==", "operator$equal"),
+        std::pair("!", "operator$not"),
+        std::pair("!!", "operator$assert_not_nil"),
+        std::pair("!=", "operator$not_equal"),
+        std::pair("&&", "operator$bool_and"),
+        std::pair("||", "operator$bool_or"),
+        std::pair("++", "operator$inc"),
+        std::pair("--", "operator$dec"),
+        std::pair("@", "operator$at"),
+        std::pair("=>", "operator$store"),
+        std::pair("=>[]", "operator$set"),
+        std::pair("[]", "operator$get"),
+        std::pair("?", "operator$wildcard"),
+        std::pair("?:", "operator$elvis"),
+    };
+
     Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name2, bool doCheck) {
         (void) doCheck;
 
-        std::string name;
-        if (name2 == "+") name = "operator$add";
-        else if (name2 == "-") name = "operator$sub";
-        else if (name2 == "*") name = "operator$mul";
-        else if (name2 == "/") name = "operator$div";
-        else if (name2 == "%") name = "operator$mod";
-        else if (name2 == "&") name = "operator$logic_and";
-        else if (name2 == "|") name = "operator$logic_or";
-        else if (name2 == "^") name = "operator$logic_xor";
-        else if (name2 == "~") name = "operator$logic_not";
-        else if (name2 == "<<") name = "operator$logic_lsh";
-        else if (name2 == "<<<") name = "operator$logic_rol";
-        else if (name2 == ">>") name = "operator$logic_rsh";
-        else if (name2 == ">>>") name = "operator$logic_ror";
-        else if (name2 == "**") name = "operator$pow";
-        else if (name2 == ".") name = "operator$dot";
-        else if (name2 == "<") name = "operator$less";
-        else if (name2 == "<=") name = "operator$less_equal";
-        else if (name2 == ">") name = "operator$more";
-        else if (name2 == ">=") name = "operator$more_equal";
-        else if (name2 == "==") name = "operator$equal";
-        else if (name2 == "!") name = "operator$not";
-        else if (name2 == "!!") name = "operator$assert_not_nil";
-        else if (name2 == "!=") name = "operator$not_equal";
-        else if (name2 == "&&") name = "operator$bool_and";
-        else if (name2 == "||") name = "operator$bool_or";
-        else if (name2 == "++") name = "operator$inc";
-        else if (name2 == "--") name = "operator$dec";
-        else if (name2 == "@") name = "operator$at";
-        else if (name2 == "=>") name = "operator$store";
-        else if (name2 == "=>[]") name = "operator$set";
-        else if (name2 == "[]") name = "operator$get";
-        else if (name2 == "?") name = "operator$wildcard";
-        else if (name2 == "?:") name = "operator$elvis";
-        else name = name2;
+        std::string name = funcNameIdents[name2];
+        if (name.size() == 0) {
+            name = name2;
+        }
 
         for (Function* func : result.functions) {
-            if (func == nullptr) continue;
             if (func->isMethod) continue;
             if (func->name == name) {
                 return func;
@@ -595,46 +619,11 @@ namespace sclc
 
     Method* getMethodByNameWithArgs(TPResult& result, const std::string& name2, const std::string& type2, bool doCheck) {
         (void) doCheck;
-        std::string type = removeTypeModifiers(type2);
-
-        std::string name;
-        if (name2 == "+") name = "operator$add";
-        else if (name2 == "-") name = "operator$sub";
-        else if (name2 == "*") name = "operator$mul";
-        else if (name2 == "/") name = "operator$div";
-        else if (name2 == "%") name = "operator$mod";
-        else if (name2 == "&") name = "operator$logic_and";
-        else if (name2 == "|") name = "operator$logic_or";
-        else if (name2 == "^") name = "operator$logic_xor";
-        else if (name2 == "~") name = "operator$logic_not";
-        else if (name2 == "<<") name = "operator$logic_lsh";
-        else if (name2 == "<<<") name = "operator$logic_rol";
-        else if (name2 == ">>") name = "operator$logic_rsh";
-        else if (name2 == ">>>") name = "operator$logic_ror";
-        else if (name2 == "**") name = "operator$pow";
-        else if (name2 == ".") name = "operator$dot";
-        else if (name2 == "<") name = "operator$less";
-        else if (name2 == "<=") name = "operator$less_equal";
-        else if (name2 == ">") name = "operator$more";
-        else if (name2 == ">=") name = "operator$more_equal";
-        else if (name2 == "==") name = "operator$equal";
-        else if (name2 == "!") name = "operator$not";
-        else if (name2 == "!!") name = "operator$assert_not_nil";
-        else if (name2 == "!=") name = "operator$not_equal";
-        else if (name2 == "&&") name = "operator$bool_and";
-        else if (name2 == "||") name = "operator$bool_or";
-        else if (name2 == "++") name = "operator$inc";
-        else if (name2 == "--") name = "operator$dec";
-        else if (name2 == "@") name = "operator$at";
-        else if (name2 == "=>") name = "operator$store";
-        else if (name2 == "=>[]") name = "operator$set";
-        else if (name2 == "[]") name = "operator$get";
-        else if (name2 == "?") name = "operator$wildcard";
-        else if (name2 == "?:") name = "operator$elvis";
-        else name = name2;
-        name = name.substr(0, name.find("$$ol"));
-
-        return getMethodWithActualName(result, name, type, doCheck);
+        std::string name = funcNameIdents[name2];
+        if (name.size() == 0) {
+            name = name2;
+        }
+        return getMethodWithActualName(result, name.substr(0, name.find("$$ol")), removeTypeModifiers(type2), doCheck);
     }
 
     Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type) {
@@ -658,17 +647,6 @@ namespace sclc
             }
         }
         return methods;
-    }
-
-    Container EmptyContainer = Container("");
-
-    Container getContainerByName(TPResult& result, const std::string& name) {
-        for (Container& container : result.containers) {
-            if (container.name == name) {
-                return container;
-            }
-        }
-        return EmptyContainer;
     }
 
     std::string removeTypeModifiers(std::string t);
@@ -700,47 +678,16 @@ namespace sclc
     }
 
     bool hasFunction(TPResult& result, const std::string& name2) {
-        std::string name;
+        std::string name = funcNameIdents[name2];
+        if (name.size() == 0) {
+            name = name2;
+        }
 
-        if (name2 == "+") name = "operator$add";
-        else if (name2 == "-") name = "operator$sub";
-        else if (name2 == "*") name = "operator$mul";
-        else if (name2 == "/") name = "operator$div";
-        else if (name2 == "%") name = "operator$mod";
-        else if (name2 == "&") name = "operator$logic_and";
-        else if (name2 == "|") name = "operator$logic_or";
-        else if (name2 == "^") name = "operator$logic_xor";
-        else if (name2 == "~") name = "operator$logic_not";
-        else if (name2 == "<<") name = "operator$logic_lsh";
-        else if (name2 == "<<<") name = "operator$logic_rol";
-        else if (name2 == ">>") name = "operator$logic_rsh";
-        else if (name2 == ">>>") name = "operator$logic_ror";
-        else if (name2 == "**") name = "operator$pow";
-        else if (name2 == ".") name = "operator$dot";
-        else if (name2 == "<") name = "operator$less";
-        else if (name2 == "<=") name = "operator$less_equal";
-        else if (name2 == ">") name = "operator$more";
-        else if (name2 == ">=") name = "operator$more_equal";
-        else if (name2 == "==") name = "operator$equal";
-        else if (name2 == "!") name = "operator$not";
-        else if (name2 == "!!") name = "operator$assert_not_nil";
-        else if (name2 == "!=") name = "operator$not_equal";
-        else if (name2 == "&&") name = "operator$bool_and";
-        else if (name2 == "||") name = "operator$bool_or";
-        else if (name2 == "++") name = "operator$inc";
-        else if (name2 == "--") name = "operator$dec";
-        else if (name2 == "@") name = "operator$at";
-        else if (name2 == "=>") name = "operator$store";
-        else if (name2 == "=>[]") name = "operator$set";
-        else if (name2 == "[]") name = "operator$get";
-        else if (name2 == "?") name = "operator$wildcard";
-        else if (name2 == "?:") name = "operator$elvis";
-        else name = name2;
-
+        size_t nameSize = name.size();
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             std::string funcName = func->name.substr(0, func->name.find("$$ol"));
-            if (funcName.size() != name.size()) continue;
+            if (funcName.size() != nameSize) continue;
             if (funcName == name) {
                 return true;
             }
@@ -788,15 +735,6 @@ namespace sclc
 
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type) {
         return getMethodByName(result, name, type) != nullptr;
-    }
-
-    bool hasContainer(TPResult& result, std::string name) {
-        for (Container& container_ : result.containers) {
-            if (container_.name == name) {
-                return true;
-            }
-        }
-        return false;
     }
 
     bool hasGlobal(TPResult& result, std::string name) {
@@ -1222,5 +1160,4 @@ namespace sclc
         Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
         return f && f->has_setter ? f : nullptr;
     }
-
 } // namespace sclc

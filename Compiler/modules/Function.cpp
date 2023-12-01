@@ -137,24 +137,21 @@ bool Function::operator==(const Function& other) const {
     return name == other.name;
 }
 bool Function::operator!=(const Function* other) const {
-    return !(*this == other);
+    return !this->operator==(other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;
-    if (other->isMethod && !this->isMethod) return false;
-    if (!other->isMethod && this->isMethod) return false;
-    if (other->isMethod && this->isMethod) {
-        Method* thisM = (Method*) this;
-        Method* otherM = (Method*) other;
-        return name == other->name && thisM->member_type == otherM->member_type;
-    }
-    return name == other->name;
+    if (other->isMethod && !isMethod) return false;
+    if (!other->isMethod && isMethod) return false;
+    if (name.size() != other->name.size()) return false;
+    if (member_type.size() != other->member_type.size()) return false;
+    return name == other->name && member_type == other->member_type;
 }
 bool Function::belongsToType(std::string typeName) {
     return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);
 }
 void Function::clearArgs() {
-    this->args = std::vector<Variable>();
+    this->args.clear();
 }
 bool Function::isCVarArgs() {
     return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args[this->args.size() - (1 + ((size_t) this->isMethod))].type == "varargs";

@@ -201,9 +201,9 @@ sealed struct Array is Iterable
   end
 
   function clone(): Array
-    self builtinAtomicClone as Array => decl clone: Array
-    self.values builtinAtomicClone => clone.values
-    clone return
+    self builtinAtomicClone as Array => decl obj: Array
+    self.values builtinAtomicClone => obj.values
+    obj return
   end
 
   function finalize(): none

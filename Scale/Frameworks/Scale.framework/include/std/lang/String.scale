@@ -46,7 +46,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function append(cStr: [int8]): str
     unsafe
-      self.data cStr concat str::new return
+      self.data cStr str::concat str::new return
     end
   end
 
@@ -56,7 +56,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function prepend(cStr: [int8]): str
     unsafe
-      cStr self.data concat str::new return
+      cStr self.data str::concat str::new return
     end
   end
 
@@ -124,9 +124,31 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     return
   end
 
+  function trim(): str
+    0 => decl startIndex: int
+    self:size => decl endIndex: int
+    try
+      while self[startIndex] str::isSpace do
+        startIndex 1 +> startIndex
+      done
+
+      while self[endIndex 1 -] str::isSpace do
+        endIndex 1 -> endIndex
+      done
+    catch typeof IndexOutOfBoundsException
+      "" return
+    done
+
+    if startIndex endIndex >= then
+      "" return
+    fi
+
+    (startIndex to endIndex) self:subString return
+  end
+
   function split(delimiter: str): Array
     10 Array::new => decl arr: Array
-    unsafe  
+    unsafe
       self:view __c_strdup => decl string: [int8]
       delimiter:view __c_strdup => decl cDelim: [int8]
 
@@ -176,6 +198,27 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
     tmp as int start + => tmp
     tmp as [int8] str::new return
+  end
+
+  function subString(range: Range): str
+    if range.lower 0 < range.lower self:size >= || then
+      "Index " range.lower:toString +
+      " is out of bounds for string with length " self:size:toString +
+      +
+      IndexOutOfBoundsException::new throw
+    fi
+    if range.upper 0 < range.upper self:size > || then
+      "Index " range.upper:toString +
+      " is out of bounds for string with length " self:size:toString +
+      +
+      IndexOutOfBoundsException::new throw
+    fi
+
+    self.data => decl tmp: any
+    tmp as int range.lower + => tmp
+    tmp as [int8] => decl tmpArr: [int8]
+    '\0' => tmpArr[range.upper range.lower -]
+    tmpArr str::new return
   end
 
   function view(): [int8]
@@ -275,7 +318,11 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     arr f:accept return
   end
 
-  private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
+  private static function isSpace(c: int8): bool
+    c ' ' == c '\t' == || c '\n' == c '\r' == || || c '\0' == || return
+  end
+
+  private static unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
     firstCStr __c_strlen => decl len: int
     secondCStr __c_strlen => decl len2: int
     new<int8>[len len2 + 1 +] => decl out: [int8]

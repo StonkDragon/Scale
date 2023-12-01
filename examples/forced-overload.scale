@@ -9,7 +9,9 @@ end
 function main(): none
     new<int>{-3, -2, -1, 0, 0, 1, 2, 3} => decl arr: [int]
     arr puts
-    arr do 'each puts::<int>
+    arr do 'each lambda(x: int): none
+        x puts
+    end
 
     1 foo
     1 foo::<int8>

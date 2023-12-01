@@ -89,7 +89,7 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 		return nil;
 	}
 	memory_layout_t* layout = (memory_layout_t*) ptr;
-	if (_scl_expect(((scl_int) layout) <= 0, 0)) {
+	if (_scl_expect(layout == nil, 0)) {
 		return nil;
 	}
 	if (_scl_expect(layout->marker != MARKER, 0)) {
@@ -111,15 +111,15 @@ scl_any _scl_alloc(scl_int size) {
 	if (size == 0) size = 8;
 
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
+	if (_scl_expect(ptr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
+	}
 
 	((memory_layout_t*) ptr)->marker = MARKER;
 	((memory_layout_t*) ptr)->allocation_size = size;
 	((memory_layout_t*) ptr)->is_instance = 0;
 	((memory_layout_t*) ptr)->is_array = 0;
 
-	if (_scl_expect(ptr == nil, 0)) {
-		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
-	}
 	return ptr + sizeof(memory_layout_t);
 }
 
@@ -501,6 +501,14 @@ scl_any _scl_get_stderr() {
 	return (scl_any) stderr;
 }
 
+scl_any _scl_get_stdout() {
+	return (scl_any) stdout;
+}
+
+scl_any _scl_get_stdin() {
+	return (scl_any) stdin;
+}
+
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
 	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
 		typedef struct Struct_CastError {
@@ -552,11 +560,17 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
 	scl_int size = num_elems * elem_size;
-	scl_any* arr = (scl_any*) _scl_alloc(size + sizeof(array_info_t));
-	_scl_get_memory_layout(arr)->is_array = 1;
+	scl_any arr = _scl_alloc(size + sizeof(array_info_t));
+	// ((memory_layout_t*) (((scl_any) arr) - sizeof(memory_layout_t)))->is_array = 1;
+	// _scl_get_memory_layout(arr)->is_array = 1;
+	memory_layout_t* layout = _scl_get_memory_layout(arr);
+	if (layout == nil) {
+		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
+	}
+	layout->is_array = 1;
 	((array_info_t*) arr)->size = num_elems;
 	((array_info_t*) arr)->elem_size = elem_size;
-	return (((scl_any) arr) + sizeof(array_info_t));
+	return arr + sizeof(array_info_t);
 }
 
 scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size) {
@@ -638,7 +652,7 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	}
 }
 
-scl_any* _scl_array_resize(scl_any* arr, scl_int new_size) {
+scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (_scl_expect(arr == nil, 0)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
@@ -685,6 +699,50 @@ static inline scl_int read_sized(scl_any ptr, scl_int size) {
 		case 8: return read_int64(ptr);
 		default: _scl_runtime_error(EX_INVALID_ARGUMENT, "Invalid size: " SCL_INT_FMT, size);
 	}
+}
+
+void _scl_array_set(scl_any arr, scl_int index, scl_int value) {
+	if (_scl_expect(arr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+	}
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
+	}
+
+	scl_int size = _scl_array_size_unchecked(arr);
+
+	if (_scl_expect(index < 0 || index >= size, 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
+	}
+
+	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
+	write_sized(arr + index * elem_size, value, elem_size);
+}
+
+scl_any _scl_array_get(scl_any arr, scl_int index) {
+	if (_scl_expect(arr == nil, 0)) {
+		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+	}
+	if (_scl_expect(!_scl_is_array(arr), 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
+	}
+
+	scl_int size = _scl_array_size_unchecked(arr);
+
+	if (_scl_expect(index < 0 || index >= size, 0)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
+	}
+
+	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
+	return read_sized(arr + index * elem_size, elem_size);
+}
+
+void _scl_array_setf(scl_any arr, scl_int index, scl_float value) {
+	_scl_array_set(arr, index, REINTERPRET_CAST(scl_int, value));
+}
+
+scl_float _scl_array_getf(scl_any arr, scl_int index) {
+	return REINTERPRET_CAST(scl_float, _scl_array_get(arr, index));
 }
 
 scl_any* _scl_array_sort(scl_any* arr) {
