@@ -706,15 +706,13 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        safeInc();
-
         std::string type = typeStackTop;
         typePop;
 
         std::string name = "it";
 
-        if (body[i].type == tok_paren_open && body[i].location.line == body[i - 1].location.line) {
-            safeInc();
+        if (i + 1 < body.size() && body[i + 1].type == tok_paren_open && body[i + 1].location.line == body[i].location.line) {
+            safeIncN(2);
             if (body[i].type != tok_identifier) {
                 transpilerError("Expected identifier after '('", i);
                 errors.push_back(err);
@@ -1688,15 +1686,66 @@ namespace sclc {
     handler(Foreach) {
         noUnused;
         safeInc();
-        if (body[i].type != tok_identifier) {
-            transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
+        if (body[i].type != tok_identifier && body[i].type != tok_paren_open) {
+            transpilerError("Expected identifier or '(', but got '" + body[i].value + "'", i);
             errors.push_back(err);
             return;
         }
         std::string iterator_name = "__it" + std::to_string(iterator_count++);
-        Token iter_var_tok = body[i];
-        checkShadow(iter_var_tok.value, body, i, function, result, warns);
-        safeInc();
+        Token iter_var_tok;
+        std::string iterType = "";
+        Token index_var_tok;
+        if (body[i].type == tok_paren_open) {
+            // (x, i)
+            safeInc();
+            if (body[i].type != tok_identifier) {
+                transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            iter_var_tok = body[i];
+            safeInc();
+            if (body[i].type == tok_column) {
+                safeInc();
+                FPResult type = parseType(body, &i);
+                if (!type.success) {
+                    errors.push_back(type);
+                    return;
+                }
+                iterType = removeTypeModifiers(type.value);
+                safeInc();
+            }
+            if (body[i].type == tok_comma) {
+                safeInc();
+                if (body[i].type != tok_identifier) {
+                    transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                index_var_tok = body[i];
+                safeInc();
+            }
+            if (body[i].type != tok_paren_close) {
+                transpilerError("Expected ')', but got '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            safeInc();
+        } else {
+            iter_var_tok = body[i];
+            checkShadow(iter_var_tok.value, body, i, function, result, warns);
+            safeInc();
+            if (body[i].type == tok_column) {
+                safeInc();
+                FPResult type = parseType(body, &i);
+                if (!type.success) {
+                    errors.push_back(type);
+                    return;
+                }
+                iterType = removeTypeModifiers(type.value);
+                safeInc();
+            }
+        }
         if (body[i].type != tok_in) {
             transpilerError("Expected 'in', but got '" + body[i].value + "'", i);
             errors.push_back(err);
@@ -1723,7 +1772,19 @@ namespace sclc {
 
             varScopePush();
             varScopeTop().push_back(Variable(iter_var_tok.value, type.substr(1, type.size() - 2)));
-            append("%s Var_%s = %s[i];\n", sclTypeToCType(result, type.substr(1, type.size() - 2)).c_str(), iter_var_tok.value.c_str(), iterator_name.c_str());
+            bool typeSpecified = true;
+            if (!iterType.size()) {
+                typeSpecified = false;
+                iterType = type.substr(1, type.size() - 2);
+            }
+            append("%s Var_%s = %s[i];\n", sclTypeToCType(result, iterType).c_str(), iter_var_tok.value.c_str(), iterator_name.c_str());
+            if (index_var_tok.value.size()) {
+                varScopeTop().push_back(Variable(index_var_tok.value, "const int"));
+                append("scl_int Var_%s = i;\n", index_var_tok.value.c_str());
+            }
+            if (typeSpecified) {
+                append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
+            }
             pushOther();
             return;
         }
@@ -1763,11 +1824,25 @@ namespace sclc {
             return;
         }
         varScopePush();
-        varScopeTop().push_back(Variable(iter_var_tok.value, nextMethod->return_type));
+        if (iterType.size()) {
+            varScopeTop().push_back(Variable(iter_var_tok.value, iterType));
+        } else {
+            varScopeTop().push_back(Variable(iter_var_tok.value, nextMethod->return_type));
+        }
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok.value).type);
+        if (index_var_tok.value.size()) {
+            varScopeTop().push_back(Variable(index_var_tok.value, "const int"));
+            append("scl_int %s_ind = 0;\n", iterator_name.c_str());
+        }
         append("while (virtual_call(%s, \"hasNext()i;\")) {\n", iterator_name.c_str());
         scopeDepth++;
-        append("%s Var_%s = (%s) virtual_call(%s, \"next%s\");\n", sclTypeToCType(result, nextMethod->return_type).c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
+        append("%s Var_%s = (%s) virtual_call(%s, \"next%s\");\n", cType.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
+        if (iterType.size()) {
+            append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
+        }
+        if (index_var_tok.value.size()) {
+            append("scl_int Var_%s = %s_ind++;\n", index_var_tok.value.c_str(), iterator_name.c_str());
+        }
     }
 
     handler(AddrRef) {

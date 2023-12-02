@@ -1,0 +1,21 @@
+struct Foo is Closeable
+    function close(): none
+        "closed" puts
+    end
+
+    function init(): none
+        "init" puts
+    end
+end
+
+function main(): none
+    decl x: Foo
+
+    # the parens are optional
+    # they are just there so you can
+    # rename the variable from the default name of 'it'
+    using x do (x2)
+        x2 puts
+        x puts
+    done
+end

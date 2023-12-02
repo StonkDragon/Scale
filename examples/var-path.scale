@@ -1,0 +1,26 @@
+struct Foo
+    decl x: [Bar]
+end
+
+struct Bar
+    decl y: int
+end
+
+function main(): none
+    Foo {
+        new<Bar> {
+            Bar {
+                1 => y
+            },
+            Bar {
+                2 => y
+            }
+        } => x
+    } => decl foo: Foo
+    foo puts
+
+    123 => foo.x[0].y
+    456 => foo.x[1].y
+
+    foo puts
+end
