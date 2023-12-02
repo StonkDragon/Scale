@@ -1,0 +1,23 @@
+struct A
+    struct B
+        static decl x: int
+        decl y: int
+    end
+end
+
+function main(): none
+    123 => A::B::x
+    A::B::x puts
+
+    using struct A
+    246 => B::x
+    B::x puts
+
+    A::B {
+        123 => y
+    } puts
+
+    B {
+        246 => y
+    } puts
+end
