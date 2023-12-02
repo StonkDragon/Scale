@@ -6,6 +6,7 @@
 %include include/std/lang/Float.scldoc
 %include include/std/lang/Fmt.scldoc
 %include include/std/lang/IO.scldoc
+%include include/std/lang/List.scldoc
 %include include/std/lang/Int.scldoc
 %include include/std/lang/Math.scldoc
 %include include/std/lang/Option.scldoc
@@ -31,3 +32,6 @@
 %include include/std/util/Stringifyable.scldoc
 %include include/std/util/Triple.scldoc
 %include include/std/util/TypedArray.scldoc
+%include include/std/functional/Do.scldoc
+%include include/std/compiler/Utils.scldoc
+%include include/std/macros/Macros.scldoc

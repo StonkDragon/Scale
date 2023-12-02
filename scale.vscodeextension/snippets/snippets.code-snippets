@@ -67,6 +67,16 @@
 		],
 		"description": "While loop"
 	},
+	"Using statement": {
+		"scope": "source.scale",
+		"prefix": "using",
+		"body": [
+			"using ${1} do",
+			"\t$0",
+			"done"
+		],
+		"description": "Using statement"
+	},
 	"Switch Statement": {
 		"scope": "source.scale",
 		"prefix": "switch",

@@ -22,5 +22,8 @@ namespace sclc {
         size_t indexOf(std::string name) {
             return members.find(name) != members.end() ? members[name] : npos;
         }
+        bool hasMember(std::string name) {
+            return members.find(name) != members.end();
+        }
     };
 } // namespace sclc

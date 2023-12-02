@@ -1,5 +1,5 @@
 framework: {
-    version: "23.10";
+    version: "23.11";
     headerDir: "include";
     implDir: "impl";
     implementers: [
@@ -19,6 +19,7 @@ framework: {
             "std/lang/Any.scale";
             "std/lang/Float.scale";
             "std/lang/Union.scale";
+            "std/lang/List.scale";
         ];
         std.Union: [
             "std/lang/Union.scale";
@@ -50,9 +51,6 @@ framework: {
         std.math: [
             "std/lang/Math.scale";
         ];
-        std.math.Fraction: [
-            "std/math/Fraction.scale";
-        ];
         std.io: [
             "std/lang/IO.scale";
         ];
@@ -61,63 +59,6 @@ framework: {
         ];
         std.fs: [
             "std/lang/File.scale";
-        ];
-        std.util.Array: [
-            "std/util/Array.scale";
-        ];
-        std.util.TypedArray: [
-            "std/util/TypedArray.scale";
-        ];
-        std.util.ReadOnlyArray: [
-            "std/util/ReadOnlyArray.scale";
-        ];
-        std.util.ImmutableArray: [
-            "std/util/ImmutableArray.scale";
-        ];
-        std.util.InvalidArgumentException: [
-            "std/util/InvalidArgumentException.scale";
-        ];
-        std.util.Pair: [
-            "std/util/Pair.scale";
-        ];
-        std.util.IndexOutOfBoundsException: [
-            "std/util/IndexOutOfBoundsException.scale";
-        ];
-        std.util.Cloneable: [
-            "std/util/Cloneable.scale";
-        ];
-        std.util.Equatable: [
-            "std/util/Equatable.scale";
-        ];
-        std.util.Hashable: [
-            "std/util/Hashable.scale";
-        ];
-        std.util.Iterable: [
-            "std/util/Iterable.scale";
-        ];
-        std.util.Map: [
-            "std/util/Map.scale";
-        ];
-        std.util.Range: [
-            "std/util/Range.scale";
-        ];
-        std.util.ReverseRange: [
-            "std/util/Range.scale";
-        ];
-        std.util.Stringifyable: [
-            "std/util/Stringifyable.scale";
-        ];
-        std.util.Triple: [
-            "std/util/Triple.scale";
-        ];
-        std.runtime.Process: [
-            "std/runtime/Process.scale";
-        ];
-        std.runtime.GarbageCollector: [
-            "std/runtime/GarbageCollector.scale";
-        ];
-        std.thread.Thread: [
-            "std/thread/Thread.scale";
         ];
     };
 };

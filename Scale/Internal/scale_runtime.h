@@ -46,19 +46,13 @@ extern "C" {
 #if __has_attribute(constructor)
 #define _scl_constructor __attribute__((constructor))
 #else
-#if defined(SCL_COMPILER_NO_MAIN)
-#error "Can't compile with --no-main"
-#endif
-#define _scl_constructor
+#error "Scale requires a compiler with __attribute__((constructor)) support"
 #endif
 
 #if __has_attribute(destructor)
 #define _scl_destructor __attribute__((destructor))
 #else
-#if defined(SCL_COMPILER_NO_MAIN)
-#error "Can't compile with --no-main"
-#endif
-#define _scl_destructor
+#error "Scale requires a compiler with __attribute__((destructor)) support"
 #endif
 
 #if __GNUC__ >= 4
@@ -240,7 +234,7 @@ typedef unsigned char		scl_uint8;
 
 typedef void*(*_scl_lambda)();
 
-typedef unsigned int ID_t;
+typedef scl_uint ID_t;
 
 struct _scl_methodinfo {
 	const ID_t							pure_name;
@@ -273,7 +267,6 @@ struct scale_string {
 #define SCL_OS_NAME "BSD-like"
 #elif defined(__CYGWIN__)
 #define SCL_OS_NAME "Windows (Cygwin)"
-#define SCL_CYGWIN
 #elif defined(__DragonFly__)
 #define SCL_OS_NAME "DragonFly"
 #elif defined(__FreeBSD__)
@@ -309,26 +302,6 @@ struct scale_string {
 #else
 #define SCL_OS_NAME "Unknown OS"
 #endif
-
-typedef union _scl_frame {
-	scl_int				i;
-	scl_str				s;
-	scl_float			f;
-	scl_any				v;
-	struct {
-		_scl_lambda*	$fast;
-		TypeInfo*		$statics;
-		scl_any			$mutex;
-	}*					o;
-	struct {
-		_scl_lambda*	$fast;
-		TypeInfo*		$statics;
-		scl_any			$mutex;
-		scl_int			__tag;
-		scl_any			__value;
-	}*					u;
-	const scl_int8*		cs;
-} _scl_frame_t;
 
 // Create a new instance of a struct
 #define ALLOC(_type)	({ \
@@ -367,7 +340,10 @@ typedef struct memory_layout memory_layout_t;
 // Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
-#define REINTERPRET_CAST(_type, _value) (*(_type*)&(_value))
+#define REINTERPRET_CAST(_type, _value) ({ \
+	typeof(_value) _tmp = (_value); \
+	*(_type*) &_tmp; \
+})
 
 #define EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
@@ -510,10 +486,14 @@ scl_any*			_scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl
 scl_int				_scl_array_size(scl_any* arr);
 scl_int				_scl_array_elem_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
-scl_any*			_scl_array_resize(scl_any* arr, scl_int new_size);
+scl_any*			_scl_array_resize(scl_int new_size, scl_any* arr);
 scl_any*			_scl_array_sort(scl_any* arr);
 scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
+void				_scl_array_set(scl_any arr, scl_int index, scl_int value);
+scl_any				_scl_array_get(scl_any arr, scl_int index);
+void				_scl_array_setf(scl_any arr, scl_int index, scl_float value);
+scl_float			_scl_array_getf(scl_any arr, scl_int index);
 
 // BEGIN C++ Concurrency API wrappers
 void				cxx_std_thread_join(scl_any thread);
@@ -529,53 +509,70 @@ void				cxx_std_recursive_mutex_lock(scl_any mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 // END C++ Concurrency API wrappers
 
-#define _scl_push()						(localstack++)
-#define _scl_pop()						(--localstack)
-#define _scl_positive_offset(offset)	(localstack + offset)
-#define _scl_top()						(localstack - 1)
-#define _scl_popn(n)					(localstack -= (n))
+#define _scl_push(_type, _value) ({ \
+	*(_type*) &ls[ls_ptr] = (_value); \
+	ls_ptr++; \
+})
+#define _scl_pop(_type) ({ \
+	ls_ptr--; \
+	_type _tmp = *(_type*) &ls[ls_ptr]; \
+	_tmp; \
+})
+#define _scl_positive_offset(offset, _type)	(*(_type*) &ls[ls_ptr + (offset)])
+#define _scl_top(_type) (*(_type*) &ls[ls_ptr - 1])
+#define _scl_popn(n) ls_ptr -= (n)
 
 #define _scl_swap() \
 	({ \
-		_scl_frame_t tmp = *(localstack - 1); \
-		*(localstack - 1) = *(localstack - 2); \
-		*(localstack - 2) = tmp; \
+		scl_int tmp = ls[ls_ptr - 1]; \
+		ls[ls_ptr - 1] = ls[ls_ptr - 2]; \
+		ls[ls_ptr - 2] = tmp; \
+	})
+
+#define _scl_dup() \
+	({ \
+		ls[ls_ptr] = ls[ls_ptr - 1]; \
+		ls_ptr++; \
+	})
+
+#define _scl_drop() \
+	({ \
+		ls_ptr--; \
 	})
 
 #define _scl_over() \
 	({ \
-		_scl_frame_t tmp = *(localstack - 1); \
-		*(localstack - 1) = *(localstack - 3); \
-		*(localstack - 3) = tmp; \
+		scl_int tmp = ls[ls_ptr - 1]; \
+		ls[ls_ptr - 1] = ls[ls_ptr - 3]; \
+		ls[ls_ptr - 3] = tmp; \
 	})
 
 #define _scl_sdup2() \
 	({ \
-		*(localstack) = *(localstack - 2); \
-		localstack++; \
+		ls[ls_ptr] = ls[ls_ptr - 2]; \
 	})
 
 #define _scl_swap2() \
 	({ \
-		_scl_frame_t tmp = *(localstack - 2); \
-		*(localstack - 2) = *(localstack - 3); \
-		*(localstack - 3) = tmp; \
+		scl_int tmp = ls[ls_ptr - 2]; \
+		ls[ls_ptr - 2] = ls[ls_ptr - 3]; \
+		ls[ls_ptr - 3] = tmp; \
 	})
 
 #define _scl_rot() \
 	({ \
-		_scl_frame_t tmp = *(localstack - 3); \
-		*(localstack - 3) = *(localstack - 2); \
-		*(localstack - 2) = *(localstack - 1); \
-		*(localstack - 1) = tmp; \
+		scl_int tmp = ls[ls_ptr - 3]; \
+		ls[ls_ptr - 3] = ls[ls_ptr - 2]; \
+		ls[ls_ptr - 2] = ls[ls_ptr - 1]; \
+		ls[ls_ptr - 1] = tmp; \
 	})
 
 #define _scl_unrot() \
 	({ \
-		_scl_frame_t tmp = *(localstack - 1); \
-		*(localstack - 1) = *(localstack - 2); \
-		*(localstack - 2) = *(localstack - 3); \
-		*(localstack - 3) = tmp; \
+		scl_int tmp = ls[ls_ptr - 1]; \
+		ls[ls_ptr - 1] = ls[ls_ptr - 2]; \
+		ls[ls_ptr - 2] = ls[ls_ptr - 3]; \
+		ls[ls_ptr - 3] = tmp; \
 	})
 
 #define _scl_add(a, b)			(a) + (b)
@@ -602,10 +599,10 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 #define _scl_at(a)				(*((a)))
 #define _scl_inc(a)				(++(a))
 #define _scl_dec(a)				(--(a))
-#define _scl_ann(a)				({typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a;})
-#define _scl_elvis(a, b)		({typeof((a)) _a = (a); _a ? _a : (b);})
-#define _scl_ror(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(scl_int) << 3) - (_b))); })
-#define _scl_rol(a, b)			({ scl_int _a = (a); scl_int _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(scl_int) << 3) - (_b))); })
+#define _scl_ann(a)				({ typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
+#define _scl_elvis(a, b)		({ typeof((a)) _a = (a); _a ? _a : (b); })
+#define _scl_ror(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(typeof(_a)) << 3) - (_b))); })
+#define _scl_rol(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(typeof(_a)) << 3) - (_b))); })
 
 #if defined(__cplusplus)
 }

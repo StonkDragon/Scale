@@ -1,4 +1,5 @@
 import std.util.Stringifyable
+import std.math
 
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
@@ -18,7 +19,7 @@ private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   private decl data: [int8]
   private decl length: int
-  private decl hash: uint32
+  private decl hash: uint
 
   function +(other: str): str
     other self:prepend return
@@ -46,7 +47,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function append(cStr: [int8]): str
     unsafe
-      self.data cStr concat str::new return
+      self.data cStr str::concat str::new return
     end
   end
 
@@ -56,7 +57,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function prepend(cStr: [int8]): str
     unsafe
-      cStr self.data concat str::new return
+      cStr self.data str::concat str::new return
     end
   end
 
@@ -87,6 +88,37 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       IndexOutOfBoundsException::new throw
     fi
     self.data as int i + @:toInt8 as int return
+  end
+
+  function indexOf(c: int8): int
+    for i in 0 to self:size do
+      if self[i] c == then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function indexOf(s: str): int
+    for i in 0 to self:size do
+      if s (i self:subString):startsWith then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function lastIndexOf(c: int8): int
+    for i in self:size 1 - to -1 step -- do
+      if self[i] c == then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function contains(c: int8): bool
+    c self:indexOf 0 > return
   end
 
   function toString(): str
@@ -124,23 +156,47 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     return
   end
 
-  function split(delimiter: str): Array
-    10 Array::new => decl arr: Array
-    unsafe  
-      self:view __c_strdup => decl string: [int8]
-      delimiter:view __c_strdup => decl cDelim: [int8]
-
-      string cDelim __c_strtok => decl line
-
-      while line do
-        line!! str::new arr:push
-        nil cDelim __c_strtok => line
+  function trim(): str
+    0 => decl startIndex: int
+    self:size => decl endIndex: int
+    try
+      while self[startIndex] str::isSpace do
+        startIndex 1 +> startIndex
       done
-      string any::delete
-      cDelim any::delete
 
-    end
-    arr return
+      while self[endIndex 1 -] str::isSpace do
+        endIndex 1 -> endIndex
+      done
+    catch typeof IndexOutOfBoundsException
+      "" return
+    done
+
+    if startIndex endIndex >= then
+      "" return
+    fi
+
+    (startIndex to endIndex) self:subString return
+  end
+
+  function split(delim: str): [str]
+    new<str>[self:size] => decl arr: [str]
+    decl next: int
+
+    self => decl tmp: str
+    delim tmp:indexOf => decl index: int
+
+    while index 0 > do
+      (0 to index) tmp:subString => arr[next]
+      next 1 +> next
+      
+      index delim:size + tmp:subString => tmp  
+      delim tmp:indexOf => index
+    done
+
+    tmp => arr[next]
+    next 1 +> next
+
+    next arr:resize as [str] return
   end
 
   function startsWith(string: str): bool
@@ -178,6 +234,27 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     tmp as [int8] str::new return
   end
 
+  function subString(range: Range): str
+    if range.lower 0 < range.lower self:size >= || then
+      "Index " range.lower:toString +
+      " is out of bounds for string with length " self:size:toString +
+      +
+      IndexOutOfBoundsException::new throw
+    fi
+    if range.upper 0 < range.upper self:size > || then
+      "Index " range.upper:toString +
+      " is out of bounds for string with length " self:size:toString +
+      +
+      IndexOutOfBoundsException::new throw
+    fi
+
+    self.data => decl tmp: any
+    tmp as int range.lower + => tmp
+    tmp as [int8] => decl tmpArr: [int8]
+    '\0' => tmpArr[range.upper range.lower -]
+    tmpArr str::new return
+  end
+
   function view(): [int8]
     unsafe
       self.data __c_strdup return
@@ -191,6 +268,21 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     end
     data => self.data
     data builtinHash => self.hash
+  end
+
+  function init(data: [int8], n: int): none
+    new<int8>[data:size n min 1 +] => self.data
+    self.data:size => self.length
+    for i in 0 to self.length do
+      data[i] => self.data[i]
+    done
+    self.data builtinHash => self.hash
+  end
+
+  function init(): none
+    c"" => self.data
+    0 => self.length
+    self.data builtinHash => self.hash
   end
 
   function iterate(): StringIterator
@@ -220,7 +312,66 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     s return
   end
 
-  private unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
+  static function filter(arr: str, f: lambda(int8): bool): str
+    new<int8>[arr:size] => decl result: [int8]
+    0 => decl acc: int
+    foreach char in arr do
+      if char f:accept then
+        char => result[acc]
+        acc 1 +> acc
+      fi
+    done
+    acc result:resize str::of return
+  end
+
+  static function map(arr: str, f: lambda(int8): int8): str
+    new<int8>[arr:size] => decl result: [int8]
+    for i in 0 to arr:size do
+      arr[i] f:accept => result[i]
+    done
+    result str::of return
+  end
+
+  static function reduce(arr: str, f: lambda(int, int8): int): int
+    decl result: int
+    for i in 0 to arr:size do
+      result arr[i] f:accept => result
+    done
+    result return
+  end
+
+  static function count(arr: str, f: lambda(int8): bool): int
+    decl acc: int
+    foreach val in arr do
+      if val f:accept then
+        acc 1 +> acc
+      fi
+    done
+    acc return
+  end
+
+  static function each(arr: str, f: lambda(int8): none): none
+    foreach val in arr do
+      val f:accept
+    done
+  end
+
+  static function also(arr: str, f: lambda(int8): bool): str
+    foreach val in arr do
+      val f:accept
+    done
+    arr return
+  end
+
+  static function transform(arr: str, f: lambda(str): any): any
+    arr f:accept return
+  end
+
+  private static function isSpace(c: int8): bool
+    c ' ' == c '\t' == || c '\n' == c '\r' == || || c '\0' == || return
+  end
+
+  private static unsafe function concat(firstCStr: [int8], secondCStr: [int8]): [int8]
     firstCStr __c_strlen => decl len: int
     secondCStr __c_strlen => decl len2: int
     new<int8>[len len2 + 1 +] => decl out: [int8]

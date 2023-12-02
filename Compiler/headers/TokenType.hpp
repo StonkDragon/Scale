@@ -84,6 +84,7 @@ namespace sclc
         tok_column,                 // :
         tok_double_column,          // ::
         tok_dot,                    // .
+        tok_ticked,                 // 'identifier
 
         tok_identifier,             // foo
         tok_number,                 // 123

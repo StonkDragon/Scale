@@ -1,22 +1,18 @@
 macro! ImplMove(on) {
-    expand {
-        function $on:init(other: const [const $on]): none
-            unsafe
-                self as int 16 + other@ as int 16 + self any::size 16 - memcpy
-                other@ any::delete
-            end
+    function $on:init(other: const [const $on]): none
+        unsafe
+            self as int 16 + other@ as int 16 + self any::size 16 - memcpy
+            other@ any::delete
         end
-    }
+    end
 }
 
 macro! ImplCopy(on) {
-    expand {
-        function $on:init(other: const $on): none
-            unsafe
-                self as int 16 + other as int 16 + self any::size 16 - memcpy
-            end
+    function $on:init(other: const $on): none
+        unsafe
+            self as int 16 + other as int 16 + self any::size 16 - memcpy
         end
-    }
+    end
 }
 
 ImplCopy! Vec3

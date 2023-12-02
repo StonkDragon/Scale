@@ -92,6 +92,68 @@ function lerp(a: float, b: float, t: float): float
   b a - t * a + return
 end
 
-function neg(number: int): int
-  0 number - return
+function abs(a: int): int
+  if a 0 < then
+    a -1 * return
+  fi
+  a return
+end
+
+function sign(a: int): int
+  if a 0 < then
+    1 return
+  fi
+  if a 0 > then
+    -1 return
+  fi
+  0 return
+end
+
+function min(a: int, b: int): int
+  if a b < then
+    a return
+  fi
+  b return
+end
+
+function max(a: int, b: int): int
+  if a b > then
+    a return
+  fi
+  b return
+end
+
+function min(a: float, b: float): float
+  if a b < then
+    a return
+  fi
+  b return
+end
+
+function max(a: float, b: float): float
+  if a b > then
+    a return
+  fi
+  b return
+end
+
+function clamp(x: int, lower: int, upper: int): int
+  (lower (x upper min) max) return
+end
+
+function gcd(a: int, b: int): int
+  if a 0 == then
+    b return
+  fi
+  if b 0 == then
+    a return
+  fi
+  if a b < then
+    b a gcd return
+  fi
+  b a b % gcd return
+end
+
+function lcm(a: int, b: int): int
+  (a b * abs) (a b gcd) / return
 end

@@ -4,8 +4,6 @@ final sealed struct Range is Iterable
   decl lower: int
   decl upper: int
   
-  private decl pos: int
-
   function init(theStart: int, theEnd: int): none
     if theStart theEnd > then
       "start must not be bigger than end!" InvalidArgumentException::new throw
@@ -13,7 +11,6 @@ final sealed struct Range is Iterable
 
     theStart => self.lower
     theEnd => self.upper
-    0 => self.pos
   end
 
   function containsRange(other: Range): int
@@ -50,12 +47,22 @@ final sealed struct Range is Iterable
   function toReverseRange(): ReverseRange
     self.upper self.lower ReverseRange::new return
   end
+
+  function toList(): [int]
+    upper lower - => decl size: int
+    new<int>[size] => decl list: [int]
+    0 => decl i: int
+    foreach val in self do
+      val => list[i]
+      i 1 +> i
+    done
+    list return
+  end
 end
 
 final sealed struct ReverseRange is Iterable
   decl lower: int
   decl upper: int
-  decl pos: int
 
   function init(theStart: int, theEnd: int): none
     if theStart theEnd < then
@@ -63,7 +70,6 @@ final sealed struct ReverseRange is Iterable
     fi
     theStart => self.lower
     theEnd => self.upper
-    0 => self.pos
   end
 
   function toString(): str
@@ -76,6 +82,17 @@ final sealed struct ReverseRange is Iterable
 
   function toRange(): Range
     self.upper self.lower Range::new return
+  end
+
+  function toList(): [int]
+    lower upper - => decl size: int
+    new<int>[size] => decl list: [int]
+    0 => decl i: int
+    foreach val in self do
+      val => list[i]
+      i 1 +> i
+    done
+    list return
   end
 end
 
@@ -113,8 +130,8 @@ sealed struct ReverseRangeIterator is Iterator
   end
 
   function next(): int
-    self.range.lower self.pos -
     self.pos 1 + => self.pos
+    self.range.lower self.pos -
     return
   end
 end

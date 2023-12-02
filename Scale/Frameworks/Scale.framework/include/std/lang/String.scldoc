@@ -48,8 +48,8 @@ Returns a reversed copy of `self`.
 ### function str:toChars(): Array
 Returns an array containing the characters of `self`.
 
-### function str:split(delimiter: str): Array
-Splits `self` at `delimiter` and returns an array containing the parts.
+### function str:split(delimiter: str): [str]
+Splits `self` at `delimiter` and returns the resulting substrings.
 
 ### function str:startsWith(string: str): bool
 Returns true if `self` starts with `string`.
@@ -60,11 +60,39 @@ Returns true if `self` ends with `string`.
 ### function str:subString(start: int): str
 Returns a substring of `self` starting at `start`.
 
+### function str:subString(range: Range): str
+Returns a substring of `self` in the range `range`.
+
+### function str:indexOf(c: int8): int
+Returns the index of the first occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:indexOf(s: str): int
+Returns the index of the first occurrence of `s` in `self`.
+Returns -1 if `self` does not contain `s`.
+
+### function str:lastIndexOf(c: int8): int
+Returns the index of the last occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:contains(c: int8): bool
+Returns true if `self` contains `c`.
+
+### function str:trim(): str
+Returns a copy of `self` with leading and trailing whitespace removed.
+
 ### function str:view(): [int8]
 Returns a pointer to the memory block containing the data of `self`.
 
 ### static function str::new(data: [int8]): str
 Returns a new instance of `str` with the data `data`.
+
+### static function str::new(data: [int8], n: int): none
+Returns a new instance of `str` with the data `data` and size `n`.
+The resulting string will contain at most `n` characters.
+
+### static function str::new(): none
+Returns a new instance of `str` with size 0.
 
 ### function str:iterate(): StringIterator
 Returns an iterator over the characters of `self`.
@@ -78,6 +106,34 @@ Allows assigning C strings to `str` variables.
 ### static function str::of(data: [int8]): str
 Returns a new instance of `str` with the data `data`.
 This function does not copy the data.
+
+### static function str::filter(:str, predicate: lambda(int8): bool): str
+Returns a new instance of `str` containing only the characters of `self` for which `predicate` returns true.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::map(:str, mapper: lambda(int8): int8): str
+Returns a new instance of `str` containing the characters of `self` mapped by `mapper`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::reduce(:str, reducer: lambda(int, int8): int): int
+Returns the result of reducing `self` with `reducer`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::count(:str, predicate: lambda(int8): bool): int
+Returns the number of characters in `self` for which `predicate` returns true.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::each(:str, action: lambda(int8): none): none
+Executes `action` for each character in `self`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::also(:str, action: lambda(int8): none): str
+Executes `action` for each character in `self` and returns `self`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::transform(:str, transformer: lambda(str): any): any
+Returns the result of applying `transformer` to `self`.
+This function makes the `str` type compatible with `do`-notation.
 
 ### final struct StringIterator is Iterator
 The struct `StringIterator` is an iterator over the characters of a string.

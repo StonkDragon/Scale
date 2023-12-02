@@ -13,7 +13,7 @@ function main(): none
     elif i 5 % 0 == then
       "Buzz" puts
     else
-      i putint
+      i puts
     fi
     i 1 + => i
   done

@@ -28,7 +28,7 @@ function main(): none
     456      => f.y.b.x     # Set the value of f.y.b.x to 456
 
     # Grab the address of f.x
-    (ref f.x @)     puts    # Prints 123
+    (ref f.x @)    puts    # Prints 123
     # Grab the address of f.y.b.x
     (ref f.y.b.x @) puts    # Prints 456
 end

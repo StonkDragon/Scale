@@ -1,0 +1,8 @@
+@std.util.Closeable
+@@{frameworkPath}/include/std/util/Closeable.scale
+## Util: Closeable
+### interface Closeable
+The interface `Closeable` is implemented by all types that can be closed.
+
+### function Closeable:close(): none
+The function `close` closes the object. It is an error to call any other function on the object after it has been closed.

@@ -33,28 +33,28 @@ end
 function main(): none
     Foo::new => decl f: Foo
     
-    f +  puts
-    f -  puts
-    f *  puts
-    f /  puts
-    f %  puts
-    f &  puts
-    f |  puts
-    f ^  puts
-    f ~  puts
+    f + puts
+    f - puts
+    f * puts
+    f / puts
+    f % puts
+    f & puts
+    f | puts
+    f ^ puts
+    f ~ puts
     f << puts
     f >> puts
     f ** puts
-    f <  puts
+    f < puts
     f <= puts
-    f >  puts
+    f > puts
     f >= puts
     f == puts
-    f !  puts
+    f ! puts
     f != puts
     f && puts
     f || puts
     f ++ puts
     f -- puts
-    f @  puts
+    f @ puts
 end

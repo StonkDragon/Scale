@@ -20,14 +20,6 @@ namespace sclc {
         uint32_t version = Main::version->major << 16 | Main::version->minor << 8 | Main::version->patch;
         fwrite(&version, sizeof(uint32_t), 1, f);
 
-        uint32_t numContainers = 0;
-        for (Container& c : result.containers) {
-            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
-                numContainers++;
-            }
-        }
-        fwrite(&numContainers, sizeof(uint32_t), 1, f);
-
         uint32_t numStructs = 0;
         for (Struct& s : result.structs) {
             if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
@@ -87,26 +79,6 @@ namespace sclc {
         uint32_t numTypealiases = result.typealiases.size();
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
-        for (Container& c : result.containers) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
-                continue;
-            }
-
-            uint32_t nameLength = c.name.size();
-            fwrite(&nameLength, sizeof(uint32_t), 1, f);
-            fwrite(c.name.c_str(), sizeof(char), nameLength, f);
-            uint32_t numMembers = c.members.size();
-            fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (Variable& v : c.members) {
-                uint32_t memberNameLength = v.name.size();
-                fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
-                fwrite(v.name.c_str(), sizeof(char), memberNameLength, f);
-
-                uint32_t memberTypeLength = v.type.size();
-                fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
-                fwrite(v.type.c_str(), sizeof(char), memberTypeLength, f);
-            }
-        }
         for (Struct& s : result.structs) {
             if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 continue;
@@ -327,14 +299,6 @@ namespace sclc {
         uint32_t version = Main::version->major << 16 | Main::version->minor << 8 | Main::version->patch;
         fwrite(&version, sizeof(uint32_t), 1, f);
 
-        uint32_t numContainers = 0;
-        for (Container& c : result.containers) {
-            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
-                numContainers++;
-            }
-        }
-        fwrite(&numContainers, sizeof(uint32_t), 1, f);
-
         uint32_t numStructs = 0;
         for (Struct& s : result.structs) {
             if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
@@ -394,26 +358,6 @@ namespace sclc {
         uint32_t numTypealiases = result.typealiases.size();
         fwrite(&numTypealiases, sizeof(uint32_t), 1, f);
 
-        for (Container& c : result.containers) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(c.name_token->location.file).string())) {
-                continue;
-            }
-
-            uint32_t nameLength = c.name.size();
-            fwrite(&nameLength, sizeof(uint32_t), 1, f);
-            fwrite(c.name.c_str(), sizeof(char), nameLength, f);
-            uint32_t numMembers = c.members.size();
-            fwrite(&numMembers, sizeof(uint32_t), 1, f);
-            for (Variable& v : c.members) {
-                uint32_t memberNameLength = v.name.size();
-                fwrite(&memberNameLength, sizeof(uint32_t), 1, f);
-                fwrite(v.name.c_str(), sizeof(char), memberNameLength, f);
-
-                uint32_t memberTypeLength = v.type.size();
-                fwrite(&memberTypeLength, sizeof(uint32_t), 1, f);
-                fwrite(v.type.c_str(), sizeof(char), memberTypeLength, f);
-            }
-        }
         for (Struct& s : result.structs) {
             if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(s.name_token.location.file).string())) {
                 continue;

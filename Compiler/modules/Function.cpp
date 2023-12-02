@@ -63,8 +63,8 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_setter = 0;
     this->has_foreign = 0;
     this->has_overrides = 0;
-    this->has_stacksize = 0;
     this->has_binary_inherited = 0;
+    this->has_nonvirtual = 0;
 }
 std::string Function::finalName() {
     if (
@@ -116,8 +116,8 @@ void Function::addModifier(std::string modifier) {
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
     else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
-    else if (has_stacksize == 0 && modifier == "stacksize") has_stacksize = modifiers.size();
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
+    else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -137,24 +137,21 @@ bool Function::operator==(const Function& other) const {
     return name == other.name;
 }
 bool Function::operator!=(const Function* other) const {
-    return !(*this == other);
+    return !this->operator==(other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;
-    if (other->isMethod && !this->isMethod) return false;
-    if (!other->isMethod && this->isMethod) return false;
-    if (other->isMethod && this->isMethod) {
-        Method* thisM = (Method*) this;
-        Method* otherM = (Method*) other;
-        return name == other->name && thisM->member_type == otherM->member_type;
-    }
-    return name == other->name;
+    if (other->isMethod && !isMethod) return false;
+    if (!other->isMethod && isMethod) return false;
+    if (name.size() != other->name.size()) return false;
+    if (member_type.size() != other->member_type.size()) return false;
+    return name == other->name && member_type == other->member_type;
 }
 bool Function::belongsToType(std::string typeName) {
     return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);
 }
 void Function::clearArgs() {
-    this->args = std::vector<Variable>();
+    this->args.clear();
 }
 bool Function::isCVarArgs() {
     return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args[this->args.size() - (1 + ((size_t) this->isMethod))].type == "varargs";
@@ -170,8 +167,4 @@ const std::string& Function::getModifier(size_t index) {
         throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
     }
     return this->modifiers.at(index - 1);
-}
-size_t Function::stackSize() {
-    if (!this->has_stacksize) return 32;
-    return std::stoul(this->getModifier(this->has_stacksize + 1));
 }

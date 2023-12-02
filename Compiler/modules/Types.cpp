@@ -125,6 +125,16 @@ namespace sclc {
         return arg;
     }
 
+    std::string argVectorToString(std::vector<std::string>& args) {
+        std::string arg = "";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i) 
+                arg += ", ";
+            arg += removeTypeModifiers(args[i]);
+        }
+        return arg;
+    }
+
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other) {
         if (one == other || (other.name == "SclObject" && !Main::options::noScaleFramework)) {
             return true;
@@ -170,6 +180,9 @@ namespace sclc {
     }
 
     bool typeEquals(const std::string& a, const std::string& b) {
+        if (b == "any" || b == "[any]") {
+            return true;
+        }
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
             return true;
         } else if (a.size() > 2 && a.front() == '[') {
@@ -206,6 +219,9 @@ namespace sclc {
 
     bool typesCompatible(TPResult& result, std::string stack, std::string arg, bool allowIntPromotion) {
         if (strstarts(arg, "ctype$")) {
+            return true;
+        }
+        if (arg == stack) {
             return true;
         }
         bool stackTypeIsNilable = typeCanBeNil(stack);

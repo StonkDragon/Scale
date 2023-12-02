@@ -10,7 +10,6 @@
 #include "Function.hpp"
 #include "Interface.hpp"
 #include "Variable.hpp"
-#include "Container.hpp"
 #include "Struct.hpp"
 #include "Enum.hpp"
 
@@ -56,7 +55,6 @@ namespace sclc
         std::vector<Interface*> interfaces;
         std::vector<Variable> extern_globals;
         std::vector<Variable> globals;
-        std::vector<Container> containers;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Struct> structs;

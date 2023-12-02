@@ -46,7 +46,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "23.10"
+#define FRAMEWORK_VERSION_REQ "23.11"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -106,13 +106,6 @@ namespace sclc
             }
         }
         return false;
-    }
-
-    std::string gen_random() {
-        char* s = (char*) malloc(256);
-        ID_t h = id(std::string(VERSION).c_str());
-        snprintf(s, 256, "%x%x%x%x", h, h, h, h);
-        return std::string(s);
     }
 
     FPResult findFileInIncludePath(std::string file);
@@ -540,7 +533,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "23.10");
+        framework->addString("version", "23.11");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -675,6 +668,14 @@ namespace sclc
         
         std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.o");
         std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.o");
+
+        std::string macroCommand = "sclc -makelib -o " + scaleFolder + "/Frameworks/Scale.framework/impl/__scale_macros.scl " + scaleFolder + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale";
+        std::cout << Color::BLUE << "Compiling macros..." << std::endl;
+        std::cout << Color::CYAN << macroCommand << Color::RESET << std::endl;
+        if ((ret = system(macroCommand.c_str()))) {
+            std::cerr << Color::RED << "Failed to compile macros" << Color::RESET << std::endl;
+            return ret;
+        }
         return 0;
     }
 
@@ -687,7 +688,7 @@ namespace sclc
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
@@ -747,7 +748,7 @@ namespace sclc
             }
             FILE* f = fopen(std::string(error.location.file).c_str(), "r");
             if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << Color::RESET << std::endl;
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
@@ -825,7 +826,6 @@ namespace sclc
         }
 
         srand(time(NULL));
-        Main::options::operatorRandomData = gen_random();
         tmpFlags.reserve(args.size());
 
         Main::version = new Version(std::string(VERSION));

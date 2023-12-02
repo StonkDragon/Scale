@@ -1,0 +1,7 @@
+@std.macros.Macros
+@@{frameworkPath}/include/std/macros/Macros.scale
+### macro! expand {}
+Emits the tokens contained within the curly braces as if they were written in place of the macro invocation.
+
+### macro! quote {}
+Emits a single string literal containing the value of each token contained within the curly braces, separated by spaces.

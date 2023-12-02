@@ -12,12 +12,13 @@
 		{"include": "#quoted_string"},
 		{"include": "#keyw_operator"},
 		{"include": "#keyword"},
+		{"include": "#stack_operators"},
 		{"include": "#deprecation"},
+		{"include": "#quoted_char"},
+		{"include": "#do_types"},
 		{"include": "#keyw_constant"},
 		{"include": "#function_declaration"},
-		{"include": "#quoted_char"},
 		{"include": "#constant_number"},
-		{"include": "#stack_operators"},
 		{"include": "#default"},
 		{"include": "#illegal"}
 	],
@@ -83,13 +84,19 @@
 				"match": "\\b(true|false|nil)\\b"
 			}]
 		},
+		"do_types": {
+			"patterns": [{
+				"name": "entity.name.function",
+				"match": "'\\b(f|m|r|filter|map|reduce|count|also|each|transform)\\b"
+			}]
+		},
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|container|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|overrides|goto|label|nothing|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|foreign|operator|unsafe|restrict|const|readonly|try|catch|throw|open|intrinsic|lambda)\\b"
+				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|using|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|overrides|goto|label|nothing|none|int|float|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|foreign|nonvirtual|operator|unsafe|restrict|const|readonly|try|catch|throw|open|intrinsic|lambda)\\b"
 			},{
 				"name": "keyword.control",
-				"match": "((macro|pragma)!)"
+				"match": "(((del)?macro|pragma)!)"
 			}]
 		},
 		"deprecation": {
@@ -116,8 +123,8 @@
 		},
 		"stack_operators": {
 			"patterns": [{
-				"name": "keyword.control.less",
-				"match": "\\b(drop|dup|swap|over|sdup2|swap2|clearstack)\\b"
+				"name": "keyword.operator",
+				"match": "\\b(swap|dup|drop|over|sdup2|swap2|rot|unrot)\\b"
 			}]
 		},
 		"function_declaration": {
@@ -128,7 +135,7 @@
 		},
 		"quoted_string": {
 			"name": "string.quoted.double",
-			"begin": "(c\"|\")",
+			"begin": "(c\"|u\"|\")",
 			"end": "\"",
 			"patterns": [{
 				"name": "string",

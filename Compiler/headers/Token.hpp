@@ -11,10 +11,27 @@ namespace sclc
 {
     extern std::vector<std::string> keywords;
 
+    struct CSourceLocation {
+        void* file;
+        size_t line;
+        size_t column;
+    };
+
+    struct CToken {
+        long type;
+        void* value;
+        CSourceLocation* location;
+    };
+
     struct SourceLocation {
+        static SourceLocation of(CSourceLocation* cloc, char* (*fromString)(void*)) {
+            return SourceLocation(std::string(fromString(cloc->file)), cloc->line, cloc->column);
+        }
+
         std::string file;
         int line;
         int column;
+        SourceLocation() : SourceLocation("", 0, 0) {}
         SourceLocation(std::string file, int line, int column) : file(file), line(line), column(column) {}
         SourceLocation(const SourceLocation& other) {
             this->file = other.file;
@@ -42,6 +59,14 @@ namespace sclc
 
         ~SourceLocation() {}
 
+        CSourceLocation* toC(void*(*alloc)(size_t), void*(*toString)(char*)) const {
+            CSourceLocation* loc = (CSourceLocation*) alloc(sizeof(CSourceLocation));
+            loc->file = toString(strdup(file.c_str()));
+            loc->line = line;
+            loc->column = column;
+            return loc;
+        }
+
         std::string toString() const {
             return "SourceLocation(file=" + file + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ")";
         }
@@ -50,29 +75,35 @@ namespace sclc
     struct Token {
         static Token Default;
 
+        static Token of(CToken* ctok, char* (*fromString)(void*)) {
+            return Token {
+                static_cast<TokenType>(ctok->type),
+                std::string(fromString(ctok->value)),
+                SourceLocation::of(ctok->location, fromString)
+            };
+        }
+
         TokenType type;
         std::string value;
         SourceLocation location;
 
         std::string toString() const {
-            return "Token(value=" + value + ", type=" + std::to_string(type) + ", location=" + location.toString() + ")";
+            return "Token(value=" + std::string(value) + ", type=" + std::to_string(type) + ", location=" + location.toString() + ")";
         }
         Token() : Token(tok_eof, "") {}
         Token(TokenType type, std::string value) : type(type), value(value), location("", 0, 0) {}
         Token(TokenType type, std::string value, int line, std::string file, int column) : type(type), value(value), location(file, line, column) {}
         Token(TokenType type, std::string value, SourceLocation location) : type(type), value(value), location(location) {}
-        Token(const Token& other) : location(other.location) {
+        Token(const Token& other) : value(other.value.c_str(), other.value.size()), location(other.location) {
             this->type = other.type;
-            this->value = other.value;
             this->location = other.location;
         }
-        Token(Token&& other) : location(static_cast<SourceLocation&&>(other.location)) {
+        Token(Token&& other) : value(static_cast<std::string&&>(other.value)), location(static_cast<SourceLocation&&>(other.location)) {
             this->type = other.type;
-            this->value = static_cast<std::string&&>(other.value);
         }
         Token& operator=(const Token& other) {
             this->type = other.type;
-            this->value = other.value;
+            this->value = std::string(other.value.c_str(), other.value.size());
             this->location = other.location;
             return *this;
         }
@@ -84,20 +115,21 @@ namespace sclc
         }
         ~Token() {}
         std::string formatted() const {
+            std::string val(value);
             if (type == tok_eof) return "";
             std::string colorFormat = color();
             if (type == tok_string_literal) {
-                return colorFormat + "\"" + value + "\"" + Color::RESET;
+                return colorFormat + "\"" + val + "\"" + Color::RESET;
             } else if (type == tok_char_string_literal) {
-                return colorFormat + "c\"" + value + "\"" + Color::RESET;
+                return colorFormat + "c\"" + val + "\"" + Color::RESET;
             } else if (type == tok_char_literal) {
                 auto integerToChar = [](int i) -> std::string {
                     std::string s(1, (char)i);
                     return s;
                 };
-                return colorFormat + "'" + integerToChar(std::stoi(value)) + "'" + Color::RESET;
+                return colorFormat + "'" + integerToChar(std::stoi(val)) + "'" + Color::RESET;
             }
-            return colorFormat + value + Color::RESET;
+            return colorFormat + val + Color::RESET;
         }
 
         bool isKeyword() const {
@@ -167,6 +199,14 @@ namespace sclc
                     type == tok_column ||
                     type == tok_double_column ||
                     type == tok_dot;
+        }
+
+        CToken* toC(void*(*alloc)(size_t), void* (*toString)(char*)) const {
+            CToken* tok = (CToken*) alloc(sizeof(CToken));
+            tok->type = static_cast<long>(type);
+            tok->value = toString(strdup(value.data()));
+            tok->location = location.toC(alloc, toString);
+            return tok;
         }
 
         std::string color() const {

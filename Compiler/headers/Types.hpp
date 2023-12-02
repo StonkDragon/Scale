@@ -9,6 +9,7 @@ namespace sclc {
     bool isPrimitiveIntegerType(std::string s);
     bool argsAreIdentical(std::vector<Variable>& methodArgs, std::vector<Variable>& functionArgs);
     std::string argVectorToString(std::vector<Variable>& args);
+    std::string argVectorToString(std::vector<std::string>& args);
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other);
     std::string lambdaReturnType(const std::string& lambda);
     size_t lambdaArgCount(const std::string& lambda);

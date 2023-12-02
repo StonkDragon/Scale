@@ -1,0 +1,208 @@
+import std.Result
+
+enum TokenType
+    EOF
+    Return
+    Function
+    End
+    True
+    False
+    Nil
+    If
+    Unless
+    Then
+    Elif
+    Elunless
+    Else
+    Fi
+    While
+    Do
+    Done
+    Extern
+    ExternC
+    Break
+    Continue
+    For
+    Foreach
+    In
+    Step
+    To
+    AddrRef
+    Load
+    Store
+    Declare
+    ContainerDef
+    Repeat
+    StructDef
+    UnionDef
+    New
+    Is
+    CDecl
+    Label
+    Goto
+    Switch
+    Case
+    Esac
+    Default
+    InterfaceDef
+    As
+    Enum
+    QuestionMark
+    AddrOf
+    ParenOpen
+    ParenClose
+    CurlyOpen
+    CurlyClose
+    BracketOpen
+    BracketClose
+    Comma
+    Add
+    Sub
+    Mul
+    Div
+    Mod
+    LAnd
+    LOr
+    LXor
+    LNot
+    Lsh
+    Rsh
+    Pow
+    Column
+    DoubleColumn
+    Dot
+    Ticked
+    Identifier
+    Number
+    NumberFloat
+    StringLiteral
+    CharStringLiteral
+    UtfStringLiteral
+    CharLiteral
+    Dollar
+    MAX
+end
+
+function tokenTypeToString(tt: TokenType): str
+    tt switch
+        case TokenType::EOF "EOF" return esac
+        case TokenType::Return "Return" return esac
+        case TokenType::Function "Function" return esac
+        case TokenType::End "End" return esac
+        case TokenType::True "True" return esac
+        case TokenType::False "False" return esac
+        case TokenType::Nil "Nil" return esac
+        case TokenType::If "If" return esac
+        case TokenType::Unless "Unless" return esac
+        case TokenType::Then "Then" return esac
+        case TokenType::Elif "Elif" return esac
+        case TokenType::Elunless "Elunless" return esac
+        case TokenType::Else "Else" return esac
+        case TokenType::Fi "Fi" return esac
+        case TokenType::While "While" return esac
+        case TokenType::Do "Do" return esac
+        case TokenType::Done "Done" return esac
+        case TokenType::Extern "Extern" return esac
+        case TokenType::ExternC "ExternC" return esac
+        case TokenType::Break "Break" return esac
+        case TokenType::Continue "Continue" return esac
+        case TokenType::For "For" return esac
+        case TokenType::Foreach "Foreach" return esac
+        case TokenType::In "In" return esac
+        case TokenType::Step "Step" return esac
+        case TokenType::To "To" return esac
+        case TokenType::AddrRef "AddrRef" return esac
+        case TokenType::Load "Load" return esac
+        case TokenType::Store "Store" return esac
+        case TokenType::Declare "Declare" return esac
+        case TokenType::ContainerDef "ContainerDef" return esac
+        case TokenType::Repeat "Repeat" return esac
+        case TokenType::StructDef "StructDef" return esac
+        case TokenType::UnionDef "UnionDef" return esac
+        case TokenType::New "New" return esac
+        case TokenType::Is "Is" return esac
+        case TokenType::CDecl "CDecl" return esac
+        case TokenType::Label "Label" return esac
+        case TokenType::Goto "Goto" return esac
+        case TokenType::Switch "Switch" return esac
+        case TokenType::Case "Case" return esac
+        case TokenType::Esac "Esac" return esac
+        case TokenType::Default "Default" return esac
+        case TokenType::InterfaceDef "InterfaceDef" return esac
+        case TokenType::As "As" return esac
+        case TokenType::Enum "Enum" return esac
+        case TokenType::QuestionMark "QuestionMark" return esac
+        case TokenType::AddrOf "AddrOf" return esac
+        case TokenType::ParenOpen "ParenOpen" return esac
+        case TokenType::ParenClose "ParenClose" return esac
+        case TokenType::CurlyOpen "CurlyOpen" return esac
+        case TokenType::CurlyClose "CurlyClose" return esac
+        case TokenType::BracketOpen "BracketOpen" return esac
+        case TokenType::BracketClose "BracketClose" return esac
+        case TokenType::Comma "Comma" return esac
+        case TokenType::Add "Add" return esac
+        case TokenType::Sub "Sub" return esac
+        case TokenType::Mul "Mul" return esac
+        case TokenType::Div "Div" return esac
+        case TokenType::Mod "Mod" return esac
+        case TokenType::LAnd "LAnd" return esac
+        case TokenType::LOr "LOr" return esac
+        case TokenType::LXor "LXor" return esac
+        case TokenType::LNot "LNot" return esac
+        case TokenType::Lsh "Lsh" return esac
+        case TokenType::Rsh "Rsh" return esac
+        case TokenType::Pow "Pow" return esac
+        case TokenType::Column "Column" return esac
+        case TokenType::DoubleColumn "DoubleColumn" return esac
+        case TokenType::Dot "Dot" return esac
+        case TokenType::Ticked "Ticked" return esac
+        case TokenType::Identifier "Identifier" return esac
+        case TokenType::Number "Number" return esac
+        case TokenType::NumberFloat "NumberFloat" return esac
+        case TokenType::StringLiteral "StringLiteral" return esac
+        case TokenType::CharStringLiteral "CharStringLiteral" return esac
+        case TokenType::UtfStringLiteral "UtfStringLiteral" return esac
+        case TokenType::CharLiteral "CharLiteral" return esac
+        case TokenType::Dollar "Dollar" return esac
+        case TokenType::MAX "MAX" return esac
+    done
+    "Unknown" return
+end
+
+layout SourceLocation
+    decl file: str
+    decl line: int
+    decl column: int
+end
+
+function sourceLocationToString(loc: SourceLocation): str
+    loc.file ":" + loc.line + ":" + loc.column + return
+end
+
+layout Token
+    decl type: TokenType
+    decl value: str
+    decl location: SourceLocation
+end
+
+function tokenToString(tok: Token): str
+    "Token {type: "
+    tok.type tokenTypeToString +
+    ", value: " +
+    tok.value +
+    ", location: " +
+    tok.location sourceLocationToString +
+    "}" + return
+end
+
+layout MacroError
+    decl msg: str
+    decl location: SourceLocation
+end
+
+struct Parser
+    expect nonvirtual foreign function peek(): Token?
+    expect nonvirtual foreign function consume(): Token?
+
+    private function init(): none end
+end
