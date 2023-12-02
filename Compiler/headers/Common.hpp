@@ -223,7 +223,7 @@ namespace sclc {
     bool typeEquals(const std::string& a, const std::string& b);
     std::vector<Method*> makeVTable(TPResult& res, std::string name);
     std::string argsToRTSignatureIdent(Function* f);
-    std::string makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string prefix, std::string* currentType, bool doesWriteAfter = true);
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string* currentType, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete);
     std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
     std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
     std::string unquote(const std::string& str);

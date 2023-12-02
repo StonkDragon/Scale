@@ -1,4 +1,5 @@
 import std.util.Stringifyable
+import std.math
 
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
@@ -89,6 +90,37 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self.data as int i + @:toInt8 as int return
   end
 
+  function indexOf(c: int8): int
+    for i in 0 to self:size do
+      if self[i] c == then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function indexOf(s: str): int
+    for i in 0 to self:size do
+      if s (i self:subString):startsWith then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function lastIndexOf(c: int8): int
+    for i in self:size 1 - to -1 step -- do
+      if self[i] c == then
+        i return
+      fi
+    done
+    -1 return
+  end
+
+  function contains(c: int8): bool
+    c self:indexOf 0 > return
+  end
+
   function toString(): str
     self return
   end
@@ -146,23 +178,25 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     (startIndex to endIndex) self:subString return
   end
 
-  function split(delimiter: str): Array
-    10 Array::new => decl arr: Array
-    unsafe
-      self:view __c_strdup => decl string: [int8]
-      delimiter:view __c_strdup => decl cDelim: [int8]
+  function split(delim: str): [str]
+    new<str>[self:size] => decl arr: [str]
+    decl next: int
 
-      string cDelim __c_strtok => decl line
+    self => decl tmp: str
+    delim tmp:indexOf => decl index: int
 
-      while line do
-        line!! str::new arr:push
-        nil cDelim __c_strtok => line
-      done
-      string any::delete
-      cDelim any::delete
+    while index 0 > do
+      (0 to index) tmp:subString => arr[next]
+      next 1 +> next
+      
+      index delim:size + tmp:subString => tmp  
+      delim tmp:indexOf => index
+    done
 
-    end
-    arr return
+    tmp => arr[next]
+    next 1 +> next
+
+    next arr:resize as [str] return
   end
 
   function startsWith(string: str): bool
@@ -234,6 +268,21 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     end
     data => self.data
     data builtinHash => self.hash
+  end
+
+  function init(data: [int8], n: int): none
+    new<int8>[data:size n min 1 +] => self.data
+    self.data:size => self.length
+    for i in 0 to self.length do
+      data[i] => self.data[i]
+    done
+    self.data builtinHash => self.hash
+  end
+
+  function init(): none
+    c"" => self.data
+    0 => self.length
+    self.data builtinHash => self.hash
   end
 
   function iterate(): StringIterator

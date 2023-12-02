@@ -1120,9 +1120,9 @@ namespace sclc {
                         Variable v = getVar(s.name + "$" + body[i].value);
                         
                         std::string lastType = "";
-                        std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
-                        
-                        LOAD_PATH(path, lastType);
+                        makePath(result, v, false, body, i, errors, &lastType, false, function, warns, fp, [&](std::string path, std::string lastType) {
+                            LOAD_PATH(path, lastType);
+                        });
                     } else {
                         transpilerError("Unknown static member of struct '" + s.name + "'", i);
                         errors.push_back(err);
@@ -1339,15 +1339,15 @@ namespace sclc {
         normalVar:
             Variable v = getVar(body[i].value);
             std::string lastType = "";
-            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
-
-            LOAD_PATH(path, lastType);
+            makePath(result, v, false, body, i, errors, &lastType, false, function, warns, fp, [&](auto path, auto lastType) {
+                LOAD_PATH(path, lastType);
+            });
         } else if (hasVar(function->member_type + "$" + body[i].value)) {
             Variable v = getVar(function->member_type + "$" + body[i].value);
             std::string lastType = "";
-            std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
-            
-            LOAD_PATH(path, lastType);
+            makePath(result, v, false, body, i, errors, &lastType, false, function, warns, fp, [&](auto path, auto lastType) {
+                LOAD_PATH(path, lastType);
+            });
         } else if (function->isMethod) {
             Struct s = getStructByName(result, function->member_type);
             Method* method = getMethodByName(result, body[i].value, s.name);
@@ -1370,9 +1370,9 @@ namespace sclc {
             } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
                 Variable v = getVar(s.name + "$" + body[i].value);
                 std::string lastType = "";
-                std::string path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, "", &lastType, /* doesWriteAfter */ false);
-
-                LOAD_PATH(path, lastType);
+                makePath(result, v, false, body, i, errors, &lastType, false, function, warns, fp, [&](auto path, auto lastType) {
+                    LOAD_PATH(path, lastType);
+                });
             } else {
                 goto unknownIdent;
             }
@@ -1777,10 +1777,8 @@ namespace sclc {
         Function* f = nullptr;
 
         Variable v("", "");
-        std::string variablePrefix = "";
 
         std::string lastType;
-        std::string path;
 
         if (hasFunction(result, toGet.value)) {
             f = getFunctionByName(result, toGet.value);
@@ -2083,8 +2081,10 @@ namespace sclc {
         } else {
             v = getVar(body[i].value);
         }
-        path = makePath(result, v, /* topLevelDeref */ false, body, i, errors, variablePrefix, &lastType, /* doesWriteAfter */ false);
-        append("_scl_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
+        makePath(result, v, false, body, i, errors, &lastType, false, function, warns, fp, [&](auto path, auto lastType) {
+            (void) lastType;
+            append("_scl_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
+        });
         typeStack.push("[" + lastType + "]");
     }
 
@@ -2285,8 +2285,6 @@ namespace sclc {
                 }
             }
 
-            int start = i;
-
             if (hasVar(body[i].value)) {
             normalVar:
                 v = getVar(body[i].value);
@@ -2348,9 +2346,21 @@ namespace sclc {
             }
 
             std::string currentType;
-            std::string path = makePath(result, v, topLevelDeref, body, i, errors, variablePrefix, &currentType);
+            makePath(result, v, topLevelDeref, body, i, errors, &currentType, true, function, warns, fp, [&](auto path, auto type) {
+                (void) type;
+                if (doCheckTypes && !typesCompatible(result, typeStackTop, currentType, true)) {
+                    transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
+                    errors.push_back(err);
+                }
+                if (!typeCanBeNil(currentType)) {
+                    append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
+                }
+                append("%s;\n", path.c_str());
+                typePop;
+            });
+            /**
             // allow for => x[...], but not => x[(...)]
-            if (i + 1 < body.size() && body[i + 1].type == tok_bracket_open && (i + 2 >= body.size() || body[i + 2].type != tok_paren_open)) {
+            if (i + 1 < body.size() && body[i + 1].type == tok_bracket_open) {
                 i = start;
                 append("{\n");
                 scopeDepth++;
@@ -2495,6 +2505,7 @@ namespace sclc {
             }
             append("%s;\n", path.c_str());
             typePop;
+            */
         }
     }
 
@@ -2526,15 +2537,43 @@ namespace sclc {
         }
         Variable v(name, type);
         varScopeTop().push_back(v);
+        const Struct& s = getStructByName(result, type);
+        Method* m = nullptr;
         if (!v.canBeNil) {
-            transpilerError("Uninitialized variable '" + name + "' with non-nil type '" + type + "'", start);
-            errors.push_back(err);
+            if (s != Struct::Null) {
+                m = getMethodByName(result, "init", type);
+                bool hasDefaultConstructor = false;
+                if (m->args.size() == 1) {
+                    hasDefaultConstructor = true;
+                } else {
+                    for (Function* over_ : m->overloads) {
+                    Method* overload = (Method*) over_;
+                        if (overload->args.size() == 1) {
+                            hasDefaultConstructor = true;
+                            m = overload;
+                            break;
+                        }
+                    }
+                }
+                if (!hasDefaultConstructor) {
+                    goto noNil;
+                }
+            } else {
+            noNil:
+                transpilerError("Uninitialized variable '" + name + "' with non-nil type '" + type + "'", start);
+                errors.push_back(err);
+            }
         }
         type = sclTypeToCType(result, type);
         if (type == "scl_float") {
             append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
         } else {
-            if (hasTypealias(result, type) || hasLayout(result, type)) {
+            if (s != Struct::Null && !s.isStatic() && m != nullptr) {
+                append("%s Var_%s = ALLOC(%s);\n", type.c_str(), v.name.c_str(), s.name.c_str());
+                append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
+                typeStack.push(removeTypeModifiers(v.type));
+                methodCall(m, fp, result, warns, errors, body, i);
+            } else if (hasTypealias(result, type) || hasLayout(result, type)) {
                 append("%s Var_%s;\n", type.c_str(), v.name.c_str());
             } else {
                 append("%s Var_%s = 0;\n", type.c_str(), v.name.c_str());
@@ -3598,20 +3637,22 @@ namespace sclc {
                     return;
                 }
 
-                std::string path = makePath(result, v, false, body, i, errors, variablePrefix, &lambdaType, false);
-                if (errors.size()) {
-                    return;
-                }
+                makePath(result, v, false, body, i, errors, &lambdaType, false, function, warns, fp, [&](auto path, auto type) {
+                    (void) type;
+                    if (errors.size()) {
+                        return;
+                    }
 
-                #define isLambda(_x) ((_x) == "lambda" || strstarts((_x), "lambda("))
+                    #define isLambda(_x) ((_x) == "lambda" || strstarts((_x), "lambda("))
 
-                if (!isLambda(lambdaType)) {
-                    transpilerError("Expected lambda, but got '" + lambdaType + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                
-                append("%s executor = %s;\n", sclTypeToCType(result, lambdaType).c_str(), path.c_str());
+                    if (!isLambda(lambdaType)) {
+                        transpilerError("Expected lambda, but got '" + lambdaType + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
+                    
+                    append("%s executor = %s;\n", sclTypeToCType(result, lambdaType).c_str(), path.c_str());
+                });
             }
         } else if (body[i].type == tok_identifier && body[i].value == "lambda") {
             handle(Lambda);
@@ -3774,18 +3815,18 @@ namespace sclc {
                 if (typeCanBeNil(returningType)) {
                     transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
                     errors.push_back(err);
-                    return;
+                    // return;
                 }
                 if (!function->namedReturnValue.name.size()) {
                     if (typeCanBeNil(returningType)) {
                         transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
                         errors.push_back(err);
-                        return;
+                        // return;
                     }
                     if (!typesCompatible(result, returningType, function->return_type, true)) {
                         transpilerError("Returning type '" + returningType + "' from function with return type '" + function->return_type + "'", i);
                         errors.push_back(err);
-                        return;
+                        // return;
                     }
                 }
                 append("SCL_ASSUME(*(scl_int*) &retVal, \"Tried returning nil from function returning not-nil type '%%s'!\", \"%s\");\n", function->return_type.c_str());
@@ -4296,6 +4337,7 @@ namespace sclc {
             }
 
             functionCall(f, fp, result, warns, errors, body, i);
+            
             return;
         }
         Struct s = getStructByName(result, type);

@@ -92,10 +92,6 @@ function lerp(a: float, b: float, t: float): float
   b a - t * a + return
 end
 
-function neg(number: int): int
-  number -1 * return
-end
-
 function abs(a: int): int
   if a 0 < then
     a -1 * return

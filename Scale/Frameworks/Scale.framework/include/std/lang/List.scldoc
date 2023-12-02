@@ -37,6 +37,9 @@ Returns a new array containing all but the first element of `arr`.
 ### static function List::head(arr: [T]): T
 Returns the first element of `arr`.
 
+### static function List::last(arr: [T]): T
+Returns the last element of `arr`.
+
 ### static function List::zip(arr1: [T], arr2: [T]): [[T]]
 Returns a new array containing the elements of `arr1` and `arr2` interleaved.
 `arr1` and `arr2` must have the same length.

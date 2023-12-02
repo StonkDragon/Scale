@@ -128,7 +128,7 @@ final struct Fraction
 
             true => decl inWholePart: bool
             false => decl hasDecimalPart: bool
-            1 => decl sign: int
+            1 => decl numSign: int
 
             for i in 0 to size do
                 if s[i] '.' == then
@@ -137,7 +137,7 @@ final struct Fraction
                     continue
                 fi
                 if s[i] '-' == then
-                    -1 => sign
+                    -1 => numSign
                     continue
                 fi
 
@@ -166,7 +166,7 @@ final struct Fraction
             10 decimalLen ** => den
 
             numWhole den * numDecimal + => num
-            num sign * => num
+            num numSign * => num
 
             num den Fraction::new return
         fi

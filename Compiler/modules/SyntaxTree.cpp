@@ -1773,6 +1773,16 @@ namespace sclc {
             builtinIsInstance->return_type = "int";
             functions.push_back(builtinIsInstance);
 
+            Function* builtinIsArray = new Function("builtinIsArray", Token(tok_identifier, "builtinIsArray"));
+            builtinIsArray->addModifier("expect");
+            builtinIsArray->addModifier("cdecl");
+            builtinIsArray->addModifier("_scl_is_array");
+
+            builtinIsArray->addArgument(Variable("obj", "any"));
+
+            builtinIsArray->return_type = "int";
+            functions.push_back(builtinIsArray);
+
             if (!Main::options::noScaleFramework) {
                 Function* builtinToString = new Function("builtinToString", Token(tok_identifier, "builtinToString"));
                 builtinToString->addModifier("expect");

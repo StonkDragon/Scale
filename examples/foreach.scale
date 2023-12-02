@@ -6,7 +6,7 @@
 
 function main(): none
     # split the string into an array of strings
-    " " "A B C D E F":split => decl arr: Array
+    " " "A B C D E F":split => decl arr: [str]
 
     # Loop over every element of the array and print it
     foreach val in arr do

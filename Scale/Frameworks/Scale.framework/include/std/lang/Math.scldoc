@@ -152,9 +152,6 @@ Returns a random integer in the range 0 to `limit` (exclusive).
 ### function lerp(a: float, b: float, t: float): float
 Returns the linear interpolation of `a` and `b` at `t`.
 
-### function neg(number: int): int
-Returns the negation of `number`.
-
 ### function abs(number: int): int
 Returns the absolute value of `number`.
 

@@ -139,7 +139,9 @@ final struct File is Closeable
       if line len self._file File::__c_fgets nil == then
         nil return
       fi
-      '\0' => line[line __c_strlen 1 -]
+      if line[line __c_strlen 1 -] '\n' == then
+        '\0' => line[line __c_strlen 1 -]
+      fi
     end
 
     line str::new return

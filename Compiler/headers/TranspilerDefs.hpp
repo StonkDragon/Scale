@@ -94,8 +94,23 @@
         (void) result
 #define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
 #define typePop do { if (typeStack.size()) { typeStack.pop(); } } while (0)
-#define safeInc() do { if (++i >= body.size()) { std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } } while (0)
-#define safeIncN(n) do { if ((i + n) >= body.size()) { std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; std::raise(SIGSEGV); } i += n; } while (0)
+#define safeInc() do { \
+        if (++i >= body.size()) { \
+            std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; \
+            std::cerr << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": Error happened here" << std::endl; \
+            std::raise(SIGSEGV); \
+        } \
+    } while (0)
+
+#define safeIncN(n) do { \
+        if ((i + n) >= body.size()) { \
+            std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; \
+            std::cerr << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": Error happened here" << std::endl; \
+            std::raise(SIGSEGV); \
+        } \
+        i += n; \
+    } while (0)
+
 #define THIS_INCREMENT_IS_CHECKED ++i;
 
 namespace sclc {

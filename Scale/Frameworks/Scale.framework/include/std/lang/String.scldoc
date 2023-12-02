@@ -48,8 +48,8 @@ Returns a reversed copy of `self`.
 ### function str:toChars(): Array
 Returns an array containing the characters of `self`.
 
-### function str:split(delimiter: str): Array
-Splits `self` at `delimiter` and returns an array containing the parts.
+### function str:split(delimiter: str): [str]
+Splits `self` at `delimiter` and returns the resulting substrings.
 
 ### function str:startsWith(string: str): bool
 Returns true if `self` starts with `string`.
@@ -63,6 +63,21 @@ Returns a substring of `self` starting at `start`.
 ### function str:subString(range: Range): str
 Returns a substring of `self` in the range `range`.
 
+### function str:indexOf(c: int8): int
+Returns the index of the first occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:indexOf(s: str): int
+Returns the index of the first occurrence of `s` in `self`.
+Returns -1 if `self` does not contain `s`.
+
+### function str:lastIndexOf(c: int8): int
+Returns the index of the last occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:contains(c: int8): bool
+Returns true if `self` contains `c`.
+
 ### function str:trim(): str
 Returns a copy of `self` with leading and trailing whitespace removed.
 
@@ -71,6 +86,13 @@ Returns a pointer to the memory block containing the data of `self`.
 
 ### static function str::new(data: [int8]): str
 Returns a new instance of `str` with the data `data`.
+
+### static function str::new(data: [int8], n: int): none
+Returns a new instance of `str` with the data `data` and size `n`.
+The resulting string will contain at most `n` characters.
+
+### static function str::new(): none
+Returns a new instance of `str` with size 0.
 
 ### function str:iterate(): StringIterator
 Returns an iterator over the characters of `self`.

@@ -38,22 +38,12 @@ private expect foreign function puts0(:[int8]): none
 function puts(val: [int8]): none val puts0 end
 function puts(val: str): none    val:view puts end
 function puts(f: float): none    f:toString:view puts end
-function puts(value: any): none  value:toString:view puts end
+function puts(value: any): none  value builtinToString:view puts end
 
-function eputs(s: [int8]): none
-  unsafe
-    s __c_get_stderr __c_fputs
-  end
-end
-function eputs(s: str): none
-  s:view eputs
-end
-function eputs(f: float): none
-  f:toString:view eputs
-end
-function eputs(value: any): none
-  value:toString:view eputs
-end
+function eputs(s: [int8]): none  unsafe s __c_get_stderr __c_fputs c"\n" __c_get_stderr __c_fputs end end
+function eputs(s: str): none     s:view eputs end
+function eputs(f: float): none   f:toString:view eputs end
+function eputs(value: any): none value builtinToString:view eputs end
 
 deprecated![since: "23.11", replacement: "puts", forRemoval: true]
 function putint(number: int): none

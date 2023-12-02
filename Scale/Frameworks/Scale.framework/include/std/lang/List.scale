@@ -64,6 +64,10 @@ static struct List
             x[0] return
         end
 
+        function last(x: [$type]): $type
+            x[x:size 1 -] return
+        end
+
         function zip(a: [$type], b: [$type]): [[$type]]
             assert (a:size b:size ==) else (
                 "Arrays must be of same size" InvalidArgumentException::new throw

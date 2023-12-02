@@ -84,18 +84,10 @@ typedef struct Struct_InvalidArgumentException {
 #define MARKER 0x5C105C10
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
-	ptr = GC_base(ptr);
-	if (_scl_expect(ptr == nil, 0)) {
+	if (!GC_is_heap_ptr(ptr)) {
 		return nil;
 	}
-	memory_layout_t* layout = (memory_layout_t*) ptr;
-	if (_scl_expect(layout == nil, 0)) {
-		return nil;
-	}
-	if (_scl_expect(layout->marker != MARKER, 0)) {
-		return nil;
-	}
-	return layout;
+	return (memory_layout_t*) GC_base(ptr);
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
@@ -561,12 +553,7 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	}
 	scl_int size = num_elems * elem_size;
 	scl_any arr = _scl_alloc(size + sizeof(array_info_t));
-	// ((memory_layout_t*) (((scl_any) arr) - sizeof(memory_layout_t)))->is_array = 1;
-	// _scl_get_memory_layout(arr)->is_array = 1;
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	if (layout == nil) {
-		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
-	}
 	layout->is_array = 1;
 	((array_info_t*) arr)->size = num_elems;
 	((array_info_t*) arr)->elem_size = elem_size;
@@ -734,7 +721,7 @@ scl_any _scl_array_get(scl_any arr, scl_int index) {
 	}
 
 	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
-	return read_sized(arr + index * elem_size, elem_size);
+	return (scl_any) read_sized(arr + index * elem_size, elem_size);
 }
 
 void _scl_array_setf(scl_any arr, scl_int index, scl_float value) {
