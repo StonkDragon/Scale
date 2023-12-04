@@ -11,12 +11,12 @@ private expect foreign unsafe function __c_get_stderr(): any
 cdecl "getchar"
 private expect foreign unsafe function __c_getchar(): int8
 
-deprecated![since: "23.11", forRemoval: true]
+deprecated![since: "23.11.1", forRemoval: true]
 unsafe function write(fileDescriptor: int, string: str): none
   fileDescriptor string:view string:size __c_write drop
 end
 
-deprecated![since: "23.11", forRemoval: true]
+deprecated![since: "23.11.1", forRemoval: true]
 function read(fileDescriptor: int, amount: int): str
   new<int8>[amount] => decl buf: [int8]
   unsafe
@@ -25,7 +25,7 @@ function read(fileDescriptor: int, amount: int): str
   buf str::new return
 end
 
-deprecated![since: "23.11", forRemoval: true]
+deprecated![since: "23.11.1", forRemoval: true]
 function getchar(): int8
   unsafe
     __c_getchar return
@@ -45,11 +45,11 @@ function eputs(s: str): none     s:view eputs end
 function eputs(f: float): none   f:toString:view eputs end
 function eputs(value: any): none value builtinToString:view eputs end
 
-deprecated![since: "23.11", replacement: "puts", forRemoval: true]
+deprecated![since: "23.11.1", replacement: "puts", forRemoval: true]
 function putint(number: int): none
   number puts
 end
-deprecated![since: "23.11", replacement: "puts", forRemoval: true]
+deprecated![since: "23.11.1", replacement: "puts", forRemoval: true]
 function putfloat(number: float): none
   number:toString puts
 end
