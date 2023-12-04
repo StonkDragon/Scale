@@ -861,7 +861,7 @@ namespace sclc
             Main::options::indexDrgFiles["/local"] = scaleConfig;
         }
 
-        Main::options::stackSize = 16;
+        Main::options::stackSize = 128;
 
         for (size_t i = 1; i < args.size(); i++) {
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {

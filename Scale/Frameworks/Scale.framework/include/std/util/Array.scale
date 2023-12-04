@@ -77,9 +77,8 @@ sealed struct Array is Iterable
   end
 
   function push(value: any): none
-
     if self.count self.capacity >= then
-      self.capacity self.initCap + => self.capacity
+      self.capacity 2 * => self.capacity
       self.capacity self.values:resize => self.values
     fi
 
@@ -131,6 +130,10 @@ sealed struct Array is Iterable
     size => self.initCap
   end
 
+  function init(): none
+    16 self:init
+  end
+
   function iterate(): ArrayIterator
     self ArrayIterator::new return
   end
@@ -168,6 +171,26 @@ sealed struct Array is Iterable
       s "}" + => s
     fi
     return
+  end
+
+  function insert(elem: any, index: int): none
+    if index 0 < index self.count >= || then
+      "Index "
+      index:toString +
+      " is out of bounds for Array of length " +
+      self.count:toString +
+      "!" +
+      IndexOutOfBoundsException::new throw
+    fi
+    self.count 1 + => self.count
+    if self.count self.capacity >= then
+      self.capacity 2 * => self.capacity
+      self.capacity self.values:resize => self.values
+    fi
+    for i in self.count 1 - to index step -- do
+      self[i 1 -] => self[i]
+    done
+    elem => self[index]
   end
 
   function remove(val: any): none

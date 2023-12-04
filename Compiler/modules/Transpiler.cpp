@@ -4786,7 +4786,7 @@ namespace sclc {
                 }
             }
             append("  scl_int ls_ptr = 0;\n");
-            append("  scl_int ls[128];\n");
+            append("  scl_int ls[%zu];\n", Main::options::stackSize);
             
             scopeDepth++;
             std::vector<Token> body = function->getBody();

@@ -1,0 +1,2 @@
+Foo {x: [Bar {y: 1}, Bar {y: 2}]}
+Foo {x: [Bar {y: 123}, Bar {y: 456}]}

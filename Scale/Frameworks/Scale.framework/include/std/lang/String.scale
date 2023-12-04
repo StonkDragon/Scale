@@ -185,10 +185,14 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self => decl tmp: str
     delim tmp:indexOf => decl index: int
 
-    while index 0 > do
-      (0 to index) tmp:subString => arr[next]
-      next 1 +> next
-      
+    while index 0 >= do
+      if index 0 == then
+        "" => arr[next]
+        next 1 +> next
+      else
+        (0 to index) tmp:subString => arr[next]
+        next 1 +> next
+      fi
       index delim:size + tmp:subString => tmp  
       delim tmp:indexOf => index
     done
@@ -237,12 +241,16 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
   function subString(range: Range): str
     if range.lower 0 < range.lower self:size >= || then
       "Index " range.lower:toString +
+      " in range " +
+      range:toString +
       " is out of bounds for string with length " self:size:toString +
       +
       IndexOutOfBoundsException::new throw
     fi
     if range.upper 0 < range.upper self:size > || then
       "Index " range.upper:toString +
+      " in range " +
+      range:toString +
       " is out of bounds for string with length " self:size:toString +
       +
       IndexOutOfBoundsException::new throw

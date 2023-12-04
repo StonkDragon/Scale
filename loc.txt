@@ -41,14 +41,14 @@
       31 Scale/Frameworks/Scale.framework/include/std/lang/Option.scale
       31 Scale/Frameworks/Scale.framework/include/std/lang/Result.scale
       33 Scale/Frameworks/Scale.framework/include/std/lang/SclObject.scale
-     411 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
+     419 Scale/Frameworks/Scale.framework/include/std/lang/String.scale
       29 Scale/Frameworks/Scale.framework/include/std/lang/Union.scale
        2 Scale/Frameworks/Scale.framework/include/std/macros/Macros.scale
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
       41 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
       19 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
      109 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
-     247 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
+     270 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Closeable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Equatable.scale
@@ -57,12 +57,12 @@
        5 Scale/Frameworks/Scale.framework/include/std/util/InvalidArgumentException.scale
        8 Scale/Frameworks/Scale.framework/include/std/util/Iterable.scale
       96 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
-      23 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
+      39 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
      202 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Stringifyable.scale
-      27 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
-      92 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
+      45 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
+     112 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
      891 Scale/Internal/scale_runtime.c
@@ -96,6 +96,7 @@
       17 examples/map.scale
       30 examples/nested-access.scale
       17 examples/nested-arrays.scale
+      23 examples/nested-struct.scale
       34 examples/oop.scale
       60 examples/operator-overloading.scale
       62 examples/operators.scale
@@ -116,7 +117,9 @@
       34 examples/tree.scale
       33 examples/try-catch.scale
       78 examples/unions.scale
+      21 examples/using.scale
       41 examples/uuid.scale
+      26 examples/var-path.scale
       13 examples/variables.scale
       17 examples/variadics.scale
       13 examples/while.scale
@@ -127,4 +130,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25655 total
+   25810 total

@@ -1,0 +1,10 @@
+function main(): none
+    decl t: TypedArray<str>
+    for i in 0 to 5 do
+        i:toString t:push
+    done
+
+    t puts
+    "Hello, World!" 3 t:insert
+    t puts
+end
