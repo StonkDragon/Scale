@@ -954,11 +954,13 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("if (!(_scl_top(scl_int))) {\n");
+                append("if (!(_scl_pop(scl_int))) {\n");
+                typePop;
                 handle(ParenOpen);
                 append("}\n");
             } else {
-                append("_scl_assert(_scl_top(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+                append("_scl_assert(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+                typePop;
             }
             varScopePop();
             scopeDepth--;
