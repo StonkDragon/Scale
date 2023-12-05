@@ -13,6 +13,24 @@ final sealed struct Triple
 		( ( ("(" a:toString +) (", " b:toString +) +) ( (", " c:toString +) ")" +) +) return
 	end
 
+	function ==(other: any): bool
+		if other is Triple ! then false return fi
+		other as Triple => decl otherTriple
+
+		if a otherTriple.a == then
+			if b otherTriple.b == then
+				if c otherTriple.c == then
+					true return
+				fi
+			fi
+		fi
+		false return
+	end
+
+	function !=(other: any): bool
+		self other == ! return
+	end
+
 	function [](i: int): any
 		if i 0 == then
 			a return

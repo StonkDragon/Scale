@@ -41,6 +41,9 @@ Removes the last value from `self`.
 ### function Array:indexOf(val: any): int
 Returns the index of `val` in `self` or -1 if `val` is not in `self`.
 
+### function Array:insert(value: any, index: int): none
+Inserts `value` at index `index` in `self` and shifts all values after `index` to the right.
+
 ### function Array:contains(val: any): bool
 Returns true if `val` is in `self`.
 

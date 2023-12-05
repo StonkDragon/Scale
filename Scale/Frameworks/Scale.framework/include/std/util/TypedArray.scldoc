@@ -36,6 +36,9 @@ Pops the value at the top of the array.
 Returns the index of the first occurrence of `value` in the array.
 Returns `-1` if `value` is not found.
 
+### function TypedArray<T: SclObject>:insert(value: T, index: int): none
+Inserts `value` at index `index` in `self` and shifts all values after `index` to the right.
+
 ### function TypedArray<T: SclObject>:contains(value: T): int
 Returns `true` if `value` is found in the array.
 

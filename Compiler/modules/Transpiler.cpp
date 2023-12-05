@@ -954,11 +954,13 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("if (!(_scl_top(scl_int))) {\n");
+                append("if (!(_scl_pop(scl_int))) {\n");
+                typePop;
                 handle(ParenOpen);
                 append("}\n");
             } else {
-                append("_scl_assert(_scl_top(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+                append("_scl_assert(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+                typePop;
             }
             varScopePop();
             scopeDepth--;
@@ -1583,102 +1585,53 @@ namespace sclc {
             safeInc();
         }
         typePop;
-        std::string iterator_direction = "++";
+        append("_scl_pop(scl_int);\n");
+        scopeDepth--;
+        
+        Variable v = Variable::emptyVar();
+
+        if (hasVar(var.value)) {
+            v = getVar(var.value);
+        } else {
+            v = Variable(var.value, "int");
+        }
+
         if (body[i].type == tok_step) {
             safeInc();
-            if (body[i].type == tok_do) {
-                transpilerError("Expected step, but got '" + body[i].value + "'", i);
+            append("}); ({\n");
+            scopeDepth++;
+            append("_scl_push(scl_int, Var_%s);\n", var.value.c_str());
+            typeStack.push("int");
+            while (body[i].type != tok_do) {
+                handle(Token);
+                safeInc();
+            }
+            std::string type = removeTypeModifiers(typeStackTop);
+            if (!typesCompatible(result, type, v.type, true)) {
+                transpilerError("Incompatible types: '" + type + "' and '" + v.type + "'", i);
                 errors.push_back(err);
                 return;
             }
-            std::string val = body[i].value;
-            if (val == "+") {
-                safeInc();
-                iterator_direction = " += ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else if (body[i].value == "+") {
-                    iterator_direction = "++";
-                } else {
-                    transpilerError("Expected number or '+', but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == "-") {
-                safeInc();
-                iterator_direction = " -= ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else if (body[i].value == "-") {
-                    iterator_direction = "--";
-                } else {
-                    transpilerError("Expected number or '-', but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == "++") {
-                iterator_direction = "++";
-            } else if (val == "--") {
-                iterator_direction = "--";
-            } else if (val == "*") {
-                safeInc();
-                iterator_direction = " *= ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else {
-                    transpilerError("Expected number, but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == "/") {
-                safeInc();
-                iterator_direction = " /= ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else {
-                    transpilerError("Expected number, but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == "<<") {
-                safeInc();
-                iterator_direction = " <<= ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else {
-                    transpilerError("Expected number, but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == ">>") {
-                safeInc();
-                iterator_direction = " >>= ";
-                if (body[i].type == tok_number) {
-                    iterator_direction += body[i].value;
-                } else {
-                    transpilerError("Expected number, but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                }
-            } else if (val == "nop") {
-                iterator_direction = "";
-            }
-            safeInc();
+            typePop;
+            append("Var_%s = _scl_pop(scl_int);\n", var.value.c_str());
+            scopeDepth--;
+            append("})) {\n");
+        } else {
+            append("}); Var_%s++) {\n", var.value.c_str());
         }
         if (body[i].type != tok_do) {
             transpilerError("Expected 'do', but got '" + body[i].value + "'", i);
             errors.push_back(err);
             return;
         }
-        append("_scl_pop(scl_int);\n");
-        scopeDepth--;
-        if (iterator_direction == "") {
-            append("});) {\n");
-        } else
-            append("}); Var_%s%s) {\n", var.value.c_str(), iterator_direction.c_str());
         varScopePush();
         if (!hasVar(var.value)) {
-            varScopeTop().push_back(Variable(var.value, "int"));
+            varScopeTop().push_back(v);
+            checkShadow(var.value, body, i, function, result, warns);
         }
         
         iterator_count++;
         scopeDepth++;
-        
-        checkShadow(var.value, body, i, function, result, warns);
 
         pushOther();
     }
@@ -4786,7 +4739,7 @@ namespace sclc {
                 }
             }
             append("  scl_int ls_ptr = 0;\n");
-            append("  scl_int ls[128];\n");
+            append("  scl_int ls[%zu];\n", Main::options::stackSize);
             
             scopeDepth++;
             std::vector<Token> body = function->getBody();

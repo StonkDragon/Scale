@@ -1,0 +1,4 @@
+init
+Foo {}
+Foo {}
+closed

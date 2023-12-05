@@ -11,6 +11,22 @@ final sealed struct Pair
 		( ( ("(" a:toString +) (", " b:toString +) +) ")" +) return
 	end
 
+	function ==(other: any): bool
+		if other is Pair ! then false return fi
+		other as Pair => decl otherPair
+
+		if a otherPair.a == then
+			if b otherPair.b == then
+				true return
+			fi
+		fi
+		false return
+	end
+
+	function !=(other: any): bool
+		self other == ! return
+	end
+
 	function [](i: int): any
 		if i 0 == then
 			a return

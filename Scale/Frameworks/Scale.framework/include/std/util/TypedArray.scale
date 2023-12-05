@@ -72,6 +72,26 @@ final sealed struct TypedArray<T: SclObject>: Array
         -1 return
     end
 
+    overrides function insert(elem: T, index: int): none
+        if index 0 < index self.count >= || then
+            "Index "
+            index:toString +
+            " is out of bounds for Array of length " +
+            self.count:toString +
+            "!" +
+            IndexOutOfBoundsException::new throw
+        fi
+        self.count 1 + => self.count
+        if self.count self.capacity >= then
+            self.capacity 2 * => self.capacity
+            self.capacity self.values:resize => self.values
+        fi
+        for i in self.count 1 - to index step -- do
+            self[i 1 -] => self[i]
+        done
+        elem => self[index]
+    end
+
     overrides function contains(val: T): bool
         val self:indexOf -1 != return
     end
