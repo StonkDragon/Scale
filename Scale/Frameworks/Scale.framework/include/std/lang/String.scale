@@ -182,7 +182,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     new<str>[self:size] => decl arr: [str]
     decl next: int
 
-    self => decl tmp: str
+    self:view => decl tmp: str
     delim tmp:indexOf => decl index: int
 
     while index 0 >= do
@@ -232,7 +232,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    self.data => decl tmp: any
+    self:view => decl tmp: any
 
     tmp as int start + => tmp
     tmp as [int8] str::new return
@@ -256,7 +256,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    self.data => decl tmp: any
+    self:view => decl tmp: any
     tmp as int range.lower + => tmp
     tmp as [int8] => decl tmpArr: [int8]
     '\0' => tmpArr[range.upper range.lower -]

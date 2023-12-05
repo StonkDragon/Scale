@@ -22,7 +22,7 @@
      243 Compiler/modules/Parser.cpp
     3433 Compiler/modules/SyntaxTree.cpp
      636 Compiler/modules/Tokenizer.cpp
-    4914 Compiler/modules/Transpiler.cpp
+    4865 Compiler/modules/Transpiler.cpp
      559 Compiler/modules/Types.cpp
      397 Scale/Frameworks/Scale.framework/impl/scale.c
      103 Scale/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale
@@ -58,7 +58,7 @@
        8 Scale/Frameworks/Scale.framework/include/std/util/Iterable.scale
       96 Scale/Frameworks/Scale.framework/include/std/util/Map.scale
       39 Scale/Frameworks/Scale.framework/include/std/util/Pair.scale
-     202 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
+     209 Scale/Frameworks/Scale.framework/include/std/util/Range.scale
       68 Scale/Frameworks/Scale.framework/include/std/util/ReadOnlyArray.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Stringifyable.scale
       45 Scale/Frameworks/Scale.framework/include/std/util/Triple.scale
@@ -131,4 +131,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25822 total
+   25780 total
