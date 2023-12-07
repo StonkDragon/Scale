@@ -3348,7 +3348,7 @@ namespace sclc {
                 toString->addToken(Token(tok_identifier, member.name));
                 bool canBeNil = typeCanBeNil(member.type);
                 std::string type = removeTypeModifiers(member.type);
-                if (canBeNil || isPointer(type)) {
+                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
                     toString->addToken(Token(tok_identifier, "builtinToString"));
                 } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                     toString->addToken(Token(tok_identifier, "any"));

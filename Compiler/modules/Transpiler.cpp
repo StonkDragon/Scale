@@ -3839,7 +3839,7 @@ namespace sclc {
                     append("%s retVal = _scl_pop(%s);\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
                 }
             }
-            if (!typeCanBeNil(function->return_type)) {
+            if (!typeCanBeNil(function->return_type) && !hasEnum(result, function->return_type)) {
                 if (typeCanBeNil(returningType)) {
                     transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
                     errors.push_back(err);
@@ -4155,7 +4155,7 @@ namespace sclc {
         std::string tmp = removeTypeModifiers(type);
         Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
-            transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + type + "'", i);
+            transpilerError("Cannot infer type of stack top for '.': expected valid Struct, but got '" + type + "'", i);
             errors.push_back(err);
             return;
         }
@@ -4377,7 +4377,7 @@ namespace sclc {
             if (isPrimitiveIntegerType(type)) {
                 s = getStructByName(result, "int");
             } else {
-                transpilerError("Cannot infer type of stack top: expected valid Struct, but got '" + type + "'", i);
+                transpilerError("Cannot infer type of stack top for ':': expected valid Struct, but got '" + type + "'", i);
                 errors.push_back(err);
                 return;
             }
