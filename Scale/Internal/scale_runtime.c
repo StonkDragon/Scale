@@ -391,19 +391,28 @@ _scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t 
 
 scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
 	size_t methodLen = strlen(methodIdentifier);
-	size_t methodNameLen = str_index_of(methodIdentifier, '(');
 	scl_int8* methodName;
 	scl_int8* signature;
-	split_at(methodIdentifier, methodLen, methodNameLen, &methodName, &signature);
+	ID_t signatureHash;
+	size_t methodNameLen = str_index_of(methodIdentifier, '(');
+	if (methodNameLen != -1) {
+		split_at(methodIdentifier, methodLen, methodNameLen, &methodName, &signature);
+		signatureHash = type_id(signature);
+	} else {
+		methodName = methodIdentifier;
+		signature = "";
+		signatureHash = 0;
+	}
 	ID_t methodNameHash = type_id(methodName);
-	ID_t signatureHash = type_id(signature);
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (_scl_expect(m == nil, 0)) {
 		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
 	}
-	free(methodName);
-	free(signature);
+	if (signatureHash) {
+		free(methodName);
+		free(signature);
+	}
 	return m;
 }
 

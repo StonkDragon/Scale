@@ -65,7 +65,7 @@
      112 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
-     891 Scale/Internal/scale_runtime.c
+     900 Scale/Internal/scale_runtime.c
      611 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
@@ -131,4 +131,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25553 total
+   25562 total

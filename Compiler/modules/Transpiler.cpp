@@ -1789,7 +1789,7 @@ namespace sclc {
         }
         append("while (virtual_call(%s, \"hasNext()i;\")) {\n", iterator_name.c_str());
         scopeDepth++;
-        append("%s Var_%s = (%s) virtual_call(%s, \"next%s\");\n", cType.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str(), argsToRTSignature(nextMethod).c_str());
+        append("%s Var_%s = (%s) virtual_call(%s, \"next\");\n", cType.c_str(), iter_var_tok.value.c_str(), cType.c_str(), iterator_name.c_str());
         if (iterType.size()) {
             append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
         }
