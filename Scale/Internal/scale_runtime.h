@@ -326,10 +326,9 @@ struct _scl_backtrace {
 };
 
 struct memory_layout {
-	scl_int32 marker;
 	scl_int allocation_size;
-	scl_uint8 is_instance:4;
-	scl_uint8 is_array:4;
+	scl_int32 marker;
+	scl_uint8 flags;
 };
 
 typedef struct memory_layout memory_layout_t;

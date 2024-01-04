@@ -27,6 +27,9 @@ const ID_t SclObjectHash = 0x5971ad8dc2a50b2UL; // SclObject
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
+#define likely(x) _scl_expect(!!(x), 1)
+#define unlikely(x) _scl_expect(!!(x), 0)
+
 typedef struct Struct {
 	// Actual function ptrs for this object
 	_scl_lambda*	vtable;
@@ -84,89 +87,89 @@ typedef struct Struct_InvalidArgumentException {
 #define MARKER 0x5C105C10
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
-	if (!GC_is_heap_ptr(ptr)) {
-		return nil;
+	if (likely(GC_is_heap_ptr(ptr))) {
+		return (memory_layout_t*) GC_base(ptr);
 	}
-	return (memory_layout_t*) GC_base(ptr);
+	return nil;
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
+	if (unlikely(ptr == nil || !GC_is_heap_ptr(ptr))) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (_scl_expect(layout == nil, 0)) {
+	if (unlikely(layout == nil)) {
 		return 0;
 	}
 	return layout->allocation_size;
 }
 
+#define FLAG_INSTANCE	0b00000001
+#define FLAG_ARRAY		0b00000010
+
 scl_any _scl_alloc(scl_int size) {
 	size = ((size + 7) >> 3) << 3;
-	if (size == 0) size = 8;
+	if (unlikely(size == 0)) size = 8;
 
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
-	if (_scl_expect(ptr == nil, 0)) {
+	if (unlikely(ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
 	}
 
 	((memory_layout_t*) ptr)->marker = MARKER;
 	((memory_layout_t*) ptr)->allocation_size = size;
-	((memory_layout_t*) ptr)->is_instance = 0;
-	((memory_layout_t*) ptr)->is_array = 0;
+	((memory_layout_t*) ptr)->flags = 0;
 
 	return ptr + sizeof(memory_layout_t);
 }
 
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
-	if (size == 0) {
+	if (unlikely(size == 0)) {
 		_scl_free(ptr);
 		return nil;
 	}
 
 	size = ((size + 7) >> 3) << 3;
-	if (size == 0) size = 8;
+	if (unlikely(size == 0)) size = 8;
 
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
-	if (_scl_expect(ptr == nil, 0)) {
+	if (unlikely(ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
 	((memory_layout_t*) ptr)->marker = MARKER;
 	((memory_layout_t*) ptr)->allocation_size = size;
-	if (layout) {
-		((memory_layout_t*) ptr)->is_instance = layout->is_instance;
-		((memory_layout_t*) ptr)->is_array = layout->is_array;
+	if (likely(layout)) {
+		((memory_layout_t*) ptr)->flags = layout->flags;
 	} else {
-		((memory_layout_t*) ptr)->is_instance = 0;
-		((memory_layout_t*) ptr)->is_array = 0;
+		((memory_layout_t*) ptr)->flags = 0;
 	}
 
 	return ptr + sizeof(memory_layout_t);
 }
 
 void _scl_free(scl_any ptr) {
-	if (ptr == nil) return;
+	if (unlikely(ptr == nil)) return;
 	if (_scl_is_instance(ptr)) {
-		Struct* obj = (Struct*) ptr;
-		cxx_std_recursive_mutex_delete(obj->mutex);
+		cxx_std_recursive_mutex_delete(((Struct*) ptr)->mutex);
 	}
-	ptr -= sizeof(memory_layout_t);
-	if (GC_is_heap_ptr(ptr)) {
+	ptr = GC_base(ptr);
+	if (likely(ptr != nil)) {
+		memset(ptr, 0, sizeof(memory_layout_t));
 		GC_free(ptr);
 	}
 }
 
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
-	if (!b) {
-		scl_int8* cmsg = (scl_int8*) _scl_alloc(strlen(msg) * 8);
+	if (unlikely(!b)) {
+		scl_int8 cmsg[strlen(msg) * 8];
 		va_list list;
 		va_start(list, msg);
 		vsnprintf(cmsg, strlen(msg) * 8 - 1, msg, list);
 		va_end(list);
 
-		char* tmp = strdup(cmsg);
+		char tmp[strlen(cmsg)];
 		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", tmp);
-		free(tmp);
 
 		fprintf(stderr, "%s\n", cmsg);
 		abort();
@@ -192,8 +195,9 @@ _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
 
 	va_list args;
 	va_start(args, msg);
-	scl_int8* str = (scl_int8*) malloc(strlen(msg) * 8);
-	vsnprintf(str, strlen(msg) * 8, msg, args);
+	size_t len = strlen(msg) * 8;
+	scl_int8 str[len];
+	vsnprintf(str, len, msg, args);
 	printf("Exception: %s\n", str);
 
 	va_end(args);
@@ -215,33 +219,11 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 }
 
 _scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
-	const scl_int8* signalString;
-	// Signals
-	if (sig_num == -1) {
-		signalString = nil;
-	} else if (sig_num == SIGINT) {
-		signalString = "interrupt";
-	} else if (sig_num == SIGILL) {
-		signalString = "illegal instruction";
-	} else if (sig_num == SIGTRAP) {
-		signalString = "trace trap";
-	} else if (sig_num == SIGABRT) {
-		signalString = "abort()";
-	} else if (sig_num == SIGBUS) {
-		signalString = "bus error";
-	} else if (sig_num == SIGSEGV) {
-		signalString = "segmentation violation";
-	} else {
-		signalString = "other signal";
-	}
+	const scl_int8* signalString = strsignal(sig_num);
 
 	fprintf(stderr, "Signal: %s\n", signalString);
-	if (sig_num == SIGSEGV) {
-		fprintf(stderr, "Tried read/write of faulty address %p\n", sig_info->si_addr);
-	} else {
-		fprintf(stderr, "Faulty address: %p\n", sig_info->si_addr);
-	}
-	if (sig_info->si_errno) {
+	fprintf(stderr, ((sig_num == SIGSEGV) ? "Tried read/write of faulty address %p\n" : "Faulty address: %p\n"), sig_info->si_addr);
+	if (unlikely(sig_info->si_errno)) {
 		fprintf(stderr, "Error code: %d\n", sig_info->si_errno);
 	}
 	native_trace();
@@ -250,24 +232,7 @@ _scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t
 }
 
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
-	const scl_int8* signalString;
-	if (sig_num == -1) {
-		signalString = nil;
-	} else if (sig_num == SIGINT) {
-		signalString = "interrupt";
-	} else if (sig_num == SIGILL) {
-		signalString = "illegal instruction";
-	} else if (sig_num == SIGTRAP) {
-		signalString = "trace trap";
-	} else if (sig_num == SIGABRT) {
-		signalString = "abort()";
-	} else if (sig_num == SIGBUS) {
-		signalString = "bus error";
-	} else if (sig_num == SIGSEGV) {
-		signalString = "segmentation violation";
-	} else {
-		signalString = "other signal";
-	}
+	const scl_int8* signalString = strsignal(sig_num);
 
 	printf("\n");
 
@@ -285,14 +250,14 @@ void _scl_sleep(scl_int millis) {
 }
 
 void _scl_lock(scl_any obj) {
-	if (!_scl_is_instance(obj)) {
+	if (unlikely(!_scl_is_instance(obj))) {
 		return;
 	}
 	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
 }
 
 void _scl_unlock(scl_any obj) {
-	if (!_scl_is_instance(obj)) {
+	if (unlikely(!_scl_is_instance(obj))) {
 		return;
 	}
 	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
@@ -321,7 +286,7 @@ __pure2 _scl_symbol_hidden static scl_uint _scl_rotr(const scl_uint value, const
 }
 
 scl_int _scl_identity_hash(scl_any _obj) {
-	if (!_scl_is_instance(_obj)) {
+	if (unlikely(!_scl_is_instance(_obj))) {
 		return REINTERPRET_CAST(scl_int, _obj);
 	}
 	Struct* obj = (Struct*) _obj;
@@ -346,72 +311,66 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
 _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
-	if (_scl_expect(!_scl_is_instance(type), 0)) {
+	if (unlikely(!_scl_is_instance(type))) {
 		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
 
-	scl_int index = _scl_search_method_index(
-		(
-			!onSuper ?
-			((Struct*) type)->statics :
-			((Struct*) type)->statics->super
-		)->vtable_info,
-		method,
-		signature
-	);
+	const struct TypeInfo* ti;
+	const _scl_lambda* vtable;
 
-	return
-		index >= 0 ?
-		(
-			!onSuper ?
-			((Struct*) type)->statics->vtable :
-			((Struct*) type)->statics->super->vtable
-		)[index] :
-		nil;
+	if (likely(!onSuper)) {
+		ti = ((Struct*) type)->statics;
+		vtable = ((Struct*) type)->vtable;
+	} else {
+		ti = ((Struct*) type)->statics->super;
+		vtable = ((Struct*) type)->statics->super->vtable;
+	}
+
+	scl_int index = _scl_search_method_index(ti->vtable_info, method, signature);
+	return index >= 0 ? vtable[index] : nil;
 }
 
-_scl_symbol_hidden static size_t str_index_of(const scl_int8* str, char c) {
+_scl_symbol_hidden static size_t str_index_of_or(const scl_int8* str, char c, size_t len) {
 	size_t i = 0;
 	while (str[i] != c) {
-		if (str[i] == '\0') return -1;
+		if (str[i] == '\0') return len;
 		i++;
 	}
 	return i;
 }
 
-_scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8** left, scl_int8** right) {
-	*left = (scl_int8*) malloc(len - (len - index) + 1);
-	strncpy(*left, str, index);
-	(*left)[index] = '\0';
+_scl_symbol_hidden static size_t str_index_of(const scl_int8* str, char c) {
+	return str_index_of_or(str, c, -1);
+}
 
-	*right = (scl_int8*) malloc(len - index + 1);
-	strncpy(*right, str + index, len - index);
-	(*right)[len - index] = '\0';
+_scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t index, scl_int8* left, scl_int8* right) {
+	strncpy(left, str, index);
+	left[index] = '\0';
+
+	strncpy(right, str + index, len - index);
+	right[len - index] = '\0';
 }
 
 scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
 	size_t methodLen = strlen(methodIdentifier);
-	scl_int8* methodName;
-	scl_int8* signature;
 	ID_t signatureHash;
-	size_t methodNameLen = str_index_of(methodIdentifier, '(');
-	if (methodNameLen != -1) {
-		split_at(methodIdentifier, methodLen, methodNameLen, &methodName, &signature);
+	size_t methodNameLen = str_index_of_or(methodIdentifier, '(', methodLen);
+	scl_int8 methodName[methodNameLen];
+	scl_int8 signature[methodLen - methodNameLen + 1];
+	if (likely(sizeof(signature) > 1)) {
+		split_at(methodIdentifier, methodLen, methodNameLen, methodName, signature);
 		signatureHash = type_id(signature);
 	} else {
-		methodName = methodIdentifier;
-		signature = "";
+		strncpy(methodName, methodIdentifier, methodLen);
+		methodName[methodLen] = '\0';
+		signature[0] = '\0';
 		signatureHash = 0;
 	}
 	ID_t methodNameHash = type_id(methodName);
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
-	if (_scl_expect(m == nil, 0)) {
+	if (unlikely(m == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
-	}
-	if (signatureHash) {
-		free(methodName);
-		free(signature);
 	}
 	return m;
 }
@@ -420,30 +379,28 @@ scl_any _scl_alloc_struct(const TypeInfo* statics) {
 	scl_any ptr = _scl_alloc(statics->size);
 
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (_scl_expect(layout == nil, 0)) {
+	if (unlikely(layout == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
-	layout->is_instance = 1;
+	layout->flags |= FLAG_INSTANCE;
 
 	((Struct*) ptr)->mutex = cxx_std_recursive_mutex_new();
 	((Struct*) ptr)->statics = (TypeInfo*) statics;
-	if (statics) {
-		((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
-	}
+	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
 
 	return ptr;
 }
 
 scl_int _scl_is_instance(scl_any ptr) {
-	if (_scl_expect(ptr == nil, 0)) return 0;
+	if (unlikely(ptr == nil)) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (_scl_expect(layout == nil, 0)) return 0;
-	return layout->is_instance;
+	if (unlikely(layout == nil)) return 0;
+	return layout->flags & FLAG_INSTANCE;
 }
 
 scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
-	if (_scl_expect(((scl_int) ptr) <= 0, 0)) return 0;
-	if (_scl_expect(!_scl_is_instance(ptr), 0)) return 0;
+	if (unlikely(((scl_int) ptr) <= 0)) return 0;
+	if (unlikely(!_scl_is_instance(ptr))) return 0;
 
 	Struct* ptrStruct = (Struct*) ptr;
 
@@ -455,7 +412,7 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 }
 
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig) {
-	if (_scl_expect(methods == nil, 0)) return -1;
+	if (unlikely(methods == nil)) return -1;
 
 	for (scl_int i = 0; *(scl_int*) &(methods[i].pure_name); i++) {
 		if (methods[i].pure_name == id && (sig == 0 || methods[i].signature == sig)) {
@@ -511,7 +468,7 @@ scl_any _scl_get_stdin() {
 }
 
 scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name) {
-	if (_scl_expect(!_scl_is_instance_of(instance, target_type), 0)) {
+	if (unlikely(!_scl_is_instance_of(instance, target_type))) {
 		typedef struct Struct_CastError {
 			Struct rtFields;
 			scl_str msg;
@@ -519,24 +476,27 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			scl_str errno_str;
 		}* scl_CastError;
 
-		scl_int size;
-		scl_int8* cmsg;
 		if (instance == nil) {
-			size = 96 + strlen(target_type_name);
-			cmsg = (scl_int8*) _scl_alloc(size);
+			scl_int size = 96 + strlen(target_type_name);
+			scl_int8 cmsg[size];
 			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
 			_scl_assert(0, cmsg);
 		}
 
 		memory_layout_t* layout = _scl_get_memory_layout(instance);
 
-		if (layout && layout->is_instance) {
+		scl_int size;
+		scl_bool is_instance = layout && (layout->flags & FLAG_INSTANCE);
+		if (is_instance) {
 			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
-			cmsg = (scl_int8*) _scl_alloc(size);
-			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
 		} else {
 			size = 96 + strlen(target_type_name);
-			cmsg = (scl_int8*) _scl_alloc(size);
+		}
+
+		char cmsg[size];
+		if (is_instance) {
+			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
+		} else {
 			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
 		}
 		_scl_assert(0, cmsg);
@@ -545,7 +505,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 }
 
 scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
-	if (_scl_is_instance(instance)) {
+	if (likely(_scl_is_instance(instance))) {
 		return (scl_int8*) ((Struct*) instance)->statics->type_name;
 	}
 	return (scl_int8*) else_;
@@ -557,20 +517,20 @@ typedef struct {
 } array_info_t;
 
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
-	if (_scl_expect(num_elems < 0, 0)) {
+	if (unlikely(num_elems < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
 	scl_int size = num_elems * elem_size;
 	scl_any arr = _scl_alloc(size + sizeof(array_info_t));
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	layout->is_array = 1;
+	layout->flags |= FLAG_ARRAY;
 	((array_info_t*) arr)->size = num_elems;
 	((array_info_t*) arr)->elem_size = elem_size;
 	return arr + sizeof(array_info_t);
 }
 
 scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size) {
-	if (_scl_expect(num_elems < 0, 0)) {
+	if (unlikely(num_elems < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
 	scl_any* new_arr = _scl_new_array_by_size(num_elems, elem_size);
@@ -579,25 +539,25 @@ scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl
 }
 
 scl_int _scl_is_array(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		return 0;
 	}
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	if (_scl_expect(layout == nil, 0)) {
+	if (unlikely(layout == nil)) {
 		return 0;
 	}
-	return layout->is_array;
+	return layout->flags & FLAG_ARRAY;
 }
 
 scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
-	if (_scl_expect(dimensions < 1, 0)) {
+	if (unlikely(dimensions < 1)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array dimensions must not be less than 1");
 	}
 	if (dimensions == 1) {
 		return (scl_any*) _scl_new_array_by_size(sizes[0], elem_size);
 	}
 	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(array_info_t));
-	_scl_get_memory_layout(arr)->is_array = 1;
+	_scl_get_memory_layout(arr)->flags |= FLAG_ARRAY;
 	((array_info_t*) arr)->size = sizes[0];
 	((array_info_t*) arr)->elem_size = sizeof(scl_any);
 	arr = (((scl_any) arr) + sizeof(array_info_t));
@@ -616,30 +576,30 @@ scl_int _scl_array_elem_size_unchecked(scl_any* arr) {
 }
 
 scl_int _scl_array_size(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	return _scl_array_size_unchecked(arr);
 }
 
 scl_int _scl_array_elem_size(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	return _scl_array_elem_size_unchecked(arr);
 }
 
 void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -649,19 +609,19 @@ void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 }
 
 scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
-	if (_scl_expect(new_size < 1, 0)) {
+	if (unlikely(new_size < 1)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
 	arr = (scl_any) (((scl_any) arr) - sizeof(array_info_t));
 	array_info_t info = *(array_info_t*) arr;
 	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * info.elem_size + sizeof(array_info_t));
-	_scl_get_memory_layout(new_arr)->is_array = 1;
+	_scl_get_memory_layout(new_arr)->flags |= FLAG_ARRAY;
 	((array_info_t*) new_arr)->size = new_size;
 	((array_info_t*) new_arr)->elem_size = info.elem_size;
 	return (((scl_any) new_arr) + sizeof(array_info_t));
@@ -698,16 +658,16 @@ static inline scl_int read_sized(scl_any ptr, scl_int size) {
 }
 
 void _scl_array_set(scl_any arr, scl_int index, scl_int value) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 
 	scl_int size = _scl_array_size_unchecked(arr);
 
-	if (_scl_expect(index < 0 || index >= size, 0)) {
+	if (unlikely(index < 0 || index >= size)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
 	}
 
@@ -716,16 +676,16 @@ void _scl_array_set(scl_any arr, scl_int index, scl_int value) {
 }
 
 scl_any _scl_array_get(scl_any arr, scl_int index) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 
 	scl_int size = _scl_array_size_unchecked(arr);
 
-	if (_scl_expect(index < 0 || index >= size, 0)) {
+	if (unlikely(index < 0 || index >= size)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
 	}
 
@@ -742,10 +702,10 @@ scl_float _scl_array_getf(scl_any arr, scl_int index) {
 }
 
 scl_any* _scl_array_sort(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -771,10 +731,10 @@ scl_any* _scl_array_sort(scl_any* arr) {
 }
 
 scl_any* _scl_array_reverse(scl_any* arr) {
-	if (_scl_expect(arr == nil, 0)) {
+	if (unlikely(arr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
 	}
-	if (_scl_expect(!_scl_is_array(arr), 0)) {
+	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	scl_int size = _scl_array_size_unchecked(arr);
@@ -789,13 +749,8 @@ scl_any* _scl_array_reverse(scl_any* arr) {
 	return arr;
 }
 
-static inline void dont_optimize_meee(const void* p) {
-	asm volatile("" : : "g"(p) : "memory");
-}
-
 void _scl_trace_remove(struct _scl_backtrace* bt) {
 	bt->marker = 0;
-	bt->func_name = "<unknown>";
 }
 
 void _scl_unlock_ptr(void* lock_ptr) {
@@ -814,13 +769,10 @@ void _scl_throw(scl_any ex) {
 	GC_get_my_stackbottom(&sb);
 	scl_uint* stack_bottom = sb.mem_base;
 
-	scl_int iteration_direction = 1;
-	if (stack_top > stack_bottom) {
-		iteration_direction = -1;
-	}
+	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
 
 	while (stack_top != stack_bottom) {
-		if (*stack_top != EXCEPTION_HANDLER_MARKER) {
+		if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
 			stack_top += iteration_direction;
 			continue;
 		}

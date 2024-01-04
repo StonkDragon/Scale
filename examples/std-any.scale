@@ -7,6 +7,6 @@ function main(): none
     64 any::new => decl val     # Allocate 64 bytes
     val any::size puts          # Prints 64
     val any::delete             # Free the memory allocated by val
-    val any::size puts          # Prints -1 => unallocated pointers have a size of -1
+    val any::size puts          # Prints 0 => unallocated pointers have a size of 0
     any::default any::size puts # Prints 8 => the default pointer has a size of 8
 end
