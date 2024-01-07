@@ -22,6 +22,7 @@ namespace sclc
         std::unordered_set<std::string> toImplementFunctions;
         size_t required_typed_arguments;
         std::map<std::string, std::string> templates;
+        bool templateInstance = false;
         static Struct Null;
 
         Struct(std::string name) : Struct(name, Token(tok_identifier, name)) {}
@@ -42,6 +43,7 @@ namespace sclc
             this->toImplementFunctions = other.toImplementFunctions;
             this->required_typed_arguments = other.required_typed_arguments;
             this->templates = other.templates;
+            this->templateInstance = other.templateInstance;
         }
         Struct(Struct&& other) {
             this->name = std::move(other.name);
@@ -54,6 +56,7 @@ namespace sclc
             this->toImplementFunctions = std::move(other.toImplementFunctions);
             this->required_typed_arguments = std::move(other.required_typed_arguments);
             this->templates = std::move(other.templates);
+            this->templateInstance = std::move(other.templateInstance);
         }
         Struct& operator=(const Struct& other) {
             this->name = other.name;
@@ -66,6 +69,7 @@ namespace sclc
             this->toImplementFunctions = other.toImplementFunctions;
             this->required_typed_arguments = other.required_typed_arguments;
             this->templates = other.templates;
+            this->templateInstance = other.templateInstance;
             return *this;
         }
         Struct& operator=(Struct&& other) {
@@ -79,6 +83,7 @@ namespace sclc
             this->toImplementFunctions = std::move(other.toImplementFunctions);
             this->required_typed_arguments = std::move(other.required_typed_arguments);
             this->templates = std::move(other.templates);
+            this->templateInstance = std::move(other.templateInstance);
             return *this;
         }
         ~Struct() = default;

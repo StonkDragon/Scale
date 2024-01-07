@@ -120,7 +120,7 @@ namespace sclc
         if (structTree) {
             structTree->forEach([fp](StructTreeNode* node) {
                 const Struct& s = node->s;
-                if (s.isStatic() || s.isExtern()) {
+                if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
                 }
                 auto vtable = vtables.find(s.name);

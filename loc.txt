@@ -1,4 +1,4 @@
-    1241 Compiler/Common.cpp
+    1242 Compiler/Common.cpp
     1350 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
      506 Compiler/headers/Common.hpp
@@ -8,7 +8,7 @@
       23 Compiler/headers/Functions.hpp
       68 Compiler/headers/Interface.hpp
      150 Compiler/headers/Results.hpp
-     218 Compiler/headers/Struct.hpp
+     223 Compiler/headers/Struct.hpp
      240 Compiler/headers/Token.hpp
      100 Compiler/headers/TokenType.hpp
      158 Compiler/headers/TranspilerDefs.hpp
@@ -20,9 +20,9 @@
     1083 Compiler/modules/Functions.cpp
      583 Compiler/modules/InfoDumper.cpp
      243 Compiler/modules/Parser.cpp
-    3433 Compiler/modules/SyntaxTree.cpp
+    3511 Compiler/modules/SyntaxTree.cpp
      636 Compiler/modules/Tokenizer.cpp
-    4868 Compiler/modules/Transpiler.cpp
+    4870 Compiler/modules/Transpiler.cpp
      559 Compiler/modules/Types.cpp
      397 Scale/Frameworks/Scale.framework/impl/scale.c
      103 Scale/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale
@@ -30,7 +30,7 @@
      348 Scale/Frameworks/Scale.framework/include/std/functional/Do.scale
       88 Scale/Frameworks/Scale.framework/include/std/lang/Any.scale
       61 Scale/Frameworks/Scale.framework/include/std/lang/Core.scale
-      91 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
+      92 Scale/Frameworks/Scale.framework/include/std/lang/Debug.scale
      204 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       68 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
@@ -65,7 +65,7 @@
      112 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
       85 Scale/Internal/scale_cxx.cpp
-     852 Scale/Internal/scale_runtime.c
+     861 Scale/Internal/scale_runtime.c
      610 Scale/Internal/scale_runtime.h
       15 examples/arguments.scale
       21 examples/array-destructuring.scale
@@ -131,4 +131,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25516 total
+   25612 total

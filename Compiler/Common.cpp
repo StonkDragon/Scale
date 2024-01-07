@@ -407,6 +407,7 @@ namespace sclc
     }
 
     FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
+        (void) typeReplacements;
         FPResult r;
         r.success = true;
         r.value = "";
@@ -436,10 +437,10 @@ namespace sclc
         }
         if (body[*i].type == tok_identifier) {
             r.value = type_mods + body[*i].value;
-            if (typeReplacements.find(body[*i].value) != typeReplacements.end()) {
-                r.value = type_mods + typeReplacements.at(body[*i].value);
-                r.message = body[*i].value;
-            }
+            // if (typeReplacements.find(body[*i].value) != typeReplacements.end()) {
+            //     r.value = type_mods + typeReplacements.at(body[*i].value);
+            //     r.message = body[*i].value;
+            // }
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].type != tok_paren_open) {

@@ -1,4 +1,4 @@
-VERSION: "23.11.2";
+VERSION: "24.0";
 SCL_ROOT_DIR: "/opt";
 
 build: {

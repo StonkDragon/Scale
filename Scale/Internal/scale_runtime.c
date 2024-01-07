@@ -46,6 +46,10 @@ typedef struct Struct_Exception {
 	scl_str errno_str;
 }* scl_Exception;
 
+typedef struct Struct_RuntimeError {
+	struct Struct_Exception self;
+}* scl_RuntimeError;
+
 typedef struct Struct_NullPointerException {
 	struct Struct_Exception self;
 }* scl_NullPointerException;
@@ -94,9 +98,11 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
-	if (unlikely(ptr == nil || !GC_is_heap_ptr(ptr))) return 0;
+	if (unlikely(ptr == nil || !GC_is_heap_ptr(ptr))) {
+		return 0;	
+	}
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (unlikely(layout == nil)) {
+	if (unlikely(layout == nil || layout->marker != MARKER)) {
 		return 0;
 	}
 	return layout->allocation_size;
@@ -155,7 +161,9 @@ void _scl_free(scl_any ptr) {
 	}
 	ptr = GC_base(ptr);
 	if (likely(ptr != nil)) {
-		memset(ptr, 0, sizeof(memory_layout_t));
+		((memory_layout_t*) ptr)->marker = 0;
+		((memory_layout_t*) ptr)->allocation_size = 0;
+		((memory_layout_t*) ptr)->flags = 0;
 		GC_free(ptr);
 	}
 }
@@ -191,23 +199,20 @@ scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
 _scl_symbol_hidden static void native_trace(void);
 
 _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
-	printf("\n");
-
 	va_list args;
 	va_start(args, msg);
 	size_t len = strlen(msg) * 8;
 	scl_int8 str[len];
 	vsnprintf(str, len, msg, args);
-	printf("Exception: %s\n", str);
-
+	scl_int size = 22 + strlen(str);
+	scl_int8 cmsg[size];
+	snprintf(cmsg, size, "Exception: %s\n", str);
 	va_end(args);
 
-	if (errno) {
-		printf("errno: %s\n", strerror(errno));
-	}
-	native_trace();
-
-	exit(code);
+	scl_RuntimeError ex = ALLOC(RuntimeError);
+	virtual_call(ex, "init(s;)V;", _scl_create_string(cmsg));
+	
+	_scl_throw(ex);
 }
 
 scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
@@ -771,17 +776,21 @@ void _scl_throw(scl_any ex) {
 
 	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
 
-	while (stack_top != stack_bottom) {
-		if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
-			stack_top += iteration_direction;
-			continue;
+	ID_t error_type = type_id("Error");
+
+	if (likely(!_scl_is_instance_of(ex, error_type))) {
+		while (stack_top != stack_bottom) {
+			if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
+				stack_top += iteration_direction;
+				continue;
+			}
+
+			struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
+			handler->exception = ex;
+			handler->marker = 0;
+
+			longjmp(handler->jmp, 666);
 		}
-
-		struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
-		handler->exception = ex;
-		handler->marker = 0;
-
-		longjmp(handler->jmp, 666);
 	}
 
 	_scl_runtime_catch(ex);

@@ -404,7 +404,7 @@ namespace sclc {
         if (structTree) {
             structTree->forEach([&](StructTreeNode* currentNode) {
                 Struct c = currentNode->s;
-                if (c.isStatic()) return;
+                if (c.isStatic() || c.templateInstance) return;
                 append("struct Struct_%s {\n", c.name.c_str());
                 append("  const _scl_lambda* const $fast;\n");
                 append("  const TypeInfo* $statics;\n");
@@ -4660,6 +4660,8 @@ namespace sclc {
                 if (currentStruct == Struct::Null) {
                     transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
                     errors.push_back(err);
+                    continue;
+                } else if (currentStruct.templateInstance) {
                     continue;
                 }
             } else {

@@ -1037,6 +1037,40 @@ namespace sclc {
         static void instantiate(TPResult& result);
     };
 
+    const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
+
+    std::string reparseArgType(std::string type, const std::map<std::string, std::string>& templateArgs) {
+        std::string mods = "";
+        bool isVal = type.front() == '*';
+        if (isVal) {
+            type = type.substr(1);
+        }
+        for (std::string mod : removableTypeModifiers) {
+            if (strstarts(type, mod)) {
+                type = type.substr(mod.size());
+                if (mod == "mut") {
+                    mods += "mut ";
+                } else if (mod == "const") {
+                    mods += "const ";
+                } else if (mod == "readonly") {
+                    mods += "readonly ";
+                }
+            }
+        }
+        if (isVal) {
+            return "*" + mods + reparseArgType(type.substr(1), templateArgs);
+        } else if (type.front() == '[') {
+            std::string inner = type.substr(1, type.size() - 2);
+            return "[" + reparseArgType(inner, templateArgs) + "]";
+        }
+        if (templateArgs.find(type) != templateArgs.end()) {
+            return mods + templateArgs.at(type);
+        }
+        return mods + type;
+    }
+
+    std::vector<Token> parseString(std::string s);
+
     struct Template {
         static Template empty;
 
@@ -1053,11 +1087,10 @@ namespace sclc {
             dest.memberInherited = src.memberInherited;
             dest.interfaces = src.interfaces;
             dest.templates = this->arguments;
+            dest.templateInstance = false;
 
             for (auto&& member : dest.members) {
-                if (member.typeFromTemplate.size()) {
-                    member.type = this->arguments[member.typeFromTemplate];
-                }
+                member.type = reparseArgType(member.type, this->arguments);
             }
 
             auto methods = methodsOnType(result, src.name);
@@ -1065,15 +1098,35 @@ namespace sclc {
                 Method* mt = method->cloneAs(dest.name);
                 mt->clearArgs();
                 for (Variable arg : method->args) {
-                    if (arg.typeFromTemplate.size()) {
-                        arg.type = this->arguments[arg.typeFromTemplate];
-                    } else if (arg.name == "self") {
+                    if (arg.name == "self") {
                         arg.type = dest.name;
+                    } else {
+                        arg.type = reparseArgType(arg.type, this->arguments);
                     }
                     mt->addArgument(arg);
                 }
-                if (mt->templateArg.size()) {
-                    mt->return_type = this->arguments[mt->templateArg];
+                mt->return_type = reparseArgType(mt->return_type, this->arguments);
+                for (size_t i = 0; i < mt->body.size(); i++) {
+                    if (mt->body[i].type != tok_identifier) continue;
+                    if (this->arguments.find(mt->body[i].value) != this->arguments.end()) {
+                        SourceLocation loc = mt->body[i].location;
+                        std::string type = this->arguments.at(mt->body[i].value);
+                        if (type.find('$') != std::string::npos) {
+                            mt->body[i] = Token(tok_identifier, type, loc);
+                            continue;
+                        }
+                        auto toks = parseString(type);
+                        std::vector<Token> toks2;
+                        toks2.reserve(toks.size());
+                        for (auto&& tok : toks) {
+                            if (tok.type != tok_eof) {
+                                tok.location = loc;
+                                toks2.push_back(tok);
+                            }
+                        }
+                        mt->body.erase(mt->body.begin() + i);
+                        mt->body.insert(mt->body.begin() + i, toks2.begin(), toks2.end());
+                    }
                 }
                 result.functions.push_back(mt);
             }
@@ -1168,13 +1221,14 @@ namespace sclc {
                     }
                     continue;
                 }
+                size_t start = i;
                 FPResult r = parseType(tokens, &i, {});
-                if (!r.success) {
-                    errors.push_back(r);
-                    t = Template::empty;
-                    return Template::empty;
+                if (r.success) {
+                    t.setNth(parameterCount++, r.value);
+                } else {
+                    i = start;
+                    t.setNth(parameterCount++, tokens[i].value);
                 }
-                t.setNth(parameterCount++, r.value);
                 i++;
                 if (tokens[i].type == tok_comma) {
                     i++;
@@ -1250,6 +1304,7 @@ namespace sclc {
             if (getStructByName(result, templateInstance.nameForInstance()).name.size()) {
                 continue;
             }
+            baseStruct.templateInstance = true;
             templateInstance.makeInstance(result, baseStruct);
         }
     }
@@ -1898,6 +1953,13 @@ namespace sclc {
                 }
                 std::string parameterName = tokens[i].value;
                 i++;
+                if (tokens[i].type == tok_identifier && (tokens[i].value == "," || tokens[i].value == ">")) {
+                    if (tokens[i].value == ",") {
+                        i++;
+                    }
+                    inst.arguments[parameterName] = "any";
+                    continue;
+                }
                 if (tokens[i].type != tok_column) {
                     FPResult result;
                     result.message = "Expected ':' after '" + parameterName + "' (" + parameterName + ")";
@@ -2532,6 +2594,7 @@ namespace sclc {
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
                 if (tokens[i + 1].value == "<") {
+                    currentStruct->templateInstance = true;
                     i++;
                     // *i = "<"
                     i++;
@@ -2550,6 +2613,15 @@ namespace sclc {
                         std::string key = tokens[i].value;
                         i++;
                         // *i = ":"
+                        if (tokens[i].type == tok_identifier && (tokens[i].value == "," || tokens[i].value == ">")) {
+                            if (tokens[i].value == ",") {
+                                i++;
+                            }
+                            currentStruct->required_typed_arguments++;
+                            currentStruct->addTemplateArgument(key, "any");
+                            templateArgs[key] = "any";
+                            continue;
+                        }
                         if (tokens[i].type != tok_column) {
                             FPResult result;
                             result.message = "Expected ':' after template argument name, but got '" + tokens[i].value + "'";
@@ -3349,7 +3421,13 @@ namespace sclc {
                 bool canBeNil = typeCanBeNil(member.type);
                 std::string type = removeTypeModifiers(member.type);
                 if (canBeNil || isPointer(type) || hasEnum(result, type)) {
-                    toString->addToken(Token(tok_identifier, "builtinToString"));
+                    if (type == "float") {
+                        toString->addToken(Token(tok_identifier, "float"));
+                        toString->addToken(Token(tok_double_column, "::"));
+                        toString->addToken(Token(tok_identifier, "toString"));
+                    } else {
+                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                    }
                 } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                     toString->addToken(Token(tok_identifier, "any"));
                     toString->addToken(Token(tok_double_column, "::"));
