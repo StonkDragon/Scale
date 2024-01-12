@@ -3110,6 +3110,7 @@ namespace sclc {
                            t.value == "unsafe" ||
                            t.value == "cdecl" ||
                            t.value == "final" ||
+                           t.value == "async" ||
                            t.value == "open" ||
                            t.value == "asm";
                 };

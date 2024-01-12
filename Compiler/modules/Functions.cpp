@@ -100,12 +100,12 @@ namespace sclc {
         }
 
         bool closeThePush = false;
-        if (f->return_type.size() && f->return_type.front() == '*') {
+        if (f->return_type.size() && f->return_type.front() == '*' && !f->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, f->return_type).c_str());
         } else {
-            if (f->return_type != "none" && f->return_type != "nothing") {
+            if (f->return_type != "none" && f->return_type != "nothing" && !f->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, f->return_type).c_str());
                 closeThePush = true;
             } else {
@@ -113,19 +113,29 @@ namespace sclc {
             }
         }
 
-        append2("fn_%s(%s)", f->name.c_str(), args.c_str());
+        if (f->has_async) {
+            if (args.size()) {
+                append2("_scl_async(fn_%s, fn_%s, %s)", f->name.c_str(), f->name.c_str(), args.c_str());
+            } else {
+                append2("_scl_async(fn_%s, fn_%s)", f->name.c_str(), f->name.c_str());
+            }
+        } else {
+            append2("fn_%s(%s)", f->name.c_str(), args.c_str());
+        }
         if (closeThePush) {
             append2(")");
         }
         append2(";\n");
 
-        if (f->return_type.size() && f->return_type.front() == '*') {
+        if (f->return_type.size() && f->return_type.front() == '*' && !f->has_async) {
             append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
             append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         }
-        if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
+        if (f->has_async) {
+            typeStack.push("async<" + f->return_type + ">");
+        } else if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
             if (f->return_type.front() == '*') {
                 typeStack.push(f->return_type.substr(1));
             } else {
@@ -498,12 +508,12 @@ namespace sclc {
             append("CAST0(_scl_top(scl_any), %s, 0x%lxUL);\n", self->member_type.c_str(), id(self->member_type.c_str()));
         }
         bool closeThePush = false;
-        if (self->return_type.size() && self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
         } else {
-            if (self->return_type != "none" && self->return_type != "nothing") {
+            if (self->return_type != "none" && self->return_type != "nothing" && !self->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, self->return_type).c_str());
                 closeThePush = true;
             } else {
@@ -511,7 +521,11 @@ namespace sclc {
             }
         }
         if (self->has_nonvirtual) {
-            append("mt_%s$%s(%s)", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            if (self->has_async) {
+                append("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            } else {
+                append("mt_%s$%s(%s)", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            }
             found = true;
         } else if (getInterfaceByName(result, self->member_type) == nullptr) {
             auto vtable = vtables[self->member_type];
@@ -519,12 +533,20 @@ namespace sclc {
             for (auto&& method : vtable) {
                 if (method->operator==(self)) {
                     std::string functionPtrCast = getFunctionType(result, self);
-
-                    append2("((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
-                    if (onSuperType) {
-                        append2("$statics->super_vtable[%zu].ptr)(%s)", index, args.c_str());
+                    if (self->has_async) {
+                        append2("_scl_async((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
+                        if (onSuperType) {
+                            append2("$statics->super_vtable[%zu].ptr, mt_%s$%s, %s)", index, args.c_str(), self->member_type.c_str(), self->finalName().c_str());
+                        } else {
+                            append2("$fast[%zu], mt_%s$%s, %s)", index, self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                        }
                     } else {
-                        append2("$fast[%zu])(%s)", index, args.c_str());
+                        append2("((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
+                        if (onSuperType) {
+                            append2("$statics->super_vtable[%zu].ptr)(%s)", index, args.c_str());
+                        } else {
+                            append2("$fast[%zu])(%s)", index, args.c_str());
+                        }
                     }
                     found = true;
                     break;
@@ -534,6 +556,10 @@ namespace sclc {
         } else {
             std::string rtSig = argsToRTSignature(self);
             std::string functionPtrCast = getFunctionType(result, self);
+            if (self->has_async) {
+                transpilerError("Calling async method on interface is not supported", i);
+                warns.push_back(err);
+            }
             append(
                 "((%s) (_scl_get_vtable_function(0, _scl_positive_offset(%zu, scl_any), \"%s%s\")))(%s)",
                 functionPtrCast.c_str(),
@@ -548,13 +574,15 @@ namespace sclc {
             append2(")");
         }
         append2(";\n");
-        if (self->return_type.size() && self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
             append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
             append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         }
-        if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+        if (self->has_async) {
+            typeStack.push("async<" + self->return_type + ">");
+        } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
             if (self->return_type.front() == '*') {
                 typeStack.push(self->return_type.substr(1));
             } else {
@@ -582,20 +610,38 @@ namespace sclc {
     void generateUnsafeCallF(Function* self, FILE* fp, TPResult& result) {
         if (self->args.size() > 0)
             append("_scl_popn(%zu);\n", self->args.size());
-        if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-            append("fn_%s(%s);\n", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+        std::string args = generateArgumentsForFunction(result, self).c_str();
+        if (self->has_async) {
+            if (args.size()) {
+                append("_scl_async(fn_%s, fn_%s, %s);\n", self->finalName().c_str(), self->finalName().c_str(), args.c_str());
+            } else {
+                append("_scl_async(fn_%s, fn_%s);\n", self->finalName().c_str(), self->finalName().c_str());
+            }
         } else {
-            append("_scl_push(%s, fn_%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
+                append("fn_%s(%s);\n", self->finalName().c_str(), args.c_str());
+            } else {
+                append("_scl_push(%s, fn_%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), args.c_str());
+            }
         }
     }
 
     void generateUnsafeCall(Method* self, FILE* fp, TPResult& result) {
         if (self->args.size() > 0)
             append("_scl_popn(%zu);\n", self->args.size());
-        if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-            append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+        std::string args = generateArgumentsForFunction(result, self).c_str();
+        if (self->has_async) {
+            if (args.size()) {
+                append("_scl_async(mt_%s$%s, mt_%s$%s, %s);\n", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            } else {
+                append("_scl_async(mt_%s$%s, mt_%s$%s);\n", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str());
+            }
         } else {
-            append("_scl_push(%s, mt_%s$%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+            if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
+                append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            } else {
+                append("_scl_push(%s, mt_%s$%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+            }
         }
     }
 
@@ -919,31 +965,38 @@ namespace sclc {
             }
         }
         bool closeThePush = false;
-        if (self->return_type.size() && self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
         } else {
-            if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+            if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, self->return_type).c_str());
                 closeThePush = true;
             } else {
                 append("");
             }
         }
-        append2("fn_%s(%s)", self->finalName().c_str(), generateArgumentsForFunction(result, self).c_str());
+        std::string args = generateArgumentsForFunction(result, self);
+        if (self->has_async) {
+            append("_scl_async(fn_%s%s%s, fn_%s)", self->finalName().c_str(), args.size() ? ", " : "", args.c_str(), self->finalName().c_str());
+        } else {
+            append2("fn_%s(%s)", self->finalName().c_str(), args.c_str());
+        }
         if (closeThePush) {
             append2(")");
         }
         append2(";\n");
 
-        if (self->return_type.size() && self->return_type.front() == '*') {
+        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
             append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
             append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
             scopeDepth--;
             append("}\n");
         }
-        if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+        if (self->has_async) {
+            typeStack.push("async<" + self->return_type + ">");
+        } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
             if (self->return_type.front() == '*') {
                 typeStack.push(self->return_type.substr(1));
             } else {

@@ -48,6 +48,7 @@ namespace sclc
         long has_overrides;
         long has_binary_inherited;
         long has_nonvirtual;
+        long has_async;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);

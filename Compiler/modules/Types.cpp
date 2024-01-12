@@ -366,6 +366,7 @@ namespace sclc {
         bool valueType = t.front() == '*';
         t = removeTypeModifiers(t);
 
+        if (strstarts(t, "async<")) return "scl_any";
         if (strstarts(t, "lambda(")) return "_scl_lambda";
         if (t == "any") return "scl_any";
         if (t == "none") return "void";
@@ -508,6 +509,7 @@ namespace sclc {
         if (type == "none") return "V$";
         if (type == "[int8]") return "cs$";
         if (type == "[any]") return "p$";
+        if (strstarts(type, "async<")) return "A" + typeToRTSigIdent(type.substr(6, type.size() - 7));
         if (type == "lambda" || strstarts(type, "lambda(")) return "F$";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "A" + typeToRTSigIdent(type.substr(1, type.size() - 2));

@@ -471,6 +471,20 @@ namespace sclc
                     }
                 }
             }
+            if (r.value == "async") {
+                (*i)++;
+                if (r.type != tok_identifier || body[*i].value != "<") {
+                    r.success = false;
+                    r.message = "Expected '<', but got '" + body[*i].value + "'";
+                    return r;
+                }
+                (*i)++;
+                FPResult tmp = parseType(body, i);
+                if (!tmp.success) return tmp;
+                r.value += "<" + tmp.value + ">";
+                (*i)++;
+                return r;
+            }
             if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
                 (*i)++;
                 (*i)++;

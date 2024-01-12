@@ -5,14 +5,6 @@
 #include <stdarg.h>
 #include <signal.h>
 
-#if defined(_WIN32)
-#include <windows.h>
-#include <io.h>
-#else
-#include <unistd.h>
-#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
-#endif
-
 #include "scale_runtime.h"
 
 #if defined(__cplusplus)

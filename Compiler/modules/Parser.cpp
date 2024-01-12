@@ -58,6 +58,15 @@ namespace sclc
         }
 
         if (mainFunction) {
+            if (mainFunction->has_async) {
+                FPResult result;
+                result.success = false;
+                result.message = "Entry point function cannot be async";
+                result.location = mainFunction->name_token.location;
+                result.type = mainFunction->name_token.type;
+                result.value = mainFunction->name_token.value;
+                errors.push_back(result);
+            }
             if (mainFunction->args.size() > 1) {
                 FPResult result;
                 result.success = false;

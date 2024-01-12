@@ -31,6 +31,9 @@ extern "C" {
 #if !defined(WINDOWS)
 #define WINDOWS
 #endif
+#else
+#include <unistd.h>
+#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
 #if !defined(_WIN32) && !defined(__wasm__)
@@ -342,6 +345,21 @@ typedef struct memory_layout memory_layout_t;
 #define REINTERPRET_CAST(_type, _value) ({ \
 	typeof(_value) _tmp = (_value); \
 	*(_type*) &_tmp; \
+})
+
+#define _scl_async(x, at, ...) ({ \
+	pthread_t t; \
+	struct _args_ ## at args = {__VA_ARGS__}; \
+	pthread_create(&t, NULL, (void *(*)(void *)) (x), &args); \
+	_scl_push(pthread_t, t); \
+})
+#define _scl_await(rtype) ({ \
+	rtype ret; \
+	pthread_join(_scl_pop(pthread_t), (void **) &ret); \
+	_scl_push(rtype, ret); \
+})
+#define _scl_await_void() ({ \
+	pthread_join(_scl_pop(pthread_t), NULL); \
 })
 
 #define EXCEPTION_HANDLER_MARKER \
