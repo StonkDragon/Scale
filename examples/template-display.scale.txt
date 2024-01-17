@@ -1,0 +1,2 @@
+Foo<Foo<int, int>, int> {x: Foo<int, int> {x: 1, y: 2}, y: 2}
+Foo<Bar::Baz, int> {x: Bar::Baz {}, y: 2}

@@ -114,13 +114,15 @@ namespace sclc {
         return true;
     }
 
+    std::string retemplate(std::string type);
+
     std::string argVectorToString(std::vector<Variable>& args) {
         std::string arg = "";
         for (size_t i = 0; i < args.size(); i++) {
             if (i) 
                 arg += ", ";
             const Variable& v = args[i];
-            arg += removeTypeModifiers(v.type);
+            arg += retemplate(removeTypeModifiers(v.type));
         }
         return arg;
     }
@@ -130,7 +132,7 @@ namespace sclc {
         for (size_t i = 0; i < args.size(); i++) {
             if (i) 
                 arg += ", ";
-            arg += removeTypeModifiers(args[i]);
+            arg += retemplate(removeTypeModifiers(args[i]));
         }
         return arg;
     }
@@ -311,7 +313,7 @@ namespace sclc {
                 arg += ", ";
             }
 
-            arg += stackType;
+            arg += retemplate(stackType);
         }
         return arg;
     }

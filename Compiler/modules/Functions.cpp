@@ -19,6 +19,8 @@ namespace sclc {
 
     std::unordered_map<Function*, std::string> functionPtrs;
     std::vector<bool> bools{false, true};
+
+    std::string retemplate(std::string type);
     
     std::string generateArgumentsForFunction(TPResult& result, Function *func) {
         std::string args = "";
@@ -942,7 +944,7 @@ namespace sclc {
                         transpilerError("Function returning 'self' requires all arguments to be of the same type", i);
                         errors.push_back(err);
                     }
-                    transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
+                    transpilerError("Expected '" + retemplate(type) + "', but got '" + retemplate(typeStackTop) + "'", i);
                     err.isNote = true;
                     errors.push_back(err);
                     return;
@@ -1063,11 +1065,42 @@ namespace sclc {
         return name;
     }
 
+    std::string retemplate(std::string type) {
+        static std::unordered_map<std::string, std::string> cache;
+
+        if (cache.find(type) != cache.end()) {
+            return cache[type];
+        }
+
+        std::string ret = "";
+        const char* s = type.c_str();
+        while (*s) {
+            if (strncmp(s, "$$b", 3) == 0) {
+                ret += "<";
+                s += 3;
+            } else if (strncmp(s, "$$e", 3) == 0) {
+                ret += ">";
+                s += 3;
+            } else if (strncmp(s, "$$n", 3) == 0) {
+                ret += ", ";
+                s += 3;
+            } else if (*s == '$') {
+                ret += "::";
+                s++;
+            } else {
+                ret += *s;
+                s++;
+            }
+        }
+
+        return cache[type] = ret;
+    }
+
     std::string sclFunctionNameToFriendlyString(Function* f) {
         std::string name = f->finalName();
         name = sclFunctionNameToFriendlyString(name);
         if (f->isMethod) {
-            name = f->member_type + ":" + name;
+            name = retemplate(f->member_type) + ":" + name;
         }
         if (f->has_lambda) {
             name += "[" + std::to_string(f->lambdaIndex) + "]";
@@ -1077,9 +1110,9 @@ namespace sclc {
             const Variable& v = f->args[i];
             if (f->isMethod && v.name == "self") continue;
             if (i) name += ", ";
-            name += ":" + v.type;
+            name += ":" + retemplate(v.type);
         }
-        name += "): " + f->return_type;
+        name += "): " + retemplate(f->return_type);
         return name;
     }
 

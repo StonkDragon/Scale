@@ -1164,15 +1164,17 @@ namespace sclc {
         }
 
         std::string nameForInstance() {
-            std::string instanceName = this->structName + "$";
-            for (auto&& arg : this->arguments) {
-                std::string type = arg.second;
-                instanceName += "$" + type;
+            std::string instanceName = this->structName + "$$b";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    instanceName += "$$n";
+                }
+                instanceName += it->second;
             }
-            return instanceName;
+            return instanceName + "$$e";
         }
 
-        std::string toString() {
+        const std::string toString() const {
             std::string stringName = this->structName + "<";
             for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
                 if (it != this->arguments.begin()) {
@@ -1198,11 +1200,11 @@ namespace sclc {
             while (tokens[i].value != ">") {
                 auto inst = findInstanciable(tokens[i].value);
                 if (inst.has_value()) {
-                    Template t;
+                    Template t2;
                     for (auto&& arg : inst->arguments) {
-                        t.arguments[arg.first] = arg.second;
+                        t2.arguments[arg.first] = arg.second;
                     }
-                    auto parsedArg = t.parse(t, tokens, i, errors);
+                    auto parsedArg = t2.parse(t2, tokens, i, errors);
                     if (!parsedArg.has_value()) {
                         FPResult result;
                         result.message = "Expected template argument, but got '" + tokens[i].value + "'";
@@ -1214,6 +1216,7 @@ namespace sclc {
                         t = Template::empty;
                         return Template::empty;
                     }
+                    TemplateInstances::addTemplate(parsedArg.value());
                     t.setNth(parameterCount++, parsedArg.value().nameForInstance());
                     i++;
                     if (tokens[i].type == tok_comma) {
@@ -1953,7 +1956,7 @@ namespace sclc {
                 }
                 std::string parameterName = tokens[i].value;
                 i++;
-                if (tokens[i].type == tok_identifier && (tokens[i].value == "," || tokens[i].value == ">")) {
+                if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
                     if (tokens[i].value == ",") {
                         i++;
                     }
@@ -2613,7 +2616,7 @@ namespace sclc {
                         std::string key = tokens[i].value;
                         i++;
                         // *i = ":"
-                        if (tokens[i].type == tok_identifier && (tokens[i].value == "," || tokens[i].value == ">")) {
+                        if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
                             if (tokens[i].value == ",") {
                                 i++;
                             }
@@ -3397,7 +3400,8 @@ namespace sclc {
         auto createToStringMethod = [&](Struct& s) -> Method* {
             Token t(tok_identifier, "toString");
             Method* toString = new Method(s.name, std::string("toString"), t);
-            std::string stringify = s.name + " {";
+            std::string retemplate(std::string type);
+            std::string stringify = retemplate(s.name) + " {";
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addArgument(Variable("self", s.name));
