@@ -16,28 +16,27 @@ def genTest(file):
     with open(test_file + ".txt", "w") as f:
         f.write(output)
 
-async def runTest(file, directory="examples", current=1, total=1):
+def runTest(file, directory="examples", current=1, total=1):
     global failedTests
     global theseTestsFailed
     global passedTests
     global skippedTests
 
     test_file = directory + "/" + file
+    curDir = os.path.abspath(os.path.curdir)
+    os.chdir(test_file)
     print(f"[COMP] {file}")
-    try:
-        compOut = os.popen("sclc " + test_file + "/main.scale").read()
-    except UnicodeError:
-        runTest(file, directory, current, total)
-        return
-
+    compOut = os.popen("sclc main.scale").read()
+    
     print(f"[RUN] {file} ({current}/{total})")
-    output = os.popen("./out.scl").read()
-    if not exists(test_file + "/output.txt"):
+    output = os.popen("out.scl").read()
+    if not exists("output.txt"):
         print(f"[SKIP] {file}")
         genTest(test_file)
         skippedTests += 1
+        os.chdir(curDir)
         return
-    with open(test_file + "/output.txt", "r") as f:
+    with open("output.txt", "r") as f:
         expected = f.read()
     if output == expected:
         print(f"[PASS] {file}")
@@ -53,20 +52,20 @@ async def runTest(file, directory="examples", current=1, total=1):
         print("Expected Output:")
         print(expected)
         print("")
+    os.chdir(curDir)
 
 # loop over every file in the directory examples
 # and run the tests on each file
-async def run_tests(directory):
+def run_tests(directory):
     tests = [ i for i in os.listdir(directory) ]
     tests.sort()
     current = 1
-    tasks = []
-    for file in tests:
-        tasks.append(asyncio.create_task(runTest(file, current=current, total=len(tests))))
-        current += 1
-
-    for task in tasks:
-        await task
+    try:
+        for file in tests:
+            runTest(file, current=current, total=len(tests))
+            current += 1
+    except KeyboardInterrupt:
+        pass
 
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))
@@ -93,7 +92,7 @@ if __name__ == '__main__':
         if sys.argv[1] == "reset":
             reset_tests("examples")
         elif sys.argv[1] == "run":
-            asyncio.run(run_tests("examples"))
+            run_tests("examples")
         else:
             print("Usage: python3 tests.py [run|reset]")
             sys.exit(1)
