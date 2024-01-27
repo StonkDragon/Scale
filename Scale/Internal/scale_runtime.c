@@ -80,8 +80,6 @@ typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
 
-#define MARKER 0x5C105C10
-
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (likely(GC_is_heap_ptr(ptr))) {
 		return (memory_layout_t*) GC_base(ptr);
@@ -91,19 +89,20 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 
 scl_int _scl_sizeof(scl_any ptr) {
 	if (unlikely(ptr == nil || !GC_is_heap_ptr(ptr))) {
-		return 0;	
-	}
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (unlikely(layout == nil || layout->marker != MARKER)) {
 		return 0;
 	}
-	return layout->allocation_size;
+	memory_layout_t* layout = _scl_get_memory_layout(ptr);
+	if (unlikely(layout == nil)) {
+		return 0;
+	}
+	return layout->size;
 }
 
 #define FLAG_INSTANCE	0b00000001
 #define FLAG_ARRAY		0b00000010
 
 scl_any _scl_alloc(scl_int size) {
+	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
@@ -112,8 +111,7 @@ scl_any _scl_alloc(scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
 	}
 
-	((memory_layout_t*) ptr)->marker = MARKER;
-	((memory_layout_t*) ptr)->allocation_size = size;
+	((memory_layout_t*) ptr)->size = orig_size;
 	((memory_layout_t*) ptr)->flags = 0;
 
 	return ptr + sizeof(memory_layout_t);
@@ -125,6 +123,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		return nil;
 	}
 
+	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
@@ -135,8 +134,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
-	((memory_layout_t*) ptr)->marker = MARKER;
-	((memory_layout_t*) ptr)->allocation_size = size;
+	((memory_layout_t*) ptr)->size = orig_size;
 	if (likely(layout)) {
 		((memory_layout_t*) ptr)->flags = layout->flags;
 	} else {
@@ -153,9 +151,9 @@ void _scl_free(scl_any ptr) {
 	}
 	ptr = GC_base(ptr);
 	if (likely(ptr != nil)) {
-		((memory_layout_t*) ptr)->marker = 0;
-		((memory_layout_t*) ptr)->allocation_size = 0;
+		((memory_layout_t*) ptr)->size = 0;
 		((memory_layout_t*) ptr)->flags = 0;
+		((memory_layout_t*) ptr)->array_elem_size = 0;
 		GC_free(ptr);
 	}
 }
@@ -508,23 +506,22 @@ scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 	return (scl_int8*) else_;
 }
 
-typedef struct {
-	scl_int size;
-	scl_int elem_size;
-} array_info_t;
-
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (unlikely(num_elems < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
 	scl_int size = num_elems * elem_size;
-	scl_any arr = _scl_alloc(size + sizeof(array_info_t));
+	scl_any arr = _scl_alloc(size);
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
 	layout->flags |= FLAG_ARRAY;
-	((array_info_t*) arr)->size = num_elems;
-	((array_info_t*) arr)->elem_size = elem_size;
-	return arr + sizeof(array_info_t);
+	layout->array_elem_size = elem_size;
+	return arr;
 }
+
+struct vtable {
+	memory_layout_t memory_layout;
+	_scl_lambda funcs[];
+};
 
 scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size) {
 	if (unlikely(num_elems < 0)) {
@@ -553,11 +550,10 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 	if (dimensions == 1) {
 		return (scl_any*) _scl_new_array_by_size(sizes[0], elem_size);
 	}
-	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any) + sizeof(array_info_t));
-	_scl_get_memory_layout(arr)->flags |= FLAG_ARRAY;
-	((array_info_t*) arr)->size = sizes[0];
-	((array_info_t*) arr)->elem_size = sizeof(scl_any);
-	arr = (((scl_any) arr) + sizeof(array_info_t));
+	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any));
+	memory_layout_t* layout = _scl_get_memory_layout(arr);
+	layout->flags |= FLAG_ARRAY;
+	layout->array_elem_size = sizeof(scl_any);
 	for (scl_int i = 0; i < sizes[0]; i++) {
 		arr[i] = _scl_multi_new_array_by_size(dimensions - 1, &(sizes[1]), elem_size);
 	}
@@ -565,11 +561,12 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 }
 
 scl_int _scl_array_size_unchecked(scl_any* arr) {
-	return ((array_info_t*) (((scl_any) arr) - sizeof(array_info_t)))->size;
+	memory_layout_t* lay = _scl_get_memory_layout(arr);
+	return lay->size / lay->array_elem_size;
 }
 
 scl_int _scl_array_elem_size_unchecked(scl_any* arr) {
-	return ((array_info_t*) (((scl_any) arr) - sizeof(array_info_t)))->elem_size;
+	return _scl_get_memory_layout(arr)->array_elem_size;
 }
 
 scl_int _scl_array_size(scl_any* arr) {
@@ -615,13 +612,12 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (unlikely(new_size < 1)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
-	arr = (scl_any) (((scl_any) arr) - sizeof(array_info_t));
-	array_info_t info = *(array_info_t*) arr;
-	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * info.elem_size + sizeof(array_info_t));
-	_scl_get_memory_layout(new_arr)->flags |= FLAG_ARRAY;
-	((array_info_t*) new_arr)->size = new_size;
-	((array_info_t*) new_arr)->elem_size = info.elem_size;
-	return (((scl_any) new_arr) + sizeof(array_info_t));
+	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;
+	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * elem_size);
+	memory_layout_t* layout = _scl_get_memory_layout(new_arr);
+	layout->flags |= FLAG_ARRAY;
+	layout->array_elem_size = elem_size;
+	return new_arr;
 }
 
 #define NBYTES_TO_MASK(nbytes) ((1 << (nbytes * 8)) - 1)

@@ -141,8 +141,18 @@ namespace sclc
                 if (vtable == vtables.end()) {
                     return;
                 }
-                append("static const struct _scl_methodinfo _scl_vtable_info_%s[] __asm(\"Lscl_vtable_info_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
+                append("static const _scl_methodinfo_t _scl_vtable_info_%s = {\n", vtable->first.c_str());
                 scopeDepth++;
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
+                append(".flags = 2,\n");
+                append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".infos = {\n");
+                scopeDepth++;
+
                 for (auto&& m : vtable->second) {
                     std::string signature = argsToRTSignature(m);
                     std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
@@ -155,13 +165,25 @@ namespace sclc
                 }
                 append("{0}\n");
                 scopeDepth--;
+                append("}\n");
+                scopeDepth--;
                 append("};\n");
-                append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
+                append("static const _scl_vtable _scl_vtable_%s = {\n", vtable->first.c_str());
                 scopeDepth++;
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(_scl_lambda),\n", vtable->second.size());
+                append(".flags = 2,\n");
+                append(".array_elem_size = sizeof(_scl_lambda)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".funcs = {\n");
                 for (auto&& m : vtable->second) {
                     append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
                 append("0\n");
+                scopeDepth--;
+                append("}\n");
                 scopeDepth--;
                 append("};\n");
 
@@ -169,8 +191,8 @@ namespace sclc
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", s.name.c_str());
-                append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
-                append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
+                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
+                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
                 if (s.super.size()) {
                     append(".super = &_scl_ti_%s,\n", s.super.c_str());
                 } else {

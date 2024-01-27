@@ -239,29 +239,6 @@ typedef void*(*_scl_lambda)();
 
 typedef scl_uint ID_t;
 
-struct _scl_methodinfo {
-	const ID_t							pure_name;
-	const ID_t							signature;
-};
-
-typedef struct TypeInfo {
-	const ID_t							type;
-	const _scl_lambda*					vtable;
-	const struct TypeInfo*				super;
-	const scl_int8*						type_name;
-	const size_t						size;
-	const struct _scl_methodinfo* const	vtable_info;
-} TypeInfo;
-
-struct scale_string {
-	const _scl_lambda* const			$fast;
-	const TypeInfo* const				$statics;
-	const scl_any						$mutex;
-	scl_int8*							data;
-	scl_int								length;
-	scl_int								hash;
-};
-
 #if defined(__ANDROID__)
 #define SCL_OS_NAME "Android"
 #elif defined(__amigaos__)
@@ -329,12 +306,44 @@ struct _scl_backtrace {
 };
 
 struct memory_layout {
-	scl_int allocation_size;
-	scl_int32 marker;
+	scl_int size;
 	scl_uint8 flags;
+	scl_int array_elem_size;
 };
 
 typedef struct memory_layout memory_layout_t;
+struct _scl_methodinfo {
+	const ID_t							pure_name;
+	const ID_t							signature;
+};
+
+typedef struct {
+	memory_layout_t layout;
+	_scl_lambda funcs[];
+} _scl_vtable;
+
+typedef struct {
+	memory_layout_t layout;
+	struct _scl_methodinfo infos[];
+} _scl_methodinfo_t;
+
+typedef struct TypeInfo {
+	const ID_t							type;
+	const _scl_lambda*					vtable;
+	const struct TypeInfo*				super;
+	const scl_int8*						type_name;
+	const size_t						size;
+	const struct _scl_methodinfo* const	vtable_info;
+} TypeInfo;
+
+struct scale_string {
+	const _scl_lambda* const			$fast;
+	const TypeInfo* const				$statics;
+	const scl_any						$mutex;
+	scl_int8*							data;
+	scl_int								length;
+	scl_int								hash;
+};
 
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
