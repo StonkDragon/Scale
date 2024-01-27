@@ -1066,7 +1066,6 @@ namespace sclc
         cflags.push_back("-fPIC");
 #endif
         
-        std::string source;
         if (Main::options::noScaleFramework) goto skipScaleFramework;
         for (auto f : frameworks) {
             if (f == "Scale") {
@@ -1218,7 +1217,6 @@ namespace sclc
             return 0;
         }
 
-        source = "out.c";
         Parser parser(result);
         Main::parser = &parser;
 
@@ -1230,9 +1228,17 @@ namespace sclc
         for (std::string& s : tmpFlags) {
             cflags.push_back(s);
         }
-
-        FPResult parseResult = Main::parser->parse(source);
-        cflags.push_back(source);
+        
+        std::string source = "out.c";
+        FPResult parseResult = Main::parser->parse(
+            "scl_out.c",
+            "scl_rt.c",
+            "scl_head.h",
+            "scl_main.c"
+        );
+        cflags.push_back("scl_out.c");
+        cflags.push_back("scl_rt.c");
+        cflags.push_back("scl_main.c");
         
         logWarns(parseResult.warns);
         logErrors(parseResult.errors);
@@ -1300,13 +1306,17 @@ namespace sclc
                 std::cout << Color::RED << "Compilation failed with error code " << compile_command << Color::RESET << std::endl;
                 return compile_command;
             }
-            remove(source.c_str());
-            remove((source.substr(0, source.size() - 2) + ".h").c_str());
         }
 
-        auto end = clock::now();
-        double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
+        remove("scl_out.c");
+        remove("scl_rt.c");
+        remove("scl_head.h");
+        remove("scl_main.c");
+        remove("scale_interop.h");
+
         if (Main::options::debugBuild) {
+            auto end = clock::now();
+            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
             std::cout << "Took " << duration << " seconds." << std::endl;
         }
 

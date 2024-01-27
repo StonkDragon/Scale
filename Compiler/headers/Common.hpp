@@ -72,7 +72,7 @@ namespace sclc {
     public:
         Parser(TPResult& result) : result(result) {}
         ~Parser() {}
-        FPResult parse(std::string filename);
+        FPResult parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file);
         TPResult& getResult();
     };
 
@@ -112,8 +112,7 @@ namespace sclc {
         static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeContainers(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
         static void writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeTables(FILE* fp, TPResult& result, std::string filename);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, std::string filename);
+        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, const std::string& header_file);
     };
 
     struct Main {
@@ -192,9 +191,6 @@ namespace sclc {
     Interface* getInterfaceByName(TPResult& result, const std::string& name);
     Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type);
     Method* getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type);
-    Method* getMethodByNameWithArgs(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
-    Method* getMethodWithActualName(TPResult& result, const std::string& name, const std::string& type, bool doCheck = true);
-    Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name, bool doCheck = true);
     Struct& getStructByName(TPResult& result, const std::string& name);
     Layout getLayout(TPResult& result, const std::string& name);
     bool hasLayout(TPResult& result, const std::string& name);
@@ -223,7 +219,7 @@ namespace sclc {
     bool typeEquals(const std::string& a, const std::string& b);
     std::vector<Method*> makeVTable(TPResult& res, std::string name);
     std::string argsToRTSignatureIdent(Function* f);
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string* currentType, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete);
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete);
     std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
     std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
     std::string unquote(const std::string& str);
@@ -250,17 +246,6 @@ namespace sclc {
     }
 
     template<typename T>
-    std::vector<T> operator&(const std::vector<T>& a, std::function<bool(T)> b) {
-        std::vector<T> result;
-        for (auto&& t : a) {
-            if (b(t)) {
-                result.push_back(t);
-            }
-        }
-        return result;
-    }
-
-    template<typename T>
     void addIfAbsent(std::vector<T>& vec, T val) {
         if (vec.size() == 0 || !contains<T>(vec, val))
             vec.push_back(val);
@@ -269,6 +254,7 @@ namespace sclc {
     template<typename T>
     std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
         std::vector<T> ret;
+        ret.reserve(a.size() + b.size());
         for (T& t : a) {
             ret.push_back(t);
         }

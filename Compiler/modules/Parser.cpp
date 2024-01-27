@@ -29,14 +29,12 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    FPResult Parser::parse(std::string filename) {
+    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
 
-        remove((filename.substr(0, filename.size() - 2) + ".h").c_str());
-        remove(filename.c_str());
-        FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
+        FILE* fp = fopen(header_file.c_str(), "w");
 
         Function* mainFunction = nullptr;
         if (!Main::options::noMain) {
@@ -45,7 +43,7 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "No entry point found";
-                result.location = SourceLocation(filename, 0, 0);
+                result.location = SourceLocation(func_file, 0, 0);
                 errors.push_back(result);
 
                 FPResult parseResult;
@@ -121,13 +119,20 @@ namespace sclc
         ConvertC::writeStructs(fp, result, errors, warns);
         ConvertC::writeGlobals(fp, globals, result, errors, warns);
         ConvertC::writeFunctionHeaders(fp, result, errors, warns);
-        ConvertC::writeTables(fp, result, filename);
-        ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
 
-        fp = fopen(filename.c_str(), "a");
+        fclose(fp);
+        fp = fopen(func_file.c_str(), "w");
+
+        ConvertC::writeFunctions(fp, errors, warns, globals, result, header_file);
+
+        fclose(fp);
 
         if (structTree) {
+            fp = fopen(rt_file.c_str(), "w");
+
+            append("#include \"%s\"\n", header_file.c_str());
             structTree->forEach([fp](StructTreeNode* node) {
+                append("\n");
                 const Struct& s = node->s;
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
@@ -140,7 +145,7 @@ namespace sclc
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
                     std::string signature = argsToRTSignature(m);
-                    std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
+                    std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
                     append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
                     scopeDepth++;
                     append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
@@ -154,7 +159,7 @@ namespace sclc
                 append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
-                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
                 append("0\n");
                 scopeDepth--;
@@ -173,67 +178,76 @@ namespace sclc
                 }
                 append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
                 scopeDepth--;
-                append("};\n\n");
+                append("};\n");
             });
+
+            fclose(fp);
         }
 
-        append("extern const ID_t type_id(const char*);\n\n");
+        fp = fopen(main_file.c_str(), "w");
+        append("#include \"%s\"\n\n", header_file.c_str());
+
+        scopeDepth = 0;
 
         for (Variable& s : result.globals) {
             append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             globals.push_back(s);
         }
 
-        scopeDepth = 0;
+        std::vector<Function*> initFuncs;
+        std::vector<Function*> destroyFuncs;
+        
+        for (Function* f : result.functions) {
+            bool isInit = isInitFunction(f);
+            if (!f->isMethod && (isInit || isDestroyFunction(f))) {
+                if (f->args.size()) {
+                    FPResult result;
+                    result.success = false;
+                    result.message = isInit ? "Constructor" : "Finalizer" + std::string(" functions cannot have arguments");
+                    result.location = f->name_token.location;
+                    result.type = f->name_token.type;
+                    result.value = f->name_token.value;
+                    errors.push_back(result);
+                } else {
+                    if (isInit) {
+                        initFuncs.push_back(f);
+                    } else {
+                        destroyFuncs.push_back(f);
+                    }
+                }
+            }
+        }
 
+        append("\n");
         append("_scl_constructor void init_this() {\n");
         scopeDepth++;
         append("_scl_setup();\n");
-        append("TRY {\n");
-        for (Function* f : result.functions) {
-            if (!f->isMethod && isInitFunction(f)) {
-                if (f->args.size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Constructor functions cannot have arguments";
-                    result.location = f->name_token.location;
-                    result.type = f->name_token.type;
-                    result.value = f->name_token.value;
-                    errors.push_back(result);
-                } else {
-                    append("  fn_%s();\n", f->finalName().c_str());
-                }
+        if (initFuncs.size()) {
+            append("TRY {\n");
+            for (auto&& f : initFuncs) {
+                append("  fn_%s();\n", f->name.c_str());
             }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
         }
-        append("} else {\n");
-        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-        append("}\n");
         scopeDepth--;
-        append("}\n\n");
+        append("}\n");
 
-        append("_scl_destructor void destroy_this() {\n");
-        scopeDepth++;
-        append("TRY {\n");
-        for (Function* f : result.functions) {
-            if (!f->isMethod && isDestroyFunction(f)) {
-                if (f->args.size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Finalizer functions cannot have arguments";
-                    result.location = f->name_token.location;
-                    result.type = f->name_token.type;
-                    result.value = f->name_token.value;
-                    errors.push_back(result);
-                } else {
-                    append("  fn_%s();\n", f->finalName().c_str());
-                }
+        if (destroyFuncs.size()) {
+            append("\n");
+            append("_scl_destructor void destroy_this() {\n");
+            scopeDepth++;
+            append("TRY {\n");
+            for (auto&& f : initFuncs) {
+                append("  fn_%s();\n", f->name.c_str());
             }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
+            scopeDepth--;
+            append("}\n");
         }
-        append("} else {\n");
-        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-        append("}\n");
-        scopeDepth--;
-        append("}\n\n");
 
         fclose(fp);
 

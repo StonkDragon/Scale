@@ -15,6 +15,8 @@ out.typeinfo.h
 *.js
 *.S
 *.s
+scl_*.c
+scl_*.h
 
 # Linker output
 *.ilk

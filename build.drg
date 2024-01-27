@@ -55,7 +55,7 @@ build: {
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
     "sudo rm -f /usr/local/bin/scaledoc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/scaledoc";
-    "python3 tests.py run";
+    "python3.12 tests.py run";
   ];
 };
 

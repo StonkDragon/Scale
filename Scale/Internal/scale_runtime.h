@@ -389,7 +389,7 @@ void				_scl_delete_ptr(void* ptr);
 #define				SCL_ASSUME(val, what, ...) \
 						if (_scl_expect(!(val), 0)) { \
 							size_t msg_len = strlen((what)) + 256; \
-							scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * msg_len); \
+							scl_int8 msg[sizeof(scl_int8) * msg_len]; \
 							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
 							_scl_assert(0, msg); \
 						}

@@ -1,10 +1,10 @@
-    1256 Compiler/Common.cpp
-    1350 Compiler/Main.cpp
+    1262 Compiler/Common.cpp
+    1360 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
-     506 Compiler/headers/Common.hpp
+     492 Compiler/headers/Common.hpp
      107 Compiler/headers/DragonConfig.hpp
       29 Compiler/headers/Enum.hpp
-     101 Compiler/headers/Function.hpp
+     100 Compiler/headers/Function.hpp
       23 Compiler/headers/Functions.hpp
       68 Compiler/headers/Interface.hpp
      150 Compiler/headers/Results.hpp
@@ -16,13 +16,13 @@
       92 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
-     172 Compiler/modules/Function.cpp
+     150 Compiler/modules/Function.cpp
     1169 Compiler/modules/Functions.cpp
      583 Compiler/modules/InfoDumper.cpp
-     252 Compiler/modules/Parser.cpp
+     266 Compiler/modules/Parser.cpp
     3516 Compiler/modules/SyntaxTree.cpp
      636 Compiler/modules/Tokenizer.cpp
-    4855 Compiler/modules/Transpiler.cpp
+    4669 Compiler/modules/Transpiler.cpp
      563 Compiler/modules/Types.cpp
      397 Scale/Frameworks/Scale.framework/impl/scale.c
      103 Scale/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale
@@ -67,70 +67,70 @@
       85 Scale/Internal/scale_cxx.cpp
      853 Scale/Internal/scale_runtime.c
      628 Scale/Internal/scale_runtime.h
-      15 examples/arguments.scale
-      21 examples/array-destructuring.scale
-      10 examples/array-insert.scale
-      26 examples/arraysort.scale
-      25 examples/assert-typeof-expr.scale
-      24 examples/async.scale
-      14 examples/cdecl.scale
-      28 examples/custom-get-set.scale
-      32 examples/data-type-literals.scale
-      32 examples/do-notation.scale
-      29 examples/enum-indices.scale
-      17 examples/enum.scale
-      12 examples/exception-trace.scale
-      22 examples/fib.scale
-      13 examples/fib2.scale
-      20 examples/fizzbuzz.scale
-      19 examples/floating-point-specials.scale
-      13 examples/fmt.scale
-      11 examples/for-step.scale
-      13 examples/for.scale
-      18 examples/forced-overload.scale
-      15 examples/foreach.scale
-      14 examples/fraction.scale
-       8 examples/hello.scale
-      31 examples/if.scale
-      19 examples/label-goto.scale
-      24 examples/layouts.scale
-      49 examples/macro.scale
-      17 examples/map.scale
-      30 examples/nested-access.scale
-      17 examples/nested-arrays.scale
-      23 examples/nested-struct.scale
-      34 examples/oop.scale
-      60 examples/operator-overloading.scale
-      62 examples/operators.scale
-      22 examples/overloading.scale
-      12 examples/paren-depth.scale
-      21 examples/pass-by-value.scale
-      23 examples/primitive-array.scale
-      16 examples/ranges.scale
-      34 examples/ref.scale
-      11 examples/repeat.scale
-      11 examples/sizeof.scale
-      12 examples/std-any.scale
-      12 examples/string-hash.scale
-      19 examples/struct.scale
-      23 examples/subscript.scale
-      33 examples/switch.scale
-      29 examples/template-display.scale
-      46 examples/templates.scale
-      34 examples/tree.scale
-      33 examples/try-catch.scale
-      78 examples/unions.scale
-      21 examples/using.scale
-      41 examples/uuid.scale
-      26 examples/var-path.scale
-      13 examples/variables.scale
-      17 examples/variadics.scale
-      13 examples/while.scale
-      27 examples/zip.scale
+      15 examples/arguments/main.scale
+      21 examples/array-destructuring/main.scale
+      10 examples/array-insert/main.scale
+      26 examples/arraysort/main.scale
+      25 examples/assert-typeof-expr/main.scale
+      24 examples/async/main.scale
+      14 examples/cdecl/main.scale
+      28 examples/custom-get-set/main.scale
+      32 examples/data-type-literals/main.scale
+      32 examples/do-notation/main.scale
+      29 examples/enum-indices/main.scale
+      17 examples/enum/main.scale
+      12 examples/exception-trace/main.scale
+      22 examples/fib/main.scale
+      13 examples/fib2/main.scale
+      20 examples/fizzbuzz/main.scale
+      19 examples/floating-point-specials/main.scale
+      13 examples/fmt/main.scale
+      11 examples/for-step/main.scale
+      13 examples/for/main.scale
+      18 examples/forced-overload/main.scale
+      15 examples/foreach/main.scale
+      14 examples/fraction/main.scale
+       8 examples/hello/main.scale
+      31 examples/if/main.scale
+      19 examples/label-goto/main.scale
+      24 examples/layouts/main.scale
+      49 examples/macro/main.scale
+      17 examples/map/main.scale
+      30 examples/nested-access/main.scale
+      17 examples/nested-arrays/main.scale
+      23 examples/nested-struct/main.scale
+      34 examples/oop/main.scale
+      60 examples/operator-overloading/main.scale
+      62 examples/operators/main.scale
+      22 examples/overloading/main.scale
+      12 examples/paren-depth/main.scale
+      21 examples/pass-by-value/main.scale
+      23 examples/primitive-array/main.scale
+      16 examples/ranges/main.scale
+      34 examples/ref/main.scale
+      11 examples/repeat/main.scale
+      11 examples/sizeof/main.scale
+      12 examples/std-any/main.scale
+      12 examples/string-hash/main.scale
+      19 examples/struct/main.scale
+      23 examples/subscript/main.scale
+      33 examples/switch/main.scale
+      29 examples/template-display/main.scale
+      46 examples/templates/main.scale
+      34 examples/tree/main.scale
+      33 examples/try-catch/main.scale
+      78 examples/unions/main.scale
+      21 examples/using/main.scale
+      41 examples/uuid/main.scale
+      26 examples/var-path/main.scale
+      13 examples/variables/main.scale
+      17 examples/variadics/main.scale
+      13 examples/while/main.scale
+      27 examples/zip/main.scale
       53 install.cpp
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25781 total
+   25588 total

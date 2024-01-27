@@ -165,14 +165,14 @@ namespace sclc {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"main\"";
         }
 
-        std::string symbol = f->finalName();
+        std::string symbol = f->name;
 
         if (f->has_lambda) {
             symbol = sclFunctionNameToFriendlyString(f);
         } else if (f->isMethod) {
             Method* m = ((Method*) f);
             if (f->has_foreign) {
-                symbol = m->member_type + "$" + f->finalName();
+                symbol = m->member_type + "$" + f->name;
             } else {
                 symbol = sclFunctionNameToFriendlyString(f);
             }
@@ -524,9 +524,9 @@ namespace sclc {
         }
         if (self->has_nonvirtual) {
             if (self->has_async) {
-                append("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                append("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
             } else {
-                append("mt_%s$%s(%s)", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                append("mt_%s$%s(%s)", self->member_type.c_str(), self->name.c_str(), args.c_str());
             }
             found = true;
         } else if (getInterfaceByName(result, self->member_type) == nullptr) {
@@ -538,9 +538,9 @@ namespace sclc {
                     if (self->has_async) {
                         append2("_scl_async((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
                         if (onSuperType) {
-                            append2("$statics->super_vtable[%zu].ptr, mt_%s$%s, %s)", index, args.c_str(), self->member_type.c_str(), self->finalName().c_str());
+                            append2("$statics->super_vtable[%zu].ptr, mt_%s$%s, %s)", index, args.c_str(), self->member_type.c_str(), self->name.c_str());
                         } else {
-                            append2("$fast[%zu], mt_%s$%s, %s)", index, self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                            append2("$fast[%zu], mt_%s$%s, %s)", index, self->member_type.c_str(), self->name.c_str(), args.c_str());
                         }
                     } else {
                         append2("((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
@@ -615,15 +615,15 @@ namespace sclc {
         std::string args = generateArgumentsForFunction(result, self).c_str();
         if (self->has_async) {
             if (args.size()) {
-                append("_scl_async(fn_%s, fn_%s, %s);\n", self->finalName().c_str(), self->finalName().c_str(), args.c_str());
+                append("_scl_async(fn_%s, fn_%s, %s);\n", self->name.c_str(), self->name.c_str(), args.c_str());
             } else {
-                append("_scl_async(fn_%s, fn_%s);\n", self->finalName().c_str(), self->finalName().c_str());
+                append("_scl_async(fn_%s, fn_%s);\n", self->name.c_str(), self->name.c_str());
             }
         } else {
             if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-                append("fn_%s(%s);\n", self->finalName().c_str(), args.c_str());
+                append("fn_%s(%s);\n", self->name.c_str(), args.c_str());
             } else {
-                append("_scl_push(%s, fn_%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->finalName().c_str(), args.c_str());
+                append("_scl_push(%s, fn_%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->name.c_str(), args.c_str());
             }
         }
     }
@@ -634,22 +634,22 @@ namespace sclc {
         std::string args = generateArgumentsForFunction(result, self).c_str();
         if (self->has_async) {
             if (args.size()) {
-                append("_scl_async(mt_%s$%s, mt_%s$%s, %s);\n", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                append("_scl_async(mt_%s$%s, mt_%s$%s, %s);\n", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
             } else {
-                append("_scl_async(mt_%s$%s, mt_%s$%s);\n", self->member_type.c_str(), self->finalName().c_str(), self->member_type.c_str(), self->finalName().c_str());
+                append("_scl_async(mt_%s$%s, mt_%s$%s);\n", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str());
             }
         } else {
             if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-                append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->name.c_str(), args.c_str());
             } else {
-                append("_scl_push(%s, mt_%s$%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->finalName().c_str(), args.c_str());
+                append("_scl_push(%s, mt_%s$%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
             }
         }
     }
 
     bool hasImplementation(TPResult& result, Function* func) {
         for (Function* f : result.functions) {
-            if (*f == *func) {
+            if (f->operator==(func)) {
                 return true;
             }
         }
@@ -962,7 +962,7 @@ namespace sclc {
                 if (currentFunction->isMethod) {
                     append("_scl_unlock(Var_self);\n");
                 } else {
-                    append("_scl_unlock(function_lock$%s);\n", currentFunction->finalName().c_str());
+                    append("_scl_unlock(function_lock$%s);\n", currentFunction->name.c_str());
                 }
             }
         }
@@ -981,9 +981,9 @@ namespace sclc {
         }
         std::string args = generateArgumentsForFunction(result, self);
         if (self->has_async) {
-            append("_scl_async(fn_%s%s%s, fn_%s)", self->finalName().c_str(), args.size() ? ", " : "", args.c_str(), self->finalName().c_str());
+            append("_scl_async(fn_%s%s%s, fn_%s)", self->name.c_str(), args.size() ? ", " : "", args.c_str(), self->name.c_str());
         } else {
-            append2("fn_%s(%s)", self->finalName().c_str(), args.c_str());
+            append2("fn_%s(%s)", self->name.c_str(), args.c_str());
         }
         if (closeThePush) {
             append2(")");
@@ -1097,7 +1097,7 @@ namespace sclc {
     }
 
     std::string sclFunctionNameToFriendlyString(Function* f) {
-        std::string name = f->finalName();
+        std::string name = f->name;
         name = sclFunctionNameToFriendlyString(name);
         if (f->isMethod) {
             name = retemplate(f->member_type) + ":" + name;

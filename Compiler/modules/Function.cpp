@@ -67,28 +67,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_nonvirtual = 0;
     this->has_async = 0;
 }
-std::string Function::finalName() {
-    if (
-        !isMethod && 
-        (
-            isInitFunction(this) ||
-            isDestroyFunction(this) ||
-            this->has_private
-        )
-    ) {
-        if (this->has_foreign) {
-            return name;
-        }
-        return name +
-               "$" +
-               std::to_string(id(name.c_str())) +
-               "$" +
-               std::to_string(id(name_token.location.file.c_str())) +
-               "$" +
-               std::to_string(name_token.location.line);
-    }
-    return name;
-}
 std::vector<Token>& Function::getBody() {
     return body;
 }
