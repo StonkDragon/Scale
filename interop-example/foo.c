@@ -4,10 +4,10 @@
 void foo() {
 
     // creates a new string
-    scl_str s = str_of("Foo");
+    scl_str s = _scl_create_string("Foo");
 
     // calls the `append` method on the string
-    s = virtual_call(s, "append(s;)s;", str_of("!"));
+    s = virtual_call(s, "append(s;)s;", _scl_create_string("!"));
 
     // calls the `bar` function defined in `main.scale`
     bar(s);
