@@ -231,6 +231,10 @@ namespace sclc {
     std::string replace(std::string s, std::string a, std::string b);
     Method* attributeAccessor(TPResult& result, std::string struct_, std::string member);
     Method* attributeMutator(TPResult& result, std::string struct_, std::string member);
+    std::string retemplate(std::string type);
+    bool isAllowed1ByteChar(char c);
+    bool checkUTF8(const std::string& str);
+    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns);
 
     template<typename T>
     bool contains(std::vector<T> v, T val) {

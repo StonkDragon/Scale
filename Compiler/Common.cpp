@@ -1259,4 +1259,71 @@ namespace sclc
         Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
         return f && f->has_setter ? f : nullptr;
     }
+
+    bool isAllowed1ByteChar(char c) {
+        return (c < 0x7f && c >= ' ') || c == '\n' || c == '\t' || c == '\r';
+    }
+
+    bool checkUTF8(const std::string& str) {
+        for (size_t i = 0; i < str.size(); i++) {
+            if ((str[i] & 0b10000000) == 0b00000000) {
+                if (!isAllowed1ByteChar(str[i])) {
+                    return false;
+                }
+            } else if ((str[i] & 0b11100000) == 0b11000000) {
+                if (i + 1 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i++;
+            } else if ((str[i] & 0b11110000) == 0b11100000) {
+                if (i + 2 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 2;
+            } else if ((str[i] & 0b11111000) == 0b11110000) {
+                if (i + 3 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 3] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 3;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns) {
+        if (hasFunction(result, name)) {
+            transpilerError("Variable '" + name + "' shadowed by function '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (getStructByName(result, name) != Struct::Null) {
+            transpilerError("Variable '" + name + "' shadowed by struct '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (!function->member_type.empty()) {
+            if (hasFunction(result, function->member_type + "$" + name)) {
+                transpilerError("Variable '" + name + "' shadowed by function '" + function->member_type + "::" + name + "'", i+1);
+                warns.push_back(err);
+            }
+        }
+    }
 } // namespace sclc

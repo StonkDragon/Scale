@@ -57,7 +57,7 @@ def runTest(file, directory="examples", current=1, total=1):
 # loop over every file in the directory examples
 # and run the tests on each file
 def run_tests(directory):
-    tests = [ i for i in os.listdir(directory) ]
+    tests = [ i for i in os.listdir(directory) if i[0] != '.' ]
     tests.sort()
     current = 1
     try:
