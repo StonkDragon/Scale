@@ -32,8 +32,6 @@ final sealed struct Thread
         Process::stackTrace return
     end
 
-    private static expect foreign unsafe cdecl "_scl_get_main_addr" function mainAddress(): lambda
-
     expect foreign static function currentThread(): Thread
 
     function init(func: lambda(): none): none
