@@ -11,12 +11,6 @@
 extern "C" {
 #endif
 
-#if !defined(SCL_DEFAULT_STACK_FRAME_COUNT)
-#define SCL_DEFAULT_STACK_FRAME_COUNT 4096
-#endif
-
-const ID_t SclObjectHash = 0x5971ad8dc2a50b2UL; // SclObject
-
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
 #define likely(x) _scl_expect(!!(x), 1)
