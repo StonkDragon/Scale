@@ -24,7 +24,56 @@
      636 Compiler/modules/Tokenizer.cpp
      763 Compiler/modules/Transpiler.cpp
      563 Compiler/modules/Types.cpp
-     394 Scale/Frameworks/Scale.framework/impl/scale.c
+     322 Compiler/modules/handlers/AddrRef.cpp
+      92 Compiler/modules/handlers/As.cpp
+     255 Compiler/modules/handlers/BracketOpen.cpp
+      12 Compiler/modules/handlers/Break.cpp
+      14 Compiler/modules/handlers/CDecl.cpp
+     100 Compiler/modules/handlers/Case.cpp
+      60 Compiler/modules/handlers/Catch.cpp
+      13 Compiler/modules/handlers/CharLiteral.cpp
+      14 Compiler/modules/handlers/CharStringLiteral.cpp
+     236 Compiler/modules/handlers/Column.cpp
+      31 Compiler/modules/handlers/ColumnOnInterface.cpp
+      12 Compiler/modules/handlers/Continue.cpp
+      55 Compiler/modules/handlers/CurlyOpen.cpp
+      79 Compiler/modules/handlers/Declare.cpp
+      28 Compiler/modules/handlers/Default.cpp
+     182 Compiler/modules/handlers/Do.cpp
+      58 Compiler/modules/handlers/DoneLike.cpp
+     145 Compiler/modules/handlers/Dot.cpp
+      42 Compiler/modules/handlers/Elif.cpp
+      19 Compiler/modules/handlers/Else.cpp
+      42 Compiler/modules/handlers/Elunless.cpp
+      20 Compiler/modules/handlers/Esac.cpp
+      45 Compiler/modules/handlers/ExternC.cpp
+      17 Compiler/modules/handlers/FalsyType.cpp
+      15 Compiler/modules/handlers/Fi.cpp
+      21 Compiler/modules/handlers/FloatLiteral.cpp
+      98 Compiler/modules/handlers/For.cpp
+     172 Compiler/modules/handlers/Foreach.cpp
+      17 Compiler/modules/handlers/Goto.cpp
+      18 Compiler/modules/handlers/INVALID.cpp
+     598 Compiler/modules/handlers/Identifier.cpp
+      84 Compiler/modules/handlers/If.cpp
+      35 Compiler/modules/handlers/IntegerLiteral.cpp
+      46 Compiler/modules/handlers/Is.cpp
+      17 Compiler/modules/handlers/Label.cpp
+     135 Compiler/modules/handlers/Lambda.cpp
+     134 Compiler/modules/handlers/New.cpp
+     168 Compiler/modules/handlers/ParenOpen.cpp
+      38 Compiler/modules/handlers/Pragma.cpp
+      42 Compiler/modules/handlers/Repeat.cpp
+      68 Compiler/modules/handlers/Return.cpp
+      35 Compiler/modules/handlers/ReturnOnNil.cpp
+     281 Compiler/modules/handlers/Store.cpp
+      20 Compiler/modules/handlers/StringLiteral.cpp
+      29 Compiler/modules/handlers/Switch.cpp
+      13 Compiler/modules/handlers/TruthyType.cpp
+      92 Compiler/modules/handlers/Unless.cpp
+      69 Compiler/modules/handlers/Using.cpp
+      40 Compiler/modules/handlers/While.cpp
+     409 Scale/Frameworks/Scale.framework/impl/scale.c
      103 Scale/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale
      208 Scale/Frameworks/Scale.framework/include/std/compiler/Utils.scale
      348 Scale/Frameworks/Scale.framework/include/std/functional/Do.scale
@@ -47,7 +96,7 @@
      176 Scale/Frameworks/Scale.framework/include/std/math/Fraction.scale
       41 Scale/Frameworks/Scale.framework/include/std/runtime/GarbageCollector.scale
       19 Scale/Frameworks/Scale.framework/include/std/runtime/Process.scale
-     109 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
+     107 Scale/Frameworks/Scale.framework/include/std/thread/Thread.scale
      281 Scale/Frameworks/Scale.framework/include/std/util/Array.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Cloneable.scale
        3 Scale/Frameworks/Scale.framework/include/std/util/Closeable.scale
@@ -133,4 +182,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   21840 total
+   26031 total
