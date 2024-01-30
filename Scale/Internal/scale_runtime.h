@@ -295,13 +295,13 @@ typedef scl_uint ID_t;
 #define CAST(_obj, _type) CAST0(_obj, _type, type_id(#_type))
 
 struct _scl_exception_handler {
-	scl_int marker;
+	scl_uint marker;
 	scl_any exception;
 	jmp_buf jmp;
 };
 
 struct _scl_backtrace {
-	scl_int marker;
+	scl_uint marker;
 	const scl_int8* func_name;
 };
 
@@ -357,27 +357,22 @@ struct scale_string {
 })
 
 #define _scl_async(x, at, ...) ({ \
-	pthread_t t; \
-	struct _args_ ## at args = {__VA_ARGS__}; \
-	pthread_create(&t, NULL, (void *(*)(void *)) (x), &args); \
-	_scl_push(pthread_t, t); \
+	struct _args_ ## at* args = malloc(sizeof(struct _args_ ## at)); \
+	struct _args_ ## at args_ = { __VA_ARGS__ }; \
+	memcpy(args, &args_, sizeof(struct _args_ ## at)); \
+	_scl_push(scl_any, cxx_async((x), args)); \
 })
-#define _scl_await(rtype) ({ \
-	rtype ret; \
-	pthread_join(_scl_pop(pthread_t), (void **) &ret); \
-	_scl_push(rtype, ret); \
-})
-#define _scl_await_void() ({ \
-	pthread_join(_scl_pop(pthread_t), NULL); \
-})
+#define _scl_await(rtype) _scl_push(rtype, cxx_await(_scl_pop(scl_any)))
+#define _scl_await_void() cxx_await(_scl_pop(scl_any))
 
-#define EXCEPTION_HANDLER_MARKER \
+#define 			EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
 
-#define TRACE_MARKER \
+#define 			TRACE_MARKER \
 					0xF7E8D9C0B1A28384ULL
 
-#define TRY			struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
+#define 			TRY \
+						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
@@ -402,8 +397,6 @@ void				_scl_delete_ptr(void* ptr);
 							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
 							_scl_assert(0, msg); \
 						}
-
-typedef void(*mainFunc)(/* args: Array */ scl_any);
 
 #include "preproc.h"
 
@@ -522,11 +515,13 @@ void				_scl_array_setf(scl_any arr, scl_int index, scl_float value);
 scl_float			_scl_array_getf(scl_any arr, scl_int index);
 
 // BEGIN C++ Concurrency API wrappers
-void				cxx_std_thread_join(scl_any thread);
+void				cxx_std_thread_join_and_delete(scl_any thread);
 void				cxx_std_thread_delete(scl_any thread);
 void				cxx_std_thread_detach(scl_any thread);
 scl_any				cxx_std_thread_new(void);
 scl_any				cxx_std_thread_new_with_args(scl_any args);
+scl_any				cxx_async(scl_any func, scl_any args);
+scl_any				cxx_await(scl_any t);
 void				cxx_std_this_thread_yield(void);
 
 scl_any				cxx_std_recursive_mutex_new(void);
