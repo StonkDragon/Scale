@@ -1,32 +1,32 @@
-    1329 Compiler/Common.cpp
+    1326 Compiler/Common.cpp
     1360 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
-     496 Compiler/headers/Common.hpp
+     526 Compiler/headers/Common.hpp
      107 Compiler/headers/DragonConfig.hpp
       29 Compiler/headers/Enum.hpp
-     100 Compiler/headers/Function.hpp
+     101 Compiler/headers/Function.hpp
       23 Compiler/headers/Functions.hpp
       68 Compiler/headers/Interface.hpp
-     150 Compiler/headers/Results.hpp
+     149 Compiler/headers/Results.hpp
      223 Compiler/headers/Struct.hpp
      240 Compiler/headers/Token.hpp
      100 Compiler/headers/TokenType.hpp
-     189 Compiler/headers/TranspilerDefs.hpp
+     187 Compiler/headers/TranspilerDefs.hpp
       39 Compiler/headers/Types.hpp
-      92 Compiler/headers/Variable.hpp
+      82 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
-     150 Compiler/modules/Function.cpp
+     141 Compiler/modules/Function.cpp
     1169 Compiler/modules/Functions.cpp
-     583 Compiler/modules/InfoDumper.cpp
-     288 Compiler/modules/Parser.cpp
-    3516 Compiler/modules/SyntaxTree.cpp
+     567 Compiler/modules/InfoDumper.cpp
+     299 Compiler/modules/Parser.cpp
+    3521 Compiler/modules/SyntaxTree.cpp
      636 Compiler/modules/Tokenizer.cpp
-     763 Compiler/modules/Transpiler.cpp
-     563 Compiler/modules/Types.cpp
+     742 Compiler/modules/Transpiler.cpp
+     558 Compiler/modules/Types.cpp
      322 Compiler/modules/handlers/AddrRef.cpp
       92 Compiler/modules/handlers/As.cpp
-     255 Compiler/modules/handlers/BracketOpen.cpp
+     254 Compiler/modules/handlers/BracketOpen.cpp
       12 Compiler/modules/handlers/Break.cpp
       14 Compiler/modules/handlers/CDecl.cpp
      100 Compiler/modules/handlers/Case.cpp
@@ -39,7 +39,7 @@
       55 Compiler/modules/handlers/CurlyOpen.cpp
       79 Compiler/modules/handlers/Declare.cpp
       28 Compiler/modules/handlers/Default.cpp
-     182 Compiler/modules/handlers/Do.cpp
+     181 Compiler/modules/handlers/Do.cpp
       58 Compiler/modules/handlers/DoneLike.cpp
      145 Compiler/modules/handlers/Dot.cpp
       42 Compiler/modules/handlers/Elif.cpp
@@ -61,12 +61,12 @@
       17 Compiler/modules/handlers/Label.cpp
      135 Compiler/modules/handlers/Lambda.cpp
      134 Compiler/modules/handlers/New.cpp
-     168 Compiler/modules/handlers/ParenOpen.cpp
+     166 Compiler/modules/handlers/ParenOpen.cpp
       38 Compiler/modules/handlers/Pragma.cpp
       42 Compiler/modules/handlers/Repeat.cpp
       68 Compiler/modules/handlers/Return.cpp
       35 Compiler/modules/handlers/ReturnOnNil.cpp
-     281 Compiler/modules/handlers/Store.cpp
+     280 Compiler/modules/handlers/Store.cpp
       20 Compiler/modules/handlers/StringLiteral.cpp
       29 Compiler/modules/handlers/Switch.cpp
       13 Compiler/modules/handlers/TruthyType.cpp
@@ -182,4 +182,4 @@
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   26031 total
+   26006 total
