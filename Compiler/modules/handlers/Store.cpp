@@ -72,7 +72,7 @@ namespace sclc {
 
                 for (int i = targets.size() - 1; i >= 0; i--) {
                     append("_scl_push(%s, mt_%s$%s(tmp, %d));\n", return_type.c_str(), type.c_str(), m->name.c_str(), i);
-                    typeStack.push(m->return_type);
+                    typeStack.push_back(m->return_type);
                 }
             } else {
                 std::string return_type = sclTypeToCType(result, type.substr(1, type.size() - 2));
@@ -80,7 +80,7 @@ namespace sclc {
                 append("SCL_ASSUME(size >= %zu, \"Array too small for destructuring\");\n", targets.size());
                 for (int i = targets.size() - 1; i >= 0; i--) {
                     append("_scl_push(%s, tmp[%d]);\n", return_type.c_str(), i);
-                    typeStack.push(type.substr(1, type.size() - 2));
+                    typeStack.push_back(type.substr(1, type.size() - 2));
                 }
             }
 
@@ -125,7 +125,7 @@ namespace sclc {
                 i--;
             }
             Variable v(name, type);
-            varScopeTop().push_back(v);
+            vars.push_back(v);
             
             std::vector<Function*> funcs;
             for (auto&& f : result.functions) {
@@ -246,7 +246,6 @@ namespace sclc {
                 Method* m = ((Method*) function);
                 Struct s = getStructByName(result, m->member_type);
                 if (s.hasMember(body[i].value)) {
-                    // v = s.getMember(body[i].value);
                     Token here = body[i];
                     body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
                     body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));

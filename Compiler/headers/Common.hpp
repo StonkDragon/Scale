@@ -17,8 +17,16 @@
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
 // optimize this :
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fprintf(fp, "  "); } fprintf(fp, __VA_ARGS__); } while (0)
-#define append2(...) do { fprintf(fp, __VA_ARGS__); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); } while (0)
+#define append2(...) fp << sclc::format(__VA_ARGS__)
+
+#if __has_builtin(__builtin_expect)
+#define UNLIKELY(X) __builtin_expect(!!(X), 0)
+#define LIKELY(X) __builtin_expect(!!(X), 1)
+#else
+#define UNLIKELY(X) (!!(X))
+#define LIKELY(X) (!!(X))
+#endif
 
 #undef INT_MAX
 #undef INT_MIN
@@ -52,6 +60,18 @@ namespace sclc {
 
 namespace sclc {
     typedef unsigned long ID_t;
+
+    template<typename... Args>
+    std::string format(const std::string& str, Args... args) {
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wformat-security"
+        size_t len = std::snprintf(nullptr, 0, str.c_str(), args...) + 1;
+        if (len == 0) throw std::runtime_error("Format error: " + str);
+        char* data = new char[len];
+        std::snprintf(data, len, str.c_str(), args...);
+        return std::string(data, data + len - 1);
+        #pragma clang diagnostic pop
+    }
 
     class SyntaxTree
     {
@@ -105,14 +125,24 @@ namespace sclc {
         FPResult tryImports();
     };
     
-    class ConvertC {
+    class Transpiler {
     public:
-        static void writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeFunctionHeaders(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeContainers(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
-        static void writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, const std::string& header_file);
+        TPResult& result;
+        std::vector<FPResult>& errors;
+        std::vector<FPResult>& warns;
+        std::ostream& fp;
+
+        Transpiler(TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::ostream& fp) : result(result), errors(errors), warns(warns), fp(fp) {}
+        ~Transpiler() {}
+
+        void writeHeader();
+        void writeFunctionHeaders();
+        void writeGlobals();
+        void writeContainers();
+        void writeStructs();
+        void writeFunctions(const std::string& header_file);
+        void filePreamble(const std::string& header_file);
+        void filePostamble();
     };
 
     struct Main {
@@ -205,21 +235,21 @@ namespace sclc {
     bool hasGlobal(TPResult& result, std::string name);
     FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());
     bool sclIsProhibitedInit(std::string s);
-    bool typeCanBeNil(std::string s);
+    bool typeCanBeNil(std::string s, bool doRemoveMods = true);
     bool typeIsConst(std::string s);
     bool typeIsReadonly(std::string s);
-    bool isPrimitiveType(std::string s);
+    bool isPrimitiveType(std::string s, bool rem = true);
     bool featureEnabled(std::string feat);
     bool isInitFunction(Function* f);
     bool isDestroyFunction(Function* f);
     std::string sclFunctionNameToFriendlyString(Function* f);
     std::string sclFunctionNameToFriendlyString(std::string name);
-    bool isPrimitiveIntegerType(std::string type);
+    bool isPrimitiveIntegerType(std::string type, bool rem = true);
     std::string argsToRTSignature(Function* f);
     bool typeEquals(const std::string& a, const std::string& b);
     std::vector<Method*> makeVTable(TPResult& res, std::string name);
     std::string argsToRTSignatureIdent(Function* f);
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete);
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete);
     std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
     std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
     std::string unquote(const std::string& str);
@@ -238,7 +268,7 @@ namespace sclc {
 
     template<typename T>
     bool contains(std::vector<T> v, T val) {
-        if (v.size() == 0) return false;
+        if (v.empty()) return false;
         if constexpr (std::is_pointer<T>::value) {
             for (T t : v) {
                 if (*t == *val) return true;
@@ -251,7 +281,7 @@ namespace sclc {
 
     template<typename T>
     void addIfAbsent(std::vector<T>& vec, T val) {
-        if (vec.size() == 0 || !contains<T>(vec, val))
+        if (vec.empty() || !contains<T>(vec, val))
             vec.push_back(val);
     }
 

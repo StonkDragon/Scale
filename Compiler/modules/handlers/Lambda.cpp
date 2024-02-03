@@ -129,7 +129,7 @@ namespace sclc {
         scopeDepth--;
         append("}));\n");
 
-        typeStack.push(lambdaType);
+        typeStack.push_back(lambdaType);
         result.functions.push_back(f);
     }
 } // namespace sclc

@@ -84,7 +84,7 @@ namespace sclc {
             sizeDecreased = true;
         }
         if (exhaustive && sizeDecreased) {
-            typeStack.push(ifBlockReturnType);
+            typeStack.push_back(ifBlockReturnType);
         }
         handle(Fi);
     }

@@ -15,7 +15,7 @@ namespace sclc {
         }
         // we still want the original value from source code here
         append("_scl_push(scl_float, %s);\n", body[i].value.c_str());
-        typeStack.push("float");
+        typeStack.push_back("float");
     }
 } // namespace sclc
 

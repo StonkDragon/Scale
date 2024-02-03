@@ -137,7 +137,7 @@ namespace sclc
             if (type == tok_identifier) {
 
                 auto contains = [](std::vector<std::string> v, std::string val) -> bool {
-                    if (v.size() == 0) return false;
+                    if (v.empty()) return false;
 
                     return std::find(v.begin(), v.end(), val) != v.end();
                 };

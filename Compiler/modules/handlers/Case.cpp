@@ -56,7 +56,7 @@ namespace sclc {
                         append("_scl_checked_cast(union_switch->__value, 0x%lxUL, \"%s\");\n", id(res.value.c_str()), res.value.c_str());
                     }
                     append("%s Var_%s = *(%s*) &(union_switch->__value);\n", sclTypeToCType(result, res.value).c_str(), name.c_str(), sclTypeToCType(result, res.value).c_str());
-                    varScopeTop().push_back(Variable(name, res.value));
+                    vars.push_back(Variable(name, res.value));
                     safeInc();
                     if (body[i].type != tok_paren_close) {
                         transpilerError("Expected ')', but got '" + body[i].value + "'", i);
@@ -66,7 +66,7 @@ namespace sclc {
                     std::string removed = removeTypeModifiers(s.members[index].type);
                     if (removed != "none" && removed != "nothing") {
                         append("%s Var_it = *(%s*) &union_switch->__value;\n", sclTypeToCType(result, s.members[index].type).c_str(), sclTypeToCType(result, s.members[index].type).c_str());
-                        varScopeTop().push_back(Variable("it", s.members[index].type));
+                        vars.push_back(Variable("it", s.members[index].type));
                     }
                 }
                 return;

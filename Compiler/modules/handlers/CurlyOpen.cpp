@@ -47,7 +47,7 @@ namespace sclc {
             append("tmp[%d] = *(%s*) &tmp%d;\n", i, sclTypeToCType(result, type).c_str(), i);
         }
         append("tmp;\n");
-        typeStack.push("[" + type + "]");
+        typeStack.push_back("[" + type + "]");
         scopeDepth--;
         append("}));\n");
     }

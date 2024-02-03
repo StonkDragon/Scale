@@ -9,7 +9,7 @@ namespace sclc {
         if (typeCanBeNil(typeStackTop)) {
             std::string type = typeStackTop;
             typePop;
-            typeStack.push(type.substr(0, type.size() - 1));
+            typeStack.push_back(type.substr(0, type.size() - 1));
         }
         if (function->return_type == "nothing") {
             transpilerError("Returning from a function with return type 'nothing' is not allowed.", i);

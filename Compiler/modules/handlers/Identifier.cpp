@@ -21,12 +21,12 @@ namespace sclc {
         if (body[i].value == "swap") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
-            typeStack.push(a);
-            typeStack.push(b);
+            typeStack.push_back(a);
+            typeStack.push_back(b);
             append("_scl_swap();\n");
         } else if (body[i].value == "dup") {
             std::string a = typeStackTop;
-            typeStack.push(a);
+            typeStack.push_back(a);
             append("_scl_dup();\n");
         } else if (body[i].value == "drop") {
             typePop;
@@ -35,40 +35,40 @@ namespace sclc {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
             std::string c = typeStackTop; typePop;
-            typeStack.push(a);
-            typeStack.push(b);
-            typeStack.push(c);
+            typeStack.push_back(a);
+            typeStack.push_back(b);
+            typeStack.push_back(c);
             append("_scl_over();\n");
         } else if (body[i].value == "sdup2") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
-            typeStack.push(b);
-            typeStack.push(a);
-            typeStack.push(b);
+            typeStack.push_back(b);
+            typeStack.push_back(a);
+            typeStack.push_back(b);
             append("_scl_sdup2();\n");
         } else if (body[i].value == "swap2") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
             std::string c = typeStackTop; typePop;
-            typeStack.push(b);
-            typeStack.push(c);
-            typeStack.push(a);
+            typeStack.push_back(b);
+            typeStack.push_back(c);
+            typeStack.push_back(a);
             append("_scl_swap2();\n");
         } else if (body[i].value == "rot") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
             std::string c = typeStackTop; typePop;
-            typeStack.push(b);
-            typeStack.push(a);
-            typeStack.push(c);
+            typeStack.push_back(b);
+            typeStack.push_back(a);
+            typeStack.push_back(c);
             append("_scl_rot();\n");
         } else if (body[i].value == "unrot") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
             std::string c = typeStackTop; typePop;
-            typeStack.push(a);
-            typeStack.push(c);
-            typeStack.push(b);
+            typeStack.push_back(a);
+            typeStack.push_back(c);
+            typeStack.push_back(b);
             append("_scl_unrot();\n");
         } else if (body[i].value == "?") {
             handle(ReturnOnNil);
@@ -90,7 +90,7 @@ namespace sclc {
             std::string removed = type;
             typePop;
             if (removed != "none" && removed != "nothing") {
-                typeStack.push(type);
+                typeStack.push_back(type);
                 append("_scl_await(%s);\n", sclTypeToCType(result, type).c_str());
             } else {
                 append("_scl_await_void();\n");
@@ -140,12 +140,12 @@ namespace sclc {
                 }
                 append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", retemplate(res.value).c_str());
             }
-            typeStack.push("str");
+            typeStack.push_back("str");
         } else if (body[i].value == "nameof") {
             safeInc();
             if (hasVar(body[i].value)) {
                 append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", body[i].value.c_str());
-                typeStack.push("str");
+                typeStack.push_back("str");
             } else {
                 transpilerError("Unknown Variable: '" + body[i].value + "'", i);
                 errors.push_back(err);
@@ -191,7 +191,7 @@ namespace sclc {
                 }
                 append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, type.value).c_str());
             }
-            typeStack.push("int");
+            typeStack.push_back("int");
         } else if (body[i].value == "try") {
             append("{\n");
             scopeDepth++;
@@ -306,18 +306,18 @@ namespace sclc {
                     std::string ctype = sclTypeToCType(result, s.name);
                     append("%s tmp = ALLOC(%s);\n", ctype.c_str(), s.name.c_str());
                     
-                    typeStack.push(s.name);
+                    typeStack.push_back(s.name);
                     if (hasInitMethod) {
                         append("_scl_push(%s, tmp);\n", ctype.c_str());
                         methodCall(initMethod, fp, result, warns, errors, body, i);
-                        typeStack.push(s.name);
+                        typeStack.push_back(s.name);
                     }
                     append("tmp;\n");
                     scopeDepth--;
                     append("}));\n");
                 } else if (body[i].value == "default" && !s.isStatic()) {
                     append("_scl_push(scl_any, ALLOC(%s));\n", s.name.c_str());
-                    typeStack.push(s.name);
+                    typeStack.push_back(s.name);
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
                         Function* f = getFunctionByName(result, s.name + "$" + body[i].value);
@@ -361,11 +361,11 @@ namespace sclc {
                 varScopePush();
                 if (function->isMethod) {
                     Variable v("super", getVar("self").type);
-                    varScopeTop().push_back(v);
+                    vars.push_back(v);
                     append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
                 }
                 append("scl_%s Var_self = tmp;\n", s.name.c_str());
-                varScopeTop().push_back(Variable("self", "mut " + s.name));
+                vars.push_back(Variable("self", "mut " + s.name));
                 std::vector<std::string> missedMembers;
 
                 size_t membersToInitialize = 0;
@@ -422,7 +422,7 @@ namespace sclc {
                 append("tmp;\n");
                 scopeDepth--;
                 append("}));\n");
-                typeStack.push(s.name);
+                typeStack.push_back(s.name);
                 if (count < membersToInitialize) {
                     std::string missed = "{ ";
                     for (size_t i = 0; i < missedMembers.size(); i++) {
@@ -448,7 +448,7 @@ namespace sclc {
                     return;
                 }
                 append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
-                typeStack.push(l.name);
+                typeStack.push_back(l.name);
             } else if (body[i].type == tok_curly_open) {
                 append("_scl_push(scl_any, ({\n");
                 scopeDepth++;
@@ -460,11 +460,11 @@ namespace sclc {
                 varScopePush();
                 if (function->isMethod) {
                     Variable v("super", getVar("self").type);
-                    varScopeTop().push_back(v);
+                    vars.push_back(v);
                     append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
                 }
                 append("scl_%s Var_self = tmp;\n", l.name.c_str());
-                varScopeTop().push_back(Variable("self", "mut " + l.name));
+                vars.push_back(Variable("self", "mut " + l.name));
                 std::vector<std::string> missedMembers;
 
                 size_t membersToInitialize = 0;
@@ -521,7 +521,7 @@ namespace sclc {
                 append("tmp;\n");
                 scopeDepth--;
                 append("}));\n");
-                typeStack.push(l.name);
+                typeStack.push_back(l.name);
                 if (count < membersToInitialize) {
                     std::string missed = "{ ";
                     for (size_t i = 0; i < missedMembers.size(); i++) {
@@ -555,7 +555,7 @@ namespace sclc {
                 return;
             }
             append("_scl_push(scl_int, %zuUL);\n", e.indexOf(body[i].value));
-            typeStack.push("int");
+            typeStack.push_back("int");
         } else if (hasVar(function->member_type + "$" + body[i].value)) {
             Variable v = getVar(function->member_type + "$" + body[i].value);
             makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
@@ -567,7 +567,7 @@ namespace sclc {
             Function* f;
             if (method != nullptr) {
                 append("_scl_push(typeof(Var_self), Var_self);\n");
-                typeStack.push(method->member_type);
+                typeStack.push_back(method->member_type);
                 methodCall(method, fp, result, warns, errors, body, i);
             } else if ((f = getFunctionByName(result, s.name + "$" + body[i].value)) != nullptr) {
                 if (f->isCVarArgs()) {

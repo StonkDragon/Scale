@@ -11,7 +11,7 @@
 
 namespace sclc {
     extern int scopeDepth;
-    extern std::stack<std::string> typeStack;
+    extern std::vector<std::string> typeStack;
     extern Function* currentFunction;
     extern Struct currentStruct;
     extern std::map<std::string, std::vector<Method*>> vtables;
@@ -52,7 +52,7 @@ namespace sclc {
         return args;
     }
 
-    void createVariadicCall(Function* f, FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
+    void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
         safeInc();
         if (body[i].value != "!") {
             transpilerError("Expected '!' for variadic call, but got '" + body[i].value + "'", i);
@@ -73,8 +73,8 @@ namespace sclc {
         append("_scl_popn(%zu);\n", amountOfVarargs);
 
         for (long i = amountOfVarargs - 1; i >= 0; i--) {
-            std::string nextType = typeStack.top();
-            typeStack.pop();
+            std::string nextType = typeStack.back();
+            typeStack.pop_back();
             std::string ctype = sclTypeToCType(result, nextType);
             append("%s vararg%ld = _scl_positive_offset(%ld, %s);\n", ctype.c_str(), i, i, ctype.c_str());
         }
@@ -91,7 +91,7 @@ namespace sclc {
 
         if (f->varArgsParam().name.size()) {
             append("_scl_push(scl_int, %zu);\n", amountOfVarargs);
-            typeStack.push("int");
+            typeStack.push_back("int");
         }
 
         if (f->args.size() > 1)
@@ -136,12 +136,12 @@ namespace sclc {
             append("}\n");
         }
         if (f->has_async) {
-            typeStack.push("async<" + f->return_type + ">");
+            typeStack.push_back("async<" + f->return_type + ">");
         } else if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
             if (f->return_type.front() == '*') {
-                typeStack.push(f->return_type.substr(1));
+                typeStack.push_back(f->return_type.substr(1));
             } else {
-                typeStack.push(f->return_type);
+                typeStack.push_back(f->return_type);
             }
         }
         scopeDepth--;
@@ -208,8 +208,7 @@ namespace sclc {
     Function* findFunctionLocally(Function* self, TPResult& result) {
         for (Function* f : result.functions) {
             if (f->isMethod) continue;
-            std::string name = f->name.substr(0, f->name.find("$$ol"));
-            if (name == self->name) {
+            if (f->name_without_overload == self->name) {
                 if (currentFunction) {
                     if (f->name_token.location.file == currentFunction->name_token.location.file) {
                         return f;
@@ -326,7 +325,7 @@ namespace sclc {
         return true;
     }
 
-    void methodCall(Method* self, FILE* fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs, bool doActualPop, bool withIntPromotion, bool onSuperType, bool checkOverloads) {
+    void methodCall(Method* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs, bool doActualPop, bool withIntPromotion, bool onSuperType, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -473,7 +472,7 @@ namespace sclc {
         }
 
     callMethod:
-        
+
         std::string type = typeStackTop;
         if (doActualPop) {
             if (isSelfType(self->return_type)) {
@@ -583,10 +582,10 @@ namespace sclc {
             append("}\n");
         }
         if (self->has_async) {
-            typeStack.push("async<" + self->return_type + ">");
+            typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
             if (self->return_type.front() == '*') {
-                typeStack.push(self->return_type.substr(1));
+                typeStack.push_back(self->return_type.substr(1));
             } else {
                 if (isSelfType(self->return_type)) {
                     std::string retType = "";
@@ -597,9 +596,9 @@ namespace sclc {
                     if (typeCanBeNil(self->return_type)) {
                         retType += "?";
                     }
-                    typeStack.push(retType);
+                    typeStack.push_back(retType);
                 } else {
-                    typeStack.push(self->return_type);
+                    typeStack.push_back(self->return_type);
                 }
             }
         }
@@ -609,7 +608,7 @@ namespace sclc {
         }
     }
 
-    void generateUnsafeCallF(Function* self, FILE* fp, TPResult& result) {
+    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result) {
         if (self->args.size() > 0)
             append("_scl_popn(%zu);\n", self->args.size());
         std::string args = generateArgumentsForFunction(result, self).c_str();
@@ -628,7 +627,7 @@ namespace sclc {
         }
     }
 
-    void generateUnsafeCall(Method* self, FILE* fp, TPResult& result) {
+    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result) {
         if (self->args.size() > 0)
             append("_scl_popn(%zu);\n", self->args.size());
         std::string args = generateArgumentsForFunction(result, self).c_str();
@@ -686,7 +685,7 @@ namespace sclc {
         return "???";
     }
 
-    void functionCall(Function* self, FILE* fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
+    void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -872,7 +871,7 @@ namespace sclc {
                     } else {
                         argType = "any";
                     }
-                    typeStack.push(argType);
+                    typeStack.push_back(argType);
                 } else {
                     if (isSelfType(self->return_type)) {
                         std::string retType = "";
@@ -883,9 +882,9 @@ namespace sclc {
                         if (typeCanBeNil(self->return_type)) {
                             retType += "?";
                         }
-                        typeStack.push(retType);
+                        typeStack.push_back(retType);
                     } else {
-                        typeStack.push(self->return_type);
+                        typeStack.push_back(self->return_type);
                     }
                 }
 
@@ -929,6 +928,7 @@ namespace sclc {
         }
 
     callFunction:
+
         
         if (self->args.size() > 0) {
             append("_scl_popn(%zu);\n", self->args.size());
@@ -997,10 +997,10 @@ namespace sclc {
             append("}\n");
         }
         if (self->has_async) {
-            typeStack.push("async<" + self->return_type + ">");
+            typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
             if (self->return_type.front() == '*') {
-                typeStack.push(self->return_type.substr(1));
+                typeStack.push_back(self->return_type.substr(1));
             } else {
                 if (isSelfType(self->return_type)) {
                     std::string retType = "";
@@ -1011,9 +1011,9 @@ namespace sclc {
                     if (typeCanBeNil(self->return_type)) {
                         retType += "?";
                     }
-                    typeStack.push(retType);
+                    typeStack.push_back(retType);
                 } else {
-                    typeStack.push(self->return_type);
+                    typeStack.push_back(self->return_type);
                 }
             }
         }

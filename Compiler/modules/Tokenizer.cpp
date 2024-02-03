@@ -552,7 +552,7 @@ namespace sclc
                 i += 2;
                 moduleName += "." + tokens[i].value;
             }
-            if (moduleName.size() == 0) {
+            if (moduleName.empty()) {
                 FPResult r;
                 r.message = "Expected module name after import";
                 r.location = tokens[i - 1].location;
@@ -609,7 +609,7 @@ namespace sclc
     }
 
     FPResult findFileInIncludePath(std::string file) {
-        if (file.size() == 0 || file == ".scale") {
+        if (file.empty() || file == ".scale") {
             FPResult r;
             r.success = false;
             r.message = "Empty file name!";

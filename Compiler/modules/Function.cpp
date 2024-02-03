@@ -42,6 +42,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
 
     this->name_token = name_token;
     this->name = name;
+    this->name_without_overload = this->name.substr(0, this->name.find("$$ol"));
     this->isMethod = isMethod;
     this->member_type = "";
 
@@ -103,29 +104,19 @@ void Function::addArgument(Variable arg) {
     args.push_back(arg);
 }
 bool Function::operator!=(const Function& other) const {
-    return !(*this == other);
+    return !this->operator==(other);
 }
 bool Function::operator==(const Function& other) const {
-    if (other.isMethod && !this->isMethod) return false;
-    if (!other.isMethod && this->isMethod) return false;
-    if (other.isMethod && this->isMethod) {
-        Method* thisM = (Method*) this;
-        Function* f = (Function*) &other;
-        Method* otherM = (Method*) f;
-        return name == other.name && thisM->member_type == otherM->member_type;
-    }
-    return name == other.name;
+    if (isMethod != other.isMethod) return false;
+    if (name != other.name) return false;
+    return member_type == other.member_type;
 }
 bool Function::operator!=(const Function* other) const {
-    return !this->operator==(other);
+    return !this->operator==(*other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;
-    if (other->isMethod && !isMethod) return false;
-    if (!other->isMethod && isMethod) return false;
-    if (name.size() != other->name.size()) return false;
-    if (member_type.size() != other->member_type.size()) return false;
-    return name == other->name && member_type == other->member_type;
+    return this->operator==(*other);
 }
 bool Function::belongsToType(std::string typeName) {
     return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);

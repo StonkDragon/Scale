@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <type_traits>
+#include <sstream>
 
 #include <stdio.h>
 
@@ -21,8 +22,8 @@ namespace sclc
         return result;
     }
 
-    void generateUnsafeCall(Method* self, FILE* fp, TPResult& result);
-    void generateUnsafeCallF(Function* self, FILE* fp, TPResult& result);
+    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result);
+    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result);
     std::string generateSymbolForFunction(Function* f);
     std::string sclTypeToCType(TPResult& result, std::string t);
     std::string sclFunctionNameToFriendlyString(Function* f);
@@ -34,7 +35,7 @@ namespace sclc
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
 
-        FILE* fp = fopen(header_file.c_str(), "w");
+        std::ostringstream fp;
 
         Function* mainFunction = nullptr;
         if (!Main::options::noMain) {
@@ -110,28 +111,57 @@ namespace sclc
             }
         }
 
+        std::vector<Function*> initFuncs;
+        std::vector<Function*> destroyFuncs;
+        
+        for (Function* f : result.functions) {
+            bool isInit = isInitFunction(f);
+            if (!f->isMethod && (isInit || isDestroyFunction(f))) {
+                if (f->args.size()) {
+                    FPResult result;
+                    result.success = false;
+                    result.message = isInit ? "Constructor" : "Finalizer" + std::string(" functions cannot have arguments");
+                    result.location = f->name_token.location;
+                    result.type = f->name_token.type;
+                    result.value = f->name_token.value;
+                    errors.push_back(result);
+                } else {
+                    if (isInit) {
+                        initFuncs.push_back(f);
+                    } else {
+                        destroyFuncs.push_back(f);
+                    }
+                }
+            }
+        }
+
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
         vars.reserve(32);
 
-        ConvertC::writeHeader(fp, errors, warns);
-        ConvertC::writeContainers(fp, result, errors, warns);
-        ConvertC::writeStructs(fp, result, errors, warns);
-        ConvertC::writeGlobals(fp, globals, result, errors, warns);
-        ConvertC::writeFunctionHeaders(fp, result, errors, warns);
+        Transpiler t(result, errors, warns, fp);
 
-        fclose(fp);
-        fp = fopen(func_file.c_str(), "w");
+        t.writeHeader();
+        t.writeContainers();
+        t.writeStructs();
+        t.writeGlobals();
+        t.writeFunctionHeaders();
 
-        ConvertC::writeFunctions(fp, errors, warns, globals, result, header_file);
+        fp.flush();
+        std::ofstream header(header_file, std::ios::out);
+        header << fp.str();
+        fp = std::ostringstream();
 
-        fclose(fp);
+        t.writeFunctions(header_file);
+
+        std::ofstream func(func_file, std::ios::out);
+        fp.flush();
+        func << fp.str();
+        fp = std::ostringstream();
 
         if (structTree) {
-            fp = fopen(rt_file.c_str(), "w");
-
             append("#include \"%s\"\n", header_file.c_str());
-            structTree->forEach([fp](StructTreeNode* node) {
+            structTree->forEach([&fp](StructTreeNode* node) {
                 append("\n");
                 const Struct& s = node->s;
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
@@ -203,40 +233,19 @@ namespace sclc
                 append("};\n");
             });
 
-            fclose(fp);
+            std::ofstream rt(rt_file, std::ios::out);
+            fp.flush();
+            rt << fp.str();
         }
 
-        fp = fopen(main_file.c_str(), "w");
+        fp = std::ostringstream();
         append("#include \"%s\"\n\n", header_file.c_str());
 
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
-            append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            globals.push_back(s);
-        }
-
-        std::vector<Function*> initFuncs;
-        std::vector<Function*> destroyFuncs;
-        
-        for (Function* f : result.functions) {
-            bool isInit = isInitFunction(f);
-            if (!f->isMethod && (isInit || isDestroyFunction(f))) {
-                if (f->args.size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = isInit ? "Constructor" : "Finalizer" + std::string(" functions cannot have arguments");
-                    result.location = f->name_token.location;
-                    result.type = f->name_token.type;
-                    result.value = f->name_token.value;
-                    errors.push_back(result);
-                } else {
-                    if (isInit) {
-                        initFuncs.push_back(f);
-                    } else {
-                        destroyFuncs.push_back(f);
-                    }
-                }
+            if (!s.isExtern) {
+                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
         }
 
@@ -271,7 +280,9 @@ namespace sclc
             append("}\n");
         }
 
-        fclose(fp);
+        std::ofstream main(main_file, std::ios::out);
+        fp.flush();
+        main << fp.str();
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

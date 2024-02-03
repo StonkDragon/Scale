@@ -20,7 +20,7 @@ namespace sclc {
                     }
                     if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw(_scl_top(scl_any*), %s);\n", body[i - 1].value.c_str());
                     typePop;
-                    typeStack.push(type.substr(1, type.size() - 2));
+                    typeStack.push_back(type.substr(1, type.size() - 2));
                     if (isPrimitiveIntegerType(typeStackTop)) {
                         append("_scl_top(scl_int) = _scl_top(%s)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     } else {
@@ -51,7 +51,7 @@ namespace sclc {
                 return;
             }
             typePop;
-            typeStack.push(type.substr(1, type.size() - 2));
+            typeStack.push_back(type.substr(1, type.size() - 2));
             append("scl_int index = _scl_pop(scl_int);\n");
             if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
             if (isPrimitiveIntegerType(typeStackTop)) {
@@ -98,7 +98,7 @@ namespace sclc {
                 return;
             }
             append("_scl_push(scl_any, instance);\n");
-            typeStack.push(type);
+            typeStack.push_back(type);
             methodCall(m, fp, result, warns, errors, body, i);
             scopeDepth--;
             append("}\n");
@@ -209,12 +209,12 @@ namespace sclc {
                 varScopePush();
                 if (!iterator_var_name.empty()) {
                     append("const scl_int Var_%s = i;\n", iterator_var_name.c_str());
-                    varScopeTop().push_back(Variable(iterator_var_name, "const int"));
+                    vars.push_back(Variable(iterator_var_name, "const int"));
                 }
                 size_t typeStackSize = typeStack.size();
                 if (existingArrayUsed && !value_var_name.empty()) {
                     append("const %s Var_%s = array[i];\n", sclTypeToCType(result, elementType).c_str(), value_var_name.c_str());
-                    varScopeTop().push_back(Variable(value_var_name, "const " + elementType));
+                    vars.push_back(Variable(value_var_name, "const " + elementType));
                 }
                 while (body[i].type != tok_bracket_close) {
                     handle(Token);
@@ -237,7 +237,7 @@ namespace sclc {
                 scopeDepth--;
                 append("}\n");
                 append("_scl_push(scl_any, array);\n");
-                typeStack.push(arrayType);
+                typeStack.push_back(arrayType);
                 scopeDepth--;
                 append("}\n");
                 if (body[i].type != tok_bracket_close) {
@@ -252,4 +252,3 @@ namespace sclc {
         }
     }
 } // namespace sclc
-

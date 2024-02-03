@@ -60,7 +60,7 @@ namespace sclc {
             append("}); ({\n");
             scopeDepth++;
             append("_scl_push(scl_int, Var_%s);\n", var.value.c_str());
-            typeStack.push("int");
+            typeStack.push_back("int");
             while (body[i].type != tok_do) {
                 handle(Token);
                 safeInc();
@@ -85,7 +85,7 @@ namespace sclc {
         }
         varScopePush();
         if (!hasVar(var.value)) {
-            varScopeTop().push_back(v);
+            vars.push_back(v);
             checkShadow(var.value, body, i, function, result, warns);
         }
         

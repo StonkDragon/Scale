@@ -76,7 +76,7 @@ namespace sclc {
                     return;
                 }
             }
-            typeStack.push(returnType);
+            typeStack.push_back(returnType);
         }
         handle(Fi);
     }

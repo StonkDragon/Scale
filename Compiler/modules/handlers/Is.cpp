@@ -40,7 +40,7 @@ namespace sclc {
             }
         }
         typePop;
-        typeStack.push("bool");
+        typeStack.push_back("bool");
     }
 } // namespace sclc
 

@@ -92,7 +92,7 @@ namespace sclc {
             scopeDepth++;
 
             varScopePush();
-            varScopeTop().push_back(Variable(iter_var_tok.value, type.substr(1, type.size() - 2)));
+            vars.push_back(Variable(iter_var_tok.value, type.substr(1, type.size() - 2)));
             bool typeSpecified = true;
             if (!iterType.size()) {
                 typeSpecified = false;
@@ -100,7 +100,7 @@ namespace sclc {
             }
             append("%s Var_%s = %s[i];\n", sclTypeToCType(result, iterType).c_str(), iter_var_tok.value.c_str(), iterator_name.c_str());
             if (index_var_tok.value.size()) {
-                varScopeTop().push_back(Variable(index_var_tok.value, "const int"));
+                vars.push_back(Variable(index_var_tok.value, "const int"));
                 append("scl_int Var_%s = i;\n", index_var_tok.value.c_str());
             }
             if (typeSpecified) {
@@ -146,13 +146,13 @@ namespace sclc {
         }
         varScopePush();
         if (iterType.size()) {
-            varScopeTop().push_back(Variable(iter_var_tok.value, iterType));
+            vars.push_back(Variable(iter_var_tok.value, iterType));
         } else {
-            varScopeTop().push_back(Variable(iter_var_tok.value, nextMethod->return_type));
+            vars.push_back(Variable(iter_var_tok.value, nextMethod->return_type));
         }
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok.value).type);
         if (index_var_tok.value.size()) {
-            varScopeTop().push_back(Variable(index_var_tok.value, "const int"));
+            vars.push_back(Variable(index_var_tok.value, "const int"));
             append("scl_int %s_ind = 0;\n", iterator_name.c_str());
         }
         std::string iteratingType = sclTypeToCType(result, type);

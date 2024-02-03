@@ -440,7 +440,7 @@ namespace sclc
         std::string file = Main::options::mapFrameworkDocfiles[Main::options::printDocFor];
         std::string docFileFormat = Main::options::indexDrgFiles[Main::options::printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
-        if (file.size() == 0 || !fileExists(file)) {
+        if (file.empty() || !fileExists(file)) {
             std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' has no docfile!" << Color::RESET << std::endl;
             return 1;
         }
@@ -506,13 +506,13 @@ namespace sclc
                 }
             }
 
-            if (foundIn.size() == 0) continue;
+            if (foundIn.empty()) continue;
             std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
             for (DocumentationEntry e : foundIn) {
                 std::cout << Color::BLUE << e.name << "\n";
                 if (e.module.size()) {
                     std::cout << Color::CYAN << "Module: " << e.module;
-                    if (e.file.size() == 0) std::cout << "\n";
+                    if (e.file.empty()) std::cout << "\n";
                 }
                 if (e.file.size()) {
                     std::cout << " (" << e.file << ")\n";

@@ -43,7 +43,7 @@ namespace sclc {
                     append("");
                 } else {
                     append("_scl_push(%s, ", sclTypeToCType(result, returnType).c_str());
-                    typeStack.push(returnType);
+                    typeStack.push_back(returnType);
                 }
                 append2("_scl_positive_offset(%zu, %s)(%s)", argAmount, typedefName.c_str(), argGet.c_str());
                 if (removed != "none" && removed != "nothing") {
@@ -140,12 +140,12 @@ namespace sclc {
                     append("scl_float(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
                     append("_scl_push(scl_float, lambda(%s));\n", argGet.c_str());
-                    typeStack.push(returnType);
+                    typeStack.push_back(returnType);
                 } else {
                     append("scl_any(*lambda)(%s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
                     append("_scl_popn(%zu);\n", argAmount);
                     append("_scl_push(scl_any, lambda(%s));\n", argGet.c_str());
-                    typeStack.push(returnType);
+                    typeStack.push_back(returnType);
                 }
                 scopeDepth--;
                 append("}\n");
@@ -176,7 +176,7 @@ namespace sclc {
                     scopeDepth++;
                     methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
                     if (objMethod->return_type != "none" && objMethod->return_type != "nothing") {
-                        typeStack.pop();
+                        typeStack.pop_back();
                     }
                     scopeDepth--;
                     append("} else {\n");
@@ -209,7 +209,7 @@ namespace sclc {
                 } else if (body[i].value == "view") {
                     append("_scl_top(scl_any) = _scl_top(scl_str)->data;\n");
                     typePop;
-                    typeStack.push("[int8]");
+                    typeStack.push_back("[int8]");
                     return;
                 }
             }

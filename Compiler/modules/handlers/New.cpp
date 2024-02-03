@@ -42,7 +42,7 @@ namespace sclc {
                 }
             } else {
                 append("_scl_push(scl_any, _scl_new_array_by_size(0, %s));\n", elemSize.c_str());
-                typeStack.push("[" + typeString + "]");
+                typeStack.push_back("[" + typeString + "]");
                 scopeDepth--;
                 append("}\n");
                 return;
@@ -75,7 +75,7 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
 
-            typeStack.push("[" + typeString + "]");
+            typeStack.push_back("[" + typeString + "]");
             return;
         }
         std::vector<int> startingOffsets;
@@ -128,7 +128,7 @@ namespace sclc {
         for (int i = 0; i < dimensions; i++) {
             type = "[" + type + "]";
         }
-        typeStack.push(type);
+        typeStack.push_back(type);
     }
 } // namespace sclc
 

@@ -89,7 +89,7 @@ namespace sclc {
 
             append("_scl_push(typeof(&fn_%s), &fn_%s);\n", f->name.c_str(), f->name.c_str());
             std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-            typeStack.push(lambdaType);
+            typeStack.push_back(lambdaType);
             return;
         }
         if (!hasVar(body[i].value)) {
@@ -197,7 +197,7 @@ namespace sclc {
                         }
                         append("_scl_push(typeof(&mt_%s$%s), &mt_%s$%s);\n", s.name.c_str(), f->name.c_str(), s.name.c_str(), f->name.c_str());
                         std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-                        typeStack.push(lambdaType);
+                        typeStack.push_back(lambdaType);
                         return;
                     } else {
                         transpilerError("Struct '" + s.name + "' has no static member named '" + body[i].value + "'", i);
@@ -299,7 +299,7 @@ namespace sclc {
                     }
                     append("_scl_push(typeof(&mt_%s$%s), &mt_%s$%s);\n", s.name.c_str(), f->name.c_str(), s.name.c_str(), f->name.c_str());
                     std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-                    typeStack.push(lambdaType);
+                    typeStack.push_back(lambdaType);
                     return;
                 } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
                     std::string loadFrom = s.name + "$" + body[i].value;
@@ -315,7 +315,7 @@ namespace sclc {
         }
         makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
             append("_scl_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
-            typeStack.push("[" + lastType + "]");
+            typeStack.push_back("[" + lastType + "]");
         });
     }
 } // namespace sclc

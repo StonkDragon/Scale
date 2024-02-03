@@ -29,7 +29,7 @@ namespace sclc {
             return;
         }
         append("_scl_push(scl_int, %s);\n", stringValue.c_str());
-        typeStack.push("int");
+        typeStack.push_back("int");
     }
 } // namespace sclc
 

@@ -29,7 +29,7 @@ namespace sclc {
         scopeDepth++;
         std::vector<std::string> lines = split(ext, "\n");
         for (std::string& line : lines) {
-            if (ltrim(line).size() == 0)
+            if (ltrim(line).empty())
                 continue;
             append("%s\n", ltrim(line).c_str());
         }

@@ -8,9 +8,9 @@ namespace sclc {
         noUnused;
         append("_scl_push(scl_int, 0);\n");
         if (body[i].type == tok_nil) {
-            typeStack.push("any");
+            typeStack.push_back("any");
         } else {
-            typeStack.push("bool");
+            typeStack.push_back("bool");
         }
     }
 } // namespace sclc

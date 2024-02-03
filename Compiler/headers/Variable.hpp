@@ -25,23 +25,11 @@ namespace sclc
         virtual T& also(std::function<void(T&)> func) = 0;
     };
 
-    bool typeCanBeNil(std::string s);
+    bool typeCanBeNil(std::string s, bool doRemoveMods);
     bool typeIsReadonly(std::string s);
     bool typeIsConst(std::string s);
 
     struct Variable : public Also<Variable> {
-        struct Hasher {
-            size_t operator()(const Variable& v) const {
-                return std::hash<std::string>()(v.name) ^ std::hash<std::string>()(v.type);
-            }
-        };
-
-        struct Equator {
-            bool operator()(const Variable& v1, const Variable& v2) const {
-                return v1 == v2;
-            }
-        };
-
         std::string name;
         std::string type;
         std::string internalMutableFrom;
@@ -49,6 +37,7 @@ namespace sclc
         bool isInternalMut;
         bool isReadonly;
         bool isVirtual;
+        bool isExtern;
         Token* name_token;
         bool isPrivate;
         bool canBeNil;
@@ -59,12 +48,13 @@ namespace sclc
             this->type = type;
             this->isConst = typeIsConst(type);
             this->isReadonly = typeIsReadonly(type);
-            this->canBeNil = typeCanBeNil(type);
+            this->canBeNil = typeCanBeNil(type, true);
             this->internalMutableFrom = memberType;
             this->isInternalMut = memberType.size() != 0;
             this->isPrivate = false;
             this->typeFromTemplate = "";
             this->isVirtual = false;
+            this->isExtern = false;
         }
         virtual ~Variable() {}
 

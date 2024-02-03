@@ -3,6 +3,8 @@
 #include <functional>
 #include <csignal>
 #include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 
 #include "../headers/Common.hpp"
@@ -28,54 +30,56 @@ namespace sclc {
         "transform",
     };
 
-    void (*handleRefs[tok_MAX])(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, FILE*, TPResult&) = {
-        [tok_question_mark] = handlerRef(Identifier),
-        [tok_identifier] = handlerRef(Identifier),
-        [tok_dot] = handlerRef(Dot),
-        [tok_column] = handlerRef(Column),
-        [tok_as] = handlerRef(As),
-        [tok_string_literal] = handlerRef(StringLiteral),
-        [tok_utf_string_literal] = handlerRef(StringLiteral),
-        [tok_char_string_literal] = handlerRef(CharStringLiteral),
-        [tok_cdecl] = handlerRef(CDecl),
-        [tok_extern_c] = handlerRef(ExternC),
-        [tok_number] = handlerRef(IntegerLiteral),
-        [tok_char_literal] = handlerRef(CharLiteral),
-        [tok_number_float] = handlerRef(FloatLiteral),
-        [tok_nil] = handlerRef(FalsyType),
-        [tok_false] = handlerRef(FalsyType),
-        [tok_true] = handlerRef(TruthyType),
-        [tok_new] = handlerRef(New),
-        [tok_is] = handlerRef(Is),
-        [tok_if] = handlerRef(If),
-        [tok_unless] = handlerRef(Unless),
-        [tok_else] = handlerRef(Else),
-        [tok_elif] = handlerRef(Elif),
-        [tok_elunless] = handlerRef(Elunless),
-        [tok_while] = handlerRef(While),
-        [tok_do] = handlerRef(Do),
-        [tok_repeat] = handlerRef(Repeat),
-        [tok_for] = handlerRef(For),
-        [tok_foreach] = handlerRef(Foreach),
-        [tok_fi] = handlerRef(Fi),
-        [tok_done] = handlerRef(DoneLike),
-        [tok_end] = handlerRef(DoneLike),
-        [tok_return] = handlerRef(Return),
-        [tok_addr_ref] = handlerRef(AddrRef),
-        [tok_store] = handlerRef(Store),
-        [tok_declare] = handlerRef(Declare),
-        [tok_continue] = handlerRef(Continue),
-        [tok_break] = handlerRef(Break),
-        [tok_goto] = handlerRef(Goto),
-        [tok_label] = handlerRef(Label),
-        [tok_case] = handlerRef(Case),
-        [tok_esac] = handlerRef(Esac),
-        [tok_default] = handlerRef(Default),
-        [tok_switch] = handlerRef(Switch),
-        [tok_curly_open] = handlerRef(CurlyOpen),
-        [tok_bracket_open] = handlerRef(BracketOpen),
-        [tok_paren_open] = handlerRef(ParenOpen),
-        [tok_addr_of] = handlerRef(Identifier),
+    typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&);
+
+    std::unordered_map<TokenType, HandlerType> handleRefs = {
+        std::pair(tok_question_mark, handlerRef(Identifier)),
+        std::pair(tok_identifier, handlerRef(Identifier)),
+        std::pair(tok_dot, handlerRef(Dot)),
+        std::pair(tok_column, handlerRef(Column)),
+        std::pair(tok_as, handlerRef(As)),
+        std::pair(tok_string_literal, handlerRef(StringLiteral)),
+        std::pair(tok_utf_string_literal, handlerRef(StringLiteral)),
+        std::pair(tok_char_string_literal, handlerRef(CharStringLiteral)),
+        std::pair(tok_cdecl, handlerRef(CDecl)),
+        std::pair(tok_extern_c, handlerRef(ExternC)),
+        std::pair(tok_number, handlerRef(IntegerLiteral)),
+        std::pair(tok_char_literal, handlerRef(CharLiteral)),
+        std::pair(tok_number_float, handlerRef(FloatLiteral)),
+        std::pair(tok_nil, handlerRef(FalsyType)),
+        std::pair(tok_false, handlerRef(FalsyType)),
+        std::pair(tok_true, handlerRef(TruthyType)),
+        std::pair(tok_new, handlerRef(New)),
+        std::pair(tok_is, handlerRef(Is)),
+        std::pair(tok_if, handlerRef(If)),
+        std::pair(tok_unless, handlerRef(Unless)),
+        std::pair(tok_else, handlerRef(Else)),
+        std::pair(tok_elif, handlerRef(Elif)),
+        std::pair(tok_elunless, handlerRef(Elunless)),
+        std::pair(tok_while, handlerRef(While)),
+        std::pair(tok_do, handlerRef(Do)),
+        std::pair(tok_repeat, handlerRef(Repeat)),
+        std::pair(tok_for, handlerRef(For)),
+        std::pair(tok_foreach, handlerRef(Foreach)),
+        std::pair(tok_fi, handlerRef(Fi)),
+        std::pair(tok_done, handlerRef(DoneLike)),
+        std::pair(tok_end, handlerRef(DoneLike)),
+        std::pair(tok_return, handlerRef(Return)),
+        std::pair(tok_addr_ref, handlerRef(AddrRef)),
+        std::pair(tok_store, handlerRef(Store)),
+        std::pair(tok_declare, handlerRef(Declare)),
+        std::pair(tok_continue, handlerRef(Continue)),
+        std::pair(tok_break, handlerRef(Break)),
+        std::pair(tok_goto, handlerRef(Goto)),
+        std::pair(tok_label, handlerRef(Label)),
+        std::pair(tok_case, handlerRef(Case)),
+        std::pair(tok_esac, handlerRef(Esac)),
+        std::pair(tok_default, handlerRef(Default)),
+        std::pair(tok_switch, handlerRef(Switch)),
+        std::pair(tok_curly_open, handlerRef(CurlyOpen)),
+        std::pair(tok_bracket_open, handlerRef(BracketOpen)),
+        std::pair(tok_paren_open, handlerRef(ParenOpen)),
+        std::pair(tok_addr_of, handlerRef(Identifier)),
     };
 
     Function* currentFunction = nullptr;
@@ -93,25 +97,21 @@ namespace sclc {
     char repeat_depth = 0;
     int iterator_count = 0;
     int isInUnsafe = 0;
-    std::stack<std::string> typeStack;
+    std::vector<std::string> typeStack;
     std::string return_type = "";
     int lambdaCount = 0;
 
-    void ConvertC::writeHeader(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
+    void Transpiler::writeHeader() {
         int scopeDepth = 0;
 
         append("#include <scale_runtime.h>\n");
-        for (std::string& header : Main::frameworkNativeHeaders) {
-            append("#include <%s>\n", header.c_str());
+        for (size_t i = 0; i < Main::frameworkNativeHeaders.size(); i++) {
+            append("#include <%s>\n", Main::frameworkNativeHeaders[i].c_str());
         }
         append("\n");
     }
 
-    void ConvertC::writeFunctionHeaders(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
+    void Transpiler::writeFunctionHeaders() {
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
 
@@ -123,43 +123,38 @@ namespace sclc {
             
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
-                arguments += sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
-                for (long i = 0; i < (long) args.size() - 1; i++) {
-                    std::string type = sclTypeToCType(result, args[i].type);
-                    arguments += ", " + type;
-                }
+                arguments = sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
             } else {
                 currentStruct = Struct::Null;
-                if (!Main::options::noMain && function->name == "main") {
-                    arguments = "int __argc, char** __argv";
-                } else if (args.size() > 0) {
-                    for (long i = 0; i < (long) args.size(); i++) {
-                        std::string type = sclTypeToCType(result, args[i].type);
-                        if (i) {
-                            arguments += ", ";
-                        }
-                        arguments += type;
-                    }
-                }
             }
-
-            if (arguments.empty()) {
+            bool isMain = !Main::options::noMain && function->name == "main";
+            if (isMain) {
+                arguments = "int __argc, char** __argv";
+            } else if (args.empty()) {
                 arguments = "void";
+            } else {
+                for (long i = 0; i < (long) args.size() - (long) function->isMethod; i++) {
+                    std::string type = sclTypeToCType(result, args[i].type);
+                    if (i || function->isMethod) {
+                        arguments += ", ";
+                    }
+                    arguments += type;
+                }
             }
 
             std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
-                if (function->name == "throw" || function->name == "builtinUnreachable") {
+                if (UNLIKELY(function->name == "throw" || function->name == "builtinUnreachable")) {
                     append("_scl_no_return ");
                 }
-                if (!Main::options::noMain && function->name == "main") {
+                if (isMain) {
                     append("int fn_%s(%s)", function->name.c_str(), arguments.c_str());
                 } else {
-                    if (function->has_async) {
+                    if (UNLIKELY(function->has_async)) {
                         append("struct _args_fn_%s {\n", function->name.c_str());
-                        for (Variable& arg : function->args) {
-                            append("  %s _Var_%s;\n", sclTypeToCType(result, arg.type).c_str(), arg.name.c_str());
+                        for (size_t i = 0; i < function->args.size(); i++) {
+                            append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                         }
                         append("};\n");
                         append("%s fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
@@ -168,44 +163,11 @@ namespace sclc {
                     }
                 }
                 append2(" __asm(%s);\n", symbol.c_str());
-                if (function->has_export) {
-                    if (function->member_type.size()) {
-                        if (hasMethod(result, function->name, function->member_type)) {
-                            FPResult res;
-                            res.success = false;
-                            res.message = "Function '" + function->member_type + "::" + function->name + "' conflicts with method '" + function->member_type + ":" + function->name + "'";
-                            res.location = function->name_token.location;
-                            res.value = function->name_token.value;
-                            res.type = function->name_token.type;
-                            errors.push_back(res);
-                            continue;
-                        }
-                    }
-                    if (scale_header) {
-                        fprintf(scale_header, "extern ");
-                        if (function->name == "throw" || function->name == "builtinUnreachable") {
-                            fprintf(scale_header, "_scl_no_return ");
-                        }
-                        fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
-                    }
-                }
-            } else {
-                if (function->has_async) {
-                    append("struct _args_mt_%s$%s {\n", function->member_type.c_str(), function->name.c_str());
-                    for (Variable& arg : function->args) {
-                        append("  %s _Var_%s;\n", sclTypeToCType(result, arg.type).c_str(), arg.name.c_str());
-                    }
-                    append("};\n");
-                    append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
-                } else {
-                    append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
-                }
-                append2(" __asm(%s);\n", symbol.c_str());
-                if (function->has_export) {
-                    if (hasFunction(result, function->member_type + "$" + function->name)) {
+                if (UNLIKELY(function->has_export)) {
+                    if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
                         res.success = false;
-                        res.message = "Method '" + function->member_type + ":" + function->name + "' conflicts with function '" + function->member_type + "::" + function->name + "'";
+                        res.message = "Function '" + function->member_type + "::" + function->name + "' conflicts with method '" + function->member_type + ":" + function->name + "'";
                         res.location = function->name_token.location;
                         res.value = function->name_token.value;
                         res.type = function->name_token.type;
@@ -213,13 +175,32 @@ namespace sclc {
                         continue;
                     }
                     if (scale_header) {
-                        fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
+                        fprintf(scale_header, "extern ");
+                        if (UNLIKELY(function->name == "throw" || function->name == "builtinUnreachable")) {
+                            fprintf(scale_header, "_scl_no_return ");
+                        }
+                        fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
                     }
+                }
+            } else {
+                if (UNLIKELY(function->has_async)) {
+                    append("struct _args_mt_%s$%s {\n", function->member_type.c_str(), function->name.c_str());
+                    for (size_t i = 0; i < function->args.size(); i++) {
+                        append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
+                    }
+                    append("};\n");
+                    append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                } else {
+                    append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
+                }
+                append2(" __asm(%s);\n", symbol.c_str());
+                if (UNLIKELY(function->has_export && scale_header)) {
+                    fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
 
-        if (scale_header) {
+        if (UNLIKELY(scale_header)) {
             fprintf(scale_header, "#endif\n");
             fclose(scale_header);
             scale_header = NULL;
@@ -228,30 +209,24 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeGlobals(FILE* fp, std::vector<Variable>& globals, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
+    void Transpiler::writeGlobals() {
         int scopeDepth = 0;
-        if (result.globals.size() == 0) return;
+        if (result.globals.empty()) return;
         append("/* GLOBALS */\n");
 
         for (Variable& s : result.globals) {
-            append("extern %s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            fprintf(scale_header, "extern %s %s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"Var_%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.name.c_str());
-            globals.push_back(s);
-        }
-        for (Variable& s : result.extern_globals) {
-            append("extern %s Var_%s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.name.c_str());
-            fprintf(scale_header, "extern %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            globals.push_back(s);
+            append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            fprintf(scale_header, "extern %s %s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.isExtern ? "" : "Var_" ,s.name.c_str());
+            if (s.isExtern) {
+                append2("__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
+            }
+            append2(";\n");
         }
 
         append("\n");
     }
 
-    void ConvertC::writeContainers(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
+    void Transpiler::writeContainers() {
         int scopeDepth = 0;
         for (auto ta : result.typealiases) {
             if (ta.first == "nothing" || ta.first == "varargs") continue;
@@ -284,11 +259,9 @@ namespace sclc {
         append("\n");
     }
 
-    void ConvertC::writeStructs(FILE* fp, TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
-        (void) errors;
-        (void) warns;
+    void Transpiler::writeStructs() {
         int scopeDepth = 0;
-        if (result.structs.size() == 0) return;
+        if (result.structs.empty()) return;
         append("/* STRUCT DEFINITIONS */\n");
 
         structTree = StructTreeNode::fromArrayOfStructs(result);
@@ -493,40 +466,45 @@ namespace sclc {
         handleRef(handleRefs[body[i].type]);
     }
 
-    extern "C" void ConvertC::writeFunctions(FILE* fp, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::vector<Variable>& globals, TPResult& result, const std::string& header_file) {
-        (void) warns;
+    void Transpiler::filePreamble(const std::string& header_file) {
+        append("#include <scale_runtime.h>\n\n");
+        append("#include \"%s\"\n\n", header_file.c_str());
+        currentStruct = Struct::Null;
 
-        auto filePreamble = [&]() {
-            append("#include <scale_runtime.h>\n\n");
-            append("#include \"%s\"\n\n", header_file.c_str());
-            currentStruct = Struct::Null;
+        append("#if defined(__clang__)\n");
+        append("#pragma clang diagnostic push\n");
+        append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+        append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
+        append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
+        append("#endif\n\n");
+    }
 
-            append("#if defined(__clang__)\n");
-            append("#pragma clang diagnostic push\n");
-            append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
-            append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
-            append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
-            append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
-            append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
-            append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
-            append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
-            append("#endif\n\n");
-        };
+    void Transpiler::filePostamble() {
+        append("#if defined(__clang__)\n");
+        append("#pragma clang diagnostic pop\n");
+        append("#endif\n");
+    }
 
-        auto filePostamble = [&]() {
-            append("#if defined(__clang__)\n");
-            append("#pragma clang diagnostic pop\n");
-            append("#endif\n");
-        };
+    void Transpiler::writeFunctions(const std::string& header_file) {
+        filePreamble(header_file);
 
-        filePreamble();
+        vars.clear();
+        varScopePush();
+        vars.reserve(result.globals.size());
+        for (const Variable& g : result.globals) {
+            vars.push_back(g);
+        }
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
-            if (function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type)) {
+            if (UNLIKELY(function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type))) {
                 continue;
             }
-            if (function->return_type.size() == 0) {
+            if (UNLIKELY(function->return_type.empty())) {
                 transpilerErrorTok("Return type required", function->name_token);
                 errors.push_back(err);
                 continue;
@@ -534,26 +512,20 @@ namespace sclc {
 
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
-                if (currentStruct == Struct::Null) {
+                if (UNLIKELY(currentStruct == Struct::Null)) {
                     transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
                     errors.push_back(err);
                     continue;
-                } else if (currentStruct.templateInstance) {
+                } else if (UNLIKELY(currentStruct.templateInstance)) {
                     continue;
                 }
             } else {
                 currentStruct = Struct::Null;
             }
 
-            for (long t = typeStack.size() - 1; t >= 0; t--) {
-                typePop;
-            }
-            vars.clear();
-            varScopePush();
-            varScopeTop().reserve(globals.size());
-            for (const Variable& g : globals) {
-                varScopeTop().push_back(g);
-            }
+            typeStack.clear();
+
+            bool isMainFunction = !function->isMethod && !Main::options::noMain && function->name == "main";
 
             scopeDepth = 0;
             lambdaCount = 0;
@@ -563,10 +535,10 @@ namespace sclc {
             std::string arguments;
             if (function->isMethod) {
                 arguments = sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
-            } else if (function->args.size() == 0) {
+            } else if (function->args.empty()) {
                 arguments = "void";
             }
-            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
+            if (isMainFunction) {
                 arguments = "int __argc, char** __argv";
             } else {
                 if (function->has_async) {
@@ -584,13 +556,16 @@ namespace sclc {
                     arguments += type;
 
                     if (type == "varargs" || type == "...") continue;
-                    if (function->args[i].name.size())
+                    if (function->args[i].name.size()) {
                         arguments += " Var_" + function->args[i].name;
+                    } else {
+                        arguments += " param" + std::to_string(i);
+                    }
                 }
             }
 
             if (function->isMethod) {
-                if (!((Method*) function)->force_add && currentStruct.isSealed()) {
+                if (UNLIKELY(!((Method*) function)->force_add && currentStruct.isSealed())) {
                     transpilerErrorTok("Cannot add method '" + function->name + "' to sealed Struct '" + currentStruct.name + "'", function->name_token);
                     errors.push_back(err);
                     continue;
@@ -599,7 +574,7 @@ namespace sclc {
                 if (function->name == "init" && currentStruct.super.size()) {
                     Method* parentInit = getMethodByName(result, "init", currentStruct.super);
                     if (parentInit && parentInit->args.size() == 1) {
-                        if (function->has_async) {
+                        if (UNLIKELY(function->has_async)) {
                             append("  mt_%s$init((%s) __args->_Var_self);\n", currentStruct.super.c_str(), sclTypeToCType(result, currentStruct.super).c_str());
                         } else {
                             append("  mt_%s$init((%s) Var_self);\n", currentStruct.super.c_str(), sclTypeToCType(result, currentStruct.super).c_str());
@@ -608,24 +583,24 @@ namespace sclc {
                 }
             } else {
                 if (function->has_restrict) {
-                    if (Main::options::noScaleFramework) {
+                    if (UNLIKELY(Main::options::noScaleFramework)) {
                         transpilerErrorTok("Function '" + function->name + "' has restrict, but Scale Framework is disabled", function->name_token);
                         errors.push_back(err);
                         continue;
                     }
                     append("static volatile scl_SclObject function_lock$%s = NULL;\n", function->name.c_str());
                 }
-                if (function->name == "throw" || function->name == "builtinUnreachable") {
-                    append("_scl_no_return ");
-                } else if (function->has_lambda) {
-                    append("_scl_noinline %s fn_%s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
-                    append("_scl_noinline ");
-                } else {
-                    append("");
-                }
-                if (!function->isMethod && !Main::options::noMain && function->name == "main") {
+                if (isMainFunction) {
                     append("int ");
                 } else {
+                    if (UNLIKELY(function->name == "throw" || function->name == "builtinUnreachable")) {
+                        append("_scl_no_return ");
+                    } else if (function->has_lambda) {
+                        append("_scl_noinline %s fn_%s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
+                        append("_scl_noinline ");
+                    } else {
+                        append("");
+                    }
                     append2("%s ", return_type.c_str());
                 }
                 append2("fn_%s(%s) {\n", function->name.c_str(), arguments.c_str());
@@ -633,7 +608,7 @@ namespace sclc {
                     append("  if (_scl_expect(function_lock$%s == NULL, 0)) function_lock$%s = ALLOC(SclObject);\n", function->name.c_str(), function->name.c_str());
                 }
             }
-            if (function->has_async) {
+            if (UNLIKELY(function->has_async)) {
                 for (Variable& var : function->args) {
                     append("  %s Var_%s = __args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
                 }
@@ -643,49 +618,52 @@ namespace sclc {
             
             scopeDepth++;
             std::vector<Token> body = function->getBody();
-
+            
             varScopePush();
-            if (function->namedReturnValue.name.size()) {
-                std::string nrvName = function->namedReturnValue.name;
-                if (hasFunction(result, nrvName)) {
+            if (UNLIKELY(!function->namedReturnValue.name.empty())) {
+                const std::string& nrvName = function->namedReturnValue.name;
+                if (UNLIKELY(hasFunction(result, nrvName))) {
                     transpilerErrorTok("Named return value '" + nrvName + "' shadowed by function '" + nrvName + "'", function->name_token);
                     warns.push_back(err);
                 }
-                if (getStructByName(result, nrvName) != Struct::Null) {
+                if (UNLIKELY(getStructByName(result, nrvName) != Struct::Null)) {
                     transpilerErrorTok("Named return value '" + nrvName + "' shadowed by struct '" + nrvName + "'", function->name_token);
                     warns.push_back(err);
                 }
                 append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
 
-                varScopeTop().push_back(function->namedReturnValue);
+                vars.push_back(function->namedReturnValue);
             }
             for (size_t i = 0; i < function->args.size(); i++) {
                 const Variable& var = function->args[i];
-                if (var.type == "varargs") continue;
-                varScopeTop().push_back(var);
+                if (var.type != "varargs") {
+                    vars.push_back(var);
+                }
             }
 
             append("SCL_BACKTRACE(\"%s\");\n", sclFunctionNameToFriendlyString(function).c_str());
             if (function->isMethod) {
-                std::string superType = currentStruct.super;
-                if (superType.size() > 0) {
+                const std::string& superType = currentStruct.super;
+                if (LIKELY(superType.size() > 0)) {
                     append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '*' ? "&" : "");
-                    varScopeTop().push_back(Variable("super", "const " + superType));
+                    vars.push_back(Variable("super", "const " + superType));
                 }
             }
 
-            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
+            if (isMainFunction) {
                 if (function->args.size()) {
                     if (!Main::options::noScaleFramework) {
-                        append("scl_str* Var_%s = _scl_new_array_by_size(__argc, sizeof(scl_str));\n", function->args[0].name.c_str());
+                        append("scl_str* ");
                     } else {
-                        append("scl_int8** Var_%s = _scl_new_array_by_size(__argc, sizeof(scl_int8*));\n", function->args[0].name.c_str());
+                        append("scl_int8** ");
                     }
+                    append2("Var_%s = _scl_new_array_by_size(__argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
                     append("for (scl_int i = 0; i < __argc; i++) {\n");
+                    append("  Var_%s[i] = ", function->args[0].name.c_str());
                     if (!Main::options::noScaleFramework) {
-                        append("  Var_%s[i] = _scl_create_string(__argv[i]);\n", function->args[0].name.c_str());
+                        append2("_scl_create_string(__argv[i]);\n");
                     } else {
-                        append("  Var_%s[i] = __argv[i];\n", function->args[0].name.c_str());
+                        append2("__argv[i];\n");
                     }
                     append("}\n");
                 }
@@ -693,12 +671,11 @@ namespace sclc {
 
             for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
                 const Variable& arg = function->args[a];
-                if (arg.name.size() == 0) continue;
-                if (typeCanBeNil(arg.type)) continue;
-                if (function->isMethod && arg.name == "self") continue;
-                if (arg.type == "varargs") continue;
+                if (UNLIKELY(typeCanBeNil(arg.type) || arg.type == "varargs")) continue;
 
-                append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
+                if (!arg.name.empty()) {
+                    append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
+                }
             }
             
             if (function->has_unsafe) {
@@ -717,16 +694,16 @@ namespace sclc {
                 }
             }
 
-            if (function->isCVarArgs() && function->varArgsParam().name.size()) {
+            if (UNLIKELY(function->isCVarArgs() && function->varArgsParam().name.size())) {
                 append("va_list _cvarargs;\n");
                 append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
                 append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
                 append("scl_any* Var_%s SCL_AUTO_DELETE = (scl_any*) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
                 append("va_end(_cvarargs);\n");
-                varScopeTop().push_back(Variable(function->varArgsParam().name, "const [any]"));
+                vars.push_back(Variable(function->varArgsParam().name, "const [any]"));
             }
 
-            if (function->has_setter || function->has_getter) {
+            if (UNLIKELY(function->has_setter || function->has_getter)) {
                 std::string fieldName;
                 if (function->has_setter) {
                     fieldName = function->getModifier(function->has_setter + 1);
@@ -735,14 +712,16 @@ namespace sclc {
                 }
                 append("#define Var_field (Var_self->%s)\n", fieldName.c_str());
 
-                varScopeTop().push_back(Variable("field", currentStruct.getMember(fieldName).type));
+                vars.push_back(Variable("field", currentStruct.getMember(fieldName).type));
             }
 
             for (i = 0; i < body.size(); i++) {
                 handle(Token);
             }
 
-            if (function->has_setter || function->has_getter) {
+            varScopePop();
+
+            if (UNLIKELY(function->has_setter || function->has_getter)) {
                 append("#undef Var_field\n");
             }
             
@@ -750,7 +729,7 @@ namespace sclc {
                 isInUnsafe--;
             }
 
-            if (!function->isMethod && !Main::options::noMain && function->name == "main") {
+            if (isMainFunction) {
                 append("return 0;\n");
             }
 

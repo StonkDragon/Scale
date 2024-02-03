@@ -53,7 +53,7 @@ namespace sclc {
             exName = body[i].value;
         }
         scopeDepth++;
-        varScopeTop().push_back(Variable(exName, ex));
+        vars.push_back(Variable(exName, ex));
         append("scl_%s Var_%s = (scl_%s) _scl_exception_handler.exception;\n", ex.c_str(), exName.c_str(), ex.c_str());
     }
 } // namespace sclc

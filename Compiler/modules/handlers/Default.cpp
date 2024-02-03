@@ -17,7 +17,7 @@ namespace sclc {
             scopeDepth++;
             varScopePush();
             append("%s Var_it = union_switch;\n", sclTypeToCType(result, s.name).c_str());
-            varScopeTop().push_back(Variable("it", s.name));
+            vars.push_back(Variable("it", s.name));
             return;
         }
         append("default: {\n");

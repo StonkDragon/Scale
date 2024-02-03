@@ -21,7 +21,7 @@ namespace sclc {
             const Variable& v = l.getMember(member);
 
             append("_scl_top(%s) = _scl_top(%s)->%s;\n", sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, l.name).c_str(), member.c_str());
-            typeStack.push(l.getMember(member).type);
+            typeStack.push_back(l.getMember(member).type);
             return;
         }
         std::string tmp = removeTypeModifiers(type);
@@ -48,9 +48,9 @@ namespace sclc {
                 append("scl_any tmp = _scl_pop(scl_any);\n");
                 std::string t = type;
                 append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", body[i].value.c_str());
-                typeStack.push("str");
+                typeStack.push_back("str");
                 append("_scl_push(scl_any, tmp);\n");
-                typeStack.push(t);
+                typeStack.push_back(t);
                 scopeDepth--;
                 append("}\n");
                 methodCall(f, fp, result, warns, errors, body, i);
@@ -61,7 +61,7 @@ namespace sclc {
             if ((m = getMethodByName(result, body[i].value, s.name)) != nullptr) {
                 std::string lambdaType = "lambda(" + std::to_string(m->args.size()) + "):" + m->return_type;
                 append("_scl_push(scl_any, mt_%s$%s);\n", s.name.c_str(), m->name.c_str());
-                typeStack.push(lambdaType);
+                typeStack.push_back(lambdaType);
                 return;
             }
             transpilerError("Struct '" + s.name + "' has no member named '" + body[i].value + "'" + help, i);
@@ -98,10 +98,10 @@ namespace sclc {
                     } else {
                         type = "any";
                     }
-                    typeStack.push(type);
+                    typeStack.push_back(type);
                 } else {
                     append("_scl_top(%s) = _scl_top(scl_int) ? mt_%s$%s(_scl_top(%s)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
-                    typeStack.push(m->return_type);
+                    typeStack.push_back(m->return_type);
                 }
             } else {
                 if (deref) {
@@ -112,10 +112,10 @@ namespace sclc {
                     } else {
                         type = "any";
                     }
-                    typeStack.push(type);
+                    typeStack.push_back(type);
                 } else {
                     append("_scl_top(%s) = mt_%s$%s(_scl_top(%s));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
-                    typeStack.push(m->return_type);
+                    typeStack.push_back(m->return_type);
                 }
             }
             return;
@@ -126,7 +126,7 @@ namespace sclc {
         } else {
             append("_scl_top(%s) = _scl_top(%s)->%s;\n", sclTypeToCType(result, mem.type).c_str(), sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
         }
-        typeStack.push(mem.type);
+        typeStack.push_back(mem.type);
         if (deref) {
             std::string path = dot.value + "@" + body[i].value;
             append("SCL_ASSUME(_scl_top(scl_int), \"Tried dereferencing nil pointer '%%s'!\", \"%s\");", path.c_str());
@@ -138,7 +138,7 @@ namespace sclc {
             } else {
                 type = "any";
             }
-            typeStack.push(type);
+            typeStack.push_back(type);
         }
     }
 } // namespace sclc

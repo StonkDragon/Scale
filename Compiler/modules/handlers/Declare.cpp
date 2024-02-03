@@ -31,7 +31,7 @@ namespace sclc {
             return;
         }
         Variable v(name, type);
-        varScopeTop().push_back(v);
+        vars.push_back(v);
         const Struct& s = getStructByName(result, type);
         Method* m = nullptr;
         if (!v.canBeNil) {
@@ -66,7 +66,7 @@ namespace sclc {
             if (s != Struct::Null && !s.isStatic() && m != nullptr) {
                 append("%s Var_%s = ALLOC(%s);\n", type.c_str(), v.name.c_str(), s.name.c_str());
                 append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
-                typeStack.push(removeTypeModifiers(v.type));
+                typeStack.push_back(removeTypeModifiers(v.type));
                 methodCall(m, fp, result, warns, errors, body, i);
             } else if (hasTypealias(result, type) || hasLayout(result, type)) {
                 append("%s Var_%s;\n", type.c_str(), v.name.c_str());

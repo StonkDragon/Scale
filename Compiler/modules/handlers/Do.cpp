@@ -38,8 +38,9 @@ namespace sclc {
                 std::string variablePrefix = "";
                 Variable v = Variable::emptyVar();
 
+                bool isMember = false;
+
                 if (hasVar(body[i].value)) {
-                normalVar:
                     v = getVar(body[i].value);
                 } else if (hasVar(function->member_type + "$" + body[i].value)) {
                     v = getVar(function->member_type + "$" + body[i].value);
@@ -72,10 +73,8 @@ namespace sclc {
                     Method* m = ((Method*) function);
                     Struct s = getStructByName(result, m->member_type);
                     if (s.hasMember(body[i].value)) {
-                        Token here = body[i];
-                        body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
-                        body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
-                        goto normalVar;
+                        v = s.getMember(body[i].value);
+                        isMember = true;
                     } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
                         v = getVar(s.name + "$" + body[i].value);
                     } else {
@@ -102,7 +101,7 @@ namespace sclc {
                         return;
                     }
                     
-                    append("%s executor = %s;\n", sclTypeToCType(result, lambdaType).c_str(), path.c_str());
+                    append("%s executor = %s%s;\n", sclTypeToCType(result, lambdaType).c_str(), !isMember ? "" : "Var_self->", path.c_str());
                 });
             }
         } else if (body[i].type == tok_identifier && body[i].value == "lambda") {
@@ -159,16 +158,16 @@ namespace sclc {
         }
 
         append("_scl_push(%s, array);\n", sclTypeToCType(result, arrayType).c_str());
-        typeStack.push(arrayType);
+        typeStack.push_back(arrayType);
         append("_scl_push(%s, executor);\n", sclTypeToCType(result, lambdaType).c_str());
-        typeStack.push(lambdaType);
+        typeStack.push_back(lambdaType);
 
         functionCall(f, fp, result, warns, errors, body, i);
         
         if (mode == "transform") {
             typePop;
             std::string returnType = lambdaReturnType(lambdaType);
-            typeStack.push(returnType);
+            typeStack.push_back(returnType);
         }
 
         scopeDepth--;

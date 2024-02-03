@@ -7,7 +7,7 @@ namespace sclc {
     handler(TruthyType) {
         noUnused;
         append("_scl_push(scl_int, 1);\n");
-        typeStack.push("bool");
+        typeStack.push_back("bool");
     }
 } // namespace sclc
 

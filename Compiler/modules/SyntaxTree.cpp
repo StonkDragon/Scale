@@ -264,7 +264,7 @@ namespace sclc {
                 i++;
                 return func;
             }
-            if (isSelfType(func->return_type) && func->args.size() == 0) {
+            if (isSelfType(func->return_type) && func->args.empty()) {
                 FPResult result;
                 result.message = "A function with 'self' return type must have at least one argument!";
                 result.value = tokens[i].value;
@@ -526,7 +526,7 @@ namespace sclc {
                 i++;
                 return method;
             }
-            if (isSelfType(method->return_type) && method->args.size() == 0) {
+            if (isSelfType(method->return_type) && method->args.empty()) {
                 FPResult result;
                 result.message = "A method with 'self' return type must have at least one argument!";
                 result.value = tokens[i].value;
@@ -549,8 +549,6 @@ namespace sclc {
         }
         return method;
     }
-
-    bool isPrimitiveIntegerType(std::string);
 
     template<typename T>
     auto joinVecs(std::vector<T> a, std::vector<T> b) {
@@ -835,7 +833,6 @@ namespace sclc {
             globals.push_back(Variable(name, type));
         }
 
-        std::vector<Variable> extern_globals;
         for (uint32_t i = 0; i < numExternGlobals; i++) {
             uint32_t nameLength = 0;
             fread(&nameLength, sizeof(uint32_t), 1, f);
@@ -849,7 +846,9 @@ namespace sclc {
             fread(type, 1, typeLength, f);
             type[typeLength] = 0;
 
-            extern_globals.push_back(Variable(name, type));
+            globals.push_back(Variable(name, type).also([](Variable& v) {
+                v.isExtern = true;
+            }));
         }
 
         std::vector<Interface*> interfaces;
@@ -982,7 +981,6 @@ namespace sclc {
         result.enums = enums;
         result.globals = globals;
         result.layouts = layouts;
-        result.extern_globals = extern_globals;
         result.typealiases = typealiases;
         result.functions = functions;
         return result;
@@ -1413,12 +1411,12 @@ namespace sclc {
             }
 
             const size_t count = this->tokens.size();
-            otherTokens.reserve(otherTokens.size() + count);
             Token* newToks = new Token[count];
             for (size_t j = 0; j < count; j++) {
                 newToks[j] = tokens[j].type == tok_dollar ? args[tokens[j].location.line] : tokens[j];
             }
             otherTokens.insert(otherTokens.begin() + i, newToks, newToks + count);
+            delete[] newToks;
         }
     };
 
@@ -1564,19 +1562,17 @@ namespace sclc {
         std::vector<Interface*> interfaces;
         std::vector<Enum> enums;
         std::vector<Function*> functions;
-        std::vector<Variable> extern_globals;
         std::unordered_map<std::string, std::string> typealiases;
 
-        uses.reserve(100);
-        nextAttributes.reserve(100);
-        globals.reserve(100);
-        structs.reserve(100);
-        layouts.reserve(100);
-        interfaces.reserve(100);
-        enums.reserve(100);
-        functions.reserve(100);
-        extern_globals.reserve(100);
-        typealiases.reserve(100);
+        uses.reserve(16);
+        nextAttributes.reserve(16);
+        globals.reserve(16);
+        structs.reserve(64);
+        layouts.reserve(16);
+        interfaces.reserve(16);
+        enums.reserve(16);
+        functions.reserve(128);
+        typealiases.reserve(16);
 
         Variable& lastDeclaredVariable = Variable::emptyVar();
 
@@ -1594,7 +1590,6 @@ namespace sclc {
             enums.insert(enums.end(), tmp.enums.begin(), tmp.enums.end());
             functions.insert(functions.end(), tmp.functions.begin(), tmp.functions.end());
             globals.insert(globals.end(), tmp.globals.begin(), tmp.globals.end());
-            extern_globals.insert(extern_globals.end(), tmp.extern_globals.begin(), tmp.extern_globals.end());
             interfaces.insert(interfaces.end(), tmp.interfaces.begin(), tmp.interfaces.end());
             layouts.insert(layouts.end(), tmp.layouts.begin(), tmp.layouts.end());
             for (auto it = tmp.typealiases.begin(); it != tmp.typealiases.end(); it++) {
@@ -2254,14 +2249,12 @@ namespace sclc {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
                         isInLambda--;
-                        if (!contains<Function*>(functions, currentFunction))
-                            currentFunction->addToken(token);
+                        currentFunction->addToken(token);
                         continue;
                     }
                     if (isInUnsafe) {
                         isInUnsafe--;
-                        if (!contains<Function*>(functions, currentFunction))
-                            currentFunction->addToken(token);
+                        currentFunction->addToken(token);
                         continue;
                     }
 
@@ -2964,7 +2957,7 @@ namespace sclc {
                 }
                 if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
-            } else if (token.type == tok_declare && currentStructs.size() == 0) {
+            } else if (token.type == tok_declare && currentStructs.empty()) {
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
@@ -2975,6 +2968,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
+                size_t start = i;
                 std::string name = tokens[i].value;
                 std::string type = "any";
                 i++;
@@ -2997,16 +2991,21 @@ namespace sclc {
                         continue;
                     }
                 }
+                Variable v(name, type);
                 if (contains<std::string>(nextAttributes, "expect")) {
-                    Variable v(name, type);
-                    if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
-                        extern_globals.push_back(v);
-                    }
+                    v.isExtern = true;
+                }
+                if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                    globals.push_back(v);
                 } else {
-                    Variable v(name, type);
-                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
-                        globals.push_back(v);
-                    }
+                    FPResult result;
+                    result.message = "Variable '" + v.name + "' already declared.";
+                    result.value = tokens[start].value;
+                    result.location = tokens[start].location;
+                    result.type = tokens[start].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 nextAttributes.clear();
             } else if (token.type == tok_declare && currentStructs.size() > 0) {
@@ -3020,6 +3019,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
+                size_t start = i;
                 Token& name_token = tokens[i];
                 std::string name = tokens[i].value;
                 std::string type = "any";
@@ -3057,13 +3057,19 @@ namespace sclc {
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {
-                        if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
-                            extern_globals.push_back(v);
-                        }
+                        v.isExtern = true;
+                    }
+                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                        globals.push_back(v);
                     } else {
-                        if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
-                            globals.push_back(v);
-                        }
+                        FPResult result;
+                        result.message = "Variable '" + v.name + "' already declared.";
+                        result.value = tokens[start].value;
+                        result.location = tokens[start].location;
+                        result.type = tokens[start].type;
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
                     }
                 } else {
                     if (typeIsConst(type) && isInternalMut) {
@@ -3310,7 +3316,6 @@ namespace sclc {
         TPResult result;
         result.functions = functions;
         result.functions = functions;
-        result.extern_globals = extern_globals;
         result.globals = globals;
         result.structs = structs;
         result.layouts = layouts;

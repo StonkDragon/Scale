@@ -52,14 +52,6 @@ namespace sclc {
         }
         fwrite(&numGlobals, sizeof(uint32_t), 1, f);
 
-        uint32_t numExternGlobals = 0;
-        for (Variable& v : result.extern_globals) {
-            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
-                numExternGlobals++;
-            }
-        }
-        fwrite(&numExternGlobals, sizeof(uint32_t), 1, f);
-
         uint32_t numInterfaces = 0;
         for (Interface* i : result.interfaces) {
             if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
@@ -176,7 +168,7 @@ namespace sclc {
             }
         }
         for (Variable& v : result.globals) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string()) || v.isExtern) {
                 continue;
             }
 
@@ -188,8 +180,8 @@ namespace sclc {
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
-        for (Variable& v : result.extern_globals) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+        for (Variable& v : result.globals) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string()) || !v.isExtern) {
                 continue;
             }
 
@@ -331,14 +323,6 @@ namespace sclc {
         }
         fwrite(&numGlobals, sizeof(uint32_t), 1, f);
 
-        uint32_t numExternGlobals = 0;
-        for (Variable& v : result.extern_globals) {
-            if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
-                numExternGlobals++;
-            }
-        }
-        fwrite(&numExternGlobals, sizeof(uint32_t), 1, f);
-
         uint32_t numInterfaces = 0;
         for (Interface* i : result.interfaces) {
             if (contains(Main::options::filesFromCommandLine, std::filesystem::absolute(i->name_token->location.file).string())) {
@@ -406,7 +390,7 @@ namespace sclc {
                 continue;
             }
 
-            if (func->has_intrinsic && func->getBody().size() == 0) {
+            if (func->has_intrinsic && func->getBody().empty()) {
                 continue;
             }
 
@@ -473,7 +457,7 @@ namespace sclc {
             }
         }
         for (Variable& v : result.globals) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string()) || v.isExtern) {
                 continue;
             }
 
@@ -485,8 +469,8 @@ namespace sclc {
             fwrite(&typeLength, sizeof(uint32_t), 1, f);
             fwrite(v.type.c_str(), sizeof(char), typeLength, f);
         }
-        for (Variable& v : result.extern_globals) {
-            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string())) {
+        for (Variable& v : result.globals) {
+            if (!contains(Main::options::filesFromCommandLine, std::filesystem::absolute(v.name_token->location.file).string()) || !v.isExtern) {
                 continue;
             }
 

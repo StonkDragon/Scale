@@ -4,6 +4,7 @@
 
 #include <unordered_set>
 #include <stack>
+#include <sstream>
 #if defined(_WIN32)
 #include <io.h>
 #define write _write
@@ -582,7 +583,7 @@ namespace sclc
     }
     Function* getFunctionByName(TPResult& result, const std::string& name2) {
         const std::string& name = funcNameIdents[name2];
-        if (name.size() == 0) {
+        if (name.empty()) {
             return getFunctionByName0(result, name2);
         } else {
             return getFunctionByName0(result, name);
@@ -622,7 +623,7 @@ namespace sclc
                 return (Method*) func;
             }
         }
-        Struct s = getStructByName(result, type);
+        const Struct& s = getStructByName(result, type);
         if (getInterfaceByName(result, type)) {
             return nullptr;
         }
@@ -631,7 +632,7 @@ namespace sclc
 
     Method* getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
         const std::string& name = funcNameIdents[name2];
-        if (name.size() == 0) {
+        if (name.empty()) {
             return getMethodByName0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
         } else {
             return getMethodByName0(result, name, removeTypeModifiers(type));
@@ -652,7 +653,7 @@ namespace sclc
     }
     Method* getMethodByNameOnThisType(TPResult& result, const std::string& name2, const std::string& type) {
         const std::string& name = funcNameIdents[name2];
-        if (name.size() == 0) {
+        if (name.empty()) {
             return getMethodByNameOnThisType0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
         } else {
             return getMethodByNameOnThisType0(result, name, removeTypeModifiers(type));
@@ -754,11 +755,6 @@ namespace sclc
                 return true;
             }
         }
-        for (Variable& v : result.extern_globals) {
-            if (v.name == name) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -808,8 +804,8 @@ namespace sclc
         return false;
     }
 
-    bool typeCanBeNil(std::string s) {
-        return isPrimitiveType(s) || (s.size() > 1 && s.back() == '?');
+    bool typeCanBeNil(std::string s, bool rem) {
+        return isPrimitiveType(s, rem) || (s.size() > 1 && s.back() == '?');
     }
 
     bool typeIsReadonly(std::string s) {
@@ -828,11 +824,9 @@ namespace sclc
         return strstarts(s, "const ");
     }
 
-    bool isPrimitiveIntegerType(std::string type);
-    
-    bool isPrimitiveType(std::string s) {
-        s = removeTypeModifiers(s);
-        return isPrimitiveIntegerType(s) || s == "float" || s == "any" || s == "bool";
+    bool isPrimitiveType(std::string s, bool rem) {
+        if (rem) s = removeTypeModifiers(s);
+        return isPrimitiveIntegerType(s, rem) || s == "float" || s == "any" || s == "bool";
     }
 
     bool featureEnabled(std::string feat) {
@@ -869,12 +863,28 @@ namespace sclc
 
     extern Function* currentFunction;
     extern Struct currentStruct;
-    extern std::stack<std::string> typeStack;
+    extern std::vector<std::string> typeStack;
     extern int scopeDepth;
 
     handler(Token);
 
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete) {
+    std::string makeIndex(TPResult& result, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::vector<FPResult>& warns, Function* function) {
+        std::ostringstream fp;
+        append2("({\n");
+        scopeDepth++;
+        while (i < body.size() && body[i].type != tok_bracket_close) {
+            handle(Token);
+            safeInc();
+        }
+        append("_scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
+        scopeDepth--;
+        append("})");
+        fp.flush();
+        return fp.str();
+    }
+
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete) {
+        (void) fp;
         std::string path = "Var_" + v.name;
         std::string currentType;
         currentType = v.type;
@@ -882,10 +892,6 @@ namespace sclc
             path = "(*" + path + ")";
             currentType = typePointedTo(currentType);
         }
-
-        append("{\n");
-        scopeDepth++;
-        int indexer = 0;
 
         Struct s = Struct::Null;
         Layout l = EmptyLayout;
@@ -989,8 +995,6 @@ namespace sclc
                             }
                             path += ")";
                             onComplete(path, currentType);
-                            scopeDepth--;
-                            append("}\n");
                             return;
                         } else {
                             path = "mt_" + f->member_type + "$" + f->name + "(" + path + ")";
@@ -1015,10 +1019,7 @@ namespace sclc
                     return;
                 }
 
-                while (i < body.size() && body[i].type != tok_bracket_close) {
-                    handle(Token);
-                    safeInc();
-                }
+                std::string index = makeIndex(result, body, i, errors, warns, function);
 
                 if (i >= body.size()) {
                     transpilerError("Expected ']', but got end of function", i);
@@ -1061,16 +1062,15 @@ namespace sclc
                     return;
                 }
 
-                append("%s index%d = _scl_pop(%s);\n", sclTypeToCType(result, indexingType).c_str(), indexer++, sclTypeToCType(result, indexingType).c_str());
                 if (primitive) {
-                    path = "(" + path + "[index" + std::to_string(indexer - 1) + "])";
+                    path = "(" + path + "[" + index + "])";
                     currentType = arrayType.substr(1, arrayType.size() - 2);
                 } else {
                     if (getElem) {
-                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", index" + std::to_string(indexer - 1) + ")";
+                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ")";
                         currentType = m->return_type;
                     } else {
-                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", index" + std::to_string(indexer - 1) + ", ";
+                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
                             if ((f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"))) {
@@ -1097,11 +1097,10 @@ namespace sclc
                         }
                         path += ")";
                         onComplete(path, currentType);
-                        scopeDepth--;
-                        append("}\n");
                         return;
                     }
                 }
+
             }
         }
 
@@ -1132,8 +1131,6 @@ namespace sclc
         }
         
         onComplete(path, currentType);
-        scopeDepth--;
-        append("}\n");
     }
 
     std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n) {
@@ -1197,7 +1194,7 @@ namespace sclc
     }
 
     std::string capitalize(std::string s) {
-        if (s.size() == 0) return s;
+        if (s.empty()) return s;
         s[0] = std::toupper(s[0]);
         return s;
     }

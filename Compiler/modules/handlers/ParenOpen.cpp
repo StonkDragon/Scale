@@ -53,7 +53,7 @@ namespace sclc {
                     typePop;
                     append("mt_Range$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any));\n");
                     append("tmp;\n");
-                    typeStack.push("Range");
+                    typeStack.push_back("Range");
                     scopeDepth--;
                     append("}));\n");
                 } else if (nelems == 1) {
@@ -83,7 +83,7 @@ namespace sclc {
                     }
                     typePop;
                     append("fn_PartialRange$%s(_scl_top(scl_int));\n", body[i - 1].type == tok_to ? "lowerBound" : "upperBound");
-                    typeStack.push("PartialRange");
+                    typeStack.push_back("PartialRange");
                     scopeDepth--;
                     append("}));\n");
                 } else if (nelems == 0) {
@@ -99,7 +99,7 @@ namespace sclc {
                     append("_scl_popn(0);\n");
                     append("mt_SclObject$init(tmp);\n");
                     append("tmp;\n");
-                    typeStack.push("UnboundRange");
+                    typeStack.push_back("UnboundRange");
                     scopeDepth--;
                     append("}));\n");
                 } else {
@@ -113,11 +113,9 @@ namespace sclc {
                     std::string returns = typeStackTop;
                     append("scl_int return_value = _scl_pop(scl_int);\n");
                     append("ls_ptr = begin_stack_size;\n");
-                    while (typeStack.size() > stackSizeHere) {
-                        typeStack.pop();
-                    }
+                    typeStack.erase(typeStack.begin() + stackSizeHere, typeStack.end());
                     append("_scl_push(scl_int, return_value);\n");
-                    typeStack.push(returns);
+                    typeStack.push_back(returns);
                 }
             }
         } else if (commas == 1) {
@@ -135,7 +133,7 @@ namespace sclc {
             typePop;
             append("mt_Pair$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any));\n");
             append("tmp;\n");
-            typeStack.push("Pair");
+            typeStack.push_back("Pair");
             scopeDepth--;
             append("}));\n");
         } else if (commas == 2) {
@@ -154,7 +152,7 @@ namespace sclc {
             typePop;
             append("mt_Triple$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any), _scl_positive_offset(2, scl_any));\n");
             append("tmp;\n");
-            typeStack.push("Triple");
+            typeStack.push_back("Triple");
             scopeDepth--;
             append("}));\n");
         } else {

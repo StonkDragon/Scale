@@ -16,6 +16,7 @@ namespace sclc
     struct Function {
         size_t lambdaIndex;
         std::string name;
+        std::string name_without_overload;
         std::string return_type;
         std::vector<Token> body;
         std::vector<std::string> modifiers;
