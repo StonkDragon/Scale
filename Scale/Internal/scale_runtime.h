@@ -190,11 +190,14 @@ typedef unsigned long long	scl_uint;
 #error "Can't find a 64-bit integer type"
 #endif
 
-#define SCL_int_MIN			((1L << (sizeof(scl_int) * 8 - 1)) - 1)
 #define SCL_int_MAX			 (1L << (sizeof(scl_int) * 8 - 1))
-#define SCL_uint_MIN		((scl_uint) 0)
+#define SCL_int_MASK		((scl_int) -1)
+#define SCL_int_MIN			((1L << (sizeof(scl_int) * 8 - 1)) - 1)
 #define SCL_uint_MAX		((scl_uint) -1)
+#define SCL_uint_MASK		((scl_uint) -1)
+#define SCL_uint_MIN		((scl_uint) 0)
 
+typedef float				scl_float32;
 #if __SIZEOF_DOUBLE__ == 8
 typedef double 				scl_float;
 #elif __SIZEOF_LONG_DOUBLE__ == 8
@@ -210,20 +213,28 @@ typedef scl_int				scl_bool;
 typedef struct scale_string* scl_str;
 
 #define SCL_int64_MAX		((1LL << (sizeof(scl_int64) * 8 - 1)) - 1)
+#define SCL_int64_MASK		((scl_int64) -1)
 #define SCL_int64_MIN		 (1LL << (sizeof(scl_int64) * 8 - 1))
 #define SCL_int32_MAX		((1 << (sizeof(scl_int32) * 8 - 1)) - 1)
+#define SCL_int32_MASK		((scl_int32) -1)
 #define SCL_int32_MIN		 (1 << (sizeof(scl_int32) * 8 - 1))
 #define SCL_int16_MAX		((1 << (sizeof(scl_int16) * 8 - 1)) - 1)
+#define SCL_int16_MASK		((scl_int16) -1)
 #define SCL_int16_MIN		 (1 << (sizeof(scl_int16) * 8 - 1))
 #define SCL_int8_MAX		((1 << (sizeof(scl_int8) * 8 - 1)) - 1)
+#define SCL_int8_MASK		((scl_int8) -1)
 #define SCL_int8_MIN		 (1 << (sizeof(scl_int8) * 8 - 1))
 #define SCL_uint64_MAX		((scl_uint64) -1)
+#define SCL_uint64_MASK		((scl_uint64) -1)
 #define SCL_uint64_MIN		((scl_uint64) 0)
 #define SCL_uint32_MAX		((scl_uint32) -1)
+#define SCL_uint32_MASK		((scl_uint32) -1)
 #define SCL_uint32_MIN		((scl_uint32) 0)
 #define SCL_uint16_MAX		((scl_uint16) -1)
+#define SCL_uint16_MASK		((scl_uint16) -1)
 #define SCL_uint16_MIN		((scl_uint16) 0)
 #define SCL_uint8_MAX		((scl_uint8) -1)
+#define SCL_uint8_MASK		((scl_uint8) -1)
 #define SCL_uint8_MIN		((scl_uint8) 0)
 
 typedef long long			scl_int64;
@@ -497,6 +508,7 @@ scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
+scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
@@ -516,7 +528,6 @@ scl_float			_scl_array_getf(scl_any arr, scl_int index);
 
 // BEGIN C++ Concurrency API wrappers
 void				cxx_std_thread_join_and_delete(scl_any thread);
-void				cxx_std_thread_delete(scl_any thread);
 void				cxx_std_thread_detach(scl_any thread);
 scl_any				cxx_std_thread_new(void);
 scl_any				cxx_std_thread_new_with_args(scl_any args);
@@ -541,6 +552,7 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 })
 #define _scl_positive_offset(offset, _type)	(*(_type*) &ls[ls_ptr + (offset)])
 #define _scl_top(_type) (*(_type*) &ls[ls_ptr - 1])
+#define _scl_cast_stack(_to, _from) (_scl_top(_to) = (_to) _scl_top(_from))
 #define _scl_popn(n) ls_ptr -= (n)
 
 #define _scl_swap() \

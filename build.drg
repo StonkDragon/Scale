@@ -20,7 +20,6 @@ build: {
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
-    "modules/InfoDumper.cpp";
     "modules/Functions.cpp";
     "modules/Types.cpp";
     "modules/handlers/ReturnOnNil.cpp";
@@ -90,6 +89,11 @@ build: {
     "-Wno-gnu-statement-expression";
     "-O2";
   ];
+  linkFlags: [
+#ifdef LINUX
+    "-Wl,--export-dynamic";
+#endif
+  ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
     "sudo rm -rf /opt/Scale/$(VERSION)/Frameworks";
@@ -127,7 +131,6 @@ install: {
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
-    "modules/InfoDumper.cpp";
     "modules/Functions.cpp";
     "modules/Types.cpp";
     "modules/handlers/ReturnOnNil.cpp";
@@ -193,6 +196,11 @@ install: {
     "-Werror";
     "-Wno-gnu-statement-expression";
     "-O2";
+  ];
+  linkFlags: [
+#ifdef LINUX
+    "-Wl,--export-dynamic";
+#endif
   ];
   preBuild: [
     "sudo rm -rf /opt/Scale/$(VERSION)";

@@ -154,16 +154,14 @@ void _scl_free(scl_any ptr) {
 
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (unlikely(!b)) {
-		scl_int8 cmsg[strlen(msg) * 8];
 		va_list list;
 		va_start(list, msg);
-		vsnprintf(cmsg, strlen(msg) * 8 - 1, msg, list);
+		size_t len = vsnprintf(NULL, 0, msg, list);
+		scl_int8 cmsg[len + 1];
+		vsnprintf(cmsg, len, msg, list);
 		va_end(list);
 
-		char tmp[strlen(cmsg)];
-		snprintf(cmsg, 22 + strlen(cmsg), "Assertion failed: %s", tmp);
-
-		fprintf(stderr, "%s\n", cmsg);
+		fprintf(stderr, "Assertion failed: %s\n", cmsg);
 		abort();
 	}
 }
@@ -295,6 +293,13 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 
 	memcpy(clone, ptr, size);
 	return clone;
+}
+
+scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
+	size -= sizeof(struct Struct);
+	if (size == 0) return dest;
+	memcpy(dest + sizeof(struct Struct), src + sizeof(struct Struct), size);
+	return dest;
 }
 
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);

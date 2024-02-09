@@ -2,19 +2,19 @@
 @std.Int
 @@{frameworkPath}/include/std/lang/Int.scale
 ## Int
-### operator function +(a: int | float, b: int | float): int | float
+### operator function +(a: int | float | float32, b: int | float | float32): int | float | float32
 Returns the sum of `a` and `b`.
 
-### operator function -(a: int | float, b: int | float): int | float
+### operator function -(a: int | float | float32, b: int | float | float32): int | float | float32
 Returns the difference of `a` and `b`.
 
-### operator function *(a: int | float, b: int | float): int | float
+### operator function *(a: int | float | float32, b: int | float | float32): int | float | float32
 Returns the product of `a` and `b`.
 
-### operator function /(a: int | float, b: int | float): int | float
+### operator function /(a: int | float | float32, b: int | float | float32): int | float | float32
 Returns the quotient of `a` and `b`.
 
-### operator function **(a: int | float, b: int | float): int | float
+### operator function **(a: int | float | float32, b: int | float | float32): int | float | float32
 Returns `a` raised to the power of `b`.
 
 ### operator function %(a: int, b: int): int
@@ -44,28 +44,28 @@ Returns `a` rotated left by `b` bits.
 ### operator function >>>(a: int, b: int): int
 Returns `a` rotated right by `b` bits.
 
-### operator function ==(a: int | float, b: int | float): bool
+### operator function ==(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` and `b` represent the same value.
 
-### operator function !=(a: int | float, b: int | float): bool
+### operator function !=(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` and `b` do not represent the same value.
 
-### operator function <(a: int | float, b: int | float): bool
+### operator function <(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` is less than `b`.
 
-### operator function >(a: int | float, b: int | float): bool
+### operator function >(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` is greater than `b`.
 
-### operator function <=(a: int | float, b: int | float): bool
+### operator function <=(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` is less than or equal to `b`.
 
-### operator function >=(a: int | float, b: int | float): bool
+### operator function >=(a: int | float | float32, b: int | float | float32): bool
 Returns true if `a` is greater than or equal to `b`.
 
-### operator function ++(a: int | float): int | float
+### operator function ++(a: int | float | float32): int | float | float32
 Returns the value of `a` incremented by 1.
 
-### operator function --(a: int | float): int | float
+### operator function --(a: int | float | float32): int | float | float32
 Returns the value of `a` decremented by 1.
 
 ### operator function !!(a: any?): any

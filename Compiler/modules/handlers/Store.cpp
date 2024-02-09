@@ -147,7 +147,8 @@ namespace sclc {
                 typePop;
                 return;
             }
-            if (!v.canBeNil) {
+            #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
+            if (!v.canBeNil && !TYPEALIAS_CAN_BE_NIL(result, v.type)) {
                 append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
             }
             if (doCheckTypes && !typesCompatible(result, typeStackTop, type, true)) {
@@ -268,7 +269,7 @@ namespace sclc {
                     transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
                     errors.push_back(err);
                 }
-                if (!typeCanBeNil(currentType)) {
+                if (!typeCanBeNil(currentType) && !TYPEALIAS_CAN_BE_NIL(result, currentType)) {
                     append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
                 }
                 append("%s;\n", path.c_str());

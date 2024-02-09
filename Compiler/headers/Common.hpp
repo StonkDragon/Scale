@@ -82,7 +82,7 @@ namespace sclc {
             this->tokens = tokens;
         }
         ~SyntaxTree() {}
-        TPResult parse(std::vector<std::string>& binaryHeaders);
+        TPResult parse();
     };
 
     class Parser
@@ -94,11 +94,6 @@ namespace sclc {
         ~Parser() {}
         FPResult parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file);
         TPResult& getResult();
-    };
-
-    class InfoDumper {
-    public:
-        static void dump(TPResult& result);
     };
 
     struct Tokenizer

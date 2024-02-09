@@ -87,9 +87,10 @@ namespace sclc {
                 return;
             }
             type = type.substr(6, type.size() - 7);
-            std::string removed = type;
+            std::string removed = removeTypeModifiers(type);
             typePop;
             if (removed != "none" && removed != "nothing") {
+                if (type.front() == '*') type.erase(0, 1);
                 typeStack.push_back(type);
                 append("_scl_await(%s);\n", sclTypeToCType(result, type).c_str());
             } else {

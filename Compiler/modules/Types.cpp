@@ -338,7 +338,12 @@ namespace sclc {
 
     std::string getTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
-        return r.typealiases[t];
+        return r.typealiases[t].first;
+    }
+
+    bool typealiasCanBeNil(TPResult& r, std::string t) {
+        t = removeTypeModifiers(t);
+        return r.typealiases[t].second;
     }
 
     std::string removeTypeModifiers(std::string t) {

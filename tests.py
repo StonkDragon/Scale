@@ -29,7 +29,7 @@ def runTest(file, directory="examples", current=1, total=1):
     compOut = os.popen("sclc main.scale").read()
     
     print(f"[RUN] {file} ({current}/{total})")
-    output = os.popen("out.scl").read()
+    output = os.popen("./out.scl").read()
     if not exists("output.txt"):
         print(f"[SKIP] {file}")
         genTest(test_file)

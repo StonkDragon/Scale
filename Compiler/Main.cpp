@@ -597,9 +597,9 @@ namespace sclc
             Version(VERSION).asString().c_str(),
             "-compatibility_version",
             Version(VERSION).asString().c_str(),
-            "-undefined",
-            "dynamic_lookup",
+            "-undefined dynamic_lookup",
 #elif defined(__linux__)
+            "-Wl,--undefined,dynamic_lookup",
             "-shared",
 #elif defined(_WIN32)
             "-shared",
@@ -869,7 +869,7 @@ namespace sclc
             }
             if (strends(args[i], ".c") || strends(args[i], ".cpp") || strends(args[i], ".c++")) {
                 nonScaleFiles.push_back(args[i]);
-            } else if (strends(std::string(args[i]), ".scale") || strends(std::string(args[i]), ".smod")) {
+            } else if (strends(std::string(args[i]), ".scale")) {
                 if (!fileExists(args[i])) {
                     continue;
                 }
@@ -946,12 +946,14 @@ namespace sclc
             } else if (args[i] == "-makelib") {
                 #if defined(__APPLE__)
                 tmpFlags.push_back("-dynamiclib");
+                tmpFlags.push_back("-undefined dynamic_lookup");
                 #else
+                #if defined(__linux__)
+                tmpFlags.push_back("-Wl,--undefined,dynamic_lookup");
+                #endif
                 tmpFlags.push_back("-shared");
                 tmpFlags.push_back("-fPIC");
                 #endif
-                tmpFlags.push_back("-undefined");
-                tmpFlags.push_back("dynamic_lookup");
                 Main::options::noMain = true;
                 tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
                 if (!outFileSpecified)
@@ -960,11 +962,6 @@ namespace sclc
                 #else
                     Main::options::outfile = outfile = "libout.so";
                 #endif
-            } else if (args[i] == "--dump-parsed-data" || args[i] == "-create-binary-header" || args[i] == "-create-module") {
-                Main::options::dumpInfo = true;
-                Main::options::binaryHeader = (args[i] == "-create-binary-header");
-                if (!outFileSpecified)
-                    Main::options::outfile = outfile = "out.smod";
             } else if (args[i] == "-no-scale-std") {
                 Main::options::noScaleFramework = true;
             } else if (args[i] == "-create-framework") {
@@ -984,11 +981,6 @@ namespace sclc
                     std::cerr << "Error: -stack-size requires an argument" << std::endl;
                     return 1;
                 }
-            } else if (args[i] == "-clear-cache") {
-                std::string cacheDir = scaleFolder + "/tmp";
-                std::filesystem::remove_all(cacheDir);
-                std::filesystem::create_directory(cacheDir);
-                return 0;
             } else if (args[i] == "-doc-for") {
                 if (i + 1 < args.size()) {
                     Main::options::printDocFor = args[i + 1];
@@ -1143,8 +1135,10 @@ namespace sclc
                 continue;
             }
 
-            Tokenizer tokenizer;
-            Main::tokenizer = &tokenizer;
+            if (Main::tokenizer) {
+                delete Main::tokenizer;
+            }
+            Main::tokenizer = new Tokenizer();
             FPResult result = Main::tokenizer->tokenize(filename);
 
             logWarns(result.warns);
@@ -1184,15 +1178,8 @@ namespace sclc
 
         TPResult result;
         if (!Main::options::printCflags) {
-            SyntaxTree lexer(tokens);
-            Main::lexer = &lexer;
-            std::vector<std::string> binaryHeaders;
-            for (std::string& header : Main::options::files) {
-                if (strends(header, ".smod")) {
-                    binaryHeaders.push_back(header);
-                }
-            }
-            result = Main::lexer->parse(binaryHeaders);
+            Main::lexer = new SyntaxTree(tokens);
+            result = Main::lexer->parse();
         }
 
         logWarns(result.warns);
@@ -1212,13 +1199,7 @@ namespace sclc
             return numErrs;
         }
 
-        if (Main::options::dumpInfo) {
-            InfoDumper::dump(result);
-            return 0;
-        }
-
-        Parser parser(result);
-        Main::parser = &parser;
+        Main::parser = new Parser(result);
 
         if (hasCppFiles) {
             // link to c++ library if needed

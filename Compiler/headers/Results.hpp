@@ -59,7 +59,7 @@ namespace sclc
         std::vector<Struct> structs;
         std::vector<Layout> layouts;
         std::vector<Enum> enums;
-        std::unordered_map<std::string, std::string> typealiases;
+        std::unordered_map<std::string, std::pair<std::string, bool>> typealiases;
     };
 
     template<typename R, typename E>

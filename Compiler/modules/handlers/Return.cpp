@@ -22,7 +22,11 @@ namespace sclc {
                 append("return;\n");
             }
         } else {
-            append("return (%s) ({\n", sclTypeToCType(result, function->return_type).c_str());
+            if (function->return_type.front() == '*' && function->has_async) {
+                append("return (%s*) ({\n", sclTypeToCType(result, function->return_type).c_str());
+            } else {
+                append("return (%s) ({\n", sclTypeToCType(result, function->return_type).c_str());
+            }
             scopeDepth++;
 
             std::string returningType = typeStackTop;
@@ -30,31 +34,41 @@ namespace sclc {
                 returningType = function->namedReturnValue.type;
                 append("%s retVal = Var_%s;\n", sclTypeToCType(result, returningType).c_str(), function->namedReturnValue.name.c_str());
             } else {
-                if (returningType.front() == '*') {
-                    append("%s retVal = *_scl_pop(%s*);\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                if (function->return_type.front() == '*') {
+                    if (!function->has_async) {
+                        append("%s retVal = *_scl_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
+                    } else {
+                        append("%s* retVal = _scl_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
+                    }
                 } else {
-                    append("%s retVal = _scl_pop(%s);\n", sclTypeToCType(result, returningType).c_str(), sclTypeToCType(result, returningType).c_str());
+                    append("%s retVal = _scl_pop(%s);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                 }
             }
-            if (!typeCanBeNil(function->return_type) && !hasEnum(result, function->return_type)) {
-                if (typeCanBeNil(returningType)) {
-                    transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
-                    errors.push_back(err);
-                    // return;
+            if (function->return_type.front() != '*' && function->has_async) {
+                bool cantBeNil = !typeCanBeNil(function->return_type) && !hasEnum(result, function->return_type);
+                if (cantBeNil) {
+                    #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
+                    if (TYPEALIAS_CAN_BE_NIL(result, function->return_type)) {
+                        cantBeNil = false;
+                    }
                 }
-                if (!function->namedReturnValue.name.size()) {
-                    if (typeCanBeNil(returningType)) {
+                if (cantBeNil) {
+                    if (typeCanBeNil(returningType) && !TYPEALIAS_CAN_BE_NIL(result, returningType)) {
                         transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
                         errors.push_back(err);
-                        // return;
                     }
-                    if (!typesCompatible(result, returningType, function->return_type, true)) {
-                        transpilerError("Returning type '" + returningType + "' from function with return type '" + function->return_type + "'", i);
-                        errors.push_back(err);
-                        // return;
+                    if (!function->namedReturnValue.name.size()) {
+                        if (typeCanBeNil(returningType)) {
+                            transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
+                            errors.push_back(err);
+                        }
+                        if (!typesCompatible(result, returningType, function->return_type, true)) {
+                            transpilerError("Returning type '" + returningType + "' from function with return type '" + function->return_type + "'", i);
+                            errors.push_back(err);
+                        }
                     }
+                    append("SCL_ASSUME(*(scl_int*) &retVal, \"Tried returning nil from function returning not-nil type '%%s'!\", \"%s\");\n", function->return_type.c_str());
                 }
-                append("SCL_ASSUME(*(scl_int*) &retVal, \"Tried returning nil from function returning not-nil type '%%s'!\", \"%s\");\n", function->return_type.c_str());
             }
             append("retVal;\n");
             scopeDepth--;

@@ -1,7 +1,7 @@
-    1326 Compiler/Common.cpp
-    1360 Compiler/Main.cpp
+    1325 Compiler/Common.cpp
+    1341 Compiler/Main.cpp
       40 Compiler/headers/Color.hpp
-     526 Compiler/headers/Common.hpp
+     521 Compiler/headers/Common.hpp
      107 Compiler/headers/DragonConfig.hpp
       29 Compiler/headers/Enum.hpp
      101 Compiler/headers/Function.hpp
@@ -12,20 +12,19 @@
      240 Compiler/headers/Token.hpp
      100 Compiler/headers/TokenType.hpp
      187 Compiler/headers/TranspilerDefs.hpp
-      39 Compiler/headers/Types.hpp
+      40 Compiler/headers/Types.hpp
       82 Compiler/headers/Variable.hpp
      106 Compiler/headers/Version.hpp
      502 Compiler/modules/DragonConfig.cpp
      141 Compiler/modules/Function.cpp
-    1169 Compiler/modules/Functions.cpp
-     567 Compiler/modules/InfoDumper.cpp
+    1193 Compiler/modules/Functions.cpp
      299 Compiler/modules/Parser.cpp
-    3521 Compiler/modules/SyntaxTree.cpp
+    3100 Compiler/modules/SyntaxTree.cpp
      636 Compiler/modules/Tokenizer.cpp
-     742 Compiler/modules/Transpiler.cpp
-     558 Compiler/modules/Types.cpp
+     759 Compiler/modules/Transpiler.cpp
+     563 Compiler/modules/Types.cpp
      322 Compiler/modules/handlers/AddrRef.cpp
-      92 Compiler/modules/handlers/As.cpp
+      45 Compiler/modules/handlers/As.cpp
      254 Compiler/modules/handlers/BracketOpen.cpp
       12 Compiler/modules/handlers/Break.cpp
       14 Compiler/modules/handlers/CDecl.cpp
@@ -54,7 +53,7 @@
      172 Compiler/modules/handlers/Foreach.cpp
       17 Compiler/modules/handlers/Goto.cpp
       18 Compiler/modules/handlers/INVALID.cpp
-     598 Compiler/modules/handlers/Identifier.cpp
+     599 Compiler/modules/handlers/Identifier.cpp
       84 Compiler/modules/handlers/If.cpp
       35 Compiler/modules/handlers/IntegerLiteral.cpp
       46 Compiler/modules/handlers/Is.cpp
@@ -64,9 +63,9 @@
      166 Compiler/modules/handlers/ParenOpen.cpp
       38 Compiler/modules/handlers/Pragma.cpp
       42 Compiler/modules/handlers/Repeat.cpp
-      68 Compiler/modules/handlers/Return.cpp
+      82 Compiler/modules/handlers/Return.cpp
       35 Compiler/modules/handlers/ReturnOnNil.cpp
-     280 Compiler/modules/handlers/Store.cpp
+     281 Compiler/modules/handlers/Store.cpp
       20 Compiler/modules/handlers/StringLiteral.cpp
       29 Compiler/modules/handlers/Switch.cpp
       13 Compiler/modules/handlers/TruthyType.cpp
@@ -84,7 +83,7 @@
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       68 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
       55 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
-     251 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
+     312 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      284 Scale/Frameworks/Scale.framework/include/std/lang/List.scale
      159 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
       31 Scale/Frameworks/Scale.framework/include/std/lang/Option.scale
@@ -114,8 +113,8 @@
      112 Scale/Frameworks/Scale.framework/include/std/util/TypedArray.scale
       88 Scale/Internal/preproc.h
      129 Scale/Internal/scale_cxx.cpp
-     843 Scale/Internal/scale_runtime.c
-     632 Scale/Internal/scale_runtime.h
+     848 Scale/Internal/scale_runtime.c
+     644 Scale/Internal/scale_runtime.h
       15 examples/arguments/main.scale
       21 examples/array-destructuring/main.scale
       10 examples/array-insert/main.scale
@@ -176,10 +175,10 @@
       17 examples/variadics/main.scale
       13 examples/while/main.scale
       27 examples/zip/main.scale
-      53 install.cpp
+      87 install.cpp
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   26006 total
+   25121 total

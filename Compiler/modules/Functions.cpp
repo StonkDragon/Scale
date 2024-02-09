@@ -5,6 +5,20 @@
 #include "../headers/TranspilerDefs.hpp"
 #include "../headers/Functions.hpp"
 
+#define OS_APPLE 1
+#define OS_WIN 2
+#define OS_LINUX 3
+#define OS_OTHER 4
+#if defined(__APPLE__)
+#define OS OS_APPLE
+#elif defined(_WIN32)
+#define OS OS_WIN
+#elif defined(__gnu_linux__)
+#define OS OS_LINUX
+#else
+#define OS OS_OTHER
+#endif
+
 #ifndef VERSION
 #define VERSION ""
 #endif
@@ -130,8 +144,14 @@ namespace sclc {
         append2(";\n");
 
         if (f->return_type.size() && f->return_type.front() == '*' && !f->has_async) {
-            append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
-            append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
+            std::string cType = sclTypeToCType(result, f->return_type);
+            const Struct& s = getStructByName(result, f->return_type);
+            if (s != Struct::Null) {
+                append("_scl_push(scl_any, ALLOC(%s));\n", s.name.c_str());
+            } else {
+                append("_scl_push(scl_any, _scl_alloc(sizeof(%s)));\n", cType.c_str());
+            }
+            append("memcpy(_scl_top(scl_any), &tmp, sizeof(%s));\n", cType.c_str());
             scopeDepth--;
             append("}\n");
         }
@@ -167,21 +187,12 @@ namespace sclc {
 
         std::string symbol = f->name;
 
-        if (f->has_lambda) {
+        if (f->isMethod && f->has_foreign) {
+            symbol = f->member_type + "$" + f->name;
+        } else if (!f->has_foreign || f->has_lambda) {
             symbol = sclFunctionNameToFriendlyString(f);
-        } else if (f->isMethod) {
-            Method* m = ((Method*) f);
-            if (f->has_foreign) {
-                symbol = m->member_type + "$" + f->name;
-            } else {
-                symbol = sclFunctionNameToFriendlyString(f);
-            }
-        } else {
-            std::string finalName = symbol;
-            if (f->has_foreign) {
-                symbol = finalName;
-            } else {
-                symbol = sclFunctionNameToFriendlyString(f);
+            if constexpr (OS == OS_LINUX) {
+                symbol = replace(symbol, "@", "<at>");
             }
         }
 
@@ -576,8 +587,14 @@ namespace sclc {
         }
         append2(";\n");
         if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
-            append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
-            append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
+            std::string cType = sclTypeToCType(result, self->return_type);
+            const Struct& s = getStructByName(result, self->return_type);
+            if (s != Struct::Null) {
+                append("_scl_push(scl_any, ALLOC(%s));\n", s.name.c_str());
+            } else {
+                append("_scl_push(scl_any, _scl_alloc(sizeof(%s)));\n", cType.c_str());
+            }
+            append("memcpy(_scl_top(scl_any), &tmp, sizeof(%s));\n", cType.c_str());
             scopeDepth--;
             append("}\n");
         }
@@ -991,8 +1008,15 @@ namespace sclc {
         append2(";\n");
 
         if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
-            append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");
-            append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");
+            std::string cType = sclTypeToCType(result, self->return_type);
+            const Struct& s = getStructByName(result, self->return_type);
+            if (s != Struct::Null) {
+                append("_scl_push(scl_any, ALLOC(%s));\n", s.name.c_str());
+                append("_scl_copy_fields(_scl_top(scl_any), &tmp, sizeof(struct Struct_%s));\n", s.name.c_str());
+            } else {
+                append("_scl_push(scl_any, _scl_alloc(sizeof(%s)));\n", cType.c_str());
+                append("memcpy(_scl_top(scl_any), &tmp, sizeof(%s));\n", cType.c_str());
+            }
             scopeDepth--;
             append("}\n");
         }

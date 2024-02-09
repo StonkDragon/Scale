@@ -13,7 +13,7 @@ extern "C" {
 wrap void cxx_std_thread_join_and_delete(scl_any thread) {
     try {
         ((std::thread*) thread)->join();
-        cxx_std_thread_delete(thread);
+        delete ((std::thread*) thread);
     } catch(const std::system_error& e) {
         _scl_runtime_error(EX_THREAD_ERROR, "std::thread::join failed: %s\n", e.what());
     }

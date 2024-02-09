@@ -80,7 +80,6 @@ namespace sclc
     long long Main::writeFunctionsTime = 0;
     bool Main::options::noMain = false;
     bool Main::options::Werror = false;
-    bool Main::options::dumpInfo = false;
     bool Main::options::printDocs = false;
     bool Main::options::debugBuild = false;
     bool Main::options::printCflags = false;

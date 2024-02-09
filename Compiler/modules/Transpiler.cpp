@@ -157,7 +157,11 @@ namespace sclc {
                             append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                         }
                         append("};\n");
-                        append("%s fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
+                        if (function->return_type.front() != '*') {
+                            append("%s fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
+                        } else {
+                            append("%s* fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
+                        }
                     } else {
                         append("%s fn_%s(%s)", return_type.c_str(), function->name.c_str(), arguments.c_str());
                     }
@@ -189,7 +193,11 @@ namespace sclc {
                         append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                     }
                     append("};\n");
-                    append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                    if (function->return_type.front() != '*') {
+                        append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                    } else {
+                        append("%s* mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                    }
                 } else {
                     append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 }
@@ -230,7 +238,7 @@ namespace sclc {
         int scopeDepth = 0;
         for (auto ta : result.typealiases) {
             if (ta.first == "nothing" || ta.first == "varargs") continue;
-            std::string type = ta.second;
+            std::string type = ta.second.first;
             std::string name = " ta_" + ta.first;
             if (strcontains(type, "%")) {
                 type = replace(type, "%", name);
@@ -284,7 +292,7 @@ namespace sclc {
 
         for (auto&& ta : result.typealiases) {
             if (ta.first == "nothing" || ta.first == "varargs") continue;
-            std::string type = ta.second;
+            std::string type = ta.second.first;
             std::string name = " ta_" + ta.first;
             if (strcontains(type, "%")) {
                 type = replace(type, "%", name);
@@ -570,7 +578,12 @@ namespace sclc {
                     errors.push_back(err);
                     continue;
                 }
-                append("%s mt_%s$%s(%s) {\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
+                if (UNLIKELY(function->return_type.front() == '*' && function->has_async)) {
+                    append("%s* ", return_type.c_str());
+                } else {
+                    append("%s ", return_type.c_str());
+                }
+                append2("mt_%s$%s(%s) {\n", function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 if (function->name == "init" && currentStruct.super.size()) {
                     Method* parentInit = getMethodByName(result, "init", currentStruct.super);
                     if (parentInit && parentInit->args.size() == 1) {
@@ -601,7 +614,11 @@ namespace sclc {
                     } else {
                         append("");
                     }
-                    append2("%s ", return_type.c_str());
+                    if (UNLIKELY(function->return_type.front() == '*' && function->has_async)) {
+                        append2("%s* ", return_type.c_str());
+                    } else {
+                        append2("%s ", return_type.c_str());
+                    }
                 }
                 append2("fn_%s(%s) {\n", function->name.c_str(), arguments.c_str());
                 if (function->has_restrict) {
@@ -671,7 +688,7 @@ namespace sclc {
 
             for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
                 const Variable& arg = function->args[a];
-                if (UNLIKELY(typeCanBeNil(arg.type) || arg.type == "varargs")) continue;
+                if (UNLIKELY(typeCanBeNil(arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
                 if (!arg.name.empty()) {
                     append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
