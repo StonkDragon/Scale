@@ -21,9 +21,9 @@ void depend_on_system_command(const char* command, const char* error) {
 }
 
 #ifdef _WIN32
-#define SOFT_DEPEND(_cmd) std::system(_cmd " > nul 2>&1")
+#define SOFT_DEPEND(_cmd) std::system(_cmd " > nul 2>&1") == 0
 #else
-#define SOFT_DEPEND(_cmd) std::system(_cmd " > /dev/null 2>&1")
+#define SOFT_DEPEND(_cmd) std::system(_cmd " > /dev/null 2>&1") == 0
 #endif
 
 int main(int argc, char const *argv[]) {
