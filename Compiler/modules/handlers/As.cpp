@@ -23,7 +23,7 @@ namespace sclc {
             append("_scl_checked_cast(_scl_top(scl_any), 0x%lxUL, \"%s\");\n", id(destType.c_str()), destType.c_str());
         }
 
-        if (!typeCanBeNil(type.value)) {
+        if (!typeCanBeNil(type.value) && !typealiasCanBeNil(result, type.value)) {
             if (typeCanBeNil(typeStackTop)) {
                 append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             }

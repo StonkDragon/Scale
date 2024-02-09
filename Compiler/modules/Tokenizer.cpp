@@ -77,12 +77,25 @@ namespace sclc
                 value = "";
                 goto stringLiteral;
             }
-        } else if ((c == '-' && isHexDigit(source[current + 1])) || isHexDigit(c)) {
+        } else if ((c == '-' && isDigit(source[current + 1])) || isDigit(c)) {
+            if (c == '-') {
+                value += c;
+                c = source[++current];
+                column++;
+            }
             bool isFloat = false;
             value += c;
             c = source[++current];
             column++;
-            while ((!isSpace(c) && isHexDigit(c)) || (c == '.' && !isFloat)) {
+            int(*validDigit)(char) = isDigit;
+            if (c == 'x' || c == 'X') {
+                validDigit = isHexDigit;
+            } else if (c == 'o' || c == 'O') {
+                validDigit = isOctDigit;
+            } else if (c == 'b' || c == 'B') {
+                validDigit = isBinDigit;
+            }
+            while (validDigit(c) || (c == '.' && !isFloat)) {
                 value += c;
                 if (c == '.') {
                     isFloat = true;
@@ -91,8 +104,53 @@ namespace sclc
                 column++;
             }
             if (isFloat) {
+                if (c == 'f' || c == 'F' || c == 'd' || c == 'D') {
+                    if (c == 'f' || c == 'F') {
+                        value += 'f';
+                    } else if (c == 'd' || c == 'D') {
+                        value += 'd';
+                    }
+                    c = source[++current];
+                    column++;
+                }
                 return Token(tok_number_float, value, line, filename, begin);
             } else {
+                if (c == 'i' || c == 'u' || c == 'I' || c == 'U') {
+                    if (c == 'i' || c == 'I') {
+                        value += 'i';
+                    } else {
+                        value += 'u';
+                    }
+                    c = source[++current];
+                    column++;
+                    if (c == '8' || c == '1' || c == '3' || c == '6') {
+                        if (c == '8') {
+                            value += '8';
+                            c = source[++current];
+                            column++;
+                        } else {
+                            value += c;
+                            c = source[++current];
+                            column++;
+                            if (c == '2' || c == '4' || c == '6') {
+                                value += c;
+                                c = source[++current];
+                                column++;
+                            } else {
+                                syntaxError("Invalid integer suffix");
+                            }
+                        }
+                    }
+                } else if (validDigit != isHexDigit && (c == 'f' || c == 'F' || c == 'd' || c == 'D')) {
+                    if (c == 'f' || c == 'F') {
+                        value += 'f';
+                    } else if (c == 'd' || c == 'D') {
+                        value += 'd';
+                    }
+                    c = source[++current];
+                    column++;
+                    return Token(tok_number_float, value, line, filename, begin);
+                }
                 return Token(tok_number, value, line, filename, begin);
             }
         } else if (c == '"') {

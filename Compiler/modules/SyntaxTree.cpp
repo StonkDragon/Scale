@@ -1148,6 +1148,7 @@ namespace sclc {
 
         int isInLambda = 0;
         int isInUnsafe = 0;
+        int nInits = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -2110,17 +2111,6 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                // if (currentStruct != nullptr) {
-                //     FPResult result;
-                //     result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                //     result.value = token.value;
-                //     result.location.line = token.location.line;
-                //     result.location = token.location;
-                //     result.type = token.type;
-                //     result.success = false;
-                //     errors.push_back(result);
-                //     continue;
-                // }
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
@@ -2526,14 +2516,64 @@ namespace sclc {
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
                     (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
-                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_comma) &&
-                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_paren_open)
                 ) isInLambda++;
                 if (token.type == tok_identifier && token.value == "unsafe") {
                     isInUnsafe++;
                 }
                 if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
+            } else if (token.type == tok_paren_open) {
+                currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits)));
+                nInits++;
+                currentFunction->addModifier("construct");
+                currentFunction->return_type = "none";
+                int depth = 0;
+                do {
+                    if (tokens[i].type == tok_paren_open) {
+                        depth++;
+                    } else if (tokens[i].type == tok_paren_close) {
+                        depth--;
+                    }
+                    currentFunction->addToken(tokens[i]);
+                    i++;
+                } while (depth > 0);
+                if (tokens[i].type != tok_store) {
+                    FPResult result;
+                    result.message = "Expected =>, but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentFunction->addToken(tokens[i]);
+                i++;
+                if (tokens[i].type != tok_declare) {
+                    FPResult result;
+                    result.message = "Expected 'decl', but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                if (tokens[i].type != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier, but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentFunction->addToken(tokens[i]);
+                i -= 2;
+                functions.push_back(currentFunction);
+                currentFunction = nullptr;
             } else if (token.type == tok_declare && currentStructs.empty()) {
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;

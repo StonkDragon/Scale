@@ -19,8 +19,8 @@
      141 Compiler/modules/Function.cpp
     1193 Compiler/modules/Functions.cpp
      299 Compiler/modules/Parser.cpp
-    3100 Compiler/modules/SyntaxTree.cpp
-     636 Compiler/modules/Tokenizer.cpp
+    3140 Compiler/modules/SyntaxTree.cpp
+     694 Compiler/modules/Tokenizer.cpp
      759 Compiler/modules/Transpiler.cpp
      563 Compiler/modules/Types.cpp
      322 Compiler/modules/handlers/AddrRef.cpp
@@ -48,14 +48,14 @@
       45 Compiler/modules/handlers/ExternC.cpp
       17 Compiler/modules/handlers/FalsyType.cpp
       15 Compiler/modules/handlers/Fi.cpp
-      21 Compiler/modules/handlers/FloatLiteral.cpp
+      25 Compiler/modules/handlers/FloatLiteral.cpp
       98 Compiler/modules/handlers/For.cpp
      172 Compiler/modules/handlers/Foreach.cpp
       17 Compiler/modules/handlers/Goto.cpp
       18 Compiler/modules/handlers/INVALID.cpp
      599 Compiler/modules/handlers/Identifier.cpp
       84 Compiler/modules/handlers/If.cpp
-      35 Compiler/modules/handlers/IntegerLiteral.cpp
+      53 Compiler/modules/handlers/IntegerLiteral.cpp
       46 Compiler/modules/handlers/Is.cpp
       17 Compiler/modules/handlers/Label.cpp
      135 Compiler/modules/handlers/Lambda.cpp
@@ -82,7 +82,7 @@
      204 Scale/Frameworks/Scale.framework/include/std/lang/File.scale
      122 Scale/Frameworks/Scale.framework/include/std/lang/Float.scale
       68 Scale/Frameworks/Scale.framework/include/std/lang/Fmt.scale
-      55 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
+      27 Scale/Frameworks/Scale.framework/include/std/lang/IO.scale
      312 Scale/Frameworks/Scale.framework/include/std/lang/Int.scale
      284 Scale/Frameworks/Scale.framework/include/std/lang/List.scale
      159 Scale/Frameworks/Scale.framework/include/std/lang/Math.scale
@@ -175,10 +175,10 @@
       17 examples/variadics/main.scale
       13 examples/while/main.scale
       27 examples/zip/main.scale
-      87 install.cpp
+      53 install.cpp
       14 interop-example/foo.c
       14 interop-example/main.scale
      319 interop-example/scale_interop.h
       66 nobuild-post.cpp
     1175 nobuild.h
-   25121 total
+   25179 total
