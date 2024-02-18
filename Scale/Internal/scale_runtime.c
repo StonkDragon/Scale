@@ -92,9 +92,6 @@ scl_int _scl_sizeof(scl_any ptr) {
 	return layout->size;
 }
 
-#define FLAG_INSTANCE	0b00000001
-#define FLAG_ARRAY		0b00000010
-
 scl_any _scl_alloc(scl_int size) {
 	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
@@ -105,8 +102,9 @@ scl_any _scl_alloc(scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
 	}
 
-	((memory_layout_t*) ptr)->size = orig_size;
-	((memory_layout_t*) ptr)->flags = 0;
+	memory_layout_t x = {0};
+	x.size = orig_size;
+	*(memory_layout_t*) ptr = x;
 
 	return ptr + sizeof(memory_layout_t);
 }
@@ -128,12 +126,12 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
-	((memory_layout_t*) ptr)->size = orig_size;
+	memory_layout_t x = {0};
+	x.size = orig_size;
 	if (likely(layout)) {
-		((memory_layout_t*) ptr)->flags = layout->flags;
-	} else {
-		((memory_layout_t*) ptr)->flags = 0;
+		x.flags = layout->flags;
 	}
+	*(memory_layout_t*) ptr = x;
 
 	return ptr + sizeof(memory_layout_t);
 }
@@ -141,7 +139,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 void _scl_free(scl_any ptr) {
 	if (unlikely(ptr == nil)) return;
 	if (_scl_is_instance(ptr)) {
-		cxx_std_recursive_mutex_delete(((Struct*) ptr)->mutex);
+		cxx_std_recursive_mutex_delete(&((Struct*) ptr)->mutex);
 	}
 	ptr = GC_base(ptr);
 	if (likely(ptr != nil)) {
@@ -240,14 +238,14 @@ void _scl_lock(scl_any obj) {
 	if (unlikely(!_scl_is_instance(obj))) {
 		return;
 	}
-	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_lock(&((Struct*) obj)->mutex);
 }
 
 void _scl_unlock(scl_any obj) {
 	if (unlikely(!_scl_is_instance(obj))) {
 		return;
 	}
-	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
 }
 
 #if !defined(__pure2)
@@ -277,13 +275,13 @@ scl_int _scl_identity_hash(scl_any _obj) {
 		return REINTERPRET_CAST(scl_int, _obj);
 	}
 	Struct* obj = (Struct*) _obj;
-	cxx_std_recursive_mutex_lock(obj->mutex);
+	cxx_std_recursive_mutex_lock(&obj->mutex);
 	scl_int size = _scl_sizeof(obj);
 	scl_int hash = REINTERPRET_CAST(scl_int, obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((scl_int8*) obj)[i];
 	}
-	cxx_std_recursive_mutex_unlock(obj->mutex);
+	cxx_std_recursive_mutex_unlock(&obj->mutex);
 	return hash;
 }
 
@@ -309,18 +307,11 @@ _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, i
 		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
 
-	const struct TypeInfo* ti;
-	const _scl_lambda* vtable;
+	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->statics : ((Struct*) type)->statics->super;
+	const struct _scl_methodinfo* mi = ti->vtable_info;
+	const _scl_lambda* vtable = ti->vtable;
 
-	if (likely(!onSuper)) {
-		ti = ((Struct*) type)->statics;
-		vtable = ((Struct*) type)->vtable;
-	} else {
-		ti = ((Struct*) type)->statics->super;
-		vtable = ((Struct*) type)->statics->super->vtable;
-	}
-
-	scl_int index = _scl_search_method_index(ti->vtable_info, method, signature);
+	scl_int index = _scl_search_method_index(mi, method, signature);
 	return index >= 0 ? vtable[index] : nil;
 }
 
@@ -376,20 +367,19 @@ scl_any _scl_alloc_struct(const TypeInfo* statics) {
 	if (unlikely(layout == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
-	layout->flags |= FLAG_INSTANCE;
-
-	((Struct*) ptr)->mutex = cxx_std_recursive_mutex_new();
-	((Struct*) ptr)->statics = (TypeInfo*) statics;
-	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
+	layout->flags |= MEM_FLAG_INSTANCE;
+	Struct s = {
+		.statics = (TypeInfo*) statics,
+		.vtable = (_scl_lambda*) statics->vtable
+	};
+	*(Struct*) ptr = s;
 
 	return ptr;
 }
 
 scl_int _scl_is_instance(scl_any ptr) {
-	if (unlikely(ptr == nil)) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (unlikely(layout == nil)) return 0;
-	return layout->flags & FLAG_INSTANCE;
+	return layout && (layout->flags & MEM_FLAG_INSTANCE);
 }
 
 scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
@@ -480,7 +470,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 		memory_layout_t* layout = _scl_get_memory_layout(instance);
 
 		scl_int size;
-		scl_bool is_instance = layout && (layout->flags & FLAG_INSTANCE);
+		scl_bool is_instance = layout && (layout->flags & MEM_FLAG_INSTANCE);
 		if (is_instance) {
 			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
 		} else {
@@ -512,7 +502,7 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	scl_int size = num_elems * elem_size;
 	scl_any arr = _scl_alloc(size);
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	layout->flags |= FLAG_ARRAY;
+	layout->flags |= MEM_FLAG_ARRAY;
 	layout->array_elem_size = elem_size;
 	return arr;
 }
@@ -532,14 +522,8 @@ scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl
 }
 
 scl_int _scl_is_array(scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		return 0;
-	}
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	if (unlikely(layout == nil)) {
-		return 0;
-	}
-	return layout->flags & FLAG_ARRAY;
+	return layout && (layout->flags & MEM_FLAG_ARRAY);
 }
 
 scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_int elem_size) {
@@ -549,10 +533,7 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 	if (dimensions == 1) {
 		return (scl_any*) _scl_new_array_by_size(sizes[0], elem_size);
 	}
-	scl_any* arr = (scl_any*) _scl_alloc(sizes[0] * sizeof(scl_any));
-	memory_layout_t* layout = _scl_get_memory_layout(arr);
-	layout->flags |= FLAG_ARRAY;
-	layout->array_elem_size = sizeof(scl_any);
+	scl_any* arr = (scl_any*) _scl_new_array_by_size(sizes[0], sizeof(scl_any));
 	for (scl_int i = 0; i < sizes[0]; i++) {
 		arr[i] = _scl_multi_new_array_by_size(dimensions - 1, &(sizes[1]), elem_size);
 	}
@@ -560,8 +541,8 @@ scl_any* _scl_multi_new_array_by_size(scl_int dimensions, scl_int sizes[], scl_i
 }
 
 scl_int _scl_array_size_unchecked(scl_any* arr) {
-	memory_layout_t* lay = _scl_get_memory_layout(arr);
-	return lay->size / lay->array_elem_size;
+	memory_layout_t lay = *_scl_get_memory_layout(arr);
+	return lay.size / lay.array_elem_size;
 }
 
 scl_int _scl_array_elem_size_unchecked(scl_any* arr) {
@@ -569,9 +550,6 @@ scl_int _scl_array_elem_size_unchecked(scl_any* arr) {
 }
 
 scl_int _scl_array_size(scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
@@ -579,32 +557,27 @@ scl_int _scl_array_size(scl_any* arr) {
 }
 
 scl_int _scl_array_elem_size(scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	return _scl_array_elem_size_unchecked(arr);
 }
 
-void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
-	if (unlikely(!_scl_is_array(arr))) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
-	}
+void _scl_array_check_bounds_or_throw_unchecked(scl_any* arr, scl_int index) {
 	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
 	}
 }
 
-scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
+void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
+	if (unlikely(!_scl_is_array(arr))) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
+	_scl_array_check_bounds_or_throw_unchecked(arr, index);
+}
+
+scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
@@ -614,7 +587,7 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;
 	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * elem_size);
 	memory_layout_t* layout = _scl_get_memory_layout(new_arr);
-	layout->flags |= FLAG_ARRAY;
+	layout->flags |= MEM_FLAG_ARRAY;
 	layout->array_elem_size = elem_size;
 	return new_arr;
 }
@@ -650,37 +623,23 @@ static inline scl_int read_sized(scl_any ptr, scl_int size) {
 }
 
 void _scl_array_set(scl_any arr, scl_int index, scl_int value) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 
 	scl_int size = _scl_array_size_unchecked(arr);
-
-	if (unlikely(index < 0 || index >= size)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
-	}
-
+	_scl_array_check_bounds_or_throw_unchecked(arr, index);
 	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
 	write_sized(arr + index * elem_size, value, elem_size);
 }
 
 scl_any _scl_array_get(scl_any arr, scl_int index) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 
 	scl_int size = _scl_array_size_unchecked(arr);
-
-	if (unlikely(index < 0 || index >= size)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
-	}
-
+	_scl_array_check_bounds_or_throw_unchecked(arr, index);
 	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
 	return (scl_any) read_sized(arr + index * elem_size, elem_size);
 }
@@ -694,9 +653,6 @@ scl_float _scl_array_getf(scl_any arr, scl_int index) {
 }
 
 scl_any* _scl_array_sort(scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
@@ -723,9 +679,6 @@ scl_any* _scl_array_sort(scl_any* arr) {
 }
 
 scl_any* _scl_array_reverse(scl_any* arr) {
-	if (unlikely(arr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "nil pointer detected");
-	}
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
@@ -746,26 +699,23 @@ void _scl_trace_remove(struct _scl_backtrace* bt) {
 }
 
 void _scl_unlock_ptr(void* lock_ptr) {
-	Struct* lock = *(Struct**) lock_ptr;
-	cxx_std_recursive_mutex_unlock(lock->mutex);
+	cxx_std_recursive_mutex_unlock(&(*(Struct**) lock_ptr)->mutex);
 }
 
-void _scl_delete_ptr(void* _ptr) {
-	scl_any* ptr = (scl_any*) _ptr;
-	_scl_free(*ptr);
+void _scl_delete_ptr(void* ptr) {
+	_scl_free(*(scl_any*) ptr);
 }
 
 void _scl_throw(scl_any ex) {
-	scl_uint* stack_top = (scl_uint*) &stack_top;
-	struct GC_stack_base sb;
-	GC_get_my_stackbottom(&sb);
-	scl_uint* stack_bottom = sb.mem_base;
-
-	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
-
 	ID_t error_type = type_id("Error");
 
 	if (likely(!_scl_is_instance_of(ex, error_type))) {
+		scl_uint* stack_top = (scl_uint*) &stack_top;
+		struct GC_stack_base sb;
+		GC_get_my_stackbottom(&sb);
+		scl_uint* stack_bottom = sb.mem_base;
+
+		scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
 		while (stack_top != stack_bottom) {
 			if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
 				stack_top += iteration_direction;
@@ -817,10 +767,9 @@ _scl_no_return _scl_symbol_hidden static void* _scl_oom(scl_uint size) {
 	exit(-1);
 }
 
-_scl_symbol_hidden static int setupCalled = 0;
-
 _scl_constructor
 void _scl_setup(void) {
+	static int setupCalled;
 	if (setupCalled) {
 		return;
 	}

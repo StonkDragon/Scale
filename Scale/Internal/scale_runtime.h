@@ -322,6 +322,9 @@ struct memory_layout {
 	scl_int array_elem_size;
 };
 
+#define MEM_FLAG_INSTANCE	0b00000001
+#define MEM_FLAG_ARRAY		0b00000010
+
 typedef struct memory_layout memory_layout_t;
 struct _scl_methodinfo {
 	const ID_t							pure_name;
@@ -536,9 +539,9 @@ scl_any				cxx_await(scl_any t);
 void				cxx_std_this_thread_yield(void);
 
 scl_any				cxx_std_recursive_mutex_new(void);
-void				cxx_std_recursive_mutex_delete(scl_any mutex);
-void				cxx_std_recursive_mutex_lock(scl_any mutex);
-void				cxx_std_recursive_mutex_unlock(scl_any mutex);
+void				cxx_std_recursive_mutex_delete(scl_any* mutex);
+void				cxx_std_recursive_mutex_lock(scl_any* mutex);
+void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
 #define _scl_push(_type, _value) ({ \
