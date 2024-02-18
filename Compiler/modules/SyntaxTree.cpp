@@ -3,6 +3,7 @@
 #include <vector>
 #include <optional>
 #include <list>
+#include <array>
 
 #include "../headers/Common.hpp"
 

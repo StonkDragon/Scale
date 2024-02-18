@@ -3,6 +3,11 @@
 #include <cstdlib>
 #include <thread>
 #include <shared_mutex>
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <signal.h>
 
 #ifdef _WIN32
 #include <windows.h>
