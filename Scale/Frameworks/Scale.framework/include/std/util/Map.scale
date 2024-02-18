@@ -2,7 +2,7 @@ import std.util.Pair
 import std.util.Iterable
 import std.util.InvalidArgumentException
 
-final sealed struct MapEntry<T: SclObject>
+final sealed struct MapEntry<T>
   decl key: str
   decl value: T
 
@@ -16,11 +16,11 @@ final sealed struct MapEntry<T: SclObject>
   end
 end
 
-sealed struct Map<T: SclObject> is Iterable
-  private decl data: TypedArray<MapEntry<SclObject>>
+sealed struct Map<T> is Iterable
+  private decl data: TypedArray<MapEntry<any>>
 
   function init(size: int): none
-    size TypedArray<MapEntry<SclObject>>::new => self.data
+    size TypedArray<MapEntry<any>>::new => self.data
   end
 
   function [](key: str): T
@@ -29,7 +29,7 @@ sealed struct Map<T: SclObject> is Iterable
 
   function get(key: str): T
     for i in 0 to self.data.count do
-      self.data[i] => decl entry: MapEntry<SclObject>
+      self.data[i] => decl entry: MapEntry<any>
       if entry.key key == then
         entry.value as T return
       fi
@@ -52,16 +52,16 @@ sealed struct Map<T: SclObject> is Iterable
 
   function set(key: str, value: T): none
     for i in 0 to self.data.count do
-      i self.data:get => decl entry: MapEntry<SclObject>?
+      i self.data:get => decl entry: MapEntry<any>?
       if entry nil == then
-        i (key value MapEntry<SclObject>::new) self.data:set
+        i (key value MapEntry<any>::new) self.data:set
         return
       elif entry!!.key key == then
         value => entry.value
         return
       fi
     done
-    key value MapEntry<SclObject>::new self.data:push
+    key value MapEntry<any>::new self.data:push
   end
 
   function iterate(): Iterator
@@ -72,7 +72,7 @@ sealed struct Map<T: SclObject> is Iterable
     self.data:toString return
   end
 
-  function map(x: lambda(MapEntry<SclObject>): none): none
+  function map(x: lambda(MapEntry<any>): none): none
     for i in 0 to self.data.count do
       self.data[i] x:accept
     done
@@ -90,7 +90,7 @@ sealed struct MapIterator is Iterator
     self.data:hasNext return
   end
 
-  function next(): MapEntry<SclObject>
-    self.data:next as MapEntry<SclObject> return
+  function next(): MapEntry<any>
+    self.data:next as MapEntry<any> return
   end
 end

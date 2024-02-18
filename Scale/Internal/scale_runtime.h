@@ -31,6 +31,9 @@ extern "C" {
 #if !defined(WINDOWS)
 #define WINDOWS
 #endif
+#else
+#include <unistd.h>
+#define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
 #if !defined(_WIN32) && !defined(__wasm__)
@@ -187,11 +190,14 @@ typedef unsigned long long	scl_uint;
 #error "Can't find a 64-bit integer type"
 #endif
 
-#define SCL_int_MIN			((1L << (sizeof(scl_int) * 8 - 1)) - 1)
 #define SCL_int_MAX			 (1L << (sizeof(scl_int) * 8 - 1))
-#define SCL_uint_MIN		((scl_uint) 0)
+#define SCL_int_MASK		((scl_int) -1)
+#define SCL_int_MIN			((1L << (sizeof(scl_int) * 8 - 1)) - 1)
 #define SCL_uint_MAX		((scl_uint) -1)
+#define SCL_uint_MASK		((scl_uint) -1)
+#define SCL_uint_MIN		((scl_uint) 0)
 
+typedef float				scl_float32;
 #if __SIZEOF_DOUBLE__ == 8
 typedef double 				scl_float;
 #elif __SIZEOF_LONG_DOUBLE__ == 8
@@ -207,20 +213,28 @@ typedef scl_int				scl_bool;
 typedef struct scale_string* scl_str;
 
 #define SCL_int64_MAX		((1LL << (sizeof(scl_int64) * 8 - 1)) - 1)
+#define SCL_int64_MASK		((scl_int64) -1)
 #define SCL_int64_MIN		 (1LL << (sizeof(scl_int64) * 8 - 1))
 #define SCL_int32_MAX		((1 << (sizeof(scl_int32) * 8 - 1)) - 1)
+#define SCL_int32_MASK		((scl_int32) -1)
 #define SCL_int32_MIN		 (1 << (sizeof(scl_int32) * 8 - 1))
 #define SCL_int16_MAX		((1 << (sizeof(scl_int16) * 8 - 1)) - 1)
+#define SCL_int16_MASK		((scl_int16) -1)
 #define SCL_int16_MIN		 (1 << (sizeof(scl_int16) * 8 - 1))
 #define SCL_int8_MAX		((1 << (sizeof(scl_int8) * 8 - 1)) - 1)
+#define SCL_int8_MASK		((scl_int8) -1)
 #define SCL_int8_MIN		 (1 << (sizeof(scl_int8) * 8 - 1))
 #define SCL_uint64_MAX		((scl_uint64) -1)
+#define SCL_uint64_MASK		((scl_uint64) -1)
 #define SCL_uint64_MIN		((scl_uint64) 0)
 #define SCL_uint32_MAX		((scl_uint32) -1)
+#define SCL_uint32_MASK		((scl_uint32) -1)
 #define SCL_uint32_MIN		((scl_uint32) 0)
 #define SCL_uint16_MAX		((scl_uint16) -1)
+#define SCL_uint16_MASK		((scl_uint16) -1)
 #define SCL_uint16_MIN		((scl_uint16) 0)
 #define SCL_uint8_MAX		((scl_uint8) -1)
+#define SCL_uint8_MASK		((scl_uint8) -1)
 #define SCL_uint8_MIN		((scl_uint8) 0)
 
 typedef long long			scl_int64;
@@ -235,29 +249,6 @@ typedef unsigned char		scl_uint8;
 typedef void*(*_scl_lambda)();
 
 typedef scl_uint ID_t;
-
-struct _scl_methodinfo {
-	const ID_t							pure_name;
-	const ID_t							signature;
-};
-
-typedef struct TypeInfo {
-	const ID_t							type;
-	const _scl_lambda*					vtable;
-	const struct TypeInfo*				super;
-	const scl_int8*						type_name;
-	const size_t						size;
-	const struct _scl_methodinfo* const	vtable_info;
-} TypeInfo;
-
-struct scale_string {
-	const _scl_lambda* const			$fast;
-	const TypeInfo* const				$statics;
-	const scl_any						$mutex;
-	scl_int8*							data;
-	scl_int								length;
-	scl_int								hash;
-};
 
 #if defined(__ANDROID__)
 #define SCL_OS_NAME "Android"
@@ -315,24 +306,58 @@ struct scale_string {
 #define CAST(_obj, _type) CAST0(_obj, _type, type_id(#_type))
 
 struct _scl_exception_handler {
-	scl_int marker;
+	scl_uint marker;
 	scl_any exception;
 	jmp_buf jmp;
 };
 
 struct _scl_backtrace {
-	scl_int marker;
+	scl_uint marker;
 	const scl_int8* func_name;
 };
 
 struct memory_layout {
-	scl_int32 marker;
-	scl_int allocation_size;
-	scl_uint8 is_instance:4;
-	scl_uint8 is_array:4;
+	scl_int size;
+	scl_uint8 flags;
+	scl_int array_elem_size;
 };
 
+#define MEM_FLAG_INSTANCE	0b00000001
+#define MEM_FLAG_ARRAY		0b00000010
+
 typedef struct memory_layout memory_layout_t;
+struct _scl_methodinfo {
+	const ID_t							pure_name;
+	const ID_t							signature;
+};
+
+typedef struct {
+	memory_layout_t layout;
+	_scl_lambda funcs[];
+} _scl_vtable;
+
+typedef struct {
+	memory_layout_t layout;
+	struct _scl_methodinfo infos[];
+} _scl_methodinfo_t;
+
+typedef struct TypeInfo {
+	const ID_t							type;
+	const _scl_lambda*					vtable;
+	const struct TypeInfo*				super;
+	const scl_int8*						type_name;
+	const size_t						size;
+	const struct _scl_methodinfo* const	vtable_info;
+} TypeInfo;
+
+struct scale_string {
+	const _scl_lambda* const			$fast;
+	const TypeInfo* const				$statics;
+	const scl_any						$mutex;
+	scl_int8*							data;
+	scl_int								length;
+	scl_int								hash;
+};
 
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
@@ -345,13 +370,23 @@ typedef struct memory_layout memory_layout_t;
 	*(_type*) &_tmp; \
 })
 
-#define EXCEPTION_HANDLER_MARKER \
+#define _scl_async(x, at, ...) ({ \
+	struct _args_ ## at* args = malloc(sizeof(struct _args_ ## at)); \
+	struct _args_ ## at args_ = { __VA_ARGS__ }; \
+	memcpy(args, &args_, sizeof(struct _args_ ## at)); \
+	_scl_push(scl_any, cxx_async((x), args)); \
+})
+#define _scl_await(rtype) _scl_push(rtype, cxx_await(_scl_pop(scl_any)))
+#define _scl_await_void() cxx_await(_scl_pop(scl_any))
+
+#define 			EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
 
-#define TRACE_MARKER \
+#define 			TRACE_MARKER \
 					0xF7E8D9C0B1A28384ULL
 
-#define TRY			struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
+#define 			TRY \
+						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
@@ -372,12 +407,10 @@ void				_scl_delete_ptr(void* ptr);
 #define				SCL_ASSUME(val, what, ...) \
 						if (_scl_expect(!(val), 0)) { \
 							size_t msg_len = strlen((what)) + 256; \
-							scl_int8* msg = (scl_int8*) GC_malloc(sizeof(scl_int8) * msg_len); \
+							scl_int8 msg[sizeof(scl_int8) * msg_len]; \
 							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
 							_scl_assert(0, msg); \
 						}
-
-typedef void(*mainFunc)(/* args: Array */ scl_any);
 
 #include "preproc.h"
 
@@ -478,6 +511,7 @@ scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
+scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
@@ -496,17 +530,18 @@ void				_scl_array_setf(scl_any arr, scl_int index, scl_float value);
 scl_float			_scl_array_getf(scl_any arr, scl_int index);
 
 // BEGIN C++ Concurrency API wrappers
-void				cxx_std_thread_join(scl_any thread);
-void				cxx_std_thread_delete(scl_any thread);
+void				cxx_std_thread_join_and_delete(scl_any thread);
 void				cxx_std_thread_detach(scl_any thread);
 scl_any				cxx_std_thread_new(void);
 scl_any				cxx_std_thread_new_with_args(scl_any args);
+scl_any				cxx_async(scl_any func, scl_any args);
+scl_any				cxx_await(scl_any t);
 void				cxx_std_this_thread_yield(void);
 
 scl_any				cxx_std_recursive_mutex_new(void);
-void				cxx_std_recursive_mutex_delete(scl_any mutex);
-void				cxx_std_recursive_mutex_lock(scl_any mutex);
-void				cxx_std_recursive_mutex_unlock(scl_any mutex);
+void				cxx_std_recursive_mutex_delete(scl_any* mutex);
+void				cxx_std_recursive_mutex_lock(scl_any* mutex);
+void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
 #define _scl_push(_type, _value) ({ \
@@ -520,6 +555,7 @@ void				cxx_std_recursive_mutex_unlock(scl_any mutex);
 })
 #define _scl_positive_offset(offset, _type)	(*(_type*) &ls[ls_ptr + (offset)])
 #define _scl_top(_type) (*(_type*) &ls[ls_ptr - 1])
+#define _scl_cast_stack(_to, _from) (_scl_top(_to) = (_to) _scl_top(_from))
 #define _scl_popn(n) ls_ptr -= (n)
 
 #define _scl_swap() \

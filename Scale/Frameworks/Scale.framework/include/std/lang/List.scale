@@ -11,6 +11,9 @@ static struct List
                     acc 1 +> acc
                 fi
             done
+            if acc 1 < then
+                new<$type>[0] return
+            fi
             acc result:resize return
         end
 
@@ -222,6 +225,9 @@ static struct List
                     fi
                 done
             done
+            if total 1 < then
+                new<$type>[0] return
+            fi
             total result:resize return
         end
 
@@ -254,6 +260,9 @@ static struct List
                     total 1 +> total
                 fi
             done
+            if total 1 < then
+                new<$type>[0] return
+            fi
             total result:resize return
         end
     }

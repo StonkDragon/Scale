@@ -1,4 +1,4 @@
-VERSION: "23.11.1";
+VERSION: "24.0";
 SCL_ROOT_DIR: "/opt";
 
 build: {
@@ -20,9 +20,57 @@ build: {
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
-    "modules/InfoDumper.cpp";
     "modules/Functions.cpp";
     "modules/Types.cpp";
+    "modules/handlers/ReturnOnNil.cpp";
+    "modules/handlers/Catch.cpp";
+    "modules/handlers/Pragma.cpp";
+    "modules/handlers/Using.cpp";
+    "modules/handlers/Identifier.cpp";
+    "modules/handlers/New.cpp";
+    "modules/handlers/Repeat.cpp";
+    "modules/handlers/For.cpp";
+    "modules/handlers/Foreach.cpp";
+    "modules/handlers/AddrRef.cpp";
+    "modules/handlers/Store.cpp";
+    "modules/handlers/Declare.cpp";
+    "modules/handlers/CurlyOpen.cpp";
+    "modules/handlers/BracketOpen.cpp";
+    "modules/handlers/ParenOpen.cpp";
+    "modules/handlers/StringLiteral.cpp";
+    "modules/handlers/CharStringLiteral.cpp";
+    "modules/handlers/CDecl.cpp";
+    "modules/handlers/ExternC.cpp";
+    "modules/handlers/IntegerLiteral.cpp";
+    "modules/handlers/CharLiteral.cpp";
+    "modules/handlers/FloatLiteral.cpp";
+    "modules/handlers/FalsyType.cpp";
+    "modules/handlers/TruthyType.cpp";
+    "modules/handlers/Is.cpp";
+    "modules/handlers/If.cpp";
+    "modules/handlers/Unless.cpp";
+    "modules/handlers/Else.cpp";
+    "modules/handlers/Elif.cpp";
+    "modules/handlers/Elunless.cpp";
+    "modules/handlers/Fi.cpp";
+    "modules/handlers/While.cpp";
+    "modules/handlers/Do.cpp";
+    "modules/handlers/DoneLike.cpp";
+    "modules/handlers/Return.cpp";
+    "modules/handlers/Goto.cpp";
+    "modules/handlers/Label.cpp";
+    "modules/handlers/Lambda.cpp";
+    "modules/handlers/Case.cpp";
+    "modules/handlers/Esac.cpp";
+    "modules/handlers/Default.cpp";
+    "modules/handlers/Switch.cpp";
+    "modules/handlers/Break.cpp";
+    "modules/handlers/Continue.cpp";
+    "modules/handlers/As.cpp";
+    "modules/handlers/Dot.cpp";
+    "modules/handlers/ColumnOnInterface.cpp";
+    "modules/handlers/Column.cpp";
+    "modules/handlers/INVALID.cpp";
     "Common.cpp";
   ];
   watch: [
@@ -41,6 +89,11 @@ build: {
     "-Wno-gnu-statement-expression";
     "-O2";
   ];
+  linkFlags: [
+#ifdef LINUX
+    "-Wl,--export-dynamic";
+#endif
+  ];
   preBuild: [
     "git ls-files | egrep '(\.scale|\.c(pp)?|\.h(pp)?)$' | xargs wc -l > loc.txt";
     "sudo rm -rf /opt/Scale/$(VERSION)/Frameworks";
@@ -55,7 +108,7 @@ build: {
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/sclc";
     "sudo rm -f /usr/local/bin/scaledoc";
     "sudo ln -s /opt/Scale/$(VERSION)/sclc /usr/local/bin/scaledoc";
-    "python3 tests.py run";
+    "python3.12 tests.py run";
   ];
 };
 
@@ -78,9 +131,57 @@ install: {
     "modules/Transpiler.cpp";
     "modules/DragonConfig.cpp";
     "modules/Function.cpp";
-    "modules/InfoDumper.cpp";
     "modules/Functions.cpp";
     "modules/Types.cpp";
+    "modules/handlers/ReturnOnNil.cpp";
+    "modules/handlers/Catch.cpp";
+    "modules/handlers/Pragma.cpp";
+    "modules/handlers/Using.cpp";
+    "modules/handlers/Identifier.cpp";
+    "modules/handlers/New.cpp";
+    "modules/handlers/Repeat.cpp";
+    "modules/handlers/For.cpp";
+    "modules/handlers/Foreach.cpp";
+    "modules/handlers/AddrRef.cpp";
+    "modules/handlers/Store.cpp";
+    "modules/handlers/Declare.cpp";
+    "modules/handlers/CurlyOpen.cpp";
+    "modules/handlers/BracketOpen.cpp";
+    "modules/handlers/ParenOpen.cpp";
+    "modules/handlers/StringLiteral.cpp";
+    "modules/handlers/CharStringLiteral.cpp";
+    "modules/handlers/CDecl.cpp";
+    "modules/handlers/ExternC.cpp";
+    "modules/handlers/IntegerLiteral.cpp";
+    "modules/handlers/CharLiteral.cpp";
+    "modules/handlers/FloatLiteral.cpp";
+    "modules/handlers/FalsyType.cpp";
+    "modules/handlers/TruthyType.cpp";
+    "modules/handlers/Is.cpp";
+    "modules/handlers/If.cpp";
+    "modules/handlers/Unless.cpp";
+    "modules/handlers/Else.cpp";
+    "modules/handlers/Elif.cpp";
+    "modules/handlers/Elunless.cpp";
+    "modules/handlers/Fi.cpp";
+    "modules/handlers/While.cpp";
+    "modules/handlers/Do.cpp";
+    "modules/handlers/DoneLike.cpp";
+    "modules/handlers/Return.cpp";
+    "modules/handlers/Goto.cpp";
+    "modules/handlers/Label.cpp";
+    "modules/handlers/Lambda.cpp";
+    "modules/handlers/Case.cpp";
+    "modules/handlers/Esac.cpp";
+    "modules/handlers/Default.cpp";
+    "modules/handlers/Switch.cpp";
+    "modules/handlers/Break.cpp";
+    "modules/handlers/Continue.cpp";
+    "modules/handlers/As.cpp";
+    "modules/handlers/Dot.cpp";
+    "modules/handlers/ColumnOnInterface.cpp";
+    "modules/handlers/Column.cpp";
+    "modules/handlers/INVALID.cpp";
     "Common.cpp";
   ];
   defines: [
@@ -95,6 +196,11 @@ install: {
     "-Werror";
     "-Wno-gnu-statement-expression";
     "-O2";
+  ];
+  linkFlags: [
+#ifdef LINUX
+    "-Wl,--export-dynamic";
+#endif
   ];
   preBuild: [
     "sudo rm -rf /opt/Scale/$(VERSION)";

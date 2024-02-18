@@ -1,0 +1,29 @@
+struct Foo<T, U>
+    decl x: T
+    decl y: U
+
+end
+
+struct Bar
+    struct Baz
+    end
+end
+
+function foo(): Foo<Foo<int, int>, int>
+    Foo<Foo<int, int>, int> {
+        Foo<int, int> {
+            1 => x
+            2 => y
+        } => x
+        2 => y
+    } return
+end
+
+function main(): none
+    foo puts
+
+    Foo<Bar::Baz, int> {
+        Bar::Baz::new => x
+        2 => y
+    } puts
+end

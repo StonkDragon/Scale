@@ -10,7 +10,10 @@ Declared Fields:
 - `initCap: readonly int` - The initial capacity of the array.
 
 ### function Array:sort(): none
-Sorts the array.
+Sorts the array using the default comparator.
+
+### function Array:sort(comparator: lambda(any, any): int): none
+Sorts the array using the given comparator.
 
 ### function Array:[](index: int): any
 Returns the value at index `index` in `self`.

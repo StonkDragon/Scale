@@ -6,18 +6,19 @@
 #include "../headers/Types.hpp"
 
 namespace sclc {
-    extern std::stack<std::string> typeStack;
+    extern std::vector<std::string> typeStack;
     extern Struct currentStruct;
 
     const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
 
     std::string notNilTypeOf(std::string t) {
-        while (t.size() && t != "?" && t.back() == '?') t = t.substr(0, t.size() - 1);
+        if (t == "?") return t;
+        while (t.back() == '?') t.pop_back();
         return t;
     }
 
     std::string typePointedTo(std::string type) {
-        if (type.size() >= 2 && type.front() == '[' && type.back() == ']') {
+        if (type.front() == '[' && type.back() == ']') {
             return type.substr(1, type.size() - 2);
         }
         return "any";
@@ -29,7 +30,7 @@ namespace sclc {
         if (!isPrimitiveType(type)) {
             return type;
         }
-        if (isPrimitiveIntegerType(type) || type == "bool") {
+        if (isPrimitiveIntegerType(type, false) || type == "bool") {
             return "Int";
         }
         if (type == "float") {
@@ -54,12 +55,12 @@ namespace sclc {
 
     std::string selfTypeToRealType(std::string selfType, std::string realType) {
         bool selfTypeIsNilable = typeCanBeNil(selfType);
-        bool selfTypeIsValueType = selfType.front() == '*';
+        bool selfTypeIsValueType = selfType.front() == '@';
         selfType = removeTypeModifiers(selfType);
         if (selfType == "self") {
             std::string type = "";
             if (selfTypeIsValueType) {
-                type += "*";
+                type += "@";
             }
             type += realType;
             if (selfTypeIsNilable) {
@@ -69,7 +70,7 @@ namespace sclc {
         } else if (selfType.front() == '[' && selfType.back() == ']') {
             std::string type = "";
             if (selfTypeIsValueType) {
-                type += "*";
+                type += "@";
             }
             type += "[" + selfTypeToRealType(selfType.substr(1, selfType.size() - 2), realType) + "]";
             if (selfTypeIsNilable) {
@@ -91,8 +92,8 @@ namespace sclc {
         return false;
     }
 
-    bool isPrimitiveIntegerType(std::string s) {
-        s = removeTypeModifiers(s);
+    bool isPrimitiveIntegerType(std::string s, bool rem) {
+        if (rem) s = removeTypeModifiers(s);
         return s == "int" ||
                s == "int64" ||
                s == "int32" ||
@@ -114,13 +115,15 @@ namespace sclc {
         return true;
     }
 
+    std::string retemplate(std::string type);
+
     std::string argVectorToString(std::vector<Variable>& args) {
         std::string arg = "";
         for (size_t i = 0; i < args.size(); i++) {
             if (i) 
                 arg += ", ";
             const Variable& v = args[i];
-            arg += removeTypeModifiers(v.type);
+            arg += retemplate(removeTypeModifiers(v.type));
         }
         return arg;
     }
@@ -130,7 +133,7 @@ namespace sclc {
         for (size_t i = 0; i < args.size(); i++) {
             if (i) 
                 arg += ", ";
-            arg += removeTypeModifiers(args[i]);
+            arg += retemplate(removeTypeModifiers(args[i]));
         }
         return arg;
     }
@@ -199,12 +202,12 @@ namespace sclc {
 
     bool typeIsUnsigned(std::string s) {
         s = removeTypeModifiers(s);
-        return isPrimitiveIntegerType(s) && s.front() == 'u';
+        return isPrimitiveIntegerType(s, false) && s.front() == 'u';
     }
 
     bool typeIsSigned(std::string s) {
         s = removeTypeModifiers(s);
-        return isPrimitiveIntegerType(s) && s.front() == 'i';
+        return isPrimitiveIntegerType(s, false) && s.front() == 'i';
     }
 
     size_t intBitWidth(std::string s) {
@@ -270,7 +273,7 @@ namespace sclc {
     }
 
     bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion) {
-        if (args.size() == 0) {
+        if (args.empty()) {
             return true;
         }
         if (typeStack.size() < args.size()) {
@@ -281,13 +284,10 @@ namespace sclc {
             return true;
         }
 
-        auto end = &typeStack.top() + 1;
-        auto begin = end - args.size();
-        std::vector<std::string> stack(begin, end);
+        size_t startIndex = typeStack.size() - args.size();
 
         for (ssize_t i = args.size() - 1; i >= 0; i--) {
-            bool tmp = typesCompatible(result, stack[i], args[i].type, allowIntPromotion);
-            if (tmp == false) {
+            if (!typesCompatible(result, typeStack[startIndex + i], args[i].type, allowIntPromotion)) {
                 return false;
             }
         }
@@ -299,19 +299,16 @@ namespace sclc {
 
         if (amount == 0)
             return "";
-        auto end = &typeStack.top() + 1;
-        auto begin = end - amount;
-        std::vector<std::string> tmp(begin, end);
 
         std::string arg = "";
         for (size_t i = 0; i < amount; i++) {
-            std::string stackType = tmp[i];
+            std::string stackType = typeStack[typeStack.size() - amount + i];
             
             if (i) {
                 arg += ", ";
             }
 
-            arg += stackType;
+            arg += retemplate(stackType);
         }
         return arg;
     }
@@ -341,11 +338,16 @@ namespace sclc {
 
     std::string getTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
-        return r.typealiases[t];
+        return r.typealiases[t].first;
+    }
+
+    bool typealiasCanBeNil(TPResult& r, std::string t) {
+        t = removeTypeModifiers(t);
+        return r.typealiases[t].second;
     }
 
     std::string removeTypeModifiers(std::string t) {
-        if (t.size() && t.front() == '*') {
+        if (t.size() && t.front() == '@') {
             t.erase(0, 1);
         }
         for (const std::string& modifier : removableTypeModifiers) {
@@ -363,9 +365,10 @@ namespace sclc {
         if (t == "?") {
             return "scl_any";
         }
-        bool valueType = t.front() == '*';
+        bool valueType = t.front() == '@';
         t = removeTypeModifiers(t);
 
+        if (strstarts(t, "async<")) return "scl_any";
         if (strstarts(t, "lambda(")) return "_scl_lambda";
         if (t == "any") return "scl_any";
         if (t == "none") return "void";
@@ -425,7 +428,7 @@ namespace sclc {
 
 
     std::string rtTypeToSclType(std::string rtType) {
-        if (rtType.size() == 0) return "";
+        if (rtType.empty()) return "";
         if (rtType == "a") return "any";
         if (rtType == "i") return "int";
         if (rtType == "f") return "float";
@@ -450,13 +453,13 @@ namespace sclc {
             return rtType.substr(1, rtType.size() - 1);
         }
         if (rtType.front() == 'P') {
-            return "*" + rtTypeToSclType(rtType.substr(1));
+            return "@" + rtTypeToSclType(rtType.substr(1));
         }
         return "<" + rtType + ">";
     }
 
     std::string typeToRTSig(std::string type) {
-        if (type.size() && type.front() == '*') {
+        if (type.size() && type.front() == '@') {
             type = removeTypeModifiers(type.substr(1, type.size() - 1));
             return "P" + typeToRTSig(type);
         }
@@ -508,6 +511,7 @@ namespace sclc {
         if (type == "none") return "V$";
         if (type == "[int8]") return "cs$";
         if (type == "[any]") return "p$";
+        if (strstarts(type, "async<")) return "A" + typeToRTSigIdent(type.substr(6, type.size() - 7));
         if (type == "lambda" || strstarts(type, "lambda(")) return "F$";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "A" + typeToRTSigIdent(type.substr(1, type.size() - 2));

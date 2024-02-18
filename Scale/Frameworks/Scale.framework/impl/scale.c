@@ -1,7 +1,5 @@
 #include <scale_runtime.h>
 
-ID_t SclObjectHash; // SclObject
-
 typedef struct Struct {
 	_scl_lambda*	vtable;
 	TypeInfo*		statics;
@@ -163,12 +161,12 @@ scl_bool Process$gcEnabled(void) {
 
 void Process$lock(scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_lock(&((Struct*) obj)->mutex);
 }
 
 void Process$unlock(scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
 }
 
 scl_str intToString(scl_int val) {
@@ -209,17 +207,31 @@ void Thread$run(scl_Thread self) {
 
 void Thread$start0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:start0(): none");
+	if (self->function == nil) {
+		scl_IllegalStateException e = ALLOC(IllegalStateException);
+		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call start on main thread!"));
+		_scl_throw(e);
+	}
 	self->nativeThread = cxx_std_thread_new_with_args(self);
 }
 
 void Thread$stop0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:stop0(): none");
-	cxx_std_thread_join(self->nativeThread);
-	cxx_std_thread_delete(self->nativeThread);
+	if (self->function == nil) {
+		scl_IllegalStateException e = ALLOC(IllegalStateException);
+		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call join on main thread!"));
+		_scl_throw(e);
+	}
+	cxx_std_thread_join_and_delete(self->nativeThread);
 }
 
 void Thread$detach0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:detach0(): none");
+	if (self->function == nil) {
+		scl_IllegalStateException e = ALLOC(IllegalStateException);
+		virtual_call(e, "init(s;)V;", str_of_exact("Cannot detach main thread!"));
+		_scl_throw(e);
+	}
 	cxx_std_thread_detach(self->nativeThread);
 }
 
@@ -228,7 +240,7 @@ scl_Thread Thread$currentThread(void) {
 	if (!_currentThread) {
 		_currentThread = ALLOC(Thread);
 		_currentThread->name = str_of_exact("Main Thread");
-		_currentThread->nativeThread = cxx_std_thread_new();
+		_currentThread->nativeThread = nil;
 		_currentThread->function = nil;
 	}
 	return _currentThread;

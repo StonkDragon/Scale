@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <type_traits>
+#include <sstream>
 
 #include <stdio.h>
 
@@ -17,26 +18,26 @@ namespace sclc
     extern std::map<std::string, std::vector<Method*>> vtables;
     extern StructTreeNode* structTree;
 
+    Parser::Parser(TPResult& result) : result(result) {}
+
     TPResult& Parser::getResult() {
         return result;
     }
 
-    void generateUnsafeCall(Method* self, FILE* fp, TPResult& result);
-    void generateUnsafeCallF(Function* self, FILE* fp, TPResult& result);
+    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result);
+    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result);
     std::string generateSymbolForFunction(Function* f);
     std::string sclTypeToCType(TPResult& result, std::string t);
     std::string sclFunctionNameToFriendlyString(Function* f);
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    FPResult Parser::parse(std::string filename) {
+    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
 
-        remove((filename.substr(0, filename.size() - 2) + ".h").c_str());
-        remove(filename.c_str());
-        FILE* fp = fopen((filename.substr(0, filename.size() - 2) + ".h").c_str(), "a");
+        std::ostringstream fp;
 
         Function* mainFunction = nullptr;
         if (!Main::options::noMain) {
@@ -45,7 +46,7 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "No entry point found";
-                result.location = SourceLocation(filename, 0, 0);
+                result.location = SourceLocation(func_file, 0, 0);
                 errors.push_back(result);
 
                 FPResult parseResult;
@@ -58,6 +59,15 @@ namespace sclc
         }
 
         if (mainFunction) {
+            if (mainFunction->has_async) {
+                FPResult result;
+                result.success = false;
+                result.message = "Entry point function cannot be async";
+                result.location = mainFunction->name_token.location;
+                result.type = mainFunction->name_token.type;
+                result.value = mainFunction->name_token.value;
+                errors.push_back(result);
+            }
             if (mainFunction->args.size() > 1) {
                 FPResult result;
                 result.success = false;
@@ -103,35 +113,88 @@ namespace sclc
             }
         }
 
+        std::vector<Function*> initFuncs;
+        std::vector<Function*> destroyFuncs;
+        
+        for (Function* f : result.functions) {
+            bool isInit = isInitFunction(f);
+            if (!f->isMethod && (isInit || isDestroyFunction(f))) {
+                if (f->args.size()) {
+                    FPResult result;
+                    result.success = false;
+                    result.message = isInit ? "Constructor" : "Finalizer" + std::string(" functions cannot have arguments");
+                    result.location = f->name_token.location;
+                    result.type = f->name_token.type;
+                    result.value = f->name_token.value;
+                    errors.push_back(result);
+                } else {
+                    if (isInit) {
+                        initFuncs.push_back(f);
+                    } else {
+                        destroyFuncs.push_back(f);
+                    }
+                }
+            }
+        }
+
         std::vector<Variable> defaultScope;
         std::vector<std::vector<Variable>> tmp;
         vars.reserve(32);
 
-        ConvertC::writeHeader(fp, errors, warns);
-        ConvertC::writeContainers(fp, result, errors, warns);
-        ConvertC::writeStructs(fp, result, errors, warns);
-        ConvertC::writeGlobals(fp, globals, result, errors, warns);
-        ConvertC::writeFunctionHeaders(fp, result, errors, warns);
-        ConvertC::writeTables(fp, result, filename);
-        ConvertC::writeFunctions(fp, errors, warns, globals, result, filename);
+        Transpiler t(result, errors, warns, fp);
 
-        fp = fopen(filename.c_str(), "a");
+        t.writeHeader();
+        t.writeContainers();
+        t.writeStructs();
+        t.writeGlobals();
+        t.writeFunctionHeaders();
+
+        fp.flush();
+        std::ofstream header(header_file, std::ios::out);
+        header << fp.str();
+        fp = std::ostringstream();
+
+        t.writeFunctions(header_file);
+
+        std::ofstream func(func_file, std::ios::out);
+        fp.flush();
+        func << fp.str();
+        fp = std::ostringstream();
 
         if (structTree) {
-            structTree->forEach([fp](StructTreeNode* node) {
+            append("#include \"%s\"\n", header_file.c_str());
+            structTree->forEach([&fp](StructTreeNode* node) {
+                append("\n");
                 const Struct& s = node->s;
-                if (s.isStatic() || s.isExtern()) {
+                if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
+                }
+                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = s.name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        append("extern const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\");\n", s.name.c_str(), s.name.c_str());
+                        return;
+                    }
                 }
                 auto vtable = vtables.find(s.name);
                 if (vtable == vtables.end()) {
                     return;
                 }
-                append("static const struct _scl_methodinfo _scl_vtable_info_%s[] __asm(\"Lscl_vtable_info_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
+                append("static const _scl_methodinfo_t _scl_vtable_info_%s = {\n", vtable->first.c_str());
                 scopeDepth++;
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
+                append(".flags = MEM_FLAG_ARRAY,\n");
+                append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".infos = {\n");
+                scopeDepth++;
+
                 for (auto&& m : vtable->second) {
                     std::string signature = argsToRTSignature(m);
-                    std::string friendlyName = sclFunctionNameToFriendlyString(m->finalName());
+                    std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
                     append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
                     scopeDepth++;
                     append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
@@ -141,13 +204,25 @@ namespace sclc
                 }
                 append("{0}\n");
                 scopeDepth--;
+                append("}\n");
+                scopeDepth--;
                 append("};\n");
-                append("static const _scl_lambda _scl_vtable_%s[] __asm(\"Lscl_vtable_%s\") = {\n", vtable->first.c_str(), vtable->first.c_str());
+                append("static const _scl_vtable _scl_vtable_%s = {\n", vtable->first.c_str());
                 scopeDepth++;
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(_scl_lambda),\n", vtable->second.size());
+                append(".flags = MEM_FLAG_ARRAY,\n");
+                append(".array_elem_size = sizeof(_scl_lambda)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".funcs = {\n");
                 for (auto&& m : vtable->second) {
-                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->finalName().c_str());
+                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
                 append("0\n");
+                scopeDepth--;
+                append("}\n");
                 scopeDepth--;
                 append("};\n");
 
@@ -155,8 +230,8 @@ namespace sclc
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", s.name.c_str());
-                append(".vtable_info = _scl_vtable_info_%s,\n", s.name.c_str());
-                append(".vtable = _scl_vtable_%s,\n", s.name.c_str());
+                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
+                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
                 if (s.super.size()) {
                     append(".super = &_scl_ti_%s,\n", s.super.c_str());
                 } else {
@@ -164,69 +239,77 @@ namespace sclc
                 }
                 append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
                 scopeDepth--;
-                append("};\n\n");
+                append("};\n");
             });
+
+            std::ofstream rt(rt_file, std::ios::out);
+            fp.flush();
+            rt << fp.str();
         }
 
-        append("extern const ID_t type_id(const char*);\n\n");
-
-        for (Variable& s : result.globals) {
-            append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            globals.push_back(s);
-        }
+        fp = std::ostringstream();
+        append("#include \"%s\"\n\n", header_file.c_str());
 
         scopeDepth = 0;
 
+        for (Variable& s : result.globals) {
+            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = s.name_token->location.file;
+                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                    continue;
+                }
+            }
+            if (!s.isExtern) {
+                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            }
+        }
+
+        append("\n");
         append("_scl_constructor void init_this() {\n");
         scopeDepth++;
         append("_scl_setup();\n");
-        append("TRY {\n");
-        for (Function* f : result.functions) {
-            if (!f->isMethod && isInitFunction(f)) {
-                if (f->args.size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Constructor functions cannot have arguments";
-                    result.location = f->name_token.location;
-                    result.type = f->name_token.type;
-                    result.value = f->name_token.value;
-                    errors.push_back(result);
-                } else {
-                    append("  fn_%s();\n", f->finalName().c_str());
+        if (initFuncs.size()) {
+            append("TRY {\n");
+            for (auto&& f : initFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
                 }
+                append("  fn_%s();\n", f->name.c_str());
             }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
         }
-        append("} else {\n");
-        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-        append("}\n");
         scopeDepth--;
-        append("}\n\n");
+        append("}\n");
 
-        append("_scl_destructor void destroy_this() {\n");
-        scopeDepth++;
-        append("TRY {\n");
-        for (Function* f : result.functions) {
-            if (!f->isMethod && isDestroyFunction(f)) {
-                if (f->args.size()) {
-                    FPResult result;
-                    result.success = false;
-                    result.message = "Finalizer functions cannot have arguments";
-                    result.location = f->name_token.location;
-                    result.type = f->name_token.type;
-                    result.value = f->name_token.value;
-                    errors.push_back(result);
-                } else {
-                    append("  fn_%s();\n", f->finalName().c_str());
+        if (destroyFuncs.size()) {
+            append("\n");
+            append("_scl_destructor void destroy_this() {\n");
+            scopeDepth++;
+            append("TRY {\n");
+            for (auto&& f : destroyFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
                 }
+                append("  fn_%s();\n", f->name.c_str());
             }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
+            scopeDepth--;
+            append("}\n");
         }
-        append("} else {\n");
-        append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-        append("}\n");
-        scopeDepth--;
-        append("}\n\n");
 
-        fclose(fp);
+        std::ofstream main(main_file, std::ios::out);
+        fp.flush();
+        main << fp.str();
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

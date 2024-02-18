@@ -42,6 +42,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
 
     this->name_token = name_token;
     this->name = name;
+    this->name_without_overload = this->name.substr(0, this->name.find("$$ol"));
     this->isMethod = isMethod;
     this->member_type = "";
 
@@ -65,29 +66,9 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_overrides = 0;
     this->has_binary_inherited = 0;
     this->has_nonvirtual = 0;
+    this->has_async = 0;
 }
-std::string Function::finalName() {
-    if (
-        !isMethod && 
-        (
-            isInitFunction(this) ||
-            isDestroyFunction(this) ||
-            this->has_private
-        )
-    ) {
-        if (this->has_foreign) {
-            return name;
-        }
-        return name +
-               "$" +
-               std::to_string(id(name.c_str())) +
-               "$" +
-               std::to_string(id(name_token.location.file.c_str())) +
-               "$" +
-               std::to_string(name_token.location.line);
-    }
-    return name;
-}
+Function::~Function() {}
 std::vector<Token>& Function::getBody() {
     return body;
 }
@@ -118,34 +99,25 @@ void Function::addModifier(std::string modifier) {
     else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
+    else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
 }
 bool Function::operator!=(const Function& other) const {
-    return !(*this == other);
+    return !this->operator==(other);
 }
 bool Function::operator==(const Function& other) const {
-    if (other.isMethod && !this->isMethod) return false;
-    if (!other.isMethod && this->isMethod) return false;
-    if (other.isMethod && this->isMethod) {
-        Method* thisM = (Method*) this;
-        Function* f = (Function*) &other;
-        Method* otherM = (Method*) f;
-        return name == other.name && thisM->member_type == otherM->member_type;
-    }
-    return name == other.name;
+    if (isMethod != other.isMethod) return false;
+    if (name != other.name) return false;
+    return member_type == other.member_type;
 }
 bool Function::operator!=(const Function* other) const {
-    return !this->operator==(other);
+    return !this->operator==(*other);
 }
 bool Function::operator==(const Function* other) const {
     if (this == other) return true;
-    if (other->isMethod && !isMethod) return false;
-    if (!other->isMethod && isMethod) return false;
-    if (name.size() != other->name.size()) return false;
-    if (member_type.size() != other->member_type.size()) return false;
-    return name == other->name && member_type == other->member_type;
+    return this->operator==(*other);
 }
 bool Function::belongsToType(std::string typeName) {
     return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);
@@ -167,4 +139,29 @@ const std::string& Function::getModifier(size_t index) {
         throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
     }
     return this->modifiers.at(index - 1);
+}
+
+Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {
+    this->member_type = member_type;
+    this->isMethod = true;
+    this->force_add = false;
+}
+Method* Method::cloneAs(std::string memberType) {
+    Method* m = new Method(memberType, name, name_token);
+    m->isMethod = isMethod;
+    m->force_add = force_add;
+    m->return_type = return_type;
+    for (auto s : modifiers) {
+        m->addModifier(s);
+    }
+    m->return_type = return_type;
+    for (Token t : this->getBody()) {
+        m->addToken(t);
+    }
+    for (Variable& v : args) {
+        m->addArgument(v);
+    }
+    m->namedReturnValue = namedReturnValue;
+    m->templateArg = templateArg;
+    return m;
 }

@@ -7,7 +7,7 @@ final struct InvalidTypeException : Exception
     end
 end
 
-final sealed struct TypedArray<T: SclObject>: Array
+final sealed struct TypedArray<T>: Array
     overrides function [](index: int): T
         index self:get return
     end

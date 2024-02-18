@@ -1,6 +1,7 @@
 from genericpath import exists
 import os
 import sys
+import asyncio
 
 def genTest(file):
     print(f"Generating Tests for: {file}")
@@ -10,9 +11,9 @@ def genTest(file):
         print(f"Error generating tests for: {file}")
         sys.exit(1)
     output = os.popen("./out.scl").read()
-    if exists(test_file + ".txt"):
-        os.remove(test_file + ".txt")
-    with open(test_file + ".txt", "w") as f:
+    if exists("output.txt"):
+        os.remove("output.txt")
+    with open("output.txt", "w") as f:
         f.write(output)
 
 def runTest(file, directory="examples", current=1, total=1):
@@ -22,21 +23,20 @@ def runTest(file, directory="examples", current=1, total=1):
     global skippedTests
 
     test_file = directory + "/" + file
+    curDir = os.path.abspath(os.path.curdir)
+    os.chdir(test_file)
     print(f"[COMP] {file}")
-    try:
-        compOut = os.popen("sclc " + test_file).read()
-    except UnicodeError:
-        runTest(file, directory, current, total)
-        return
-
+    compOut = os.popen("sclc main.scale").read()
+    
     print(f"[RUN] {file} ({current}/{total})")
     output = os.popen("./out.scl").read()
-    if not exists(test_file + ".txt"):
+    if not exists("output.txt"):
         print(f"[SKIP] {file}")
-        genTest(test_file)
+        genTest(f"main.scale")
         skippedTests += 1
+        os.chdir(curDir)
         return
-    with open(test_file + ".txt", "r") as f:
+    with open("output.txt", "r") as f:
         expected = f.read()
     if output == expected:
         print(f"[PASS] {file}")
@@ -52,16 +52,20 @@ def runTest(file, directory="examples", current=1, total=1):
         print("Expected Output:")
         print(expected)
         print("")
+    os.chdir(curDir)
 
 # loop over every file in the directory examples
 # and run the tests on each file
 def run_tests(directory):
-    tests = [ i for i in os.listdir(directory) if i.endswith(".scale") ]
+    tests = [ i for i in os.listdir(directory) if i[0] != '.' ]
     tests.sort()
     current = 1
-    for file in tests:
-        runTest(file, current=current, total=len(tests))
-        current += 1
+    try:
+        for file in tests:
+            runTest(file, current=current, total=len(tests))
+            current += 1
+    except KeyboardInterrupt:
+        pass
 
     total = passedTests + failedTests + skippedTests
     print("Passed: " + str(passedTests) + "/" + str(total))

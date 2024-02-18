@@ -4,6 +4,7 @@
 
 #include <unordered_set>
 #include <stack>
+#include <sstream>
 #if defined(_WIN32)
 #include <io.h>
 #define write _write
@@ -69,32 +70,32 @@ namespace sclc
     std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
     std::vector<std::string> Main::frameworks = std::vector<std::string>();
     Version* Main::version = new Version(0, 0, 0);
-    long long Main::tokenHandleTime = 0;
-    long long Main::writeHeaderTime = 0;
-    long long Main::writeContainersTime = 0;
-    long long Main::writeStructsTime = 0;
-    long long Main::writeGlobalsTime = 0;
-    long long Main::writeFunctionHeadersTime = 0;
-    long long Main::writeTablesTime = 0;
-    long long Main::writeFunctionsTime = 0;
     bool Main::options::noMain = false;
     bool Main::options::Werror = false;
-    bool Main::options::dumpInfo = false;
-    bool Main::options::printDocs = false;
-    bool Main::options::debugBuild = false;
-    bool Main::options::printCflags = false;
     size_t Main::options::stackSize = 0;
+    long long Main::writeTablesTime = 0;
+    long long Main::tokenHandleTime = 0;
+    long long Main::writeHeaderTime = 0;
+    long long Main::writeStructsTime = 0;
+    long long Main::writeGlobalsTime = 0;
     size_t Main::options::errorLimit = 20;
+    bool Main::options::printDocs = false;
+    long long Main::writeFunctionsTime = 0;
+    bool Main::options::debugBuild = false;
+    long long Main::writeContainersTime = 0;
+    bool Main::options::printCflags = false;
+    bool Main::options::noLinkScale = false;
+    std::string Main::options::outfile = "";
     bool Main::options::binaryHeader = false;
     bool Main::options::assembleOnly = false;
     bool Main::options::transpileOnly = false;
-    std::string Main::options::outfile = "";
     bool Main::options::preprocessOnly = false;
-    bool Main::options::noScaleFramework = false;
     std::string Main::options::optimizer = "O0";
-    bool Main::options::dontSpecifyOutFile = false;
     std::string Main::options::printDocFor = "";
+    long long Main::writeFunctionHeadersTime = 0;
+    bool Main::options::noScaleFramework = false;
     size_t Main::options::docPrinterArgsStart = 0;
+    bool Main::options::dontSpecifyOutFile = false;
     std::string Main::options::docsIncludeFolder = "";
     std::vector<std::string> Main::options::files = std::vector<std::string>();
     std::vector<std::string> Main::options::features = std::vector<std::string>();
@@ -153,7 +154,6 @@ namespace sclc
     });
 
     Struct Struct::Null = Struct("");
-    Token Token::Default(tok_identifier, "");
 
     std::vector<Variable> vars;
     std::vector<size_t> var_indices;
@@ -317,7 +317,7 @@ namespace sclc
                     return;
                 }
             } else if (!str->isMethod && !vec[i]->isMethod) {
-                if (*vec[i] == *str) {
+                if (vec[i]->operator==(str)) {
                     return;
                 }
             }
@@ -406,12 +406,13 @@ namespace sclc
         return num;
     }
 
+    void logWarns(std::vector<FPResult>& warns);
+
     FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
+        (void) typeReplacements;
         FPResult r;
         r.success = true;
-        r.value = "";
         r.location = body[*i].location;
-        r.value = body[*i].value;
         r.type = body[*i].type;
         r.message = "";
         r.value = "";
@@ -419,8 +420,18 @@ namespace sclc
         bool isConst = false;
         bool isReadonly = false;
 
-        if (body[*i].type == tok_identifier && body[*i].value == "*") {
-            type_mods += "*";
+        if ((body[*i].type == tok_identifier && body[*i].value == "*") || body[*i].type == tok_addr_of) {
+            if (body[*i].type != tok_addr_of) {
+                FPResult r2;
+                r2.success = true;
+                r2.location = body[*i].location;
+                r2.value = body[*i].value;
+                r2.type = body[*i].type;
+                r2.message = "Using '*' to denote a value-type is deprecated. Use '@' instead";
+                r.warns.push_back(r2);
+                logWarns(r.warns);
+            }
+            type_mods += "@";
             (*i)++;
         }
 
@@ -436,10 +447,6 @@ namespace sclc
         }
         if (body[*i].type == tok_identifier) {
             r.value = type_mods + body[*i].value;
-            if (typeReplacements.find(body[*i].value) != typeReplacements.end()) {
-                r.value = type_mods + typeReplacements.at(body[*i].value);
-                r.message = body[*i].value;
-            }
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].type != tok_paren_open) {
@@ -469,6 +476,20 @@ namespace sclc
                         r.value += ":none";
                     }
                 }
+            }
+            if (r.value == "async") {
+                (*i)++;
+                if (r.type != tok_identifier || body[*i].value != "<") {
+                    r.success = false;
+                    r.message = "Expected '<', but got '" + body[*i].value + "'";
+                    return r;
+                }
+                (*i)++;
+                FPResult tmp = parseType(body, i);
+                if (!tmp.success) return tmp;
+                r.value += "<" + tmp.value + ">";
+                (*i)++;
+                return r;
             }
             if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
                 (*i)++;
@@ -556,14 +577,7 @@ namespace sclc
         std::pair("?:", "operator$elvis"),
     };
 
-    Function* getFunctionByNameWithArgs(TPResult& result, const std::string& name2, bool doCheck) {
-        (void) doCheck;
-
-        std::string name = funcNameIdents[name2];
-        if (name.size() == 0) {
-            name = name2;
-        }
-
+    Function* getFunctionByName0(TPResult& result, const std::string& name) {
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             if (func->name == name) {
@@ -572,9 +586,13 @@ namespace sclc
         }
         return nullptr;
     }
-
-    Function* getFunctionByName(TPResult& result, const std::string& name) {
-        return getFunctionByNameWithArgs(result, name, false);
+    Function* getFunctionByName(TPResult& result, const std::string& name2) {
+        const std::string& name = funcNameIdents[name2];
+        if (name.empty()) {
+            return getFunctionByName0(result, name2);
+        } else {
+            return getFunctionByName0(result, name);
+        }
     }
 
     bool hasEnum(TPResult& result, const std::string& name) {
@@ -599,7 +617,7 @@ namespace sclc
         return nullptr;
     }
 
-    Method* getMethodWithActualName(TPResult& result, const std::string& name, const std::string& type, bool doCheck) {
+    Method* getMethodByName0(TPResult& result, const std::string& name, const std::string& type) {
         if (type == "") {
             return nullptr;
         }
@@ -610,28 +628,41 @@ namespace sclc
                 return (Method*) func;
             }
         }
-        Struct s = getStructByName(result, type);
+        const Struct& s = getStructByName(result, type);
         if (getInterfaceByName(result, type)) {
             return nullptr;
         }
-        return getMethodByNameWithArgs(result, name, s.super, doCheck);
+        return getMethodByName0(result, name, s.super);
     }
 
-    Method* getMethodByNameWithArgs(TPResult& result, const std::string& name2, const std::string& type2, bool doCheck) {
-        (void) doCheck;
-        std::string name = funcNameIdents[name2];
-        if (name.size() == 0) {
-            name = name2;
+    Method* getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
+        const std::string& name = funcNameIdents[name2];
+        if (name.empty()) {
+            return getMethodByName0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
+        } else {
+            return getMethodByName0(result, name, removeTypeModifiers(type));
         }
-        return getMethodWithActualName(result, name.substr(0, name.find("$$ol")), removeTypeModifiers(type2), doCheck);
     }
+    Method* getMethodByNameOnThisType0(TPResult& result, const std::string& name, const std::string& type) {
+        if (type == "") {
+            return nullptr;
+        }
 
-    Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type) {
-        return getMethodByNameWithArgs(result, name, type, false);
+        for (Function* func : result.functions) {
+            if (!func->isMethod) continue;
+            if (func->name == name && func->member_type == type) {
+                return (Method*) func;
+            }
+        }
+        return nullptr;
     }
-    Method* getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type) {
-        Method* method = getMethodByName(result, name, type);
-        return (method == nullptr || method->member_type != removeTypeModifiers(type)) ? nullptr : method;
+    Method* getMethodByNameOnThisType(TPResult& result, const std::string& name2, const std::string& type) {
+        const std::string& name = funcNameIdents[name2];
+        if (name.empty()) {
+            return getMethodByNameOnThisType0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
+        } else {
+            return getMethodByNameOnThisType0(result, name, removeTypeModifiers(type));
+        }
     }
 
     std::vector<Method*> methodsOnType(TPResult& res, std::string type) {
@@ -674,25 +705,11 @@ namespace sclc
     }
 
     bool hasLayout(TPResult& result, const std::string& name) {
-        return getLayout(result, name).name.size() != 0;
+        return !(getLayout(result, name).name.empty());
     }
 
-    bool hasFunction(TPResult& result, const std::string& name2) {
-        std::string name = funcNameIdents[name2];
-        if (name.size() == 0) {
-            name = name2;
-        }
-
-        size_t nameSize = name.size();
-        for (Function* func : result.functions) {
-            if (func->isMethod) continue;
-            std::string funcName = func->name.substr(0, func->name.find("$$ol"));
-            if (funcName.size() != nameSize) continue;
-            if (funcName == name) {
-                return true;
-            }
-        }
-        return false;
+    bool hasFunction(TPResult& result, const std::string& name) {
+        return getFunctionByName(result, name) != nullptr;
     }
 
     std::vector<std::string> supersToVector(TPResult& r, Struct& s) {
@@ -743,11 +760,6 @@ namespace sclc
                 return true;
             }
         }
-        for (Variable& v : result.extern_globals) {
-            if (v.name == name) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -771,38 +783,18 @@ namespace sclc
         return f->member_type == self->internalMutableFrom || strstarts(self->name, f->member_type + "$");
     }
 
-    bool Variable::isAccessible(Function* f) const {
-        if (this->isPrivate) {
-            return memberOfStruct(this, f);
-        }
-        return true;
-    }
-
-    bool Variable::isWritableFrom(Function* f) const {
-        if (this->isReadonly || this->isPrivate) {
-            if (this->isReadonly && strstarts(this->name, f->member_type + "$")) {
-                return true;
-            }
-            return memberOfStruct(this, f);
-        }
-        if (isConst) {
-            return isInitFunction(f);
-        }
-        return true;
-    }
-
     bool sclIsProhibitedInit(std::string s) {
         // Kept because i am too lazy to refactor
         (void) s;
         return false;
     }
 
-    bool typeCanBeNil(std::string s) {
-        return isPrimitiveType(s) || (s.size() > 1 && s.back() == '?');
+    bool typeCanBeNil(std::string s, bool rem) {
+        return isPrimitiveType(s, rem) || (s.size() > 1 && s.back() == '?');
     }
 
     bool typeIsReadonly(std::string s) {
-        if (s.size() && s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "const ")) {
             s.erase(0, 6);
         }
@@ -810,18 +802,16 @@ namespace sclc
     }
 
     bool typeIsConst(std::string s) {
-        if (s.size() && s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "readonly ")) {
             s.erase(0, 9);
         }
         return strstarts(s, "const ");
     }
 
-    bool isPrimitiveIntegerType(std::string type);
-    
-    bool isPrimitiveType(std::string s) {
-        s = removeTypeModifiers(s);
-        return isPrimitiveIntegerType(s) || s == "float" || s == "any" || s == "bool";
+    bool isPrimitiveType(std::string s, bool rem) {
+        if (rem) s = removeTypeModifiers(s);
+        return isPrimitiveIntegerType(s, rem) || s == "float" || s == "any" || s == "bool";
     }
 
     bool featureEnabled(std::string feat) {
@@ -858,22 +848,35 @@ namespace sclc
 
     extern Function* currentFunction;
     extern Struct currentStruct;
-    extern std::stack<std::string> typeStack;
+    extern std::vector<std::string> typeStack;
     extern int scopeDepth;
 
     handler(Token);
 
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::string* currentType, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, FILE* fp, std::function<void(std::string, std::string)> onComplete) {
+    std::string makeIndex(TPResult& result, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::vector<FPResult>& warns, Function* function) {
+        std::ostringstream fp;
+        append2("({\n");
+        scopeDepth++;
+        while (i < body.size() && body[i].type != tok_bracket_close) {
+            handle(Token);
+            safeInc();
+        }
+        append("_scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
+        scopeDepth--;
+        append("})");
+        fp.flush();
+        return fp.str();
+    }
+
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete) {
+        (void) fp;
         std::string path = "Var_" + v.name;
-        *currentType = v.type;
+        std::string currentType;
+        currentType = v.type;
         if (topLevelDeref) {
             path = "(*" + path + ")";
-            *currentType = typePointedTo(*currentType);
+            currentType = typePointedTo(currentType);
         }
-
-        append("{\n");
-        scopeDepth++;
-        int indexer = 0;
 
         Struct s = Struct::Null;
         Layout l = EmptyLayout;
@@ -885,24 +888,24 @@ namespace sclc
                 if (deref) {
                     safeInc();
                 }
-                s = getStructByName(result, *currentType);
+                s = getStructByName(result, currentType);
                 bool useLayout = false;
                 if (s == Struct::Null) {
-                    l = getLayout(result, *currentType);
+                    l = getLayout(result, currentType);
                     if (l == EmptyLayout) {
-                        transpilerError("No Struct or Layout named '" + *currentType + "' exists", i);
+                        transpilerError("No Struct or Layout named '" + currentType + "' exists", i);
                         errors.push_back(err);
                         return;
                     }
                     useLayout = true;
                 }
-                bool valueType = currentType->front() == '*';
+                bool valueType = currentType.front() == '@';
 
                 if (useLayout) {
                     if (l.hasMember(body[i].value)) {
                         v = l.getMember(body[i].value);
                     } else {
-                        transpilerError("Layout '" + *currentType + "' has no member named '" + body[i].value + "'", i);
+                        transpilerError("Layout '" + currentType + "' has no member named '" + body[i].value + "'", i);
                         errors.push_back(err);
                         return;
                     }
@@ -910,16 +913,16 @@ namespace sclc
                     if (s.hasMember(body[i].value)) {
                         v = s.getMember(body[i].value);
                     } else {
-                        transpilerError("Struct '" + *currentType + "' has no member named '" + body[i].value + "'", i);
+                        transpilerError("Struct '" + currentType + "' has no member named '" + body[i].value + "'", i);
                         errors.push_back(err);
                         return;
                     }
                 }
 
 
-                *currentType = v.type;
+                currentType = v.type;
                 if (deref) {
-                    *currentType = typePointedTo(*currentType);
+                    currentType = typePointedTo(currentType);
                 }
 
                 if (!v.isAccessible(currentFunction)) {
@@ -951,10 +954,13 @@ namespace sclc
                     }
                     if (f) {
                         if (mutate) {
-                            path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ", ";
-                            auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                                return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-                            });
+                            path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
+                            std::vector<Function*> funcs;
+                            for (auto&& f : result.functions) {
+                                if ((f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"))) {
+                                    funcs.push_back(f);
+                                }
+                            }
 
                             bool funcFound = false;
                             for (Function* f : funcs) {
@@ -966,19 +972,17 @@ namespace sclc
                                 ) {
                                     continue;
                                 }
-                                path += "fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                                path += "fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                                 funcFound = true;
                             }
                             if (!funcFound) {
-                                path += "_scl_pop(" + sclTypeToCType(result, *currentType) + ")";
+                                path += "_scl_pop(" + sclTypeToCType(result, currentType) + ")";
                             }
                             path += ")";
-                            onComplete(path, *currentType);
-                            scopeDepth--;
-                            append("}\n");
+                            onComplete(path, currentType);
                             return;
                         } else {
-                            path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
+                            path = "mt_" + f->member_type + "$" + f->name + "(" + path + ")";
                         }
                     } else {
                         if (valueType) {
@@ -1000,10 +1004,7 @@ namespace sclc
                     return;
                 }
 
-                while (i < body.size() && body[i].type != tok_bracket_close) {
-                    handle(Token);
-                    safeInc();
-                }
+                std::string index = makeIndex(result, body, i, errors, warns, function);
 
                 if (i >= body.size()) {
                     transpilerError("Expected ']', but got end of function", i);
@@ -1013,8 +1014,8 @@ namespace sclc
                 
                 bool getElem = !doesWriteAfter || (i + 1 < body.size() && (body[i + 1].type == tok_bracket_open || body[i + 1].type == tok_dot));
                 bool primitive = false;
-                std::string arrayType = removeTypeModifiers(*currentType);
-                std::string nonRemovedArray = *currentType;
+                std::string arrayType = removeTypeModifiers(currentType);
+                std::string nonRemovedArray = currentType;
                 std::string indexingType = "";
 
                 Method* m = nullptr;
@@ -1046,20 +1047,22 @@ namespace sclc
                     return;
                 }
 
-                append("%s index%d = _scl_pop(%s);\n", sclTypeToCType(result, indexingType).c_str(), indexer++, sclTypeToCType(result, indexingType).c_str());
                 if (primitive) {
-                    path = "(" + path + "[index" + std::to_string(indexer - 1) + "])";
-                    *currentType = arrayType.substr(1, arrayType.size() - 2);
+                    path = "(" + path + "[" + index + "])";
+                    currentType = arrayType.substr(1, arrayType.size() - 2);
                 } else {
                     if (getElem) {
-                        path = "mt_" + arrayType + "$" + m->finalName() + "(" + path + ", index" + std::to_string(indexer - 1) + ")";
-                        *currentType = m->return_type;
+                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ")";
+                        currentType = m->return_type;
                     } else {
-                        path = "mt_" + arrayType + "$" + m->finalName() + "(" + path + ", index" + std::to_string(indexer - 1) + ", ";
-                        auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                            return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-                        });
-                        *currentType = m->args[1].type;
+                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ", ";
+                        std::vector<Function*> funcs;
+                        for (auto&& f : result.functions) {
+                            if ((f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"))) {
+                                funcs.push_back(f);
+                            }
+                        }
+                        currentType = m->args[1].type;
 
                         bool funcFound = false;
                         for (Function* f : funcs) {
@@ -1071,26 +1074,28 @@ namespace sclc
                             ) {
                                 continue;
                             }
-                            path += "fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                            path += "fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += "_scl_pop(" + sclTypeToCType(result, *currentType) + ")";
+                            path += "_scl_pop(" + sclTypeToCType(result, currentType) + ")";
                         }
                         path += ")";
-                        onComplete(path, *currentType);
-                        scopeDepth--;
-                        append("}\n");
+                        onComplete(path, currentType);
                         return;
                     }
                 }
+
             }
         }
 
         if (doesWriteAfter) {
-            auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-            });
+            std::vector<Function*> funcs;
+            for (auto&& f : result.functions) {
+                if (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$")) {
+                    funcs.push_back(f);
+                }
+            }
 
             bool funcFound = false;
             for (Function* f : funcs) {
@@ -1102,257 +1107,15 @@ namespace sclc
                 ) {
                     continue;
                 }
-                path += " = fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                path += " = fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
                 funcFound = true;
             }
             if (!funcFound) {
-                path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
+                path += " = _scl_pop(" + sclTypeToCType(result, currentType) + ")";
             }
         }
         
-        onComplete(path, *currentType);
-        scopeDepth--;
-        append("}\n");
-        
-        /**
-
-        if (i + 1 < body.size() && body[i + 1].type == tok_dot) {
-            safeInc();
-            Struct s = Struct::Null;
-            Layout l = EmptyLayout;
-            while (body[i].type == tok_dot) {
-                safeInc();
-                bool deref = body[i].type == tok_addr_of;
-                if (deref) {
-                    safeInc();
-                }
-                s = getStructByName(result, *currentType);
-                l = getLayout(result, *currentType);
-                if (s == Struct::Null && l.name.size() == 0) {
-                    transpilerError("Struct '" + *currentType + "' does not exist", i);
-                    errors.push_back(err);
-                    return;
-                }
-                bool valueType = currentType->front() == '*';
-                if (!s.hasMember(body[i].value) && !l.hasMember(body[i].value)) {
-                    transpilerError("Struct '" + *currentType + "' has no member named '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                    return;
-                } else if (!s.hasMember(body[i].value)) {
-                    v = l.getMember(body[i].value);
-                } else {
-                    v = s.getMember(body[i].value);
-                }
-                *currentType = v.type;
-                if (deref) {
-                    *currentType = typePointedTo(*currentType);
-                }
-                if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
-                    transpilerError("Variable '" + v.name + "' is not mutable", i);
-                    errors.push_back(err);
-                    return;
-                }
-                if (!v.isAccessible(currentFunction)) {
-                    transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                if (i + 1 < body.size() && body[i + 1].type == tok_dot) {
-                    Method* f = attributeAccessor(result, s.name, v.name);
-                    if (f) {
-                        path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
-                    } else {
-                        if (valueType) {
-                            path = path + "." + body[i].value;
-                        } else {
-                            path = path + "->" + body[i].value;
-                        }
-                    }
-                    if (deref) {
-                        path = "(*" + path + ")";
-                    }
-                }
-                safeInc();
-                while (body[i].type == tok_bracket_open) {
-                    safeInc();
-                    while (body[i].type != tok_bracket_close) {
-                        handle(Token);
-                        safeInc();
-                    }
-                    bool getElem = !doesWriteAfter || (i + 1 < body.size() && (body[i + 1].type == tok_bracket_open || body[i + 1].type == tok_dot));
-                    bool primitive = false;
-                    std::string arrayType = *currentType;
-                    std::string indexingType = "";
-
-                    Method* m = nullptr;
-                    if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
-                        indexingType = "int";
-                        primitive = true;
-                    } else if (getElem) {
-                        m = getMethodByName(result, "[]", arrayType);
-                        if (m == nullptr) {
-                            transpilerError("Type '" + arrayType + "' does not overload operator '[]'", i);
-                            errors.push_back(err);
-                            return;
-                        }
-                        indexingType = m->args[0].type;
-                    } else {
-                        m = getMethodByName(result, "=>[]", arrayType);
-                        if (m == nullptr) {
-                            transpilerError("Type '" + arrayType + "' does not overload operator '=>[]'", i);
-                            errors.push_back(err);
-                            return;
-                        }
-                        indexingType = m->args[0].type;
-                    }
-                    std::string indexType = removeTypeModifiers(typeStackTop);
-                    if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
-                        transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", i);
-                        errors.push_back(err);
-                        return;
-                    }
-
-                    append("%s index%d = _scl_pop(%s);\n", sclTypeToCType(result, indexingType).c_str(), indexer++, sclTypeToCType(result, indexingType).c_str());
-                    if (primitive) {
-                        path = "(" + path + "[index" + std::to_string(indexer - 1) + "])";
-                        *currentType = arrayType.substr(1, arrayType.size() - 2);
-                    } else {
-                        if (getElem) {
-                            path = "mt_" + arrayType + "$" + m->finalName() + "(" + path + ", index" + std::to_string(indexer - 1) + ")";
-                            *currentType = m->return_type;
-                        } else {
-                            path = "mt_" + arrayType + "$" + m->finalName() + "(" + path + ", index" + std::to_string(indexer - 1) + ", ";
-                            path = path + "_scl_pop(" + sclTypeToCType(result, *currentType) + "))";
-                            onComplete(path, *currentType);
-                            scopeDepth--;
-                            append("}\n");
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        std::string path = prefix;
-        if (path.size()) {
-            path += v.name;
-        } else {
-            path += "Var_" + v.name;
-        }
-        *currentType = v.type;
-        if (topLevelDeref) {
-            path = "(*" + path + ")";
-            *currentType = typePointedTo(*currentType);
-        }
-        if (i + 1 >= body.size() || body[i + 1].type != tok_dot) {
-            if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
-                transpilerError("Variable '" + v.name + "' is not mutable", i);
-                errors.push_back(err);
-                return;
-            }
-            if (doesWriteAfter) {
-                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                    return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-                });
-
-                bool funcFound = false;
-                for (Function* f : funcs) {
-                    if (
-                        f->isMethod ||
-                        f->args.size() != 1 ||
-                        f->return_type != v.type ||
-                        !typesCompatible(result, typeStackTop, f->args[0].type, true)
-                    ) {
-                        continue;
-                    }
-                    path += " = fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
-                    funcFound = true;
-                }
-                if (!funcFound) {
-                    path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
-                }
-            }
-            return path;
-        }
-        
-        if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
-            transpilerError("Member '" + v.name + "' of struct '" + s.name + "' is not mutable", i);
-            errors.push_back(err);
-            return;
-        }
-        Method* f = nullptr;
-        if (deref || !doesWriteAfter) {
-            f = attributeAccessor(result, s.name, v.name);
-        } else {
-            f = attributeMutator(result, s.name, v.name);
-        }
-        if (f) {
-            if (deref || !doesWriteAfter) {
-                path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ")";
-            } else {
-                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                    return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-                });
-
-                path = "mt_" + f->member_type + "$" + f->finalName() + "(" + path + ", ";
-
-                bool funcFound = false;
-                for (Function* f : funcs) {
-                    if (
-                        f->isMethod ||
-                        f->args.size() != 1 ||
-                        f->return_type != v.type ||
-                        !typesCompatible(result, typeStackTop, f->args[0].type, true)
-                    ) {
-                        continue;
-                    }
-                    path += "fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
-                    funcFound = true;
-                }
-                if (!funcFound) {
-                    path += "_scl_pop(" + sclTypeToCType(result, *currentType) + ")";
-                }
-                path += ")";
-            }
-        } else {
-            if (valueType) {
-                path = path + "." + body[i].value;
-            } else {
-                path = path + "->" + body[i].value;
-            }
-            if (!deref && doesWriteAfter) {
-                auto funcs = result.functions & std::function<bool(Function*)>([&](Function* f) {
-                    return f && (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"));
-                });
-
-                bool funcFound = false;
-                for (Function* f : funcs) {
-                    if (
-                        f->isMethod ||
-                        f->args.size() != 1 ||
-                        f->return_type != v.type ||
-                        !typesCompatible(result, typeStackTop, f->args[0].type, true)
-                    ) {
-                        continue;
-                    }
-                    path += " = fn_" + f->finalName() + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
-                    funcFound = true;
-                }
-                if (!funcFound) {
-                    path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
-                }
-            }
-        }
-        if (deref) {
-            path = "(*" + path + ")";
-            if (doesWriteAfter) {
-                path += " = _scl_pop(" + sclTypeToCType(result, *currentType) + ")";
-            }
-        }
-        return path;
-        i--;
-        return path;
-        */
+        onComplete(path, currentType);
     }
 
     std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n) {
@@ -1416,7 +1179,7 @@ namespace sclc
     }
 
     std::string capitalize(std::string s) {
-        if (s.size() == 0) return s;
+        if (s.empty()) return s;
         s[0] = std::toupper(s[0]);
         return s;
     }
@@ -1477,5 +1240,72 @@ namespace sclc
     Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
         Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
         return f && f->has_setter ? f : nullptr;
+    }
+
+    bool isAllowed1ByteChar(char c) {
+        return (c < 0x7f && c >= ' ') || c == '\n' || c == '\t' || c == '\r';
+    }
+
+    bool checkUTF8(const std::string& str) {
+        for (size_t i = 0; i < str.size(); i++) {
+            if ((str[i] & 0b10000000) == 0b00000000) {
+                if (!isAllowed1ByteChar(str[i])) {
+                    return false;
+                }
+            } else if ((str[i] & 0b11100000) == 0b11000000) {
+                if (i + 1 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i++;
+            } else if ((str[i] & 0b11110000) == 0b11100000) {
+                if (i + 2 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 2;
+            } else if ((str[i] & 0b11111000) == 0b11110000) {
+                if (i + 3 >= str.size()) {
+                    return false;
+                }
+                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                if ((str[i + 3] & 0b11000000) != 0b10000000) {
+                    return false;
+                }
+                i += 3;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns) {
+        if (hasFunction(result, name)) {
+            transpilerError("Variable '" + name + "' shadowed by function '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (getStructByName(result, name) != Struct::Null) {
+            transpilerError("Variable '" + name + "' shadowed by struct '" + name + "'", i);
+            warns.push_back(err);
+        }
+        if (!function->member_type.empty()) {
+            if (hasFunction(result, function->member_type + "$" + name)) {
+                transpilerError("Variable '" + name + "' shadowed by function '" + function->member_type + "::" + name + "'", i+1);
+                warns.push_back(err);
+            }
+        }
     }
 } // namespace sclc

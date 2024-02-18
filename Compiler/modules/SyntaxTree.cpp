@@ -3,6 +3,7 @@
 #include <vector>
 #include <optional>
 #include <list>
+#include <array>
 
 #include "../headers/Common.hpp"
 
@@ -264,7 +265,7 @@ namespace sclc {
                 i++;
                 return func;
             }
-            if (isSelfType(func->return_type) && func->args.size() == 0) {
+            if (isSelfType(func->return_type) && func->args.empty()) {
                 FPResult result;
                 result.message = "A function with 'self' return type must have at least one argument!";
                 result.value = tokens[i].value;
@@ -298,7 +299,7 @@ namespace sclc {
                 i++;
                 name += "]";
             }
-        } else if (name == "*") {
+        } else if (name == "@") {
             if (tokens[i + 2].type == tok_identifier) {
                 i++;
                 if (tokens[i + 1].value != memberName) {
@@ -358,7 +359,7 @@ namespace sclc {
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
-            if (tokens[i].type == tok_identifier && tokens[i].value == "*") {
+            if (tokens[i].type == tok_identifier && tokens[i].value == "@") {
                 memberByValue = true;
                 i++;
             }
@@ -526,7 +527,7 @@ namespace sclc {
                 i++;
                 return method;
             }
-            if (isSelfType(method->return_type) && method->args.size() == 0) {
+            if (isSelfType(method->return_type) && method->args.empty()) {
                 FPResult result;
                 result.message = "A method with 'self' return type must have at least one argument!";
                 result.value = tokens[i].value;
@@ -536,7 +537,7 @@ namespace sclc {
                 errors.push_back(result);
                 return method;
             }
-            method->addArgument(Variable("self", memberByValue ? "*" + memberName : memberName));
+            method->addArgument(Variable("self", memberByValue ? "@" + memberName : memberName));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -550,7 +551,9 @@ namespace sclc {
         return method;
     }
 
-    bool isPrimitiveIntegerType(std::string);
+    SyntaxTree::SyntaxTree(std::vector<Token>& tokens)  {
+        this->tokens = tokens;
+    }
 
     template<typename T>
     auto joinVecs(std::vector<T> a, std::vector<T> b) {
@@ -582,411 +585,6 @@ namespace sclc {
             errors.push_back(result); \
             return; \
         }
-
-    TPResult parseFile(std::string file) {
-        FILE* f = fopen(file.c_str(), "rb");
-
-        std::vector<FPResult> errors;
-        std::vector<FPResult> warns;
-        if (!f) {
-            FPResult result;
-            result.message = "Could not open file '" + file + "'";
-            result.success = false;
-            result.location = SourceLocation(file, 0, 0);
-            errors.push_back(result);
-            TPResult r;
-            r.errors = errors;
-            return r;
-        }
-
-        char* magic = (char*) malloc(4);
-        fread(magic, 1, 4, f);
-        if (strncmp(magic + 1, "SCL", 3) != 0) {
-            FPResult result;
-            result.message = "Invalid file format!";
-            result.success = false;
-            result.location = SourceLocation(file, 0, 0);
-            errors.push_back(result);
-            TPResult r;
-            r.errors = errors;
-            return r;
-        }
-
-        bool ast = magic[0] == 0;
-
-        uint32_t version = 0;
-        fread(&version, sizeof(uint32_t), 1, f);
-        uint8_t maj = (version >> 16) & 0xFF;
-        uint8_t min = (version >> 8) & 0xFF;
-        uint8_t patch = version & 0xFF;
-
-        Version v(maj, min, patch);
-        if (v > *Main::version) {
-            FPResult result;
-            result.message = "This file was compiled with a newer version of the compiler!";
-            result.success = false;
-            result.location = SourceLocation(file, 0, 0);
-            errors.push_back(result);
-            TPResult r;
-            r.errors = errors;
-            return r;
-        }
-
-        uint32_t numContainers = 0;
-        fread(&numContainers, sizeof(uint32_t), 1, f);
-
-        uint32_t numStructs = 0;
-        fread(&numStructs, sizeof(uint32_t), 1, f);
-
-        uint32_t numEnums = 0;
-        fread(&numEnums, sizeof(uint32_t), 1, f);
-
-        uint32_t numFunctions = 0;
-        fread(&numFunctions, sizeof(uint32_t), 1, f);
-
-        uint32_t numGlobals = 0;
-        fread(&numGlobals, sizeof(uint32_t), 1, f);
-
-        uint32_t numExternGlobals = 0;
-        fread(&numExternGlobals, sizeof(uint32_t), 1, f);
-
-        uint32_t numInterfaces = 0;
-        fread(&numInterfaces, sizeof(uint32_t), 1, f);
-
-        uint32_t numLayouts = 0;
-        fread(&numLayouts, sizeof(uint32_t), 1, f);
-
-        uint32_t numTypealiases = 0;
-        fread(&numTypealiases, sizeof(uint32_t), 1, f);
-
-        std::vector<Struct> structs;
-        for (uint32_t i = 0; i < numStructs; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            Struct s(name);
-
-            fread(&s.flags, sizeof(uint32_t), 1, f);
-
-            uint32_t numMembers = 0;
-            fread(&numMembers, sizeof(uint32_t), 1, f);
-            
-            for (uint32_t j = 0; j < numMembers; j++) {
-                uint32_t memberNameLength = 0;
-                fread(&memberNameLength, sizeof(uint32_t), 1, f);
-                char* memberName = (char*) malloc(memberNameLength + 1);
-                fread(memberName, 1, memberNameLength, f);
-
-                uint32_t memberTypeLength = 0;
-                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
-                char* memberType = (char*) malloc(memberTypeLength + 1);
-                fread(memberType, 1, memberTypeLength, f);
-
-                s.addMember(Variable(memberName, memberType));
-            }
-
-            structs.push_back(s);
-        }
-
-        std::vector<Enum> enums;
-        for (uint32_t i = 0; i < numEnums; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            Enum e(name);
-
-            uint32_t numMembers = 0;
-            fread(&numMembers, sizeof(uint32_t), 1, f);
-            
-            for (uint32_t j = 0; j < numMembers; j++) {
-                uint32_t memberNameLength = 0;
-                fread(&memberNameLength, sizeof(uint32_t), 1, f);
-                char* memberName = (char*) malloc(memberNameLength + 1);
-                fread(memberName, 1, memberNameLength, f);
-
-                long memberValue = -1;
-                fread(&memberValue, sizeof(long), 1, f);
-                
-                e.addMember(memberName, memberValue);
-            }
-
-            enums.push_back(e);
-        }
-
-        std::vector<Function*> functions;
-        for (uint32_t i = 0; i < numFunctions; i++) {
-            uint8_t isMethod = 0;
-            fread(&isMethod, sizeof(uint8_t), 1, f);
-
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            std::string memberOf = "";
-            if (isMethod) {
-                uint32_t memberTypeLength = 0;
-                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
-                char* memberType = (char*) malloc(memberTypeLength + 1);
-                fread(memberType, 1, memberTypeLength, f);
-                memberType[memberTypeLength] = 0;
-                memberOf = memberType;
-            }
-
-            uint32_t returnTypeLength = 0;
-            fread(&returnTypeLength, sizeof(uint32_t), 1, f);
-            char* returnType = (char*) malloc(returnTypeLength + 1);
-            fread(returnType, 1, returnTypeLength, f);
-            returnType[returnTypeLength] = 0;
-
-            Function* func;
-            if (isMethod) {
-                func = new Method(memberOf, name, Token(tok_identifier, name));
-            } else {
-                func = new Function(name, Token(tok_identifier, name));
-            }
-
-            func->return_type = returnType;
-
-            uint32_t numModifiers = 0;
-            fread(&numModifiers, sizeof(uint32_t), 1, f);
-            for (uint32_t j = 0; j < numModifiers; j++) {
-                uint32_t modifierLength = 0;
-                fread(&modifierLength, sizeof(uint32_t), 1, f);
-                char* modifier = (char*) malloc(modifierLength + 1);
-                fread(modifier, 1, modifierLength, f);
-                modifier[modifierLength] = 0;
-
-                func->addModifier(modifier);
-            }
-
-            if (isMethod && contains<std::string>(func->modifiers, "<virtual>")) {
-                ((Method*) func)->force_add = true;
-            }
-
-            if (!ast)
-                func->addModifier("<binary-inherited>");
-
-            uint32_t numArguments = 0;
-            fread(&numArguments, sizeof(uint32_t), 1, f);
-
-            for (uint32_t j = 0; j < numArguments; j++) {
-                std::string varName = "";
-
-                if (ast) {
-                    uint32_t varNameLength = 0;
-                    fread(&varNameLength, sizeof(uint32_t), 1, f);
-                    char* varNameC = (char*) malloc(varNameLength + 1);
-                    fread(varNameC, 1, varNameLength, f);
-                    varNameC[varNameLength] = 0;
-                    varName = varNameC;
-                }
-
-                uint32_t typeLength = 0;
-                fread(&typeLength, sizeof(uint32_t), 1, f);
-                char* type = (char*) malloc(typeLength + 1);
-                fread(type, 1, typeLength, f);
-                type[typeLength] = 0;
-
-                func->addArgument(Variable(varName, type));
-            }
-
-            if (ast) {
-                uint32_t numStatements = 0;
-                fread(&numStatements, sizeof(uint32_t), 1, f);
-
-                for (uint32_t j = 0; j < numStatements; j++) {
-                    TokenType type = tok_eof;
-                    fread(&type, sizeof(TokenType), 1, f);
-
-                    uint32_t length = 0;
-                    fread(&length, sizeof(uint32_t), 1, f);
-                    char* value = (char*) malloc(length + 1);
-                    fread(value, 1, length, f);
-                    value[length] = 0;
-                    func->addToken(Token(type, value));
-                }
-            }
-
-            functions.push_back(func);
-        }
-
-        std::vector<Variable> globals;
-        for (uint32_t i = 0; i < numGlobals; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            uint32_t typeLength = 0;
-            fread(&typeLength, sizeof(uint32_t), 1, f);
-            char* type = (char*) malloc(typeLength + 1);
-            fread(type, 1, typeLength, f);
-            type[typeLength] = 0;
-
-            globals.push_back(Variable(name, type));
-        }
-
-        std::vector<Variable> extern_globals;
-        for (uint32_t i = 0; i < numExternGlobals; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            uint32_t typeLength = 0;
-            fread(&typeLength, sizeof(uint32_t), 1, f);
-            char* type = (char*) malloc(typeLength + 1);
-            fread(type, 1, typeLength, f);
-            type[typeLength] = 0;
-
-            extern_globals.push_back(Variable(name, type));
-        }
-
-        std::vector<Interface*> interfaces;
-        for (uint32_t i = 0; i < numInterfaces; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            Interface* interface = new Interface(name);
-
-            uint32_t numFunctions = 0;
-            fread(&numFunctions, sizeof(uint32_t), 1, f);
-
-            for (uint32_t j = 0; j < numFunctions; j++) {
-                uint32_t nameLength = 0;
-                fread(&nameLength, sizeof(uint32_t), 1, f);
-                char* name = (char*) malloc(nameLength + 1);
-                fread(name, 1, nameLength, f);
-                name[nameLength] = 0;
-
-                uint32_t memberTypeLength = 0;
-                fread(&memberTypeLength, sizeof(uint32_t), 1, f);
-                char* memberType = (char*) malloc(memberTypeLength + 1);
-                fread(memberType, 1, memberTypeLength, f);
-                memberType[memberTypeLength] = 0;
-
-                uint32_t returnTypeLength = 0;
-                fread(&returnTypeLength, sizeof(uint32_t), 1, f);
-                char* returnType = (char*) malloc(returnTypeLength + 1);
-                fread(returnType, 1, returnTypeLength, f);
-                returnType[returnTypeLength] = 0;
-
-                Function* func = new Method(memberType, name, Token(tok_identifier, name));
-
-                uint32_t numModifiers = 0;
-                fread(&numModifiers, sizeof(uint32_t), 1, f);
-                for (uint32_t k = 0; k < numModifiers; k++) {
-                    uint32_t modifierLength = 0;
-                    fread(&modifierLength, sizeof(uint32_t), 1, f);
-                    char* modifier = (char*) malloc(modifierLength + 1);
-                    fread(modifier, 1, modifierLength, f);
-                    modifier[modifierLength] = 0;
-
-                    func->addModifier(modifier);
-                }
-
-                uint32_t numArguments = 0;
-                fread(&numArguments, sizeof(uint32_t), 1, f);
-
-                for (uint32_t k = 0; k < numArguments; k++) {
-                    std::string name = "";
-
-                    if (ast) {
-                        uint32_t nameLength = 0;
-                        fread(&nameLength, sizeof(uint32_t), 1, f);
-                        char* name = (char*) malloc(nameLength + 1);
-                        fread(name, 1, nameLength, f);
-                        name[nameLength] = 0;
-                    }
-
-                    uint32_t typeLength = 0;
-                    fread(&typeLength, sizeof(uint32_t), 1, f);
-                    char* type = (char*) malloc(typeLength + 1);
-                    fread(type, 1, typeLength, f);
-                    type[typeLength] = 0;
-
-                    func->addArgument(Variable(name, type));
-                }
-            }
-
-            interfaces.push_back(interface);
-        }
-
-        std::vector<Layout> layouts;
-        for (uint32_t i = 0; i < numLayouts; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            Layout layout(name);
-
-            uint32_t numFields = 0;
-            fread(&numFields, sizeof(uint32_t), 1, f);
-
-            for (uint32_t j = 0; j < numFields; j++) {
-                uint32_t nameLength = 0;
-                fread(&nameLength, sizeof(uint32_t), 1, f);
-                char* name = (char*) malloc(nameLength + 1);
-                fread(name, 1, nameLength, f);
-                name[nameLength] = 0;
-
-                uint32_t typeLength = 0;
-                fread(&typeLength, sizeof(uint32_t), 1, f);
-                char* type = (char*) malloc(typeLength + 1);
-                fread(type, 1, typeLength, f);
-                type[typeLength] = 0;
-
-                layout.addMember(Variable(name, type));
-            }
-
-            layouts.push_back(layout);
-        }
-
-        Deprecation typealiases;
-        for (uint32_t i = 0; i < numTypealiases; i++) {
-            uint32_t nameLength = 0;
-            fread(&nameLength, sizeof(uint32_t), 1, f);
-            char* name = (char*) malloc(nameLength + 1);
-            fread(name, 1, nameLength, f);
-            name[nameLength] = 0;
-
-            uint32_t typeLength = 0;
-            fread(&typeLength, sizeof(uint32_t), 1, f);
-            char* type = (char*) malloc(typeLength + 1);
-            fread(type, 1, typeLength, f);
-            type[typeLength] = 0;
-
-            typealiases[name] = type;
-        }
-
-        TPResult result;
-        result.errors = errors;
-        result.warns = warns;
-        result.structs = structs;
-        result.interfaces = interfaces;
-        result.enums = enums;
-        result.globals = globals;
-        result.layouts = layouts;
-        result.extern_globals = extern_globals;
-        result.typealiases = typealiases;
-        result.functions = functions;
-        return result;
-    }
 
     std::string operator ""_s(const char* str, size_t len) {
         return std::string(str, len);
@@ -1037,6 +635,40 @@ namespace sclc {
         static void instantiate(TPResult& result);
     };
 
+    const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
+
+    std::string reparseArgType(std::string type, const std::map<std::string, std::string>& templateArgs) {
+        std::string mods = "";
+        bool isVal = type.front() == '@';
+        if (isVal) {
+            type = type.substr(1);
+        }
+        for (std::string mod : removableTypeModifiers) {
+            if (strstarts(type, mod)) {
+                type = type.substr(mod.size());
+                if (mod == "mut") {
+                    mods += "mut ";
+                } else if (mod == "const") {
+                    mods += "const ";
+                } else if (mod == "readonly") {
+                    mods += "readonly ";
+                }
+            }
+        }
+        if (isVal) {
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
+        } else if (type.front() == '[') {
+            std::string inner = type.substr(1, type.size() - 2);
+            return "[" + reparseArgType(inner, templateArgs) + "]";
+        }
+        if (templateArgs.find(type) != templateArgs.end()) {
+            return mods + templateArgs.at(type);
+        }
+        return mods + type;
+    }
+
+    std::vector<Token> parseString(std::string s);
+
     struct Template {
         static Template empty;
 
@@ -1053,11 +685,10 @@ namespace sclc {
             dest.memberInherited = src.memberInherited;
             dest.interfaces = src.interfaces;
             dest.templates = this->arguments;
+            dest.templateInstance = false;
 
             for (auto&& member : dest.members) {
-                if (member.typeFromTemplate.size()) {
-                    member.type = this->arguments[member.typeFromTemplate];
-                }
+                member.type = reparseArgType(member.type, this->arguments);
             }
 
             auto methods = methodsOnType(result, src.name);
@@ -1065,15 +696,35 @@ namespace sclc {
                 Method* mt = method->cloneAs(dest.name);
                 mt->clearArgs();
                 for (Variable arg : method->args) {
-                    if (arg.typeFromTemplate.size()) {
-                        arg.type = this->arguments[arg.typeFromTemplate];
-                    } else if (arg.name == "self") {
+                    if (arg.name == "self") {
                         arg.type = dest.name;
+                    } else {
+                        arg.type = reparseArgType(arg.type, this->arguments);
                     }
                     mt->addArgument(arg);
                 }
-                if (mt->templateArg.size()) {
-                    mt->return_type = this->arguments[mt->templateArg];
+                mt->return_type = reparseArgType(mt->return_type, this->arguments);
+                for (size_t i = 0; i < mt->body.size(); i++) {
+                    if (mt->body[i].type != tok_identifier) continue;
+                    if (this->arguments.find(mt->body[i].value) != this->arguments.end()) {
+                        SourceLocation loc = mt->body[i].location;
+                        std::string type = this->arguments.at(mt->body[i].value);
+                        if (type.find('$') != std::string::npos) {
+                            mt->body[i] = Token(tok_identifier, type, loc);
+                            continue;
+                        }
+                        auto toks = parseString(type);
+                        std::vector<Token> toks2;
+                        toks2.reserve(toks.size());
+                        for (auto&& tok : toks) {
+                            if (tok.type != tok_eof) {
+                                tok.location = loc;
+                                toks2.push_back(tok);
+                            }
+                        }
+                        mt->body.erase(mt->body.begin() + i);
+                        mt->body.insert(mt->body.begin() + i, toks2.begin(), toks2.end());
+                    }
                 }
                 result.functions.push_back(mt);
             }
@@ -1111,15 +762,17 @@ namespace sclc {
         }
 
         std::string nameForInstance() {
-            std::string instanceName = this->structName + "$";
-            for (auto&& arg : this->arguments) {
-                std::string type = arg.second;
-                instanceName += "$" + type;
+            std::string instanceName = this->structName + "$$b";
+            for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
+                if (it != this->arguments.begin()) {
+                    instanceName += "$$n";
+                }
+                instanceName += it->second;
             }
-            return instanceName;
+            return instanceName + "$$e";
         }
 
-        std::string toString() {
+        const std::string toString() const {
             std::string stringName = this->structName + "<";
             for (auto it = this->arguments.begin(); it != this->arguments.end(); it++) {
                 if (it != this->arguments.begin()) {
@@ -1145,11 +798,11 @@ namespace sclc {
             while (tokens[i].value != ">") {
                 auto inst = findInstanciable(tokens[i].value);
                 if (inst.has_value()) {
-                    Template t;
+                    Template t2;
                     for (auto&& arg : inst->arguments) {
-                        t.arguments[arg.first] = arg.second;
+                        t2.arguments[arg.first] = arg.second;
                     }
-                    auto parsedArg = t.parse(t, tokens, i, errors);
+                    auto parsedArg = t2.parse(t2, tokens, i, errors);
                     if (!parsedArg.has_value()) {
                         FPResult result;
                         result.message = "Expected template argument, but got '" + tokens[i].value + "'";
@@ -1161,6 +814,7 @@ namespace sclc {
                         t = Template::empty;
                         return Template::empty;
                     }
+                    TemplateInstances::addTemplate(parsedArg.value());
                     t.setNth(parameterCount++, parsedArg.value().nameForInstance());
                     i++;
                     if (tokens[i].type == tok_comma) {
@@ -1168,13 +822,14 @@ namespace sclc {
                     }
                     continue;
                 }
+                size_t start = i;
                 FPResult r = parseType(tokens, &i, {});
-                if (!r.success) {
-                    errors.push_back(r);
-                    t = Template::empty;
-                    return Template::empty;
+                if (r.success) {
+                    t.setNth(parameterCount++, r.value);
+                } else {
+                    i = start;
+                    t.setNth(parameterCount++, tokens[i].value);
                 }
-                t.setNth(parameterCount++, r.value);
                 i++;
                 if (tokens[i].type == tok_comma) {
                     i++;
@@ -1250,6 +905,7 @@ namespace sclc {
             if (getStructByName(result, templateInstance.nameForInstance()).name.size()) {
                 continue;
             }
+            baseStruct.templateInstance = true;
             templateInstance.makeInstance(result, baseStruct);
         }
     }
@@ -1355,12 +1011,12 @@ namespace sclc {
             }
 
             const size_t count = this->tokens.size();
-            otherTokens.reserve(otherTokens.size() + count);
             Token* newToks = new Token[count];
             for (size_t j = 0; j < count; j++) {
                 newToks[j] = tokens[j].type == tok_dollar ? args[tokens[j].location.line] : tokens[j];
             }
             otherTokens.insert(otherTokens.begin() + i, newToks, newToks + count);
+            delete[] newToks;
         }
     };
 
@@ -1489,7 +1145,7 @@ namespace sclc {
         }
     };
     
-    TPResult SyntaxTree::parse(std::vector<std::string>& binaryHeaders) {
+    TPResult SyntaxTree::parse() {
         Function* currentFunction = nullptr;
         std::vector<Struct*> currentStructs;
         Interface* currentInterface = nullptr;
@@ -1497,6 +1153,7 @@ namespace sclc {
 
         int isInLambda = 0;
         int isInUnsafe = 0;
+        int nInits = 0;
 
         std::vector<std::string> uses;
         std::vector<std::string> nextAttributes;
@@ -1506,43 +1163,22 @@ namespace sclc {
         std::vector<Interface*> interfaces;
         std::vector<Enum> enums;
         std::vector<Function*> functions;
-        std::vector<Variable> extern_globals;
-        std::unordered_map<std::string, std::string> typealiases;
+        std::unordered_map<std::string, std::pair<std::string, bool>> typealiases;
 
-        uses.reserve(100);
-        nextAttributes.reserve(100);
-        globals.reserve(100);
-        structs.reserve(100);
-        layouts.reserve(100);
-        interfaces.reserve(100);
-        enums.reserve(100);
-        functions.reserve(100);
-        extern_globals.reserve(100);
-        typealiases.reserve(100);
+        uses.reserve(16);
+        nextAttributes.reserve(16);
+        globals.reserve(16);
+        structs.reserve(64);
+        layouts.reserve(16);
+        interfaces.reserve(16);
+        enums.reserve(16);
+        functions.reserve(128);
+        typealiases.reserve(16);
 
         Variable& lastDeclaredVariable = Variable::emptyVar();
 
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
-
-        for (std::string& binaryHeader : binaryHeaders) {
-            const TPResult& tmp = parseFile(binaryHeader);
-
-            if (!tmp.errors.empty()) {
-                return tmp;
-            }
-
-            structs.insert(structs.end(), tmp.structs.begin(), tmp.structs.end());
-            enums.insert(enums.end(), tmp.enums.begin(), tmp.enums.end());
-            functions.insert(functions.end(), tmp.functions.begin(), tmp.functions.end());
-            globals.insert(globals.end(), tmp.globals.begin(), tmp.globals.end());
-            extern_globals.insert(extern_globals.end(), tmp.extern_globals.begin(), tmp.extern_globals.end());
-            interfaces.insert(interfaces.end(), tmp.interfaces.begin(), tmp.interfaces.end());
-            layouts.insert(layouts.end(), tmp.layouts.begin(), tmp.layouts.end());
-            for (auto it = tmp.typealiases.begin(); it != tmp.typealiases.end(); it++) {
-                typealiases[it->first] = it->second;
-            }
-        }
 
         std::unordered_map<std::string, Macro*> macros;
 
@@ -1898,6 +1534,13 @@ namespace sclc {
                 }
                 std::string parameterName = tokens[i].value;
                 i++;
+                if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
+                    if (tokens[i].value == ",") {
+                        i++;
+                    }
+                    inst.arguments[parameterName] = "any";
+                    continue;
+                }
                 if (tokens[i].type != tok_column) {
                     FPResult result;
                     result.message = "Expected ':' after '" + parameterName + "' (" + parameterName + ")";
@@ -2189,14 +1832,12 @@ namespace sclc {
                 if (currentFunction != nullptr) {
                     if (isInLambda) {
                         isInLambda--;
-                        if (!contains<Function*>(functions, currentFunction))
-                            currentFunction->addToken(token);
+                        currentFunction->addToken(token);
                         continue;
                     }
                     if (isInUnsafe) {
                         isInUnsafe--;
-                        if (!contains<Function*>(functions, currentFunction))
-                            currentFunction->addToken(token);
+                        currentFunction->addToken(token);
                         continue;
                     }
 
@@ -2475,17 +2116,6 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
-                // if (currentStruct != nullptr) {
-                //     FPResult result;
-                //     result.message = "Cannot define a struct inside another struct. Maybe you forgot an 'end' somewhere? Current struct: " + currentStruct->name;
-                //     result.value = token.value;
-                //     result.location.line = token.location.line;
-                //     result.location = token.location;
-                //     result.type = token.type;
-                //     result.success = false;
-                //     errors.push_back(result);
-                //     continue;
-                // }
                 if (currentInterface != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of an interface. Maybe you forgot an 'end' somewhere? Current interface: " + currentInterface->name;
@@ -2532,6 +2162,7 @@ namespace sclc {
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
                 if (tokens[i + 1].value == "<") {
+                    currentStruct->templateInstance = true;
                     i++;
                     // *i = "<"
                     i++;
@@ -2550,6 +2181,15 @@ namespace sclc {
                         std::string key = tokens[i].value;
                         i++;
                         // *i = ":"
+                        if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
+                            if (tokens[i].value == ",") {
+                                i++;
+                            }
+                            currentStruct->required_typed_arguments++;
+                            currentStruct->addTemplateArgument(key, "any");
+                            templateArgs[key] = "any";
+                            continue;
+                        }
                         if (tokens[i].type != tok_column) {
                             FPResult result;
                             result.message = "Expected ':' after template argument name, but got '" + tokens[i].value + "'";
@@ -2881,15 +2521,65 @@ namespace sclc {
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
                     (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
-                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_comma) &&
-                    // (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_paren_open)
                 ) isInLambda++;
                 if (token.type == tok_identifier && token.value == "unsafe") {
                     isInUnsafe++;
                 }
                 if (!contains<Function*>(functions, currentFunction))
                     currentFunction->addToken(token);
-            } else if (token.type == tok_declare && currentStructs.size() == 0) {
+            } else if (token.type == tok_paren_open) {
+                currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits)));
+                nInits++;
+                currentFunction->addModifier("construct");
+                currentFunction->return_type = "none";
+                int depth = 0;
+                do {
+                    if (tokens[i].type == tok_paren_open) {
+                        depth++;
+                    } else if (tokens[i].type == tok_paren_close) {
+                        depth--;
+                    }
+                    currentFunction->addToken(tokens[i]);
+                    i++;
+                } while (depth > 0);
+                if (tokens[i].type != tok_store) {
+                    FPResult result;
+                    result.message = "Expected =>, but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentFunction->addToken(tokens[i]);
+                i++;
+                if (tokens[i].type != tok_declare) {
+                    FPResult result;
+                    result.message = "Expected 'decl', but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                i++;
+                if (tokens[i].type != tok_identifier) {
+                    FPResult result;
+                    result.message = "Expected identifier, but got: '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
+                }
+                currentFunction->addToken(tokens[i]);
+                i -= 2;
+                functions.push_back(currentFunction);
+                currentFunction = nullptr;
+            } else if (token.type == tok_declare && currentStructs.empty()) {
                 if (tokens[i + 1].type != tok_identifier) {
                     FPResult result;
                     result.message = "Expected identifier for variable name, but got '" + tokens[i + 1].value + "'";
@@ -2900,6 +2590,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
+                size_t start = i;
                 std::string name = tokens[i].value;
                 std::string type = "any";
                 i++;
@@ -2922,16 +2613,21 @@ namespace sclc {
                         continue;
                     }
                 }
+                Variable v(name, type);
                 if (contains<std::string>(nextAttributes, "expect")) {
-                    Variable v(name, type);
-                    if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
-                        extern_globals.push_back(v);
-                    }
+                    v.isExtern = true;
+                }
+                if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                    globals.push_back(v);
                 } else {
-                    Variable v(name, type);
-                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
-                        globals.push_back(v);
-                    }
+                    FPResult result;
+                    result.message = "Variable '" + v.name + "' already declared.";
+                    result.value = tokens[start].value;
+                    result.location = tokens[start].location;
+                    result.type = tokens[start].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 nextAttributes.clear();
             } else if (token.type == tok_declare && currentStructs.size() > 0) {
@@ -2945,6 +2641,7 @@ namespace sclc {
                     continue;
                 }
                 i++;
+                size_t start = i;
                 Token& name_token = tokens[i];
                 std::string name = tokens[i].value;
                 std::string type = "any";
@@ -2982,13 +2679,19 @@ namespace sclc {
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {
-                        if (std::find(extern_globals.begin(), extern_globals.end(), v) == extern_globals.end()) {
-                            extern_globals.push_back(v);
-                        }
+                        v.isExtern = true;
+                    }
+                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                        globals.push_back(v);
                     } else {
-                        if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
-                            globals.push_back(v);
-                        }
+                        FPResult result;
+                        result.message = "Variable '" + v.name + "' already declared.";
+                        result.value = tokens[start].value;
+                        result.location = tokens[start].location;
+                        result.type = tokens[start].type;
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
                     }
                 } else {
                     if (typeIsConst(type) && isInternalMut) {
@@ -3038,6 +2741,7 @@ namespace sclc {
                            t.value == "unsafe" ||
                            t.value == "cdecl" ||
                            t.value == "final" ||
+                           t.value == "async" ||
                            t.value == "open" ||
                            t.value == "asm";
                 };
@@ -3111,6 +2815,8 @@ namespace sclc {
                     i++;
                     std::string type = tokens[i].value;
                     i++;
+                    bool nilable = tokens[i].type == tok_question_mark;
+                    if (nilable) i++;
                     if (tokens[i].type != tok_string_literal) {
                         FPResult result;
                         result.message = "Expected string, but got '" + tokens[i].value + "'";
@@ -3122,7 +2828,7 @@ namespace sclc {
                         continue;
                     }
                     std::string replacement = tokens[i].value;
-                    typealiases[type] = replacement;
+                    typealiases[type] = std::pair(replacement, nilable);
                 } else if (tokens[i].value == "deprecated!") {
                     i++;
                     if (tokens[i].type != tok_bracket_open) {
@@ -3234,7 +2940,6 @@ namespace sclc {
         TPResult result;
         result.functions = functions;
         result.functions = functions;
-        result.extern_globals = extern_globals;
         result.globals = globals;
         result.structs = structs;
         result.layouts = layouts;
@@ -3322,9 +3027,10 @@ namespace sclc {
             return (s.size() > 2 && s.front() == '[' && s.back() == ']');
         };
         auto createToStringMethod = [&](Struct& s) -> Method* {
-            Token t(tok_identifier, "toString");
+            Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
-            std::string stringify = s.name + " {";
+            std::string retemplate(std::string type);
+            std::string stringify = retemplate(s.name) + " {";
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addArgument(Variable("self", s.name));
@@ -3348,8 +3054,14 @@ namespace sclc {
                 toString->addToken(Token(tok_identifier, member.name));
                 bool canBeNil = typeCanBeNil(member.type);
                 std::string type = removeTypeModifiers(member.type);
-                if (canBeNil || isPointer(type)) {
-                    toString->addToken(Token(tok_identifier, "builtinToString"));
+                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
+                    if (type == "float") {
+                        toString->addToken(Token(tok_identifier, "float"));
+                        toString->addToken(Token(tok_double_column, "::"));
+                        toString->addToken(Token(tok_identifier, "toString"));
+                    } else {
+                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                    }
                 } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                     toString->addToken(Token(tok_identifier, "any"));
                     toString->addToken(Token(tok_double_column, "::"));

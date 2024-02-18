@@ -11,14 +11,14 @@ sealed struct Array is Iterable
   decl capacity:    readonly int
   decl initCap:     readonly int
 
-  function sort(): none
+  function sort(comparator: lambda(any, any): int): none
     0 => decl i
 
     while i self.count < do
       i self:get => decl tmp
       i 1 - => decl j
       while j 0 >= do
-        if tmp j self:get < then
+        if tmp j self:get comparator:accept 0 < then
           j 1 + j self:get self:set
           j tmp self:set
         else
@@ -29,6 +29,17 @@ sealed struct Array is Iterable
       done
       i++ => i
     done
+  end
+
+  function sort(): none
+    lambda(a: any, b: any): int
+      if a b < then
+        -1 return
+      else
+        1 return
+      fi
+    end
+    self:sort
   end
 
   function [](index: int): any

@@ -25,42 +25,21 @@ namespace sclc
         SourceLocation location;
         TokenType type;
 
-        FPResult() : location("", 0, 0) {
-            success = false;
-            isNote = false;
-            type = tok_eof;
-            value = "";
-        }
-
-        std::string toString() const {
-            return "FPResult {success: " +
-                    std::to_string(success) +
-                    ", isNote: " +
-                    std::to_string(isNote) +
-                    ", message: " +
-                    message +
-                    ", value: " +
-                    value +
-                    ", type: " +
-                    std::to_string(type) +
-                    ", location: " +
-                    location.toString() +
-                    "}";
-        }
+        FPResult();
+        std::string toString() const;
     };
 
     class TPResult {
     public:
         std::vector<Function*> functions;
         std::vector<Interface*> interfaces;
-        std::vector<Variable> extern_globals;
         std::vector<Variable> globals;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Struct> structs;
         std::vector<Layout> layouts;
         std::vector<Enum> enums;
-        std::unordered_map<std::string, std::string> typealiases;
+        std::unordered_map<std::string, std::pair<std::string, bool>> typealiases;
     };
 
     template<typename R, typename E>

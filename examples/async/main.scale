@@ -1,0 +1,24 @@
+async function test(): none
+    50 sleep
+    "test" puts
+end
+
+struct Foo
+    async function bar(): int
+        50 sleep
+        "bar" puts
+        42 return
+    end
+
+    function foo(x: async<int>): none
+        x await
+    end
+end
+
+function main(args: [str]): none
+    Foo::new => decl f: Foo
+    "Hello, World!" puts
+    test await
+    f:bar => decl bar
+    bar f:foo
+end

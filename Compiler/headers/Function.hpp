@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "Variable.hpp"
+#include "Token.hpp"
 
 namespace sclc
 {
@@ -16,6 +17,7 @@ namespace sclc
     struct Function {
         size_t lambdaIndex;
         std::string name;
+        std::string name_without_overload;
         std::string return_type;
         std::vector<Token> body;
         std::vector<std::string> modifiers;
@@ -48,11 +50,11 @@ namespace sclc
         long has_overrides;
         long has_binary_inherited;
         long has_nonvirtual;
+        long has_async;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
-        virtual ~Function() {}
-        virtual std::string finalName();
+        virtual ~Function();
         virtual std::vector<Token>& getBody();
         virtual void addToken(Token token);
         virtual void addModifier(std::string modifier);
@@ -72,29 +74,7 @@ namespace sclc
     
     struct Method : public Function {
         bool force_add;
-        Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {
-            this->member_type = member_type;
-            this->isMethod = true;
-            this->force_add = false;
-        }
-        Method* cloneAs(std::string memberType) {
-            Method* m = new Method(memberType, name, name_token);
-            m->isMethod = isMethod;
-            m->force_add = force_add;
-            m->return_type = return_type;
-            for (auto s : modifiers) {
-                m->addModifier(s);
-            }
-            m->return_type = return_type;
-            for (Token t : this->getBody()) {
-                m->addToken(t);
-            }
-            for (Variable& v : args) {
-                m->addArgument(v);
-            }
-            m->namedReturnValue = namedReturnValue;
-            m->templateArg = templateArg;
-            return m;
-        }
+        Method(std::string member_type, std::string name, Token name_token);
+        Method* cloneAs(std::string memberType);
     };
 } // namespace sclc

@@ -6,7 +6,7 @@ namespace sclc {
     std::string typePointedTo(std::string type);
     std::string primitiveToReference(std::string type);
     bool structExtends(TPResult& result, Struct& s, std::string name);
-    bool isPrimitiveIntegerType(std::string s);
+    bool isPrimitiveIntegerType(std::string s, bool doRemoveMods);
     bool argsAreIdentical(std::vector<Variable>& methodArgs, std::vector<Variable>& functionArgs);
     std::string argVectorToString(std::vector<Variable>& args);
     std::string argVectorToString(std::vector<std::string>& args);
@@ -25,6 +25,7 @@ namespace sclc {
     std::map<std::string, std::string> getTemplates(TPResult& result, Function* func);
     bool hasTypealias(TPResult& r, std::string t);
     std::string getTypealias(TPResult& r, std::string t);
+    bool typealiasCanBeNil(TPResult& r, std::string t);
     std::string removeTypeModifiers(std::string t);
     std::string sclTypeToCType(TPResult& result, std::string t);
     std::string sclIntTypeToConvert(std::string type);

@@ -2,25 +2,19 @@
 ## Introduction
 Scale is a [procedual](https://en.wikipedia.org/wiki/Procedural_programming) and [object oriented](https://en.wikipedia.org/wiki/Object-oriented_programming) [concatenative](https://en.wikipedia.org/wiki/Concatenative_programming) [stack oriented](https://en.wikipedia.org/wiki/Stack-oriented_programming) [compiled](https://en.wikipedia.org/wiki/Compiler) programming language inspired by [Lua](https://www.lua.org/) and [Porth](https://gitlab.com/tsoding/porth).
 
-Scale and [C](https://en.wikipedia.org/wiki/C_(programming_language)) can interoperate using a header file named `scale_interop.h`, which will be generated in your current working directory when compiling any Scale file.
-
 The Compiler is a [source-to-source compiler](https://en.wikipedia.org/wiki/Source-to-source_compiler), as it converts your source code to valid C code, that is then compiled by [Clang](https://en.wikipedia.org/wiki/Clang).
 
-Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
+Scale supports both 32-bit and 64-bit systems, but 64-bit is strongly recommended.
 
 ### Examples
 
 Examples can be found in the [examples](./examples) directory.
 
 ## Installation
-### Install the latest release
-To install the latest release, run either
+Run the following commands:
 ```shell
-$ clang++ install.cpp -o install -std=gnu++17 && ./install # works if you don't have dragon yet
-```
-or
-```shell
-$ dragon package install StonkDragon/Scale # works if you already have dragon
+$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
+$ sudo ./install-sclc
 ```
 
 # Documentation
@@ -33,13 +27,10 @@ $ sclc -doc-for Scale
 ```
 
 # Build
-
-  The Scale compiler uses [Dragon](https://github.com/StonkDragon/Dragon) as the build system. It is required to build the compiler.
-
-  To build the compiler, execute the following command from the root directory of the repository:
-
+The install script can also function as the development build script, this requires a full install first:
 ```shell
-$ dragon build
+$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
+$ sudo ./install-sclc -dev
 ```
 
 # License

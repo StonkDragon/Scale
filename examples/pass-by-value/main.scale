@@ -1,0 +1,21 @@
+struct Foo
+    decl x: str
+    decl y: int
+end
+
+function foo(x: @Foo): @Foo
+    x puts
+    typeof x puts
+    69 => x.y
+    x return
+end
+
+function main(): none
+    Foo {
+        "Hello!" => x
+        42 => y
+    } => decl x: @Foo
+
+    x foo puts
+    x puts
+end
