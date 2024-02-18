@@ -1,0 +1,7 @@
+(
+    "Hello, World!"
+) => decl aGlobalVariable: str
+
+function main(): none
+    aGlobalVariable puts
+end

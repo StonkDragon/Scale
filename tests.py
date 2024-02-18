@@ -11,9 +11,9 @@ def genTest(file):
         print(f"Error generating tests for: {file}")
         sys.exit(1)
     output = os.popen("./out.scl").read()
-    if exists(test_file + ".txt"):
-        os.remove(test_file + ".txt")
-    with open(test_file + ".txt", "w") as f:
+    if exists("output.txt"):
+        os.remove("output.txt")
+    with open("output.txt", "w") as f:
         f.write(output)
 
 def runTest(file, directory="examples", current=1, total=1):
@@ -32,7 +32,7 @@ def runTest(file, directory="examples", current=1, total=1):
     output = os.popen("./out.scl").read()
     if not exists("output.txt"):
         print(f"[SKIP] {file}")
-        genTest(test_file)
+        genTest(f"main.scale")
         skippedTests += 1
         os.chdir(curDir)
         return
