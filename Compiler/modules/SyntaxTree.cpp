@@ -3027,7 +3027,7 @@ namespace sclc {
             return (s.size() > 2 && s.front() == '[' && s.back() == ']');
         };
         auto createToStringMethod = [&](Struct& s) -> Method* {
-            Token t(tok_identifier, "toString");
+            Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
             std::string retemplate(std::string type);
             std::string stringify = retemplate(s.name) + " {";

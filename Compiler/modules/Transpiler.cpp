@@ -534,6 +534,13 @@ namespace sclc {
                 currentStruct = Struct::Null;
             }
 
+            if (!Main::options::noLinkScale && currentStruct.templates.size() == 0 && strstarts(function->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = function->name_token.location.file;
+                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                    continue;
+                }
+            }
+
             typeStack.clear();
 
             bool isMainFunction = !function->isMethod && !Main::options::noMain && function->name == "main";

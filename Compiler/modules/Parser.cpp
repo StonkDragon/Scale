@@ -169,6 +169,13 @@ namespace sclc
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
                 }
+                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = s.name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        append("extern const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\");\n", s.name.c_str(), s.name.c_str());
+                        return;
+                    }
+                }
                 auto vtable = vtables.find(s.name);
                 if (vtable == vtables.end()) {
                     return;
@@ -246,6 +253,12 @@ namespace sclc
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
+            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = s.name_token->location.file;
+                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                    continue;
+                }
+            }
             if (!s.isExtern) {
                 append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
@@ -258,6 +271,12 @@ namespace sclc
         if (initFuncs.size()) {
             append("TRY {\n");
             for (auto&& f : initFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
+                }
                 append("  fn_%s();\n", f->name.c_str());
             }
             append("} else {\n");
@@ -272,7 +291,13 @@ namespace sclc
             append("_scl_destructor void destroy_this() {\n");
             scopeDepth++;
             append("TRY {\n");
-            for (auto&& f : initFuncs) {
+            for (auto&& f : destroyFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
+                }
                 append("  fn_%s();\n", f->name.c_str());
             }
             append("} else {\n");

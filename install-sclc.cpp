@@ -81,6 +81,10 @@ void require_root() {
     }
 }
 
+bool strcontains(const std::string& str, const std::string& substr) {
+    return str.find(substr) != std::string::npos;
+}
+
 int main(int argc, char const *argv[]) {
     require_root();
 
@@ -93,7 +97,24 @@ int main(int argc, char const *argv[]) {
     depends_on("nmake /?", "nmake is required!");
 #endif
 
+#define CONCAT(a, b) CONCAT_(a, b)
+#define CONCAT_(a, b) a ## b
+
 #include "Configuration.h"
+
+#if defined(__APPLE__)
+#define LIB_PREF "lib"
+#define LIB_SUFF ".dylib"
+#elif defined(__linux__)
+#define LIB_PREF "lib"
+#define LIB_SUFF ".so"
+#elif defined(_WIN32)
+#define LIB_PREF ""
+#define LIB_SUFF ".dll"
+#endif
+
+#define LIB_SCALE_FILENAME    LIB_PREF LIB_SCALE_NAME LIB_SUFF
+#define SCALE_STDLIB_FILENAME LIB_PREF SCALE_STDLIB_NAME LIB_SUFF
 
     bool isDevBuild = (argv[1] && (std::strcmp(argv[1], "-dev") == 0));
 
@@ -279,6 +300,19 @@ int main(int argc, char const *argv[]) {
         path + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale"
     });
 
+    auto scale_stdlib = create_command<std::string>({
+        "sudo", "sclc", "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
+    });
+
+    auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
+    for (auto&& f : files) {
+        if (strcontains(f.string(), "/macros/") || strcontains(f.string(), "/__") || strcontains(f.string(), "/compiler/")) {
+            continue;
+        }
+        scale_stdlib += f.string() + " ";
+    }
+
+    exec_command(scale_stdlib);
     exec_command(macro_library);
 
     return 0;

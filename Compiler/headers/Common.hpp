@@ -160,6 +160,7 @@ namespace sclc {
             static bool printDocs;
             static bool debugBuild;
             static bool printCflags;
+            static bool noLinkScale;
             static size_t stackSize;
             static size_t errorLimit;
             static bool binaryHeader;

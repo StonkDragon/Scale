@@ -53,13 +53,21 @@
 #define SCL_ROOT_DIR "/opt"
 #endif
 
+#define CONCAT(a, b) CONCAT_(a, b)
+#define CONCAT_(a, b) a ## b
+
 #if defined(__APPLE__)
-#define LIB_SCALE_FILENAME "libScaleRuntime.dylib"
+#define LIB_PREF "lib"
+#define LIB_SUFF ".dylib"
 #elif defined(__linux__)
-#define LIB_SCALE_FILENAME "libScaleRuntime.so"
+#define LIB_PREF "lib"
+#define LIB_SUFF ".so"
 #elif defined(_WIN32)
-#define LIB_SCALE_FILENAME "ScaleRuntime.dll"
+#define LIB_PREF ""
+#define LIB_SUFF ".dll"
 #endif
+
+#define LIB_SCALE_FILENAME CONCAT(CONCAT(LIB_PREF, "ScaleRuntime"), LIB_SUFF)
 
 #define TO_STRING2(x) #x
 #define TO_STRING(x) TO_STRING2(x)
@@ -846,6 +854,8 @@ namespace sclc
                 #endif
             } else if (args[i] == "-no-scale-std") {
                 Main::options::noScaleFramework = true;
+            } else if (args[i] == "-no-link-std") {
+                Main::options::noLinkScale = true;
             } else if (args[i] == "-create-framework") {
                 if (i + 1 < args.size()) {
                     std::string name = args[i + 1];
@@ -918,6 +928,7 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + "/Internal/include");
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I.");
+        cflags.push_back("-L" + scaleFolder);
         cflags.push_back("-L" + scaleFolder + "/Internal");
         cflags.push_back("-L" + scaleFolder + "/Internal/lib");
         cflags.push_back("-" + optimizer);
@@ -1081,6 +1092,9 @@ namespace sclc
         }
 
         for (std::string& s : tmpFlags) {
+            if (!Main::options::noLinkScale && strstarts(s, scaleFolder + "/Frameworks/Scale.framework")) {
+                continue;
+            }
             cflags.push_back(s);
         }
         
@@ -1126,6 +1140,9 @@ namespace sclc
         }
 
         for (std::string& file : nonScaleFiles) {
+            if (!Main::options::noLinkScale && strstarts(file, scaleFolder + "/Frameworks/Scale.framework")) {
+                continue;
+            }
             cflags.push_back("\"" + file + "\"");
         }
 
@@ -1144,6 +1161,9 @@ namespace sclc
 #endif
         cflags.push_back("-lScaleRuntime");
         cflags.push_back("-lgc");
+        if (!Main::options::noLinkScale) {
+            cflags.push_back("-lScale");
+        }
 
         std::string cmd = "";
         for (std::string& s : cflags) {
