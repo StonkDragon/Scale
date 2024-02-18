@@ -22,7 +22,7 @@ namespace sclc {
                 append("return;\n");
             }
         } else {
-            if (function->return_type.front() == '*' && function->has_async) {
+            if (function->return_type.front() == '@' && function->has_async) {
                 append("return (%s*) ({\n", sclTypeToCType(result, function->return_type).c_str());
             } else {
                 append("return (%s) ({\n", sclTypeToCType(result, function->return_type).c_str());
@@ -34,7 +34,7 @@ namespace sclc {
                 returningType = function->namedReturnValue.type;
                 append("%s retVal = Var_%s;\n", sclTypeToCType(result, returningType).c_str(), function->namedReturnValue.name.c_str());
             } else {
-                if (function->return_type.front() == '*') {
+                if (function->return_type.front() == '@') {
                     if (!function->has_async) {
                         append("%s retVal = *_scl_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                     } else {
@@ -44,7 +44,7 @@ namespace sclc {
                     append("%s retVal = _scl_pop(%s);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                 }
             }
-            if (function->return_type.front() != '*' && function->has_async) {
+            if (function->return_type.front() != '@' && function->has_async) {
                 bool cantBeNil = !typeCanBeNil(function->return_type) && !hasEnum(result, function->return_type);
                 if (cantBeNil) {
                     #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))

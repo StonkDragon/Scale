@@ -143,9 +143,8 @@ namespace sclc {
                 ) {
                     continue;
                 }
-                append("%s Var_%s = fn_%s(_scl_pop(%s));\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), f->name.c_str(), sclTypeToCType(result, f->args[0].type).c_str());
-                typePop;
-                return;
+                functionCall(f, fp, result, warns, errors, body, i);
+                break;
             }
             #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
             if (!v.canBeNil && !TYPEALIAS_CAN_BE_NIL(result, v.type)) {
@@ -155,7 +154,7 @@ namespace sclc {
                 transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
                 errors.push_back(err);
             }
-            if (type.front() == '*') {
+            if (type.front() == '@') {
                 append("%s Var_%s = *_scl_pop(%s*);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
             } else {
                 append("%s Var_%s = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
@@ -182,8 +181,9 @@ namespace sclc {
                         safeInc();
                         append("{\n");
                         scopeDepth++;
-                        append("scl_int _scl_value_to_store = _scl_pop(scl_int);\n");
+                        std::string type = sclTypeToCType(result, typeStackTop);
                         typePop;
+                        append("%s _scl_value_to_store = _scl_pop(%s);\n", type.c_str(), type.c_str());
                         append("{\n");
                         scopeDepth++;
                         while (body[i].type != tok_paren_close) {
@@ -192,9 +192,9 @@ namespace sclc {
                         }
                         scopeDepth--;
                         append("}\n");
-                        std::string type = removeTypeModifiers(typeStackTop);
+                        type = sclTypeToCType(result, typeStackTop);
                         typePop;
-                        append("*_scl_pop(%s*) = _scl_value_to_store;\n", sclTypeToCType(result, type).c_str());
+                        append("*_scl_pop(%s*) = _scl_value_to_store;\n", type.c_str());
                         scopeDepth--;
                         append("}\n");
                     } else {

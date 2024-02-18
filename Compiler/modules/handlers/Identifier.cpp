@@ -90,7 +90,7 @@ namespace sclc {
             std::string removed = removeTypeModifiers(type);
             typePop;
             if (removed != "none" && removed != "nothing") {
-                if (type.front() == '*') type.erase(0, 1);
+                if (type.front() == '@') type.erase(0, 1);
                 typeStack.push_back(type);
                 append("_scl_await(%s);\n", sclTypeToCType(result, type).c_str());
             } else {
@@ -103,7 +103,7 @@ namespace sclc {
                 std::string type = getVar(body[i].value).type;
                 const Struct& s = getStructByName(result, type);
                 if (s != Struct::Null && !s.isStatic()) {
-                    if (type.front() == '*') {
+                    if (type.front() == '@') {
                         append("_scl_push(scl_str, _scl_create_string(Var_%s.$statics->type_name));\n", body[i].value.c_str());
                     } else {
                         append("_scl_push(scl_str, _scl_create_string(Var_%s->$statics->type_name));\n", body[i].value.c_str());
