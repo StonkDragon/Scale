@@ -161,12 +161,12 @@ scl_bool Process$gcEnabled(void) {
 
 void Process$lock(scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_lock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_lock(&((Struct*) obj)->mutex);
 }
 
 void Process$unlock(scl_any obj) {
 	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_unlock(((Struct*) obj)->mutex);
+	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
 }
 
 scl_str intToString(scl_int val) {
