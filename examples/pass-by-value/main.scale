@@ -3,7 +3,7 @@ struct Foo
     decl y: int
 end
 
-function foo(x: *Foo): *Foo
+function foo(x: @Foo): @Foo
     x puts
     typeof x puts
     69 => x.y
@@ -14,7 +14,7 @@ function main(): none
     Foo {
         "Hello!" => x
         42 => y
-    } => decl x: *Foo
+    } => decl x: @Foo
 
     x foo puts
     x puts
