@@ -13,14 +13,10 @@ Scale supports both 32-bit and 64-bit systems, but 64-bit is recommended.
 Examples can be found in the [examples](./examples) directory.
 
 ## Installation
-### Install the latest release
-To install the latest release, run either
+Run the following commands:
 ```shell
-$ clang++ install.cpp -o install -std=gnu++17 && ./install # works if you don't have dragon yet
-```
-or
-```shell
-$ dragon package install StonkDragon/Scale # works if you already have dragon
+$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
+$ sudo install-sclc
 ```
 
 # Documentation
@@ -33,13 +29,10 @@ $ sclc -doc-for Scale
 ```
 
 # Build
-
-  The Scale compiler uses [Dragon](https://github.com/StonkDragon/Dragon) as the build system. It is required to build the compiler.
-
-  To build the compiler, execute the following command from the root directory of the repository:
-
+Run the following commands:
 ```shell
-$ dragon build
+$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
+$ sudo install-sclc -dev
 ```
 
 # License
