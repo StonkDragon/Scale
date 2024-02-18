@@ -19,7 +19,7 @@
     {                                                                                         \
         append("%s;\n", path.c_str());                                                        \
     }                                                                                         \
-    else if (type.front() == '*')                                                             \
+    else if (type.front() == '@')                                                             \
     {                                                                                         \
         append("{\n");                                                                        \
         scopeDepth++;                                                                         \

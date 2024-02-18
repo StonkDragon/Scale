@@ -55,14 +55,10 @@
 
 #if defined(__APPLE__)
 #define LIB_SCALE_FILENAME "libScaleRuntime.dylib"
-#define LIB_CXXGLUE_FILENAME "libCXXGlue.dylib"
 #elif defined(__linux__)
 #define LIB_SCALE_FILENAME "libScaleRuntime.so"
-#define LIB_CXXGLUE_FILENAME "libCXXGlue.so"
 #elif defined(_WIN32)
-// defined, but not used
 #define LIB_SCALE_FILENAME "ScaleRuntime.dll"
-#define LIB_CXXGLUE_FILENAME "CXXGlue.dll"
 #endif
 
 #define TO_STRING2(x) #x
@@ -558,126 +554,8 @@ namespace sclc
         return 0;
     }
 
-    int compileRuntimeLib() {
-        std::vector<std::string> libScaleCommand = {
-            "clang",
-            "-O2",
-            "-std=gnu17",
-            "-I" + scaleFolder + "/Internal",
-            "-I" + scaleFolder + "/Internal/include",
-            scaleFolder + "/Internal/scale_runtime.c",
-            "-c",
-#if !defined(_WIN32)
-            "-fPIC",
-#endif
-            "-o",
-            scaleFolder + "/Internal/scale_runtime.o"
-        };
-        std::vector<std::string> cxxGlueCommand = {
-            "clang++",
-            "-O2",
-            "-std=gnu++17",
-            "-I" + scaleFolder + "/Internal",
-            "-I" + scaleFolder + "/Internal/include",
-            scaleFolder + "/Internal/scale_cxx.cpp",
-            "-c",
-#if !defined(_WIN32)
-            "-fPIC",
-#endif
-            "-o",
-            scaleFolder + "/Internal/scale_cxx.o"
-        };
-
-        std::vector<std::string> compileVec = {
-            "clang++",
-            "-O2",
-#if defined(__APPLE__)
-            "-dynamiclib",
-            "-current_version",
-            Version(VERSION).asString().c_str(),
-            "-compatibility_version",
-            Version(VERSION).asString().c_str(),
-            "-undefined dynamic_lookup",
-#elif defined(__linux__)
-            "-Wl,--undefined,dynamic_lookup",
-            "-shared",
-#elif defined(_WIN32)
-            "-shared",
-            "-static-libstdc++",
-#endif
-#if !defined(_WIN32)
-            "-fPIC",
-#endif
-            scaleFolder + "/Internal/scale_runtime.o",
-            scaleFolder + "/Internal/scale_cxx.o",
-            scaleFolder + "/Internal/lib/libgc.a",
-            "-o",
-            scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME)
-        };
-
-        std::filesystem::remove(scaleFolder + "/Internal/" + std::string(LIB_SCALE_FILENAME));
-
-        if (Main::options::debugBuild) {
-            libScaleCommand.push_back("-DSCL_DEBUG");
-            libScaleCommand.push_back("-g");
-            libScaleCommand.push_back("-O0");
-            cxxGlueCommand.push_back("-DSCL_DEBUG");
-            cxxGlueCommand.push_back("-g");
-            cxxGlueCommand.push_back("-O0");
-            compileVec.push_back("-DSCL_DEBUG");
-            compileVec.push_back("-g");
-            compileVec.push_back("-O0");
-        }
-
-        std::string cxxGlueCompileCommmand = "";
-        for (auto& s : cxxGlueCommand) {
-            cxxGlueCompileCommmand += s + " ";
-        }
-
-        std::string libScaleCompileCommand = "";
-        for (auto& s : libScaleCommand) {
-            libScaleCompileCommand += s + " ";
-        }
-
-        std::string compileCommmand = "";
-        for (auto& s : compileVec) {
-            compileCommmand += s + " ";
-        }
-
-        int ret;
-        std::cout << Color::BLUE << "Assembling runtime library..." << std::endl;
-        std::cout << Color::CYAN << libScaleCompileCommand << Color::RESET << std::endl;
-        if ((ret = system(libScaleCompileCommand.c_str()))) {
-            std::cerr << Color::RED << "Failed to assemble runtime library" << Color::RESET << std::endl;
-            return ret;
-        }
-
-        std::cout << Color::BLUE << "Assembling c++ glue library..." << std::endl;
-        std::cout << Color::CYAN << cxxGlueCompileCommmand << Color::RESET << std::endl;
-        if ((ret = system(cxxGlueCompileCommmand.c_str()))) {
-            std::cerr << Color::RED << "Failed to assemble c++ glue library" << Color::RESET << std::endl;
-            return ret;
-        }
-
-        std::cout << Color::BLUE << "Linking runtime library..." << std::endl;
-        std::cout << Color::CYAN << compileCommmand << Color::RESET << std::endl;
-        if ((ret = system(compileCommmand.c_str()))) {
-            std::cerr << Color::RED << "Failed to link runtime library" << Color::RESET << std::endl;
-            return ret;
-        }
-        
-        std::filesystem::remove(scaleFolder + "/Internal/scale_runtime.o");
-        std::filesystem::remove(scaleFolder + "/Internal/scale_cxx.o");
-
-        std::string macroCommand = "sclc -makelib -o " + scaleFolder + "/Frameworks/Scale.framework/impl/__scale_macros.scl " + scaleFolder + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale";
-        std::cout << Color::BLUE << "Compiling macros..." << std::endl;
-        std::cout << Color::CYAN << macroCommand << Color::RESET << std::endl;
-        if ((ret = system(macroCommand.c_str()))) {
-            std::cerr << Color::RED << "Failed to compile macros" << Color::RESET << std::endl;
-            return ret;
-        }
-        return 0;
-    }
+    void logWarns(std::vector<FPResult>& warns);
+    void logErrors(std::vector<FPResult>& errors);
 
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
@@ -723,6 +601,8 @@ namespace sclc
             }
             fclose(f);
             free(line);
+            logWarns(error.warns);
+            logErrors(error.errors);
         }
     }
 
@@ -782,6 +662,8 @@ namespace sclc
             fclose(f);
             free(line);
             errorCount++;
+            logWarns(error.warns);
+            logErrors(error.errors);
         }
     }
 
@@ -1019,16 +901,7 @@ namespace sclc
                 tmpFlags.push_back(args[i]);
             }
         }
-
-        std::string libScaleRuntimeFileName = std::string(LIB_SCALE_FILENAME);
-        if (!std::filesystem::exists(std::filesystem::path(scaleFolder) / std::filesystem::path("Internal") / libScaleRuntimeFileName)) {
-            int ret = compileRuntimeLib();
-            if (ret) {
-                std::cout << Color::RED << "Failed to compile runtime library" << std::endl;
-                return ret;
-            }
-        }
-
+        
         if (!hasFilesFromArgs) {
             Main::options::noMain = true;
             if (!outFileSpecified)
@@ -1046,6 +919,7 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + "/Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder + "/Internal");
+        cflags.push_back("-L" + scaleFolder + "/Internal/lib");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
@@ -1266,8 +1140,10 @@ namespace sclc
 #ifndef __APPLE__
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
+        cflags.push_back("-Wl," + scaleFolder + "/Internal/lib");
 #endif
         cflags.push_back("-lScaleRuntime");
+        cflags.push_back("-lgc");
 
         std::string cmd = "";
         for (std::string& s : cflags) {

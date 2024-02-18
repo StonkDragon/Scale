@@ -16,53 +16,15 @@ namespace sclc
         std::vector<Function*> toImplement;
         std::vector<Method*> defaultImplementations;
         Token* name_token;
-        Interface(std::string name) {
-            this->name = name;
-        }
-        bool hasToImplement(std::string func) {
-            for (Function* f : toImplement) {
-                if (f->name == func) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        bool hasDefaultImplementation(std::string func) {
-            for (Method* f : defaultImplementations) {
-                if (f->name == func) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        Function* getToImplement(std::string func) {
-            for (Function* f : toImplement) {
-                if (f->name == func) {
-                    return f;
-                }
-            }
-            return nullptr;
-        }
-        Method* getDefaultImplementation(std::string func) {
-            for (Method* f : defaultImplementations) {
-                if (f->name == func) {
-                    return f;
-                }
-            }
-            return nullptr;
-        }
-        void addToImplement(Function* func) {
-            toImplement.push_back(func);
-        }
-        void addDefaultImplementation(Method* func) {
-            defaultImplementations.push_back(func);
-        }
+        Interface(std::string name);
+        bool hasToImplement(std::string func);
+        bool hasDefaultImplementation(std::string func);
+        Function* getToImplement(std::string func);
+        Method* getDefaultImplementation(std::string func);
+        void addToImplement(Function* func);
+        void addDefaultImplementation(Method* func);
 
-        inline bool operator==(const Interface& other) const {
-            return this->name == other.name;
-        }
-        inline bool operator!=(const Interface& other) const {
-            return !((*this) == other);
-        }
+        bool operator==(const Interface& other) const;
+        bool operator!=(const Interface& other) const;
     };
 } // namespace sclc

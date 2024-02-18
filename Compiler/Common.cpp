@@ -153,7 +153,6 @@ namespace sclc
     });
 
     Struct Struct::Null = Struct("");
-    Token Token::Default(tok_identifier, "");
 
     std::vector<Variable> vars;
     std::vector<size_t> var_indices;
@@ -406,13 +405,13 @@ namespace sclc
         return num;
     }
 
+    void logWarns(std::vector<FPResult>& warns);
+
     FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
         (void) typeReplacements;
         FPResult r;
         r.success = true;
-        r.value = "";
         r.location = body[*i].location;
-        r.value = body[*i].value;
         r.type = body[*i].type;
         r.message = "";
         r.value = "";
@@ -420,8 +419,18 @@ namespace sclc
         bool isConst = false;
         bool isReadonly = false;
 
-        if (body[*i].type == tok_identifier && body[*i].value == "*") {
-            type_mods += "*";
+        if ((body[*i].type == tok_identifier && body[*i].value == "*") || body[*i].type == tok_addr_of) {
+            if (body[*i].type != tok_addr_of) {
+                FPResult r2;
+                r2.success = true;
+                r2.location = body[*i].location;
+                r2.value = body[*i].value;
+                r2.type = body[*i].type;
+                r2.message = "Using '*' to denote a value-type is deprecated. Use '@' instead";
+                r.warns.push_back(r2);
+                logWarns(r.warns);
+            }
+            type_mods += "@";
             (*i)++;
         }
 
@@ -437,10 +446,6 @@ namespace sclc
         }
         if (body[*i].type == tok_identifier) {
             r.value = type_mods + body[*i].value;
-            // if (typeReplacements.find(body[*i].value) != typeReplacements.end()) {
-            //     r.value = type_mods + typeReplacements.at(body[*i].value);
-            //     r.message = body[*i].value;
-            // }
             if (r.value == "lambda") {
                 (*i)++;
                 if (body[*i].type != tok_paren_open) {
@@ -777,26 +782,6 @@ namespace sclc
         return f->member_type == self->internalMutableFrom || strstarts(self->name, f->member_type + "$");
     }
 
-    bool Variable::isAccessible(Function* f) const {
-        if (this->isPrivate) {
-            return memberOfStruct(this, f);
-        }
-        return true;
-    }
-
-    bool Variable::isWritableFrom(Function* f) const {
-        if (this->isReadonly || this->isPrivate) {
-            if (this->isReadonly && strstarts(this->name, f->member_type + "$")) {
-                return true;
-            }
-            return memberOfStruct(this, f);
-        }
-        if (isConst) {
-            return isInitFunction(f);
-        }
-        return true;
-    }
-
     bool sclIsProhibitedInit(std::string s) {
         // Kept because i am too lazy to refactor
         (void) s;
@@ -808,7 +793,7 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
-        if (s.size() && s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "const ")) {
             s.erase(0, 6);
         }
@@ -816,7 +801,7 @@ namespace sclc
     }
 
     bool typeIsConst(std::string s) {
-        if (s.size() && s.front() == '*') s.erase(0, 1);
+        if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "readonly ")) {
             s.erase(0, 9);
         }
@@ -913,7 +898,7 @@ namespace sclc
                     }
                     useLayout = true;
                 }
-                bool valueType = currentType.front() == '*';
+                bool valueType = currentType.front() == '@';
 
                 if (useLayout) {
                     if (l.hasMember(body[i].value)) {

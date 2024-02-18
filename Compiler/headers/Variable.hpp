@@ -12,6 +12,7 @@
 namespace sclc
 {
     struct Function;
+    struct Token;
 
     enum VarAccess {
         Dereference,
@@ -42,41 +43,16 @@ namespace sclc
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;
-        Variable(std::string name, std::string type) : Variable(name, type, "") {}
-        Variable(std::string name, std::string type, std::string memberType) {
-            this->name = name;
-            this->type = type;
-            this->isConst = typeIsConst(type);
-            this->isReadonly = typeIsReadonly(type);
-            this->canBeNil = typeCanBeNil(type, true);
-            this->internalMutableFrom = memberType;
-            this->isInternalMut = memberType.size() != 0;
-            this->isPrivate = false;
-            this->typeFromTemplate = "";
-            this->isVirtual = false;
-            this->isExtern = false;
-        }
-        virtual ~Variable() {}
+        Variable(std::string name, std::string type);
+        Variable(std::string name, std::string type, std::string memberType);
+        virtual ~Variable();
 
         bool isWritableFrom(Function* f) const;
         bool isAccessible(Function* f) const;
-        inline bool operator==(const Variable& other) const {
-            if (this->type == "?" || other.type == "?") {
-                return this->name == other.name;
-            }
-            return this->name == other.name && removeTypeModifiers(this->type) == removeTypeModifiers(other.type);
-        }
-        inline bool operator!=(const Variable& other) const {
-            return !((*this) == other);
-        }
-        virtual Variable& also(std::function<void(Variable&)> f) {
-            f(*this);
-            return *this;
-        }
+        bool operator==(const Variable& other) const;
+        bool operator!=(const Variable& other) const;
+        virtual Variable& also(std::function<void(Variable&)> f);
 
-        static Variable& emptyVar() {
-            static Variable empty("", "");
-            return empty;
-        }
+        static Variable& emptyVar();
     };
 } // namespace sclc
