@@ -1157,6 +1157,7 @@ namespace sclc
 #ifndef __APPLE__
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
+        cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal/lib");
 #endif
         cflags.push_back("-lScaleRuntime");

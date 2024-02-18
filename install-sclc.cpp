@@ -269,14 +269,12 @@ int main(int argc, char const *argv[]) {
         "dynamic_lookup",
     #else
     #ifdef __linux__
-        "-Wl,--undefined",
+        "-Wl,--undefined,dynamic_lookup",
     #endif
         "-shared",
     #endif
     #if defined(_WIN32)
         "-static-libstdc++",
-    #else
-        "-fPIC",
     #endif
         path + "/Internal/scale_runtime.o",
         path + "/Internal/scale_cxx.o",
