@@ -17,6 +17,7 @@ out.typeinfo.h
 *.s
 scl_*.c
 scl_*.h
+sclc
 
 # Linker output
 *.ilk
@@ -97,7 +98,6 @@ scale-find-virtual-calls.c
 changes.md
 utf8.h
 e.log
-install
-nobuild-post
+install-sclc
 ._*
 scale.vscodeextension/.DS_Store
