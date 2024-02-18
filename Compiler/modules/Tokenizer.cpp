@@ -45,6 +45,9 @@ namespace sclc
         String,
     };
 
+    Tokenizer::Tokenizer() {current = 0;}
+    Tokenizer::~Tokenizer() {}
+
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
             return Token(tok_eof, "", line, filename, begin);

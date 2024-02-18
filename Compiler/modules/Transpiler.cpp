@@ -101,6 +101,9 @@ namespace sclc {
     std::string return_type = "";
     int lambdaCount = 0;
 
+    Transpiler::Transpiler(TPResult& result, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::ostream& fp) : result(result), errors(errors), warns(warns), fp(fp) {}
+    Transpiler::~Transpiler() {}
+
     void Transpiler::writeHeader() {
         int scopeDepth = 0;
 
@@ -157,7 +160,7 @@ namespace sclc {
                             append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                         }
                         append("};\n");
-                        if (function->return_type.front() != '*') {
+                        if (function->return_type.front() != '@') {
                             append("%s fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
                         } else {
                             append("%s* fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
@@ -193,7 +196,7 @@ namespace sclc {
                         append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                     }
                     append("};\n");
-                    if (function->return_type.front() != '*') {
+                    if (function->return_type.front() != '@') {
                         append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
                     } else {
                         append("%s* mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
@@ -578,7 +581,7 @@ namespace sclc {
                     errors.push_back(err);
                     continue;
                 }
-                if (UNLIKELY(function->return_type.front() == '*' && function->has_async)) {
+                if (UNLIKELY(function->return_type.front() == '@' && function->has_async)) {
                     append("%s* ", return_type.c_str());
                 } else {
                     append("%s ", return_type.c_str());
@@ -614,7 +617,7 @@ namespace sclc {
                     } else {
                         append("");
                     }
-                    if (UNLIKELY(function->return_type.front() == '*' && function->has_async)) {
+                    if (UNLIKELY(function->return_type.front() == '@' && function->has_async)) {
                         append2("%s* ", return_type.c_str());
                     } else {
                         append2("%s ", return_type.c_str());
@@ -662,7 +665,7 @@ namespace sclc {
             if (function->isMethod) {
                 const std::string& superType = currentStruct.super;
                 if (LIKELY(superType.size() > 0)) {
-                    append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '*' ? "&" : "");
+                    append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '@' ? "&" : "");
                     vars.push_back(Variable("super", "const " + superType));
                 }
             }

@@ -55,12 +55,12 @@ namespace sclc {
 
     std::string selfTypeToRealType(std::string selfType, std::string realType) {
         bool selfTypeIsNilable = typeCanBeNil(selfType);
-        bool selfTypeIsValueType = selfType.front() == '*';
+        bool selfTypeIsValueType = selfType.front() == '@';
         selfType = removeTypeModifiers(selfType);
         if (selfType == "self") {
             std::string type = "";
             if (selfTypeIsValueType) {
-                type += "*";
+                type += "@";
             }
             type += realType;
             if (selfTypeIsNilable) {
@@ -70,7 +70,7 @@ namespace sclc {
         } else if (selfType.front() == '[' && selfType.back() == ']') {
             std::string type = "";
             if (selfTypeIsValueType) {
-                type += "*";
+                type += "@";
             }
             type += "[" + selfTypeToRealType(selfType.substr(1, selfType.size() - 2), realType) + "]";
             if (selfTypeIsNilable) {
@@ -347,7 +347,7 @@ namespace sclc {
     }
 
     std::string removeTypeModifiers(std::string t) {
-        if (t.size() && t.front() == '*') {
+        if (t.size() && t.front() == '@') {
             t.erase(0, 1);
         }
         for (const std::string& modifier : removableTypeModifiers) {
@@ -365,7 +365,7 @@ namespace sclc {
         if (t == "?") {
             return "scl_any";
         }
-        bool valueType = t.front() == '*';
+        bool valueType = t.front() == '@';
         t = removeTypeModifiers(t);
 
         if (strstarts(t, "async<")) return "scl_any";
@@ -453,13 +453,13 @@ namespace sclc {
             return rtType.substr(1, rtType.size() - 1);
         }
         if (rtType.front() == 'P') {
-            return "*" + rtTypeToSclType(rtType.substr(1));
+            return "@" + rtTypeToSclType(rtType.substr(1));
         }
         return "<" + rtType + ">";
     }
 
     std::string typeToRTSig(std::string type) {
-        if (type.size() && type.front() == '*') {
+        if (type.size() && type.front() == '@') {
             type = removeTypeModifiers(type.substr(1, type.size() - 1));
             return "P" + typeToRTSig(type);
         }

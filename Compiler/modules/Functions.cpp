@@ -41,11 +41,11 @@ namespace sclc {
         size_t maxValue = func->args.size();
         if (func->isMethod) {
             std::string self_type = func->args[func->args.size() - 1].type;
-            if (self_type.front() == '*') {
+            if (self_type.front() == '@') {
                 args += "*(";
             }
             args += "_scl_positive_offset(" + std::to_string(func->args.size() - 1) + ", " + sclTypeToCType(result, func->member_type) + ")";
-            if (self_type.front() == '*') {
+            if (self_type.front() == '@') {
                 args += ")";
             }
             maxValue--;
@@ -58,7 +58,7 @@ namespace sclc {
             if (func->isMethod || i)
                 args += ", ";
 
-            bool isValueStructParam = arg.type.front() == '*';
+            bool isValueStructParam = arg.type.front() == '@';
             if (isValueStructParam) args += "*(";
             args += "_scl_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, arg.type.substr(isValueStructParam)) + ")";
             if (isValueStructParam) args += ")";
@@ -116,7 +116,7 @@ namespace sclc {
         }
 
         bool closeThePush = false;
-        if (f->return_type.size() && f->return_type.front() == '*' && !f->has_async) {
+        if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, f->return_type).c_str());
@@ -143,7 +143,7 @@ namespace sclc {
         }
         append2(";\n");
 
-        if (f->return_type.size() && f->return_type.front() == '*' && !f->has_async) {
+        if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
             std::string cType = sclTypeToCType(result, f->return_type);
             const Struct& s = getStructByName(result, f->return_type);
             if (s != Struct::Null) {
@@ -158,7 +158,7 @@ namespace sclc {
         if (f->has_async) {
             typeStack.push_back("async<" + f->return_type + ">");
         } else if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
-            if (f->return_type.front() == '*') {
+            if (f->return_type.front() == '@') {
                 typeStack.push_back(f->return_type.substr(1));
             } else {
                 typeStack.push_back(f->return_type);
@@ -520,7 +520,7 @@ namespace sclc {
             append("CAST0(_scl_top(scl_any), %s, 0x%lxUL);\n", self->member_type.c_str(), id(self->member_type.c_str()));
         }
         bool closeThePush = false;
-        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
+        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
@@ -586,7 +586,7 @@ namespace sclc {
             append2(")");
         }
         append2(";\n");
-        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
+        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             std::string cType = sclTypeToCType(result, self->return_type);
             const Struct& s = getStructByName(result, self->return_type);
             if (s != Struct::Null) {
@@ -601,13 +601,13 @@ namespace sclc {
         if (self->has_async) {
             typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
-            if (self->return_type.front() == '*') {
+            if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
                 if (isSelfType(self->return_type)) {
                     std::string retType = "";
-                    if (self->return_type.front() == '*') {
-                        retType += "*";
+                    if (self->return_type.front() == '@') {
+                        retType += "@";
                     }
                     retType += removeTypeModifiers(type);
                     if (typeCanBeNil(self->return_type)) {
@@ -892,8 +892,8 @@ namespace sclc {
                 } else {
                     if (isSelfType(self->return_type)) {
                         std::string retType = "";
-                        if (self->return_type.front() == '*') {
-                            retType += "*";
+                        if (self->return_type.front() == '@') {
+                            retType += "@";
                         }
                         retType += removeTypeModifiers(type);
                         if (typeCanBeNil(self->return_type)) {
@@ -984,7 +984,7 @@ namespace sclc {
             }
         }
         bool closeThePush = false;
-        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
+        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             append("{\n");
             scopeDepth++;
             append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
@@ -1007,7 +1007,7 @@ namespace sclc {
         }
         append2(";\n");
 
-        if (self->return_type.size() && self->return_type.front() == '*' && !self->has_async) {
+        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             std::string cType = sclTypeToCType(result, self->return_type);
             const Struct& s = getStructByName(result, self->return_type);
             if (s != Struct::Null) {
@@ -1023,13 +1023,13 @@ namespace sclc {
         if (self->has_async) {
             typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
-            if (self->return_type.front() == '*') {
+            if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
                 if (isSelfType(self->return_type)) {
                     std::string retType = "";
-                    if (self->return_type.front() == '*') {
-                        retType += "*";
+                    if (self->return_type.front() == '@') {
+                        retType += "@";
                     }
                     retType += removeTypeModifiers(type);
                     if (typeCanBeNil(self->return_type)) {

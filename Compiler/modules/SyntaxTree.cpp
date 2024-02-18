@@ -298,7 +298,7 @@ namespace sclc {
                 i++;
                 name += "]";
             }
-        } else if (name == "*") {
+        } else if (name == "@") {
             if (tokens[i + 2].type == tok_identifier) {
                 i++;
                 if (tokens[i + 1].value != memberName) {
@@ -358,7 +358,7 @@ namespace sclc {
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
-            if (tokens[i].type == tok_identifier && tokens[i].value == "*") {
+            if (tokens[i].type == tok_identifier && tokens[i].value == "@") {
                 memberByValue = true;
                 i++;
             }
@@ -536,7 +536,7 @@ namespace sclc {
                 errors.push_back(result);
                 return method;
             }
-            method->addArgument(Variable("self", memberByValue ? "*" + memberName : memberName));
+            method->addArgument(Variable("self", memberByValue ? "@" + memberName : memberName));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -548,6 +548,10 @@ namespace sclc {
             return method;
         }
         return method;
+    }
+
+    SyntaxTree::SyntaxTree(std::vector<Token>& tokens)  {
+        this->tokens = tokens;
     }
 
     template<typename T>
@@ -634,7 +638,7 @@ namespace sclc {
 
     std::string reparseArgType(std::string type, const std::map<std::string, std::string>& templateArgs) {
         std::string mods = "";
-        bool isVal = type.front() == '*';
+        bool isVal = type.front() == '@';
         if (isVal) {
             type = type.substr(1);
         }
@@ -651,7 +655,7 @@ namespace sclc {
             }
         }
         if (isVal) {
-            return "*" + mods + reparseArgType(type.substr(1), templateArgs);
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
             return "[" + reparseArgType(inner, templateArgs) + "]";

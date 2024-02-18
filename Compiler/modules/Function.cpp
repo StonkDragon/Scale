@@ -68,6 +68,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_nonvirtual = 0;
     this->has_async = 0;
 }
+Function::~Function() {}
 std::vector<Token>& Function::getBody() {
     return body;
 }
@@ -138,4 +139,29 @@ const std::string& Function::getModifier(size_t index) {
         throw std::runtime_error(std::string(__func__) + " called with invalid index: " + std::to_string(index) + " (size: " + std::to_string(this->modifiers.size()) + ")");
     }
     return this->modifiers.at(index - 1);
+}
+
+Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {
+    this->member_type = member_type;
+    this->isMethod = true;
+    this->force_add = false;
+}
+Method* Method::cloneAs(std::string memberType) {
+    Method* m = new Method(memberType, name, name_token);
+    m->isMethod = isMethod;
+    m->force_add = force_add;
+    m->return_type = return_type;
+    for (auto s : modifiers) {
+        m->addModifier(s);
+    }
+    m->return_type = return_type;
+    for (Token t : this->getBody()) {
+        m->addToken(t);
+    }
+    for (Variable& v : args) {
+        m->addArgument(v);
+    }
+    m->namedReturnValue = namedReturnValue;
+    m->templateArg = templateArg;
+    return m;
 }

@@ -18,6 +18,8 @@ namespace sclc
     extern std::map<std::string, std::vector<Method*>> vtables;
     extern StructTreeNode* structTree;
 
+    Parser::Parser(TPResult& result) : result(result) {}
+
     TPResult& Parser::getResult() {
         return result;
     }
@@ -176,7 +178,7 @@ namespace sclc
                 append(".layout = {\n");
                 scopeDepth++;
                 append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
-                append(".flags = 2,\n");
+                append(".flags = MEM_FLAG_ARRAY,\n");
                 append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
                 scopeDepth--;
                 append("},\n");
@@ -203,7 +205,7 @@ namespace sclc
                 append(".layout = {\n");
                 scopeDepth++;
                 append(".size = %zu * sizeof(_scl_lambda),\n", vtable->second.size());
-                append(".flags = 2,\n");
+                append(".flags = MEM_FLAG_ARRAY,\n");
                 append(".array_elem_size = sizeof(_scl_lambda)\n");
                 scopeDepth--;
                 append("},\n");
