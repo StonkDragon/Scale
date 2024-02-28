@@ -227,7 +227,7 @@ namespace sclc {
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasGlobal(TPResult& result, std::string name);
-    FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());
+    FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, Token>& typeReplacements = std::map<std::string, Token>());
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s, bool doRemoveMods = true);
     bool typeIsConst(std::string s);

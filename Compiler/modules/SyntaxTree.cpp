@@ -37,7 +37,7 @@ const std::vector<std::string> intrinsics({
 });
 
 namespace sclc {
-    std::map<std::string, std::string> templateArgs;
+    std::map<std::string, Token> templateArgs;
 
     extern std::unordered_map<std::string, std::vector<std::string>> usingStructs;
 
@@ -2171,8 +2171,8 @@ namespace sclc {
                                 i++;
                             }
                             currentStruct->required_typed_arguments++;
-                            currentStruct->addTemplateArgument(key, "any");
-                            templateArgs[key] = "any";
+                            currentStruct->addTemplateArgument(key, Token(tok_identifier, "any"));
+                            templateArgs[key] = Token(tok_identifier, "any");
                             continue;
                         }
                         if (tokens[i].type != tok_column) {
@@ -2192,8 +2192,8 @@ namespace sclc {
                             break;
                         }
                         currentStruct->required_typed_arguments++;
-                        currentStruct->addTemplateArgument(key, value.value);
-                        templateArgs[key] = value.value;
+                        currentStruct->addTemplateArgument(key, Token(tok_identifier, value.value));
+                        templateArgs[key] = Token(tok_identifier, value.value);
                         i++;
                         if (tokens[i].value == ",") {
                             i++;

@@ -408,7 +408,7 @@ namespace sclc
 
     void logWarns(std::vector<FPResult>& warns);
 
-    FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, std::string>& typeReplacements) {
+    FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, Token>& typeReplacements) {
         (void) typeReplacements;
         FPResult r;
         r.success = true;

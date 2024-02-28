@@ -114,7 +114,7 @@ namespace sclc {
     void Struct::implement(const std::string& interface) {
         interfaces.insert(interface);
     }
-    void Struct::addTemplateArgument(std::string name, std::string type) {
+    void Struct::addTemplateArgument(std::string name, Token type) {
         templates[name] = type;
     }
     bool Struct::isSealed() const {

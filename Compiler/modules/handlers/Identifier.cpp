@@ -174,7 +174,7 @@ namespace sclc {
             } else if (hasLayout(result, body[i].value)) {
                 append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", body[i].value.c_str());
             } else if (templates.find(body[i].value) != templates.end()) {
-                std::string replaceWith = templates[body[i].value];
+                std::string replaceWith = templates[body[i].value].value;
                 if (getStructByName(result, replaceWith) != Struct::Null)
                     append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", replaceWith.c_str());
                 else if (hasTypealias(result, replaceWith))

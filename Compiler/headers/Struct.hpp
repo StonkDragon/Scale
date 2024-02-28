@@ -40,7 +40,7 @@ namespace sclc
         const Variable& getMember(const std::string& name) const;
         bool implements(const std::string& name) const;
         void implement(const std::string& interface);
-        void addTemplateArgument(std::string name, std::string type);
+        void addTemplateArgument(std::string name, Token type);
         bool isSealed() const;
         bool isStatic() const;
         bool isFinal() const;

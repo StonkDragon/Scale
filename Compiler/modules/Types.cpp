@@ -322,9 +322,9 @@ namespace sclc {
         return false;
     }
 
-    std::map<std::string, std::string> getTemplates(TPResult& result, Function* func) {
+    std::map<std::string, Token> getTemplates(TPResult& result, Function* func) {
         if (!func->isMethod) {
-            return std::map<std::string, std::string>();
+            return std::map<std::string, Token>();
         }
         Struct s = getStructByName(result, func->member_type);
         return s.templates;
@@ -485,7 +485,7 @@ namespace sclc {
         if (type == "uint32") return "u32;";
         if (type == "uint64") return "u64;";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSig(currentStruct.templates[type]);
+            return typeToRTSig(currentStruct.templates[type].value);
         }
         return "L" + type + ";";
     }
@@ -518,7 +518,7 @@ namespace sclc {
         if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToSymbol(currentStruct.templates[type]);
+            return typeToSymbol(currentStruct.templates[type].value);
         }
         return std::to_string(type.length()) + type;
     }
@@ -559,7 +559,7 @@ namespace sclc {
         if (type == "uint32") return "u32$";
         if (type == "uint64") return "u64$";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSigIdent(currentStruct.templates[type]);
+            return typeToRTSigIdent(currentStruct.templates[type].value);
         }
         return "L" + type + "$";
     }
