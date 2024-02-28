@@ -3,7 +3,7 @@ import std.thread.Thread
 static final sealed struct Process
     cdecl "exit"
     expect foreign function exit(:int): none
-    expect foreign function stackTrace(): Array
+    expect foreign function stackTrace(): [str]
 
     expect foreign function gcEnabled(): bool
 

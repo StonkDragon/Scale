@@ -12,11 +12,30 @@ namespace sclc {
         } else {
             f = new Function("$lambda$" + std::to_string(lambdaCount++) + "$" + function->name, body[i]);
         }
+        f->container = function;
         f->lambdaIndex = lambdaCount - 1;
         f->addModifier("<lambda>");
         f->addModifier(generateSymbolForFunction(function).substr(44));
         f->return_type = "none";
         safeInc();
+        if (body[i].type == tok_bracket_open) {
+            while (body[i].type != tok_bracket_close) {
+                safeInc();
+                if (body[i].type == tok_addr_ref) {
+                    safeInc();
+                    f->ref_captures.push_back(getVar(body[i].value));
+                } else {
+                    f->captures.push_back(getVar(body[i].value));
+                }
+                safeInc();
+                if (body[i].type != tok_comma && body[i].type != tok_bracket_close) {
+                    transpilerError("Expected comma or ']', but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+            }
+            safeInc();
+        }
         if (body[i].type == tok_paren_open) {
             safeInc();
             while (i < body.size() && body[i].type != tok_paren_close) {
@@ -84,7 +103,13 @@ namespace sclc {
                 break;
             }
             if (body[i].type == tok_identifier && body[i].value == "lambda") {
-                if (((ssize_t) i) - 1 < 0 || body[i - 1].type != tok_column) {
+                if (((ssize_t) i) - 1 < 0) {
+                    lambdaDepth++;
+                } else if (body[i - 1].type != tok_as && body[i - 1].type != tok_column && body[i - 1].type != tok_bracket_open) {
+                    lambdaDepth++;
+                } else if (((ssize_t) i) - 2 < 0) {
+                    lambdaDepth++;
+                } else if (body[i - 2].type != tok_new) {
                     lambdaDepth++;
                 }
             }
@@ -124,7 +149,32 @@ namespace sclc {
 
         append("_scl_push(scl_any, ({\n");
         scopeDepth++;
-        append("%s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+        const std::string sym = generateSymbolForFunction(f);
+        append("%s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
+        if (f->captures.size()) {
+            append("static struct {\n");
+            for (size_t i = 0; i < f->captures.size(); i++) {
+                append("  %s %s_;\n", sclTypeToCType(result, f->captures[i].type).c_str(), f->captures[i].name.c_str());
+                f->modifiers.push_back(f->captures[i].type);
+                f->modifiers.push_back(f->captures[i].name);
+            }
+            append("} caps __asm(%s\".caps\");\n", sym.c_str());
+            for (size_t i = 0; i < f->captures.size(); i++) {
+                append("caps.%s_ = Var_%s;\n", f->captures[i].name.c_str(), f->captures[i].name.c_str());
+            }
+        }
+        if (f->ref_captures.size()) {
+            append("static struct {\n");
+            for (size_t i = 0; i < f->ref_captures.size(); i++) {
+                append("  %s* %s_;\n", sclTypeToCType(result, f->ref_captures[i].type).c_str(), f->ref_captures[i].name.c_str());
+                f->modifiers.push_back(f->ref_captures[i].type);
+                f->modifiers.push_back(f->ref_captures[i].name);
+            }
+            append("} refs __asm(%s\".refs\");\n", sym.c_str());
+            for (size_t i = 0; i < f->ref_captures.size(); i++) {
+                append("refs.%s_ = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
+            }
+        }
         append("fn_$lambda%d$%s;\n", lambdaCount - 1, function->name.c_str());
         scopeDepth--;
         append("}));\n");

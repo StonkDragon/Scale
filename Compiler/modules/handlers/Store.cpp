@@ -105,7 +105,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            checkShadow(body[i].value, body, i, function, result, warns);
+            checkShadow(body[i].value, body[i], function, result, warns);
             std::string name = body[i].value;
             std::string type = "any";
             safeInc();

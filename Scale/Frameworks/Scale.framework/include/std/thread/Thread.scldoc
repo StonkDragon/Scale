@@ -21,8 +21,8 @@ Declared Fields:
 Static Fields:
 - `mainThread: readonly Thread` - The main thread.
 
-### static function Thread::stackTrace(): Array
-Returns an array containing stack trace of the current thread.
+### static function Thread::stackTrace(): [str]
+Returns a list of strings containing stack trace of the current thread.
 
 ### static function Thread::currentThread(): Thread
 Returns the current thread.

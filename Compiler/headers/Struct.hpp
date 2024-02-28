@@ -21,7 +21,7 @@ namespace sclc
         std::unordered_set<std::string> interfaces;
         std::unordered_set<std::string> toImplementFunctions;
         size_t required_typed_arguments;
-        std::map<std::string, std::string> templates;
+        std::map<std::string, Token> templates;
         bool templateInstance = false;
         static Struct Null;
 

@@ -13,10 +13,10 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            std::string returnType = typeStackTop.substr(typeStackTop.find_last_of("):") + 1);
+            std::string returnType = typeStackTop.substr(typeStackTop.find_first_of(")") + 2);
             std::string op = body[i].value;
 
-            std::string args = typeStackTop.substr(typeStackTop.find_first_of("(") + 1, typeStackTop.find_last_of("):") - typeStackTop.find_first_of("(") - 1);
+            std::string args = typeStackTop.substr(typeStackTop.find_first_of("(") + 1, typeStackTop.find_first_of(")") - typeStackTop.find_first_of("(") - 1);
             size_t argAmount = std::stoi(args);
             
             std::string argTypes = "";

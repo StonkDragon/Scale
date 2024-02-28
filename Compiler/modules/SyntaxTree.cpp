@@ -598,7 +598,7 @@ namespace sclc {
 
     struct Instanciable {
         std::string structName;
-        std::map<std::string, std::string> arguments;
+        std::map<std::string, Token> arguments;
 
         std::string toString() {
             std::string stringName = this->structName + "<";
@@ -606,7 +606,7 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     stringName += ", ";
                 }
-                stringName += it->first + ": " + it->second;
+                stringName += it->first + ": " + it->second.uncolored_formatted();
             }
             stringName += ">";
             return stringName;
@@ -637,7 +637,7 @@ namespace sclc {
 
     const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
 
-    std::string reparseArgType(std::string type, const std::map<std::string, std::string>& templateArgs) {
+    std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
         if (isVal) {
@@ -662,7 +662,7 @@ namespace sclc {
             return "[" + reparseArgType(inner, templateArgs) + "]";
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type);
+            return mods + templateArgs.at(type).value;
         }
         return mods + type;
     }
@@ -674,7 +674,7 @@ namespace sclc {
 
         std::string structName;
         Token instantiatingToken;
-        std::map<std::string, std::string> arguments;
+        std::map<std::string, Token> arguments;
 
         void copyTo(const Struct& src, Struct& dest, TPResult& result) {
             dest.super = src.super;
@@ -707,34 +707,18 @@ namespace sclc {
                 for (size_t i = 0; i < mt->body.size(); i++) {
                     if (mt->body[i].type != tok_identifier) continue;
                     if (this->arguments.find(mt->body[i].value) != this->arguments.end()) {
-                        SourceLocation loc = mt->body[i].location;
-                        std::string type = this->arguments.at(mt->body[i].value);
-                        if (type.find('$') != std::string::npos) {
-                            mt->body[i] = Token(tok_identifier, type, loc);
-                            continue;
-                        }
-                        auto toks = parseString(type);
-                        std::vector<Token> toks2;
-                        toks2.reserve(toks.size());
-                        for (auto&& tok : toks) {
-                            if (tok.type != tok_eof) {
-                                tok.location = loc;
-                                toks2.push_back(tok);
-                            }
-                        }
-                        mt->body.erase(mt->body.begin() + i);
-                        mt->body.insert(mt->body.begin() + i, toks2.begin(), toks2.end());
+                        mt->body[i] = this->arguments.at(mt->body[i].value);
                     }
                 }
                 result.functions.push_back(mt);
             }
         }
 
-        std::string& operator[](std::string key) {
+        Token& operator[](std::string key) {
             return this->arguments[key];
         }
 
-        std::string& operator[](size_t index) {
+        Token& operator[](size_t index) {
             auto it = this->arguments.begin();
             for (size_t i = 0; i < index; i++) {
                 it++;
@@ -742,7 +726,7 @@ namespace sclc {
             return it->second;
         }
 
-        void setNth(size_t index, std::string value) {
+        void setNth(size_t index, Token value) {
             std::string key = "";
             for (auto&& arg : this->arguments) {
                 if (index == 0) {
@@ -767,7 +751,8 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     instanceName += "$$n";
                 }
-                instanceName += it->second;
+                if (it->second.type == tok_identifier)
+                    instanceName += it->second.value;
             }
             return instanceName + "$$e";
         }
@@ -778,7 +763,7 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     stringName += ", ";
                 }
-                stringName += it->first + ": " + it->second;
+                stringName += it->first + ": " + it->second.uncolored_formatted();
             }
             stringName += ">";
             return stringName;
@@ -815,7 +800,7 @@ namespace sclc {
                         return Template::empty;
                     }
                     TemplateInstances::addTemplate(parsedArg.value());
-                    t.setNth(parameterCount++, parsedArg.value().nameForInstance());
+                    t.setNth(parameterCount++, Token(tok_identifier, parsedArg.value().nameForInstance()));
                     i++;
                     if (tokens[i].type == tok_comma) {
                         i++;
@@ -825,10 +810,10 @@ namespace sclc {
                 size_t start = i;
                 FPResult r = parseType(tokens, &i, {});
                 if (r.success) {
-                    t.setNth(parameterCount++, r.value);
+                    t.setNth(parameterCount++, Token(tok_identifier, r.value));
                 } else {
                     i = start;
-                    t.setNth(parameterCount++, tokens[i].value);
+                    t.setNth(parameterCount++, tokens[i]);
                 }
                 i++;
                 if (tokens[i].type == tok_comma) {
@@ -1089,16 +1074,16 @@ namespace sclc {
                 exit(1);
             }
 
-            Result$getErr = (typeof(Result$getErr)) dlsym(this->lib, "Result:getErr(): any");
-            Result$getOk = (typeof(Result$getOk)) dlsym(this->lib, "Result:getOk(): any");
-            Result$isErr = (typeof(Result$isErr)) dlsym(this->lib, "Result:isErr(): bool");
-            Result$isOk = (typeof(Result$isOk)) dlsym(this->lib, "Result:isOk(): bool");
+            Result$getErr = (typeof(Result$getErr)) dlsym(this->lib, "_M6Result6getErra");
+            Result$getOk = (typeof(Result$getOk)) dlsym(this->lib, "_M6Result5getOka");
+            Result$isErr = (typeof(Result$isErr)) dlsym(this->lib, "_M6Result5isErrl");
+            Result$isOk = (typeof(Result$isOk)) dlsym(this->lib, "_M6Result4isOkl");
             scl_migrate_array = (typeof(scl_migrate_array)) dlsym(this->lib, "_scl_migrate_foreign_array");
             scl_array_size = (typeof(scl_array_size)) dlsym(this->lib, "_scl_array_size");
             alloc = (typeof(alloc)) dlsym(this->lib, "_scl_alloc");
 
-            str$of = (typeof(str$of)) dlsym(this->lib, "str::=>(:[int8]): str");
-            str$view = (typeof(str$view)) dlsym(this->lib, "str:view(): [int8]");
+            str$of = (typeof(str$of)) dlsym(this->lib, "_F3str14operator$storecE");
+            str$view = (typeof(str$view)) dlsym(this->lib, "_M3str4viewc");
         }
 
         ~NativeMacro() {
@@ -1538,7 +1523,7 @@ namespace sclc {
                     if (tokens[i].value == ",") {
                         i++;
                     }
-                    inst.arguments[parameterName] = "any";
+                    inst.arguments[parameterName] = Token(tok_identifier, "any");
                     continue;
                 }
                 if (tokens[i].type != tok_column) {
@@ -1558,7 +1543,7 @@ namespace sclc {
                     break;
                 }
                 i++;
-                inst.arguments[parameterName] = result.value;
+                inst.arguments[parameterName] = Token(tok_identifier, result.value);
                 if (i < tokens.size() && tokens[i].value == ",") {
                     i++;
                 }
@@ -2519,6 +2504,7 @@ namespace sclc {
                     token.value == "lambda" &&
                     (((ssize_t) i) - 3 >= 0 && tokens[i - 3].type != tok_declare) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_column) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
                     (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
                 ) isInLambda++;

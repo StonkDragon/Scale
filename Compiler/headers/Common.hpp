@@ -258,7 +258,7 @@ namespace sclc {
     std::string retemplate(std::string type);
     bool isAllowed1ByteChar(char c);
     bool checkUTF8(const std::string& str);
-    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns);
+    void checkShadow(std::string name, Token& body, Function* function, TPResult& result, std::vector<FPResult>& warns);
 
     template<typename T>
     static inline bool contains(std::vector<T> v, T val) {

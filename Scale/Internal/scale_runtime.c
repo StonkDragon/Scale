@@ -28,7 +28,7 @@ typedef struct Struct {
 typedef struct Struct_Exception {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
+	scl_str* stackTrace;
 	scl_str errno_str;
 }* scl_Exception;
 
@@ -55,14 +55,14 @@ typedef struct Struct_IndexOutOfBoundsException {
 typedef struct Struct_AssertError {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
+	scl_str* stackTrace;
 	scl_str errno_str;
 }* scl_AssertError;
 
 typedef struct Struct_UnreachableError {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
+	scl_str* stackTrace;
 	scl_str errno_str;
 }* scl_UnreachableError;
 
@@ -203,6 +203,7 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	return arr;
 }
 
+#if !defined(_WIN32)
 _scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
 	const scl_int8* signalString = strsignal(sig_num);
 
@@ -215,7 +216,7 @@ _scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t
 	fprintf(stderr, "\n");
 	exit(sig_num);
 }
-
+#else
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	const scl_int8* signalString = strsignal(sig_num);
 
@@ -229,6 +230,7 @@ _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 
 	exit(sig_num);
 }
+#endif
 
 void _scl_sleep(scl_int millis) {
 	sleep(millis);
@@ -252,7 +254,7 @@ void _scl_unlock(scl_any obj) {
 #define __pure2
 #endif
 
-__pure2 const ID_t type_id(const scl_int8* data) {
+__pure2 ID_t type_id(const scl_int8* data) {
 	ID_t h = 3323198485UL;
 	for (;*data;++data) {
 		h ^= *data;
@@ -360,21 +362,19 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	return m;
 }
 
-scl_any _scl_alloc_struct(const TypeInfo* statics) {
-	scl_any ptr = _scl_alloc(statics->size);
-
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (unlikely(layout == nil)) {
+scl_any _scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout) {
+	if (unlikely(layout == nil || ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
 	layout->flags |= MEM_FLAG_INSTANCE;
-	Struct s = {
-		.statics = (TypeInfo*) statics,
-		.vtable = (_scl_lambda*) statics->vtable
-	};
-	*(Struct*) ptr = s;
-
+	((Struct*) ptr)->statics = (TypeInfo*) statics;
+	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
 	return ptr;
+}
+
+scl_any _scl_alloc_struct(const TypeInfo* statics) {
+	scl_any p = _scl_alloc(statics->size);
+	return _scl_init_struct(p, statics, _scl_get_memory_layout(p));
 }
 
 scl_int _scl_is_instance(scl_any ptr) {
@@ -418,24 +418,48 @@ _scl_symbol_hidden
 	};
 	#define SIGACTION(_sig) if (sigaction(_sig, &act, NULL) == -1) { fprintf(stderr, "Failed to set up signal handler\n"); fprintf(stderr, "Error: %s (%d)\n", strerror(errno), errno); }
 	
+#ifdef SIGINT
 	SIGACTION(SIGINT);
+#endif
+#ifdef SIGILL
 	SIGACTION(SIGILL);
+#endif
+#ifdef SIGTRAP
 	SIGACTION(SIGTRAP);
+#endif
+#ifdef SIGABRT
 	SIGACTION(SIGABRT);
+#endif
+#ifdef SIGBUS
 	SIGACTION(SIGBUS);
+#endif
+#ifdef SIGSEGV
 	SIGACTION(SIGSEGV);
+#endif
 
 	#undef SIGACTION
 #pragma clang diagnostic pop
 #else
 #define SIGACTION(_sig) signal(_sig, (void(*)(int)) _scl_signal_handler)
 	
+#ifdef SIGINT
 	SIGACTION(SIGINT);
+#endif
+#ifdef SIGILL
 	SIGACTION(SIGILL);
+#endif
+#ifdef SIGTRAP
 	SIGACTION(SIGTRAP);
+#endif
+#ifdef SIGABRT
 	SIGACTION(SIGABRT);
+#endif
+#ifdef SIGBUS
 	SIGACTION(SIGBUS);
+#endif
+#ifdef SIGSEGV
 	SIGACTION(SIGSEGV);
+#endif
 #endif
 }
 
@@ -456,7 +480,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 		typedef struct Struct_CastError {
 			Struct rtFields;
 			scl_str msg;
-			struct Struct_Array* stackTrace;
+			scl_str* stackTrace;
 			scl_str errno_str;
 		}* scl_CastError;
 
@@ -707,36 +731,58 @@ void _scl_delete_ptr(void* ptr) {
 }
 
 void _scl_throw(scl_any ex) {
-	ID_t error_type = type_id("Error");
+	scl_bool is_error = _scl_is_instance_of(ex, type_id("Error"));
 
-	if (likely(!_scl_is_instance_of(ex, error_type))) {
-		scl_uint* stack_top = (scl_uint*) &stack_top;
-		struct GC_stack_base sb;
-		GC_get_my_stackbottom(&sb);
-		scl_uint* stack_bottom = sb.mem_base;
+	scl_uint* stack_top = (scl_uint*) &stack_top;
+	struct GC_stack_base sb;
+	GC_get_my_stackbottom(&sb);
+	scl_uint* stack_bottom = sb.mem_base;
 
-		scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
-		while (stack_top != stack_bottom) {
-			if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
-				stack_top += iteration_direction;
-				continue;
-			}
-
-			struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
-			handler->exception = ex;
-			handler->marker = 0;
-
-			longjmp(handler->jmp, 666);
+	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
+	while (stack_top != stack_bottom) {
+		if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
+			stack_top += iteration_direction;
+			continue;
 		}
+
+		struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
+
+		if (handler->finalizer) {
+			handler->finalizer(handler->finalization_data);
+		}
+		if (unlikely(is_error)) continue;
+
+		handler->exception = ex;
+		handler->marker = 0;
+
+		longjmp(handler->jmp, 666);
 	}
 
 	_scl_runtime_catch(ex);
+}
+
+scl_str* _scl_get_callstack() {
+#if !defined(_WIN32) && !defined(__wasm__)
+	void* cs[1024];
+	int frames = backtrace(cs, 1024);
+
+	scl_str* callstack = _scl_new_array_by_size(frames, sizeof(scl_str));
+	char** s = backtrace_symbols(cs, frames);
+	for (int i = 0; i < frames; i++) {
+		callstack[i] = _scl_create_string(s[i]);
+	}
+	free(s);
+	return callstack;
+#else
+	return _scl_new_array_by_size(0, sizeof(scl_str));
+#endif
 }
 
 _scl_symbol_hidden static void native_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
 	void* callstack[1024];
 	int frames = backtrace(callstack, 1024);
+	int write(int, char*, size_t);
 	write(2, "Backtrace:\n", 11);
 	backtrace_symbols_fd(callstack, frames, 2);
 	write(2, "\n", 1);
@@ -744,8 +790,10 @@ _scl_symbol_hidden static void native_trace(void) {
 }
 
 _scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
-	for (scl_int i = e->stackTrace->count - 1; i >= 0; i--) {
-		fprintf(stderr, "    %s\n", ((scl_str*) e->stackTrace->values)[i]->data);
+	if (_scl_is_array((scl_any*) e->stackTrace)) {
+		for (scl_int i = _scl_array_size_unchecked((scl_any*) e->stackTrace); i >= 0; i--) {
+			fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
+		}
 	}
 
 	fprintf(stderr, "\n");

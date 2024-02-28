@@ -38,7 +38,7 @@ end
 
 sealed struct Exception
   decl msg: str
-  decl stackTrace: const Array
+  decl stackTrace: const [str]
   decl errnoStr: readonly str
 
   function init(): none
@@ -53,8 +53,8 @@ sealed struct Exception
 
   sealed function printStackTrace(): none
     "Stacktrace of " typeof self + ": " + self.msg + eputs
-    for i in self.stackTrace.count to 0 step -- do
-      "    " (i 1 - self.stackTrace:get as str) + eputs
+    for i in self.stackTrace:size to 0 step -- do
+      "    " self.stackTrace[i 1 -] + eputs
     done
   end
 end

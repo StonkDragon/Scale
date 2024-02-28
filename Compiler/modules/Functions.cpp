@@ -168,6 +168,34 @@ namespace sclc {
         append("}\n");
     }
 
+    std::string generateInternal(Function* f) {
+        std::string symbol;
+
+        std::string name = f->name;
+        if (f->member_type.size()) {
+            if (!f->isMethod) {
+                name = name.substr(f->member_type.size() + 1);
+            }
+            symbol += std::to_string(f->member_type.length()) + f->member_type;
+        }
+        if (f->has_lambda) {
+            name = name.substr(8);
+            std::string count = name.substr(0, name.find("$"));
+            name = generateInternal(f->container) + "$" + count;
+        } else {
+            name = name.substr(0, name.find("$$ol"));
+            symbol += std::to_string(name.length());
+        }
+        symbol += name;
+
+        std::string typeToSymbol(std::string type);
+        for (size_t i = 0; i < f->args.size() - ((size_t) f->isMethod); i++) {
+            symbol += typeToSymbol(f->args[i].type);
+        }
+        symbol += typeToSymbol(f->return_type);
+        return symbol;
+    }
+
     std::string generateSymbolForFunction(Function* f) {
         if (f->has_asm) {
             std::string label = f->getModifier(f->has_asm + 1);
@@ -185,16 +213,15 @@ namespace sclc {
             return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"main\"";
         }
 
-        std::string symbol = f->name;
-
-        if (f->isMethod && f->has_foreign) {
-            symbol = f->member_type + "$" + f->name;
-        } else if (!f->has_foreign || f->has_lambda) {
-            symbol = sclFunctionNameToFriendlyString(f);
-            if constexpr (OS == OS_LINUX) {
-                symbol = replace(symbol, "@", "<at>");
+        if (f->has_foreign) {
+            if (f->isMethod) {
+                return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + f->member_type + "$" + f->name + "\"";
+            } else {
+                return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + f->name + "\"";
             }
         }
+
+        std::string symbol = (f->isMethod ? "_M" : (f->has_lambda ? "_L" : "_F")) + generateInternal(f);
 
         return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
     }

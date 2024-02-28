@@ -356,7 +356,7 @@ namespace sclc {
                 scopeDepth++;
                 size_t begin = i - 1;
                 append("scl_%s tmp = ALLOC(%s);\n", s.name.c_str(), s.name.c_str());
-                append("scl_int stack_start = ls_ptr;\n");
+                append("scl_uint64* stack_start = _local_stack_ptr;\n");
                 safeInc();
                 size_t count = 0;
                 varScopePush();
@@ -415,7 +415,7 @@ namespace sclc {
                     typePop;
                     scopeDepth--;
                     append("}\n");
-                    append("ls_ptr = stack_start;\n");
+                    append("_local_stack_ptr = stack_start;\n");
                     safeInc();
                     count++;
                 }
@@ -455,7 +455,7 @@ namespace sclc {
                 scopeDepth++;
                 size_t begin = i - 1;
                 append("scl_%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", l.name.c_str(), l.name.c_str());
-                append("scl_int stack_start = ls_ptr;\n");
+                append("scl_uint64* stack_start = _local_stack_ptr;\n");
                 safeInc();
                 size_t count = 0;
                 varScopePush();
@@ -514,7 +514,7 @@ namespace sclc {
                     typePop;
                     scopeDepth--;
                     append("}\n");
-                    append("ls_ptr = stack_start;\n");
+                    append("_local_stack_ptr = stack_start;\n");
                     safeInc();
                     count++;
                 }

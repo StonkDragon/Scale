@@ -7,8 +7,8 @@ The static struct `Process` provides utility functions for working with the curr
 ### static function Process::exit(:int): none
 Exits the current process with the exit code `code`.
 
-### static function Process::stackTrace(): Array
-Returns an array containing the current stack trace.
+### static function Process::stackTrace(): [str]
+Returns a list of strings containing the current stack trace.
 
 ### static function Process::gcEnabled(): bool
 Returns true if the garbage collector is enabled.

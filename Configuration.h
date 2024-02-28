@@ -1,5 +1,5 @@
 #ifndef VERSION
-#define VERSION 24.0
+#define VERSION 24.1
 #endif
 
 #ifdef _WIN32

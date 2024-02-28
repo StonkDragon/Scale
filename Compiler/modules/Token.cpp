@@ -83,21 +83,23 @@ namespace sclc {
     }
     Token::~Token() {}
     std::string Token::formatted() const {
+        return color() + uncolored_formatted() + Color::RESET;
+    }
+    std::string Token::uncolored_formatted() const {
         std::string val(value);
         if (type == tok_eof) return "";
-        std::string colorFormat = color();
         if (type == tok_string_literal) {
-            return colorFormat + "\"" + val + "\"" + Color::RESET;
+            return "\"" + val + "\"";
         } else if (type == tok_char_string_literal) {
-            return colorFormat + "c\"" + val + "\"" + Color::RESET;
+            return "c\"" + val + "\"";
         } else if (type == tok_char_literal) {
             auto integerToChar = [](int i) -> std::string {
                 std::string s(1, (char)i);
                 return s;
             };
-            return colorFormat + "'" + integerToChar(std::stoi(val)) + "'" + Color::RESET;
+            return "'" + integerToChar(std::stoi(val)) + "'";
         }
-        return colorFormat + val + Color::RESET;
+        return val;
     }
 
     bool Token::isKeyword() const {

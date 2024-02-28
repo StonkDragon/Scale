@@ -46,7 +46,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "24.0"
+#define FRAMEWORK_VERSION_REQ "24.1"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -537,7 +537,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "24.0");
+        framework->addString("version", "24.1");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -696,7 +696,7 @@ namespace sclc
 
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O0";
+        std::string optimizer   = "O2";
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;

@@ -112,7 +112,7 @@ static scl_int count_trace_frames(scl_uint* stack_bottom, scl_uint* stack_top, s
 	return frames;
 }
 
-scl_Array Process$stackTrace(void) {
+scl_str* Process$stackTrace(void) {
 	scl_uint* stack_top = (scl_uint*) &stack_top;
 	struct GC_stack_base sb;
 	GC_get_my_stackbottom(&sb);
@@ -123,19 +123,15 @@ scl_Array Process$stackTrace(void) {
 		iteration_direction = -1;
 	}
 
-	scl_ReadOnlyArray arr = ALLOC(ReadOnlyArray);
-	arr->count = count_trace_frames(stack_bottom, stack_top, iteration_direction);
-
-	arr->values = (scl_any*) _scl_new_array_by_size(arr->count, sizeof(scl_int8*));
-	arr->initCapacity = arr->count;
-	arr->capacity = arr->count;
+	;
+	scl_str* arr = _scl_new_array_by_size(count_trace_frames(stack_bottom, stack_top, iteration_direction), sizeof(scl_str));
 
 	scl_int i = 0;
 	while (stack_top != stack_bottom) {
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
-				arr->values[i] = str_of_exact(bt->func_name);
+				arr[i] = str_of_exact(bt->func_name);
 			}
 			i++;
 		}
@@ -143,15 +139,16 @@ scl_Array Process$stackTrace(void) {
 		stack_top += iteration_direction;
 	}
 
-	scl_int8* tmp;
-	for (scl_int i = 0; i < arr->count / 2; i++) {
-		tmp = arr->values[i];
-		arr->values[i] = arr->values[arr->count - i - 1];
-		arr->values[arr->count - i - 1] = tmp;
-	}
-	arr->count--;
+	scl_int arr_count = _scl_array_size((scl_any*) arr);
+	scl_str* real = _scl_new_array_by_size(arr_count - 1, sizeof(scl_str));
 
-	return (scl_Array) arr;
+	for (scl_int i = 1; i < arr_count; i++) {
+		real[i - 1] = arr[i];
+	}
+
+	_scl_free(arr);
+
+	return real;
 }
 
 scl_bool Process$gcEnabled(void) {

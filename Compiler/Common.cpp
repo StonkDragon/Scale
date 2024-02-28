@@ -447,24 +447,24 @@ namespace sclc
         }
         if (body[*i].type == tok_identifier) {
             r.value = type_mods + body[*i].value;
-            if (r.value == "lambda") {
-                (*i)++;
-                if (body[*i].type != tok_paren_open) {
-                    (*i)--;
-                } else {
+            if (body[*i].value == "lambda") {
+                if (body[*i + 1].type == tok_paren_open) {
                     (*i)++;
                     r.value += "(";
                     int count = 0;
-                    while (body[*i].type != tok_paren_close) {
-                        FPResult tmp = parseType(body, i);
-                        if (!tmp.success) return tmp;
+                    if (body[*i].type == tok_paren_open) {
                         (*i)++;
-                        if (body[*i].type == tok_comma) {
+                        while (body[*i].type != tok_paren_close) {
+                            FPResult tmp = parseType(body, i);
+                            if (!tmp.success) return tmp;
                             (*i)++;
+                            if (body[*i].type == tok_comma) {
+                                (*i)++;
+                            }
+                            count++;
                         }
-                        count++;
+                        (*i)++;
                     }
-                    (*i)++;
                     r.value += std::to_string(count) + ")";
                     if (body[*i].type == tok_column) {
                         (*i)++;
@@ -476,8 +476,7 @@ namespace sclc
                         r.value += ":none";
                     }
                 }
-            }
-            if (r.value == "async") {
+            } else if (body[*i].value == "async") {
                 (*i)++;
                 if (r.type != tok_identifier || body[*i].value != "<") {
                     r.success = false;
@@ -490,8 +489,7 @@ namespace sclc
                 r.value += "<" + tmp.value + ">";
                 (*i)++;
                 return r;
-            }
-            if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
+            } else if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
                 (*i)++;
                 (*i)++;
                 FPResult tmp = parseType(body, i);
@@ -1292,18 +1290,18 @@ namespace sclc
         return true;
     }
 
-    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns) {
+    void checkShadow(std::string name, Token& tok, Function* function, TPResult& result, std::vector<FPResult>& warns) {
         if (hasFunction(result, name)) {
-            transpilerError("Variable '" + name + "' shadowed by function '" + name + "'", i);
+            transpilerErrorTok("Variable '" + name + "' shadowed by function '" + name + "'", tok);
             warns.push_back(err);
         }
         if (getStructByName(result, name) != Struct::Null) {
-            transpilerError("Variable '" + name + "' shadowed by struct '" + name + "'", i);
+            transpilerErrorTok("Variable '" + name + "' shadowed by struct '" + name + "'", tok);
             warns.push_back(err);
         }
         if (!function->member_type.empty()) {
             if (hasFunction(result, function->member_type + "$" + name)) {
-                transpilerError("Variable '" + name + "' shadowed by function '" + function->member_type + "::" + name + "'", i+1);
+                transpilerErrorTok("Variable '" + name + "' shadowed by function '" + function->member_type + "::" + name + "'", tok);
                 warns.push_back(err);
             }
         }

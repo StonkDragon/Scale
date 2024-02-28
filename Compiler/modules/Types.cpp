@@ -490,6 +490,39 @@ namespace sclc {
         return "L" + type + ";";
     }
 
+    std::string typeToSymbol(std::string type) {
+        if (type.size() && type.front() == '@') {
+            type = removeTypeModifiers(type.substr(1, type.size() - 1));
+            return "P" + typeToSymbol(type);
+        }
+        type = removeTypeModifiers(type);
+        if (type == "any") return "a";
+        if (type == "int" || type == "bool") return "l";
+        if (type == "int8") return "b";
+        if (type == "int16") return "s";
+        if (type == "int32") return "i";
+        if (type == "int64") return "k";
+        if (type == "float") return "d";
+        if (type == "float32") return "f";
+        if (type == "str") return "E";
+        if (type == "none") return "v";
+        if (type == "[int8]") return "c";
+        if (type == "[any]") return "p";
+        if (type == "lambda" || strstarts(type, "lambda(")) return "F";
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            return "A" + typeToSymbol(type.substr(1, type.size() - 2));
+        }
+        if (type == "uint") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint8") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint16") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
+        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+            return typeToSymbol(currentStruct.templates[type]);
+        }
+        return std::to_string(type.length()) + type;
+    }
+
     std::string argsToRTSignature(Function* f) {
         std::string args = "(";
         for (const Variable& v : f->args) {

@@ -86,7 +86,7 @@ namespace sclc {
         varScopePush();
         if (!hasVar(var.value)) {
             vars.push_back(v);
-            checkShadow(var.value, body, i, function, result, warns);
+            checkShadow(var.value, body[i], function, result, warns);
         }
         
         iterator_count++;

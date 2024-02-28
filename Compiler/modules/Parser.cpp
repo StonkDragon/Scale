@@ -169,10 +169,10 @@ namespace sclc
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
                 }
-                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                     const std::string& file = s.name_token.location.file;
                     if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        append("extern const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\");\n", s.name.c_str(), s.name.c_str());
+                        append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;
                     }
                 }
@@ -226,7 +226,7 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
 
-                append("const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\") = {\n", s.name.c_str(), s.name.c_str());
+                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", s.name.c_str());
@@ -253,7 +253,7 @@ namespace sclc
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
-            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                 const std::string& file = s.name_token->location.file;
                 if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                     continue;
@@ -271,7 +271,7 @@ namespace sclc
         if (initFuncs.size()) {
             append("TRY {\n");
             for (auto&& f : initFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                     const std::string& file = f->name_token.location.file;
                     if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                         continue;
@@ -292,7 +292,7 @@ namespace sclc
             scopeDepth++;
             append("TRY {\n");
             for (auto&& f : destroyFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                     const std::string& file = f->name_token.location.file;
                     if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                         continue;

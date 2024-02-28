@@ -82,7 +82,7 @@
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::ostream& fp, TPResult& result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
 #define handlerRef(_tok) (&handle ## _tok)
-#define handleRef(ref) (ref)(body, function, errors, warns, fp, result)
+#define handleRef(ref) if (ref) { (ref)(body, function, errors, warns, fp, result); } else { transpilerError("Unexpected token:", i); errors.push_back(err); }
 #define noUnused \
         (void) body; \
         (void) function; \

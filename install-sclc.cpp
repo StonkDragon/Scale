@@ -116,26 +116,30 @@ int main(int argc, char const *argv[]) {
 #define LIB_SCALE_FILENAME    LIB_PREF LIB_SCALE_NAME LIB_SUFF
 #define SCALE_STDLIB_FILENAME LIB_PREF SCALE_STDLIB_NAME LIB_SUFF
 
-    bool isDevBuild = (argv[1] && (std::strcmp(argv[1], "-dev") == 0));
-
-    std::string compile_command = create_command<std::string>({
-        "clang++",
-        "-DVERSION=\\\"" STR(VERSION) "\\\"",
-        "-DC_VERSION=\\\"gnu17\\\"",
-        "-DSCL_ROOT_DIR=\\\"" SCL_ROOT_DIR "\\\"",
-        "-std=gnu++17",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-    #ifdef DEBUG
-        "-g",
-        "-O0"
-    #else
-        "-O2"
-    #endif
-    });
+    bool isDevBuild = false;
+    bool fullRebuild = false;
+    bool debug = false;
+    for (int i = 1; i < argc; i++) {
+        if (std::strcmp(argv[i], "-dev") == 0) {
+            isDevBuild = true;
+        } else if (std::strcmp(argv[i], "-noinc") == 0) {
+            fullRebuild = true;
+        } else if (std::strcmp(argv[i], "-debug") == 0) {
+            debug = true;
+        }
+    }
 
     std::string path = SCL_ROOT_DIR "/Scale/" STR(VERSION);
+    std::string binary = "sclc";
+
+    std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::remove("/usr/local/bin/sclc");
+    std::filesystem::remove("/usr/local/bin/scaledoc");
+    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
+    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
+    
+    std::filesystem::remove_all("/opt/Scale/latest");
+    std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
 
     if (!isDevBuild) {
         std::filesystem::remove_all(path);
@@ -150,64 +154,6 @@ int main(int argc, char const *argv[]) {
     );
 
     std::filesystem::copy("Scale", path, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
-
-    auto source_files = listFiles("Compiler", ".cpp");
-    auto builders = std::vector<std::thread>(source_files.size());
-    
-    std::vector<std::string> link_command = {
-        compile_command
-    };
-
-    for (auto f : source_files) {
-        std::string cmd = create_command<std::string>({
-            compile_command,
-            "-o",
-            f.string() + ".o",
-            "-c",
-            f.string()
-        });
-        link_command.push_back(f.string() + ".o");
-
-        std::filesystem::file_time_type last_write = std::filesystem::file_time_type::min();
-        std::filesystem::file_time_type last_write_obj = std::filesystem::file_time_type::min();
-        
-        try {
-            last_write = std::filesystem::last_write_time(f);
-            last_write_obj = std::filesystem::last_write_time(f.string() + ".o");
-        } catch (std::filesystem::filesystem_error& _) {}
-
-        if (last_write > last_write_obj) {
-            std::thread t(
-                [cmd]() { exec_command(cmd); }
-            );
-            builders.push_back(std::move(t));
-        }
-    }
-
-#ifdef __linux__
-    link_command.push_back("-Wl,--export-dynamic");
-#endif
-
-    std::string binary = "sclc";
-
-    link_command.push_back("-o");
-    link_command.push_back(binary);
-
-    for (auto&& x : builders) {
-        if (x.joinable())
-            x.join();
-    }
-
-    exec_command(create_command<std::string>(link_command));
-
-    std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::remove("/usr/local/bin/sclc");
-    std::filesystem::remove("/usr/local/bin/scaledoc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
-    
-    std::filesystem::remove_all("/opt/Scale/latest");
-    std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
 
     if (!isDevBuild) {
         exec_command(create_command<std::string>({"git", "clone", "--depth=1", "https://github.com/ivmai/bdwgc.git", "bdwgc", "-b", "release-8_2"}));
@@ -284,11 +230,75 @@ int main(int argc, char const *argv[]) {
         path + "/Internal/" LIB_SCALE_FILENAME
     });
 
-    std::filesystem::remove(path + "/Internal/" LIB_SCALE_FILENAME);
+    std::string compile_command = create_command<std::string>({
+        "clang++",
+        "-DVERSION=\\\"" STR(VERSION) "\\\"",
+        "-DC_VERSION=\\\"gnu17\\\"",
+        "-DSCL_ROOT_DIR=\\\"" SCL_ROOT_DIR "\\\"",
+        "-std=gnu++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    });
 
+    if (debug) {
+        compile_command += "-O0 -g ";
+    } else {
+        compile_command += "-O2 ";
+    }
+
+    auto source_files = listFiles("Compiler", ".cpp");
+    auto builders = std::vector<std::thread>(source_files.size());
+    
+    std::vector<std::string> link_command = {
+        compile_command
+    };
+
+    for (auto f : source_files) {
+        std::string cmd = create_command<std::string>({
+            compile_command,
+            "-o",
+            f.string() + ".o",
+            "-c",
+            f.string()
+        });
+        link_command.push_back(f.string() + ".o");
+
+        std::filesystem::file_time_type last_write = std::filesystem::file_time_type::min();
+        std::filesystem::file_time_type last_write_obj = std::filesystem::file_time_type::min();
+        
+        try {
+            last_write = std::filesystem::last_write_time(f);
+            last_write_obj = std::filesystem::last_write_time(f.string() + ".o");
+        } catch (std::filesystem::filesystem_error& _) {}
+
+        if (last_write > last_write_obj || fullRebuild) {
+            std::thread t(
+                [cmd]() { exec_command(cmd); }
+            );
+            builders.push_back(std::move(t));
+        }
+    }
+
+#ifdef __linux__
+    link_command.push_back("-Wl,--export-dynamic");
+#endif
+
+    link_command.push_back("-o");
+    link_command.push_back(binary);
+
+    for (auto&& x : builders) {
+        if (x.joinable())
+            x.join();
+    }
+
+    std::filesystem::remove(path + "/Internal/" LIB_SCALE_FILENAME);
+    
     exec_command(scale_runtime);
     exec_command(cxx_glue);
     exec_command(library);
+
+    exec_command(create_command<std::string>(link_command));
 
     std::string macro_library = create_command<std::string>({
         "sclc",

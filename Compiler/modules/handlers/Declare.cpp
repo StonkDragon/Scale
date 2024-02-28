@@ -13,7 +13,7 @@ namespace sclc {
             return;
         }
         std::string name = body[i].value;
-        checkShadow(name, body, i, function, result, warns);
+        checkShadow(name, body[i], function, result, warns);
         size_t start = i;
         std::string type = "any";
         safeInc();

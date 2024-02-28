@@ -23,6 +23,7 @@ extern "C" {
 #include <gc/gc.h>
 
 #if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <io.h>
 #define sleep(s) Sleep(s)
@@ -32,7 +33,7 @@ extern "C" {
 #define WINDOWS
 #endif
 #else
-#include <unistd.h>
+// #include <unistd.h>
 #define sleep(s) do { struct timespec __ts = {((s) / 1000), ((s) % 1000) * 1000000}; nanosleep(&__ts, NULL); } while (0)
 #endif
 
@@ -90,11 +91,7 @@ extern "C" {
 // The given C string is not copied
 #define str_of_exact(_cstr)	_scl_create_string((_cstr))
 
-#define cstr_of(Struct_str)	((Struct_str)->data)
-
-#if !defined(STACK_SIZE)
-#define STACK_SIZE			131072
-#endif
+#define cstr_of(_str)		((_str)->data)
 
 #if __has_builtin(__builtin_expect)
 #define _scl_expect(expr, c) __builtin_expect((expr), (c))
@@ -108,7 +105,7 @@ extern "C" {
 #define _scl_always_inline
 #endif
 
-#define AKA(_sym) __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) # _sym)
+#define AKA(_sym)				asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) # _sym)
 
 // Define scale-specific signals
 #define EX_BAD_PTR				128
@@ -296,7 +293,7 @@ typedef scl_uint ID_t;
 
 // Create a new instance of a struct
 #define ALLOC(_type)	({ \
-	extern const TypeInfo _scl_ti_ ## _type __asm("typeinfo for " #_type); \
+	extern const TypeInfo _scl_ti_ ## _type __asm("__T" #_type); \
 	(scl_ ## _type) _scl_alloc_struct(&_scl_ti_ ## _type); \
 })
 
@@ -309,6 +306,8 @@ struct _scl_exception_handler {
 	scl_uint marker;
 	scl_any exception;
 	jmp_buf jmp;
+	scl_any finalization_data;
+	void (*finalizer)(scl_any);
 };
 
 struct _scl_backtrace {
@@ -316,16 +315,15 @@ struct _scl_backtrace {
 	const scl_int8* func_name;
 };
 
-struct memory_layout {
+typedef struct {
+	scl_uint flags;
 	scl_int size;
-	scl_uint8 flags;
 	scl_int array_elem_size;
-};
+} memory_layout_t;
 
 #define MEM_FLAG_INSTANCE	0b00000001
 #define MEM_FLAG_ARRAY		0b00000010
 
-typedef struct memory_layout memory_layout_t;
 struct _scl_methodinfo {
 	const ID_t							pure_name;
 	const ID_t							signature;
@@ -376,7 +374,7 @@ struct scale_string {
 	memcpy(args, &args_, sizeof(struct _args_ ## at)); \
 	_scl_push(scl_any, cxx_async((x), args)); \
 })
-#define _scl_await(rtype) _scl_push(rtype, cxx_await(_scl_pop(scl_any)))
+#define _scl_await(rtype) (_scl_top(rtype) = cxx_await(_scl_top(scl_any)))
 #define _scl_await_void() cxx_await(_scl_pop(scl_any))
 
 #define 			EXCEPTION_HANDLER_MARKER \
@@ -387,6 +385,9 @@ struct scale_string {
 
 #define 			TRY \
 						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
+						if (setjmp(_scl_exception_handler.jmp) != 666)
+#define 			TRY_FINALLY(_then, _with) \
+						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .finalizer = _then, .finalization_data = _with }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
@@ -472,21 +473,50 @@ void				_scl_setup(void);
 
 #define				_scl_create_string(_data) ({ \
 							const scl_int8* _data_ = (scl_int8*) (_data); \
-							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
-							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
+							scl_str self = ALLOC(str); \
 							self->length = strlen((_data_)); \
-							self->data = _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
+							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
 							self->hash = type_id((_data_)); \
 							self; \
 						})
 
+#define STATIC_STRING(_data, _hash, _len) ({ \
+							extern const TypeInfo _scl_ti_str __asm("__Tstr"); \
+							static struct { memory_layout_t l; scl_int8 data[(_len)]; } str_data_ ## _hash = { \
+								.l = { \
+									.size = (_len), \
+									.array_elem_size = sizeof(scl_int8), \
+									.flags = MEM_FLAG_ARRAY \
+								}, \
+								.data = (_data) \
+							}; \
+							static struct { \
+								memory_layout_t layout; \
+								struct scale_string str; \
+							} str_ ## _hash = { \
+								.layout = { \
+									.flags = MEM_FLAG_INSTANCE, \
+									.size = sizeof(struct scale_string) \
+								}, \
+								.str = { \
+									.$statics = &_scl_ti_str, \
+									.data = (str_data_ ## _hash).data, \
+									.hash = (_hash), \
+									.length = (_len) \
+								} \
+							}; \
+							if (_scl_expect(!(str_ ## _hash).str.$fast, 0)) { \
+								*(_scl_vtable**) &(str_ ## _hash).str.$fast = _scl_ti_str.vtable; \
+							} \
+							&((str_ ## _hash).str); \
+						})
+
 #define				_scl_string_with_hash_len(_data, _hash, _len) ({ \
-							const scl_int8* _data_ = (scl_int8*) (_data); \
+							scl_int8* _data_ = (scl_int8*) (_data); \
 							scl_int _len_ = (scl_int) (_len); \
 							scl_int _hash_ = (scl_int) (_hash); \
-							extern const TypeInfo _scl_ti_str __asm("typeinfo for str"); \
-							scl_str self = (scl_str) _scl_alloc_struct(&_scl_ti_str); \
-							self->data = _scl_migrate_foreign_array(_data_, _len_, sizeof(scl_int8)); \
+							scl_str self = ALLOC(str); \
+							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, _len_, sizeof(scl_int8)); \
 							self->length = (_len_); \
 							self->hash = (_hash_); \
 							self; \
@@ -498,10 +528,11 @@ void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 
-const ID_t			type_id(const scl_int8* data);
+ID_t				type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(const TypeInfo* statics);
+scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 _scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
@@ -544,71 +575,49 @@ void				cxx_std_recursive_mutex_lock(scl_any* mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
-#define _scl_push(_type, _value) ({ \
-	*(_type*) &ls[ls_ptr] = (_value); \
-	ls_ptr++; \
-})
-#define _scl_pop(_type) ({ \
-	ls_ptr--; \
-	_type _tmp = *(_type*) &ls[ls_ptr]; \
-	_tmp; \
-})
-#define _scl_positive_offset(offset, _type)	(*(_type*) &ls[ls_ptr + (offset)])
-#define _scl_top(_type) (*(_type*) &ls[ls_ptr - 1])
-#define _scl_cast_stack(_to, _from) (_scl_top(_to) = (_to) _scl_top(_from))
-#define _scl_popn(n) ls_ptr -= (n)
+#define _scl_push(_type, _value)			((*(_type*) _local_stack_ptr) = (_value), _local_stack_ptr++)
+#define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)
+#define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + (offset)))
+#define _scl_top(_type)						(*(_type*) (_local_stack_ptr - 1))
+#define _scl_cast_stack(_to, _from)			(_scl_top(_to) = (_to) _scl_top(_from))
+#define _scl_popn(n)						(_local_stack_ptr -= (n))
+#define _scl_dup()							_scl_push(scl_any, _scl_top(scl_any))
+#define _scl_drop()							(--_local_stack_ptr)
 
-#define _scl_swap() \
-	({ \
-		scl_int tmp = ls[ls_ptr - 1]; \
-		ls[ls_ptr - 1] = ls[ls_ptr - 2]; \
-		ls[ls_ptr - 2] = tmp; \
+#define _scl_swap() ({ \
+		scl_int tmp = _local_stack_ptr[-1]; \
+		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
+		_local_stack_ptr[-2] = tmp; \
 	})
 
-#define _scl_dup() \
-	({ \
-		ls[ls_ptr] = ls[ls_ptr - 1]; \
-		ls_ptr++; \
+#define _scl_over() ({ \
+		scl_int tmp = _local_stack_ptr[-1]; \
+		_local_stack_ptr[-1] = _local_stack_ptr[-3]; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
-#define _scl_drop() \
-	({ \
-		ls_ptr--; \
+#define _scl_sdup2() ({ \
+		_local_stack_ptr[0] = _local_stack_ptr[-2]; \
 	})
 
-#define _scl_over() \
-	({ \
-		scl_int tmp = ls[ls_ptr - 1]; \
-		ls[ls_ptr - 1] = ls[ls_ptr - 3]; \
-		ls[ls_ptr - 3] = tmp; \
+#define _scl_swap2() ({ \
+		scl_int tmp = _local_stack_ptr[-2]; \
+		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
-#define _scl_sdup2() \
-	({ \
-		ls[ls_ptr] = ls[ls_ptr - 2]; \
+#define _scl_rot() ({ \
+		scl_int tmp = _local_stack_ptr[-3]; \
+		_local_stack_ptr[-3] = _local_stack_ptr[-2]; \
+		_local_stack_ptr[-2] = _local_stack_ptr[-1]; \
+		_local_stack_ptr[-1] = tmp; \
 	})
 
-#define _scl_swap2() \
-	({ \
-		scl_int tmp = ls[ls_ptr - 2]; \
-		ls[ls_ptr - 2] = ls[ls_ptr - 3]; \
-		ls[ls_ptr - 3] = tmp; \
-	})
-
-#define _scl_rot() \
-	({ \
-		scl_int tmp = ls[ls_ptr - 3]; \
-		ls[ls_ptr - 3] = ls[ls_ptr - 2]; \
-		ls[ls_ptr - 2] = ls[ls_ptr - 1]; \
-		ls[ls_ptr - 1] = tmp; \
-	})
-
-#define _scl_unrot() \
-	({ \
-		scl_int tmp = ls[ls_ptr - 1]; \
-		ls[ls_ptr - 1] = ls[ls_ptr - 2]; \
-		ls[ls_ptr - 2] = ls[ls_ptr - 3]; \
-		ls[ls_ptr - 3] = tmp; \
+#define _scl_unrot() ({ \
+		scl_int tmp = _local_stack_ptr[-1]; \
+		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
+		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
 #define _scl_add(a, b)			(a) + (b)

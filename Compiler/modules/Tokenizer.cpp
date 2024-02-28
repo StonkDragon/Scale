@@ -467,6 +467,7 @@ namespace sclc
     }
 
     FPResult Tokenizer::tokenize(std::string source) {
+        current = 0;
         FILE *fp;
 
         std::string data = "";
@@ -545,8 +546,6 @@ namespace sclc
         fclose(fp);
 
         this->source = (char*) data.c_str();
-
-        current = 0;
 
         token = nextToken();
         while (token.type != tok_eof) {

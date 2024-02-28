@@ -12,7 +12,7 @@ namespace sclc {
         safeInc();
         append("{\n");
         scopeDepth++;
-        append("scl_int begin_stack_size = ls_ptr;\n");
+        append("scl_uint64* begin_stack_size = _local_stack_ptr;\n");
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {
                 commas++;
@@ -112,7 +112,7 @@ namespace sclc {
                 if (typeStack.size() > stackSizeHere) {
                     std::string returns = typeStackTop;
                     append("scl_int return_value = _scl_pop(scl_int);\n");
-                    append("ls_ptr = begin_stack_size;\n");
+                    append("_local_stack_ptr = begin_stack_size;\n");
                     typeStack.erase(typeStack.begin() + stackSizeHere, typeStack.end());
                     append("_scl_push(scl_int, return_value);\n");
                     typeStack.push_back(returns);
