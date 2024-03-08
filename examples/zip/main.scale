@@ -1,20 +1,5 @@
-import std.util.Pair
-
-function zip(arr1: [int8], arr2: [int8]): [[int8]]
-    assert (arr1:size arr2:size ==)
-
-    new<int8>[arr1:size][2] => decl result: [[int8]]
-
-    for i in 0 to arr1:size do
-        arr1[i] => result[i][0]
-        arr2[i] => result[i][1]
-    done
-
-    result return
-end
-
 function main(): none
-    c"Hello" c"World" zip => decl result: [[int8]]
+    c"Hello" c"World":zip => decl result: [[int8]]
 
     foreach pair in result do
         pair as [any] puts
