@@ -18,67 +18,15 @@ namespace sclc {
                 }
             }
         }
-        if (body[i].value == "swap") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            typeStack.push_back(a);
-            typeStack.push_back(b);
-            append("_scl_swap();\n");
-        } else if (body[i].value == "dup") {
-            std::string a = typeStackTop;
-            typeStack.push_back(a);
-            append("_scl_dup();\n");
-        } else if (body[i].value == "drop") {
-            typePop;
-            append("_scl_drop();\n");
-        } else if (body[i].value == "over") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            std::string c = typeStackTop; typePop;
-            typeStack.push_back(a);
-            typeStack.push_back(b);
-            typeStack.push_back(c);
-            append("_scl_over();\n");
-        } else if (body[i].value == "sdup2") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            typeStack.push_back(b);
-            typeStack.push_back(a);
-            typeStack.push_back(b);
-            append("_scl_sdup2();\n");
-        } else if (body[i].value == "swap2") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            std::string c = typeStackTop; typePop;
-            typeStack.push_back(b);
-            typeStack.push_back(c);
-            typeStack.push_back(a);
-            append("_scl_swap2();\n");
-        } else if (body[i].value == "rot") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            std::string c = typeStackTop; typePop;
-            typeStack.push_back(b);
-            typeStack.push_back(a);
-            typeStack.push_back(c);
-            append("_scl_rot();\n");
-        } else if (body[i].value == "unrot") {
-            std::string a = typeStackTop; typePop;
-            std::string b = typeStackTop; typePop;
-            std::string c = typeStackTop; typePop;
-            typeStack.push_back(a);
-            typeStack.push_back(c);
-            typeStack.push_back(b);
-            append("_scl_unrot();\n");
-        } else if (body[i].value == "?") {
+        if (body[i].value == "?") {
             handle(ReturnOnNil);
         } else if (body[i].value == "exit") {
             append("exit(_scl_pop(scl_int));\n");
             typePop;
         } else if (body[i].value == "abort") {
             append("abort();\n");
-        } else if (body[i].value == "using") {
-            handle(Using);
+        } else if (body[i].value == "varargs") {
+            typeStack.push_back("<varargs>");
         } else if (body[i].value == "await") {
             std::string type = typeStackTop;
             if (!strstarts(type, "async<")) {
@@ -104,9 +52,9 @@ namespace sclc {
                 const Struct& s = getStructByName(result, type);
                 if (s != Struct::Null && !s.isStatic()) {
                     if (type.front() == '@') {
-                        append("_scl_push(scl_str, _scl_create_string(Var_%s.$statics->type_name));\n", body[i].value.c_str());
+                        append("_scl_push(scl_str, _scl_create_string(Var_%s.$type->type_name));\n", body[i].value.c_str());
                     } else {
-                        append("_scl_push(scl_str, _scl_create_string(Var_%s->$statics->type_name));\n", body[i].value.c_str());
+                        append("_scl_push(scl_str, _scl_create_string(Var_%s->$type->type_name));\n", body[i].value.c_str());
                     }
                 } else {
                     append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\")));\n", getVar(body[i].value).name.c_str(), retemplate(getVar(body[i].value).type).c_str());
@@ -126,7 +74,7 @@ namespace sclc {
                 }
                 const Struct& s = getStructByName(result, typeStackTop);
                 if (s != Struct::Null && !s.isStatic()) {
-                    append("_scl_top(scl_str) = _scl_create_string(_scl_top(scl_SclObject)->$statics->type_name);\n");
+                    append("_scl_top(scl_str) = _scl_create_string(_scl_top(scl_SclObject)->$type->type_name);\n");
                 } else {
                     append("_scl_top(scl_str) = _scl_create_string(_scl_typename_or_else(_scl_top(scl_any), \"%s\"));\n", retemplate(typeStackTop).c_str());
                 }
@@ -202,8 +150,6 @@ namespace sclc {
             pushTry();
         } else if (body[i].value == "catch") {
             handle(Catch);
-        } else if (body[i].value == "lambda") {
-            handle(Lambda);
         } else if (body[i].value == "unsafe") {
             isInUnsafe++;
             safeInc();
@@ -212,8 +158,6 @@ namespace sclc {
                 safeInc();
             }
             isInUnsafe--;
-        } else if (body[i].value == "pragma!") {
-            handle(Pragma);
         } else if (body[i].value == "assert") {
             const Token& assertToken = body[i];
             safeInc();
@@ -302,9 +246,9 @@ namespace sclc {
                     }
                 }
                 if (body[i].value == "new" && !s.isStatic()) {
-                    append("_scl_push(scl_any, ({\n");
-                    scopeDepth++;
                     std::string ctype = sclTypeToCType(result, s.name);
+                    append("_scl_push(%s, ({\n", ctype.c_str());
+                    scopeDepth++;
                     append("%s tmp = ALLOC(%s);\n", ctype.c_str(), s.name.c_str());
                     
                     typeStack.push_back(s.name);
@@ -317,7 +261,7 @@ namespace sclc {
                     scopeDepth--;
                     append("}));\n");
                 } else if (body[i].value == "default" && !s.isStatic()) {
-                    append("_scl_push(scl_any, ALLOC(%s));\n", s.name.c_str());
+                    append("_scl_push(%s, ALLOC(%s));\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
                     typeStack.push_back(s.name);
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
@@ -352,10 +296,10 @@ namespace sclc {
                 }
             } else if (body[i + 1].type == tok_curly_open) {
                 safeInc();
-                append("_scl_push(scl_any, ({\n");
+                append("_scl_push(%s, ({\n", sclTypeToCType(result, s.name).c_str());
                 scopeDepth++;
                 size_t begin = i - 1;
-                append("scl_%s tmp = ALLOC(%s);\n", s.name.c_str(), s.name.c_str());
+                append("%s tmp = ALLOC(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
                 append("scl_uint64* stack_start = _local_stack_ptr;\n");
                 safeInc();
                 size_t count = 0;
@@ -451,10 +395,10 @@ namespace sclc {
                 append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
                 typeStack.push_back(l.name);
             } else if (body[i].type == tok_curly_open) {
-                append("_scl_push(scl_any, ({\n");
+                append("_scl_push(%s, ({\n", sclTypeToCType(result, l.name).c_str());
                 scopeDepth++;
                 size_t begin = i - 1;
-                append("scl_%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", l.name.c_str(), l.name.c_str());
+                append("%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
                 append("scl_uint64* stack_start = _local_stack_ptr;\n");
                 safeInc();
                 size_t count = 0;

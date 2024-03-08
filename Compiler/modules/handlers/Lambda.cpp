@@ -102,7 +102,7 @@ namespace sclc {
             if (body[i].type == tok_end && lambdaDepth == 0) {
                 break;
             }
-            if (body[i].type == tok_identifier && body[i].value == "lambda") {
+            if (body[i].type == tok_lambda) {
                 if (((ssize_t) i) - 1 < 0) {
                     lambdaDepth++;
                 } else if (body[i - 1].type != tok_as && body[i - 1].type != tok_column && body[i - 1].type != tok_bracket_open) {

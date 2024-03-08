@@ -26,7 +26,7 @@ namespace sclc {
         append("{\n");
         scopeDepth++;
 
-        if (body[i].type == tok_identifier && body[i].value != "lambda") {
+        if (body[i].type == tok_identifier) {
             if (hasFunction(result, body[i].value)) {
                 i--;
                 handle(AddrRef);
@@ -104,7 +104,7 @@ namespace sclc {
                     append("%s executor = %s%s;\n", sclTypeToCType(result, lambdaType).c_str(), !isMember ? "" : "Var_self->", path.c_str());
                 });
             }
-        } else if (body[i].type == tok_identifier && body[i].value == "lambda") {
+        } else if (body[i].type == tok_lambda) {
             handle(Lambda);
             lambdaType = typeStackTop;
             typePop;

@@ -359,9 +359,12 @@ namespace sclc {
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
-            if (tokens[i].type == tok_identifier && tokens[i].value == "@") {
+            if (tokens[i].type == tok_addr_of) {
                 memberByValue = true;
                 i++;
+                if (tokens[i].type == tok_comma) {
+                    i++;
+                }
             }
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
@@ -402,6 +405,9 @@ namespace sclc {
                         errors.push_back(result);
                         i++;
                         continue;
+                    }
+                    if (type == "varargs" && name.size()) {
+                        method->addArgument(Variable(name + "$size", "const int"));
                     }
                     method->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
@@ -2089,7 +2095,7 @@ namespace sclc {
                     structs.push_back(*currentStruct);
                 }
                 currentStructs.pop_back();
-            } else if (token.type == tok_struct_def && (i == 0 || (i > 0 && (tokens[i - 1].type != tok_identifier || tokens[i - 1].value != "using")))) {
+            } else if (token.type == tok_struct_def && (i == 0 || tokens[i - 1].type != tok_using)) {
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2339,7 +2345,7 @@ namespace sclc {
                 if (std::find(layouts.begin(), layouts.end(), layout) == layouts.end()) {
                     layouts.push_back(layout);
                 }
-            } else if (token.type == tok_identifier && token.value == "using" && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
+            } else if (token.type == tok_using && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
                 if (usingStructs.find(token.location.file) == usingStructs.end()) {
                     usingStructs[token.location.file] = std::vector<std::string>();
                 }
@@ -2500,8 +2506,7 @@ namespace sclc {
                 }
             } else if (currentFunction != nullptr) {
                 if (
-                    token.type == tok_identifier &&
-                    token.value == "lambda" &&
+                    token.type == tok_lambda &&
                     (((ssize_t) i) - 3 >= 0 && tokens[i - 3].type != tok_declare) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_column) &&
@@ -2749,7 +2754,7 @@ namespace sclc {
                             warns.push_back(result);
                             i++;
                         }
-                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].type == tok_lambda) {
                             i++;
                         }
                         
@@ -2781,7 +2786,7 @@ namespace sclc {
                             warns.push_back(result);
                             i++;
                         }
-                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].type == tok_lambda) {
                             i++;
                         }
 

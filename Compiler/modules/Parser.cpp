@@ -32,7 +32,7 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file) {
+    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
@@ -156,100 +156,6 @@ namespace sclc
 
         t.writeFunctions(header_file);
 
-        std::ofstream func(func_file, std::ios::out);
-        fp.flush();
-        func << fp.str();
-        fp = std::ostringstream();
-
-        if (structTree) {
-            append("#include \"%s\"\n", header_file.c_str());
-            structTree->forEach([&fp](StructTreeNode* node) {
-                append("\n");
-                const Struct& s = node->s;
-                if (s.isStatic() || s.isExtern() || s.templateInstance) {
-                    return;
-                }
-                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = s.name_token.location.file;
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                        return;
-                    }
-                }
-                auto vtable = vtables.find(s.name);
-                if (vtable == vtables.end()) {
-                    return;
-                }
-                append("static const _scl_methodinfo_t _scl_vtable_info_%s = {\n", vtable->first.c_str());
-                scopeDepth++;
-                append(".layout = {\n");
-                scopeDepth++;
-                append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
-                append(".flags = MEM_FLAG_ARRAY,\n");
-                append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
-                scopeDepth--;
-                append("},\n");
-                append(".infos = {\n");
-                scopeDepth++;
-
-                for (auto&& m : vtable->second) {
-                    std::string signature = argsToRTSignature(m);
-                    std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
-                    append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
-                    scopeDepth++;
-                    append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
-                    append(".signature = 0x%lxUL, // %s\n", id(signature.c_str()), signature.c_str());
-                    scopeDepth--;
-                    append("},\n");
-                }
-                append("{0}\n");
-                scopeDepth--;
-                append("}\n");
-                scopeDepth--;
-                append("};\n");
-                append("static const _scl_vtable _scl_vtable_%s = {\n", vtable->first.c_str());
-                scopeDepth++;
-                append(".layout = {\n");
-                scopeDepth++;
-                append(".size = %zu * sizeof(_scl_lambda),\n", vtable->second.size());
-                append(".flags = MEM_FLAG_ARRAY,\n");
-                append(".array_elem_size = sizeof(_scl_lambda)\n");
-                scopeDepth--;
-                append("},\n");
-                append(".funcs = {\n");
-                for (auto&& m : vtable->second) {
-                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
-                }
-                append("0\n");
-                scopeDepth--;
-                append("}\n");
-                scopeDepth--;
-                append("};\n");
-
-                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
-                scopeDepth++;
-                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
-                append(".type_name = \"%s\",\n", s.name.c_str());
-                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
-                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
-                if (s.super.size()) {
-                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
-                } else {
-                    append(".super = 0,\n");
-                }
-                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
-                scopeDepth--;
-                append("};\n");
-            });
-
-            std::ofstream rt(rt_file, std::ios::out);
-            fp.flush();
-            rt << fp.str();
-        }
-
-        fp = std::ostringstream();
-        append("#include \"%s\"\n\n", header_file.c_str());
-
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
@@ -307,9 +213,86 @@ namespace sclc
             append("}\n");
         }
 
-        std::ofstream main(main_file, std::ios::out);
+        std::ofstream func(func_file, std::ios::out);
         fp.flush();
-        main << fp.str();
+        func << fp.str();
+        fp = std::ostringstream();
+
+        if (structTree) {
+            append("#include \"%s\"\n", header_file.c_str());
+            structTree->forEach([&fp](StructTreeNode* node) {
+                append("\n");
+                const Struct& s = node->s;
+                if (s.isStatic() || s.isExtern() || s.templateInstance) {
+                    return;
+                }
+                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = s.name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
+                        return;
+                    }
+                }
+                auto vtable = vtables.find(s.name);
+                if (vtable == vtables.end()) {
+                    return;
+                }
+                append("static const _scl_methodinfo_t _scl_vtable_info_%s = {\n", vtable->first.c_str());
+                scopeDepth++;
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
+                append(".flags = MEM_FLAG_ARRAY,\n");
+                append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".infos = {\n");
+                scopeDepth++;
+
+                for (auto&& m : vtable->second) {
+                    std::string signature = argsToRTSignature(m);
+                    std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
+                    append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
+                    scopeDepth++;
+                    append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
+                    append(".signature = 0x%lxUL, // %s\n", id(signature.c_str()), signature.c_str());
+                    scopeDepth--;
+                    append("},\n");
+                }
+                append("{0}\n");
+                scopeDepth--;
+                append("}\n");
+                scopeDepth--;
+                append("};\n");
+
+                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                scopeDepth++;
+                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
+                append(".type_name = \"%s\",\n", s.name.c_str());
+                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
+                // append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
+                if (s.super.size()) {
+                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                } else {
+                    append(".super = 0,\n");
+                }
+                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
+                append(".vtable = {\n");
+                scopeDepth++;
+                for (auto&& m : vtable->second) {
+                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
+                }
+                append("0\n");
+                scopeDepth--;
+                append("}\n");
+                scopeDepth--;
+                append("};\n");
+            });
+
+            std::ofstream rt(rt_file, std::ios::out);
+            fp.flush();
+            rt << fp.str();
+        }
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

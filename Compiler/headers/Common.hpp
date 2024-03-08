@@ -90,7 +90,7 @@ namespace sclc {
     public:
         Parser(TPResult& result);
         ~Parser() {}
-        FPResult parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file);
+        FPResult parse(std::string func_file, std::string rt_file, std::string header_file);
         TPResult& getResult();
     };
 
@@ -302,7 +302,7 @@ namespace sclc {
         return -1;
     }
 
-    static inline ID_t ror(const ID_t value, ID_t shift) {
+    static inline constexpr ID_t ror(const ID_t value, ID_t shift) {
         return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
 
@@ -319,7 +319,16 @@ namespace sclc {
         static StructTreeNode* fromArrayOfStructs(TPResult& result);
     };
 
-    ID_t id(const char* data);
+    static constexpr ID_t id(const char data[]) {
+        if (data[0] == 0) return 0;
+        ID_t h = 3323198485UL;
+        for (size_t i = 0; data[i]; i++) {
+            h ^= data[i];
+            h *= 0x5BD1E995;
+            h ^= h >> 15;
+        }
+        return h;
+    }
 }
 
 #endif // COMMON_H

@@ -80,6 +80,10 @@ namespace sclc {
         std::pair(tok_bracket_open, handlerRef(BracketOpen)),
         std::pair(tok_paren_open, handlerRef(ParenOpen)),
         std::pair(tok_addr_of, handlerRef(Identifier)),
+        std::pair(tok_stack_op, handlerRef(StackOp)),
+        std::pair(tok_using, handlerRef(Using)),
+        std::pair(tok_lambda, handlerRef(Lambda)),
+        std::pair(tok_pragma, handlerRef(Pragma)),
     };
 
     Function* currentFunction = nullptr;
@@ -446,13 +450,11 @@ namespace sclc {
                 Struct c = currentNode->s;
                 if (c.isStatic() || c.templateInstance) return;
                 append("struct Struct_%s {\n", c.name.c_str());
-                append("  const _scl_lambda* const $fast;\n");
-                append("  const TypeInfo* $statics;\n");
+                append("  const TypeInfo* $type;\n");
                 append("  scl_any $mutex;\n");
                 
                 fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
-                fprintf(scale_header, "  const _scl_lambda* const $fast;\n");
-                fprintf(scale_header, "  const TypeInfo* $statics;\n");
+                fprintf(scale_header, "  const TypeInfo* $type;\n");
                 fprintf(scale_header, "  scl_any $mutex;\n");
                 
                 for (Variable& s : c.members) {

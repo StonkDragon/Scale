@@ -1097,17 +1097,18 @@ namespace sclc
             }
             cflags.push_back(s);
         }
+
+        std::string code_file = "scl_code.c";
+        std::string types_file = "scl_types.c";
+        std::string headers_file = "scl_headers.h";
         
-        std::string source = "out.c";
         FPResult parseResult = Main::parser->parse(
-            "scl_out.c",
-            "scl_rt.c",
-            "scl_head.h",
-            "scl_main.c"
+            code_file,
+            types_file,
+            headers_file
         );
-        cflags.push_back("scl_out.c");
-        cflags.push_back("scl_rt.c");
-        cflags.push_back("scl_main.c");
+        cflags.push_back(code_file);
+        cflags.push_back(types_file);
         
         logWarns(parseResult.warns);
         logErrors(parseResult.errors);
@@ -1186,11 +1187,10 @@ namespace sclc
             }
         }
 
-        remove("scl_out.c");
-        remove("scl_rt.c");
-        remove("scl_head.h");
-        remove("scl_main.c");
-        remove("scale_interop.h");
+        std::remove(headers_file.c_str());
+        std::remove(code_file.c_str());
+        std::remove(types_file.c_str());
+        std::remove("scale_interop.h");
 
         if (Main::options::debugBuild) {
             auto end = clock::now();

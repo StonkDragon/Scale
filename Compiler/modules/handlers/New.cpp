@@ -70,7 +70,7 @@ namespace sclc {
             }
             scopeDepth--;
             append("}\n");
-            append("_scl_push(scl_any, arr);\n");
+            append("_scl_push(%s*, arr);\n", sclTypeToCType(result, typeString).c_str());
 
             scopeDepth--;
             append("}\n");

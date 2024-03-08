@@ -445,38 +445,39 @@ namespace sclc
             }
             (*i)++;
         }
-        if (body[*i].type == tok_identifier) {
-            r.value = type_mods + body[*i].value;
-            if (body[*i].value == "lambda") {
-                if (body[*i + 1].type == tok_paren_open) {
+        if (body[*i].type == tok_lambda) {
+            r.value = type_mods + "lambda";
+            if (body[*i + 1].type == tok_paren_open) {
+                (*i)++;
+                r.value += "(";
+                int count = 0;
+                if (body[*i].type == tok_paren_open) {
                     (*i)++;
-                    r.value += "(";
-                    int count = 0;
-                    if (body[*i].type == tok_paren_open) {
-                        (*i)++;
-                        while (body[*i].type != tok_paren_close) {
-                            FPResult tmp = parseType(body, i);
-                            if (!tmp.success) return tmp;
-                            (*i)++;
-                            if (body[*i].type == tok_comma) {
-                                (*i)++;
-                            }
-                            count++;
-                        }
-                        (*i)++;
-                    }
-                    r.value += std::to_string(count) + ")";
-                    if (body[*i].type == tok_column) {
-                        (*i)++;
+                    while (body[*i].type != tok_paren_close) {
                         FPResult tmp = parseType(body, i);
                         if (!tmp.success) return tmp;
-                        r.value += ":" + tmp.value;
-                    } else {
-                        (*i)--;
-                        r.value += ":none";
+                        (*i)++;
+                        if (body[*i].type == tok_comma) {
+                            (*i)++;
+                        }
+                        count++;
                     }
+                    (*i)++;
                 }
-            } else if (body[*i].value == "async") {
+                r.value += std::to_string(count) + ")";
+                if (body[*i].type == tok_column) {
+                    (*i)++;
+                    FPResult tmp = parseType(body, i);
+                    if (!tmp.success) return tmp;
+                    r.value += ":" + tmp.value;
+                } else {
+                    (*i)--;
+                    r.value += ":none";
+                }
+            }
+        } else if (body[*i].type == tok_identifier) {
+            r.value = type_mods + body[*i].value;
+            if (body[*i].value == "async") {
                 (*i)++;
                 if (r.type != tok_identifier || body[*i].value != "<") {
                     r.success = false;
@@ -809,22 +810,11 @@ namespace sclc
 
     bool isPrimitiveType(std::string s, bool rem) {
         if (rem) s = removeTypeModifiers(s);
-        return isPrimitiveIntegerType(s, rem) || s == "float" || s == "any" || s == "bool";
+        return isPrimitiveIntegerType(s, rem) || s == "float" || s == "float32" || s == "any" || s == "bool";
     }
 
     bool featureEnabled(std::string feat) {
         return contains<std::string>(Main::options::features, feat);
-    }
-
-    ID_t id(const char* data) {
-        if (strlen(data) == 0) return 0;
-        ID_t h = 3323198485UL;
-        for (;*data;++data) {
-            h ^= *data;
-            h *= 0x5BD1E995;
-            h ^= h >> 15;
-        }
-        return h;
     }
 
     std::string& operator*(std::string& toRepeat, const size_t count) {
@@ -887,6 +877,7 @@ namespace sclc
                     safeInc();
                 }
                 s = getStructByName(result, currentType);
+                std::string containingType = currentType;
                 bool useLayout = false;
                 if (s == Struct::Null) {
                     l = getLayout(result, currentType);
@@ -951,11 +942,16 @@ namespace sclc
                         f = attributeMutator(result, s.name, v.name);
                     }
                     if (f) {
+                        if (containingType.front() == '@' && f->args.back().type.front() != '@') {
+                            path = "&" + path;
+                        } else if (containingType.front() != '@' && f->args.back().type.front() == '@') {
+                            path = "*" + path;
+                        }
                         if (mutate) {
                             path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
                             std::vector<Function*> funcs;
                             for (auto&& f : result.functions) {
-                                if ((f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"))) {
+                                if (f->name_without_overload == v.type + "$operator$store") {
                                     funcs.push_back(f);
                                 }
                             }
@@ -970,11 +966,11 @@ namespace sclc
                                 ) {
                                     continue;
                                 }
-                                path += "fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                                path += "fn_" + f->name + "(tmp)";
                                 funcFound = true;
                             }
                             if (!funcFound) {
-                                path += "_scl_pop(" + sclTypeToCType(result, currentType) + ")";
+                                path += "tmp";
                             }
                             path += ")";
                             onComplete(path, currentType);
@@ -1056,7 +1052,7 @@ namespace sclc
                         path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
-                            if ((f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$"))) {
+                            if (f->name_without_overload == v.type + "$operator$store") {
                                 funcs.push_back(f);
                             }
                         }
@@ -1072,11 +1068,11 @@ namespace sclc
                             ) {
                                 continue;
                             }
-                            path += "fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                            path += "fn_" + f->name + "(tmp)";
                             funcFound = true;
                         }
                         if (!funcFound) {
-                            path += "_scl_pop(" + sclTypeToCType(result, currentType) + ")";
+                            path += "tmp";
                         }
                         path += ")";
                         onComplete(path, currentType);
@@ -1090,7 +1086,7 @@ namespace sclc
         if (doesWriteAfter) {
             std::vector<Function*> funcs;
             for (auto&& f : result.functions) {
-                if (f->name == v.type + "$operator$store" || strstarts(f->name, v.type + "$operator$store$")) {
+                if (f->name_without_overload == v.type + "$operator$store") {
                     funcs.push_back(f);
                 }
             }
@@ -1105,11 +1101,11 @@ namespace sclc
                 ) {
                     continue;
                 }
-                path += " = fn_" + f->name + "(_scl_pop(" + sclTypeToCType(result, f->args[0].type) + "))";
+                path += " = fn_" + f->name + "(tmp)";
                 funcFound = true;
             }
             if (!funcFound) {
-                path += " = _scl_pop(" + sclTypeToCType(result, currentType) + ")";
+                path += " = tmp";
             }
         }
         

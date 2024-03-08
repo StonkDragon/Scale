@@ -11,7 +11,7 @@ namespace sclc {
             transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
             errors.push_back(err);
         }
-        append("goto %s;\n", body[i].value.c_str());
+        append("goto $lbl%s;\n", body[i].value.c_str());
     }
 } // namespace sclc
 

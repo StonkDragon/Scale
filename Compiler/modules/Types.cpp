@@ -244,7 +244,7 @@ namespace sclc {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
-        if (arg == "any" || arg == "[any]" || (argIsNilable && arg != "float" && (stack == "any" || stack == "[any]"))) {
+        if (arg == "any" || arg == "[any]" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
             return true;
         }
 
@@ -374,12 +374,23 @@ namespace sclc {
         if (t == "none") return "void";
         if (t == "nothing") return "_scl_no_return void";
         if (t == "int") return "scl_int";
+        if (t == "int8") return "scl_int8";
+        if (t == "int16") return "scl_int16";
+        if (t == "int32") return "scl_int32";
+        if (t == "int64") return "scl_int64";
         if (t == "uint") return "scl_uint";
+        if (t == "uint8") return "scl_uint8";
+        if (t == "uint16") return "scl_uint16";
+        if (t == "uint32") return "scl_uint32";
+        if (t == "uint64") return "scl_uint64";
         if (t == "float") return "scl_float";
         if (t == "bool") return "scl_bool";
         if (t == "varargs") return "...";
         if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
+                if (t == "str") {
+                    return "struct scale_string";
+                }
                 return "struct Struct_" + t;
             }
             return "scl_" + t;

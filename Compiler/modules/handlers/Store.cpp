@@ -129,7 +129,7 @@ namespace sclc {
             
             std::vector<Function*> funcs;
             for (auto&& f : result.functions) {
-                if (f->name == type + "$operator$store" || strstarts(f->name, type + "$operator$store$")) {
+                if (f->name_without_overload == v.type + "$operator$store") {
                     funcs.push_back(f);
                 }
             }
@@ -138,7 +138,7 @@ namespace sclc {
                 if (
                     f->isMethod ||
                     f->args.size() != 1 ||
-                    f->return_type != type ||
+                    f->return_type != v.type ||
                     !typesCompatible(result, typeStackTop, f->args[0].type, true)
                 ) {
                     continue;
@@ -148,16 +148,22 @@ namespace sclc {
             }
             #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
             if (!v.canBeNil && !TYPEALIAS_CAN_BE_NIL(result, v.type)) {
-                append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
+                if (v.type.front() == '@' && typeStackTop.front() != '@') {
+                    append("SCL_ASSUME(_scl_top(scl_int), \"Tried dereferencing nil pointer!\");\n");
+                } else {
+                    append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
+                }
             }
-            if (doCheckTypes && !typesCompatible(result, typeStackTop, type, true)) {
-                transpilerError("Incompatible types: '" + type + "' and '" + typeStackTop + "'", i);
+            if (doCheckTypes && !typesCompatible(result, typeStackTop, v.type, true)) {
+                transpilerError("Incompatible types: '" + v.type + "' and '" + typeStackTop + "'", i);
                 errors.push_back(err);
             }
-            if (type.front() == '@') {
-                append("%s Var_%s = *_scl_pop(%s*);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
+            std::string ctype = sclTypeToCType(result, v.type);
+            append("%s Var_%s = ", ctype.c_str(), v.name.c_str());
+            if (v.type.front() == '@' && typeStackTop.front() != '@') {
+                append2("*_scl_pop(%s*);\n", ctype.c_str());
             } else {
-                append("%s Var_%s = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), v.name.c_str(), sclTypeToCType(result, type).c_str());
+                append2("_scl_pop(%s);\n", ctype.c_str());
             }
             typePop;
         } else {
@@ -264,6 +270,8 @@ namespace sclc {
                 return;
             }
 
+            append("{\n");
+            scopeDepth++;
             makePath(result, v, topLevelDeref, body, i, errors, true, function, warns, fp, [&](auto path, auto currentType) {
                 if (doCheckTypes && !typesCompatible(result, typeStackTop, currentType, true)) {
                     transpilerError("Incompatible types: '" + currentType + "' and '" + typeStackTop + "'", i);
@@ -272,9 +280,12 @@ namespace sclc {
                 if (!typeCanBeNil(currentType) && !TYPEALIAS_CAN_BE_NIL(result, currentType)) {
                     append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%%s'!\", \"%s\");\n", v.name.c_str());
                 }
+                append("%s tmp = _scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, typeStackTop).c_str());
                 append("%s;\n", path.c_str());
                 typePop;
             });
+            scopeDepth--;
+            append("}\n");
         }
     }
 } // namespace sclc
