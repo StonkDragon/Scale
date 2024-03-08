@@ -4,14 +4,14 @@
 # Variadic functions are functions that can take a variable number of arguments.
 
 # The variadic function is declared with the varargs type.
-function variadicTest(args: varargs): none
+function variadicTest(msg: str, args: varargs): none
+    msg puts
     args:size puts
     args:toString puts
 end
 
 function main(): none
-    # The number of variadic arguments must be specified
-    # after a '!' after the function name.
-    # This must be a constant.
-    "a" "b" "c" variadicTest! 3
+    # All variadic arguments must be put after a 'varargs' statement
+    # This way the compiler can infer the amount of arguments without explicitly specifying it
+    "The alphabet starts with: " varargs "a" "b" "c" variadicTest
 end
