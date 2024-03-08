@@ -132,12 +132,6 @@ int main(int argc, char const *argv[]) {
     std::string path = SCL_ROOT_DIR "/Scale/" STR(VERSION);
     std::string binary = "sclc";
 
-    std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::remove("/usr/local/bin/sclc");
-    std::filesystem::remove("/usr/local/bin/scaledoc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
-    
     std::filesystem::remove_all("/opt/Scale/latest");
     std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
 
@@ -299,6 +293,12 @@ int main(int argc, char const *argv[]) {
     exec_command(library);
 
     exec_command(create_command<std::string>(link_command));
+
+    std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::remove("/usr/local/bin/sclc");
+    std::filesystem::remove("/usr/local/bin/scaledoc");
+    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
+    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
 
     std::string macro_library = create_command<std::string>({
         "sclc",
