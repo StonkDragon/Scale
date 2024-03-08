@@ -278,6 +278,7 @@ static struct List
     CreateListOperations! uint64
     CreateListOperations! uint
     CreateListOperations! float
+    CreateListOperations! float32
     CreateListOperations! any
 
     delmacro! CreateListOperations

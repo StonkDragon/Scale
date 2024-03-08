@@ -87,7 +87,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       self:size:toString +
       IndexOutOfBoundsException::new throw
     fi
-    self.data as int i + @:toInt8 as int return
+    self.data[i] return
   end
 
   function indexOf(c: int8): int

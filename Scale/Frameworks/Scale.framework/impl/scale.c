@@ -1,8 +1,7 @@
 #include <scale_runtime.h>
 
 typedef struct Struct {
-	_scl_lambda*	vtable;
-	TypeInfo*		statics;
+	TypeInfo*		type;
 	scl_any			mutex;
 } Struct;
 
@@ -123,7 +122,6 @@ scl_str* Process$stackTrace(void) {
 		iteration_direction = -1;
 	}
 
-	;
 	scl_str* arr = _scl_new_array_by_size(count_trace_frames(stack_bottom, stack_top, iteration_direction), sizeof(scl_str));
 
 	scl_int i = 0;
@@ -149,6 +147,16 @@ scl_str* Process$stackTrace(void) {
 	_scl_free(arr);
 
 	return real;
+}
+
+scl_str strformat(scl_str fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	scl_int len = vsnprintf(NULL, 0, fmt->data, ap);
+	scl_int8* msg = _scl_alloc(len);
+	vsnprintf(msg, len, fmt->data, ap);
+	va_end(ap);
+	return _scl_create_string(msg);
 }
 
 scl_bool Process$gcEnabled(void) {

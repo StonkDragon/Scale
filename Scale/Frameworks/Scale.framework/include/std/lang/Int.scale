@@ -261,6 +261,13 @@ expect foreign operator "ge" function >=(:float32, :float): bool
 expect foreign operator "lt" function <(:float32, :float): bool
 expect foreign operator "le" function <=(:float32, :float): bool
 
+expect foreign operator "eq" function ==(:float32, :float32): bool
+expect foreign operator "ne" function !=(:float32, :float32): bool
+expect foreign operator "gt" function >(:float32, :float32): bool
+expect foreign operator "ge" function >=(:float32, :float32): bool
+expect foreign operator "lt" function <(:float32, :float32): bool
+expect foreign operator "le" function <=(:float32, :float32): bool
+
 expect foreign operator "eq" function ==(:int, :float32): bool
 expect foreign operator "ne" function !=(:int, :float32): bool
 expect foreign operator "gt" function >(:int, :float32): bool
@@ -277,6 +284,10 @@ expect foreign operator "le" function <=(:float32, :int): bool
 
 expect foreign operator "eq" function ==(:any, :any): bool
 expect foreign operator "ne" function !=(:any, :any): bool
+expect foreign operator "gt" function >(:any, :any): bool
+expect foreign operator "ge" function >=(:any, :any): bool
+expect foreign operator "lt" function <(:any, :any): bool
+expect foreign operator "le" function <=(:any, :any): bool
 
 expect foreign operator "and" function &&(:int, :int): bool
 expect foreign operator "or" function ||(:int, :int): bool
